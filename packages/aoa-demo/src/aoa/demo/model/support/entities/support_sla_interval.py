@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.support.entities.support_participant_row import SupportParticipantEntity
+from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @entity(description="SLA interval chaining from participant row", domain=SupportDomain)
-class SupportSlaIntervalEntity(BaseEntity):
+class SupportSlaIntervalCoreEntity(BaseCoreEntity):
     id: str = Field(description="Interval id")
     lifecycle: SupportSparseLifecycle = Field(description="SLA interval lifecycle")
 
@@ -24,11 +24,11 @@ class SupportSlaIntervalEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     participant: Annotated[
-        AssociationOne[SupportParticipantEntity],
+        AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream participant linkage"
     )  # type: ignore[assignment]
 
 
-SupportSlaIntervalEntity.model_rebuild()
+SupportSlaIntervalCoreEntity.model_rebuild()

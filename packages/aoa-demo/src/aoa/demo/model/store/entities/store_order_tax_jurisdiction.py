@@ -5,17 +5,17 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Jurisdiction snapshot", domain=StoreDomain)
-class OrderTaxJurisdictionSnapshotEntity(BaseEntity):
-    id: str = Field(description="OrderTaxJurisdictionSnapshotEntity id")
-    lifecycle: SalesOrderLifecycle = Field(description="OrderTaxJurisdictionSnapshotEntity lifecycle")
+class OrderTaxJurisdictionSnapshotCoreEntity(BaseCoreEntity):
+    id: str = Field(description="OrderTaxJurisdictionSnapshotCoreEntity id")
+    lifecycle: SalesOrderLifecycle = Field(description="OrderTaxJurisdictionSnapshotCoreEntity lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
@@ -24,11 +24,11 @@ class OrderTaxJurisdictionSnapshotEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent sales order anchor"
     )  # type: ignore[assignment]
 
 
-OrderTaxJurisdictionSnapshotEntity.model_rebuild()
+OrderTaxJurisdictionSnapshotCoreEntity.model_rebuild()

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketEntity
+from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
 
 
 @entity(description="Throttle lease chaining from replay facilitation row", domain=MessagingDomain)
-class ThrottleLeaseEntity(BaseEntity):
+class ThrottleLeaseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Lease id")
     lifecycle: MsgDenseLifecycle = Field(description="Throttle lifecycle")
 
@@ -24,11 +24,11 @@ class ThrottleLeaseEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     replay_ticket: Annotated[
-        AssociationOne[ReplayTicketEntity],
+        AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream replay ticket"
     )  # type: ignore[assignment]
 
 
-ThrottleLeaseEntity.model_rebuild()
+ThrottleLeaseCoreEntity.model_rebuild()

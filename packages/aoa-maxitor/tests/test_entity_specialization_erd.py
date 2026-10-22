@@ -106,7 +106,7 @@ def _payload() -> dict[str, Any]:
             for entity in (HEAD,)
         ),
         *(
-            {"id": entity, "type": "Entity", "label": entity.split(".")[-1], "properties": {"description": entity}}
+            {"id": entity, "type": "Entity", "label": entity.split(".")[-1], "properties": {"description": entity, "entity_kind": "core"}}
             for entity in entities
         ),
     ]

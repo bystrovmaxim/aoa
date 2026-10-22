@@ -2,9 +2,9 @@
 """Core bounded-context markers and entities for the Maxitor model layer."""
 
 from aoa.maxitor.model.core.core_domain import CoreDomain
-from aoa.maxitor.model.core.entities import NodeEntity
+from aoa.maxitor.model.core.entities import NodeCoreEntity
 
 __all__ = [
     "CoreDomain",
-    "NodeEntity",
+    "NodeCoreEntity",
 ]

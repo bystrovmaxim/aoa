@@ -7,7 +7,7 @@ entities under ``entities``, ``PaymentGateway`` (also used from ``store``).
 """
 
 from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.billing.entities import PaymentEventLogEntity
+from aoa.demo.model.billing.entities import PaymentEventLogCoreEntity
 from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway
 
-__all__ = ["BillingDomain", "PaymentEventLogEntity", "PaymentGateway"]
+__all__ = ["BillingDomain", "PaymentEventLogCoreEntity", "PaymentGateway"]

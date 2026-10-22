@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 
 
 @entity(description="Sterile tray / carton profile for inbound lots", domain=ClinicalSupplyDomain)
-class ClinicalPackingAnchorEntity(BaseEntity):
+class ClinicalPackingAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Packing profile id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Packing catalog lifecycle")
 
@@ -22,4 +22,4 @@ class ClinicalPackingAnchorEntity(BaseEntity):
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
 
 
-ClinicalPackingAnchorEntity.model_rebuild()
+ClinicalPackingAnchorCoreEntity.model_rebuild()

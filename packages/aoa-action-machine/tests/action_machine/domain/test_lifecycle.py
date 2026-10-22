@@ -29,8 +29,8 @@ Coordinator-level lifecycle integrity validation is tested elsewhere.
 import pytest
 from pydantic import Field
 
+from aoa.action_machine.domain import BaseStateEntity
 from aoa.action_machine.domain.lifecycle import InvalidStateError, InvalidTransitionError, Lifecycle, StateType
-from aoa.action_machine.domain.state_entity import BaseStateEntity
 
 
 class AxisStateEntity(BaseStateEntity):

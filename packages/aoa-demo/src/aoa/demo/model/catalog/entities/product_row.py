@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_product_lifecycle import CatalogProductLifecycle
 
 
 @entity(description="Sellable SKU in the sample catalog", domain=CatalogDomain)
-class CatalogProductEntity(BaseEntity):
+class CatalogProductCoreEntity(BaseCoreEntity):
     id: str = Field(description="Product row id")
     lifecycle: CatalogProductLifecycle = Field(description="Catalog product lifecycle")
     sku: str = Field(description="Stock keeping unit")

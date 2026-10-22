@@ -18,8 +18,8 @@ from aoa.action_machine.graph.nodes.field_graph_node import FieldGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.demo.model.entity_projection_demo.actions.order_wire_preview import ProjectionDemoOrderWirePreviewAction
 from aoa.demo.model.entity_projection_demo.entities.projection_demo_core import (
-    ProjectionDemoCustomerEntity,
-    ProjectionDemoOrderEntity,
+    ProjectionDemoCustomerCoreEntity,
+    ProjectionDemoOrderCoreEntity,
 )
 from aoa.demo.model.interchange_demo_coordinator import (
     build_registered_interchange_coordinator,
@@ -76,14 +76,14 @@ def test_coordinator_contains_demo_action_and_entities() -> None:
     assert action_ids
 
     entity_ids = {n.node_id for n in nodes if isinstance(n, EntityGraphNode)}
-    assert TypeIntrospection.full_qualname(ProjectionDemoCustomerEntity) in entity_ids
-    assert TypeIntrospection.full_qualname(ProjectionDemoOrderEntity) in entity_ids
+    assert TypeIntrospection.full_qualname(ProjectionDemoCustomerCoreEntity) in entity_ids
+    assert TypeIntrospection.full_qualname(ProjectionDemoOrderCoreEntity) in entity_ids
 
 
 def test_result_schema_field_has_entity_schema_to_order_entity() -> None:
     coord = _coordinator_after_samples()
     result_id = TypeIntrospection.full_qualname(ProjectionDemoOrderWirePreviewAction.Result)
-    order_entity_id = TypeIntrospection.full_qualname(ProjectionDemoOrderEntity)
+    order_entity_id = TypeIntrospection.full_qualname(ProjectionDemoOrderCoreEntity)
 
     result_nodes = [n for n in coord.get_all_nodes() if n.node_id == result_id]
     assert len(result_nodes) == 1

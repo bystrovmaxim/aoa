@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
-from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketEntity
+from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
+from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
 
 
 @entity(description="Correlate row wiring dispute artefacts to ingestion manifests", domain=BillingDomain)
-class BillingChargebackIngestCorrelateEntity(BaseEntity):
+class BillingChargebackIngestCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")
 
@@ -22,14 +22,14 @@ class BillingChargebackIngestCorrelateEntity(BaseEntity):
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     posting_timezone: str = Field(description="Business-calendar timezone identifier")
     dispute: Annotated[
-        AssociationOne[ChargebackTicketEntity],
+        AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Dispute ticket anchor"
     )  # type: ignore[assignment]
 
     ingest_manifest: Annotated[
-        AssociationOne[BillingFileIngestManifestEntity],
+        AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Ingest workload anchor"
@@ -40,4 +40,4 @@ class BillingChargebackIngestCorrelateEntity(BaseEntity):
     linkage_batch_id: str = Field(description="Batch id for pairwise correlator run")
 
 
-BillingChargebackIngestCorrelateEntity.model_rebuild()
+BillingChargebackIngestCorrelateCoreEntity.model_rebuild()

@@ -19,8 +19,8 @@ extension names both.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Disambiguate multi-edge graphs (e.g. two ``AssociationMany[OrderEntity]`` fields
-on ``CustomerEntity``) with an explicit **inverse** pointer, require a **non-empty
+Disambiguate multi-edge graphs (e.g. two ``AssociationMany[OrderCoreEntity]`` fields
+on ``CustomerCoreEntity``) with an explicit **inverse** pointer, require a **non-empty
 relation description** on every declared edge, and support truly one-way links
 via ``NoInverse``.
 
@@ -45,7 +45,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    Annotated[AssociationOne[CustomerEntity], Inverse(CustomerEntity, "orders")]
+    Annotated[AssociationOne[CustomerCoreEntity], Inverse(CustomerCoreEntity, "orders")]
         │
         │  class default
         v

@@ -25,17 +25,18 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
     )
 
 from pydantic import Field
-from aoa.action_machine.domain import BaseEntity
+
+from aoa.action_machine.domain import BaseCoreEntity
 
 
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     """Hold the current lifecycle value of one order."""
 
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
 
 # Run the case.
-order = OrderEntity(id="ord-1", lifecycle=OrderLifecycle("draft"))
+order = OrderCoreEntity(id="ord-1", lifecycle=OrderLifecycle("draft"))
 paid = order.lifecycle.transition("paid")
 updated = order.model_copy(update={"lifecycle": paid})
 assert order.lifecycle.current_state == "draft"

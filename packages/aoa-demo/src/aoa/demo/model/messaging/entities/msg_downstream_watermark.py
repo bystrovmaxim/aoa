@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_dedupe_correlation import DedupeCorrelationEntity
+from aoa.demo.model.messaging.entities.msg_dedupe_correlation import DedupeCorrelationCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 
 
 @entity(description="Downstream watermark continuing dispatcher reconciliation backbone", domain=MessagingDomain)
-class DownstreamWatermarkEntity(BaseEntity):
+class DownstreamWatermarkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Watermark id")
     lifecycle: MsgDenseLifecycle = Field(description="Watermark lifecycle")
 
@@ -24,11 +24,11 @@ class DownstreamWatermarkEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     dedupe: Annotated[
-        AssociationOne[DedupeCorrelationEntity],
+        AssociationOne[DedupeCorrelationCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream dedupe correlation row"
     )  # type: ignore[assignment]
 
 
-DownstreamWatermarkEntity.model_rebuild()
+DownstreamWatermarkCoreEntity.model_rebuild()

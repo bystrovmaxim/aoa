@@ -21,6 +21,7 @@ An entity row produced by `NodeGraphCoordinator.build()` gains one property:
 | Key | Rule |
 | --- | --- |
 | `entity_kind` | required on every `Entity` row; one of `core`, `assoc`, `detail`, `spec`, `enum`, `state` |
+| where it comes from | the kind base class in the class's chain: its name without `Base` and without `Entity`, lower case |
 | the set of properties | unchanged otherwise: `additionalProperties` stays `false`, so no other key is admitted and no key is optional |
 | `id`, `label` | unchanged rules — qualified class name and class `__name__`; the renames change the values, not the rules |
 
@@ -28,7 +29,7 @@ An entity row produced by `NodeGraphCoordinator.build()` gains one property:
 
 ## Values
 
-| Word | Produced by a class whose marker is |
+| Word | Kind base class it comes from |
 | --- | --- |
 | `core` | `BaseCoreEntity` |
 | `assoc` | `BaseAssocEntity` |
@@ -37,7 +38,7 @@ An entity row produced by `NodeGraphCoordinator.build()` gains one property:
 | `enum` | `BaseEnumEntity` |
 | `state` | `BaseStateEntity` — never produced: status types are excluded from the model graph |
 
-The value is the kind's word (lower case, no suffix). It is not derived from the class name; the builder asks the registry for the kind of the class it is turning into a row.
+The value is not stored on the class and not looked up in a table: it is the kind base class's own name, transformed once. Rename the base class and the suffix and the word move together, so they cannot disagree.
 
 ## The Maxitor store
 
@@ -58,6 +59,6 @@ A row with no kind fails the schema before the store sees it, so the insert has 
 
 ## What a reader may rely on
 
-- The kind of a row is the kind of the marker of the class it came from, and the two are checked against each other in a test.
+- The kind of a row is the kind of the base class of the class it came from, and the two are checked against each other in a test.
 - A row's kind survives the store: what `build()` emits is what the store returns.
 - The six words are a closed set; a seventh would be a defect, not an extension.

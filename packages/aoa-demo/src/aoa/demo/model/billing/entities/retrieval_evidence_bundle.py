@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketEntity
+from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
 
 
 @entity(description="Retrieval / representment bundle", domain=BillingDomain)
-class RetrievalEvidenceBundleEntity(BaseEntity):
+class RetrievalEvidenceBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bundle id")
     lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     chargeback_ticket: Annotated[
-        AssociationOne[ChargebackTicketEntity],
+        AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent dispute ticket"
@@ -32,4 +32,4 @@ class RetrievalEvidenceBundleEntity(BaseEntity):
     sealed: bool = Field(description="Whether bundle is cryptographically sealed")
 
 
-RetrievalEvidenceBundleEntity.model_rebuild()
+RetrievalEvidenceBundleCoreEntity.model_rebuild()

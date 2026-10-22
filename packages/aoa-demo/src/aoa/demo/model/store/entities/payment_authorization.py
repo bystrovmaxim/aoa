@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Payment authorization row", domain=StoreDomain)
-class PaymentAuthorizationEntity(BaseEntity):
+class PaymentAuthorizationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Authorization id")
     lifecycle: SalesOrderLifecycle = Field(description="Authorization lifecycle")
     provider: str = Field(description="PSP name")
@@ -24,11 +24,11 @@ class PaymentAuthorizationEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Authorized order"
     )  # type: ignore[assignment]
 
 
-PaymentAuthorizationEntity.model_rebuild()
+PaymentAuthorizationCoreEntity.model_rebuild()

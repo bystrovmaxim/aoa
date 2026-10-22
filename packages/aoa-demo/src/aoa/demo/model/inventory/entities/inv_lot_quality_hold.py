@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
-from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingEntity
+from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 
 
 @entity(description="Quality hold chaining off cross-dock staging", domain=InventoryDomain)
-class LotQualityHoldEntity(BaseEntity):
+class LotQualityHoldCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hold id")
     lifecycle: InvDenseLifecycle = Field(description="Quality hold lifecycle")
 
@@ -24,11 +24,11 @@ class LotQualityHoldEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     crossdock: Annotated[
-        AssociationOne[CrossDockStagingEntity],
+        AssociationOne[CrossDockStagingCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent staging row"
     )  # type: ignore[assignment]
 
 
-LotQualityHoldEntity.model_rebuild()
+LotQualityHoldCoreEntity.model_rebuild()

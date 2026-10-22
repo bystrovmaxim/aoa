@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Invoice row", domain=StoreDomain)
-class InvoiceRecordEntity(BaseEntity):
+class InvoiceRecordCoreEntity(BaseCoreEntity):
     id: str = Field(description="Invoice id")
     lifecycle: SalesOrderLifecycle = Field(description="Invoice lifecycle")
     subtotal: float = Field(description="Subtotal", ge=0)
@@ -25,18 +25,18 @@ class InvoiceRecordEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Invoiced order"
     )  # type: ignore[assignment]
 
     invoice_outbox_row: Annotated[
-        AssociationOne[OutboxMessageEntity],
+        AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Transactional outbox publish for invoice side-effects"
     )  # type: ignore[assignment]
 
 
-InvoiceRecordEntity.model_rebuild()
+InvoiceRecordCoreEntity.model_rebuild()

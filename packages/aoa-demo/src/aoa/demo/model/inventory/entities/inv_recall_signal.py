@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_disposition_advice import DispositionAdviceEntity
+from aoa.demo.model.inventory.entities.inv_disposition_advice import DispositionAdviceCoreEntity
 
 
 @entity(description="Recall signal extending disposition segment", domain=InventoryDomain)
-class RecallSignalEntity(BaseEntity):
+class RecallSignalCoreEntity(BaseCoreEntity):
     id: str = Field(description="Signal id")
     lifecycle: InvDenseLifecycle = Field(description="Recall lifecycle")
 
@@ -24,11 +24,11 @@ class RecallSignalEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     disposition: Annotated[
-        AssociationOne[DispositionAdviceEntity],
+        AssociationOne[DispositionAdviceCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning disposition artefact"
     )  # type: ignore[assignment]
 
 
-RecallSignalEntity.model_rebuild()
+RecallSignalCoreEntity.model_rebuild()

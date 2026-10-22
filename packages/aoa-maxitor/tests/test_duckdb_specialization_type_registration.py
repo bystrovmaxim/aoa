@@ -59,8 +59,8 @@ def _graph_with(*edge_types: str) -> dict[str, Any]:
     """Return a graph whose edges carry ``edge_types``, one edge each."""
     nodes = [
         {"id": "d.demo", "type": "Domain", "label": "Demo", "properties": {"name": "Demo", "description": "d"}},
-        {"id": "e.Head", "type": "Entity", "label": "Head", "properties": {"description": "h"}},
-        {"id": "e.Alt", "type": "Entity", "label": "Alt", "properties": {"description": "a"}},
+        {"id": "e.Head", "type": "Entity", "label": "Head", "properties": {"description": "h", "entity_kind": "core"}},
+        {"id": "e.Alt", "type": "Entity", "label": "Alt", "properties": {"description": "a", "entity_kind": "core"}},
     ]
     properties = {
         SPECIALIZATION: {

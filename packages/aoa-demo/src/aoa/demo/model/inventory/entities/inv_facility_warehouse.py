@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
@@ -12,7 +12,7 @@ from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLif
 @entity(
     description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain
 )
-class FacilityWarehouseEntity(BaseEntity):
+class FacilityWarehouseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Facility id")
     lifecycle: InvPipelineLifecycle = Field(description="Facility lifecycle")
 
@@ -24,4 +24,4 @@ class FacilityWarehouseEntity(BaseEntity):
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
 
 
-FacilityWarehouseEntity.model_rebuild()
+FacilityWarehouseCoreEntity.model_rebuild()

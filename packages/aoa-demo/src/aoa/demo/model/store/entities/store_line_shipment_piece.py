@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity, SalesOrderLineEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity, SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)
-class LineShipmentPieceEntity(BaseEntity):
+class LineShipmentPieceDetailEntity(BaseDetailEntity):
     id: str = Field(description="Piece id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Shipment piece lifecycle")
 
@@ -24,18 +24,18 @@ class LineShipmentPieceEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order_line: Annotated[
-        AssociationOne[SalesOrderLineEntity],
+        AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Line anchor"
     )  # type: ignore[assignment]
 
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent order duplicate anchor"
     )  # type: ignore[assignment]
 
 
-LineShipmentPieceEntity.model_rebuild()
+LineShipmentPieceDetailEntity.model_rebuild()

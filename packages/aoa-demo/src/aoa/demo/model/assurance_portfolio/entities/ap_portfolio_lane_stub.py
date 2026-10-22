@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
 
 @entity(description="Broader organizational lane tying multiple workspaces", domain=AssurancePortfolioDomain)
-class AssurancePortfolioLaneStubEntity(BaseEntity):
+class AssurancePortfolioLaneStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Portfolio lane id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Lane lifecycle")
 
@@ -22,4 +22,4 @@ class AssurancePortfolioLaneStubEntity(BaseEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-AssurancePortfolioLaneStubEntity.model_rebuild()
+AssurancePortfolioLaneStubCoreEntity.model_rebuild()

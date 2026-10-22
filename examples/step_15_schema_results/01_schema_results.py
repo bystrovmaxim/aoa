@@ -25,7 +25,7 @@ Run:
 
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.model import BaseResult, JsonSchemaValue
@@ -67,7 +67,7 @@ class ShopDomain(BaseDomain):
 
 
 @entity(description="Customer order", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     status: str = Field(description="Order status")
     total: float = Field(description="Order total")
@@ -88,7 +88,7 @@ _ORDER_WIRE = {
 
 
 class OrderSummaryResult(BaseResult):
-    order: OrderEntity.schema(schema=_ORDER_WIRE) = Field(  # type: ignore[valid-type]
+    order: OrderCoreEntity.schema(schema=_ORDER_WIRE) = Field(  # type: ignore[valid-type]
         description="Partial order projection (no nested customer)",
     )
 
@@ -118,7 +118,7 @@ def main() -> None:
     except ValidationError:
         print("   invalid payload -> ValidationError (a change item is missing required 'to')")
 
-    # 3) Partial entity projection: return a subset of OrderEntity, validated.
+    # 3) Partial entity projection: return a subset of OrderCoreEntity, validated.
     print("\n3) Partial entity projection (BaseEntity.schema):")
     summary = OrderSummaryResult.model_validate(
         {"order": {"id": "o1", "status": "paid", "total": 99.5}}

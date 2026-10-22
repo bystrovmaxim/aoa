@@ -5,19 +5,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
-from aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket import ClinicalInboundShipmentTicketEntity
+from aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket import ClinicalInboundShipmentTicketCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
-from aoa.demo.model.clinical_supply.entities.cs_transport_anchor import ClinicalTransportAnchorEntity
+from aoa.demo.model.clinical_supply.entities.cs_transport_anchor import ClinicalTransportAnchorCoreEntity
 
 
 @entity(
     description="Associative modality bind between inbound ticket and courier channel (M:N bridge)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalInboundTransportBindingEntity(BaseEntity):
+class ClinicalInboundTransportBindingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Binding row id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Binding lifecycle")
 
@@ -28,18 +28,18 @@ class ClinicalInboundTransportBindingEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     inbound_ticket: Annotated[
-        AssociationOne[ClinicalInboundShipmentTicketEntity],
+        AssociationOne[ClinicalInboundShipmentTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Subject inbound lot"
     )  # type: ignore[assignment]
 
     transport_anchor: Annotated[
-        AssociationOne[ClinicalTransportAnchorEntity],
+        AssociationOne[ClinicalTransportAnchorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Chosen modality snapshot"
     )  # type: ignore[assignment]
 
 
-ClinicalInboundTransportBindingEntity.model_rebuild()
+ClinicalInboundTransportBindingCoreEntity.model_rebuild()

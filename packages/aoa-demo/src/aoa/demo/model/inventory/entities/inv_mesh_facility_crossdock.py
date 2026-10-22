@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
-from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingEntity
+from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 
 
 @entity(
     description="Associates upstream facility footprints with lateral cross-dock staging gates", domain=InventoryDomain
 )
-class InvFacilityCrossdockBridgeEntity(BaseEntity):
+class InvFacilityCrossdockBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
     lifecycle: InvDenseLifecycle = Field(description="Bridge lifecycle")
 
@@ -27,18 +27,18 @@ class InvFacilityCrossdockBridgeEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     facility: Annotated[
-        AssociationOne[FacilityWarehouseEntity],
+        AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning facility artefact"
     )  # type: ignore[assignment]
 
     crossdock_gate: Annotated[
-        AssociationOne[CrossDockStagingEntity],
+        AssociationOne[CrossDockStagingCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Cross-dock staging gate anchor"
     )  # type: ignore[assignment]
 
 
-InvFacilityCrossdockBridgeEntity.model_rebuild()
+InvFacilityCrossdockBridgeCoreEntity.model_rebuild()

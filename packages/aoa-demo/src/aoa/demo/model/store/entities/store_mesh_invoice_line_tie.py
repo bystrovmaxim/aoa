@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.invoice_record import InvoiceRecordEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderLineEntity
+from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Structured tie reconciling invoicing artefacts with fulfilment-line rows", domain=StoreDomain)
-class StoreInvoiceLineTieEntity(BaseEntity):
+class StoreInvoiceLineTieCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlation id")
     lifecycle: SalesOrderLifecycle = Field(description="Tie lifecycle")
 
@@ -25,18 +25,18 @@ class StoreInvoiceLineTieEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     invoice: Annotated[
-        AssociationOne[InvoiceRecordEntity],
+        AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning invoice artefact"
     )  # type: ignore[assignment]
 
     order_line: Annotated[
-        AssociationOne[SalesOrderLineEntity],
+        AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Owning order line artefact"
     )  # type: ignore[assignment]
 
 
-StoreInvoiceLineTieEntity.model_rebuild()
+StoreInvoiceLineTieCoreEntity.model_rebuild()

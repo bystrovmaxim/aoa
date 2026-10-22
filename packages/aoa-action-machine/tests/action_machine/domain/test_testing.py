@@ -21,23 +21,23 @@ from __future__ import annotations
 import pytest
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity, Lifecycle
+from aoa.action_machine.domain import BaseCoreEntity, Lifecycle
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity import entity
 
-from ...support.domain_model.entities import SampleEntity
+from ...support.domain_model.entities import SampleCoreEntity
 
 
 def test_make_generates_primitive_defaults() -> None:
-    entity = make(SampleEntity)
+    entity = make(SampleCoreEntity)
     assert entity.id == "test_id"
     assert entity.name == "test_name"
     assert entity.value == 1
 
 
 def test_make_overrides_merge() -> None:
-    entity = make(SampleEntity, id="custom", value=42)
+    entity = make(SampleCoreEntity, id="custom", value=42)
     assert entity.id == "custom"
     assert entity.name == "test_name"
     assert entity.value == 42
@@ -49,18 +49,18 @@ class _TestDomain(BaseDomain):
 
 
 @entity(description="float default", domain=_TestDomain)
-class _FloatDefaultEntity(BaseEntity):
+class _FloatDefaultCoreEntity(BaseCoreEntity):
     id: str = Field()
     amount: float = Field(ge=0)
 
 
 def test_make_float_default() -> None:
-    entity = make(_FloatDefaultEntity, id="f1")
+    entity = make(_FloatDefaultCoreEntity, id="f1")
     assert entity.amount == 1.0
 
 
 @entity(description="e", domain=_TestDomain)
-class _LifecycleGetterEntity(BaseEntity):
+class _LifecycleGetterCoreEntity(BaseCoreEntity):
     id: str = Field()
     state: Lifecycle = Field()
 
@@ -73,4 +73,4 @@ def test_make_swallows_exception_from_lifecycle_getter() -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        make(_LifecycleGetterEntity, id="1")
+        make(_LifecycleGetterCoreEntity, id="1")

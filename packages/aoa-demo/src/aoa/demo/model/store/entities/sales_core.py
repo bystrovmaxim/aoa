@@ -2,7 +2,7 @@
 """
 Store sales core triangle — mutual ``Inverse`` on three ``BaseEntity`` classes.
 
-``CustomerAccountEntity``, ``SalesOrderEntity``, and ``SalesOrderLineEntity`` share this module because
+``CustomerAccountCoreEntity``, ``SalesOrderCoreEntity``, and ``SalesOrderLineDetailEntity`` share this module because
 :class:`~aoa.action_machine.domain.relation_markers.Inverse` captures partner types at class-body time,
 and importing them from separate modules would circular-import before all three classes exist. Thin
 re-export modules (:file:`customer_account.py`, :file:`order_record.py`, :file:`line_item.py`) keep
@@ -18,16 +18,17 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     AssociationMany,
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
+    BaseDetailEntity,
     CompositeMany,
     Inverse,
     NoInverse,
     Rel,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogEntity
-from aoa.demo.model.catalog.entities.product_row import CatalogProductEntity
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubEntity
+from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
+from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
@@ -35,7 +36,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Registered customer", domain=StoreDomain)
-class CustomerAccountEntity(BaseEntity):
+class CustomerAccountCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
     name: str = Field(description="Display name")
@@ -46,22 +47,22 @@ class CustomerAccountEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     identity_party: Annotated[
-        AssociationOne[IdentityPersonHubEntity],
+        AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Canonical person aggregate in the identity bounded context"
     )  # type: ignore[assignment]
 
     orders: Annotated[
-        AssociationMany[SalesOrderEntity],
-        Inverse(SalesOrderEntity, "customer"),
+        AssociationMany[SalesOrderCoreEntity],
+        Inverse(SalesOrderCoreEntity, "customer"),
     ] = Rel(
         description="Orders"
     )  # type: ignore[assignment]
 
 
 @entity(description="Customer order", domain=StoreDomain)
-class SalesOrderEntity(BaseEntity):
+class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
     currency: str = Field(default="USD", description="Currency")
@@ -72,21 +73,21 @@ class SalesOrderEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     customer: Annotated[
-        AssociationOne[CustomerAccountEntity],
-        Inverse(CustomerAccountEntity, "orders"),
+        AssociationOne[CustomerAccountCoreEntity],
+        Inverse(CustomerAccountCoreEntity, "orders"),
     ] = Rel(
         description="Customer"
     )  # type: ignore[assignment]
 
     order_lines: Annotated[
-        CompositeMany[SalesOrderLineEntity],
-        Inverse(SalesOrderLineEntity, "order"),
+        CompositeMany[SalesOrderLineDetailEntity],
+        Inverse(SalesOrderLineDetailEntity, "order"),
     ] = Rel(
         description="Line items"
     )  # type: ignore[assignment]
 
     payment_capture_audit: Annotated[
-        AssociationOne[PaymentEventLogEntity],
+        AssociationOne[PaymentEventLogCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Settlement-side payment telemetry for this storefront order"
@@ -94,7 +95,7 @@ class SalesOrderEntity(BaseEntity):
 
 
 @entity(description="Order line", domain=StoreDomain)
-class SalesOrderLineEntity(BaseEntity):
+class SalesOrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Item id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")
     product_name: str = Field(description="Product")
@@ -105,20 +106,20 @@ class SalesOrderLineEntity(BaseEntity):
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     catalog_product: Annotated[
-        AssociationOne[CatalogProductEntity],
+        AssociationOne[CatalogProductCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Anchored SKU row from the commerce catalog"
     )  # type: ignore[assignment]
 
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
-        Inverse(SalesOrderEntity, "order_lines"),
+        AssociationOne[SalesOrderCoreEntity],
+        Inverse(SalesOrderCoreEntity, "order_lines"),
     ] = Rel(
         description="Parent order"
     )  # type: ignore[assignment]
 
 
-CustomerAccountEntity.model_rebuild()
-SalesOrderEntity.model_rebuild()
-SalesOrderLineEntity.model_rebuild()
+CustomerAccountCoreEntity.model_rebuild()
+SalesOrderCoreEntity.model_rebuild()
+SalesOrderLineDetailEntity.model_rebuild()

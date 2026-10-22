@@ -5,21 +5,21 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_catalog_stub import (
-    AssuranceExpectationCatalogStubEntity,
+    AssuranceExpectationCatalogStubCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
-    AssuranceExpectationGenreAxisEntity,
-    AssuranceExpectationPhaseAxisEntity,
+    AssuranceExpectationGenreAxisCoreEntity,
+    AssuranceExpectationPhaseAxisCoreEntity,
 )
 
 
 @entity(description="Versioned expectation corpus entry (requirement analogue)", domain=AssurancePortfolioDomain)
-class AssuranceRegulatedExpectationRowEntity(BaseEntity):
+class AssuranceRegulatedExpectationRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Expectation entry id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Expectation row lifecycle")
 
@@ -30,25 +30,25 @@ class AssuranceRegulatedExpectationRowEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     catalog_bucket: Annotated[
-        AssociationOne[AssuranceExpectationCatalogStubEntity],
+        AssociationOne[AssuranceExpectationCatalogStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Containing catalog"
     )  # type: ignore[assignment]
 
     genre_axis: Annotated[
-        AssociationOne[AssuranceExpectationGenreAxisEntity],
+        AssociationOne[AssuranceExpectationGenreAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Expectation genre discriminator"
     )  # type: ignore[assignment]
 
     phase_axis: Annotated[
-        AssociationOne[AssuranceExpectationPhaseAxisEntity],
+        AssociationOne[AssuranceExpectationPhaseAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Expectation lifecycle phase"
     )  # type: ignore[assignment]
 
 
-AssuranceRegulatedExpectationRowEntity.model_rebuild()
+AssuranceRegulatedExpectationRowDetailEntity.model_rebuild()

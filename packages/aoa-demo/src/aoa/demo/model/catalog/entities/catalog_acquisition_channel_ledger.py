@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Acquisition channel attribution ledger head", domain=CatalogDomain)
-class AcquisitionChannelLedgerEntity(BaseEntity):
+class AcquisitionChannelLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger id")
     lifecycle: CatalogDenseLifecycle = Field(description="Channel ledger lifecycle")
 
@@ -22,4 +22,4 @@ class AcquisitionChannelLedgerEntity(BaseEntity):
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
 
 
-AcquisitionChannelLedgerEntity.model_rebuild()
+AcquisitionChannelLedgerCoreEntity.model_rebuild()

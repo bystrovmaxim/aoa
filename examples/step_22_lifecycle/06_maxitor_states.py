@@ -6,6 +6,7 @@ Run: uv run python examples/step_22_lifecycle/06_maxitor_states.py
 """
 
 from pydantic import Field
+
 from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
 
 
@@ -26,7 +27,8 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
     CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)
     _template = Lifecycle().state(DRAFT).to(PAID, CANCELLED).initial().state(PAID).final().state(CANCELLED).final()
 import json
-from aoa.action_machine.domain import BaseEntity, BaseDomain
+
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
@@ -39,16 +41,18 @@ class ShopDomain(BaseDomain):
 
 
 @entity(description="Customer order", domain=ShopDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     """Attach the lifecycle to a model entity."""
 
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
 
 import asyncio
+
 from aoa.action_machine.context import Context
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
+
 
 # Run the case.
 async def read_states():

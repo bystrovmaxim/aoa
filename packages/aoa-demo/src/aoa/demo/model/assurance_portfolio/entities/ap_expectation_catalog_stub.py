@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
 
 @entity(description="Expectation bucket container (requirement_spec analogue)", domain=AssurancePortfolioDomain)
-class AssuranceExpectationCatalogStubEntity(BaseEntity):
+class AssuranceExpectationCatalogStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Expectation catalog id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Catalog lifecycle")
 
@@ -22,4 +22,4 @@ class AssuranceExpectationCatalogStubEntity(BaseEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-AssuranceExpectationCatalogStubEntity.model_rebuild()
+AssuranceExpectationCatalogStubCoreEntity.model_rebuild()

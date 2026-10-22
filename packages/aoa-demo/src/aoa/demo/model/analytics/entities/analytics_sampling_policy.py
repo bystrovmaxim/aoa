@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 
 
 @entity(description="Parallel sampling subgraph head", domain=AnalyticsDomain)
-class AnalyticsSamplingPolicyEntity(BaseEntity):
+class AnalyticsSamplingPolicyCoreEntity(BaseCoreEntity):
     id: str = Field(description="Policy id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Sampling lifecycle")
 
@@ -22,4 +22,4 @@ class AnalyticsSamplingPolicyEntity(BaseEntity):
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
 
 
-AnalyticsSamplingPolicyEntity.model_rebuild()
+AnalyticsSamplingPolicyCoreEntity.model_rebuild()

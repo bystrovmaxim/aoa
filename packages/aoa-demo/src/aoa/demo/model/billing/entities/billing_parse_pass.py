@@ -5,38 +5,38 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
-from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestEntity
+from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 
 if TYPE_CHECKING:
-    from aoa.demo.model.billing.entities.billing_sat_fx_residual import FxResidualTagEntity
-    from aoa.demo.model.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleEntity
+    from aoa.demo.model.billing.entities.billing_sat_fx_residual import FxResidualTagCoreEntity
+    from aoa.demo.model.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleCoreEntity
 
 
 @entity(description="Parse pass artifact on ingest manifest", domain=BillingDomain)
-class BillingParsePassEntity(BaseEntity):
+class BillingParsePassCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parse pass id")
     lifecycle: BillingPipelineLifecycle = Field(description="Parse lifecycle")
 
     manifest: Annotated[
-        AssociationOne[BillingFileIngestManifestEntity],
+        AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Source manifest"
     )  # type: ignore[assignment]
 
     fx_residual_tag: Annotated[
-        AssociationOne[FxResidualTagEntity],
+        AssociationOne[FxResidualTagCoreEntity],
         NoInverse(),
     ] = Rel(
         description="FX residual tag linked to this parse pass"
     )  # type: ignore[assignment]
 
     retrieval_evidence_bundle: Annotated[
-        AssociationOne[RetrievalEvidenceBundleEntity],
+        AssociationOne[RetrievalEvidenceBundleCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Retrieval evidence bundle associated with parse outcome"

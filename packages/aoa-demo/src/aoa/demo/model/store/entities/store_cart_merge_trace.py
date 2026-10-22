@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import CustomerAccountEntity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Cart merge diagnostics hanging off buyer profile graph", domain=StoreDomain)
-class CartMergeTraceEntity(BaseEntity):
+class CartMergeTraceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Trace id")
     lifecycle: SalesOrderLifecycle = Field(description="Merge trace lifecycle")
 
@@ -24,11 +24,11 @@ class CartMergeTraceEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     customer: Annotated[
-        AssociationOne[CustomerAccountEntity],
+        AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent customer aggregate"
     )  # type: ignore[assignment]
 
 
-CartMergeTraceEntity.model_rebuild()
+CartMergeTraceCoreEntity.model_rebuild()

@@ -2,13 +2,13 @@
 """Generalization entity fixtures — a specialization head and its two extensions."""
 
 from aoa.demo.model.generalization_shapes.entities.generalization_entities import (
-    GeneralizationHeadEntity,
-    GeneralizationVariantAEntity,
-    GeneralizationVariantBEntity,
+    GeneralizationHeadCoreEntity,
+    GeneralizationVariantASpecEntity,
+    GeneralizationVariantBSpecEntity,
 )
 
 __all__ = [
-    "GeneralizationHeadEntity",
-    "GeneralizationVariantAEntity",
-    "GeneralizationVariantBEntity",
+    "GeneralizationHeadCoreEntity",
+    "GeneralizationVariantASpecEntity",
+    "GeneralizationVariantBSpecEntity",
 ]

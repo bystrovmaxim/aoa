@@ -5,13 +5,13 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
-    AssuranceDutyTemplateAxisEntity,
-    AssurancePrivilegeGrainAxisEntity,
+    AssuranceDutyTemplateAxisCoreEntity,
+    AssurancePrivilegeGrainAxisCoreEntity,
 )
 
 
@@ -19,7 +19,7 @@ from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
     description="Join between duties and fine-grained privileges (role_has_right analogue)",
     domain=AssurancePortfolioDomain,
 )
-class AssuranceDutyPrivilegeBridgeEntity(BaseEntity):
+class AssuranceDutyPrivilegeBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Bridge lifecycle")
 
@@ -30,18 +30,18 @@ class AssuranceDutyPrivilegeBridgeEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     duty_axis: Annotated[
-        AssociationOne[AssuranceDutyTemplateAxisEntity],
+        AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Duty template anchoring grant"
     )  # type: ignore[assignment]
 
     privilege_grain: Annotated[
-        AssociationOne[AssurancePrivilegeGrainAxisEntity],
+        AssociationOne[AssurancePrivilegeGrainAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Granted privilege grain"
     )  # type: ignore[assignment]
 
 
-AssuranceDutyPrivilegeBridgeEntity.model_rebuild()
+AssuranceDutyPrivilegeBridgeCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ Create a status with an empty or whitespace-only display_name.
 Run: uv run python examples/step_22_lifecycle/10_blank_display_name.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity
 
 
 class OrderStateEntity(BaseStateEntity):

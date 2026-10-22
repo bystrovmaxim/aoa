@@ -5,7 +5,7 @@ Scan the entity corpus and report the numbers the specification rests on.
 Walks every Python module under `packages/` and `examples/`, reads class
 declarations with the `ast` module — the tree is never imported — and reports
 how many classes sit directly on `BaseEntity`, how many sit on one of the six
-kind markers, how many names carry a kind suffix, and how many carry none.
+kind base classes, how many names carry a kind suffix, and how many carry none.
 The same script produces the "before" numbers on the branch base and the
 "after" numbers once the migration has run, so the two can be compared.
 
@@ -40,7 +40,7 @@ SKIP_DIRS = frozenset(
 )
 
 BASE_ENTITY = "BaseEntity"
-MARKER_NAMES = (
+KIND_BASE_NAMES = (
     "BaseCoreEntity",
     "BaseAssocEntity",
     "BaseDetailEntity",
@@ -69,24 +69,24 @@ class EntityClass:
     decorated: bool
 
     @property
-    def is_marker(self) -> bool:
-        """True when the class is one of the six abstract markers."""
-        return self.name in MARKER_NAMES
+    def is_kind_base(self) -> bool:
+        """True when the class is one of the six kind base classes."""
+        return self.name in KIND_BASE_NAMES
 
     @property
     def on_base(self) -> bool:
-        """True when the class names the entity base among its direct bases and is not a marker."""
-        return BASE_ENTITY in self.bases and not self.is_marker
+        """True when the class names the entity base among its direct bases and is not a kind base class."""
+        return BASE_ENTITY in self.bases and not self.is_kind_base
 
     @property
-    def on_marker(self) -> bool:
-        """True when the class names one of the six markers among its direct bases and is not one."""
-        return any(base in MARKER_NAMES for base in self.bases) and not self.is_marker
+    def on_kind_base(self) -> bool:
+        """True when the class names one of the six kind base classes among its direct bases and is not one."""
+        return any(base in KIND_BASE_NAMES for base in self.bases) and not self.is_kind_base
 
     @property
     def is_real(self) -> bool:
-        """True when the class is neither a marker nor an abstract intermediate the scan cannot see."""
-        return self.on_base or self.on_marker
+        """True when the class is neither a kind base class nor an abstract intermediate the scan cannot see."""
+        return self.on_base or self.on_kind_base
 
     @property
     def kind_suffix(self) -> str | None:
@@ -106,7 +106,7 @@ class Scan:
     @property
     def markers(self) -> list[EntityClass]:
         """The marker declarations found in the tree."""
-        return [cls for cls in self.classes if cls.is_marker]
+        return [cls for cls in self.classes if cls.is_kind_base]
 
     @property
     def on_base(self) -> list[EntityClass]:
@@ -114,9 +114,9 @@ class Scan:
         return [cls for cls in self.classes if cls.on_base]
 
     @property
-    def on_marker(self) -> list[EntityClass]:
-        """Classes whose direct base is one of the six markers."""
-        return [cls for cls in self.classes if cls.on_marker]
+    def on_kind_base(self) -> list[EntityClass]:
+        """Classes whose direct base is one of the six kind base classes."""
+        return [cls for cls in self.classes if cls.on_kind_base]
 
     @property
     def real(self) -> list[EntityClass]:
@@ -169,7 +169,7 @@ def scan_file(path: Path) -> list[EntityClass]:
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
             bases = direct_bases(node)
-            if BASE_ENTITY in bases or any(base in MARKER_NAMES for base in bases):
+            if BASE_ENTITY in bases or any(base in KIND_BASE_NAMES for base in bases):
                 found.append(EntityClass(module, node.name, bases, is_entity_decorated(node)))
     return found
 
@@ -223,23 +223,23 @@ def format_line(label: str, value: object) -> str:
 def report(scan_result: Scan, map_module: ModuleType | None) -> str:
     """Render the scan as the block the quickstart shows, in a fixed order."""
     on_base = scan_result.on_base
-    on_marker = scan_result.on_marker
+    on_kind_base = scan_result.on_kind_base
     real = scan_result.real
     with_suffix = scan_result.with_suffix()
     without_suffix = scan_result.without_suffix()
     decorated = [cls for cls in on_base if cls.decorated]
     undeclared = [cls for cls in on_base if not cls.decorated]
-    state_classes = [cls for cls in on_marker if STATE_MARKER in cls.bases]
+    state_classes = [cls for cls in on_kind_base if STATE_MARKER in cls.bases]
 
     lines = [
         "Repository scan — entity classes",
-        format_line("markers found", f"{len(scan_result.markers)}  {sorted(cls.name for cls in scan_result.markers)}"),
+        format_line("kind base classes found", f"{len(scan_result.markers)}  {sorted(cls.name for cls in scan_result.markers)}"),
         format_line("classes directly on BaseEntity (real)", len(on_base)),
         format_line("  of them decorated with @entity", len(decorated)),
         format_line("  of them without @entity", len(undeclared)),
-        format_line("classes on a marker", len(on_marker)),
+        format_line("classes on a kind base class", len(on_kind_base)),
         format_line(f"  of them on {STATE_MARKER}", len(state_classes)),
-        format_line("real classes (on the base or on a marker)", len(real)),
+        format_line("real classes (on the base or on a kind base class)", len(real)),
         format_line("  with a kind suffix", len(with_suffix)),
         format_line("  without a kind suffix", len(without_suffix)),
     ]
@@ -255,9 +255,9 @@ def report(scan_result: Scan, map_module: ModuleType | None) -> str:
         lines.append(format_line("old names still present", "no map yet — the migration has not been planned"))
     else:
         entries = getattr(map_module, "ENTITY_KIND_MAP", ())
-        old_names = tuple(entry["old_name"] for entry in entries)
+        old_names = tuple(dict.fromkeys(entry["old_name"] for entry in entries))
         hits = old_name_occurrences(old_names)
-        lines.append(format_line("old names recorded in the map", len(old_names)))
+        lines.append(format_line("old names recorded in the map", f"{len(old_names)} distinct ({len(entries)} entries)"))
         lines.append(format_line("old names still present", f"{sum(hits.values())} occurrence(s)"))
         lines.extend(f"    {count:>4}  {path}" for path, count in sorted(hits.items()))
 

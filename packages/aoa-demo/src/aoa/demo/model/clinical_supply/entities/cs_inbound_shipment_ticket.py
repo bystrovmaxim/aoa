@@ -5,20 +5,20 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
-from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuEntity
+from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
-from aoa.demo.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorEntity
-from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubEntity
+from aoa.demo.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorCoreEntity
+from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
 
 
 @entity(
     description="Inbound partner lot keyed to SKU and packing posture (supply row analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalInboundShipmentTicketEntity(BaseEntity):
+class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Inbound ticket id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Inbound ticket lifecycle")
 
@@ -29,25 +29,25 @@ class ClinicalInboundShipmentTicketEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     partner_hub: Annotated[
-        AssociationOne[ClinicalPartnerHubEntity],
+        AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Fulfillment partner"
     )  # type: ignore[assignment]
 
     consumable_row: Annotated[
-        AssociationOne[ClinicalConsumableSkuEntity],
+        AssociationOne[ClinicalConsumableSkuCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Shipped SKU master"
     )  # type: ignore[assignment]
 
     packing_anchor: Annotated[
-        AssociationOne[ClinicalPackingAnchorEntity],
+        AssociationOne[ClinicalPackingAnchorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Lot packing profile"
     )  # type: ignore[assignment]
 
 
-ClinicalInboundShipmentTicketEntity.model_rebuild()
+ClinicalInboundShipmentTicketCoreEntity.model_rebuild()

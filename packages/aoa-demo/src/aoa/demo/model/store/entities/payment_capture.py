@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Payment capture row", domain=StoreDomain)
-class PaymentCaptureEntity(BaseEntity):
+class PaymentCaptureCoreEntity(BaseCoreEntity):
     id: str = Field(description="Capture id")
     lifecycle: SalesOrderLifecycle = Field(description="Capture lifecycle")
     amount: float = Field(description="Captured amount", ge=0)
@@ -25,18 +25,18 @@ class PaymentCaptureEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Captured order"
     )  # type: ignore[assignment]
 
     processor_webhook_receipt: Annotated[
-        AssociationOne[WebhookIngressReceiptEntity],
+        AssociationOne[WebhookIngressReceiptCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Ingress receipt for PSP / acquirer callback correlation"
     )  # type: ignore[assignment]
 
 
-PaymentCaptureEntity.model_rebuild()
+PaymentCaptureCoreEntity.model_rebuild()

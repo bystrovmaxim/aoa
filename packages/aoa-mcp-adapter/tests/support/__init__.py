@@ -15,7 +15,7 @@ tests can use a single flat ``from .support import ...`` line:
   / ``AdapterTestAction`` — schema-backed adapter-fixture actions
   (:mod:`.adapter_fixtures`).
 
-The :mod:`.domain_model` (domains, roles, services, ``SampleEntity``) and the
+The :mod:`.domain_model` (domains, roles, services, ``SampleCoreEntity``) and the
 ``GraphJson`` sibling remain available via their submodules for completeness.
 """
 
@@ -30,7 +30,7 @@ from .domain_model import (
     FullAction,
     OrdersDomain,
     PingAction,
-    SampleEntity,
+    SampleCoreEntity,
     SimpleAction,
     SystemDomain,
     TestDomain,
@@ -45,7 +45,7 @@ __all__ = [
     "GraphJson",
     "OrdersDomain",
     "PingAction",
-    "SampleEntity",
+    "SampleCoreEntity",
     "SimpleAction",
     "SystemDomain",
     "TestDomain",

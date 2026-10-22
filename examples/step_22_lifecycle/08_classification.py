@@ -5,7 +5,7 @@ Use the same paid status as final in one lifecycle and intermediate in another.
 Run: uv run python examples/step_22_lifecycle/08_classification.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):

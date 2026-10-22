@@ -1,21 +1,21 @@
 {
     "name": "validate_aspect",
     "context": {
-        "trace_id": "0x9cd1d15698a8973cbde755bcdfc128a1",
-        "span_id": "0xe0c9eb259bd3a6db",
+        "trace_id": "0x1b21dc9dab7bbf682ee1924b12bb9099",
+        "span_id": "0x4b28bf419848adab",
         "trace_state": "[]"
     },
     "kind": "SpanKind.INTERNAL",
-    "parent_id": "0x7228736d5c99854c",
-    "start_time": "2026-10-18T20:44:36.848614Z",
-    "end_time": "2026-10-18T20:44:36.848671Z",
+    "parent_id": "0x56a82a54f5199211",
+    "start_time": "2026-10-21T23:37:05.996901Z",
+    "end_time": "2026-10-21T23:37:05.996966Z",
     "status": {
         "status_code": "OK"
     },
     "attributes": {
         "aoa.aspect": "validate_aspect",
         "aoa.action": "CheckoutAction",
-        "aoa.duration_ms": 0.015974044799804688
+        "aoa.duration_ms": 0.022172927856445312
     },
     "events": [],
     "links": [],
@@ -32,21 +32,21 @@
 {
     "name": "enrich_aspect",
     "context": {
-        "trace_id": "0x9cd1d15698a8973cbde755bcdfc128a1",
-        "span_id": "0xc7988cb69dee43b7",
+        "trace_id": "0x1b21dc9dab7bbf682ee1924b12bb9099",
+        "span_id": "0x14bb5c7767c09ec4",
         "trace_state": "[]"
     },
     "kind": "SpanKind.INTERNAL",
-    "parent_id": "0x7228736d5c99854c",
-    "start_time": "2026-10-18T20:44:36.849099Z",
-    "end_time": "2026-10-18T20:44:36.849155Z",
+    "parent_id": "0x56a82a54f5199211",
+    "start_time": "2026-10-21T23:37:05.997443Z",
+    "end_time": "2026-10-21T23:37:05.997505Z",
     "status": {
         "status_code": "OK"
     },
     "attributes": {
         "aoa.aspect": "enrich_aspect",
         "aoa.action": "CheckoutAction",
-        "aoa.duration_ms": 0.0209808349609375
+        "aoa.duration_ms": 0.025987625122070312
     },
     "events": [],
     "links": [],
@@ -63,21 +63,21 @@
 {
     "name": "confirm_summary",
     "context": {
-        "trace_id": "0x9cd1d15698a8973cbde755bcdfc128a1",
-        "span_id": "0x1649a192c8040feb",
+        "trace_id": "0x1b21dc9dab7bbf682ee1924b12bb9099",
+        "span_id": "0x7bd20541d7c7630c",
         "trace_state": "[]"
     },
     "kind": "SpanKind.INTERNAL",
-    "parent_id": "0x7228736d5c99854c",
-    "start_time": "2026-10-18T20:44:36.849358Z",
-    "end_time": "2026-10-18T20:44:36.849399Z",
+    "parent_id": "0x56a82a54f5199211",
+    "start_time": "2026-10-21T23:37:05.997705Z",
+    "end_time": "2026-10-21T23:37:05.997744Z",
     "status": {
         "status_code": "OK"
     },
     "attributes": {
         "aoa.aspect": "confirm_summary",
         "aoa.action": "CheckoutAction",
-        "aoa.duration_ms": 0.0171661376953125
+        "aoa.duration_ms": 0.015735626220703125
     },
     "events": [],
     "links": [],
@@ -94,21 +94,21 @@
 {
     "name": "CheckoutAction",
     "context": {
-        "trace_id": "0x9cd1d15698a8973cbde755bcdfc128a1",
-        "span_id": "0x7228736d5c99854c",
+        "trace_id": "0x1b21dc9dab7bbf682ee1924b12bb9099",
+        "span_id": "0x56a82a54f5199211",
         "trace_state": "[]"
     },
     "kind": "SpanKind.INTERNAL",
     "parent_id": null,
-    "start_time": "2026-10-18T20:44:36.848546Z",
-    "end_time": "2026-10-18T20:44:36.849486Z",
+    "start_time": "2026-10-21T23:37:05.996823Z",
+    "end_time": "2026-10-21T23:37:05.997833Z",
     "status": {
         "status_code": "OK"
     },
     "attributes": {
         "aoa.action": "CheckoutAction",
         "aoa.nest_level": 1,
-        "aoa.duration_ms": 1.0318756103515625
+        "aoa.duration_ms": 1.1250972747802734
     },
     "events": [],
     "links": [],

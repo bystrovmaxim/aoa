@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionEntity
+from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
 
 
 @entity(description="Funding window anchored on sweep instruction", domain=BillingDomain)
-class FundingWindowHintEntity(BaseEntity):
+class FundingWindowHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Window id")
     lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     sweep: Annotated[
-        AssociationOne[BillingSweepInstructionEntity],
+        AssociationOne[BillingSweepInstructionCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent sweep instruction surface"
@@ -32,4 +32,4 @@ class FundingWindowHintEntity(BaseEntity):
     liquidity_band: str = Field(description="Tier label for cash availability")
 
 
-FundingWindowHintEntity.model_rebuild()
+FundingWindowHintCoreEntity.model_rebuild()

@@ -49,7 +49,9 @@ from jsonschema.exceptions import ValidationError
 from pydantic import Field
 
 from aoa.action_machine.domain import (
+    BaseCoreEntity,
     BaseEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -78,39 +80,39 @@ class SchemaDomain(BaseDomain):
 
 @exclude_graph_model
 @entity(description="First variant", domain=SchemaDomain)
-class SchemaFirstEntity(BaseEntity):
+class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[SchemaHeadEntity],
+        Generalization[SchemaHeadCoreEntity],
         Classifier("rec", Literal["first"]),
-        Inverse(SchemaHeadEntity, "pack"),
+        Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Second variant", domain=SchemaDomain)
-class SchemaSecondEntity(BaseEntity):
+class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[SchemaHeadEntity],
+        Generalization[SchemaHeadCoreEntity],
         Classifier("rec", Literal["repress"]),
-        Inverse(SchemaHeadEntity, "pack"),
+        Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Head", domain=SchemaDomain)
-class SchemaHeadEntity(BaseEntity):
+class SchemaHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[SchemaFirstEntity | SchemaSecondEntity],
+        Specialization[SchemaFirstSpecEntity | SchemaSecondSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress"]),
         Inverse(field_name="rec"),
     ] = Rel(description="one of two")
 
 
-for _cls in (SchemaFirstEntity, SchemaSecondEntity, SchemaHeadEntity):
+for _cls in (SchemaFirstSpecEntity, SchemaSecondSpecEntity, SchemaHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -139,17 +141,17 @@ def _domain_row() -> dict[str, Any]:
 
 def _specialization_rows() -> list[dict[str, Any]]:
     """Return the `entity_specialization` link rows a machine emits for the head."""
-    head_id = TypeIntrospection.full_qualname(SchemaHeadEntity)
+    head_id = TypeIntrospection.full_qualname(SchemaHeadCoreEntity)
     return [
         edge.to_dict(source_id=head_id)
-        for edge in EntitySpecializationGraphEdge.get_entity_specialization_edges(SchemaHeadEntity)
+        for edge in EntitySpecializationGraphEdge.get_entity_specialization_edges(SchemaHeadCoreEntity)
     ]
 
 
 def _generalization_rows() -> list[dict[str, Any]]:
     """Return the `parent_entity` link rows a machine emits for both extensions."""
     rows: list[dict[str, Any]] = []
-    for cls in (SchemaFirstEntity, SchemaSecondEntity):
+    for cls in (SchemaFirstSpecEntity, SchemaSecondSpecEntity):
         rows.extend(
             edge.to_dict(source_id=TypeIntrospection.full_qualname(cls))
             for edge in ParentEntityGraphEdge.get_entity_generalization_edges(cls)
@@ -164,7 +166,7 @@ def _payload(
 ) -> dict[str, Any]:
     """Assemble a complete export: the entities, their columns, their domain, and both edge kinds."""
     nodes = [_domain_row()]
-    for cls in (SchemaHeadEntity, SchemaFirstEntity, SchemaSecondEntity):
+    for cls in (SchemaHeadCoreEntity, SchemaFirstSpecEntity, SchemaSecondSpecEntity):
         nodes.extend(_rows_for(cls))
     edges = [
         *(_specialization_rows() if specialization_rows is None else specialization_rows),
@@ -239,8 +241,8 @@ def test_the_labels_mirror_the_alternatives_for_display() -> None:
     properties = _specialization_rows()[0]["properties"]
 
     assert len(properties["labels"]) == len(properties["alternatives"])
-    assert properties["labels"] == ["SchemaFirst (first)", "SchemaSecond (repress)"]
-    assert properties["alternatives"][0].endswith("SchemaFirstEntity"), "the resolvable name is untouched"
+    assert properties["labels"] == ["SchemaFirstSpec (first)", "SchemaSecondSpec (repress)"]
+    assert properties["alternatives"][0].endswith("SchemaFirstSpecEntity"), "the resolvable name is untouched"
 
 
 def test_each_alternative_produces_exactly_one_generalization_edge() -> None:

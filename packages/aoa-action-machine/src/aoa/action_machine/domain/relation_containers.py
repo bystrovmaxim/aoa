@@ -454,8 +454,8 @@ class AssociationOne(BaseRelationOne[T]):
     Example::
 
         customer: Annotated[
-            AssociationOne[CustomerEntity],
-            Inverse(CustomerEntity, "orders"),
+            AssociationOne[CustomerCoreEntity],
+            Inverse(CustomerCoreEntity, "orders"),
         ] = Rel(description="Customer who placed the order")
     """
 
@@ -469,8 +469,8 @@ class AssociationMany(BaseRelationMany[T]):
     Example::
 
         orders: Annotated[
-            AssociationMany[OrderEntity],
-            Inverse(OrderEntity, "customer"),
+            AssociationMany[OrderCoreEntity],
+            Inverse(OrderCoreEntity, "customer"),
         ] = Rel(description="Customer orders")
     """
 

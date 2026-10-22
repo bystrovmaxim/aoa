@@ -118,9 +118,9 @@ You can see how each declared intent became a node or an edge: the domain and th
 
 An **entity–relationship diagram**, abbreviated **ERD**, shows the declared data model. Each table-shaped box represents an entity class. Its header names the class, and the rows beneath it name fields and their types. AOA's entities are not database mappings, so a table-shaped box does not establish that a physical database table exists. The `PK` and `FK` decorations are diagram hints for identifiers and references, not proof of database constraints.
 
-The [record example](step-21-relations.md#generalization-and-specialization) separates an album title and a pressing code from the details of each kind of pressing. `VinylRecordEntity` is the common class, or head. `FirstPressEntity`, `RepressEntity`, and `TestPressEntity` are the possible detail classes, or alternatives. The head's `pressing` field and its `media` classifier form one specialization axis: one declared choice among those alternatives.
+The [record example](step-21-relations.md#generalization-and-specialization) separates an album title and a pressing code from the details of each kind of pressing. `VinylRecordCoreEntity` is the common class, or head. `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity` are the possible detail classes, or alternatives. The head's `pressing` field and its `media` classifier form one specialization axis: one declared choice among those alternatives.
 
-In the head's box, Maxitor gives that field one row named `pressing (by media)`. The name tells us both where the reference is stored in the model and which ordinary field carries its code. The type text lists `FirstPress (first) | Repress (repress) | TestPress (test)`. Read each pair as a class display name followed by its declared code. The `Entity` suffix is omitted in this type text to reduce repetition; the class names in the table headers retain it.
+The ERD payload gives that field one row named `pressing`. The specialization group carries the label `pressing (by media)`, identifying both the reference field and its classifier. The type text lists `FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)`. Read each pair as a class display name followed by its declared code. The `Entity` suffix is omitted in this type text to reduce repetition; the class names in the table headers retain it.
 
 There is one row because `pressing` is one field. Listing three alternatives does not add three simultaneous references to every record. It tells us which kinds of object this field can refer to. The diagram describes the declaration; it does not show which alternative a particular stored record currently has.
 
@@ -143,8 +143,8 @@ graph = json.loads(machine.graph_coordinator.to_json())
 store = DuckDBGraphResource.build_from_json(graph)
 domain_id = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "MusicDomain")
 diagram = ListEntitiesAction._slice_payload(store, domain_id, include_neighbors=False)
-head = next(item for item in diagram["entities"] if item["label"] == "VinylRecordEntity")
-field = next(item for item in head["fields"] if item["name"] == "pressing (by media)")
+head = next(item for item in diagram["entities"] if item["label"] == "VinylRecordCoreEntity")
+field = next(item for item in head["fields"] if item["name"] == "pressing")
 print(field["name"])
 print(field["type"])
 print("Groups:", len(diagram["groups"]))
@@ -165,8 +165,8 @@ uv run python examples/step_21_relations/13_specialization_erd.py
 Actual output:
 
 ```text
-pressing (by media)
-FirstPress (first) | Repress (repress) | TestPress (test)
+pressing
+FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)
 Groups: 1
 Alternatives: 3
 Group links: 1
@@ -181,9 +181,9 @@ The following image was generated from the saved payload with the repository's `
 
 ![Current Maxitor rendering of the record specialization](../../examples/step_21_relations/02_specialization_erd.svg)
 
-The dashed frame is labelled `pressing (by media)` and contains the three detail classes. `VinylRecordEntity` sits outside it. You can read each detail class independently: `stamper`, `year`, and `approved_by` remain on their respective classes. The frame is a visual grouping of possible details, not a fourth kind of detail object.
+The dashed frame is labelled `pressing (by media)` and contains the three detail classes. `VinylRecordCoreEntity` sits outside it. You can read each detail class independently: `stamper`, `year`, and `approved_by` remain on their respective classes. The frame is a visual grouping of possible details, not a fourth kind of detail object.
 
-**Current rendering limitation:** the outgoing line ends at a separate `VinylRecordEntity:pressing` label instead of meeting the dashed frame. The ERD payload targets the group's identifier, but the current DOT builder emits that identifier as an ordinary edge endpoint rather than attaching the edge to the Graphviz cluster boundary. The separate label is not another entity or database table. This image records the actual renderer output, so it should not be read as evidence that the arrow-to-frame layout is already correct.
+The current DOT renderer shows the head field as `Specialization 3+`, with the code-to-class mapping in its tooltip. It draws a labelled generalization arrow from each variant back to the head. The payload's group-directed relation is a drawing instruction; it is not rendered as a separate entity or a line ending at an extra label. The frame and these arrows describe the same declared choice. They do not mean that every record has all three variants loaded.
 
 To reproduce the image, first run the Python experiment above. Then, with the Maxitor client's dependencies installed, run:
 
@@ -204,7 +204,7 @@ The [JSON payload](../../examples/step_21_relations/02_specialization_erd.json),
 
 ### What happens when there is only one alternative?
 
-A model may declare `Specialization[FirstPressEntity]` with the single code `first`. There is then no choice to group. For this experiment, remove `RepressEntity` and `TestPressEntity` from the model, remove their entries from the head's union and code list, and rebuild only the remaining head and alternative. The complete two-class preparation is below. It replaces the four-class preparation for this experiment.
+A model may declare `Specialization[FirstPressSpecEntity]` with the single code `first`. There is then no choice to group. For this experiment, remove `RepressSpecEntity` and `TestPressSpecEntity` from the model, remove their entries from the head's union and code list, and rebuild only the remaining head and alternative. The complete two-class preparation is below. It replaces the four-class preparation for this experiment.
 
 ```python
 from __future__ import annotations
@@ -213,7 +213,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity, Classifier, Generalization, Inverse, Rel, Specialization
+from aoa.action_machine.domain import BaseCoreEntity, BaseSpecEntity, Classifier, Generalization, Inverse, Rel, Specialization
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -227,34 +227,34 @@ class MusicDomain(BaseDomain):
 
 
 @entity(description="Vinyl record", domain=MusicDomain)
-class VinylRecordEntity(BaseEntity):
+class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
     media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressEntity],
+        Specialization[FirstPressSpecEntity],
         Classifier(field="media", codes=Literal["first"]),
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
-class FirstPressEntity(BaseEntity):
+class FirstPressSpecEntity(BaseSpecEntity):
     """Describe the stamper used for a first pressing."""
 
-    id: str = Field(description="Pressing identifier")
+    id: str = Field(description="The head record identifier")
     stamper: str = Field(description="Stamper code")
     record: Annotated[
-        Generalization[VinylRecordEntity],
+        Generalization[VinylRecordCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(VinylRecordEntity, "pressing"),
+        Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
 
-VinylRecordEntity.model_rebuild()
-FirstPressEntity.model_rebuild()
+VinylRecordCoreEntity.model_rebuild()
+FirstPressSpecEntity.model_rebuild()
 ```
 
 [Script](../../examples/step_21_relations/14_specialization_single_alternative.py) · [Notebook](../../examples/step_21_relations/14_specialization_single_alternative.ipynb)
@@ -353,7 +353,7 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 5. In what sense is Maxitor an AOA application? What are its diagram endpoints?
 6. Where in the full graph do a `@depends` resource, a `@check_roles` role, and `Lifecycle` states end up?
 
-7. Why does `pressing (by media)` occupy one field row even though the declaration lists three alternatives?
+7. Why does `pressing` occupy one field row even though the declaration lists three alternatives?
 8. What is the dashed frame, and why does it not imply an additional entity or database table?
 9. What does the current arrow endpoint show, and what limitation does it expose?
 10. Why can a valid one-alternative relationship have no relation line in this ERD?
@@ -367,3 +367,11 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
   <td align="center"><a href="../index.md">Contents</a></td>
   <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
 </tr></table>
+
+## Entity kinds in the graph and store
+
+Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base: `core`, `assoc`, `detail`, `spec` or `enum`. The graph schema also admits `state`, but state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads the kind into its `entity` table and preserves it in the reconstructed node payload.
+
+The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) prints `graph: core` and `Maxitor store: core` for the same order. A graph produced before this required property was added must be regenerated. Class renames also change labels and identifiers containing qualified Python names.
+
+This makes the domain distinction available to consumers. It does not yet change the renderer: associative entities are not automatically hidden or replaced by direct edges. Such a presentation can safely rely on `assoc` only because that kind means a technical link without business data; a supplier offer with price and terms is a core object and must retain its own representation.

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
@@ -13,7 +13,7 @@ from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyL
     description="Ward or service unit issuing outbound parcels (delivery department analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalCareSiteUnitEntity(BaseEntity):
+class ClinicalCareSiteUnitCoreEntity(BaseCoreEntity):
     id: str = Field(description="Care unit id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Care unit lifecycle")
 
@@ -25,4 +25,4 @@ class ClinicalCareSiteUnitEntity(BaseEntity):
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
 
 
-ClinicalCareSiteUnitEntity.model_rebuild()
+ClinicalCareSiteUnitCoreEntity.model_rebuild()

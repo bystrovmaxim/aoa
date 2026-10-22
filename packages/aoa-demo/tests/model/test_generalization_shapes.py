@@ -42,12 +42,12 @@ def test_generalization_parent_action_edges() -> None:
 def test_generalization_parent_entity_edges() -> None:
     """Both extensions carry a parent_entity edge into the head."""
     links = _links(_coordinator(), "parent_entity")
-    assert ("GeneralizationVariantAEntity", "GeneralizationHeadEntity") in links
-    assert ("GeneralizationVariantBEntity", "GeneralizationHeadEntity") in links
+    assert ("GeneralizationVariantASpecEntity", "GeneralizationHeadCoreEntity") in links
+    assert ("GeneralizationVariantBSpecEntity", "GeneralizationHeadCoreEntity") in links
 
 
 def test_generalization_specialization_axis() -> None:
     """The head declares its axis — entity_specialization edges into the variants."""
     links = _links(_coordinator(), "entity_specialization")
-    assert ("GeneralizationHeadEntity", "GeneralizationVariantAEntity") in links
-    assert ("GeneralizationHeadEntity", "GeneralizationVariantBEntity") in links
+    assert ("GeneralizationHeadCoreEntity", "GeneralizationVariantASpecEntity") in links
+    assert ("GeneralizationHeadCoreEntity", "GeneralizationVariantBSpecEntity") in links

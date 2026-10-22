@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderLineEntity
+from aoa.demo.model.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Fulfillment task row", domain=StoreDomain)
-class FulfillmentTaskEntity(BaseEntity):
+class FulfillmentTaskCoreEntity(BaseCoreEntity):
     id: str = Field(description="Task id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Fulfillment task lifecycle")
     assignee: str = Field(description="Assigned worker")
@@ -25,18 +25,18 @@ class FulfillmentTaskEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order_line: Annotated[
-        AssociationOne[SalesOrderLineEntity],
+        AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Target order line"
     )  # type: ignore[assignment]
 
     lot_inventory_slice: Annotated[
-        AssociationOne[LotSnapshotLedgerEntity],
+        AssociationOne[LotSnapshotLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Inventory lot snapshot consulted for allocation"
     )  # type: ignore[assignment]
 
 
-FulfillmentTaskEntity.model_rebuild()
+FulfillmentTaskCoreEntity.model_rebuild()

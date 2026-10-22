@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from aoa.maxitor.model.core.entities.node_entity import NodeEntity
+from aoa.maxitor.model.core.entities.node_entity import NodeCoreEntity
 
 __all__ = [
-    "NodeEntity",
+    "NodeCoreEntity",
 ]

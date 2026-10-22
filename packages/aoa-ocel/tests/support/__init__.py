@@ -4,6 +4,6 @@ ocel tests import scenario entities from here instead of from the cross-package
 ``tests.action_machine.scenarios.*`` tree.
 """
 
-from .domain_model import SampleEntity, TestDomain
+from .domain_model import SampleCoreEntity, TestDomain
 
-__all__ = ["SampleEntity", "TestDomain"]
+__all__ = ["SampleCoreEntity", "TestDomain"]

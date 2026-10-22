@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderLineEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelEntity
+from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", domain=StoreDomain)
-class StoreLineParcelPickEntity(BaseEntity):
+class StoreLineParcelPickCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pick id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Pick lifecycle")
 
@@ -25,18 +25,18 @@ class StoreLineParcelPickEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order_line: Annotated[
-        AssociationOne[SalesOrderLineEntity],
+        AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Fulfilling order line artefact"
     )  # type: ignore[assignment]
 
     parcel: Annotated[
-        AssociationOne[ShipmentParcelEntity],
+        AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Target parcel artefact"
     )  # type: ignore[assignment]
 
 
-StoreLineParcelPickEntity.model_rebuild()
+StoreLineParcelPickCoreEntity.model_rebuild()

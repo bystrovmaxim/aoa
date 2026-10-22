@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @entity(description="Sparse support-domain hub (minimal star topology)", domain=SupportDomain)
-class SupportTicketAggregateEntity(BaseEntity):
+class SupportTicketAggregateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: SupportSparseLifecycle = Field(description="Ticket lifecycle")
 
@@ -24,11 +24,11 @@ class SupportTicketAggregateEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     related_commerce_order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Linked storefront sales order motivating the ticket"
     )  # type: ignore[assignment]
 
 
-SupportTicketAggregateEntity.model_rebuild()
+SupportTicketAggregateCoreEntity.model_rebuild()

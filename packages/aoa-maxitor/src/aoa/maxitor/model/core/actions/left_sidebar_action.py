@@ -6,7 +6,7 @@ GetLeftMenuSidebarDataAction — left menu rows for diagrams from DuckDB.
 PURPOSE
 ════════════════════════════════════════════════════════════════════════════════
 
-Four-aspect pipeline that builds flat ``NodeEntity`` lists (by depth / role)
+Four-aspect pipeline that builds flat ``NodeCoreEntity`` lists (by depth / role)
 from a DuckDB graph resource so the UI can render roots, per-root diagrams,
 interchange nodes, and level-3 diagram rows using ``parent_id`` links only.
 
@@ -35,7 +35,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseResult, BaseState, ParamsStub
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.maxitor.model.core.entities.node_entity import NodeEntity
+from aoa.maxitor.model.core.entities.node_entity import NodeCoreEntity
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
@@ -79,7 +79,7 @@ _DUCKDB_TO_SIDEBAR_TYPE: dict[str, str] = {
 }
 
 
-@meta(description="Build left-menu sidebar NodeEntity lists from DuckDB graph.", domain=DiagramsDomain)
+@meta(description="Build left-menu sidebar NodeCoreEntity lists from DuckDB graph.", domain=DiagramsDomain)
 @check_roles(GuestRole)
 @connection(
     DuckDBGraphResource,
@@ -88,10 +88,10 @@ _DUCKDB_TO_SIDEBAR_TYPE: dict[str, str] = {
 )
 class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDataAction.Result"]):
     class Result(BaseResult):
-        level1_nodes: list[NodeEntity]
-        level2_diagrams: list[NodeEntity]
-        level2_nodes: list[NodeEntity]
-        level3_diagrams: list[NodeEntity]
+        level1_nodes: list[NodeCoreEntity]
+        level2_diagrams: list[NodeCoreEntity]
+        level2_nodes: list[NodeCoreEntity]
+        level3_diagrams: list[NodeCoreEntity]
 
     # ─── String helpers ───────────────────────────────────────────────────────
 
@@ -130,7 +130,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         _ = (state, box, connections)
         return {
             "level1_nodes": [
-                NodeEntity(id=root_id, parent_id=None, label=label, type=type_)
+                NodeCoreEntity(id=root_id, parent_id=None, label=label, type=type_)
                 for root_id, label, type_ in _ROOT_SECTIONS
             ],
         }
@@ -150,13 +150,13 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         _ = (box, connections)
         rows = sorted(
             [
-                NodeEntity(
+                NodeCoreEntity(
                     id="application_interchange_graph",
                     parent_id="applications_root",
                     label=self._diagram_view_label("Full graph"),
                     type="graph",
                 ),
-                NodeEntity(
+                NodeCoreEntity(
                     id="domains_all_erd",
                     parent_id="domains_root",
                     label=self._diagram_view_label("Entity all domains"),
@@ -166,7 +166,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
             key=lambda n: (n.label.lower(), n.id),
         )
         return {
-            "level1_nodes": cast(list[NodeEntity], state["level1_nodes"]),
+            "level1_nodes": cast(list[NodeCoreEntity], state["level1_nodes"]),
             "level2_diagrams": rows,
         }
 
@@ -184,13 +184,13 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         connections: Connections,
     ) -> dict[str, Any]:
         _ = box
-        level1 = cast(list[NodeEntity], state["level1_nodes"])
+        level1 = cast(list[NodeCoreEntity], state["level1_nodes"])
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
 
         root_by_type = {n.type: n.id for n in level1}
         fallback_root = level1[-1].id
         rows = [
-            NodeEntity(
+            NodeCoreEntity(
                 id=str(r["id"]),
                 parent_id=root_by_type.get(
                     _DUCKDB_TO_SIDEBAR_TYPE.get(str(r["type"]), str(r["type"])),
@@ -203,7 +203,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         ]
         return {
             "level1_nodes": level1,
-            "level2_diagrams": cast(list[NodeEntity], state["level2_diagrams"]),
+            "level2_diagrams": cast(list[NodeCoreEntity], state["level2_diagrams"]),
             "level2_nodes": rows,
         }
 
@@ -223,12 +223,12 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     ) -> dict[str, Any]:
         _ = box
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
-        rows: list[NodeEntity] = []
+        rows: list[NodeCoreEntity] = []
 
         for d in duck.execute_fetch_dicts("SELECT id, label FROM domain ORDER BY lower(label), id"):
             did, dlabel = str(d["id"]), str(d["label"])
-            rows.append(NodeEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
-            rows.append(NodeEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
+            rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
+            rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
 
         lifecycle_by_entity: dict[str, list[tuple[str, str]]] = {}
         for lc in duck.execute_fetch_dicts("""
@@ -243,9 +243,9 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
 
         for e in duck.execute_fetch_dicts("SELECT id FROM entity ORDER BY id"):
             eid = str(e["id"])
-            rows.append(NodeEntity(id=eid, parent_id=eid, label=self._diagram_view_label("Entity"), type="entity_class_diagram", ordinal=0))
+            rows.append(NodeCoreEntity(id=eid, parent_id=eid, label=self._diagram_view_label("Entity"), type="entity_class_diagram", ordinal=0))
             for ordinal, (lc_id, lc_label) in enumerate(lifecycle_by_entity.get(eid, []), start=1):
-                rows.append(NodeEntity(
+                rows.append(NodeCoreEntity(
                     id=lc_id,
                     parent_id=eid,
                     label=self._lifecycle_state_machine_row_title(lc_label),
@@ -256,9 +256,9 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         rows.sort(key=lambda n: (str(n.parent_id).lower(), int(n.ordinal or 10**9), n.label.lower(), n.id))
 
         return {
-            "level1_nodes": cast(list[NodeEntity], state["level1_nodes"]),
-            "level2_diagrams": cast(list[NodeEntity], state["level2_diagrams"]),
-            "level2_nodes": cast(list[NodeEntity], state["level2_nodes"]),
+            "level1_nodes": cast(list[NodeCoreEntity], state["level1_nodes"]),
+            "level2_diagrams": cast(list[NodeCoreEntity], state["level2_diagrams"]),
+            "level2_nodes": cast(list[NodeCoreEntity], state["level2_nodes"]),
             "level3_diagrams": rows,
         }
 
@@ -274,8 +274,8 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     ) -> GetLeftMenuSidebarDataAction.Result:
         _ = (box, connections)
         return GetLeftMenuSidebarDataAction.Result(
-            level1_nodes=cast(list[NodeEntity], state["level1_nodes"]),
-            level2_diagrams=cast(list[NodeEntity], state["level2_diagrams"]),
-            level2_nodes=cast(list[NodeEntity], state["level2_nodes"]),
-            level3_diagrams=cast(list[NodeEntity], state["level3_diagrams"]),
+            level1_nodes=cast(list[NodeCoreEntity], state["level1_nodes"]),
+            level2_diagrams=cast(list[NodeCoreEntity], state["level2_diagrams"]),
+            level2_nodes=cast(list[NodeCoreEntity], state["level2_nodes"]),
+            level3_diagrams=cast(list[NodeCoreEntity], state["level3_diagrams"]),
         )

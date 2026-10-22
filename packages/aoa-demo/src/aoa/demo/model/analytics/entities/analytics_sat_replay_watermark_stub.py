@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_metric_rollup_staging import AnalyticsMetricRollupStagingEntity
+from aoa.demo.model.analytics.entities.analytics_metric_rollup_staging import AnalyticsMetricRollupStagingCoreEntity
 
 
 @entity(description="Replay watermark on rollup staging egress (orthogonal to DQ branch)", domain=AnalyticsDomain)
-class ReplayWatermarkStubEntity(BaseEntity):
+class ReplayWatermarkStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Watermark id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Watermark lifecycle")
 
@@ -24,11 +24,11 @@ class ReplayWatermarkStubEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     rollup_staging: Annotated[
-        AssociationOne[AnalyticsMetricRollupStagingEntity],
+        AssociationOne[AnalyticsMetricRollupStagingCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning rollup staging row"
     )  # type: ignore[assignment]
 
 
-ReplayWatermarkStubEntity.model_rebuild()
+ReplayWatermarkStubCoreEntity.model_rebuild()

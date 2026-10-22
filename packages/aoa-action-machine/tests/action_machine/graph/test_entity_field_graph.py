@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from jsonschema import Draft202012Validator
 
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
@@ -14,19 +15,19 @@ from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGr
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-from ...support.domain_model.entities import RelatedEntity, SampleEntity
+from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
 
 
 def test_entity_node_json_omits_nested_fields() -> None:
-    node = EntityGraphNode(SampleEntity)
+    node = EntityGraphNode(SampleCoreEntity)
     row = node.to_dict()
-    assert row["properties"].keys() == {"description"}
+    assert row["properties"].keys() == {"description", "entity_kind"}
     assert "fields" not in row["properties"]
     assert "field_order" not in row["properties"]
 
 
 def test_entity_field_nodes_and_edges_match_scalars() -> None:
-    node = EntityGraphNode(SampleEntity)
+    node = EntityGraphNode(SampleCoreEntity)
     names = [e.target_node.label for e in node.entity_field_edges if e.target_node is not None]
     assert names == ["id", "name", "value"]
 
@@ -40,7 +41,7 @@ def test_entity_field_nodes_and_edges_match_scalars() -> None:
 
 
 def test_entity_field_to_dict_contract() -> None:
-    entity_node = EntityGraphNode(SampleEntity)
+    entity_node = EntityGraphNode(SampleCoreEntity)
     field_node = next(e.target_node for e in entity_node.entity_field_edges if e.target_node.label == "id")
     assert isinstance(field_node, EntityFieldGraphNode)
     d = field_node.to_dict()
@@ -51,11 +52,25 @@ def test_entity_field_to_dict_contract() -> None:
 
 
 def test_related_entity_excludes_relation_slots_from_entity_field() -> None:
-    node = EntityGraphNode(RelatedEntity)
+    node = EntityGraphNode(RelatedCoreEntity)
     labels = {e.target_node.label for e in node.entity_field_edges}
     assert labels == {"id", "title"}
     assert "parent" not in labels
     assert "children" not in labels
+
+
+def test_an_entity_row_without_a_kind_is_rejected() -> None:
+    """The schema requires the kind: a row that lost it is a defect, not a tolerant reader's problem."""
+    import jsonschema
+
+    node = EntityGraphNode(SampleCoreEntity)
+    row = node.to_dict()
+    assert row["properties"]["entity_kind"] == "core"
+
+    broken = {**row, "properties": {"description": row["properties"]["description"]}}
+    payload = {"schema_version": "1.0", "nodes": [broken], "edges": []}
+    with pytest.raises(jsonschema.ValidationError):
+        Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
 
 
 def test_entity_field_export_validates_against_graph_schema() -> None:
@@ -65,7 +80,7 @@ def test_entity_field_export_validates_against_graph_schema() -> None:
     payload = json.loads(coord.to_json())
     Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
 
-    entity_id = TypeIntrospection.full_qualname(SampleEntity)
+    entity_id = TypeIntrospection.full_qualname(SampleCoreEntity)
     types = {n["id"]: n["type"] for n in payload["nodes"]}
     assert types[entity_id] == "Entity"
 

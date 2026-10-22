@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
+from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketEntity
+from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
 
 
 @entity(description="Attributed touch moment", domain=CatalogDomain)
-class TouchMomentEntity(BaseEntity):
+class TouchMomentCoreEntity(BaseCoreEntity):
     id: str = Field(description="Touch id")
     lifecycle: CatalogDenseLifecycle = Field(description="Touch lifecycle")
 
@@ -25,18 +25,18 @@ class TouchMomentEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     channel_ledger: Annotated[
-        AssociationOne[AcquisitionChannelLedgerEntity],
+        AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Acquisition ledger segment"
     )  # type: ignore[assignment]
 
     replay_ticket: Annotated[
-        AssociationOne[ReplayTicketEntity],
+        AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Messaging replay ticket for deterministic touch lineage"
     )  # type: ignore[assignment]
 
 
-TouchMomentEntity.model_rebuild()
+TouchMomentCoreEntity.model_rebuild()

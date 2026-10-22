@@ -111,7 +111,7 @@ def test_the_real_payload_matches_the_contract(slice_row: dict[str, Any]) -> Non
 def test_the_row_and_the_group_carry_what_the_contract_promises(slice_row: dict[str, Any]) -> None:
     """The keys under test are the ones the action emits, so a rename fails here rather than in a diagram."""
     entities = slice_row["list_entities"]["entities"]
-    head = next(entity for entity in entities if entity["label"] == "VinylRecordEntity")
+    head = next(entity for entity in entities if entity["label"] == "VinylRecordCoreEntity")
     axis_row = next(field for field in head["fields"] if field["name"] == "pressing" and field["foreign_key"])
 
     assert set(axis_row) == {"field_id", "name", "type", "primary_key", "foreign_key"}
