@@ -10,6 +10,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 
 
 @entity(description="Fee schedule facet following interchange slice spine", domain=BillingDomain)
@@ -18,7 +19,7 @@ class MerchantFeeSchedulePointerCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),

@@ -17,7 +17,7 @@ from pydantic import ConfigDict, Field, ValidationError
 from pydantic.errors import PydanticUserError
 
 from aoa.action_machine.domain import BaseStateEntity
-from aoa.action_machine.domain.state_spec import state
+from aoa.action_machine.domain.declared_values import value as state
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.graph.inspectors.entity_graph_node_inspector import EntityGraphNodeInspector
 

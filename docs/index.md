@@ -79,6 +79,7 @@ The guide moves from a practical entry point to the complete project architectur
 
 - **[Resource](tutorials/step-19-resource.md)** — the boundary with the external world: PostgreSQL, APIs, queues, test fixtures; pure transport separated from logic
 - **[Entity](tutorials/step-20-entity.md)** — a domain object without ties to storage: one class, any data source
+  - [Closed dictionaries: declarations, references and validation](tutorials/step-20-dictionaries.md)
 - **[Relations](tutorials/step-21-relations.md)** — ownership, explicit reverse links, partial loading, and a step-by-step introduction to common record information with variant-specific details
 - **[Lifecycle](tutorials/step-22-lifecycle.md)** — a state graph with transition validation: an inconsistent graph does not let the system start
 

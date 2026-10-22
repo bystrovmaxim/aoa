@@ -1,22 +1,25 @@
 # packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py
 """
-EntitySpecializationValidator — the build rules a specialization declaration must satisfy.
+EntitySpecializationValidator — validate dictionary-classified alternatives.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The parser reads a specialization and the graph builds its edges. Neither judges the
-declaration: a head that names a class no code answers to, a class claimed by two heads,
-a code that cannot fit the classifier's type — all of them build something, and what
-they build is quietly wrong. One edge points at the wrong table, or an alternative
-disappears, and nothing says so.
+Validate the loaded entity declarations before they are used as a domain model.
+Every axis names a nonempty, decorated dictionary. Every alternative names exactly
+one of its declared objects on a reverse Generalization field; every dictionary
+value has exactly one alternative. Equal codes on copied or foreign objects do not
+establish membership. A head-side Classifier is refused.
 
-This module is the judgement. It walks every declared entity once, collects the axes,
-and refuses a declaration that breaks a rule, naming the class, the field and the rule.
-The centre of it is the **two-sided code comparison**: the codes the head names and the
-codes the classes declare must be the same set, with the same size, in both directions.
-A one-sided check passes a model whose codes are three and three but not the same three.
+The reverse marker must name the field it annotates, and the head's Inverse, when
+present, must name that same field. Across the model, alternatives belong to one
+head and specialization chains must not form cycles. The current closure rule
+requires each axis to include all classes that generalize to its head; distinct
+alternative sets on the same head therefore remain restricted.
+
+These checks describe classes, not stored rows. Runtime containers separately
+validate selected values and loaded data. No database constraints are generated.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,64 +27,31 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    every declared entity  ──►  gather_entity_specialization_intent_resolvers
-        (one walk)                    │  one row per axis
-                                      v
-                       _validate_axis   (rules read on one head)
-                                      │
-                                      v
-                    _validate_across_axes  (rules needing every axis)
-                       class in two heads · two heads on one classifier ·
-                       outside class pointing at a field · reachability · cycles
-                                      │
-                                      v
-                    SpecializationDeclarationError(class, field, rule)
-
-The pass is empty work for a model that declares no specialization: the walk finds no
-axes and returns without touching anything, which is what keeps an unchanged model on
-exactly the path it took before this feature existed.
-
-═══════════════════════════════════════════════════════════════════════════════
-WHAT IS DELIBERATELY NOT CHECKED
-═══════════════════════════════════════════════════════════════════════════════
-
-Data completeness, data disjointness and whether the codes present in the data match the
-declared ones are **not** model invariants: a table can hold a value nobody declared, and
-the model cannot promise otherwise. A code that arrives from data and answers to no
-alternative is reported where the row is read, as
-:exc:`~aoa.action_machine.domain.exceptions.SpecializationDeclarationError` — but a code arriving
-from **data** that no alternative declares has no exception here and is not checked: whether a
-classifier's set of codes is closed is a property of the field's own type, and the framework has no
-notion of a closed value set yet. That is a feature of its own, tracked apart from specialization.
-
-═══════════════════════════════════════════════════════════════════════════════
-LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
-═══════════════════════════════════════════════════════════════════════════════
-
-- **Import**: the rules are defined.
-- **Build**: :func:`validate_entity_specializations` runs once per graph build.
-- **Runtime**: nothing here runs; the model has already been accepted or refused.
-
+    loaded @entity classes -> gather axes -> validate each dictionary and mapping
+                                            |
+                                            v
+                              ownership of alternatives, closure, cycles
+                                            |
+                                            v
+                         accepted model or SpecializationDeclarationError
 """
 
 from __future__ import annotations
 
-from typing import Any, NoReturn
-
-from pydantic import TypeAdapter, ValidationError
+from typing import Any, NoReturn, cast
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
+from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.domain.specialization_containers import (
     Classifier,
-    Specialization,
 )
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.intents.entity.entity_intent import entity_info_is_set
-from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is_relation_container
 from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
     EntitySpecializationIntentResolver,
     gather_entity_specialization_intent_resolvers,
+    is_specialization_field,
     read_reverse_declarations,
 )
 
@@ -129,7 +99,7 @@ def _classifier_marker(field_info: Any) -> Classifier | None:
 
 def _is_specialization_container(annotation: Any) -> bool:
     """True when the annotation is a subscripted ``Specialization`` container."""
-    return getattr(annotation, "__pydantic_generic_metadata__", {}).get("origin") is Specialization
+    return is_specialization_field(annotation)
 
 
 def _inverse_field_name(field_info: Any) -> str:
@@ -165,38 +135,53 @@ def _validate_axis(axis: EntitySpecializationIntentResolver) -> None:
     of a missing decorator.
     """
     _validate_alternatives_are_entities(axis)
-    _validate_classifier_field(axis)
+    _validate_dictionary(axis)
+    _validate_declared_variants(axis)
     _validate_head_field(axis)
     _validate_declared_codes(axis)
     _validate_codes_match(axis)
-    _validate_codes_fit_classifier(axis)
     _validate_codes_unique(axis)
 
 
-def _validate_classifier_field(axis: EntitySpecializationIntentResolver) -> None:
-    """`Classifier(field=…)` must name an existing scalar field of the head, not the axis itself."""
-    model_fields = axis.head_entity.model_fields
-    if axis.classifier_field == axis.field_name:
-        _fail(axis, "the classifier field names the specialization field itself")
-    if axis.classifier_field not in model_fields:
+def _validate_dictionary(axis: EntitySpecializationIntentResolver) -> None:
+    """The axis's second type argument must be a decorated, non-empty closed dictionary."""
+    dictionary = axis.dictionary
+    if not isinstance(dictionary, type) or not hasattr(dictionary, "members"):
+        _fail(axis, f"'{dictionary}' is not a closed dictionary; write Specialization[Alternatives, Dictionary]")
+    if not tuple(cast(Any, dictionary).members):
         _fail(
             axis,
-            f"classifier field '{axis.classifier_field}' is not a field of '{axis.head_entity.__name__}'",
+            f"'{dictionary.__name__}' declares no values; an axis cannot borrow codes from an empty dictionary",
         )
-    classifier_info = model_fields[axis.classifier_field]
-    if _is_specialization_container(classifier_info.annotation):
-        _fail(axis, f"classifier field '{axis.classifier_field}' is a specialization field itself")
-    if is_relation_container(classifier_info.annotation):
-        _fail(axis, f"classifier field '{axis.classifier_field}' is a relation, not a scalar field")
+    if not entity_info_is_set(dictionary):
+        _fail(
+            axis,
+            f"'{dictionary.__name__}' is a dictionary but not an @entity; the graph would have no node for it",
+        )
 
-    # A property or a class constant is not a field at all: pydantic keeps them out of
-    # `model_fields`, so reaching here means the name is a real field. The one way a
-    # non-field name survives is a `ClassVar`, which pydantic also excludes — so the
-    # membership test above is the whole check, and an attribute the class defines
-    # beside its fields never passes it.
-    annotation = classifier_info.annotation
-    if annotation is None:
-        _fail(axis, f"classifier field '{axis.classifier_field}' has no usable annotation")
+
+def _validate_declared_variants(axis: EntitySpecializationIntentResolver) -> None:
+    """Every alternative must name one of the dictionary's declared values, as that value."""
+    dictionary = cast(Any, axis.dictionary)
+    members = tuple(dictionary.members)
+    for alternative in axis.alternatives:
+        if not read_reverse_declarations(alternative, axis.head_entity):
+            # The reachability rule owns this case and says it better; the two-sided
+            # comparison below reports the value the head names and nobody owns.
+            continue
+        declared = declared_value(alternative)
+        if declared is None:
+            _fail(
+                axis,
+                f"alternative '{alternative.__name__}' names no value of '{dictionary.__name__}' — "
+                f"write Classifier(field=..., variant={dictionary.__name__}.<VALUE>)",
+            )
+        if not any(declared is member for member in members):
+            _fail(
+                axis,
+                f"alternative '{alternative.__name__}' names a value {declared!r} that "
+                f"'{dictionary.__name__}' does not declare",
+            )
 
 
 def _validate_head_field(axis: EntitySpecializationIntentResolver) -> None:
@@ -204,6 +189,8 @@ def _validate_head_field(axis: EntitySpecializationIntentResolver) -> None:
     head_field = axis.head_entity.model_fields.get(axis.field_name)
     if head_field is None:
         _fail(axis, "the specialization field is not a field of its own head")
+    if _classifier_marker(head_field) is not None:
+        _fail(axis, "the head must not carry Classifier; write Specialization[Alternatives, Dictionary]")
     if not _is_specialization_container(head_field.annotation):
         _fail(axis, "a `Classifier` marker sits on a field whose type is not a `Specialization` container")
 
@@ -226,7 +213,9 @@ def _declared_code(axis: EntitySpecializationIntentResolver, alternative: type[A
     codes: list[str] = []
     for _, info in declarations:
         marker = _classifier_marker(info)
-        codes.extend(marker.code_values if marker is not None else ())
+        if marker is None:
+            continue
+        codes.append(str(marker.variant.code))
     return codes[0] if codes else None
 
 
@@ -252,13 +241,13 @@ def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
             _fail(
                 axis,
                 f"alternative '{alternative.__name__}' declares no code on '{field_name}' — "
-                f"name it with Classifier(..., Literal[...])",
+                "name it with Classifier(field=..., variant=Dictionary.VALUE)",
             )
-        if len(marker.code_values) != 1:
+        if marker.field != field_name:
             _fail(
                 axis,
-                f"alternative '{alternative.__name__}' must declare exactly one code on "
-                f"'{field_name}', got {list(marker.code_values)}",
+                f"Classifier on '{alternative.__name__}.{field_name}' names '{marker.field}', "
+                f"but must name its reverse field '{field_name}'",
             )
         if axis.inverse_field and field_name != axis.inverse_field:
             _fail(
@@ -288,37 +277,9 @@ def _validate_codes_match(axis: EntitySpecializationIntentResolver) -> None:
         )
 
 
-def _validate_codes_fit_classifier(axis: EntitySpecializationIntentResolver) -> None:
-    """Every named code must be a value the classifier field's annotation can hold."""
-    annotation = axis.head_entity.model_fields[axis.classifier_field].annotation
-    try:
-        adapter = TypeAdapter(annotation)
-    except Exception:  # pragma: no cover - an annotation pydantic cannot build is not ours to explain
-        return
-    for code in axis.codes:
-        try:
-            adapter.validate_python(code)
-        except ValidationError:
-            _fail(
-                axis,
-                f"code '{code}' cannot be stored by classifier field '{axis.classifier_field}' "
-                f"of type {annotation}",
-            )
-
-
 def _validate_codes_unique(axis: EntitySpecializationIntentResolver) -> None:
     """One code selects one class: neither side may name the same code twice."""
-    # A repeated code on the head's side cannot be checked, because it cannot be written:
-    # Python collapses `Literal["a", "a"]` to `Literal["a"]` before the marker ever sees it,
-    # and the marker reads its `code_values` through `get_args`. The rule still holds — a
-    # de-duplicated literal yields fewer codes than alternatives, which is exactly what the
-    # two-sided comparison refuses with its own message. So the head side is covered there.
-    # Reachability, measured: a model cannot arrive here with one code on two classes. The
-    # parser builds its mapping by matching each code to a class, so the second class keeps no
-    # code of its own, and the two-sided comparison refuses the model first with "every
-    # alternative needs exactly one code". The check stays as a guard on the invariant rather
-    # than as a reachable branch: the parser's matching rule is an implementation detail, and a
-    # rule whose only protection is another module's internals is not protected.
+    # Dictionary declarations already guarantee unique codes; alternatives must do so too.
     owners: dict[str, str] = {}
     for alternative in axis.alternatives:
         declared = _declared_code(axis, alternative)
@@ -352,21 +313,6 @@ def _validate_one_head_per_class(axes: list[EntitySpecializationIntentResolver])
                     f"'{axis.head_entity.__name__}.{axis.field_name}'",
                 )
             claims[alternative] = axis
-
-
-def _validate_one_axis_per_classifier(axes: list[EntitySpecializationIntentResolver]) -> None:
-    """One head cannot carry two axes decided by the same field, or neither could be resolved."""
-    by_head: dict[tuple[type[Any], str], EntitySpecializationIntentResolver] = {}
-    for axis in axes:
-        key = (axis.head_entity, axis.classifier_field)
-        owner = by_head.get(key)
-        if owner is not None:
-            _fail(
-                axis,
-                f"classifier field '{axis.classifier_field}' already decides "
-                f"'{owner.head_entity.__name__}.{owner.field_name}'",
-            )
-        by_head[key] = axis
 
 
 def _validate_no_outside_class_points_at_an_axis(
@@ -439,7 +385,6 @@ def _validate_across_axes_first(
 ) -> None:
     """Rules that name a cause the per-axis rules would describe only as a symptom."""
     _validate_one_head_per_class(axes)
-    _validate_one_axis_per_classifier(axes)
     _validate_no_outside_class_points_at_an_axis(axes, judged)
 
 

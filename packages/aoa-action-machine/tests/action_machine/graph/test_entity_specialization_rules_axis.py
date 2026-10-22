@@ -1,45 +1,19 @@
 # tests/action_machine/graph/test_entity_specialization_rules_axis.py
+# ruff: noqa: F821  # the class-name alias is the declaration surface
 """
-The rules a specialization must satisfy **on one head**: what an axis alone can decide.
+The rules read on one axis, in the form the dictionary made current.
 
-═══════════════════════════════════════════════════════════════════════════════
-PURPOSE
-═══════════════════════════════════════════════════════════════════════════════
-
-Each test builds one broken declaration and asserts the build refuses it with the named
-rule. The models carry no other defect, so the error this test expects is the only error
-the model can produce — which is what makes the assertion mean something: a validator
-that reported something else, or reported first whatever it happened to look at, would
-fail here.
-
-The rules of this file are the ones read on a single axis: what the alternatives are,
-which codes they declare, what the classifier field may be, and how the two sides of the
-code comparison line up. Rules that need every axis at once live in the global file
-beside this one.
-
-═══════════════════════════════════════════════════════════════════════════════
-WHAT EACH FIXTURE IS FOR
-═══════════════════════════════════════════════════════════════════════════════
-
-Every fixture is marked ``@exclude_graph_model`` because it is deliberately broken: the
-validator walks the loaded entities, so a fixture left in the model would fail the build
-of every other test that assembles one. Each test passes its class **explicitly**, which
-is also how the exclusion stays honest — the class is not part of the model, but it is
-still judged when a test asks for it.
-
-═══════════════════════════════════════════════════════════════════════════════
-ERRORS / LIMITATIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-- **SpecializationDeclarationError** — the rule named in each test.
-
-Does not cover what pydantic refuses on its own (a class outside the union, a value of
-the wrong type), which the container tests already pin.
+Every case declares a head whose container names a closed dictionary, and the
+alternatives that either answer to it or fail to. The cases that belonged to the
+classifier field are gone with the field: a classifier is no longer a field, so a
+"classifier that is a relation" or "a classifier naming the axis itself" cannot be
+written. What remains is the shape of the axis: the classes, their reachability,
+their pairing, and the two-sided value comparison.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field
@@ -48,16 +22,16 @@ from aoa.action_machine.domain import (
     AssociationOne,
     BaseAssocEntity,
     BaseCoreEntity,
+    BaseDomain,
     BaseEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
-    NoInverse,
     Rel,
     Specialization,
 )
-from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.validators.entity_specialization_validator import (
@@ -80,6 +54,15 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
     return message
 
 
+@exclude_graph_model
+@entity(description="Kind", domain=AxisDomain)
+class _KindEnumEntity(BaseEnumEntity):
+    """The dictionary most cases borrow from."""
+
+    A = _KindEnumEntity(code="a", display_name="A")
+    B = _KindEnumEntity(code="b", display_name="B")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # A stranger in the union
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,17 +72,14 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 class StrangerAxisAssocEntity(BaseAssocEntity):
     """Shaped like an entity but never decorated, so the graph would have no node for it."""
 
-    id: str = Field(description="id")
-
 
 @exclude_graph_model
 @entity(description="Stranger head", domain=AxisDomain)
 class StrangerHeadCoreEntity(BaseCoreEntity):
+    """Names a class the walk never sees."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[StrangerAxisAssocEntity], Classifier(field="media", codes=Literal["a"]), Inverse(field_name="rec")
-    ] = Rel(description="d")
+    pack: Specialization[StrangerAxisAssocEntity, _KindEnumEntity] = Rel(description="d")
 
 
 StrangerHeadCoreEntity.model_rebuild()
@@ -112,374 +92,218 @@ def test_an_alternative_that_is_not_a_declared_entity_is_refused() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The codes, both sides
+# The values, both sides
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @exclude_graph_model
 @entity(description="Silent alternative", domain=AxisDomain)
-class SilentAlternativeSpecEntity(BaseSpecEntity):
+class SilentSpecEntity(BaseSpecEntity):
+    """Keeps the earlier marker form, so it names a code rather than a value."""
+
     id: str = Field(description="id")
-    rec: Annotated[Generalization[SilentHeadCoreEntity], Inverse(SilentHeadCoreEntity, "pack")] = Rel(description="no code")
+    rec: Generalization[SilentHeadCoreEntity] = Rel(description="back, naming no value")
 
 
 @exclude_graph_model
 @entity(description="Silent head", domain=AxisDomain)
 class SilentHeadCoreEntity(BaseCoreEntity):
+    """One alternative answers with a code, not a value."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[SilentAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    pack: Specialization[SilentSpecEntity, _KindEnumEntity] = Rel(description="d")
 
 
-SilentAlternativeSpecEntity.model_rebuild()
 SilentHeadCoreEntity.model_rebuild()
+SilentSpecEntity.model_rebuild()
 
 
-def test_an_alternative_that_declares_no_code_is_refused() -> None:
-    message = _refuses([SilentHeadCoreEntity], "declares no code")
-    assert "SilentAlternativeSpecEntity" in message
-    assert "rec" in message, "the message names the field that should carry the code"
+def test_an_alternative_that_names_no_value_is_refused() -> None:
+    message = _refuses([SilentHeadCoreEntity, SilentSpecEntity], "names no value")
+    assert "Classifier(field=..., variant=" in message, "the message says how to fix it"
 
 
 @exclude_graph_model
-@entity(description="Mismatched alternative", domain=AxisDomain)
-class MismatchedAlternativeSpecEntity(BaseSpecEntity):
+@entity(description="Alpha", domain=AxisDomain)
+class _AlphaSpecEntity(BaseSpecEntity):
+    """Names the first value."""
+
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[MismatchedHeadCoreEntity], Classifier("rec", Literal["other"]), Inverse(MismatchedHeadCoreEntity, "pack")
-    ] = Rel(description="d")
+        Generalization[UncoveredHeadCoreEntity],
+        Classifier(field="rec", variant=_KindEnumEntity.A),
+    ] = Rel(description="back")
 
 
 @exclude_graph_model
-@entity(description="Mismatched head", domain=AxisDomain)
-class MismatchedHeadCoreEntity(BaseCoreEntity):
+@entity(description="Uncovered head", domain=AxisDomain)
+class UncoveredHeadCoreEntity(BaseCoreEntity):
+    """Borrows two values but declares one alternative."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[MismatchedAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["mine"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    pack: Specialization[_AlphaSpecEntity, _KindEnumEntity] = Rel(description="d")
 
 
-MismatchedAlternativeSpecEntity.model_rebuild()
-MismatchedHeadCoreEntity.model_rebuild()
+UncoveredHeadCoreEntity.model_rebuild()
+_AlphaSpecEntity.model_rebuild()
 
 
-def test_a_code_the_head_names_and_no_class_declares_is_refused() -> None:
-    message = _refuses([MismatchedHeadCoreEntity], "no alternative declares them")
-    assert "mine" in message, "the message names the code that leads nowhere"
-    assert "other" not in message, "the error is about the head's side of the comparison"
-
-
-@exclude_graph_model
-@entity(description="Extra alternative", domain=AxisDomain)
-class ExtraCodeAlternativeSpecEntity(BaseSpecEntity):
-    id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[ExtraCodeHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ExtraCodeHeadCoreEntity, "pack")
-    ] = Rel(description="d")
-
-
-@exclude_graph_model
-@entity(description="Extra code head", domain=AxisDomain)
-class ExtraCodeHeadCoreEntity(BaseCoreEntity):
-    id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[ExtraCodeAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a", "b"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
-
-
-ExtraCodeAlternativeSpecEntity.model_rebuild()
-ExtraCodeHeadCoreEntity.model_rebuild()
-
-
-def test_a_code_that_leads_nowhere_is_named_before_the_size_is_compared() -> None:
-    """Two codes for one class: the head names a code no alternative answers to, and that is the report."""
-    message = _refuses([ExtraCodeHeadCoreEntity], "no alternative declares them")
-    assert "'b'" in message
+def test_a_value_with_no_alternative_is_refused() -> None:
+    message = _refuses([UncoveredHeadCoreEntity, _AlphaSpecEntity], "no alternative declares them")
+    assert "b" in message
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The classifier field
+# The reverse field: reachable, single, and named
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @exclude_graph_model
-@entity(description="Integer alternative", domain=AxisDomain)
-class IntegerAlternativeSpecEntity(BaseSpecEntity):
-    id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[IntegerHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(IntegerHeadCoreEntity, "pack")
-    ] = Rel(description="d")
+@entity(description="Unreachable", domain=AxisDomain)
+class UnreachableSpecEntity(BaseSpecEntity):
+    """Declares no field that points back at its head."""
 
-
-@exclude_graph_model
-@entity(description="Integer head", domain=AxisDomain)
-class IntegerHeadCoreEntity(BaseCoreEntity):
-    id: str = Field(description="id")
-    media: int = Field(description="a numeric classifier cannot hold a word")
-    pack: Annotated[
-        Specialization[IntegerAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
-
-
-IntegerAlternativeSpecEntity.model_rebuild()
-IntegerHeadCoreEntity.model_rebuild()
-
-
-def test_a_code_the_classifier_type_cannot_hold_is_refused() -> None:
-    message = _refuses([IntegerHeadCoreEntity], "cannot be stored by classifier field")
-    assert "'media'" in message
-    assert "int" in message, "the message names the type that refused the code"
-
-
-@exclude_graph_model
-@entity(description="Relation-classified alternative", domain=AxisDomain)
-class RelationClassifiedAlternativeSpecEntity(BaseSpecEntity):
-    id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[RelationClassifiedHeadAssocEntity],
-        Classifier("rec", Literal["a"]),
-        Inverse(RelationClassifiedHeadAssocEntity, "pack"),
-    ] = Rel(description="d")
-
-
-@exclude_graph_model
-@entity(description="Other side", domain=AxisDomain)
-class RelationClassifiedOtherAssocEntity(BaseAssocEntity):
-    id: str = Field(description="id")
-
-
-@exclude_graph_model
-@entity(description="Relation-classified head", domain=AxisDomain)
-class RelationClassifiedHeadAssocEntity(BaseAssocEntity):
-    id: str = Field(description="id")
-    other: Annotated[AssociationOne[RelationClassifiedOtherAssocEntity], NoInverse()] = Rel(description="a relation")
-    pack: Annotated[
-        Specialization[RelationClassifiedAlternativeSpecEntity],
-        Classifier(field="other", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
-
-
-RelationClassifiedAlternativeSpecEntity.model_rebuild()
-RelationClassifiedOtherAssocEntity.model_rebuild()
-RelationClassifiedHeadAssocEntity.model_rebuild()
-
-
-def test_a_classifier_that_is_a_relation_is_refused() -> None:
-    assert "is a relation, not a scalar field" in _refuses(
-        [RelationClassifiedHeadAssocEntity], "is a relation, not a scalar field"
-    )
-
-
-@exclude_graph_model
-@entity(description="Missing-classifier alternative", domain=AxisDomain)
-class MissingClassifierAlternativeSpecEntity(BaseSpecEntity):
-    id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[MissingClassifierHeadAssocEntity],
-        Classifier("rec", Literal["a"]),
-        Inverse(MissingClassifierHeadAssocEntity, "pack"),
-    ] = Rel(description="d")
-
-
-@exclude_graph_model
-@entity(description="Missing-classifier head", domain=AxisDomain)
-class MissingClassifierHeadAssocEntity(BaseAssocEntity):
-    id: str = Field(description="id")
-    pack: Annotated[
-        Specialization[MissingClassifierAlternativeSpecEntity],
-        Classifier(field="nope", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
-
-
-MissingClassifierAlternativeSpecEntity.model_rebuild()
-MissingClassifierHeadAssocEntity.model_rebuild()
-
-
-def test_a_classifier_that_is_not_a_field_is_refused() -> None:
-    message = _refuses([MissingClassifierHeadAssocEntity], "is not a field of")
-    assert "'nope'" in message
-
-
-@exclude_graph_model
-@entity(description="Self-classified alternative", domain=AxisDomain)
-class SelfClassifiedAlternativeSpecEntity(BaseSpecEntity):
-    id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[SelfClassifiedHeadAssocEntity],
-        Classifier("rec", Literal["a"]),
-        Inverse(SelfClassifiedHeadAssocEntity, "pack"),
-    ] = Rel(description="d")
-
-
-@exclude_graph_model
-@entity(description="Self-classified head", domain=AxisDomain)
-class SelfClassifiedHeadAssocEntity(BaseAssocEntity):
-    id: str = Field(description="id")
-    pack: Annotated[
-        Specialization[SelfClassifiedAlternativeSpecEntity],
-        Classifier(field="pack", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
-
-
-SelfClassifiedAlternativeSpecEntity.model_rebuild()
-SelfClassifiedHeadAssocEntity.model_rebuild()
-
-
-def test_a_classifier_naming_the_axis_itself_is_refused() -> None:
-    assert "names the specialization field itself" in _refuses(
-        [SelfClassifiedHeadAssocEntity], "names the specialization field itself"
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# The extension's side of the declaration
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-@exclude_graph_model
-@entity(description="Unreachable alternative", domain=AxisDomain)
-class UnreachableAlternativeAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
 
 
 @exclude_graph_model
 @entity(description="Unreachable head", domain=AxisDomain)
 class UnreachableHeadCoreEntity(BaseCoreEntity):
+    """One alternative cannot be reached from the head's side."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[UnreachableAlternativeAssocEntity],
-        Classifier(field="media", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    pack: Specialization[UnreachableSpecEntity, _KindEnumEntity] = Rel(description="d")
 
 
-UnreachableAlternativeAssocEntity.model_rebuild()
 UnreachableHeadCoreEntity.model_rebuild()
 
 
-def test_an_alternative_with_no_reverse_field_leaves_the_head_naming_a_code_nobody_owns() -> None:
-    """
-    The class is in the union, so the head names its code; the class declares nothing, so the
-    comparison finds the code orphaned. There is no separate "unreachable" report: this is what
-    unreachability looks like from the one place that can see both sides.
-    """
-    message = _refuses([UnreachableHeadCoreEntity], "no alternative declares them")
-    assert "'a'" in message
+def test_an_alternative_with_no_reverse_field_leaves_the_head_naming_a_value_nobody_owns() -> None:
+    message = _refuses([UnreachableHeadCoreEntity, UnreachableSpecEntity], "no alternative declares them")
+    assert "a" in message
 
 
 @exclude_graph_model
-@entity(description="Two-way alternative", domain=AxisDomain)
-class TwoWayAlternativeSpecEntity(BaseSpecEntity):
+@entity(description="Two way", domain=AxisDomain)
+class TwoWaySpecEntity(BaseSpecEntity):
+    """Points back through two fields, so the axis cannot tell which one declares its value."""
+
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoWayHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(TwoWayHeadCoreEntity, "pack")
-    ] = Rel(description="d")
-    rec_again: Annotated[
-        Generalization[TwoWayHeadCoreEntity], Classifier("rec_again", Literal["a"]), Inverse(TwoWayHeadCoreEntity, "pack")
-    ] = Rel(description="d")
+        Generalization[TwoWayHeadCoreEntity],
+        Classifier(field="rec", variant=_KindEnumEntity.A),
+    ] = Rel(description="back")
+    spare: Annotated[
+        Generalization[TwoWayHeadCoreEntity],
+        Classifier(field="spare", variant=_KindEnumEntity.B),
+    ] = Rel(description="back again")
 
 
 @exclude_graph_model
-@entity(description="Two-way head", domain=AxisDomain)
+@entity(description="Two way head", domain=AxisDomain)
 class TwoWayHeadCoreEntity(BaseCoreEntity):
+    """The head of the two-way alternative."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
-    pack: Annotated[
-        Specialization[TwoWayAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a"]),
-        Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    pack: Specialization[TwoWaySpecEntity, _KindEnumEntity] = Rel(description="d")
 
 
-TwoWayAlternativeSpecEntity.model_rebuild()
 TwoWayHeadCoreEntity.model_rebuild()
+TwoWaySpecEntity.model_rebuild()
 
 
 def test_an_alternative_pointing_back_through_two_fields_is_refused() -> None:
-    assert "more than one field" in _refuses([TwoWayHeadCoreEntity], "more than one field")
+    assert "more than one field" in _refuses([TwoWayHeadCoreEntity, TwoWaySpecEntity], "more than one field")
 
 
 @exclude_graph_model
-@entity(description="Wrongly-paired alternative", domain=AxisDomain)
-class WronglyPairedAlternativeSpecEntity(BaseSpecEntity):
+@entity(description="Wrongly paired", domain=AxisDomain)
+class WronglyPairedSpecEntity(BaseSpecEntity):
+    """Points back through a field the axis did not name."""
+
     id: str = Field(description="id")
-    elsewhere: Annotated[
+    rec: Annotated[
         Generalization[WronglyPairedHeadCoreEntity],
-        Classifier("elsewhere", Literal["a"]),
-        Inverse(WronglyPairedHeadCoreEntity, "pack"),
-    ] = Rel(description="d")
+        Classifier(field="rec", variant=_KindEnumEntity.A),
+    ] = Rel(description="back")
+    other: AssociationOne[WronglyPairedHeadCoreEntity] = Rel(
+        description="a second link, so the inverse name can disagree"
+    )
 
 
 @exclude_graph_model
-@entity(description="Wrongly-paired head", domain=AxisDomain)
+@entity(description="Wrongly paired head", domain=AxisDomain)
 class WronglyPairedHeadCoreEntity(BaseCoreEntity):
+    """The axis names a field the alternative does not use to point back."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[WronglyPairedAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a"]),
-        Inverse(field_name="rec"),
+        Specialization[WronglyPairedSpecEntity, _KindEnumEntity],
+        Inverse(field_name="other"),
     ] = Rel(description="d")
 
 
-WronglyPairedAlternativeSpecEntity.model_rebuild()
 WronglyPairedHeadCoreEntity.model_rebuild()
+WronglyPairedSpecEntity.model_rebuild()
 
 
 def test_an_alternative_paired_through_another_field_name_is_refused() -> None:
-    message = _refuses([WronglyPairedHeadCoreEntity], "but the axis names")
-    assert "'elsewhere'" in message
-    assert "'rec'" in message
+    message = _refuses([WronglyPairedHeadCoreEntity, WronglyPairedSpecEntity], "but the axis names")
+    assert "rec" in message
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# A declaration that is right stays right
+# The declaration that is right
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @exclude_graph_model
-@entity(description="Good alternative", domain=AxisDomain)
-class GoodAlternativeSpecEntity(BaseSpecEntity):
+@entity(description="Good first", domain=AxisDomain)
+class _GoodFirstSpecEntity(BaseSpecEntity):
+    """Names the first value."""
+
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[GoodHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(GoodHeadCoreEntity, "pack")
-    ] = Rel(description="d")
+        Generalization[GoodHeadCoreEntity],
+        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Inverse(GoodHeadCoreEntity, "pack"),
+    ] = Rel(description="back")
+
+
+@exclude_graph_model
+@entity(description="Good second", domain=AxisDomain)
+class _GoodSecondSpecEntity(BaseSpecEntity):
+    """Names the second value."""
+
+    id: str = Field(description="id")
+    rec: Annotated[
+        Generalization[GoodHeadCoreEntity],
+        Classifier(field="rec", variant=_KindEnumEntity.B),
+        Inverse(GoodHeadCoreEntity, "pack"),
+    ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Good head", domain=AxisDomain)
 class GoodHeadCoreEntity(BaseCoreEntity):
+    """Every value the dictionary declares has exactly one alternative."""
+
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[GoodAlternativeSpecEntity],
-        Classifier(field="media", codes=Literal["a"]),
+        Specialization[_GoodFirstSpecEntity | _GoodSecondSpecEntity, _KindEnumEntity],
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-GoodAlternativeSpecEntity.model_rebuild()
 GoodHeadCoreEntity.model_rebuild()
+_GoodFirstSpecEntity.model_rebuild()
+_GoodSecondSpecEntity.model_rebuild()
 
 
 def test_a_correct_declaration_passes() -> None:
-    validate_entity_specializations([GoodHeadCoreEntity])
+    validate_entity_specializations(
+        [GoodHeadCoreEntity, _GoodFirstSpecEntity, _GoodSecondSpecEntity, _KindEnumEntity]
+    )
 
 
 def test_a_model_without_any_specialization_passes() -> None:

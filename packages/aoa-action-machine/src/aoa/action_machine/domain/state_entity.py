@@ -26,9 +26,9 @@ SCOPE (IN / OUT)
 
 **In scope**
     The kind word, the name rule of the kind, the two required fields and their
-    non-blank validation, the declaration placeholders and their conversion into
-    instances, the catalogue, and the automatic exclusion of every status type
-    from the interchange graph.
+    non-blank validation, and the automatic exclusion of every status type from
+    the interchange graph. The declaration machinery, the conversion and the
+    catalogue come from :mod:`~aoa.action_machine.domain.declared_values`.
 
 **Out of scope**
     Classification and transitions — ``Lifecycle``. The axis checks — the
@@ -42,7 +42,7 @@ ARCHITECTURE / DATA FLOW
 
     class body                     conversion hook                 consumers
     DRAFT = OrderStateEntity(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
-    (StateSpec placeholder)            full instance, fields validated    codes(), by_code(),
+    (ValueSpec placeholder)            full instance, fields validated    codes(), by_code(),
                                                                           entity_type
                                   │
                                   ├── lifecycle template: key = code, label = display_name
@@ -62,46 +62,20 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, ClassVar
+from typing import Any
 
 from pydantic import ConfigDict, Field, field_validator
-from pydantic._internal._model_construction import ModelMetaclass
 
+from aoa.action_machine.domain.declared_values import (
+    DeclaredValuesMeta,
+    ValueSpec,
+    _DeclaredValues,
+)
 from aoa.action_machine.domain.entity import BaseEntity
-from aoa.action_machine.domain.state_spec import StateSpec, state
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 
-class _StateNamespace(dict[str, Any]):
-    """The class namespace that answers the state type's own name with the factory."""
-
-    def __init__(self, name: str) -> None:
-        """Remember the class name this namespace belongs to."""
-        super().__init__()
-        self._name = name
-
-    def __getitem__(self, key: str) -> Any:
-        """Return the stored value, or the declaration factory for the class's own name."""
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            if key == self._name:
-                return state
-            raise
-
-
-class StateEntityMeta(ModelMetaclass):
-    """Metaclass of the state kind: the class's own name is the declaration factory."""
-
-    @classmethod
-    def __prepare__(mcs, *args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: N804
-        """Give the class body the alias before the class itself exists."""
-        _ = mcs  # the metaclass is bound by the class machinery; the name keeps the pylint contract
-        name = args[0] if args else kwargs.get("name", "")
-        return _StateNamespace(str(name))
-
-
-class BaseStateEntity(BaseEntity, ABC, metaclass=StateEntityMeta):
+class BaseStateEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesMeta):
     """
     AI-CORE-BEGIN
         ROLE: Marker of the state kind — a status type that declares its own statuses and carries their catalogue.
@@ -110,14 +84,13 @@ class BaseStateEntity(BaseEntity, ABC, metaclass=StateEntityMeta):
     AI-CORE-END
     """
 
-    model_config = ConfigDict(**BaseEntity.model_config, ignored_types=(StateSpec,))
+    model_config = ConfigDict(**BaseEntity.model_config, ignored_types=(ValueSpec,))
+
+    __declared_values_inherit__ = True
+    __declared_values_noun__ = "status"
 
     code: str = Field(description="Stable state code — identity inside the lifecycle")
     display_name: str = Field(description="Human label for UI and diagrams")
-
-    members: ClassVar[tuple[BaseStateEntity, ...]] = ()
-    _by_code: ClassVar[dict[str, BaseStateEntity]] = {}
-    entity_type: ClassVar[type[BaseStateEntity] | None] = None
 
     def __init__(self, **data: Any) -> None:  # pylint: disable=useless-parent-delegation
         """Build a status from its validated fields."""
@@ -128,34 +101,6 @@ class BaseStateEntity(BaseEntity, ABC, metaclass=StateEntityMeta):
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("StateEntity")
         exclude_graph_model(cls)
-
-    @classmethod
-    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
-        """Turn this state type's placeholders into status instances and fill its catalogue."""
-        super().__pydantic_init_subclass__(**kwargs)
-        cls.entity_type = cls
-        specs = {name: value for name, value in cls.__dict__.items() if isinstance(value, StateSpec)}
-        if not specs:
-            return
-        for name, spec in specs.items():
-            setattr(cls, name, cls(**spec.kwargs))
-        members = tuple(getattr(cls, name) for name in specs)
-        codes = [member.code for member in members]
-        if len(codes) != len(set(codes)):
-            duplicates = sorted({code for code in codes if codes.count(code) > 1})
-            raise ValueError(f"{cls.__name__}: duplicate status code(s) in {duplicates}.")
-        cls.members = members
-        cls._by_code = {member.code: member for member in members}
-
-    @classmethod
-    def codes(cls) -> list[str]:
-        """Return the declared status codes in declaration order."""
-        return [member.code for member in cls.members]
-
-    @classmethod
-    def by_code(cls, code: str) -> BaseStateEntity:
-        """Return the status declared under ``code``; raise ``KeyError`` otherwise."""
-        return cls._by_code[code]
 
     @field_validator("code", "display_name")
     @classmethod

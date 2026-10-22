@@ -1,20 +1,18 @@
-"""The head has no classifier marker.
+"""The second argument must be a dictionary.
 
-Which declaration is wrong, and how do we repair it?
-Run from the repository root:
-    uv run python examples/step_21_relations/20_error_missing_classifier.py
+Use str as the second type argument.
+Run: uv run python examples/step_21_relations/20_error_missing_classifier.py
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     BaseCoreEntity,
     BaseSpecEntity,
-    Classifier,
     Generalization,
     Inverse,
     Rel,
@@ -37,11 +35,10 @@ class VinylRecordCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, str],
         Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing")
+    ] = Rel(description="Details of this pressing, classified by nothing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
@@ -52,7 +49,6 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["first"]),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -65,7 +61,6 @@ class RepressSpecEntity(BaseSpecEntity):
     year: int = Field(description="Re-pressing year")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["repress"]),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -78,7 +73,6 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["test"]),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

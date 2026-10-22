@@ -1,7 +1,6 @@
-"""Share a reference value.
+"""Read a closed currency catalogue.
 
-EUR describes a currency used by many objects. Its symbol describes that value; it is not a dated exchange-rate quote or a position in an order process.
-
+The class declares every value the shop accepts.
 Run: uv run python examples/step_20_entity/07_enumeration.py
 """
 
@@ -13,19 +12,23 @@ from aoa.action_machine.intents.entity import entity
 
 
 class ShopDomain(BaseDomain):
-    """Group the shop model declarations."""
+    """Group the shop declarations."""
 
     name = "shop"
     description = "Shop model"
 
 
-@entity(description="Currency reference value", domain=ShopDomain)
+@entity(description="Currencies accepted by the shop", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
-    """Describe a currency shared by monetary amounts."""
+    """Declare the shop's currency vocabulary."""
 
-    code: str = Field(description="Currency code")
     symbol: str = Field(description="Currency symbol")
 
-currency = CurrencyEnumEntity(code="EUR", symbol="€")
-assert currency.code == "EUR"
-print(currency.code, currency.symbol)
+    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
+    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+
+
+print("Codes:", CurrencyEnumEntity.codes())
+print("Members:", len(CurrencyEnumEntity.members))
+print("Same object:", CurrencyEnumEntity.by_code("eur") is CurrencyEnumEntity.EUR)
+print("Value:", CurrencyEnumEntity.EUR.display_name, CurrencyEnumEntity.EUR.symbol)

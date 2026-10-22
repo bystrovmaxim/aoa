@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-22] — Closed dictionaries and consistent variant choices
+
+A dictionary now declares the complete set of values the model accepts. References keep
+the chosen value together with its name and descriptive fields, while unknown or fabricated
+values are refused. Specializations use the same vocabulary: every value has one alternative,
+and loaded details must match the choice. The separate selector and duplicated code lists
+are replaced by one dictionary declaration. Maxitor shows the values inside the dictionary
+card, identifies references to it and labels each specialization group with its dictionary.
+([#241](https://github.com/bystrovmaxim/aoa/issues/241))
+
 ## [2026-10-22] — A lifecycle status belongs to its type
 
 A status used to be declared on the lifecycle axis, with a separate `StateVocabulary`

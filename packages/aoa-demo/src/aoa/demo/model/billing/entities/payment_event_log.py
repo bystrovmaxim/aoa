@@ -7,6 +7,7 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.payment_lifecycle import PaymentEventLifecycle
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 
 
 @entity(description="Append-only payment event (sample)", domain=BillingDomain)
@@ -15,7 +16,7 @@ class PaymentEventLogCoreEntity(BaseCoreEntity):
     lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     kind: str = Field(description="Event kind label")
     amount_minor_units: int = Field(description="Settlement amount in minor currency units", ge=0)
-    currency_iso: str = Field(description="ISO-4217 currency code", min_length=3, max_length=3)
+    currency_iso: CurrencyEnumEntity = Field(description="ISO-4217 currency code", min_length=3, max_length=3)
     processor_reference: str = Field(description="Upstream processor correlation id")
     occurred_at_utc: str = Field(description="Event timestamp (UTC ISO-8601)")
     settlement_batch_id: str = Field(description="Batch id when event was rolled into settlement")
