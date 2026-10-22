@@ -157,20 +157,29 @@ def _annotated_parts(annotation: ast.AST) -> tuple[ast.AST, list[ast.AST]] | Non
     return None
 
 
-def transform(text: str) -> tuple[str, int]:
+def transform(text: str, axes: list[dict[str, Any]] | None = None) -> tuple[str, int]:
     """Return the migrated text and the number of axes it declares."""
     tree = ast.parse(text)
-    plan = _plan_tree(text, tree)
-    if not plan["axes"]:
+    planned = axes if axes is not None else _plan_tree(text, tree)["axes"]
+    if not planned:
         return text, 0
+    plan = {"axes": planned}
 
     edits: list[tuple[int, int, str]] = []
     domain = _domain_of(tree)
 
     for axis in plan["axes"]:
         head = next(
-            node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == axis["head"]
+            (node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == axis["head"]),
+            None,
         )
+        if head is None:
+            # The head lives in another cell of this notebook; this cell only carries the
+            # extensions and constructions, which the marker and constructor edits handle.
+            edits.extend(_rewrite_markers(text, tree, axis))
+            edits.extend(_drop_constructor_arguments(text, tree, axis))
+            edits.extend(_rewrite_container_constructions(text, tree, axis))
+            continue
         field_name = str(axis["field_name"])
         statement = next(
             node
@@ -217,6 +226,7 @@ def transform(text: str) -> tuple[str, int]:
 
         edits.extend(_rewrite_markers(text, tree, axis))
         edits.extend(_drop_constructor_arguments(text, tree, axis))
+        edits.extend(_rewrite_container_constructions(text, tree, axis))
 
     kept_edits: list[tuple[int, int, str]] = []
     for start, end, replacement in sorted(edits, key=lambda edit: (edit[0], edit[1]), reverse=True):
@@ -260,19 +270,23 @@ def _write_notebook(path: Path) -> dict[str, Any]:
 
     notebook = json.loads(path.read_text())
     changed = 0
-    axes = 0
-    for cell in notebook.get("cells", []):
-        if cell.get("cell_type") != "code":
-            continue
+    cells = [cell for cell in notebook.get("cells", []) if cell.get("cell_type") == "code"]
+    # The plan comes from the whole notebook: a head and its extensions may live in different
+    # cells, and a cell on its own would declare neither.
+    collected = "\n\n".join("".join(cell.get("source", [])) for cell in cells)
+    try:
+        axes = _plan_tree(collected, ast.parse(collected))["axes"]
+    except SyntaxError:
+        axes = []
+    for cell in cells:
         source = "".join(cell.get("source", []))
-        migrated, count = transform(source)
-        axes += count
+        migrated, _ = transform(source, axes=axes)
         if migrated != source:
             cell["source"] = migrated.splitlines(keepends=True)
             changed += 1
     if changed:
         path.write_text(json.dumps(notebook, indent=1, ensure_ascii=False) + "\n")
-    return {"file": str(path), "axes": axes, "cells_changed": changed, "changed": changed > 0}
+    return {"file": str(path), "axes": len(axes), "cells_changed": changed, "changed": changed > 0}
 
 
 def _drop_constructor_arguments(text: str, tree: ast.AST, axis: dict[str, Any]) -> list[tuple[int, int, str]]:
@@ -291,6 +305,31 @@ def _drop_constructor_arguments(text: str, tree: ast.AST, axis: dict[str, Any]) 
             if comma != -1 and not text[comma + 1 : start].strip():
                 start = comma
             edits.append((start, end, ""))
+    return edits
+
+
+def _rewrite_container_constructions(text: str, tree: ast.AST, axis: dict[str, Any]) -> list[tuple[int, int, str]]:
+    """Return the edits that make a directly built container name the dictionary and its value."""
+    edits: list[tuple[int, int, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Subscript) or _dotted(func.value) != "Specialization":
+            continue
+        union = ast.get_source_segment(text, func.slice) or ""
+        if not all(str(name) in union for name in axis["alternatives"]):
+            continue
+        start, end = _span(text, func.slice)
+        edits.append((start, end, f"{union}, {axis['dictionary']}"))
+        for keyword in node.keywords:
+            if keyword.arg != "variant" or not isinstance(keyword.value, ast.Constant):
+                continue
+            value = keyword.value.value
+            if not isinstance(value, str) or value not in axis["codes"]:
+                continue
+            value_start, value_end = _span(text, keyword.value)
+            edits.append((value_start, value_end, f"{axis['dictionary']}.{_value_name(value)}"))
     return edits
 
 
