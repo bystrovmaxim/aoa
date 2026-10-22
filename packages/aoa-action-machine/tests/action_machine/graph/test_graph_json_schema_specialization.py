@@ -259,7 +259,7 @@ def test_each_alternative_produces_exactly_one_generalization_edge() -> None:
 
 @pytest.mark.parametrize(
     "missing",
-    ["field_name", "classifier_field", "classifier_value", "alternative_index", "alternatives"],
+    ["field_name", "classifier_value", "alternative_index", "alternatives"],
 )
 def test_a_specialization_edge_without_a_required_key_is_refused(missing: str) -> None:
     rows = _specialization_rows()

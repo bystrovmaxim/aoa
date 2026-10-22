@@ -66,7 +66,7 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -165,12 +165,54 @@ def _validate_axis(axis: EntitySpecializationIntentResolver) -> None:
     of a missing decorator.
     """
     _validate_alternatives_are_entities(axis)
-    _validate_classifier_field(axis)
+    if axis.dictionary is not None:
+        _validate_dictionary(axis)
+        _validate_declared_variants(axis)
+    else:
+        _validate_classifier_field(axis)
     _validate_head_field(axis)
     _validate_declared_codes(axis)
     _validate_codes_match(axis)
-    _validate_codes_fit_classifier(axis)
+    if axis.dictionary is None:
+        _validate_codes_fit_classifier(axis)
     _validate_codes_unique(axis)
+
+
+def _validate_dictionary(axis: EntitySpecializationIntentResolver) -> None:
+    """The axis's second type argument must be a decorated, non-empty closed dictionary."""
+    dictionary = axis.dictionary
+    if not isinstance(dictionary, type) or not hasattr(dictionary, "members"):
+        _fail(axis, f"'{dictionary}' is not a closed dictionary; write Specialization[Alternatives, Dictionary]")
+    if not tuple(cast(Any, dictionary).members):
+        _fail(
+            axis,
+            f"'{dictionary.__name__}' declares no values; an axis cannot borrow codes from an empty dictionary",
+        )
+    if not entity_info_is_set(dictionary):
+        _fail(
+            axis,
+            f"'{dictionary.__name__}' is a dictionary but not an @entity; the graph would have no node for it",
+        )
+
+
+def _validate_declared_variants(axis: EntitySpecializationIntentResolver) -> None:
+    """Every alternative must name one of the dictionary's declared values, as that value."""
+    dictionary = cast(Any, axis.dictionary)
+    members = tuple(dictionary.members)
+    for alternative in axis.alternatives:
+        declared = getattr(alternative, "declared_variant", None)
+        if declared is None:
+            _fail(
+                axis,
+                f"alternative '{alternative.__name__}' names no value of '{dictionary.__name__}' — "
+                f"write Classifier(field=..., variant={dictionary.__name__}.<VALUE>)",
+            )
+        if not any(declared is member for member in members):
+            _fail(
+                axis,
+                f"alternative '{alternative.__name__}' names a value {declared!r} that "
+                f"'{dictionary.__name__}' does not declare",
+            )
 
 
 def _validate_classifier_field(axis: EntitySpecializationIntentResolver) -> None:
@@ -226,7 +268,12 @@ def _declared_code(axis: EntitySpecializationIntentResolver, alternative: type[A
     codes: list[str] = []
     for _, info in declarations:
         marker = _classifier_marker(info)
-        codes.extend(marker.code_values if marker is not None else ())
+        if marker is None:
+            continue
+        if marker.variant is not None:
+            codes.append(str(marker.variant.code))
+        else:
+            codes.extend(marker.code_values)
     return codes[0] if codes else None
 
 
@@ -254,7 +301,7 @@ def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
                 f"alternative '{alternative.__name__}' declares no code on '{field_name}' — "
                 f"name it with Classifier(..., Literal[...])",
             )
-        if len(marker.code_values) != 1:
+        if marker.variant is None and len(marker.code_values) != 1:
             _fail(
                 axis,
                 f"alternative '{alternative.__name__}' must declare exactly one code on "
