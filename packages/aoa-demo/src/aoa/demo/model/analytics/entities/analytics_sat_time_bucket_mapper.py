@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub import AnalyticsAggregateSketchStubEntity
+from aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub import AnalyticsAggregateSketchStubCoreEntity
 
 
 @entity(description="Time bucket mapper on sketch sampling pipeline continuation", domain=AnalyticsDomain)
-class TimeBucketMapperEntity(BaseEntity):
+class TimeBucketMapperCoreEntity(BaseCoreEntity):
     id: str = Field(description="Mapper id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Mapper lifecycle")
 
@@ -24,11 +24,11 @@ class TimeBucketMapperEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     sketch_stub: Annotated[
-        AssociationOne[AnalyticsAggregateSketchStubEntity],
+        AssociationOne[AnalyticsAggregateSketchStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent aggregate sketch"
     )  # type: ignore[assignment]
 
 
-TimeBucketMapperEntity.model_rebuild()
+TimeBucketMapperCoreEntity.model_rebuild()

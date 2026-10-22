@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
-from aoa.demo.model.support.entities.support_sla_interval import SupportSlaIntervalEntity
+from aoa.demo.model.support.entities.support_sla_interval import SupportSlaIntervalCoreEntity
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @entity(description="Conversation stub tail on SLA segment (no fan-in back to ticket hub)", domain=SupportDomain)
-class SupportCommentThreadStubEntity(BaseEntity):
+class SupportCommentThreadStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Thread stub id")
     lifecycle: SupportSparseLifecycle = Field(description="Thread lifecycle")
 
@@ -24,11 +24,11 @@ class SupportCommentThreadStubEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     sla_interval: Annotated[
-        AssociationOne[SupportSlaIntervalEntity],
+        AssociationOne[SupportSlaIntervalCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent SLA interval artefact"
     )  # type: ignore[assignment]
 
 
-SupportCommentThreadStubEntity.model_rebuild()
+SupportCommentThreadStubCoreEntity.model_rebuild()

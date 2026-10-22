@@ -3,14 +3,14 @@
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.payment_lifecycle import PaymentEventLifecycle
 
 
 @entity(description="Append-only payment event (sample)", domain=BillingDomain)
-class PaymentEventLogEntity(BaseEntity):
+class PaymentEventLogCoreEntity(BaseCoreEntity):
     id: str = Field(description="Event id")
     lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")
     kind: str = Field(description="Event kind label")
@@ -21,4 +21,4 @@ class PaymentEventLogEntity(BaseEntity):
     settlement_batch_id: str = Field(description="Batch id when event was rolled into settlement")
 
 
-PaymentEventLogEntity.model_rebuild()
+PaymentEventLogCoreEntity.model_rebuild()

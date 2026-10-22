@@ -14,6 +14,9 @@ uv run python examples/step_22_lifecycle/01_lifecycle.py
 
 The Maxitor example additionally needs the workspace's `aoa-maxitor` package and DuckDB. It starts no HTTP server and uses no external database.
 
+
+An order and a state of that order play different roles. The order is a `BaseCoreEntity`; its state description is a `BaseStateEntity`. The state class keeps the `StateEntity` suffix, does not need `@entity`, and is excluded from ordinary Entity nodes. A lifecycle still represents its statuses as State nodes. Choosing a kind does not change the transition API described below. See [the six entity kinds](step-20-entity.md#understand-the-six-kinds).
+
 ## The status description, template and current value
 
 There are three different things to keep separate:
@@ -55,20 +58,20 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
     )
 
 from pydantic import Field
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity
 
 
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     """Hold the current lifecycle value of one order."""
 
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
 ```
 
-The `OrderEntity` field holds an `OrderLifecycle` instance. Create a draft order, request its permitted transition, and put the resulting value into a new entity:
+The `OrderCoreEntity` field holds an `OrderLifecycle` instance. Create a draft order, request its permitted transition, and put the resulting value into a new entity:
 
 ```python
-order = OrderEntity(id="ord-1", lifecycle=OrderLifecycle("draft"))
+order = OrderCoreEntity(id="ord-1", lifecycle=OrderLifecycle("draft"))
 paid = order.lifecycle.transition("paid")
 updated = order.model_copy(update={"lifecycle": paid})
 assert order.lifecycle.current_state == "draft"
@@ -179,7 +182,7 @@ InvalidStateError: State 'missing' is not defined on OrderLifecycle. Valid state
 
 [Python](../../examples/step_22_lifecycle/05_graph_attributes.py) · [Notebook](../../examples/step_22_lifecycle/05_graph_attributes.ipynb)
 
-The model graph is AOA's exported description of the application: its entities, operations and their declared relationships. In this example `@entity` registers `OrderEntity` in a small domain; constructing `ActionProductMachine` builds and validates that graph. The linked files include the registration and all imports. They export the graph and select its `paid` state row:
+The model graph is AOA's exported description of the application: its entities, operations and their declared relationships. In this example `@entity` registers `OrderCoreEntity` in a small domain; constructing `ActionProductMachine` builds and validates that graph. The linked files include the registration and all imports. They export the graph and select its `paid` state row:
 
 ```python
 machine = ActionProductMachine(loggers=[])
@@ -203,7 +206,7 @@ attributes: {'code': 'paid', 'display_name': 'Payment received', 'requires_recei
 model entities: 1
 ```
 
-The state keeps its code-based identity and receives a human label and JSON attributes. The status type does not become another Entity node: only OrderEntity appears as an entity. Fields excluded with Field(exclude=True) are omitted, and values without a JSON representation prevent export.
+The state keeps its code-based identity and receives a human label and JSON attributes. The status type does not become another Entity node: only OrderCoreEntity appears as an entity. Fields excluded with Field(exclude=True) are omitted, and values without a JSON representation prevent export.
 
 Changing the display name changes the label, not the state code. Keep existing codes when migrating if they are already stored or used by callers. Status objects describe possible states; the entity still holds its own current lifecycle value.
 

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_hop_latency_sample import HopLatencySampleEntity
+from aoa.demo.model.messaging.entities.msg_hop_latency_sample import HopLatencySampleCoreEntity
 
 
 @entity(description="Recipient device acknowledgement linked to latency hop", domain=MessagingDomain)
-class RecipientDeviceSeenEntity(BaseEntity):
+class RecipientDeviceSeenCoreEntity(BaseCoreEntity):
     id: str = Field(description="Device row id")
     lifecycle: MsgDenseLifecycle = Field(description="Device seen lifecycle")
 
@@ -24,11 +24,11 @@ class RecipientDeviceSeenEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     hop_sample: Annotated[
-        AssociationOne[HopLatencySampleEntity],
+        AssociationOne[HopLatencySampleCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream hop sample"
     )  # type: ignore[assignment]
 
 
-RecipientDeviceSeenEntity.model_rebuild()
+RecipientDeviceSeenCoreEntity.model_rebuild()

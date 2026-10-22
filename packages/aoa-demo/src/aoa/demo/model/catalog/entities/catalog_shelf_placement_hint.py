@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Planogram spine root — no SKU foreign key (merchant-only subtree)", domain=CatalogDomain)
-class ShelfPlacementHintEntity(BaseEntity):
+class ShelfPlacementHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hint id")
     lifecycle: CatalogDenseLifecycle = Field(description="Shelf placement lifecycle")
 
@@ -22,4 +22,4 @@ class ShelfPlacementHintEntity(BaseEntity):
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
 
 
-ShelfPlacementHintEntity.model_rebuild()
+ShelfPlacementHintCoreEntity.model_rebuild()

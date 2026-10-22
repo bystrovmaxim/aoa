@@ -89,7 +89,7 @@ A suffix in AOA is not a matter of style. Each suffix is fixed by a base class o
 | `BaseAction` subclass | `Action` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | `BaseDomain` subclass | `Domain` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | `BaseRole` subclass | `Role` | `__init_subclass__` at class definition | `NamingSuffixError` |
-| `BaseEntity` subclass | `Entity` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| Entity-kind descendant | `CoreEntity`, `AssocEntity`, `DetailEntity`, `SpecEntity`, `EnumEntity` or `StateEntity`, matching its kind base | Inheritance hooks at class definition, including intermediate and undecorated classes | `NamingSuffixError` |
 | Method with `@regular_aspect` | `_aspect` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@summary_aspect` | `_summary` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@compensate` | `_compensate` | the decorator at method definition | `NamingSuffixError` |
@@ -325,6 +325,27 @@ So, two independent layers of protection. The `_` block guards against accidenta
 
 ---
 
+## Entity kinds
+
+Every application entity chooses one kind base. Core describes an independent domain object; Assoc a technical connection without business data; Detail an identifiable part of an owner; Spec variant-specific data sharing the head's identity; Enum a shared reference value; State a lifecycle state description. These meanings are explained with separate runnable examples in [Step 20](../tutorials/step-20-entity.md).
+
+The hierarchy performs structural checks when Python creates a class, before decorators run. `BaseEntity` owns the common hierarchy checks; each kind base owns its suffix check. The framework recognises a kind base by direct inheritance from `BaseEntity` and its own `__init_subclass__` hook. The six supplied bases define the supported domain kinds; an application selects one of them. `@entity` supplies model metadata rather than performing these hierarchy checks.
+
+| Case | Behaviour |
+| --- | --- |
+| Ordinary application class inherits `BaseEntity` directly | `DeclarationStructureError`: select a kind base |
+| Two different kind bases occur in the inheritance chain | `DeclarationStructureError` |
+| Descendant has a missing or mismatched kind suffix | `NamingSuffixError` |
+| Intermediate or undecorated descendant | Same hierarchy and suffix checks; no exemption |
+| One kind plus an ordinary Python mixin | Accepted |
+| Construction of one of the six kind bases | `TypeError` at the attempted construction |
+| Exported Entity node | Required `properties.entity_kind`; the Maxitor store preserves the value |
+| `BaseStateEntity` descendant | Requires the `StateEntity` suffix; excluded from ordinary Entity nodes |
+
+The six wire values are `core`, `assoc`, `detail`, `spec`, `enum` and `state`. Normal Entity export does not emit `state`: lifecycle states have their own graph representation. All six kind bases are excluded from discovery. An application-specific intermediate class that should not be discovered uses `@exclude_graph_model`; a `Base` name prefix alone is insufficient.
+
+The semantic contracts are not a new set of automatic database checks. The marker does not inspect fields to identify business data, enforce a composite primary key, compare a specialization's key with its head's, or perform ownership deletion. `get_primary_key()` continues to use `id` by convention. Relation and lifecycle validation remain separate. Maxitor carries the classification but does not yet hide associative nodes based on it.
+
 ## Entity relations
 
 Relations between entities are declared with fields of a container type and markers in `Annotated`. The framework guards several separate rules.
@@ -348,8 +369,8 @@ Every ownership-relation field must have either `Inverse(TargetEntity, "field_na
 ```python
 # ✓ explicit reverse side
 customer: Annotated[
-    AssociationOne[CustomerEntity],
-    Inverse(CustomerEntity, "orders"),
+    AssociationOne[CustomerCoreEntity],
+    Inverse(CustomerCoreEntity, "orders"),
 ] = Rel(description="The customer who placed the order")
 
 # ✓ intentionally one-way link

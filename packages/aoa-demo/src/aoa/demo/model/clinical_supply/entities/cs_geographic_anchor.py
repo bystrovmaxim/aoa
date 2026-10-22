@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
@@ -13,7 +13,7 @@ from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyL
     description="Geographic anchoring slice for supplier sites (catalog city analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalGeographicAnchorEntity(BaseEntity):
+class ClinicalGeographicAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Geographic anchor id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Anchor lifecycle")
 
@@ -25,4 +25,4 @@ class ClinicalGeographicAnchorEntity(BaseEntity):
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
 
 
-ClinicalGeographicAnchorEntity.model_rebuild()
+ClinicalGeographicAnchorCoreEntity.model_rebuild()

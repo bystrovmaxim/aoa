@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
-from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubEntity
+from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 
 
 @entity(description="Lot freeze flag anchored to bin and facility", domain=InventoryDomain)
-class LotFreezeFlagEntity(BaseEntity):
+class LotFreezeFlagCoreEntity(BaseCoreEntity):
     id: str = Field(description="Flag id")
     lifecycle: InvDenseLifecycle = Field(description="Freeze flag lifecycle")
 
@@ -25,18 +25,18 @@ class LotFreezeFlagEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     bin_coordinate: Annotated[
-        AssociationOne[BinCoordinateStubEntity],
+        AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owning bin coordinate"
     )  # type: ignore[assignment]
 
     facility: Annotated[
-        AssociationOne[FacilityWarehouseEntity],
+        AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Facility where the frozen lot is held"
     )  # type: ignore[assignment]
 
 
-LotFreezeFlagEntity.model_rebuild()
+LotFreezeFlagCoreEntity.model_rebuild()

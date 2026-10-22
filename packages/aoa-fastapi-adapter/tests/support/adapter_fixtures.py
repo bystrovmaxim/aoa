@@ -10,7 +10,7 @@ Minimal actions whose ``Result`` (and/or ``Params``) carry schema-backed fields,
 used to assert OpenAPI projection and raw-dict round-trips at the HTTP boundary:
 
 - ``EntityProjectionAdapterTestAction`` — ``Result.order`` is a
-  ``SampleEntity.schema(...)`` wire projection (object with required id/name,
+  ``SampleCoreEntity.schema(...)`` wire projection (object with required id/name,
   ``additionalProperties: False``).
 - ``EntityProjectionParamsMcpTestAction`` — sibling whose ``Params`` carry the
   same entity wire projection (kept for parity with the MCP suite).
@@ -38,7 +38,7 @@ from aoa.action_machine.model.json_schema_value import JsonSchemaValue
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from .domain_model import SampleEntity, TestDomain
+from .domain_model import SampleCoreEntity, TestDomain
 
 _SAMPLE_ENTITY_WIRE_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -63,8 +63,8 @@ class EntityProjectionAdapterTestAction(
 
     class Result(BaseResult):
         domain: str = Field(description="Domain name")
-        order: SampleEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
-            description="Partial SampleEntity wire projection",
+        order: SampleCoreEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
+            description="Partial SampleCoreEntity wire projection",
         )
 
     @summary_aspect("Build result")
@@ -93,8 +93,8 @@ class EntityProjectionParamsMcpTestAction(
 
     class Params(BaseParams):
         label: str = Field(description="Label")
-        order: SampleEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
-            description="Partial SampleEntity wire projection on input",
+        order: SampleCoreEntity.schema(schema=_SAMPLE_ENTITY_WIRE_SCHEMA) = Field(  # type: ignore[valid-type]
+            description="Partial SampleCoreEntity wire projection on input",
         )
 
     class Result(BaseResult):

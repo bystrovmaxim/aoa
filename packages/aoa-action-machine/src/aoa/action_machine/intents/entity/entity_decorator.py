@@ -69,7 +69,7 @@ EXAMPLE
 
     from pydantic import Field
 
-    from aoa.action_machine.domain import BaseEntity, BaseDomain
+    from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
     from aoa.action_machine.intents.entity.entity_decorator import entity
 
     class ShopDomain(BaseDomain):
@@ -77,7 +77,7 @@ EXAMPLE
         description = "E-commerce shop"
 
     @entity(description="Customer order", domain=ShopDomain)
-    class OrderEntity(BaseEntity):
+    class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
         amount: float = Field(description="Order total", ge=0)
         status: str = Field(description="Workflow status")
@@ -187,7 +187,7 @@ def entity(
 
     Example:
         @entity(description="Customer order", domain=ShopDomain)
-        class OrderEntity(BaseEntity):
+        class OrderCoreEntity(BaseCoreEntity):
             id: str = Field(description="Order id")
 
     AI-CORE-BEGIN

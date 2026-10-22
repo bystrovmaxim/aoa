@@ -5,19 +5,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
-from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
-    AssuranceCheckpointToneAxisEntity,
-    AssuranceDelegationIntentAxisEntity,
+    AssuranceCheckpointToneAxisCoreEntity,
+    AssuranceDelegationIntentAxisCoreEntity,
 )
 
 
 @entity(description="Dual-actor delegated assignment with intent + checkpoint hues", domain=AssurancePortfolioDomain)
-class AssuranceDelegatedWorkTicketEntity(BaseEntity):
+class AssuranceDelegatedWorkTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Delegated ticket id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Delegated ticket lifecycle")
 
@@ -28,32 +28,32 @@ class AssuranceDelegatedWorkTicketEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     assignee_actor: Annotated[
-        AssociationOne[AssuranceFacilityActorEntity],
+        AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Actor owed the deliverable"
     )  # type: ignore[assignment]
 
     delegator_actor: Annotated[
-        AssociationOne[AssuranceFacilityActorEntity],
+        AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Actor dispatching workload"
     )  # type: ignore[assignment]
 
     intent_axis: Annotated[
-        AssociationOne[AssuranceDelegationIntentAxisEntity],
+        AssociationOne[AssuranceDelegationIntentAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Delegation intent flavour"
     )  # type: ignore[assignment]
 
     checkpoint_tone: Annotated[
-        AssociationOne[AssuranceCheckpointToneAxisEntity],
+        AssociationOne[AssuranceCheckpointToneAxisCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Current checkpoint disposition"
     )  # type: ignore[assignment]
 
 
-AssuranceDelegatedWorkTicketEntity.model_rebuild()
+AssuranceDelegatedWorkTicketCoreEntity.model_rebuild()

@@ -7,9 +7,9 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.store_dual_entry_lifecycle import StoreDualEntryLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -18,7 +18,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
     description="Trace row for orders that may originate online or as a walk-in quote (dual-entry demo)",
     domain=StoreDomain,
 )
-class OrderDualEntryOriginTraceEntity(BaseEntity):
+class OrderDualEntryOriginTraceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Origin trace id")
     lifecycle: StoreDualEntryLifecycle = Field(description="Dual-entry origin lifecycle")
 
@@ -29,11 +29,11 @@ class OrderDualEntryOriginTraceEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Related order aggregate for this origin trace"
     )  # type: ignore[assignment]
 
 
-OrderDualEntryOriginTraceEntity.model_rebuild()
+OrderDualEntryOriginTraceCoreEntity.model_rebuild()

@@ -6,6 +6,7 @@ Run: uv run python examples/step_22_lifecycle/02_lifecycle_axis.py
 """
 
 from pydantic import Field
+
 from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
 
 

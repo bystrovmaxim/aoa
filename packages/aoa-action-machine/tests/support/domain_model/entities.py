@@ -13,17 +13,17 @@ BaseEntity, the @entity decorator, Lifecycle, relations, and ``NodeGraphCoordina
 ENTITIES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- SampleEntity — simple entity with no relations or lifecycle.
-- LifecycleEntity — entity with a lifecycle (DraftLifecycle).
-- RelatedEntity — entity with relations.
-- ComplexEntity — entity combining the above.
+- SampleCoreEntity — simple entity with no relations or lifecycle.
+- LifecycleCoreEntity — entity with a lifecycle (DraftLifecycle).
+- RelatedCoreEntity — entity with relations.
+- ComplexCoreEntity — entity combining the above.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SPECIALIZED LIFECYCLE CLASSES
 ═══════════════════════════════════════════════════════════════════════════════
 
 DraftLifecycle — three-state machine: draft → active → archived.
-Used by LifecycleEntity and ComplexEntity.
+Used by LifecycleCoreEntity and ComplexCoreEntity.
 
 _template is defined at class definition time (import-time).
 When ``NodeGraphCoordinator.build()`` runs, lifecycle inspectors find ``DraftLifecycle``
@@ -61,7 +61,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     AggregateMany,
     AssociationOne,
-    BaseEntity,
+    BaseCoreEntity,
     BaseStateEntity,
     Lifecycle,
     NoInverse,
@@ -119,7 +119,7 @@ class DraftLifecycle(Lifecycle, StateVocabulary):
 
 @meta(description="Simple test entity", domain=TestDomain)
 @entity(description="Simple test entity", domain=TestDomain)
-class SampleEntity(BaseEntity):
+class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
     id: str = Field(description="Identifier")
@@ -128,22 +128,22 @@ class SampleEntity(BaseEntity):
 
 
 @entity(description="Entity with lifecycle", domain=TestDomain)
-class LifecycleEntity(BaseEntity):
+class LifecycleCoreEntity(BaseCoreEntity):
     """
     Entity for lifecycle tests.
 
     lifecycle is a normal Pydantic field (DraftLifecycle | None).
     Each instance holds its own current state:
 
-        entity = LifecycleEntity(id="1", lifecycle=DraftLifecycle("draft"))
+        entity = LifecycleCoreEntity(id="1", lifecycle=DraftLifecycle("draft"))
         entity.lifecycle.current_state  # → "draft"
 
     Without lifecycle:
-        entity = LifecycleEntity(id="1", lifecycle=None)
+        entity = LifecycleCoreEntity(id="1", lifecycle=None)
         entity.lifecycle  # → None
 
     Partial load:
-        entity = LifecycleEntity.partial(id="1")
+        entity = LifecycleCoreEntity.partial(id="1")
         entity.lifecycle  # → FieldNotLoadedError
     """
 
@@ -152,7 +152,7 @@ class LifecycleEntity(BaseEntity):
 
 
 @entity(description="Related entity", domain=TestDomain)
-class RelatedEntity(BaseEntity):
+class RelatedCoreEntity(BaseCoreEntity):
     """
     Entity for relation tests.
 
@@ -164,26 +164,26 @@ class RelatedEntity(BaseEntity):
     title: str = Field(description="Title")
 
     parent: Annotated[
-        AssociationOne[RelatedEntity] | None,
+        AssociationOne[RelatedCoreEntity] | None,
         NoInverse(),
     ] = Rel(description="Parent entity")
 
     children: Annotated[
-        AggregateMany[RelatedEntity] | None,
+        AggregateMany[RelatedCoreEntity] | None,
         NoInverse(),
     ] = Rel(description="Child entities")
 
 
 @entity(description="Complex entity", domain=TestDomain)
-class ComplexEntity(BaseEntity):
+class ComplexCoreEntity(BaseCoreEntity):
     """
     Full-featured entity for integration-style tests.
 
     Includes:
     - Scalar fields (id, name, amount).
     - Lifecycle (DraftLifecycle).
-    - AssociationOne to LifecycleEntity (no Inverse).
-    - AggregateMany to RelatedEntity (no Inverse).
+    - AssociationOne to LifecycleCoreEntity (no Inverse).
+    - AggregateMany to RelatedCoreEntity (no Inverse).
     """
 
     id: str = Field(description="Identifier")
@@ -193,11 +193,11 @@ class ComplexEntity(BaseEntity):
     lifecycle: DraftLifecycle | None = Field(description="Lifecycle state machine")
 
     owner: Annotated[
-        AssociationOne[LifecycleEntity] | None,
+        AssociationOne[LifecycleCoreEntity] | None,
         NoInverse(),
     ] = Rel(description="Owner")
 
     related_items: Annotated[
-        AggregateMany[RelatedEntity] | None,
+        AggregateMany[RelatedCoreEntity] | None,
         NoInverse(),
     ] = Rel(description="Related items")

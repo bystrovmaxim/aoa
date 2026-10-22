@@ -22,8 +22,8 @@ from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
@@ -33,11 +33,10 @@ from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
-from aoa.action_machine.resources import Connections
 
 
 class RootDomain(BaseDomain):
@@ -46,7 +45,7 @@ class RootDomain(BaseDomain):
 
 
 @entity(description="Order", domain=RootDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order ID")
 
 
@@ -71,7 +70,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
             "Validate order: id={%var.order_id}",
             order_id=params.order_id,
         )
-        order = OrderEntity(id=params.order_id)
+        order = OrderCoreEntity(id=params.order_id)
         return {
             "validated_id": params.order_id,
             OCEL_FRAMES_KEY: [

@@ -93,7 +93,7 @@ from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStoreRe
 @result_string("validated_id", required=True)
 @result_instance(OCEL_FRAMES_KEY, list, required=False)
 async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
-    order = OrderEntity(id=params.order_id)
+    order = OrderCoreEntity(id=params.order_id)
     return {
         "validated_id": params.order_id,
         OCEL_FRAMES_KEY: [OcelFrame(object=order, qualifier="Create order")],

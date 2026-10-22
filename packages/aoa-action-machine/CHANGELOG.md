@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 
+- **Entity kinds make the model explicit.** An entity now states whether it is an independent object, a technical connection, an owned part, variant-specific data, a reference value or a lifecycle state. Its base class and name must agree; invalid declarations fail when the module is imported. A technical connection may contain service fields, but business data such as price or terms makes it a core object. Existing models must select the appropriate bases and rename their classes. ([#210](https://github.com/bystrovmaxim/aoa/issues/210))
 - **Lifecycle states now have their own descriptions.** Declare status objects with a stable code, a human name and optional domain fields, then use those objects in the transition template. String arguments to `.state()` and `.to()` are no longer supported. The lifecycle keeps the selected declared object and exposes it through `current_status`; `current_state` returns its code. Construction and transitions still accept code strings, so existing codes can be kept. Vocabulary checks catch invalid declarations before the graph is built. ([#209](https://github.com/bystrovmaxim/aoa/issues/209))
 
 ## [1.0.1a5] – 2026-10-18

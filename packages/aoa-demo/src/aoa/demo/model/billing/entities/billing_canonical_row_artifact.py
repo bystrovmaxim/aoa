@@ -5,22 +5,22 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassEntity
+from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 
 
 @entity(description="Canonical row emitted from parser", domain=BillingDomain)
-class BillingCanonicalRowArtifactEntity(BaseEntity):
+class BillingCanonicalRowArtifactCoreEntity(BaseCoreEntity):
     id: str = Field(description="Artifact id")
     lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     parse_pass: Annotated[
-        AssociationOne[BillingParsePassEntity],
+        AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Originating parse pass"
@@ -32,4 +32,4 @@ class BillingCanonicalRowArtifactEntity(BaseEntity):
     parser_profile_id: str = Field(description="Rulepack profile stamped on row")
 
 
-BillingCanonicalRowArtifactEntity.model_rebuild()
+BillingCanonicalRowArtifactCoreEntity.model_rebuild()

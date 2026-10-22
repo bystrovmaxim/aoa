@@ -69,7 +69,6 @@ import json
 from contextlib import asynccontextmanager
 
 from aoa.mcp import McpAdapter
-from aoa.action_machine.resources import Connections
 
 
 async def main():

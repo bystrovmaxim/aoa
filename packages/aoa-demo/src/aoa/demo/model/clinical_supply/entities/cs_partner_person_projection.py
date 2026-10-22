@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
-from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubEntity
+from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
 
 
 @entity(
     description="Individual subtype facts hanging off the partner hub (person analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalPartnerPersonProjectionEntity(BaseEntity):
+class ClinicalPartnerPersonProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Person projection row id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Person subtype lifecycle")
 
@@ -27,11 +27,11 @@ class ClinicalPartnerPersonProjectionEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     partner_hub: Annotated[
-        AssociationOne[ClinicalPartnerHubEntity],
+        AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent partner aggregate"
     )  # type: ignore[assignment]
 
 
-ClinicalPartnerPersonProjectionEntity.model_rebuild()
+ClinicalPartnerPersonProjectionCoreEntity.model_rebuild()

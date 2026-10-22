@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerEntity
-from aoa.demo.model.store.entities.sales_core import SalesOrderEntity
+from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Discount application row", domain=StoreDomain)
-class DiscountApplicationEntity(BaseEntity):
+class DiscountApplicationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Discount application id")
     lifecycle: SalesOrderLifecycle = Field(description="Discount lifecycle")
     coupon_code: str = Field(description="Coupon code")
@@ -25,18 +25,18 @@ class DiscountApplicationEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Discounted order"
     )  # type: ignore[assignment]
 
     acquisition_attribution_head: Annotated[
-        AssociationOne[AcquisitionChannelLedgerEntity],
+        AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Catalog acquisition ledger head for attributed demand"
     )  # type: ignore[assignment]
 
 
-DiscountApplicationEntity.model_rebuild()
+DiscountApplicationCoreEntity.model_rebuild()

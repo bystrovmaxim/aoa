@@ -11,7 +11,7 @@ from aoa.action_machine.domain.exceptions import FieldNotLoadedError, LifecycleV
 def test_field_not_loaded_error_with_loaded_fields() -> None:
     err = FieldNotLoadedError(
         field_name="status",
-        entity_class_name="OrderEntity",
+        entity_class_name="OrderCoreEntity",
         loaded_fields=frozenset({"id", "name"}),
     )
     assert err.field_name == "status"

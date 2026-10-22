@@ -48,7 +48,9 @@ import pytest
 from pydantic import Field
 
 from aoa.action_machine.domain import (
+    BaseCoreEntity,
     BaseEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -85,22 +87,22 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 
 @exclude_graph_model
 @entity(description="Shared class", domain=GlobalDomain)
-class SharedClassEntity(BaseEntity):
+class SharedClassSpecEntity(BaseSpecEntity):
     """Points back at one head; the other head names it too, which is the defect."""
 
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[FirstClaimHeadEntity], Classifier("rec", Literal["a"]), Inverse(FirstClaimHeadEntity, "pack")
+        Generalization[FirstClaimHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(FirstClaimHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="First claim head", domain=GlobalDomain)
-class FirstClaimHeadEntity(BaseEntity):
+class FirstClaimHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[SharedClassEntity],
+        Specialization[SharedClassSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
@@ -108,26 +110,26 @@ class FirstClaimHeadEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Second claim head", domain=GlobalDomain)
-class SecondClaimHeadEntity(BaseEntity):
+class SecondClaimHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[SharedClassEntity],
+        Specialization[SharedClassSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-SharedClassEntity.model_rebuild()
-FirstClaimHeadEntity.model_rebuild()
-SecondClaimHeadEntity.model_rebuild()
+SharedClassSpecEntity.model_rebuild()
+FirstClaimHeadCoreEntity.model_rebuild()
+SecondClaimHeadCoreEntity.model_rebuild()
 
 
 def test_a_class_in_two_unions_is_refused_by_the_claim_not_by_a_symptom() -> None:
-    message = _refuses([FirstClaimHeadEntity, SecondClaimHeadEntity], "is an alternative of")
-    assert "SharedClassEntity" in message
-    assert "FirstClaimHeadEntity" in message, "the message names the head that claimed it first"
-    assert "SecondClaimHeadEntity" in message
+    message = _refuses([FirstClaimHeadCoreEntity, SecondClaimHeadCoreEntity], "is an alternative of")
+    assert "SharedClassSpecEntity" in message
+    assert "FirstClaimHeadCoreEntity" in message, "the message names the head that claimed it first"
+    assert "SecondClaimHeadCoreEntity" in message
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -137,50 +139,50 @@ def test_a_class_in_two_unions_is_refused_by_the_claim_not_by_a_symptom() -> Non
 
 @exclude_graph_model
 @entity(description="First alternative", domain=GlobalDomain)
-class FirstSharedClassifierAlternativeEntity(BaseEntity):
+class FirstSharedClassifierAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[SharedClassifierHeadEntity],
+        Generalization[SharedClassifierHeadCoreEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(SharedClassifierHeadEntity, "pack"),
+        Inverse(SharedClassifierHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Second alternative", domain=GlobalDomain)
-class SecondSharedClassifierAlternativeEntity(BaseEntity):
+class SecondSharedClassifierAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[SharedClassifierHeadEntity],
+        Generalization[SharedClassifierHeadCoreEntity],
         Classifier("rec", Literal["b"]),
-        Inverse(SharedClassifierHeadEntity, "other_pack"),
+        Inverse(SharedClassifierHeadCoreEntity, "other_pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Shared classifier head", domain=GlobalDomain)
-class SharedClassifierHeadEntity(BaseEntity):
+class SharedClassifierHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="one classifier cannot decide two axes")
     pack: Annotated[
-        Specialization[FirstSharedClassifierAlternativeEntity],
+        Specialization[FirstSharedClassifierAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
     other_pack: Annotated[
-        Specialization[SecondSharedClassifierAlternativeEntity],
+        Specialization[SecondSharedClassifierAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["b"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-FirstSharedClassifierAlternativeEntity.model_rebuild()
-SecondSharedClassifierAlternativeEntity.model_rebuild()
-SharedClassifierHeadEntity.model_rebuild()
+FirstSharedClassifierAlternativeSpecEntity.model_rebuild()
+SecondSharedClassifierAlternativeSpecEntity.model_rebuild()
+SharedClassifierHeadCoreEntity.model_rebuild()
 
 
 def test_two_axes_on_one_classifier_field_are_refused() -> None:
-    message = _refuses([SharedClassifierHeadEntity], "already decides")
+    message = _refuses([SharedClassifierHeadCoreEntity], "already decides")
     assert "'media'" in message
     assert "pack" in message, "the message names the axis that already owns the field"
 
@@ -192,37 +194,37 @@ def test_two_axes_on_one_classifier_field_are_refused() -> None:
 
 @exclude_graph_model
 @entity(description="Named alternative", domain=GlobalDomain)
-class NamedAlternativeEntity(BaseEntity):
+class NamedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[ClosedHeadEntity], Classifier("rec", Literal["a"]), Inverse(ClosedHeadEntity, "pack")
+        Generalization[ClosedHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ClosedHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Intruder", domain=GlobalDomain)
-class IntruderEntity(BaseEntity):
+class IntruderSpecEntity(BaseSpecEntity):
     """Points at the head's field without being named in the union."""
 
     id: str = Field(description="id")
-    rec: Annotated[Generalization[ClosedHeadEntity], Classifier("rec", Literal["b"])] = Rel(description="d")
+    rec: Annotated[Generalization[ClosedHeadCoreEntity], Classifier("rec", Literal["b"])] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Closed head", domain=GlobalDomain)
-class ClosedHeadEntity(BaseEntity):
+class ClosedHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[NamedAlternativeEntity],
+        Specialization[NamedAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-NamedAlternativeEntity.model_rebuild()
-IntruderEntity.model_rebuild()
-ClosedHeadEntity.model_rebuild()
+NamedAlternativeSpecEntity.model_rebuild()
+IntruderSpecEntity.model_rebuild()
+ClosedHeadCoreEntity.model_rebuild()
 
 
 def test_a_class_pointing_at_an_axis_without_being_named_is_refused() -> None:
@@ -235,16 +237,16 @@ def test_a_class_pointing_at_an_axis_without_being_named_is_refused() -> None:
     the one that is not named. A test that passed only the head would be asking whether an
     excluded class is judged, and the answer to that is no by design.
     """
-    message = _refuses([ClosedHeadEntity, IntruderEntity, NamedAlternativeEntity], "without being named")
-    assert "IntruderEntity" in message
+    message = _refuses([ClosedHeadCoreEntity, IntruderSpecEntity, NamedAlternativeSpecEntity], "without being named")
+    assert "IntruderSpecEntity" in message
     assert "pack" in message
     assert "add it to the alternatives" in message, "the message says what to do"
 
 
 def test_the_named_alternative_itself_is_not_reported_as_an_intruder() -> None:
     """The message names the intruder only; the class that belongs is silent."""
-    message = _refuses([ClosedHeadEntity, IntruderEntity, NamedAlternativeEntity], "without being named")
-    assert "NamedAlternativeEntity" not in message
+    message = _refuses([ClosedHeadCoreEntity, IntruderSpecEntity, NamedAlternativeSpecEntity], "without being named")
+    assert "NamedAlternativeSpecEntity" not in message
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -254,61 +256,61 @@ def test_the_named_alternative_itself_is_not_reported_as_an_intruder() -> None:
 
 @exclude_graph_model
 @entity(description="Self cycle", domain=GlobalDomain)
-class SelfCycleEntity(BaseEntity):
+class SelfCycleSpecEntity(BaseSpecEntity):
     """A head that names itself as its own alternative."""
 
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     back: Annotated[
-        Generalization[SelfCycleEntity], Classifier("back", Literal["a"]), Inverse(SelfCycleEntity, "loop")
+        Generalization[SelfCycleSpecEntity], Classifier("back", Literal["a"]), Inverse(SelfCycleSpecEntity, "loop")
     ] = Rel(description="d")
     loop: Annotated[
-        Specialization[SelfCycleEntity],
+        Specialization[SelfCycleSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="back"),
     ] = Rel(description="d")
 
 
-SelfCycleEntity.model_rebuild()
+SelfCycleSpecEntity.model_rebuild()
 
 
 def test_a_head_naming_itself_is_refused_as_a_cycle() -> None:
-    message = _refuses([SelfCycleEntity], "form a cycle")
-    assert "SelfCycleEntity -> SelfCycleEntity" in message, "the message draws the cycle"
+    message = _refuses([SelfCycleSpecEntity], "form a cycle")
+    assert "SelfCycleSpecEntity -> SelfCycleSpecEntity" in message, "the message draws the cycle"
 
 
 @exclude_graph_model
 @entity(description="Cycle A", domain=GlobalDomain)
-class CycleAEntity(BaseEntity):
+class CycleASpecEntity(BaseSpecEntity):
     """Half of a mutual cycle, with the reverse field the other half would need."""
 
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     other: Annotated[
-        Specialization[CycleBEntity], Classifier(field="media", codes=Literal["b"]), Inverse(field_name="back")
+        Specialization[CycleBSpecEntity], Classifier(field="media", codes=Literal["b"]), Inverse(field_name="back")
     ] = Rel(description="d")
     back: Annotated[
-        Generalization[CycleBEntity], Classifier("back", Literal["b"]), Inverse(CycleBEntity, "other")
+        Generalization[CycleBSpecEntity], Classifier("back", Literal["b"]), Inverse(CycleBSpecEntity, "other")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Cycle B", domain=GlobalDomain)
-class CycleBEntity(BaseEntity):
+class CycleBSpecEntity(BaseSpecEntity):
     """The other half: naming A back makes both classes alternatives of each other."""
 
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     other: Annotated[
-        Specialization[CycleAEntity], Classifier(field="media", codes=Literal["a"]), Inverse(field_name="back")
+        Specialization[CycleASpecEntity], Classifier(field="media", codes=Literal["a"]), Inverse(field_name="back")
     ] = Rel(description="d")
     back: Annotated[
-        Generalization[CycleAEntity], Classifier("back", Literal["a"]), Inverse(CycleAEntity, "other")
+        Generalization[CycleASpecEntity], Classifier("back", Literal["a"]), Inverse(CycleASpecEntity, "other")
     ] = Rel(description="d")
 
 
-CycleAEntity.model_rebuild()
-CycleBEntity.model_rebuild()
+CycleASpecEntity.model_rebuild()
+CycleBSpecEntity.model_rebuild()
 
 
 def test_a_mutual_cycle_between_two_classes_is_refused_long_before_a_cycle_can_form() -> None:
@@ -325,5 +327,5 @@ def test_a_mutual_cycle_between_two_classes_is_refused_long_before_a_cycle_can_f
     This test pins the refusal and names the guard. It deliberately does **not** pin which of the
     three could speak first, because two of them never get the chance.
     """
-    message = _refuses([CycleAEntity, CycleBEntity], "no alternative declares them")
-    assert "CycleAEntity" in message
+    message = _refuses([CycleASpecEntity, CycleBSpecEntity], "no alternative declares them")
+    assert "CycleASpecEntity" in message

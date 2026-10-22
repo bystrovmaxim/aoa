@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassEntity
+from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_downstream_watermark import DownstreamWatermarkEntity
+from aoa.demo.model.messaging.entities.msg_downstream_watermark import DownstreamWatermarkCoreEntity
 
 
 @entity(description="Replay ticket hanging off watermark segment", domain=MessagingDomain)
-class ReplayTicketEntity(BaseEntity):
+class ReplayTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: MsgDenseLifecycle = Field(description="Replay lifecycle")
 
@@ -25,18 +25,18 @@ class ReplayTicketEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     watermark: Annotated[
-        AssociationOne[DownstreamWatermarkEntity],
+        AssociationOne[DownstreamWatermarkCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent watermark row"
     )  # type: ignore[assignment]
 
     billing_parse_pass: Annotated[
-        AssociationOne[BillingParsePassEntity],
+        AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Billing parse artifact correlated with replay bookkeeping"
     )  # type: ignore[assignment]
 
 
-ReplayTicketEntity.model_rebuild()
+ReplayTicketCoreEntity.model_rebuild()

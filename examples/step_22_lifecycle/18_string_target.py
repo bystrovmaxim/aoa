@@ -5,7 +5,7 @@ Pass a code to the template builder instead of a status object.
 Run: uv run python examples/step_22_lifecycle/18_string_target.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):

@@ -18,7 +18,7 @@ import pytest
 
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, entity_schema_marker_from_annotated
 
-from ...support.domain_model.entities import SampleEntity
+from ...support.domain_model.entities import SampleCoreEntity
 
 
 def _marker_from_alias(alias: Any) -> EntitySchemaMarker:
@@ -43,12 +43,12 @@ class TestBaseEntitySchema:
             "required": ["id", "name", "value"],
             "additionalProperties": False,
         }
-        alias = SampleEntity.schema(schema=wire_schema)
+        alias = SampleCoreEntity.schema(schema=wire_schema)
         assert get_origin(alias) is Annotated
         args = get_args(alias)
-        assert args[0] is SampleEntity
+        assert args[0] is SampleCoreEntity
         marker = _marker_from_alias(alias)
-        assert marker.entity_cls is SampleEntity
+        assert marker.entity_cls is SampleCoreEntity
         assert marker.schema == wire_schema
         assert marker.schema is not wire_schema
 
@@ -59,7 +59,7 @@ class TestBaseEntitySchema:
             "required": ["id"],
             "additionalProperties": False,
         }
-        alias = SampleEntity.schema(schema=wire_schema)
+        alias = SampleCoreEntity.schema(schema=wire_schema)
         assert entity_schema_marker_from_annotated(alias) is _marker_from_alias(alias)
 
     def test_entity_schema_marker_from_annotated_plain_type_returns_none(self) -> None:
@@ -68,8 +68,8 @@ class TestBaseEntitySchema:
 
     def test_schema_rejects_non_dict(self) -> None:
         with pytest.raises(TypeError, match="schema must be a dict"):
-            SampleEntity.schema(schema="not-a-dict")  # type: ignore[arg-type]
+            SampleCoreEntity.schema(schema="not-a-dict")  # type: ignore[arg-type]
 
     def test_schema_rejects_empty_dict(self) -> None:
         with pytest.raises(ValueError, match="schema cannot be empty"):
-            SampleEntity.schema(schema={})
+            SampleCoreEntity.schema(schema={})

@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgWebhookLifecycle
 
 
 @entity(description="Webhook ingress subgraph root isolated from reconciliation spine", domain=MessagingDomain)
-class WebhookIngressReceiptEntity(BaseEntity):
+class WebhookIngressReceiptCoreEntity(BaseCoreEntity):
     id: str = Field(description="Receipt id")
     lifecycle: MsgWebhookLifecycle = Field(description="Receipt lifecycle")
 
@@ -22,4 +22,4 @@ class WebhookIngressReceiptEntity(BaseEntity):
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
 
 
-WebhookIngressReceiptEntity.model_rebuild()
+WebhookIngressReceiptCoreEntity.model_rebuild()

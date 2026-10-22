@@ -34,11 +34,10 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import AgentState, LangGraphAdapter, RouteKeyError, StateFieldMismatchError, UnregisteredNodeError
-from aoa.action_machine.resources import Connections
 
 # ─── State ────────────────────────────────────────────────────────────────────
 # TypedDict becomes the LangGraph state schema.

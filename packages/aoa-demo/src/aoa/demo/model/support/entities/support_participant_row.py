@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
-from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateEntity
+from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @entity(description="Ticket participant row (linear chain head off ticket)", domain=SupportDomain)
-class SupportParticipantEntity(BaseEntity):
+class SupportParticipantCoreEntity(BaseCoreEntity):
     id: str = Field(description="Participant row id")
     lifecycle: SupportSparseLifecycle = Field(description="Participant lifecycle")
 
@@ -24,11 +24,11 @@ class SupportParticipantEntity(BaseEntity):
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
     ticket: Annotated[
-        AssociationOne[SupportTicketAggregateEntity],
+        AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent ticket aggregate"
     )  # type: ignore[assignment]
 
 
-SupportParticipantEntity.model_rebuild()
+SupportParticipantCoreEntity.model_rebuild()

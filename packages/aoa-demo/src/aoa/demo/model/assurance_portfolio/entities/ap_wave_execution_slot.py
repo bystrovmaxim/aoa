@@ -5,12 +5,12 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
-from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerEntity
+from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_execution_attempt_ticket import (
-    AssuranceExecutionAttemptTicketEntity,
+    AssuranceExecutionAttemptTicketCoreEntity,
 )
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 
@@ -19,7 +19,7 @@ from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePo
     description="Associative scheduling link between waves and executions (plan_has_test analogue)",
     domain=AssurancePortfolioDomain,
 )
-class AssuranceWaveExecutionSlotEntity(BaseEntity):
+class AssuranceWaveExecutionSlotCoreEntity(BaseCoreEntity):
     id: str = Field(description="Wave execution slot id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Slot lifecycle")
 
@@ -30,18 +30,18 @@ class AssuranceWaveExecutionSlotEntity(BaseEntity):
     automation_vendor: str = Field(description="Runner / harness vendor label")
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
     campaign_wave: Annotated[
-        AssociationOne[AssuranceCampaignWaveBannerEntity],
+        AssociationOne[AssuranceCampaignWaveBannerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Scheduling banner"
     )  # type: ignore[assignment]
 
     execution_attempt: Annotated[
-        AssociationOne[AssuranceExecutionAttemptTicketEntity],
+        AssociationOne[AssuranceExecutionAttemptTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Mounted execution candidate"
     )  # type: ignore[assignment]
 
 
-AssuranceWaveExecutionSlotEntity.model_rebuild()
+AssuranceWaveExecutionSlotCoreEntity.model_rebuild()

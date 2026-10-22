@@ -5,9 +5,9 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import CustomerAccountEntity, SalesOrderEntity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -15,7 +15,7 @@ from aoa.demo.model.store.store_domain import StoreDomain
 @entity(
     description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain
 )
-class StoreCustomerOrderAffinityEntity(BaseEntity):
+class StoreCustomerOrderAffinityCoreEntity(BaseCoreEntity):
     id: str = Field(description="Affinity id")
     lifecycle: SalesOrderLifecycle = Field(description="Affinity lifecycle")
 
@@ -26,18 +26,18 @@ class StoreCustomerOrderAffinityEntity(BaseEntity):
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
     customer: Annotated[
-        AssociationOne[CustomerAccountEntity],
+        AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Buyer profile anchor"
     )  # type: ignore[assignment]
 
     order: Annotated[
-        AssociationOne[SalesOrderEntity],
+        AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Order aggregate anchor"
     )  # type: ignore[assignment]
 
 
-StoreCustomerOrderAffinityEntity.model_rebuild()
+StoreCustomerOrderAffinityCoreEntity.model_rebuild()

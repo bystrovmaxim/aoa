@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
-from aoa.demo.model.analytics.entities.analytics_sat_replay_watermark_stub import ReplayWatermarkStubEntity
+from aoa.demo.model.analytics.entities.analytics_sat_replay_watermark_stub import ReplayWatermarkStubCoreEntity
 
 
 @entity(description="Geo shard hint chaining off replay watermark bridge", domain=AnalyticsDomain)
-class GeoShardHintEntity(BaseEntity):
+class GeoShardHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Shard hint id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Geo shard hint lifecycle")
 
@@ -24,11 +24,11 @@ class GeoShardHintEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     replay_watermark: Annotated[
-        AssociationOne[ReplayWatermarkStubEntity],
+        AssociationOne[ReplayWatermarkStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream replay watermark row"
     )  # type: ignore[assignment]
 
 
-GeoShardHintEntity.model_rebuild()
+GeoShardHintCoreEntity.model_rebuild()

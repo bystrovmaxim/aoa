@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.entities.product_row import CatalogProductEntity
+from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_recall_signal import RecallSignalEntity
+from aoa.demo.model.inventory.entities.inv_recall_signal import RecallSignalCoreEntity
 
 
 @entity(description="Cross-dock latch following recall signalling chain", domain=InventoryDomain)
-class CrossDockStagingEntity(BaseEntity):
+class CrossDockStagingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Staging id")
     lifecycle: InvDenseLifecycle = Field(description="Cross-dock staging lifecycle")
 
@@ -25,18 +25,18 @@ class CrossDockStagingEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     recall_signal: Annotated[
-        AssociationOne[RecallSignalEntity],
+        AssociationOne[RecallSignalCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream recall signal"
     )  # type: ignore[assignment]
 
     catalog_product_anchor: Annotated[
-        AssociationOne[CatalogProductEntity],
+        AssociationOne[CatalogProductCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Catalog SKU keyed when diverting stock through cross-dock"
     )  # type: ignore[assignment]
 
 
-CrossDockStagingEntity.model_rebuild()
+CrossDockStagingCoreEntity.model_rebuild()

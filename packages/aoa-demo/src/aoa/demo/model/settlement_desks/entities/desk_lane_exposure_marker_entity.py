@@ -7,19 +7,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity import ClearingInstructionRowEntity
+from aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity import ClearingInstructionRowDetailEntity
 from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
 @entity(description="Desk-specific exposure marker keyed off clearing instruction slices", domain=SettlementDesksDomain)
-class DeskLaneExposureMarkerEntity(BaseEntity):
+class DeskLaneExposureMarkerCoreEntity(BaseCoreEntity):
     marker_id: str = Field(description="Exposure marker surrogate key")
     venue_lane: str = Field(description="atlantic_wire | pac_settlement_hub | synthetic")
     open_notional_stub: float = Field(description="Running exposure snapshot", ge=0)
     instruction_anchor: Annotated[
-        AssociationOne[ClearingInstructionRowEntity],
+        AssociationOne[ClearingInstructionRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Clearing instruction slice this marker amortises across"

@@ -46,7 +46,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import (
     AssociationOne,
+    BaseAssocEntity,
+    BaseCoreEntity,
     BaseEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -75,35 +78,35 @@ class SweepDomain(BaseDomain):
 
 @exclude_graph_model
 @entity(description="Good first", domain=SweepDomain)
-class GoodFirstEntity(BaseEntity):
+class GoodFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[GoodHeadEntity], Classifier("rec", Literal["a"]), Inverse(GoodHeadEntity, "pack")
+        Generalization[GoodHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(GoodHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Good second", domain=SweepDomain)
-class GoodSecondEntity(BaseEntity):
+class GoodSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[GoodHeadEntity], Classifier("rec", Literal["b"]), Inverse(GoodHeadEntity, "pack")
+        Generalization[GoodHeadCoreEntity], Classifier("rec", Literal["b"]), Inverse(GoodHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Good head", domain=SweepDomain)
-class GoodHeadEntity(BaseEntity):
+class GoodHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[GoodFirstEntity | GoodSecondEntity],
+        Specialization[GoodFirstSpecEntity | GoodSecondSpecEntity],
         Classifier(field="media", codes=Literal["a", "b"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-for _cls in (GoodFirstEntity, GoodSecondEntity, GoodHeadEntity):
+for _cls in (GoodFirstSpecEntity, GoodSecondSpecEntity, GoodHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -113,23 +116,23 @@ for _cls in (GoodFirstEntity, GoodSecondEntity, GoodHeadEntity):
 
 
 @exclude_graph_model
-class UndeclaredAlternativeEntity(BaseEntity):
+class UndeclaredAlternativeAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
 
 
 @exclude_graph_model
 @entity(description="Head over an undeclared class", domain=SweepDomain)
-class HeadOverUndeclaredEntity(BaseEntity):
+class HeadOverUndeclaredCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[UndeclaredAlternativeEntity],
+        Specialization[UndeclaredAlternativeAssocEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-HeadOverUndeclaredEntity.model_rebuild()
+HeadOverUndeclaredCoreEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -139,27 +142,27 @@ HeadOverUndeclaredEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Code-less alternative", domain=SweepDomain)
-class CodeLessAlternativeEntity(BaseEntity):
+class CodeLessAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
-    rec: Annotated[Generalization[HeadOverCodeLessEntity], Inverse(HeadOverCodeLessEntity, "pack")] = Rel(
+    rec: Annotated[Generalization[HeadOverCodeLessCoreEntity], Inverse(HeadOverCodeLessCoreEntity, "pack")] = Rel(
         description="d"
     )
 
 
 @exclude_graph_model
 @entity(description="Head over a code-less class", domain=SweepDomain)
-class HeadOverCodeLessEntity(BaseEntity):
+class HeadOverCodeLessCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[CodeLessAlternativeEntity],
+        Specialization[CodeLessAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-CodeLessAlternativeEntity.model_rebuild()
-HeadOverCodeLessEntity.model_rebuild()
+CodeLessAlternativeSpecEntity.model_rebuild()
+HeadOverCodeLessCoreEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -169,27 +172,27 @@ HeadOverCodeLessEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Orphan-code alternative", domain=SweepDomain)
-class OrphanCodeAlternativeEntity(BaseEntity):
+class OrphanCodeAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[HeadOverOrphanCodeEntity], Classifier("rec", Literal["other"]), Inverse(HeadOverOrphanCodeEntity, "pack")
+        Generalization[HeadOverOrphanCodeCoreEntity], Classifier("rec", Literal["other"]), Inverse(HeadOverOrphanCodeCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Head naming an orphan code", domain=SweepDomain)
-class HeadOverOrphanCodeEntity(BaseEntity):
+class HeadOverOrphanCodeCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[OrphanCodeAlternativeEntity],
+        Specialization[OrphanCodeAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["mine"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-OrphanCodeAlternativeEntity.model_rebuild()
-HeadOverOrphanCodeEntity.model_rebuild()
+OrphanCodeAlternativeSpecEntity.model_rebuild()
+HeadOverOrphanCodeCoreEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -199,35 +202,35 @@ HeadOverOrphanCodeEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Short first", domain=SweepDomain)
-class ShortFirstEntity(BaseEntity):
+class ShortFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[ShortHeadEntity], Classifier("rec", Literal["a"]), Inverse(ShortHeadEntity, "pack")
+        Generalization[ShortHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ShortHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Short second", domain=SweepDomain)
-class ShortSecondEntity(BaseEntity):
+class ShortSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[ShortHeadEntity], Classifier("rec", Literal["a"]), Inverse(ShortHeadEntity, "pack")
+        Generalization[ShortHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ShortHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Short head", domain=SweepDomain)
-class ShortHeadEntity(BaseEntity):
+class ShortHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[ShortFirstEntity | ShortSecondEntity],
+        Specialization[ShortFirstSpecEntity | ShortSecondSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-for _cls in (ShortFirstEntity, ShortSecondEntity, ShortHeadEntity):
+for _cls in (ShortFirstSpecEntity, ShortSecondSpecEntity, ShortHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -238,29 +241,29 @@ for _cls in (ShortFirstEntity, ShortSecondEntity, ShortHeadEntity):
 
 @exclude_graph_model
 @entity(description="Numeric-classified alternative", domain=SweepDomain)
-class NumericClassifiedAlternativeEntity(BaseEntity):
+class NumericClassifiedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[NumericClassifiedHeadEntity],
+        Generalization[NumericClassifiedHeadCoreEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(NumericClassifiedHeadEntity, "pack"),
+        Inverse(NumericClassifiedHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Numeric-classified head", domain=SweepDomain)
-class NumericClassifiedHeadEntity(BaseEntity):
+class NumericClassifiedHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: int = Field(description="classifier")
     pack: Annotated[
-        Specialization[NumericClassifiedAlternativeEntity],
+        Specialization[NumericClassifiedAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-NumericClassifiedAlternativeEntity.model_rebuild()
-NumericClassifiedHeadEntity.model_rebuild()
+NumericClassifiedAlternativeSpecEntity.model_rebuild()
+NumericClassifiedHeadCoreEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -270,36 +273,36 @@ NumericClassifiedHeadEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Relation-classified alternative", domain=SweepDomain)
-class RelationClassifiedAlternativeEntity(BaseEntity):
+class RelationClassifiedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[RelationClassifiedHeadEntity],
+        Generalization[RelationClassifiedHeadAssocEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(RelationClassifiedHeadEntity, "pack"),
+        Inverse(RelationClassifiedHeadAssocEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Other side of the relation", domain=SweepDomain)
-class RelationOtherEntity(BaseEntity):
+class RelationOtherAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
 
 
 @exclude_graph_model
 @entity(description="Relation-classified head", domain=SweepDomain)
-class RelationClassifiedHeadEntity(BaseEntity):
+class RelationClassifiedHeadAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
-    other: Annotated[AssociationOne[RelationOtherEntity], NoInverse()] = Rel(description="a relation")
+    other: Annotated[AssociationOne[RelationOtherAssocEntity], NoInverse()] = Rel(description="a relation")
     pack: Annotated[
-        Specialization[RelationClassifiedAlternativeEntity],
+        Specialization[RelationClassifiedAlternativeSpecEntity],
         Classifier(field="other", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-RelationClassifiedAlternativeEntity.model_rebuild()
-RelationOtherEntity.model_rebuild()
-RelationClassifiedHeadEntity.model_rebuild()
+RelationClassifiedAlternativeSpecEntity.model_rebuild()
+RelationOtherAssocEntity.model_rebuild()
+RelationClassifiedHeadAssocEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -309,28 +312,28 @@ RelationClassifiedHeadEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Missing-classifier alternative", domain=SweepDomain)
-class MissingClassifierAlternativeEntity(BaseEntity):
+class MissingClassifierAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[MissingClassifierHeadEntity],
+        Generalization[MissingClassifierHeadAssocEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(MissingClassifierHeadEntity, "pack"),
+        Inverse(MissingClassifierHeadAssocEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Missing-classifier head", domain=SweepDomain)
-class MissingClassifierHeadEntity(BaseEntity):
+class MissingClassifierHeadAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
     pack: Annotated[
-        Specialization[MissingClassifierAlternativeEntity],
+        Specialization[MissingClassifierAlternativeSpecEntity],
         Classifier(field="nope", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-MissingClassifierAlternativeEntity.model_rebuild()
-MissingClassifierHeadEntity.model_rebuild()
+MissingClassifierAlternativeSpecEntity.model_rebuild()
+MissingClassifierHeadAssocEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -340,28 +343,28 @@ MissingClassifierHeadEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Self-classified alternative", domain=SweepDomain)
-class SelfClassifiedAlternativeEntity(BaseEntity):
+class SelfClassifiedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[SelfClassifiedHeadEntity],
+        Generalization[SelfClassifiedHeadAssocEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(SelfClassifiedHeadEntity, "pack"),
+        Inverse(SelfClassifiedHeadAssocEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Self-classified head", domain=SweepDomain)
-class SelfClassifiedHeadEntity(BaseEntity):
+class SelfClassifiedHeadAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
     pack: Annotated[
-        Specialization[SelfClassifiedAlternativeEntity],
+        Specialization[SelfClassifiedAlternativeSpecEntity],
         Classifier(field="pack", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-SelfClassifiedAlternativeEntity.model_rebuild()
-SelfClassifiedHeadEntity.model_rebuild()
+SelfClassifiedAlternativeSpecEntity.model_rebuild()
+SelfClassifiedHeadAssocEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -371,20 +374,20 @@ SelfClassifiedHeadEntity.model_rebuild()
 
 @exclude_graph_model
 @entity(description="Claimed twice", domain=SweepDomain)
-class ClaimedTwiceEntity(BaseEntity):
+class ClaimedTwiceSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[ClaimFirstHeadEntity], Classifier("rec", Literal["a"]), Inverse(ClaimFirstHeadEntity, "pack")
+        Generalization[ClaimFirstHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ClaimFirstHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Claim first head", domain=SweepDomain)
-class ClaimFirstHeadEntity(BaseEntity):
+class ClaimFirstHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[ClaimedTwiceEntity],
+        Specialization[ClaimedTwiceSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
@@ -392,17 +395,17 @@ class ClaimFirstHeadEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Claim second head", domain=SweepDomain)
-class ClaimSecondHeadEntity(BaseEntity):
+class ClaimSecondHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[ClaimedTwiceEntity],
+        Specialization[ClaimedTwiceSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-for _cls in (ClaimedTwiceEntity, ClaimFirstHeadEntity, ClaimSecondHeadEntity):
+for _cls in (ClaimedTwiceSpecEntity, ClaimFirstHeadCoreEntity, ClaimSecondHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -413,40 +416,40 @@ for _cls in (ClaimedTwiceEntity, ClaimFirstHeadEntity, ClaimSecondHeadEntity):
 
 @exclude_graph_model
 @entity(description="Two-axis first", domain=SweepDomain)
-class TwoAxisFirstEntity(BaseEntity):
+class TwoAxisFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoAxisHeadEntity], Classifier("rec", Literal["a"]), Inverse(TwoAxisHeadEntity, "pack")
+        Generalization[TwoAxisHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(TwoAxisHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Two-axis second", domain=SweepDomain)
-class TwoAxisSecondEntity(BaseEntity):
+class TwoAxisSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoAxisHeadEntity], Classifier("rec", Literal["b"]), Inverse(TwoAxisHeadEntity, "other")
+        Generalization[TwoAxisHeadCoreEntity], Classifier("rec", Literal["b"]), Inverse(TwoAxisHeadCoreEntity, "other")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Two-axis head", domain=SweepDomain)
-class TwoAxisHeadEntity(BaseEntity):
+class TwoAxisHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[TwoAxisFirstEntity],
+        Specialization[TwoAxisFirstSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
     other: Annotated[
-        Specialization[TwoAxisSecondEntity],
+        Specialization[TwoAxisSecondSpecEntity],
         Classifier(field="media", codes=Literal["b"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-for _cls in (TwoAxisFirstEntity, TwoAxisSecondEntity, TwoAxisHeadEntity):
+for _cls in (TwoAxisFirstSpecEntity, TwoAxisSecondSpecEntity, TwoAxisHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -457,33 +460,33 @@ for _cls in (TwoAxisFirstEntity, TwoAxisSecondEntity, TwoAxisHeadEntity):
 
 @exclude_graph_model
 @entity(description="Closed named", domain=SweepDomain)
-class ClosedNamedEntity(BaseEntity):
+class ClosedNamedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[ClosedSweepHeadEntity], Classifier("rec", Literal["a"]), Inverse(ClosedSweepHeadEntity, "pack")
+        Generalization[ClosedSweepHeadCoreEntity], Classifier("rec", Literal["a"]), Inverse(ClosedSweepHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Closed intruder", domain=SweepDomain)
-class ClosedIntruderEntity(BaseEntity):
+class ClosedIntruderSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
-    rec: Annotated[Generalization[ClosedSweepHeadEntity], Classifier("rec", Literal["b"])] = Rel(description="d")
+    rec: Annotated[Generalization[ClosedSweepHeadCoreEntity], Classifier("rec", Literal["b"])] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Closed head", domain=SweepDomain)
-class ClosedSweepHeadEntity(BaseEntity):
+class ClosedSweepHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[ClosedNamedEntity],
+        Specialization[ClosedNamedSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-for _cls in (ClosedNamedEntity, ClosedIntruderEntity, ClosedSweepHeadEntity):
+for _cls in (ClosedNamedSpecEntity, ClosedIntruderSpecEntity, ClosedSweepHeadCoreEntity):
     _cls.model_rebuild()
 
 
@@ -494,22 +497,22 @@ for _cls in (ClosedNamedEntity, ClosedIntruderEntity, ClosedSweepHeadEntity):
 
 @exclude_graph_model
 @entity(description="Self-referring head", domain=SweepDomain)
-class SelfReferringHeadEntity(BaseEntity):
+class SelfReferringHeadSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     back: Annotated[
-        Generalization[SelfReferringHeadEntity],
+        Generalization[SelfReferringHeadSpecEntity],
         Classifier("back", Literal["a"]),
-        Inverse(SelfReferringHeadEntity, "loop"),
+        Inverse(SelfReferringHeadSpecEntity, "loop"),
     ] = Rel(description="d")
     loop: Annotated[
-        Specialization[SelfReferringHeadEntity],
+        Specialization[SelfReferringHeadSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="back"),
     ] = Rel(description="d")
 
 
-SelfReferringHeadEntity.model_rebuild()
+SelfReferringHeadSpecEntity.model_rebuild()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -519,62 +522,62 @@ SelfReferringHeadEntity.model_rebuild()
 CASES: list[tuple[str, list[type[BaseEntity]], str]] = [
     (
         "an alternative that is not a declared entity",
-        [HeadOverUndeclaredEntity],
+        [HeadOverUndeclaredCoreEntity],
         "is not a declared entity",
     ),
     (
         "an alternative that declares no code",
-        [HeadOverCodeLessEntity],
+        [HeadOverCodeLessCoreEntity],
         "declares no code",
     ),
     (
         "a code the head names and no class declares",
-        [HeadOverOrphanCodeEntity],
+        [HeadOverOrphanCodeCoreEntity],
         "no alternative declares them",
     ),
     (
         "fewer codes than alternatives",
-        [ShortHeadEntity],
+        [ShortHeadCoreEntity],
         "every alternative needs exactly one code",
     ),
     (
         "a code the classifier's type cannot hold",
-        [NumericClassifiedHeadEntity],
+        [NumericClassifiedHeadCoreEntity],
         "cannot be stored by classifier field",
     ),
     (
         "a classifier that is a relation",
-        [RelationClassifiedHeadEntity],
+        [RelationClassifiedHeadAssocEntity],
         "is a relation, not a scalar field",
     ),
     (
         "a classifier that is not a field",
-        [MissingClassifierHeadEntity],
+        [MissingClassifierHeadAssocEntity],
         "is not a field of",
     ),
     (
         "a classifier naming the axis itself",
-        [SelfClassifiedHeadEntity],
+        [SelfClassifiedHeadAssocEntity],
         "names the specialization field itself",
     ),
     (
         "one class in two unions",
-        [ClaimFirstHeadEntity, ClaimSecondHeadEntity],
+        [ClaimFirstHeadCoreEntity, ClaimSecondHeadCoreEntity],
         "is an alternative of",
     ),
     (
         "two axes decided by one classifier field",
-        [TwoAxisHeadEntity],
+        [TwoAxisHeadCoreEntity],
         "already decides",
     ),
     (
         "a class pointing at an axis without being named in it",
-        [ClosedSweepHeadEntity, ClosedIntruderEntity, ClosedNamedEntity],
+        [ClosedSweepHeadCoreEntity, ClosedIntruderSpecEntity, ClosedNamedSpecEntity],
         "without being named",
     ),
     (
         "a head naming itself",
-        [SelfReferringHeadEntity],
+        [SelfReferringHeadSpecEntity],
         "form a cycle",
     ),
 ]
@@ -605,7 +608,7 @@ def test_the_restored_declaration_of_the_same_shape_builds() -> None:
     two alternatives, two codes, one classifier, each class reachable — and it must build.
     A validator that refused everything would pass all twelve cases and fail here.
     """
-    validate_entity_specializations([GoodFirstEntity, GoodSecondEntity, GoodHeadEntity])
+    validate_entity_specializations([GoodFirstSpecEntity, GoodSecondSpecEntity, GoodHeadCoreEntity])
 
 
 def test_every_rule_the_design_names_has_a_case() -> None:
@@ -639,7 +642,7 @@ def test_every_rule_the_design_names_has_a_case() -> None:
 
 
 @exclude_graph_model
-class NotAnEntityAlternativeEntity(BaseEntity):
+class NotAnEntityAlternativeAssocEntity(BaseAssocEntity):
     """Shaped like an alternative and never decorated."""
 
     id: str = Field(description="id")
@@ -647,61 +650,61 @@ class NotAnEntityAlternativeEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="Mismatched twin", domain=SweepDomain)
-class MismatchedTwinEntity(BaseEntity):
+class MismatchedTwinSpecEntity(BaseSpecEntity):
     """Declares a code the head does not name, on a field that does point at the head."""
 
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoFaultsHeadEntity], Classifier("rec", Literal["zzz"]), Inverse(TwoFaultsHeadEntity, "pack")
+        Generalization[TwoFaultsHeadCoreEntity], Classifier("rec", Literal["zzz"]), Inverse(TwoFaultsHeadCoreEntity, "pack")
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Head with two faults", domain=SweepDomain)
-class TwoFaultsHeadEntity(BaseEntity):
+class TwoFaultsHeadCoreEntity(BaseCoreEntity):
     """One alternative is not an entity; the other declares a code nobody names."""
 
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[NotAnEntityAlternativeEntity | MismatchedTwinEntity],
+        Specialization[NotAnEntityAlternativeAssocEntity | MismatchedTwinSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-NotAnEntityAlternativeEntity.model_rebuild()
-MismatchedTwinEntity.model_rebuild()
-TwoFaultsHeadEntity.model_rebuild()
+NotAnEntityAlternativeAssocEntity.model_rebuild()
+MismatchedTwinSpecEntity.model_rebuild()
+TwoFaultsHeadCoreEntity.model_rebuild()
 
 
 @exclude_graph_model
 @entity(description="Unfitting alternative", domain=SweepDomain)
-class UnfittingAlternativeEntity(BaseEntity):
+class UnfittingAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoFaultsNumericHeadEntity],
+        Generalization[TwoFaultsNumericHeadCoreEntity],
         Classifier("rec", Literal["a"]),
-        Inverse(TwoFaultsNumericHeadEntity, "pack"),
+        Inverse(TwoFaultsNumericHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Head with a code that is both unknown and unfitting", domain=SweepDomain)
-class TwoFaultsNumericHeadEntity(BaseEntity):
+class TwoFaultsNumericHeadCoreEntity(BaseCoreEntity):
     """The head names a code no class declares, and the classifier's type could not hold it either."""
 
     id: str = Field(description="id")
     media: int = Field(description="classifier")
     pack: Annotated[
-        Specialization[UnfittingAlternativeEntity],
+        Specialization[UnfittingAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["a"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-UnfittingAlternativeEntity.model_rebuild()
-TwoFaultsNumericHeadEntity.model_rebuild()
+UnfittingAlternativeSpecEntity.model_rebuild()
+TwoFaultsNumericHeadCoreEntity.model_rebuild()
 
 
 def test_a_model_with_two_faults_reports_the_more_fundamental_one() -> None:
@@ -714,7 +717,7 @@ def test_a_model_with_two_faults_reports_the_more_fundamental_one() -> None:
     a reason worth acting on.
     """
     with pytest.raises(SpecializationDeclarationError) as caught:
-        validate_entity_specializations([TwoFaultsHeadEntity])
+        validate_entity_specializations([TwoFaultsHeadCoreEntity])
     message = str(caught.value)
 
     assert "is not a declared entity" in message
@@ -732,7 +735,7 @@ def test_a_code_the_classifier_cannot_hold_is_refused_before_anything_else() -> 
     of codes matching is asked.
     """
     with pytest.raises(SpecializationDeclarationError) as caught:
-        validate_entity_specializations([TwoFaultsNumericHeadEntity])
+        validate_entity_specializations([TwoFaultsNumericHeadCoreEntity])
     message = str(caught.value)
 
     assert "cannot be stored by classifier field" in message
@@ -741,37 +744,37 @@ def test_a_code_the_classifier_cannot_hold_is_refused_before_anything_else() -> 
 
 @exclude_graph_model
 @entity(description="Unknown-code alternative", domain=SweepDomain)
-class UnknownCodeAlternativeEntity(BaseEntity):
+class UnknownCodeAlternativeSpecEntity(BaseSpecEntity):
     """Declares a word for a classifier that holds words, so the type is satisfied and the code is not."""
 
     id: str = Field(description="id")
     rec: Annotated[
-        Generalization[TwoFaultsTextHeadEntity],
+        Generalization[TwoFaultsTextHeadCoreEntity],
         Classifier("rec", Literal["other"]),
-        Inverse(TwoFaultsTextHeadEntity, "pack"),
+        Inverse(TwoFaultsTextHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 
 
 @exclude_graph_model
 @entity(description="Head naming an unknown, storable code", domain=SweepDomain)
-class TwoFaultsTextHeadEntity(BaseEntity):
+class TwoFaultsTextHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     media: str = Field(description="classifier")
     pack: Annotated[
-        Specialization[UnknownCodeAlternativeEntity],
+        Specialization[UnknownCodeAlternativeSpecEntity],
         Classifier(field="media", codes=Literal["mine"]),
         Inverse(field_name="rec"),
     ] = Rel(description="d")
 
 
-UnknownCodeAlternativeEntity.model_rebuild()
-TwoFaultsTextHeadEntity.model_rebuild()
+UnknownCodeAlternativeSpecEntity.model_rebuild()
+TwoFaultsTextHeadCoreEntity.model_rebuild()
 
 
 def test_a_code_that_fits_the_type_but_no_class_declares_is_refused_as_unknown() -> None:
     """The type is satisfied, so the comparison is the rule that speaks — and nothing else does."""
     with pytest.raises(SpecializationDeclarationError) as caught:
-        validate_entity_specializations([TwoFaultsTextHeadEntity])
+        validate_entity_specializations([TwoFaultsTextHeadCoreEntity])
     message = str(caught.value)
 
     assert "no alternative declares them" in message
@@ -783,7 +786,7 @@ def test_the_report_for_one_model_is_the_same_every_time() -> None:
     messages = set()
     for _ in range(5):
         with pytest.raises(SpecializationDeclarationError) as caught:
-            validate_entity_specializations([TwoFaultsHeadEntity, ClaimFirstHeadEntity, ClaimSecondHeadEntity])
+            validate_entity_specializations([TwoFaultsHeadCoreEntity, ClaimFirstHeadCoreEntity, ClaimSecondHeadCoreEntity])
         messages.add(str(caught.value))
 
     assert len(messages) == 1, f"the report changed between runs: {messages}"

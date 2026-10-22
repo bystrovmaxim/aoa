@@ -80,7 +80,9 @@ On the diagram you see:
 - Bold lines — relation direction
 - Header color — domain membership
 
-The ERD is built from `BaseEntity` classes and `Relation` fields. No YAML schema, no separate description. Write code — get a diagram.
+The ERD is built from classes inheriting an entity kind base and their relation fields. Each exported Entity node carries `properties.entity_kind`; Maxitor preserves it in the `entity` table. This distinguishes independent objects, technical associations, owned parts, specializations and reference values. State types are excluded from ordinary Entity nodes and belong to lifecycle diagrams instead.
+
+Kind metadata does not yet change diagram rendering or automatically hide technical associations. Rebuild graph exports created before the required property was introduced. The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) demonstrates the value arriving unchanged in Maxitor.
 
 ---
 

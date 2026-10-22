@@ -5,32 +5,32 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.billing.entities.funding_window_hint import FundingWindowHintEntity
+from aoa.demo.model.billing.entities.funding_window_hint import FundingWindowHintCoreEntity
 
 if TYPE_CHECKING:
-    from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubEntity
+    from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
 
 
 @entity(description="Cash application routing hint chained from liquidity funding window facet", domain=BillingDomain)
-class CashApplicationHintEntity(BaseEntity):
+class CashApplicationHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hint id")
     lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
     currency_iso: str = Field(description="Declared ISO-4217 money unit")
     funding_window: Annotated[
-        AssociationOne[FundingWindowHintEntity],
+        AssociationOne[FundingWindowHintCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream funding guidance row"
     )  # type: ignore[assignment]
 
     arbitration_brief: Annotated[
-        AssociationOne[ArbitrationBriefStubEntity],
+        AssociationOne[ArbitrationBriefStubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Arbitration brief context for disputed cash-application routing"

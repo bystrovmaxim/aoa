@@ -5,18 +5,18 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerEntity
+from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketEntity
+from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
 
 
 @entity(
     description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain
 )
-class MsgCourierReplayCorrelateEntity(BaseEntity):
+class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
 
@@ -27,18 +27,18 @@ class MsgCourierReplayCorrelateEntity(BaseEntity):
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
     courier_ledger: Annotated[
-        AssociationOne[CourierAttemptLedgerEntity],
+        AssociationOne[CourierAttemptLedgerCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Courier attempt ledger linkage"
     )  # type: ignore[assignment]
 
     replay_ticket: Annotated[
-        AssociationOne[ReplayTicketEntity],
+        AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Replay ticket linkage"
     )  # type: ignore[assignment]
 
 
-MsgCourierReplayCorrelateEntity.model_rebuild()
+MsgCourierReplayCorrelateCoreEntity.model_rebuild()

@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_availability_projection import AvailabilityProjectionEntity
+from aoa.demo.model.catalog.entities.catalog_availability_projection import AvailabilityProjectionCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 
 
 @entity(description="Search boost chaining off availability subtree", domain=CatalogDomain)
-class SearchBoostWeightEntity(BaseEntity):
+class SearchBoostWeightCoreEntity(BaseCoreEntity):
     id: str = Field(description="Boost id")
     lifecycle: CatalogDenseLifecycle = Field(description="Search boost lifecycle")
 
@@ -24,11 +24,11 @@ class SearchBoostWeightEntity(BaseEntity):
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
     availability_projection: Annotated[
-        AssociationOne[AvailabilityProjectionEntity],
+        AssociationOne[AvailabilityProjectionCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent availability projection"
     )  # type: ignore[assignment]
 
 
-SearchBoostWeightEntity.model_rebuild()
+SearchBoostWeightCoreEntity.model_rebuild()

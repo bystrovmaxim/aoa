@@ -31,11 +31,11 @@ Coordinator graph/metadata assembly is covered in metadata tests.
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_decorator import EntityDecoratorError
 
-from ...support.domain_model.entities import SampleEntity, TestDomain
+from ...support.domain_model.entities import SampleCoreEntity, TestDomain
 
 
 class TestEntityDecorator:
@@ -45,13 +45,13 @@ class TestEntityDecorator:
         """Happy path: decorated entity gets `_entity_info`."""
 
         @entity(description="Test entity fixture", domain=TestDomain)
-        class ValidEntity(BaseEntity):
+        class ValidCoreEntity(BaseCoreEntity):
             id: str
             name: str
 
-        assert hasattr(ValidEntity, "_entity_info")
-        assert ValidEntity._entity_info["description"] == "Test entity fixture"
-        assert ValidEntity._entity_info["domain"] == TestDomain
+        assert hasattr(ValidCoreEntity, "_entity_info")
+        assert ValidCoreEntity._entity_info["description"] == "Test entity fixture"
+        assert ValidCoreEntity._entity_info["domain"] == TestDomain
 
     def test_missing_description(self):
         """Empty description is rejected."""
@@ -84,21 +84,21 @@ class TestBaseEntity:
 
     def test_entity_creation(self):
         """Construct a fully validated entity instance."""
-        entity = SampleEntity(id="123", name="Test", value=42)
+        entity = SampleCoreEntity(id="123", name="Test", value=42)
         assert entity.id == "123"
         assert entity.name == "Test"
         assert entity.value == 42
 
     def test_frozen_semantics(self):
         """Mutation of fields is forbidden (`frozen=True`)."""
-        entity = SampleEntity(id="123", name="Test", value=42)
+        entity = SampleCoreEntity(id="123", name="Test", value=42)
 
         with pytest.raises(ValidationError):
             entity.value = 100
 
     def test_dict_access(self):
         """Bracket and membership access work like a mapping."""
-        entity = SampleEntity(id="123", name="Test", value=42)
+        entity = SampleCoreEntity(id="123", name="Test", value=42)
 
         assert entity["id"] == "123"
         assert "name" in entity
@@ -106,7 +106,7 @@ class TestBaseEntity:
 
     def test_model_dump(self):
         """`model_dump` returns a plain dict of field values."""
-        entity = SampleEntity(id="123", name="Test", value=42)
+        entity = SampleCoreEntity(id="123", name="Test", value=42)
         data = entity.model_dump()
 
         assert data == {"id": "123", "name": "Test", "value": 42}
@@ -114,14 +114,14 @@ class TestBaseEntity:
     def test_validation(self):
         """Pydantic validates field constraints."""
         # Valid payload
-        entity = SampleEntity(id="123", name="Test", value=42)
+        entity = SampleCoreEntity(id="123", name="Test", value=42)
         assert entity.value == 42
 
         # Invalid payload
         with pytest.raises(ValidationError):
-            SampleEntity(id="123", name="Test", value=-1)  # value >= 0
+            SampleCoreEntity(id="123", name="Test", value=-1)  # value >= 0
 
     def test_extra_fields_forbid(self):
         """Undeclared keys are rejected (`extra='forbid'`)."""
         with pytest.raises(ValidationError):
-            SampleEntity(id="123", name="Test", value=42, extra_field="not_allowed")
+            SampleCoreEntity(id="123", name="Test", value=42, extra_field="not_allowed")

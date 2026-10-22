@@ -8,20 +8,27 @@ from typing import Annotated
 import pytest
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, FieldNotLoadedError, NoInverse, Rel
+from aoa.action_machine.domain import (
+    AssociationOne,
+    BaseAssocEntity,
+    BaseCoreEntity,
+    FieldNotLoadedError,
+    NoInverse,
+    Rel,
+)
 from aoa.action_machine.intents.entity import entity
 
 from ...support.domain_model.entities import (
     DraftLifecycle,
-    LifecycleEntity,
-    RelatedEntity,
-    SampleEntity,
+    LifecycleCoreEntity,
+    RelatedCoreEntity,
+    SampleCoreEntity,
     TestDomain,
 )
 
 
 @entity(description="Order", domain=TestDomain)
-class OrderEntity(BaseEntity):
+class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     number: str = Field(description="Order number")
     customer_id: str = Field(description="Customer reference")
@@ -30,29 +37,29 @@ class OrderEntity(BaseEntity):
 
 class TestIsFieldContract:
     def test_declared_and_loaded(self) -> None:
-        inst = SampleEntity(id="1", name="A", value=1)
+        inst = SampleCoreEntity(id="1", name="A", value=1)
         assert inst.is_field("id") is True
 
     def test_not_declared(self) -> None:
-        inst = SampleEntity(id="1", name="A", value=1)
+        inst = SampleCoreEntity(id="1", name="A", value=1)
         assert inst.is_field("missing") is False
 
     def test_not_loaded(self) -> None:
-        inst = SampleEntity.partial(id="1")
+        inst = SampleCoreEntity.partial(id="1")
         assert inst.is_field("name") is False
 
     def test_is_fields_one_unavailable(self) -> None:
-        inst = SampleEntity.partial(id="1")
+        inst = SampleCoreEntity.partial(id="1")
         assert inst.is_fields(["id", "name"]) is False
 
     def test_is_fields_empty(self) -> None:
-        inst = SampleEntity(id="1", name="A", value=1)
+        inst = SampleCoreEntity(id="1", name="A", value=1)
         assert inst.is_fields([]) is True
 
 
 class TestGetterContract:
     def test_getters_disjoint_union(self) -> None:
-        order = OrderEntity(
+        order = OrderCoreEntity(
             id="o1",
             number="N-1",
             customer_id="c42",
@@ -70,42 +77,42 @@ class TestGetterContract:
         assert order.get_all_fields() == {**pk, **fk, **scalar, **lifecycle}
 
     def test_relation_excluded_from_getters(self) -> None:
-        related = RelatedEntity(id="r1", title="T", parent=None, children=None)
+        related = RelatedCoreEntity(id="r1", title="T", parent=None, children=None)
         combined = related.get_all_fields()
         assert combined == {"id": "r1", "title": "T"}
         assert "parent" not in combined
         assert "children" not in combined
 
     def test_lifecycle_entity(self) -> None:
-        inst = LifecycleEntity(id="1", lifecycle=DraftLifecycle("draft"))
+        inst = LifecycleCoreEntity(id="1", lifecycle=DraftLifecycle("draft"))
         assert set(inst.get_lifecycle_fields()) == {"lifecycle"}
 
 
 class TestGetFieldValue:
     def test_unloaded_raises(self) -> None:
-        inst = SampleEntity.partial(id="1")
+        inst = SampleCoreEntity.partial(id="1")
         with pytest.raises(FieldNotLoadedError):
             inst.get_field_value("name")
 
     def test_loaded(self) -> None:
-        inst = SampleEntity.partial(id="1", name="A")
+        inst = SampleCoreEntity.partial(id="1", name="A")
         assert inst.get_field_value("name") == "A"
 
 
 class TestRelationForeignKeys:
     def test_association_one_container_in_get_foreign_keys(self) -> None:
         @entity(description="Child", domain=TestDomain)
-        class ChildEntity(BaseEntity):
+        class ChildAssocEntity(BaseAssocEntity):
             id: str = Field(description="id")
             policy: Annotated[
-                AssociationOne[OrderEntity] | None,
+                AssociationOne[OrderCoreEntity] | None,
                 NoInverse(),
             ] = Rel(
                 description="Policy"
             )  # type: ignore[assignment]
 
         policy_ref = AssociationOne(id="pol-9")
-        child = ChildEntity(id="1", policy=policy_ref)
+        child = ChildAssocEntity(id="1", policy=policy_ref)
         fks = child.get_foreign_keys()
         assert fks == {"policy": policy_ref}
         assert fks["policy"].id == "pol-9"
@@ -114,14 +121,14 @@ class TestRelationForeignKeys:
 
     def test_none_relation_omitted(self) -> None:
         @entity(description="Child", domain=TestDomain)
-        class ChildEntity(BaseEntity):
+        class ChildAssocEntity(BaseAssocEntity):
             id: str = Field(description="id")
             policy: Annotated[
-                AssociationOne[OrderEntity] | None,
+                AssociationOne[OrderCoreEntity] | None,
                 NoInverse(),
             ] = Rel(
                 description="Policy"
             )  # type: ignore[assignment]
 
-        child = ChildEntity(id="1", policy=None)
+        child = ChildAssocEntity(id="1", policy=None)
         assert child.get_foreign_keys() == {}

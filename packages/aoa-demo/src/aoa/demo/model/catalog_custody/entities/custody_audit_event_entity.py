@@ -7,21 +7,21 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
 from aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity import (
-    RegulatedStockKeepingUnitRowEntity,
+    RegulatedStockKeepingUnitRowDetailEntity,
 )
 
 
 @entity(description="Append-only custody audit artifact tied to a SKU anchor", domain=CatalogCustodyDomain)
-class CustodyAuditEventEntity(BaseEntity):
+class CustodyAuditEventCoreEntity(BaseCoreEntity):
     event_id: str = Field(description="Audit envelope id")
     actor_ref: str = Field(description="Originating custody actor ref")
     event_kind: str = Field(description="peek | inspect_attest | reconcile | pulse")
     subject_sku_row: Annotated[
-        AssociationOne[RegulatedStockKeepingUnitRowEntity],
+        AssociationOne[RegulatedStockKeepingUnitRowDetailEntity],
         NoInverse(),
     ] = Rel(
         description="Regulated SKU row this audit references"

@@ -5,16 +5,16 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseEntity
-from aoa.demo.model.inventory.entities.inv_lot_freeze_flag import LotFreezeFlagEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
+from aoa.demo.model.inventory.entities.inv_lot_freeze_flag import LotFreezeFlagCoreEntity
 
 
 @entity(description="Disposition advice for a frozen lot within a facility", domain=InventoryDomain)
-class DispositionAdviceEntity(BaseEntity):
+class DispositionAdviceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Advice id")
     lifecycle: InvDenseLifecycle = Field(description="Disposition lifecycle")
 
@@ -25,18 +25,18 @@ class DispositionAdviceEntity(BaseEntity):
     dock_door_anchor: str = Field(description="Primary receiving / staging door label")
     velocity_bucket: str = Field(description="ABC / throughput velocity class")
     freeze_flag: Annotated[
-        AssociationOne[LotFreezeFlagEntity],
+        AssociationOne[LotFreezeFlagCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream freeze flag"
     )  # type: ignore[assignment]
 
     facility: Annotated[
-        AssociationOne[FacilityWarehouseEntity],
+        AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Facility execution context"
     )  # type: ignore[assignment]
 
 
-DispositionAdviceEntity.model_rebuild()
+DispositionAdviceCoreEntity.model_rebuild()

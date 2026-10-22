@@ -1,6 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/actions/order_wire_preview.py
 """
-Sample action returning a partial ``ProjectionDemoOrderEntity`` JSON projection.
+Sample action returning a partial ``ProjectionDemoOrderCoreEntity`` JSON projection.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.entity_projection_demo.domain import EntityProjectionDemoDomain
-from aoa.demo.model.entity_projection_demo.entities.projection_demo_core import ProjectionDemoOrderEntity
+from aoa.demo.model.entity_projection_demo.entities.projection_demo_core import ProjectionDemoOrderCoreEntity
 
 _ORDER_WIRE_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -42,7 +42,7 @@ class ProjectionDemoOrderWirePreviewAction(
 
     class Result(BaseResult):
         label: str = Field(description="Echo of params label")
-        order: ProjectionDemoOrderEntity.schema(schema=_ORDER_WIRE_SCHEMA) = Field(
+        order: ProjectionDemoOrderCoreEntity.schema(schema=_ORDER_WIRE_SCHEMA) = Field(
             description="Partial order wire (id, status, total) without nested customer",
         )
 

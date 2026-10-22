@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
-from aoa.demo.model.analytics.entities.analytics_sat_experiment_overlay import ExperimentOverlayEntity
+from aoa.demo.model.analytics.entities.analytics_sat_experiment_overlay import ExperimentOverlayCoreEntity
 
 
 @entity(description="DQ ticket continuing experiment-overlay chain segment", domain=AnalyticsDomain)
-class DataQualityTicketEntity(BaseEntity):
+class DataQualityTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: AnalyticsFactLifecycle = Field(description="DQ ticket lifecycle")
 
@@ -24,11 +24,11 @@ class DataQualityTicketEntity(BaseEntity):
     freshness_horizon_sec: int = Field(description="Skew allowance for unordered facts seconds", ge=0)
     privacy_tier_label: str = Field(description="Data-class label surfaced to rollup consumers")
     experiment_overlay: Annotated[
-        AssociationOne[ExperimentOverlayEntity],
+        AssociationOne[ExperimentOverlayCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Upstream overlay facet"
     )  # type: ignore[assignment]
 
 
-DataQualityTicketEntity.model_rebuild()
+DataQualityTicketCoreEntity.model_rebuild()

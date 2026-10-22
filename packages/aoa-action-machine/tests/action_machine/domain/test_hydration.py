@@ -25,11 +25,11 @@ this file asserts; edge cases may live in integration tests.
 import pytest
 from pydantic import ValidationError
 
-from aoa.action_machine.domain import BaseEntity, build
+from aoa.action_machine.domain import BaseCoreEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
-from ...support.domain_model.entities import RelatedEntity, SampleEntity
+from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
 
 
 class _HydrationTestDomain(BaseDomain):
@@ -48,9 +48,9 @@ class TestBuildFunction:
             "value": 42,
         }
 
-        entity = build(data, SampleEntity)
+        entity = build(data, SampleCoreEntity)
 
-        assert isinstance(entity, SampleEntity)
+        assert isinstance(entity, SampleCoreEntity)
         assert entity.id == "123"
         assert entity.name == "Test Entity"
         assert entity.value == 42
@@ -59,13 +59,13 @@ class TestBuildFunction:
         """Invalid field values raise `ValidationError`."""
         # Valid payload
         data = {"id": "123", "name": "Test", "value": 10}
-        entity = build(data, SampleEntity)
+        entity = build(data, SampleCoreEntity)
         assert entity.value == 10
 
         # Invalid payload
         data_invalid = {"id": "123", "name": "Test", "value": -1}
         with pytest.raises(ValidationError):
-            build(data_invalid, SampleEntity)
+            build(data_invalid, SampleCoreEntity)
 
     def test_build_with_relations(self):
         """Explicit ``None`` for optional relation fields."""
@@ -76,9 +76,9 @@ class TestBuildFunction:
             "children": None,
         }
 
-        entity = build(data, RelatedEntity)
+        entity = build(data, RelatedCoreEntity)
 
-        assert isinstance(entity, RelatedEntity)
+        assert isinstance(entity, RelatedCoreEntity)
         assert entity.id == "parent-123"
         assert entity.title == "Parent Entity"
         assert entity.parent is None
@@ -94,7 +94,7 @@ class TestBuildFunction:
             "parent": None,
         }
 
-        entity = build(data, RelatedEntity)
+        entity = build(data, RelatedCoreEntity)
 
         assert entity.id == "parent-123"
         # `children` not in input → pydantic uses field default (`Rel(...)`)
@@ -104,7 +104,7 @@ class TestBuildFunction:
         """Missing required scalar fields → `ValidationError`."""
         data = {"id": "123", "name": "Test"}
         with pytest.raises(ValidationError):
-            build(data, SampleEntity)
+            build(data, SampleCoreEntity)
 
     def test_build_extra_fields(self):
         """Undeclared keys are rejected (`extra='forbid'`)."""
@@ -116,7 +116,7 @@ class TestBuildFunction:
         }
 
         with pytest.raises(ValidationError):
-            build(data, SampleEntity)
+            build(data, SampleCoreEntity)
 
 
 class TestEntityProxy:
@@ -127,11 +127,11 @@ class TestEntityProxy:
         from aoa.action_machine.domain.hydration import EntityProxy
 
         @entity(description="Proxy creation dummy", domain=_HydrationTestDomain)
-        class DummyEntity(BaseEntity):
+        class DummyCoreEntity(BaseCoreEntity):
             field1: str
             field2: int
 
-        proxy = EntityProxy(DummyEntity)
+        proxy = EntityProxy(DummyCoreEntity)
 
         assert proxy.field1 == "field1"
         assert proxy.field2 == "field2"
@@ -141,10 +141,10 @@ class TestEntityProxy:
         from aoa.action_machine.domain.hydration import EntityProxy
 
         @entity(description="Proxy missing field dummy", domain=_HydrationTestDomain)
-        class DummyEntity(BaseEntity):
+        class DummyCoreEntity(BaseCoreEntity):
             existing: str
 
-        proxy = EntityProxy(DummyEntity)
+        proxy = EntityProxy(DummyCoreEntity)
 
         with pytest.raises(AttributeError):
             _ = proxy.missing_field
@@ -154,10 +154,10 @@ class TestEntityProxy:
         from aoa.action_machine.domain.hydration import EntityProxy
 
         @entity(description="Proxy getattr dummy", domain=_HydrationTestDomain)
-        class DummyEntity(BaseEntity):
+        class DummyCoreEntity(BaseCoreEntity):
             test: str
 
-        proxy = EntityProxy(DummyEntity)
+        proxy = EntityProxy(DummyCoreEntity)
 
         assert proxy.test == "test"
         assert proxy.__getattr__("test") == "test"

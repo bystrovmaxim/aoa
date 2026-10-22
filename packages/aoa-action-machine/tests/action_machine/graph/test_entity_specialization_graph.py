@@ -41,7 +41,9 @@ import pytest
 from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import (
+    BaseCoreEntity,
     BaseEntity,
+    BaseSpecEntity,
     Classifier,
     Generalization,
     Inverse,
@@ -72,47 +74,47 @@ class _GDomain(BaseDomain):
 
 @exclude_graph_model
 @entity(description="First", domain=_GDomain)
-class _FirstEntity(BaseEntity):
+class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     stamper: str = Field(description="a column of its own")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["first"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Second", domain=_GDomain)
-class _SecondEntity(BaseEntity):
+class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     year: int = Field(description="a column of its own")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["repress"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Third", domain=_GDomain)
-class _ThirdEntity(BaseEntity):
+class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
-        Generalization[_HeadEntity],
+        Generalization[_HeadCoreEntity],
         Classifier("record", Literal["test"]),
-        Inverse(_HeadEntity, "pressed"),
+        Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
 @entity(description="Head", domain=_GDomain)
-class _HeadEntity(BaseEntity):
+class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     title: str = Field(description="a plain column")
     media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstEntity | _SecondEntity | _ThirdEntity],
+        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity],
         Classifier(field="media", codes=Literal["first", "repress", "test"]),
         Inverse(field_name="record"),
     ] = Rel(description="how it was pressed")
@@ -120,12 +122,12 @@ class _HeadEntity(BaseEntity):
 
 @exclude_graph_model
 @entity(description="No specialization", domain=_GDomain)
-class _PlainEntity(BaseEntity):
+class _PlainCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     title: str = Field(description="a plain column")
 
 
-for _cls in (_FirstEntity, _SecondEntity, _ThirdEntity, _HeadEntity, _PlainEntity):
+for _cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity, _HeadCoreEntity, _PlainCoreEntity):
     _cls.model_rebuild()
 
 
@@ -134,7 +136,7 @@ def _node(cls: type[BaseEntity]) -> EntityGraphNode:
     return EntityGraphNode(cls)
 
 
-def _specialization_edges(cls: type[BaseEntity] = _HeadEntity) -> list[BaseGraphEdge]:
+def _specialization_edges(cls: type[BaseEntity] = _HeadCoreEntity) -> list[BaseGraphEdge]:
     """Return the specialization edges of ``cls``."""
     return [edge for edge in _node(cls).get_all_edges() if edge.edge_name == "entity_specialization"]
 
@@ -148,26 +150,26 @@ def test_one_edge_per_alternative_points_at_its_own_class() -> None:
     edges = _specialization_edges()
 
     assert [edge.target_node_id for edge in edges] == [
-        TypeIntrospection.full_qualname(cls) for cls in (_FirstEntity, _SecondEntity, _ThirdEntity)
+        TypeIntrospection.full_qualname(cls) for cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity)
     ]
 
 
 def test_the_field_is_still_a_column() -> None:
-    node = _node(_HeadEntity)
+    node = _node(_HeadCoreEntity)
     columns = [edge.target_node.label for edge in node.entity_field_edges if edge.target_node is not None]
 
     assert columns == ["id", "title", "media", "pressed"], "a reader has to see the field itself"
 
 
 def test_the_same_field_is_not_emitted_twice() -> None:
-    emitted = [edge.target_node_id for edge in _node(_HeadEntity).get_all_edges() if edge.edge_name == "entity_field"]
+    emitted = [edge.target_node_id for edge in _node(_HeadCoreEntity).get_all_edges() if edge.edge_name == "entity_field"]
 
     assert len(emitted) == len(set(emitted)), "one column row per field"
     assert len([name for name in emitted if name.endswith(":pressed")]) == 1
 
 
 def test_the_head_carries_both_its_columns_and_its_alternatives() -> None:
-    kinds = [edge.edge_name for edge in _node(_HeadEntity).get_all_edges()]
+    kinds = [edge.edge_name for edge in _node(_HeadCoreEntity).get_all_edges()]
 
     assert kinds.count("entity_specialization") == 3
     assert kinds.count("entity_field") == 4
@@ -188,7 +190,7 @@ def test_each_edge_carries_its_code_and_its_position() -> None:
 def test_every_edge_repeats_the_whole_declaration() -> None:
     listed = [
         f"{code} -> {TypeIntrospection.full_qualname(cls)}"
-        for code, cls in zip(("first", "repress", "test"), (_FirstEntity, _SecondEntity, _ThirdEntity), strict=True)
+        for code, cls in zip(("first", "repress", "test"), (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity), strict=True)
     ]
 
     for edge in _specialization_edges():
@@ -211,7 +213,7 @@ def test_an_edge_serializes_with_its_own_properties_only() -> None:
 
     assert row["type"] == "entity_specialization"
     assert row["relationship"] == "Association"
-    assert row["target_id"] == TypeIntrospection.full_qualname(_FirstEntity)
+    assert row["target_id"] == TypeIntrospection.full_qualname(_FirstSpecEntity)
     assert set(properties) == {
         "field_name",
         "classifier_field",
@@ -285,8 +287,8 @@ def test_the_coordinator_refuses_an_edge_whose_target_is_not_a_node() -> None:
 
 
 def test_a_link_keeps_its_identifier_and_variant_without_a_loaded_row() -> None:
-    head = _HeadEntity(
-        id="h", title="t", media="first", pressed=Specialization[_FirstEntity](id="h", variant="first")
+    head = _HeadCoreEntity(
+        id="h", title="t", media="first", pressed=Specialization[_FirstSpecEntity](id="h", variant="first")
     )
 
     assert head.pressed.id == "h"
@@ -295,9 +297,9 @@ def test_a_link_keeps_its_identifier_and_variant_without_a_loaded_row() -> None:
 
 
 def test_a_loaded_row_reads_back_as_the_object_put_in() -> None:
-    row = _FirstEntity(id="h", stamper="1A")
-    head = _HeadEntity(
-        id="h", title="t", media="first", pressed=Specialization[_FirstEntity](id="h", variant="first", entity=row)
+    row = _FirstSpecEntity(id="h", stamper="1A")
+    head = _HeadCoreEntity(
+        id="h", title="t", media="first", pressed=Specialization[_FirstSpecEntity](id="h", variant="first", entity=row)
     )
 
     assert head.pressed.entity is row
@@ -305,7 +307,7 @@ def test_a_loaded_row_reads_back_as_the_object_put_in() -> None:
 
 def test_a_class_outside_the_union_is_refused() -> None:
     with pytest.raises(ValidationError):
-        Specialization[_FirstEntity](id="h", variant="first", entity=_ThirdEntity(id="h"))
+        Specialization[_FirstSpecEntity](id="h", variant="first", entity=_ThirdSpecEntity(id="h"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -314,12 +316,12 @@ def test_a_class_outside_the_union_is_refused() -> None:
 
 
 def test_a_model_without_specialization_has_no_specialization_edges() -> None:
-    assert _specialization_edges(_PlainEntity) == []
+    assert _specialization_edges(_PlainCoreEntity) == []
 
 
 def test_a_model_without_specialization_keeps_its_columns() -> None:
-    node = _node(_PlainEntity)
+    node = _node(_PlainCoreEntity)
     columns = [edge.target_node.label for edge in node.entity_field_edges if edge.target_node is not None]
 
     assert columns == ["id", "title"]
-    assert node.properties == {"description": "No specialization"}
+    assert node.properties == {"description": "No specialization", "entity_kind": "core"}

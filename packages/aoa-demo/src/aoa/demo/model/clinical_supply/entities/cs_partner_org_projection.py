@@ -5,19 +5,19 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
-from aoa.demo.model.clinical_supply.entities.cs_ownership_anchor import ClinicalOwnershipAnchorEntity
-from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubEntity
+from aoa.demo.model.clinical_supply.entities.cs_ownership_anchor import ClinicalOwnershipAnchorCoreEntity
+from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
 
 
 @entity(
     description="Institutional subtype facts hanging off the partner hub (organization analogue)",
     domain=ClinicalSupplyDomain,
 )
-class ClinicalPartnerOrgProjectionEntity(BaseEntity):
+class ClinicalPartnerOrgProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Org projection row id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Org subtype lifecycle")
 
@@ -28,18 +28,18 @@ class ClinicalPartnerOrgProjectionEntity(BaseEntity):
     quarantine_fence_id: str = Field(description="Facility quarantine corridor moniker")
     regulatory_territory: str = Field(description="Governing geography for distribution assertions")
     partner_hub: Annotated[
-        AssociationOne[ClinicalPartnerHubEntity],
+        AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Parent partner aggregate"
     )  # type: ignore[assignment]
 
     ownership_anchor: Annotated[
-        AssociationOne[ClinicalOwnershipAnchorEntity],
+        AssociationOne[ClinicalOwnershipAnchorCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Corporate form catalog"
     )  # type: ignore[assignment]
 
 
-ClinicalPartnerOrgProjectionEntity.model_rebuild()
+ClinicalPartnerOrgProjectionCoreEntity.model_rebuild()

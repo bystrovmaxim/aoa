@@ -1,4 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/customer_account.py
-from aoa.demo.model.store.entities.sales_core import CustomerAccountEntity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 
-__all__ = ["CustomerAccountEntity"]
+__all__ = ["CustomerAccountCoreEntity"]

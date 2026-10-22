@@ -5,13 +5,14 @@ Try to rename a status after creating it.
 Run: uv run python examples/step_22_lifecycle/11_immutable_status.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
 from pydantic import ValidationError
+
 status = OrderStateEntity(code="paid", display_name="Paid")
 
 # Run the case.

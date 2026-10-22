@@ -285,11 +285,24 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "description"
+                "description",
+                "entity_kind"
               ],
               "properties": {
                 "description": {
                   "type": "string"
+                },
+                "entity_kind": {
+                  "type": "string",
+                  "enum": [
+                    "core",
+                    "assoc",
+                    "detail",
+                    "spec",
+                    "enum",
+                    "state"
+                  ],
+                  "description": "Kind of the kind base class the entity inherits; 'state' is admitted for completeness, though status types never become entity rows."
                 }
               }
             }

@@ -1,6 +1,6 @@
 # packages/aoa-maxitor/src/aoa/maxitor/model/core/entities/node_entity.py
 """
-NodeEntity — sidebar / tree row record for diagrams.
+NodeCoreEntity — sidebar / tree row record for diagrams.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 
@@ -23,7 +23,7 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
     description="Hierarchical UI node row (id, optional parent, label, coarse type)",
     domain=DiagramsDomain,
 )
-class NodeEntity(BaseEntity):
+class NodeCoreEntity(BaseCoreEntity):
     """
     AI-CORE-BEGIN
     ROLE: Diagrams entity for a single navigable tree row.

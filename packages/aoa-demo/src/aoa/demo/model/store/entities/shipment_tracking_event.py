@@ -5,15 +5,15 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelEntity
+from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(description="Shipment tracking event row", domain=StoreDomain)
-class ShipmentTrackingEventEntity(BaseEntity):
+class ShipmentTrackingEventCoreEntity(BaseCoreEntity):
     id: str = Field(description="Tracking event id")
     lifecycle: SalesOrderLifecycle = Field(description="Tracking event lifecycle")
     status: str = Field(description="Carrier status")
@@ -24,11 +24,11 @@ class ShipmentTrackingEventEntity(BaseEntity):
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     parcel: Annotated[
-        AssociationOne[ShipmentParcelEntity],
+        AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
     ] = Rel(
         description="Owner parcel"
     )  # type: ignore[assignment]
 
 
-ShipmentTrackingEventEntity.model_rebuild()
+ShipmentTrackingEventCoreEntity.model_rebuild()

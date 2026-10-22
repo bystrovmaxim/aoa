@@ -248,7 +248,7 @@ def test_us5_no_inverse_boundary() -> None:
     entity_ids = [
         node.node_id
         for node in coordinator.get_all_nodes()
-        if getattr(node, "node_type", None) == "Entity" and node.node_id.endswith(".CascadeBoundaryEntity")
+        if getattr(node, "node_type", None) == "Entity" and node.node_id.endswith(".CascadeBoundaryAssocEntity")
     ]
     assert len(entity_ids) == 1
     entity_id = entity_ids[0]

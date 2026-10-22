@@ -37,11 +37,10 @@ from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, ParamsStub, ResultStub
-from aoa.action_machine.resources import BaseResource
+from aoa.action_machine.model import BaseAction, BaseState, ParamsStub, ResultStub
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.action_machine.resources import Connections
 
 
 # %% Setup

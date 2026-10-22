@@ -78,9 +78,9 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         #         {
         #           "id": (
         #             "myapp.model.billing.entities.billing_sat_interchange_slice."
-        #             "InterchangeAssessmentSliceEntity"
+        #             "InterchangeAssessmentSliceCoreEntity"
         #           ),
-        #           "label": "InterchangeAssessmentSliceEntity",
+        #           "label": "InterchangeAssessmentSliceCoreEntity",
         #           "domain_qualname": "myapp.model.billing.domain.BillingDomain",
         #           "fields": [
         #             {"name": "id", "type": "str", "primary_key": true, "foreign_key": false},
@@ -113,7 +113,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         #             {"name": "currency_iso", "type": "str", "primary_key": false, "foreign_key": false},
         #             {
         #               "name": "chargeback_ingest_correlate",
-        #               "type": "FK -> BillingChargebackIngestCorrelateEntity",
+        #               "type": "FK -> BillingChargebackIngestCorrelateCoreEntity",
         #               "primary_key": false,
         #               "foreign_key": true,
         #             },
@@ -124,11 +124,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         #         {
         #           "source": (
         #             "myapp.model.billing.entities.billing_sat_interchange_slice."
-        #             "InterchangeAssessmentSliceEntity"
+        #             "InterchangeAssessmentSliceCoreEntity"
         #           ),
         #           "target": (
         #             "myapp.model.billing.entities.billing_mesh_chargeback_ingest."
-        #             "BillingChargebackIngestCorrelateEntity"
+        #             "BillingChargebackIngestCorrelateCoreEntity"
         #           ),
         #           "label": "chargeback_ingest_correlate",
         #           "relationship_kind": "association",

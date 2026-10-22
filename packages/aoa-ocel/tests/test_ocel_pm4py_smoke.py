@@ -26,8 +26,8 @@ def event_time() -> datetime:
 def test_in_memory_export_loads_in_pm4py(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "pm4py-smoke.ocel.json"
     obj = OcelObject(
-        id="aoa.shop.domain.order.OrderEntity:id=order_1",
-        type="aoa.shop.domain.order.OrderEntity",
+        id="aoa.shop.domain.order.OrderCoreEntity:id=order_1",
+        type="aoa.shop.domain.order.OrderCoreEntity",
         attributes=[OcelAttribute(name="id", value="order_1")],
     )
     event = OcelEvent(

@@ -103,13 +103,13 @@ An enumeration or `Literal` is sufficient when only the value differs. Specializ
 
 ### Does Generalization mean Python inheritance?
 
-Here it is the reverse link from variant-specific details to their common entity. `FirstPressEntity` and `VinylRecordEntity` both inherit from `BaseEntity`; the former does not inherit the latter's fields. To read the title through a loaded reverse link, use `first.record.entity.title`.
+Here it is the reverse link from variant-specific details to their common entity. `FirstPressSpecEntity` inherits `BaseSpecEntity`, and `VinylRecordCoreEntity` inherits `BaseCoreEntity`; the former does not inherit the latter's fields. They describe the same record and share its identity, but hold different fields. To read the title through a loaded reverse link, use `first.record.entity.title`.
 
 ### Why are codes declared on both sides?
 
 The head states the codes it permits, while each alternative states the code it represents. The build compares them, so a forgotten alternative or a code changed on only one side can be detected. The code-to-class mapping is read from the alternatives, not inferred from class names or paired by union position. Reordering the head's codes changes presentation order, not the owner of a code.
 
-### Will media="first" load FirstPressEntity automatically?
+### Will media="first" load FirstPressSpecEntity automatically?
 
 No. The declaration makes the correspondence available, but the application or resource must use it to choose what to read and construct. Passing `entity=first` to a container supplies an object already available in memory. Neither the marker nor the container fetches data.
 
@@ -119,7 +119,7 @@ The container has no loaded object. Its identifier and, on a specialization link
 
 ### Does a successful build guarantee that codes in my data are correct?
 
-No. The build checks class declarations. The current specialization container accepts unknown string codes and does not compare its code with the supplied object's class. A `RepressEntity` supplied with `variant="first"` passes the union type check. Your loading or application layer must check those agreements. A suitable `Literal` annotation can restrict the head's classifier field during normal value construction, but it does not establish the other agreements or validate existing database data.
+No. The build checks class declarations. The current specialization container accepts unknown string codes and does not compare its code with the supplied object's class. A `RepressSpecEntity` supplied with `variant="first"` passes the union type check. Your loading or application layer must check those agreements. A suitable `Literal` annotation can restrict the head's classifier field during normal value construction, but it does not establish the other agreements or validate existing database data.
 
 ### Can two choices on the same entity use different alternatives?
 
@@ -144,3 +144,11 @@ No. It groups the possible detail classes in the entity–relationship diagram. 
   <td align="center"><a href="../index.md">Contents</a></td>
   <td align="right"></td>
 </tr></table>
+
+### Does every association need an Assoc entity?
+
+No. An association field is a reference between objects. `BaseAssocEntity` describes a separate record whose entire business meaning is the connection between its participants. Service fields such as an identifier or creation timestamp are allowed. Price, quantity or agreement terms give the relationship business content: model that object as Core. An order line with quantity remains Detail because it is an owned part. The [entity tutorial](../tutorials/step-20-entity.md#understand-the-six-kinds) explains these boundaries with runnable examples.
+
+### Does the kind marker enforce the whole domain contract?
+
+No. The hierarchy checks kind inheritance and suffixes when Python creates a class, including undecorated and intermediate classes. It does not infer business meaning from field names, create composite database keys, check equal specialization keys or execute ownership deletion. Existing relationship and lifecycle validators still perform their own checks.

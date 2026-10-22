@@ -60,9 +60,9 @@ Partial load vs full construction:
 
     Adapter / repository
          │
-         ├─ all required fields + validation ──>  OrderEntity(...)
+         ├─ all required fields + validation ──>  OrderCoreEntity(...)
          │
-         └─ subset only ──>  OrderEntity.partial(id=..., amount=...)
+         └─ subset only ──>  OrderCoreEntity.partial(id=..., amount=...)
                                     │
                                     ▼
                             __getattr__ on missing **model** field
@@ -118,6 +118,7 @@ from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.domain.lifecycle import Lifecycle
 from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
+from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
@@ -127,6 +128,18 @@ from aoa.action_machine.model.base_schema import BaseSchema
 _REQUIRED_SUFFIX = "Entity"
 
 _SCALAR_TYPES = (str, int, float, bool, bytes)
+
+
+def _is_kind_base(cls: type) -> bool:
+    """True when the class inherits the entity base directly and overrides the subclass hook."""
+    return BaseEntity in cls.__bases__ and "__init_subclass__" in cls.__dict__
+
+
+def _refuse_kind_base_instantiation(cls: type, *_args: Any, **_kwargs: Any) -> Any:
+    """Refuse construction of a kind base class; its descendants construct normally."""
+    if _is_kind_base(cls):
+        raise TypeError(f"{cls.__name__} is the base class of a kind and cannot be instantiated.")
+    return object.__new__(cls)
 
 
 @exclude_graph_model
@@ -141,14 +154,28 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    @classmethod
+    def _require_kind_suffix(cls, suffix: str) -> None:
+        """Refuse a name that does not carry the kind's suffix."""
+        if not cls.__name__.endswith(suffix):
+            raise NamingSuffixError(
+                f"Class '{cls.__name__}' must end with '{suffix}'. "
+                f"Rename it to '{cls.__name__}{suffix}'."
+            )
+
     # Typing hook; `@entity` sets this on concrete classes.
     _entity_info: ClassVar[dict[str, Any]]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Enforce the ``*Entity`` naming invariant when a subclass is defined.
+        Enforce the ``*Entity`` naming invariant, and keep a kind base class abstract and out of the graph.
 
         Called by Python for every direct or indirect subclass of `BaseEntity`.
+        A class that inherits the entity base directly and overrides this hook is
+        a kind base class: the six of them declare what an instance represents,
+        and each checks the name of its own descendants. Such a class never
+        becomes a graph entity and is never instantiated; its descendants are
+        ordinary entities again.
 
         Args:
             **kwargs: Forwarded to `type.__init_subclass__`.
@@ -163,6 +190,23 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
                 f"Class '{cls.__name__}' inherits from BaseEntity but its name must "
                 f"end with the suffix '{_REQUIRED_SUFFIX}'. "
                 f"Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
+            )
+
+        if BaseEntity in cls.__bases__:
+            if not _is_kind_base(cls):
+                raise DeclarationStructureError(
+                    f"Class '{cls.__name__}' inherits BaseEntity directly. "
+                    f"An entity inherits one of the six kind base classes instead: BaseCoreEntity, "
+                    f"BaseAssocEntity, BaseDetailEntity, BaseSpecEntity, BaseEnumEntity or BaseStateEntity."
+                )
+            cls.__new__ = staticmethod(_refuse_kind_base_instantiation)  # type: ignore[method-assign]
+            return
+
+        kind_bases = [base for base in cls.__mro__ if BaseEntity in base.__bases__]
+        if len(kind_bases) > 1:
+            raise DeclarationStructureError(
+                f"Class '{cls.__name__}' carries {len(kind_bases)} kind base classes "
+                f"({', '.join(base.__name__ for base in kind_bases)}); an entity states exactly one kind."
             )
 
     @classmethod
@@ -205,7 +249,7 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
             access or when merging into a full instance.
 
         Example:
-            ``OrderEntity.partial(id="ORD-001", amount=1500.0)`` — reading
+            ``OrderCoreEntity.partial(id="ORD-001", amount=1500.0)`` — reading
             ``status`` raises `FieldNotLoadedError`.
         """
         instance = cls.model_construct(**kwargs)

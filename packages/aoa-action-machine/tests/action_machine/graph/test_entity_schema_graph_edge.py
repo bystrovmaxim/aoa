@@ -18,7 +18,7 @@ from typing import Any
 import pytest
 from pydantic import Field, computed_field
 
-from aoa.action_machine.domain import BaseEntity
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.action_machine.graph.core.exceptions import InvalidGraphError
@@ -38,7 +38,7 @@ from ...action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionParamsMcpTestAction,
 )
 from ...support.domain_model.domains import TestDomain
-from ...support.domain_model.entities import SampleEntity
+from ...support.domain_model.entities import SampleCoreEntity
 
 _ORPHAN_WIRE: dict[str, object] = {
     "type": "object",
@@ -54,7 +54,7 @@ _ORPHAN_WIRE: dict[str, object] = {
 @exclude_graph_model
 @meta(description="Excluded orphan entity for missing-target graph tests", domain=TestDomain)
 @entity(description="Excluded orphan entity", domain=TestDomain)
-class OrphanWireEntity(BaseEntity):
+class OrphanWireCoreEntity(BaseCoreEntity):
     """Present in type hints but omitted from ``EntityGraphNodeInspector`` rows."""
 
     id: str = Field(description="Identifier")
@@ -64,7 +64,7 @@ class OrphanWireEntity(BaseEntity):
 
 @exclude_graph_model
 class OrphanWireProjectionResult(BaseResult):
-    payload: OrphanWireEntity.schema(schema=_ORPHAN_WIRE) = Field(  # type: ignore[valid-type]
+    payload: OrphanWireCoreEntity.schema(schema=_ORPHAN_WIRE) = Field(  # type: ignore[valid-type]
         description="Wire projection of excluded entity",
     )
 
@@ -74,7 +74,7 @@ class PropertyWireProjectionResult(BaseResult):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def order_projection(self) -> SampleEntity.schema(schema=_ORPHAN_WIRE):  # type: ignore[valid-type]
+    def order_projection(self) -> SampleCoreEntity.schema(schema=_ORPHAN_WIRE):  # type: ignore[valid-type]
         """Computed property that returns an entity wire projection."""
         return {"id": self.label, "name": "sample"}
 
@@ -101,7 +101,7 @@ def test_field_graph_node_emits_entity_schema_for_projection_field() -> None:
     assert len(views) == 1
     edge = views[0]
     assert edge.is_dag is True
-    assert edge.target_node_id == TypeIntrospection.full_qualname(SampleEntity)
+    assert edge.target_node_id == TypeIntrospection.full_qualname(SampleCoreEntity)
     assert edge.properties == {}
 
 
@@ -113,7 +113,7 @@ def test_regular_result_field_has_no_entity_schema() -> None:
 
 def test_entity_schema_targets_sample_entity_graph_node() -> None:
     result_node = ResultGraphNode(EntityProjectionAdapterTestAction.Result)
-    entity_node = EntityGraphNode(SampleEntity)
+    entity_node = EntityGraphNode(SampleCoreEntity)
     field_node = _field_node_for(result_node, "order")
     edge = next(e for e in field_node.get_all_edges() if e.edge_name == "entity_schema")
     assert edge.target_node_id == entity_node.node_id
@@ -131,7 +131,7 @@ def test_params_graph_node_field_emits_entity_schema() -> None:
     field_node = _field_node_for(node, "order")
     views = [e for e in field_node.get_all_edges() if e.edge_name == "entity_schema"]
     assert len(views) == 1
-    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleEntity)
+    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleCoreEntity)
 
 
 def test_property_graph_node_emits_entity_schema() -> None:
@@ -139,7 +139,7 @@ def test_property_graph_node_emits_entity_schema() -> None:
     prop_node = next(n for n in node.get_companion_nodes() if n.node_id.endswith(":order_projection"))
     views = [e for e in prop_node.get_all_edges() if e.edge_name == "entity_schema"]
     assert len(views) == 1
-    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleEntity)
+    assert views[0].target_node_id == TypeIntrospection.full_qualname(SampleCoreEntity)
 
 
 def test_default_coordinator_build_with_entity_projection_actions() -> None:
