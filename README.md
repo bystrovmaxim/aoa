@@ -711,18 +711,14 @@ Every relationship must have a mirror on the other side — declared via `Invers
 
 ### Lifecycle
 
-A lifecycle describes one set of states and the allowed moves between them. Each status is an object with a stable `code` and a human `display_name`. `StateVocabulary` collects those objects from the lifecycle class and makes them available by code; `_template` declares the transitions and which states are initial, intermediate or final.
+A lifecycle describes one set of states and the allowed moves between them. Each status is an object with a stable `code` and a human `display_name`. The state type declares its own statuses and carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`; `_template` declares the transitions and which states are initial, intermediate or final.
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
-
-
-class OrderLifecycle(Lifecycle, StateVocabulary):
-    """Declare the statuses and allowed order transitions."""
 
     NEW = OrderStateEntity(code="new", display_name="New")
     CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
@@ -730,17 +726,21 @@ class OrderLifecycle(Lifecycle, StateVocabulary):
     DELIVERED = OrderStateEntity(code="delivered", display_name="Delivered")
     CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled")
 
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
+    """Declare the allowed order transitions; the statuses live on the type."""
+
     _template = (
         Lifecycle()
-        .state(NEW).to(CONFIRMED, CANCELLED).initial()
-        .state(CONFIRMED).to(SHIPPED, CANCELLED).intermediate()
-        .state(SHIPPED).to(DELIVERED).intermediate()
-        .state(DELIVERED).final()
-        .state(CANCELLED).final()
+        .state(OrderStateEntity.NEW).to(OrderStateEntity.CONFIRMED, OrderStateEntity.CANCELLED).initial()
+        .state(OrderStateEntity.CONFIRMED).to(OrderStateEntity.SHIPPED, OrderStateEntity.CANCELLED).intermediate()
+        .state(OrderStateEntity.SHIPPED).to(OrderStateEntity.DELIVERED).intermediate()
+        .state(OrderStateEntity.DELIVERED).final()
+        .state(OrderStateEntity.CANCELLED).final()
     )
 ```
 
-The builder takes objects: `.state(NEW)` and `.to(CONFIRMED)`. `OrderLifecycle("new")` accepts a code and stores a reference to the declared `NEW` object. Its `current_status` property returns that object; `current_state` returns its code for storage. `OrderLifecycle.by_code("new")` remains available for looking up arbitrary codes. Status classes may add domain fields; they do not become additional entities in the model graph.
+The builder takes objects: `.state(OrderStateEntity.NEW)` and `.to(OrderStateEntity.CONFIRMED)`. `OrderLifecycle("new")` accepts a code and stores a reference to the declared `NEW` object. Its `current_status` property returns that object; `current_state` returns its code for storage. `OrderStateEntity.by_code("new")` looks up arbitrary codes. Status classes may add domain fields; they do not become additional entities in the model graph.
 
 The coordinator validates the graph at startup: whether there are initial and final states, whether there are transitions to non-existent nodes, whether final states are reachable from the initial one. If the graph is inconsistent — the service does not start.
 

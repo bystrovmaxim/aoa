@@ -80,7 +80,6 @@ EXAMPLES
         Inverse,
         Lifecycle,
         Rel,
-        StateVocabulary,
         build,
     )
 
@@ -91,14 +90,14 @@ EXAMPLES
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
 
-    class OrderLifecycle(Lifecycle, StateVocabulary):
         NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
         DONE = OrderStateEntity(code="done", display_name="Done", sort_order=2)
 
+    class OrderLifecycle(Lifecycle):
         _template = (
             Lifecycle()
-            .state(NEW).to(DONE).initial()
-            .state(DONE).final()
+            .state(OrderStateEntity.NEW).to(OrderStateEntity.DONE).initial()
+            .state(OrderStateEntity.DONE).final()
         )
 
     @entity(description="Customer order", domain=ShopDomain)
@@ -120,8 +119,10 @@ from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     FieldNotLoadedError,
+    ForeignStateError,
     LifecycleGraphError,
     LifecycleValidationError,
+    MissingStateError,
     RelationNotLoadedError,
     SpecializationDeclarationError,
 )
@@ -147,7 +148,6 @@ from aoa.action_machine.domain.relation_markers import (
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
 from aoa.action_machine.domain.specialization_containers import Classifier, Generalization, Specialization
 from aoa.action_machine.domain.state_entity import BaseStateEntity
-from aoa.action_machine.domain.state_vocabulary import StateVocabulary
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity.entity_intent import EntityIntent
 
@@ -175,6 +175,7 @@ __all__ = [
     "EntityIntent",
     "EntitySchemaMarker",
     "FieldNotLoadedError",
+    "ForeignStateError",
     # Relation markers
     "Generalization",
     "Inverse",
@@ -182,6 +183,7 @@ __all__ = [
     "Lifecycle",
     "LifecycleGraphError",
     "LifecycleValidationError",
+    "MissingStateError",
     "NoGraphEdge",
     "NoInverse",
     "Rel",
@@ -191,7 +193,6 @@ __all__ = [
     "SpecializationDeclarationError",
     "StateInfo",
     "StateType",
-    "StateVocabulary",
     # Utilities
     "build",
     "entity_schema_marker_from_annotated",

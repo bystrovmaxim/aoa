@@ -15,7 +15,7 @@ from aoa.action_machine.domain.lifecycle import Lifecycle
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
 from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
 
-TLifecycle = TypeVar("TLifecycle", bound=Lifecycle)
+TLifecycle = TypeVar("TLifecycle", bound=Lifecycle[Any])
 
 
 class LifeCycleStateGraphEdge(CompositionGraphEdge):

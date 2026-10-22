@@ -1,0 +1,4045 @@
+{
+  "axes": [
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "private": false,
+      "qualname": "AnalyticsFactLifecycle",
+      "root": "demo",
+      "state_type": "AnalyticsFactStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "AnalyticsFactStateEntity"
+        },
+        {
+          "code": "'indexed'",
+          "display_name": "'Indexed'",
+          "fields": {
+            "code": "'indexed'",
+            "display_name": "'Indexed'",
+            "sort_order": "2"
+          },
+          "name": "INDEXED",
+          "type": "AnalyticsFactStateEntity"
+        },
+        {
+          "code": "'frozen'",
+          "display_name": "'Frozen'",
+          "fields": {
+            "code": "'frozen'",
+            "display_name": "'Frozen'",
+            "sort_order": "3"
+          },
+          "name": "FROZEN",
+          "type": "AnalyticsFactStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "INDEXED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "INDEXED",
+          "targets": [
+            "FROZEN"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "FROZEN",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "private": false,
+      "qualname": "AnalyticsPipelineLifecycle",
+      "root": "demo",
+      "state_type": "AnalyticsPipelineStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'ingest'",
+          "display_name": "'Ingest'",
+          "fields": {
+            "code": "'ingest'",
+            "display_name": "'Ingest'",
+            "sort_order": "1"
+          },
+          "name": "INGEST",
+          "type": "AnalyticsPipelineStateEntity"
+        },
+        {
+          "code": "'hydrate'",
+          "display_name": "'Hydrate'",
+          "fields": {
+            "code": "'hydrate'",
+            "display_name": "'Hydrate'",
+            "sort_order": "2"
+          },
+          "name": "HYDRATE",
+          "type": "AnalyticsPipelineStateEntity"
+        },
+        {
+          "code": "'commit'",
+          "display_name": "'Committed'",
+          "fields": {
+            "code": "'commit'",
+            "display_name": "'Committed'",
+            "sort_order": "3"
+          },
+          "name": "COMMIT",
+          "type": "AnalyticsPipelineStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "INGEST",
+          "targets": [
+            "HYDRATE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "HYDRATE",
+          "targets": [
+            "COMMIT"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "COMMIT",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.analytics_er_cycle_quad_stub",
+      "private": true,
+      "qualname": "_AnDirectedCycleSketchLifecycle",
+      "root": "demo",
+      "state_type": "_AnDirectedCycleSketchStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "_AnDirectedCycleSketchStateEntity"
+        },
+        {
+          "code": "'settled'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'settled'",
+            "display_name": "'Settled'",
+            "sort_order": "2"
+          },
+          "name": "SETTLED",
+          "type": "_AnDirectedCycleSketchStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "SETTLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SETTLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/entities/ap_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.assurance_portfolio.entities.ap_lifecycle",
+      "private": false,
+      "qualname": "AssurancePortfolioLifecycle",
+      "root": "demo",
+      "state_type": "AssurancePortfolioStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'intake'",
+          "display_name": "'Intake'",
+          "fields": {
+            "code": "'intake'",
+            "display_name": "'Intake'",
+            "sort_order": "1"
+          },
+          "name": "INTAKE",
+          "type": "AssurancePortfolioStateEntity"
+        },
+        {
+          "code": "'steady'",
+          "display_name": "'Steady'",
+          "fields": {
+            "code": "'steady'",
+            "display_name": "'Steady'",
+            "sort_order": "2"
+          },
+          "name": "STEADY",
+          "type": "AssurancePortfolioStateEntity"
+        },
+        {
+          "code": "'frozen'",
+          "display_name": "'Frozen'",
+          "fields": {
+            "code": "'frozen'",
+            "display_name": "'Frozen'",
+            "sort_order": "3"
+          },
+          "name": "FROZEN",
+          "type": "AssurancePortfolioStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "INTAKE",
+          "targets": [
+            "STEADY"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "STEADY",
+          "targets": [
+            "FROZEN"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "FROZEN",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "private": false,
+      "qualname": "BillingDenseLifecycle",
+      "root": "demo",
+      "state_type": "BillingDenseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "BillingDenseStateEntity"
+        },
+        {
+          "code": "'finalized'",
+          "display_name": "'Finalized'",
+          "fields": {
+            "code": "'finalized'",
+            "display_name": "'Finalized'",
+            "sort_order": "2"
+          },
+          "name": "FINALIZED",
+          "type": "BillingDenseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "FINALIZED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "FINALIZED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "private": false,
+      "qualname": "BillingPipelineLifecycle",
+      "root": "demo",
+      "state_type": "BillingPipelineStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'staged'",
+          "display_name": "'Staged'",
+          "fields": {
+            "code": "'staged'",
+            "display_name": "'Staged'",
+            "sort_order": "1"
+          },
+          "name": "STAGED",
+          "type": "BillingPipelineStateEntity"
+        },
+        {
+          "code": "'validated'",
+          "display_name": "'Validated'",
+          "fields": {
+            "code": "'validated'",
+            "display_name": "'Validated'",
+            "sort_order": "2"
+          },
+          "name": "VALIDATED",
+          "type": "BillingPipelineStateEntity"
+        },
+        {
+          "code": "'exported'",
+          "display_name": "'Exported'",
+          "fields": {
+            "code": "'exported'",
+            "display_name": "'Exported'",
+            "sort_order": "3"
+          },
+          "name": "EXPORTED",
+          "type": "BillingPipelineStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "STAGED",
+          "targets": [
+            "VALIDATED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "VALIDATED",
+          "targets": [
+            "EXPORTED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "EXPORTED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "CounterpartyLinkageLifecycle",
+      "root": "demo",
+      "state_type": "CounterpartyLinkageStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'unlinked'",
+          "display_name": "'Unlinked'",
+          "fields": {
+            "code": "'unlinked'",
+            "display_name": "'Unlinked'",
+            "sort_order": "1"
+          },
+          "name": "UNLINKED",
+          "type": "CounterpartyLinkageStateEntity"
+        },
+        {
+          "code": "'verified'",
+          "display_name": "'Verified'",
+          "fields": {
+            "code": "'verified'",
+            "display_name": "'Verified'",
+            "sort_order": "2"
+          },
+          "name": "VERIFIED",
+          "type": "CounterpartyLinkageStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "UNLINKED",
+          "targets": [
+            "VERIFIED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "VERIFIED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "LedgerPostingWaveLifecycle",
+      "root": "demo",
+      "state_type": "LedgerPostingWaveStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'queued'",
+          "display_name": "'Queued'",
+          "fields": {
+            "code": "'queued'",
+            "display_name": "'Queued'",
+            "sort_order": "1"
+          },
+          "name": "QUEUED",
+          "type": "LedgerPostingWaveStateEntity"
+        },
+        {
+          "code": "'posted'",
+          "display_name": "'Posted'",
+          "fields": {
+            "code": "'posted'",
+            "display_name": "'Posted'",
+            "sort_order": "2"
+          },
+          "name": "POSTED",
+          "type": "LedgerPostingWaveStateEntity"
+        },
+        {
+          "code": "'reconciled'",
+          "display_name": "'Reconciled'",
+          "fields": {
+            "code": "'reconciled'",
+            "display_name": "'Reconciled'",
+            "sort_order": "3"
+          },
+          "name": "RECONCILED",
+          "type": "LedgerPostingWaveStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "QUEUED",
+          "targets": [
+            "POSTED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "POSTED",
+          "targets": [
+            "RECONCILED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "RECONCILED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "NostroLiquiditySweepLifecycle",
+      "root": "demo",
+      "state_type": "NostroLiquiditySweepStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'sweep_planned'",
+          "display_name": "'Sweep planned'",
+          "fields": {
+            "code": "'sweep_planned'",
+            "display_name": "'Sweep planned'",
+            "sort_order": "1"
+          },
+          "name": "SWEEP_PLANNED",
+          "type": "NostroLiquiditySweepStateEntity"
+        },
+        {
+          "code": "'sweep_sent'",
+          "display_name": "'Sweep sent'",
+          "fields": {
+            "code": "'sweep_sent'",
+            "display_name": "'Sweep sent'",
+            "sort_order": "2"
+          },
+          "name": "SWEEP_SENT",
+          "type": "NostroLiquiditySweepStateEntity"
+        },
+        {
+          "code": "'sweep_acknowledged'",
+          "display_name": "'Sweep acknowledged'",
+          "fields": {
+            "code": "'sweep_acknowledged'",
+            "display_name": "'Sweep acknowledged'",
+            "sort_order": "3"
+          },
+          "name": "SWEEP_ACKNOWLEDGED",
+          "type": "NostroLiquiditySweepStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "SWEEP_PLANNED",
+          "targets": [
+            "SWEEP_SENT"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "SWEEP_SENT",
+          "targets": [
+            "SWEEP_ACKNOWLEDGED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SWEEP_ACKNOWLEDGED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "SchemeDisputeClockLifecycle",
+      "root": "demo",
+      "state_type": "SchemeDisputeClockStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'notice_received'",
+          "display_name": "'Notice received'",
+          "fields": {
+            "code": "'notice_received'",
+            "display_name": "'Notice received'",
+            "sort_order": "1"
+          },
+          "name": "NOTICE_RECEIVED",
+          "type": "SchemeDisputeClockStateEntity"
+        },
+        {
+          "code": "'evidence_window'",
+          "display_name": "'Evidence window'",
+          "fields": {
+            "code": "'evidence_window'",
+            "display_name": "'Evidence window'",
+            "sort_order": "2"
+          },
+          "name": "EVIDENCE_WINDOW",
+          "type": "SchemeDisputeClockStateEntity"
+        },
+        {
+          "code": "'ruling_pending'",
+          "display_name": "'Ruling pending'",
+          "fields": {
+            "code": "'ruling_pending'",
+            "display_name": "'Ruling pending'",
+            "sort_order": "3"
+          },
+          "name": "RULING_PENDING",
+          "type": "SchemeDisputeClockStateEntity"
+        },
+        {
+          "code": "'closed'",
+          "display_name": "'Closed'",
+          "fields": {
+            "code": "'closed'",
+            "display_name": "'Closed'",
+            "sort_order": "4"
+          },
+          "name": "CLOSED",
+          "type": "SchemeDisputeClockStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "NOTICE_RECEIVED",
+          "targets": [
+            "EVIDENCE_WINDOW"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "EVIDENCE_WINDOW",
+          "targets": [
+            "RULING_PENDING"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "RULING_PENDING",
+          "targets": [
+            "CLOSED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "CLOSED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "TreasuryCutoverProgramLifecycle",
+      "root": "demo",
+      "state_type": "TreasuryCutoverProgramStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'blueprint'",
+          "display_name": "'Blueprint'",
+          "fields": {
+            "code": "'blueprint'",
+            "display_name": "'Blueprint'",
+            "sort_order": "1"
+          },
+          "name": "BLUEPRINT",
+          "type": "TreasuryCutoverProgramStateEntity"
+        },
+        {
+          "code": "'dry_run'",
+          "display_name": "'Dry run'",
+          "fields": {
+            "code": "'dry_run'",
+            "display_name": "'Dry run'",
+            "sort_order": "2"
+          },
+          "name": "DRY_RUN",
+          "type": "TreasuryCutoverProgramStateEntity"
+        },
+        {
+          "code": "'canary'",
+          "display_name": "'Canary'",
+          "fields": {
+            "code": "'canary'",
+            "display_name": "'Canary'",
+            "sort_order": "3"
+          },
+          "name": "CANARY",
+          "type": "TreasuryCutoverProgramStateEntity"
+        },
+        {
+          "code": "'full_cut'",
+          "display_name": "'Full cut'",
+          "fields": {
+            "code": "'full_cut'",
+            "display_name": "'Full cut'",
+            "sort_order": "4"
+          },
+          "name": "FULL_CUT",
+          "type": "TreasuryCutoverProgramStateEntity"
+        },
+        {
+          "code": "'steady'",
+          "display_name": "'Steady state'",
+          "fields": {
+            "code": "'steady'",
+            "display_name": "'Steady state'",
+            "sort_order": "5"
+          },
+          "name": "STEADY",
+          "type": "TreasuryCutoverProgramStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "BLUEPRINT",
+          "targets": [
+            "DRY_RUN"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "DRY_RUN",
+          "targets": [
+            "CANARY"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "CANARY",
+          "targets": [
+            "FULL_CUT"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "FULL_CUT",
+          "targets": [
+            "STEADY"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "STEADY",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.payment_lifecycle",
+      "private": false,
+      "qualname": "PaymentEventLifecycle",
+      "root": "demo",
+      "state_type": "PaymentEventStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'recorded'",
+          "display_name": "'Recorded'",
+          "fields": {
+            "code": "'recorded'",
+            "display_name": "'Recorded'",
+            "sort_order": "1"
+          },
+          "name": "RECORDED",
+          "type": "PaymentEventStateEntity"
+        },
+        {
+          "code": "'settled'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'settled'",
+            "display_name": "'Settled'",
+            "sort_order": "2"
+          },
+          "name": "SETTLED",
+          "type": "PaymentEventStateEntity"
+        },
+        {
+          "code": "'archived'",
+          "display_name": "'Archived'",
+          "fields": {
+            "code": "'archived'",
+            "display_name": "'Archived'",
+            "sort_order": "3"
+          },
+          "name": "ARCHIVED",
+          "type": "PaymentEventStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "RECORDED",
+          "targets": [
+            "SETTLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "SETTLED",
+          "targets": [
+            "ARCHIVED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "ARCHIVED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_dense_lifecycle",
+      "private": false,
+      "qualname": "CatalogDenseLifecycle",
+      "root": "demo",
+      "state_type": "CatalogDenseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "1"
+          },
+          "name": "DRAFT",
+          "type": "CatalogDenseStateEntity"
+        },
+        {
+          "code": "'staged'",
+          "display_name": "'Staged'",
+          "fields": {
+            "code": "'staged'",
+            "display_name": "'Staged'",
+            "sort_order": "2"
+          },
+          "name": "STAGED",
+          "type": "CatalogDenseStateEntity"
+        },
+        {
+          "code": "'archived'",
+          "display_name": "'Archived'",
+          "fields": {
+            "code": "'archived'",
+            "display_name": "'Archived'",
+            "sort_order": "3"
+          },
+          "name": "ARCHIVED",
+          "type": "CatalogDenseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "STAGED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "STAGED",
+          "targets": [
+            "ARCHIVED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "ARCHIVED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub",
+      "private": true,
+      "qualname": "_CatalogDirectedCycleSketchLifecycle",
+      "root": "demo",
+      "state_type": "_CatalogDirectedCycleSketchStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "_CatalogDirectedCycleSketchStateEntity"
+        },
+        {
+          "code": "'settled'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'settled'",
+            "display_name": "'Settled'",
+            "sort_order": "2"
+          },
+          "name": "SETTLED",
+          "type": "_CatalogDirectedCycleSketchStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "SETTLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SETTLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_product_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_product_lifecycle",
+      "private": false,
+      "qualname": "CatalogProductLifecycle",
+      "root": "demo",
+      "state_type": "CatalogProductStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "1"
+          },
+          "name": "DRAFT",
+          "type": "CatalogProductStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "2"
+          },
+          "name": "ACTIVE",
+          "type": "CatalogProductStateEntity"
+        },
+        {
+          "code": "'retired'",
+          "display_name": "'Retired'",
+          "fields": {
+            "code": "'retired'",
+            "display_name": "'Retired'",
+            "sort_order": "3"
+          },
+          "name": "RETIRED",
+          "type": "CatalogProductStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "RETIRED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "RETIRED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/clinical_supply/entities/cs_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.clinical_supply.entities.cs_lifecycle",
+      "private": false,
+      "qualname": "ClinicalSupplyLifecycle",
+      "root": "demo",
+      "state_type": "ClinicalSupplyStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "1"
+          },
+          "name": "DRAFT",
+          "type": "ClinicalSupplyStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "2"
+          },
+          "name": "ACTIVE",
+          "type": "ClinicalSupplyStateEntity"
+        },
+        {
+          "code": "'retired'",
+          "display_name": "'Retired'",
+          "fields": {
+            "code": "'retired'",
+            "display_name": "'Retired'",
+            "sort_order": "3"
+          },
+          "name": "RETIRED",
+          "type": "ClinicalSupplyStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "RETIRED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "RETIRED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "private": false,
+      "qualname": "ProjectionDemoCustomerLifecycle",
+      "root": "demo",
+      "state_type": "ProjectionDemoCustomerStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "1"
+          },
+          "name": "ACTIVE",
+          "type": "ProjectionDemoCustomerStateEntity"
+        },
+        {
+          "code": "'archived'",
+          "display_name": "'Archived'",
+          "fields": {
+            "code": "'archived'",
+            "display_name": "'Archived'",
+            "sort_order": "2"
+          },
+          "name": "ARCHIVED",
+          "type": "ProjectionDemoCustomerStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "ACTIVE",
+          "targets": [
+            "ARCHIVED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "ARCHIVED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "private": false,
+      "qualname": "ProjectionDemoOrderLifecycle",
+      "root": "demo",
+      "state_type": "ProjectionDemoOrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "1"
+          },
+          "name": "DRAFT",
+          "type": "ProjectionDemoOrderStateEntity"
+        },
+        {
+          "code": "'confirmed'",
+          "display_name": "'Confirmed'",
+          "fields": {
+            "code": "'confirmed'",
+            "display_name": "'Confirmed'",
+            "sort_order": "2"
+          },
+          "name": "CONFIRMED",
+          "type": "ProjectionDemoOrderStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "3"
+          },
+          "name": "CANCELLED",
+          "type": "ProjectionDemoOrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "CONFIRMED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "CONFIRMED",
+          "targets": [
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/identity/entities/id_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.identity.entities.id_dense_lifecycle",
+      "private": false,
+      "qualname": "IdentityDenseLifecycle",
+      "root": "demo",
+      "state_type": "IdentityDenseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'registered'",
+          "display_name": "'Registered'",
+          "fields": {
+            "code": "'registered'",
+            "display_name": "'Registered'",
+            "sort_order": "1"
+          },
+          "name": "REGISTERED",
+          "type": "IdentityDenseStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "2"
+          },
+          "name": "ACTIVE",
+          "type": "IdentityDenseStateEntity"
+        },
+        {
+          "code": "'dormant'",
+          "display_name": "'Dormant'",
+          "fields": {
+            "code": "'dormant'",
+            "display_name": "'Dormant'",
+            "sort_order": "3"
+          },
+          "name": "DORMANT",
+          "type": "IdentityDenseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "REGISTERED",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "DORMANT"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DORMANT",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "private": false,
+      "qualname": "InvDenseLifecycle",
+      "root": "demo",
+      "state_type": "InvDenseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'available'",
+          "display_name": "'Available'",
+          "fields": {
+            "code": "'available'",
+            "display_name": "'Available'",
+            "sort_order": "1"
+          },
+          "name": "AVAILABLE",
+          "type": "InvDenseStateEntity"
+        },
+        {
+          "code": "'committed'",
+          "display_name": "'Committed'",
+          "fields": {
+            "code": "'committed'",
+            "display_name": "'Committed'",
+            "sort_order": "2"
+          },
+          "name": "COMMITTED",
+          "type": "InvDenseStateEntity"
+        },
+        {
+          "code": "'depleted'",
+          "display_name": "'Depleted'",
+          "fields": {
+            "code": "'depleted'",
+            "display_name": "'Depleted'",
+            "sort_order": "3"
+          },
+          "name": "DEPLETED",
+          "type": "InvDenseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "AVAILABLE",
+          "targets": [
+            "COMMITTED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "COMMITTED",
+          "targets": [
+            "DEPLETED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DEPLETED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "private": false,
+      "qualname": "InvPipelineLifecycle",
+      "root": "demo",
+      "state_type": "InvPipelineStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'receipt'",
+          "display_name": "'Receipt'",
+          "fields": {
+            "code": "'receipt'",
+            "display_name": "'Receipt'",
+            "sort_order": "1"
+          },
+          "name": "RECEIPT",
+          "type": "InvPipelineStateEntity"
+        },
+        {
+          "code": "'staging'",
+          "display_name": "'Staging'",
+          "fields": {
+            "code": "'staging'",
+            "display_name": "'Staging'",
+            "sort_order": "2"
+          },
+          "name": "STAGING",
+          "type": "InvPipelineStateEntity"
+        },
+        {
+          "code": "'anchored'",
+          "display_name": "'Anchored'",
+          "fields": {
+            "code": "'anchored'",
+            "display_name": "'Anchored'",
+            "sort_order": "3"
+          },
+          "name": "ANCHORED",
+          "type": "InvPipelineStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "RECEIPT",
+          "targets": [
+            "STAGING"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "STAGING",
+          "targets": [
+            "ANCHORED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "ANCHORED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "private": false,
+      "qualname": "MsgDenseLifecycle",
+      "root": "demo",
+      "state_type": "MsgDenseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'queued'",
+          "display_name": "'Queued'",
+          "fields": {
+            "code": "'queued'",
+            "display_name": "'Queued'",
+            "sort_order": "1"
+          },
+          "name": "QUEUED",
+          "type": "MsgDenseStateEntity"
+        },
+        {
+          "code": "'routed'",
+          "display_name": "'Routed'",
+          "fields": {
+            "code": "'routed'",
+            "display_name": "'Routed'",
+            "sort_order": "2"
+          },
+          "name": "ROUTED",
+          "type": "MsgDenseStateEntity"
+        },
+        {
+          "code": "'drained'",
+          "display_name": "'Drained'",
+          "fields": {
+            "code": "'drained'",
+            "display_name": "'Drained'",
+            "sort_order": "3"
+          },
+          "name": "DRAINED",
+          "type": "MsgDenseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "QUEUED",
+          "targets": [
+            "ROUTED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ROUTED",
+          "targets": [
+            "DRAINED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DRAINED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "private": false,
+      "qualname": "MsgWebhookLifecycle",
+      "root": "demo",
+      "state_type": "MsgWebhookStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'received'",
+          "display_name": "'Received'",
+          "fields": {
+            "code": "'received'",
+            "display_name": "'Received'",
+            "sort_order": "1"
+          },
+          "name": "RECEIVED",
+          "type": "MsgWebhookStateEntity"
+        },
+        {
+          "code": "'verified'",
+          "display_name": "'Verified'",
+          "fields": {
+            "code": "'verified'",
+            "display_name": "'Verified'",
+            "sort_order": "2"
+          },
+          "name": "VERIFIED",
+          "type": "MsgWebhookStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "RECEIVED",
+          "targets": [
+            "VERIFIED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "VERIFIED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub",
+      "private": true,
+      "qualname": "_MsgDirectedCycleSketchLifecycle",
+      "root": "demo",
+      "state_type": "_MsgDirectedCycleSketchStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "_MsgDirectedCycleSketchStateEntity"
+        },
+        {
+          "code": "'settled'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'settled'",
+            "display_name": "'Settled'",
+            "sort_order": "2"
+          },
+          "name": "SETTLED",
+          "type": "_MsgDirectedCycleSketchStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "SETTLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SETTLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/outbox_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.outbox_lifecycle",
+      "private": false,
+      "qualname": "OutboxMessageLifecycle",
+      "root": "demo",
+      "state_type": "OutboxMessageStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'pending'",
+          "display_name": "'Pending'",
+          "fields": {
+            "code": "'pending'",
+            "display_name": "'Pending'",
+            "sort_order": "1"
+          },
+          "name": "PENDING",
+          "type": "OutboxMessageStateEntity"
+        },
+        {
+          "code": "'published'",
+          "display_name": "'Published'",
+          "fields": {
+            "code": "'published'",
+            "display_name": "'Published'",
+            "sort_order": "2"
+          },
+          "name": "PUBLISHED",
+          "type": "OutboxMessageStateEntity"
+        },
+        {
+          "code": "'consumed'",
+          "display_name": "'Consumed'",
+          "fields": {
+            "code": "'consumed'",
+            "display_name": "'Consumed'",
+            "sort_order": "3"
+          },
+          "name": "CONSUMED",
+          "type": "OutboxMessageStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "PENDING",
+          "targets": [
+            "PUBLISHED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "PUBLISHED",
+          "targets": [
+            "CONSUMED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "CONSUMED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/audit_log_entry_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.audit_log_entry_lifecycle",
+      "private": false,
+      "qualname": "AuditLogEntryLifecycle",
+      "root": "demo",
+      "state_type": "AuditLogEntryStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'written'",
+          "display_name": "'Written'",
+          "fields": {
+            "code": "'written'",
+            "display_name": "'Written'",
+            "sort_order": "1"
+          },
+          "name": "WRITTEN",
+          "type": "AuditLogEntryStateEntity"
+        },
+        {
+          "code": "'indexed'",
+          "display_name": "'Indexed'",
+          "fields": {
+            "code": "'indexed'",
+            "display_name": "'Indexed'",
+            "sort_order": "2"
+          },
+          "name": "INDEXED",
+          "type": "AuditLogEntryStateEntity"
+        },
+        {
+          "code": "'retained'",
+          "display_name": "'Retained'",
+          "fields": {
+            "code": "'retained'",
+            "display_name": "'Retained'",
+            "sort_order": "3"
+          },
+          "name": "RETAINED",
+          "type": "AuditLogEntryStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "WRITTEN",
+          "targets": [
+            "INDEXED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "INDEXED",
+          "targets": [
+            "RETAINED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "RETAINED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/customer_account_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.customer_account_lifecycle",
+      "private": false,
+      "qualname": "CustomerAccountLifecycle",
+      "root": "demo",
+      "state_type": "CustomerAccountStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'provisioned'",
+          "display_name": "'Provisioned'",
+          "fields": {
+            "code": "'provisioned'",
+            "display_name": "'Provisioned'",
+            "sort_order": "1"
+          },
+          "name": "PROVISIONED",
+          "type": "CustomerAccountStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "2"
+          },
+          "name": "ACTIVE",
+          "type": "CustomerAccountStateEntity"
+        },
+        {
+          "code": "'closed'",
+          "display_name": "'Closed'",
+          "fields": {
+            "code": "'closed'",
+            "display_name": "'Closed'",
+            "sort_order": "3"
+          },
+          "name": "CLOSED",
+          "type": "CustomerAccountStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "PROVISIONED",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "CLOSED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "CLOSED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.sales_order_lifecycle",
+      "private": false,
+      "qualname": "SalesOrderLifecycle",
+      "root": "demo",
+      "state_type": "SalesOrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'new'",
+          "display_name": "'New'",
+          "fields": {
+            "code": "'new'",
+            "display_name": "'New'",
+            "sort_order": "1"
+          },
+          "name": "NEW",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'payment_pending'",
+          "display_name": "'Payment pending'",
+          "fields": {
+            "code": "'payment_pending'",
+            "display_name": "'Payment pending'",
+            "sort_order": "2"
+          },
+          "name": "PAYMENT_PENDING",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'confirmed'",
+          "display_name": "'Confirmed'",
+          "fields": {
+            "code": "'confirmed'",
+            "display_name": "'Confirmed'",
+            "sort_order": "3"
+          },
+          "name": "CONFIRMED",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'rework'",
+          "display_name": "'Rework'",
+          "fields": {
+            "code": "'rework'",
+            "display_name": "'Rework'",
+            "sort_order": "4"
+          },
+          "name": "REWORK",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'pending_fulfillment'",
+          "display_name": "'Pending fulfillment'",
+          "fields": {
+            "code": "'pending_fulfillment'",
+            "display_name": "'Pending fulfillment'",
+            "sort_order": "5"
+          },
+          "name": "PENDING_FULFILLMENT",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'shipped'",
+          "display_name": "'Shipped'",
+          "fields": {
+            "code": "'shipped'",
+            "display_name": "'Shipped'",
+            "sort_order": "6"
+          },
+          "name": "SHIPPED",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'out_for_delivery'",
+          "display_name": "'Out for delivery'",
+          "fields": {
+            "code": "'out_for_delivery'",
+            "display_name": "'Out for delivery'",
+            "sort_order": "7"
+          },
+          "name": "OUT_FOR_DELIVERY",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'delivered'",
+          "display_name": "'Delivered'",
+          "fields": {
+            "code": "'delivered'",
+            "display_name": "'Delivered'",
+            "sort_order": "8"
+          },
+          "name": "DELIVERED",
+          "type": "SalesOrderStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "9"
+          },
+          "name": "CANCELLED",
+          "type": "SalesOrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "NEW",
+          "targets": [
+            "CANCELLED",
+            "PAYMENT_PENDING"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "PAYMENT_PENDING",
+          "targets": [
+            "CANCELLED",
+            "CONFIRMED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "CONFIRMED",
+          "targets": [
+            "PENDING_FULFILLMENT",
+            "REWORK"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "REWORK",
+          "targets": [
+            "CONFIRMED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "PENDING_FULFILLMENT",
+          "targets": [
+            "SHIPPED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "SHIPPED",
+          "targets": [
+            "OUT_FOR_DELIVERY"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "OUT_FOR_DELIVERY",
+          "targets": [
+            "DELIVERED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DELIVERED",
+          "targets": []
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_line_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.sales_order_line_lifecycle",
+      "private": false,
+      "qualname": "SalesOrderLineLifecycle",
+      "root": "demo",
+      "state_type": "SalesOrderLineStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "SalesOrderLineStateEntity"
+        },
+        {
+          "code": "'reserved'",
+          "display_name": "'Reserved'",
+          "fields": {
+            "code": "'reserved'",
+            "display_name": "'Reserved'",
+            "sort_order": "2"
+          },
+          "name": "RESERVED",
+          "type": "SalesOrderLineStateEntity"
+        },
+        {
+          "code": "'fulfilled'",
+          "display_name": "'Fulfilled'",
+          "fields": {
+            "code": "'fulfilled'",
+            "display_name": "'Fulfilled'",
+            "sort_order": "3"
+          },
+          "name": "FULFILLED",
+          "type": "SalesOrderLineStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "RESERVED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "RESERVED",
+          "targets": [
+            "FULFILLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "FULFILLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_dual_entry_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.store_dual_entry_lifecycle",
+      "private": false,
+      "qualname": "StoreDualEntryLifecycle",
+      "root": "demo",
+      "state_type": "StoreDualEntryStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'online_draft'",
+          "display_name": "'Online draft'",
+          "fields": {
+            "code": "'online_draft'",
+            "display_name": "'Online draft'",
+            "sort_order": "1"
+          },
+          "name": "ONLINE_DRAFT",
+          "type": "StoreDualEntryStateEntity"
+        },
+        {
+          "code": "'walk_in_quote'",
+          "display_name": "'Walk-in quote'",
+          "fields": {
+            "code": "'walk_in_quote'",
+            "display_name": "'Walk-in quote'",
+            "sort_order": "2"
+          },
+          "name": "WALK_IN_QUOTE",
+          "type": "StoreDualEntryStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "3"
+          },
+          "name": "ACTIVE",
+          "type": "StoreDualEntryStateEntity"
+        },
+        {
+          "code": "'fulfilled'",
+          "display_name": "'Fulfilled'",
+          "fields": {
+            "code": "'fulfilled'",
+            "display_name": "'Fulfilled'",
+            "sort_order": "4"
+          },
+          "name": "FULFILLED",
+          "type": "StoreDualEntryStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "ONLINE_DRAFT",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "initial",
+          "state": "WALK_IN_QUOTE",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "FULFILLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "FULFILLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_er_cycle_ping_pong.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.store_er_cycle_ping_pong",
+      "private": true,
+      "qualname": "_StoreDirectedCycleSketchLifecycle",
+      "root": "demo",
+      "state_type": "_StoreDirectedCycleSketchStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'open'",
+          "display_name": "'Open'",
+          "fields": {
+            "code": "'open'",
+            "display_name": "'Open'",
+            "sort_order": "1"
+          },
+          "name": "OPEN",
+          "type": "_StoreDirectedCycleSketchStateEntity"
+        },
+        {
+          "code": "'settled'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'settled'",
+            "display_name": "'Settled'",
+            "sort_order": "2"
+          },
+          "name": "SETTLED",
+          "type": "_StoreDirectedCycleSketchStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "OPEN",
+          "targets": [
+            "SETTLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SETTLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-demo/src/aoa/demo/model/support/entities/support_simple_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.support.entities.support_simple_lifecycle",
+      "private": false,
+      "qualname": "SupportSparseLifecycle",
+      "root": "demo",
+      "state_type": "SupportSparseStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'intake'",
+          "display_name": "'Intake'",
+          "fields": {
+            "code": "'intake'",
+            "display_name": "'Intake'",
+            "sort_order": "1"
+          },
+          "name": "INTAKE",
+          "type": "SupportSparseStateEntity"
+        },
+        {
+          "code": "'working'",
+          "display_name": "'Working'",
+          "fields": {
+            "code": "'working'",
+            "display_name": "'Working'",
+            "sort_order": "2"
+          },
+          "name": "WORKING",
+          "type": "SupportSparseStateEntity"
+        },
+        {
+          "code": "'done'",
+          "display_name": "'Done'",
+          "fields": {
+            "code": "'done'",
+            "display_name": "'Done'",
+            "sort_order": "3"
+          },
+          "name": "DONE",
+          "type": "SupportSparseStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "INTAKE",
+          "targets": [
+            "WORKING"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "WORKING",
+          "targets": [
+            "DONE"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DONE",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/domain_model/01_domain_model.py",
+      "module": "examples.domain_model.01_domain_model",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'new'",
+          "display_name": "'New'",
+          "fields": {
+            "code": "'new'",
+            "display_name": "'New'",
+            "sort_order": "1"
+          },
+          "name": "NEW",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'confirmed'",
+          "display_name": "'Confirmed'",
+          "fields": {
+            "code": "'confirmed'",
+            "display_name": "'Confirmed'",
+            "sort_order": "2"
+          },
+          "name": "CONFIRMED",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'shipped'",
+          "display_name": "'Shipped'",
+          "fields": {
+            "code": "'shipped'",
+            "display_name": "'Shipped'",
+            "sort_order": "3"
+          },
+          "name": "SHIPPED",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'delivered'",
+          "display_name": "'Delivered'",
+          "fields": {
+            "code": "'delivered'",
+            "display_name": "'Delivered'",
+            "sort_order": "4"
+          },
+          "name": "DELIVERED",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "5"
+          },
+          "name": "CANCELLED",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "NEW",
+          "targets": [
+            "CONFIRMED",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "CONFIRMED",
+          "targets": [
+            "SHIPPED",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "SHIPPED",
+          "targets": [
+            "DELIVERED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DELIVERED",
+          "targets": []
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/domain_model/01_domain_model.py",
+      "module": "examples.domain_model.01_domain_model",
+      "private": false,
+      "qualname": "OrderLineLifecycle",
+      "root": "examples",
+      "state_type": "OrderLineStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'pending'",
+          "display_name": "'Pending'",
+          "fields": {
+            "code": "'pending'",
+            "display_name": "'Pending'",
+            "sort_order": "1"
+          },
+          "name": "PENDING",
+          "type": "OrderLineStateEntity"
+        },
+        {
+          "code": "'reserved'",
+          "display_name": "'Reserved'",
+          "fields": {
+            "code": "'reserved'",
+            "display_name": "'Reserved'",
+            "sort_order": "2"
+          },
+          "name": "RESERVED",
+          "type": "OrderLineStateEntity"
+        },
+        {
+          "code": "'shipped'",
+          "display_name": "'Shipped'",
+          "fields": {
+            "code": "'shipped'",
+            "display_name": "'Shipped'",
+            "sort_order": "3"
+          },
+          "name": "SHIPPED",
+          "type": "OrderLineStateEntity"
+        },
+        {
+          "code": "'delivered'",
+          "display_name": "'Delivered'",
+          "fields": {
+            "code": "'delivered'",
+            "display_name": "'Delivered'",
+            "sort_order": "4"
+          },
+          "name": "DELIVERED",
+          "type": "OrderLineStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "5"
+          },
+          "name": "CANCELLED",
+          "type": "OrderLineStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "PENDING",
+          "targets": [
+            "RESERVED",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "RESERVED",
+          "targets": [
+            "SHIPPED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "SHIPPED",
+          "targets": [
+            "DELIVERED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "DELIVERED",
+          "targets": []
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_20_entity/08_state.py",
+      "module": "examples.step_20_entity.08_state",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'",
+            "requires_receipt": "True"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/01_lifecycle.py",
+      "module": "examples.step_22_lifecycle.01_lifecycle",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/02_lifecycle_axis.py",
+      "module": "examples.step_22_lifecycle.02_lifecycle_axis",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'",
+            "requires_receipt": "True"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/03_forbidden_transition.py",
+      "module": "examples.step_22_lifecycle.03_forbidden_transition",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/04_unknown_state.py",
+      "module": "examples.step_22_lifecycle.04_unknown_state",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/05_graph_attributes.py",
+      "module": "examples.step_22_lifecycle.05_graph_attributes",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'",
+            "requires_receipt": "True"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/06_maxitor_states.py",
+      "module": "examples.step_22_lifecycle.06_maxitor_states",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "99"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'",
+            "requires_receipt": "True",
+            "sort_order": "1"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "2"
+          },
+          "name": "CANCELLED",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/07_inherited_vocabulary.py",
+      "module": "examples.step_22_lifecycle.07_inherited_vocabulary",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/12_duplicate_code.py",
+      "module": "examples.step_22_lifecycle.12_duplicate_code",
+      "private": false,
+      "qualname": "DuplicateLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'paid'",
+          "display_name": "'Paid'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Paid'"
+          },
+          "name": "A",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Settled'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Settled'"
+          },
+          "name": "B",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "A",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/13_mixed_types.py",
+      "module": "examples.step_22_lifecycle.13_mixed_types",
+      "private": false,
+      "qualname": "MixedLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'a'",
+          "display_name": "'A'",
+          "fields": {
+            "code": "'a'",
+            "display_name": "'A'"
+          },
+          "name": "A",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'b'",
+          "display_name": "'B'",
+          "fields": {
+            "code": "'b'",
+            "display_name": "'B'"
+          },
+          "name": "B",
+          "type": "PaymentStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "A",
+          "targets": [
+            "B"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "B",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/14_empty_vocabulary.py",
+      "module": "examples.step_22_lifecycle.14_empty_vocabulary",
+      "private": false,
+      "qualname": "EmptyLifecycle",
+      "root": "examples",
+      "state_type": null,
+      "state_vocabulary": true,
+      "statuses": [],
+      "template": []
+    },
+    {
+      "file": "examples/step_22_lifecycle/15_foreign_status.py",
+      "module": "examples.step_22_lifecycle.15_foreign_status",
+      "private": false,
+      "qualname": "BrokenLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "foreign"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "examples/step_22_lifecycle/19_non_json_field.py",
+      "module": "examples.step_22_lifecycle.19_non_json_field",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "value": "Opaque()"
+          },
+          "name": "DRAFT",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Paid'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Paid'",
+            "value": "Opaque()"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "PAID"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "PAID",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "examples/step_26_maxitor/01_graph.py",
+      "module": "examples.step_26_maxitor.01_graph",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "examples",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'new'",
+          "display_name": "'New'",
+          "fields": {
+            "code": "'new'",
+            "display_name": "'New'",
+            "sort_order": "1"
+          },
+          "name": "NEW",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Paid'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Paid'",
+            "sort_order": "2"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'shipped'",
+          "display_name": "'Shipped'",
+          "fields": {
+            "code": "'shipped'",
+            "display_name": "'Shipped'",
+            "sort_order": "3"
+          },
+          "name": "SHIPPED",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "4"
+          },
+          "name": "CANCELLED",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "NEW",
+          "targets": [
+            "PAID",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "PAID",
+          "targets": [
+            "SHIPPED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SHIPPED",
+          "targets": []
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_current_status.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_lifecycle_current_status",
+      "private": false,
+      "qualname": "OrderLifecycle",
+      "root": "framework tests",
+      "state_type": "OrderStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'paid'",
+          "display_name": "'Payment received'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Payment received'",
+            "requires_receipt": "True"
+          },
+          "name": "PAID",
+          "type": "OrderStateEntity"
+        },
+        {
+          "code": "'shipped'",
+          "display_name": "'Shipped'",
+          "fields": {
+            "code": "'shipped'",
+            "display_name": "'Shipped'"
+          },
+          "name": "SHIPPED",
+          "type": "OrderStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "PAID",
+          "targets": [
+            "SHIPPED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "SHIPPED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_state_entity.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_state_entity",
+      "private": false,
+      "qualname": "SampleLifecycle",
+      "root": "framework tests",
+      "state_type": "SampleStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'new'",
+          "display_name": "'New'",
+          "fields": {
+            "code": "'new'",
+            "display_name": "'New'",
+            "sort_order": "1"
+          },
+          "name": "NEW",
+          "type": "SampleStateEntity"
+        },
+        {
+          "code": "'paid'",
+          "display_name": "'Paid'",
+          "fields": {
+            "code": "'paid'",
+            "display_name": "'Paid'",
+            "sort_order": "2"
+          },
+          "name": "PAID",
+          "type": "SampleStateEntity"
+        },
+        {
+          "code": "'cancelled'",
+          "display_name": "'Cancelled'",
+          "fields": {
+            "code": "'cancelled'",
+            "display_name": "'Cancelled'",
+            "sort_order": "3"
+          },
+          "name": "CANCELLED",
+          "type": "SampleStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "NEW",
+          "targets": [
+            "PAID",
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "PAID",
+          "targets": [
+            "CANCELLED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "CANCELLED",
+          "targets": []
+        }
+      ]
+    },
+    {
+      "file": "packages/aoa-action-machine/tests/support/domain_model/entities.py",
+      "module": "packages.aoa-action-machine.tests.support.domain_model.entities",
+      "private": false,
+      "qualname": "DraftLifecycle",
+      "root": "framework tests",
+      "state_type": "DraftStateEntity",
+      "state_vocabulary": true,
+      "statuses": [
+        {
+          "code": "'draft'",
+          "display_name": "'Draft'",
+          "fields": {
+            "code": "'draft'",
+            "display_name": "'Draft'",
+            "sort_order": "1"
+          },
+          "name": "DRAFT",
+          "type": "DraftStateEntity"
+        },
+        {
+          "code": "'active'",
+          "display_name": "'Active'",
+          "fields": {
+            "code": "'active'",
+            "display_name": "'Active'",
+            "sort_order": "2"
+          },
+          "name": "ACTIVE",
+          "type": "DraftStateEntity"
+        },
+        {
+          "code": "'archived'",
+          "display_name": "'Archived'",
+          "fields": {
+            "code": "'archived'",
+            "display_name": "'Archived'",
+            "sort_order": "3"
+          },
+          "name": "ARCHIVED",
+          "type": "DraftStateEntity"
+        }
+      ],
+      "template": [
+        {
+          "classification": "initial",
+          "state": "DRAFT",
+          "targets": [
+            "ACTIVE"
+          ]
+        },
+        {
+          "classification": "intermediate",
+          "state": "ACTIVE",
+          "targets": [
+            "ARCHIVED"
+          ]
+        },
+        {
+          "classification": "final",
+          "state": "ARCHIVED",
+          "targets": []
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "axes": 51,
+    "axes_by_root": {
+      "demo": 32,
+      "examples": 16,
+      "framework tests": 3
+    },
+    "state_types": 63,
+    "state_types_by_root": {
+      "demo": 32,
+      "examples": 24,
+      "framework tests": 7
+    },
+    "uncovered": 1
+  },
+  "coverage_problems": [
+    {
+      "axis": "DuplicateLifecycle",
+      "file": "examples/step_22_lifecycle/12_duplicate_code.py",
+      "missing": [
+        "B"
+      ]
+    }
+  ],
+  "state_types": [
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "private": false,
+      "qualname": "AnalyticsFactStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/an_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.an_dense_lifecycle",
+      "private": false,
+      "qualname": "AnalyticsPipelineStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.analytics.entities.analytics_er_cycle_quad_stub",
+      "private": true,
+      "qualname": "_AnDirectedCycleSketchStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/entities/ap_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.assurance_portfolio.entities.ap_lifecycle",
+      "private": false,
+      "qualname": "AssurancePortfolioStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "private": false,
+      "qualname": "BillingDenseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_dense_lifecycle",
+      "private": false,
+      "qualname": "BillingPipelineStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "CounterpartyLinkageStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "LedgerPostingWaveStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "NostroLiquiditySweepStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "SchemeDisputeClockStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities",
+      "private": false,
+      "qualname": "TreasuryCutoverProgramStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.billing.entities.payment_lifecycle",
+      "private": false,
+      "qualname": "PaymentEventStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_dense_lifecycle",
+      "private": false,
+      "qualname": "CatalogDenseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub",
+      "private": true,
+      "qualname": "_CatalogDirectedCycleSketchStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_product_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.catalog.entities.catalog_product_lifecycle",
+      "private": false,
+      "qualname": "CatalogProductStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/clinical_supply/entities/cs_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.clinical_supply.entities.cs_lifecycle",
+      "private": false,
+      "qualname": "ClinicalSupplyStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "private": false,
+      "qualname": "ProjectionDemoCustomerStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/entity_projection_demo/entities/projection_demo_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle",
+      "private": false,
+      "qualname": "ProjectionDemoOrderStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/identity/entities/id_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.identity.entities.id_dense_lifecycle",
+      "private": false,
+      "qualname": "IdentityDenseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "private": false,
+      "qualname": "InvDenseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/inventory/entities/inv_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.inventory.entities.inv_dense_lifecycle",
+      "private": false,
+      "qualname": "InvPipelineStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "private": false,
+      "qualname": "MsgDenseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_dense_lifecycle",
+      "private": false,
+      "qualname": "MsgWebhookStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub",
+      "private": true,
+      "qualname": "_MsgDirectedCycleSketchStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/messaging/entities/outbox_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.messaging.entities.outbox_lifecycle",
+      "private": false,
+      "qualname": "OutboxMessageStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/audit_log_entry_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.audit_log_entry_lifecycle",
+      "private": false,
+      "qualname": "AuditLogEntryStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/customer_account_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.customer_account_lifecycle",
+      "private": false,
+      "qualname": "CustomerAccountStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.sales_order_lifecycle",
+      "private": false,
+      "qualname": "SalesOrderStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_line_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.sales_order_line_lifecycle",
+      "private": false,
+      "qualname": "SalesOrderLineStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_dual_entry_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.store_dual_entry_lifecycle",
+      "private": false,
+      "qualname": "StoreDualEntryStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/store/entities/store_er_cycle_ping_pong.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.store.entities.store_er_cycle_ping_pong",
+      "private": true,
+      "qualname": "_StoreDirectedCycleSketchStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-demo/src/aoa/demo/model/support/entities/support_simple_lifecycle.py",
+      "module": "packages.aoa-demo.src.aoa.demo.model.support.entities.support_simple_lifecycle",
+      "private": false,
+      "qualname": "SupportSparseStateEntity",
+      "root": "demo",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "examples/domain_model/01_domain_model.py",
+      "module": "examples.domain_model.01_domain_model",
+      "private": false,
+      "qualname": "OrderLineStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "examples/domain_model/01_domain_model.py",
+      "module": "examples.domain_model.01_domain_model",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "bool",
+          "default": "Field(default=False, description='Whether a receipt is required')",
+          "name": "requires_receipt"
+        }
+      ],
+      "file": "examples/step_20_entity/08_state.py",
+      "module": "examples.step_20_entity.08_state",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/01_lifecycle.py",
+      "module": "examples.step_22_lifecycle.01_lifecycle",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "bool",
+          "default": "Field(default=False, description='Whether a receipt is needed')",
+          "name": "requires_receipt"
+        }
+      ],
+      "file": "examples/step_22_lifecycle/02_lifecycle_axis.py",
+      "module": "examples.step_22_lifecycle.02_lifecycle_axis",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/03_forbidden_transition.py",
+      "module": "examples.step_22_lifecycle.03_forbidden_transition",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/04_unknown_state.py",
+      "module": "examples.step_22_lifecycle.04_unknown_state",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "bool",
+          "default": "Field(default=False, description='Whether a receipt is needed')",
+          "name": "requires_receipt"
+        }
+      ],
+      "file": "examples/step_22_lifecycle/05_graph_attributes.py",
+      "module": "examples.step_22_lifecycle.05_graph_attributes",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(description='Order within the state list')",
+          "name": "sort_order"
+        },
+        {
+          "annotation": "str",
+          "default": "Field(default='#1565c0', description='State outline colour')",
+          "name": "color"
+        },
+        {
+          "annotation": "str",
+          "default": "Field(default='#e3f2fd', description='State fill colour')",
+          "name": "fill_color"
+        },
+        {
+          "annotation": "bool",
+          "default": "Field(default=False, description='Whether a receipt is needed')",
+          "name": "requires_receipt"
+        }
+      ],
+      "file": "examples/step_22_lifecycle/06_maxitor_states.py",
+      "module": "examples.step_22_lifecycle.06_maxitor_states",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/07_inherited_vocabulary.py",
+      "module": "examples.step_22_lifecycle.07_inherited_vocabulary",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/08_classification.py",
+      "module": "examples.step_22_lifecycle.08_classification",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/09_blank_code.py",
+      "module": "examples.step_22_lifecycle.09_blank_code",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/10_blank_display_name.py",
+      "module": "examples.step_22_lifecycle.10_blank_display_name",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/11_immutable_status.py",
+      "module": "examples.step_22_lifecycle.11_immutable_status",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/12_duplicate_code.py",
+      "module": "examples.step_22_lifecycle.12_duplicate_code",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/13_mixed_types.py",
+      "module": "examples.step_22_lifecycle.13_mixed_types",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/13_mixed_types.py",
+      "module": "examples.step_22_lifecycle.13_mixed_types",
+      "private": false,
+      "qualname": "PaymentStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/14_empty_vocabulary.py",
+      "module": "examples.step_22_lifecycle.14_empty_vocabulary",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/15_foreign_status.py",
+      "module": "examples.step_22_lifecycle.15_foreign_status",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/16_mixin_without_lifecycle.py",
+      "module": "examples.step_22_lifecycle.16_mixin_without_lifecycle",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/17_string_state.py",
+      "module": "examples.step_22_lifecycle.17_string_state",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [],
+      "file": "examples/step_22_lifecycle/18_string_target.py",
+      "module": "examples.step_22_lifecycle.18_string_target",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "Opaque",
+          "default": "Field(description='An opaque Python value')",
+          "name": "value"
+        }
+      ],
+      "file": "examples/step_22_lifecycle/19_non_json_field.py",
+      "module": "examples.step_22_lifecycle.19_non_json_field",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": [
+        {
+          "code": null,
+          "display_name": null,
+          "fields": {
+            "arbitrary_types_allowed": "True"
+          },
+          "name": "model_config",
+          "type": "ConfigDict"
+        }
+      ]
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "examples/step_26_maxitor/01_graph.py",
+      "module": "examples.step_26_maxitor.01_graph",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "examples",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "order"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_lifecycle",
+      "private": false,
+      "qualname": "AxisStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "order"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_lifecycle",
+      "private": false,
+      "qualname": "AxisStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "bool",
+          "default": "Field(default=False, description='Whether a receipt is needed')",
+          "name": "requires_receipt"
+        },
+        {
+          "annotation": "list[str]",
+          "default": "Field(default_factory=list, description='Additional domain labels')",
+          "name": "labels"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_current_status.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_lifecycle_current_status",
+      "private": false,
+      "qualname": "OrderStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "str",
+          "default": "Field(default='', description='Refund reason')",
+          "name": "reason"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_state_entity.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_state_entity",
+      "private": false,
+      "qualname": "AlternateStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/domain/test_state_entity.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.domain.test_state_entity",
+      "private": false,
+      "qualname": "SampleStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        },
+        {
+          "annotation": "str",
+          "default": "Field(default='hidden', description='Internal', exclude=True)",
+          "name": "secret"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/action_machine/graph_host/test_lifecycle_graph_node.py",
+      "module": "packages.aoa-action-machine.tests.action_machine.graph_host.test_lifecycle_graph_node",
+      "private": true,
+      "qualname": "_SampleStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    },
+    {
+      "fields": [
+        {
+          "annotation": "int",
+          "default": "Field(default=0, description='Presentation order')",
+          "name": "sort_order"
+        }
+      ],
+      "file": "packages/aoa-action-machine/tests/support/domain_model/entities.py",
+      "module": "packages.aoa-action-machine.tests.support.domain_model.entities",
+      "private": false,
+      "qualname": "DraftStateEntity",
+      "root": "framework tests",
+      "statuses": []
+    }
+  ]
+}

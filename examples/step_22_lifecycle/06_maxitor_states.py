@@ -7,7 +7,7 @@ Run: uv run python examples/step_22_lifecycle/06_maxitor_states.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -18,14 +18,16 @@ class OrderStateEntity(BaseStateEntity):
     fill_color: str = Field(default="#e3f2fd", description="State fill colour")
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)  # noqa: F821
+    PAID = OrderStateEntity(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)  # noqa: F821
+    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Keep the initial state first despite its high sort order."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)
-    _template = Lifecycle().state(DRAFT).to(PAID, CANCELLED).initial().state(PAID).final().state(CANCELLED).final()
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID, OrderStateEntity.CANCELLED).initial().state(OrderStateEntity.PAID).final().state(OrderStateEntity.CANCELLED).final()
 import json
 
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain

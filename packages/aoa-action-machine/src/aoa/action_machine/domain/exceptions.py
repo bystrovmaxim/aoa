@@ -204,6 +204,30 @@ class LifecycleGraphError(ValueError):
     pass
 
 
+class ForeignStateError(TypeError):
+    """
+    AI-CORE-BEGIN
+        ROLE: Declaration error raised when a lifecycle template names a status that is not a declared object of its state type.
+        CONTRACT: The message names the axis, the status code and type, and the allowed codes; the "different instance" form names the declared attribute to use.
+        INVARIANTS: Raised at class creation, before any graph is built; never at runtime.
+    AI-CORE-END
+    """
+
+    pass
+
+
+class MissingStateError(ValueError):
+    """
+    AI-CORE-BEGIN
+        ROLE: Declaration error raised when a declared status of a state type does not appear as a state in its axis.
+        CONTRACT: The message names the axis, the state type, and the missing codes.
+        INVARIANTS: Raised at class creation; a status used only as a transition target is still missing.
+    AI-CORE-END
+    """
+
+    pass
+
+
 class SpecializationDeclarationError(Exception):
     """
     A specialization declaration broke one of its build rules.
