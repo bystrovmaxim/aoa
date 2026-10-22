@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 
+- **The demo speaks in dictionaries.** `CurrencyEnumEntity` declares `usd`, `eur` and `rub`; 25 currency fields reference it instead of holding a string, and the drawing axis borrows `GeneralizationShapesKindEnumEntity`. The demo graph reports two `enum` nodes and 26 reference fields. ([#241](https://github.com/bystrovmaxim/aoa/issues/241))
 - **The demo's lifecycle axes are on the state type.** The 32 demo axes declare statuses on their state types and name the type in `Lifecycle[...]`; axis-level status attributes and `StateVocabulary` are gone. ([#237](https://github.com/bystrovmaxim/aoa/issues/237))
 
 ## [2.0.0] – 2026-10-17

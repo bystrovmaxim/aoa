@@ -95,6 +95,14 @@ from typing import Any, Self, cast
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+def _declared_value(entity_cls: type[Any]) -> Any:
+    """Return the value the class declares, imported late to keep the module cycle closed."""
+    # pylint: disable-next=import-outside-toplevel  # the import would close a cycle at module load
+    from aoa.action_machine.domain.spec_entity import declared_value
+
+    return declared_value(entity_cls)
+
+
 class Specialization[T, D](BaseModel):
     """
     AI-CORE-BEGIN
@@ -117,9 +125,7 @@ class Specialization[T, D](BaseModel):
         """Refuse a value that disagrees with the class of the hydrated row."""
         if self.entity is None:
             return self
-        from aoa.action_machine.domain.spec_entity import declared_value
-
-        declared = declared_value(type(self.entity))
+        declared = _declared_value(type(self.entity))
         if declared is None:
             return self
         declared_code = getattr(declared, "code", declared)
@@ -161,7 +167,7 @@ class Classifier:
 
     __slots__ = ("_field", "_variant")
 
-    def __init__(self, field: str, variant: Any = None, *legacy: Any) -> None:
+    def __init__(self, field: str, variant: Any = None) -> None:
         """
         Args:
             field: Name of the extension's field that points back at its head.
@@ -171,7 +177,7 @@ class Classifier:
             TypeError: ``field`` is not a ``str``, or ``variant`` is not a declared value.
             ValueError: ``field`` is empty or whitespace-only.
         """
-        if legacy or variant is None:
+        if variant is None:
             raise TypeError(
                 "Classifier: name a value, not a list of codes — "
                 "write Classifier(field=..., variant=<Dictionary>.<VALUE>)."

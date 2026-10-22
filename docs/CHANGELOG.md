@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-10-22] — A closed dictionary, and a field that holds one of its values
+
+A choice among variants used to be written twice: a `Literal` of codes on the head, and a
+single code on each extension, compared by the build. The codes were strings, so a
+misspelled one was a string like any other until the model was built, and the two lists
+had to be kept in step by hand.
+
+Now the set is a type. A dictionary is an entity of kind `enum` that declares its values in
+its own body — `usd`, `eur`, `rub` — and the head names it as the second type argument of
+its container: `Specialization[FirstPress | Repress, EditionKindEnumEntity]`. Each
+extension names one of those values in its own marker, and the build compares both sides:
+a value no extension answers for, an extension naming a value of another dictionary, a
+copy of a value, and two extensions naming one value are all refused, with the dictionary
+and the allowed values named. The head has no classifier field any more, and the code list
+is gone from the marker: a code list is refused outright.
+
+A field typed by a dictionary holds a declared value rather than a string. It accepts the
+value itself or the reference object the wire carries — `{code, display_name,
+properties}` — and refuses a bare code, an undeclared code and a constructed copy. The
+code is authoritative on read, and the value's own fields ride under `properties`. A
+container checks that the value it carries and the row it holds are the same variant.
+
+The demo's currencies moved onto this form: 25 fields that were strings now reference one
+dictionary, and its drawing axis borrows a dictionary of its own. Maxitor stores the
+values and the references, and the ERD shows a dictionary's values as rows inside its card
+and marks a reference field with the dictionary it points at. The examples, their
+notebooks and the framework's tests are on the new form; the examples whose subject was a
+classifier field — an unknown type, a missing field, a relation used as a classifier — are
+gone, because a field that does not exist cannot be wrong.
+([#241](https://github.com/bystrovmaxim/aoa/issues/241))
+
 ## [2026-10-22] — A lifecycle status belongs to its type
 
 A status used to be declared on the lifecycle axis, with a separate `StateVocabulary`
