@@ -25,6 +25,7 @@ from aoa.action_machine.domain import (
     Rel,
     Specialization,
 )
+from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 
@@ -79,30 +80,25 @@ class SpecRepressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Legacy extension", domain=SpecShopDomain)
-class SpecLegacySpecEntity(BaseSpecEntity):
-    """Keeps the earlier marker form, which names codes rather than a value."""
+@entity(description="Unmarked extension", domain=SpecShopDomain)
+class SpecUnmarkedSpecEntity(BaseSpecEntity):
+    """Points back at its head without naming a value."""
 
-    record: Annotated[
-        Generalization[SpecRecordCoreEntity],
-        Classifier("record", __import__("typing").Literal["first"]),
-    ] = Rel(description="The head row")
+    record: Generalization[SpecRecordCoreEntity] = Rel(description="The head row")
 
 
 def test_each_extension_exposes_the_value_it_declares() -> None:
     """The class attribute is the declared object itself."""
-    assert SpecFirstPressSpecEntity.declared_variant is SpecEditionKindEnumEntity.FIRST
-    assert SpecRepressSpecEntity.declared_variant is SpecEditionKindEnumEntity.REPRESS
+    assert declared_value(SpecFirstPressSpecEntity) is SpecEditionKindEnumEntity.FIRST
+    assert declared_value(SpecRepressSpecEntity) is SpecEditionKindEnumEntity.REPRESS
 
 
 def test_the_value_is_derived_from_the_marker_not_written_by_hand() -> None:
     """Nothing but the marker states the value; the attribute is a reading of it."""
-    assert "declared_variant" not in SpecFirstPressSpecEntity.__dict__ or (
-        SpecFirstPressSpecEntity.__dict__["declared_variant"] is SpecEditionKindEnumEntity.FIRST
-    )
-    assert SpecFirstPressSpecEntity.declared_variant.code == "first"
+    assert declared_value(SpecFirstPressSpecEntity) is SpecEditionKindEnumEntity.FIRST
+    assert declared_value(SpecFirstPressSpecEntity).code == "first"
 
 
-def test_an_extension_that_names_codes_has_no_declared_value() -> None:
-    """The marker form decides: a code list is not a declared value."""
-    assert SpecLegacySpecEntity.declared_variant is None
+def test_an_extension_that_names_no_value_has_none() -> None:
+    """The marker decides; without one, the class declares nothing."""
+    assert declared_value(SpecUnmarkedSpecEntity) is None

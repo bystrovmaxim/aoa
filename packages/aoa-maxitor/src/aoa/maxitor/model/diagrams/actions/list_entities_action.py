@@ -277,12 +277,13 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           {neighbor_clause}
         )
         SELECT ese.source_id || ':' || ese.field_name AS group_id,
-               ese.field_name || ' (by ' || ese.classifier_field || ')' AS label,
+               ese.field_name || ' (by ' || COALESCE(ese.classifier_field, ese.dictionary_label) || ')' AS label,
                ese.classifier_field AS classifier_field,
+               ese.dictionary_label AS dictionary_label,
                list(DISTINCT ese.target_id ORDER BY ese.target_id) AS members
         FROM entity_specialization_edges ese
         WHERE ese.source_id IN (SELECT id FROM selected_entity)
-        GROUP BY ese.source_id, ese.field_name, ese.classifier_field
+        GROUP BY ese.source_id, ese.field_name, ese.classifier_field, ese.dictionary_label
         HAVING COUNT(DISTINCT ese.target_id) > 1
         ORDER BY ese.source_id, ese.field_name
         """
@@ -311,7 +312,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             {
                 "source": group["group_id"].rsplit(":", 1)[0],
                 "target": group["group_id"],
-                "label": "by " + str(group["classifier_field"]),
+                "label": "by " + str(group["classifier_field"] or group["dictionary_label"]),
                 "relationship_kind": "specialization",
                 "source_cardinality": "zero_many",
                 "target_cardinality": "one",

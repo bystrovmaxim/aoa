@@ -26,7 +26,7 @@ class MediaKindEnumEntity(BaseEnumEntity):
 def main() -> None:
     """Run this one learning experiment."""
     try:
-        Classifier("media", ["first"])
+        Classifier("media", ["first"])  # a list is not a value
     except TypeError as error:
         print(type(error).__name__ + ": " + str(error))
     else:

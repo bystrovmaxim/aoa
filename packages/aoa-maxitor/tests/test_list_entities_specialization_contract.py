@@ -119,7 +119,7 @@ def test_the_row_and_the_group_carry_what_the_contract_promises(slice_row: dict[
     assert "first" in axis_row["type"] and "test" in axis_row["type"], "every alternative is named"
 
     group = slice_row["list_entities"]["groups"][0]
-    assert set(group) == {"group_id", "label", "classifier_field", "members"}
+    assert set(group) == {"group_id", "label", "classifier_field", "dictionary_label", "members"}
     assert group["group_id"] == axis_row["field_id"], "the line into the container aims at the axis"
     assert len(group["members"]) == 3
 
@@ -129,7 +129,7 @@ def test_the_axis_has_exactly_one_relation_line(slice_row: dict[str, Any]) -> No
     lines = [r for r in slice_row["list_entities"]["relations"] if r["relationship_kind"] == "specialization"]
 
     assert len(lines) == 1
-    assert lines[0]["label"] == "by media"
+    assert lines[0]["label"] == "by VinylRecordKindEnumEntity"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

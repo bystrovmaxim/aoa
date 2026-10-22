@@ -7,7 +7,7 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
@@ -99,7 +99,6 @@ class UnlistedPressSpecEntity(BaseSpecEntity):
     id: str = Field(description="The head record identifier")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["unlisted"]),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

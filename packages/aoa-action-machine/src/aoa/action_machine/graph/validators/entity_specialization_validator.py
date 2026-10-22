@@ -68,8 +68,6 @@ from __future__ import annotations
 
 from typing import Any, NoReturn, cast
 
-from pydantic import TypeAdapter, ValidationError
-
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.domain.spec_entity import declared_value
@@ -79,7 +77,6 @@ from aoa.action_machine.domain.specialization_containers import (
 )
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.intents.entity.entity_intent import entity_info_is_set
-from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is_relation_container
 from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
     EntitySpecializationIntentResolver,
     gather_entity_specialization_intent_resolvers,
@@ -166,16 +163,11 @@ def _validate_axis(axis: EntitySpecializationIntentResolver) -> None:
     of a missing decorator.
     """
     _validate_alternatives_are_entities(axis)
-    if axis.dictionary is not None:
-        _validate_dictionary(axis)
-        _validate_declared_variants(axis)
-    else:
-        _validate_classifier_field(axis)
+    _validate_dictionary(axis)
+    _validate_declared_variants(axis)
     _validate_head_field(axis)
     _validate_declared_codes(axis)
     _validate_codes_match(axis)
-    if axis.dictionary is None:
-        _validate_codes_fit_classifier(axis)
     _validate_codes_unique(axis)
 
 
@@ -220,32 +212,6 @@ def _validate_declared_variants(axis: EntitySpecializationIntentResolver) -> Non
             )
 
 
-def _validate_classifier_field(axis: EntitySpecializationIntentResolver) -> None:
-    """`Classifier(field=…)` must name an existing scalar field of the head, not the axis itself."""
-    model_fields = axis.head_entity.model_fields
-    if axis.classifier_field == axis.field_name:
-        _fail(axis, "the classifier field names the specialization field itself")
-    if axis.classifier_field not in model_fields:
-        _fail(
-            axis,
-            f"classifier field '{axis.classifier_field}' is not a field of '{axis.head_entity.__name__}'",
-        )
-    classifier_info = model_fields[axis.classifier_field]
-    if _is_specialization_container(classifier_info.annotation):
-        _fail(axis, f"classifier field '{axis.classifier_field}' is a specialization field itself")
-    if is_relation_container(classifier_info.annotation):
-        _fail(axis, f"classifier field '{axis.classifier_field}' is a relation, not a scalar field")
-
-    # A property or a class constant is not a field at all: pydantic keeps them out of
-    # `model_fields`, so reaching here means the name is a real field. The one way a
-    # non-field name survives is a `ClassVar`, which pydantic also excludes — so the
-    # membership test above is the whole check, and an attribute the class defines
-    # beside its fields never passes it.
-    annotation = classifier_info.annotation
-    if annotation is None:
-        _fail(axis, f"classifier field '{axis.classifier_field}' has no usable annotation")
-
-
 def _validate_head_field(axis: EntitySpecializationIntentResolver) -> None:
     """The axis's own field must be a ``Specialization`` container on the head."""
     head_field = axis.head_entity.model_fields.get(axis.field_name)
@@ -275,10 +241,7 @@ def _declared_code(axis: EntitySpecializationIntentResolver, alternative: type[A
         marker = _classifier_marker(info)
         if marker is None:
             continue
-        if marker.variant is not None:
-            codes.append(str(marker.variant.code))
-        else:
-            codes.extend(marker.code_values)
+        codes.append(str(marker.variant.code))
     return codes[0] if codes else None
 
 
@@ -306,12 +269,6 @@ def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
                 f"alternative '{alternative.__name__}' declares no code on '{field_name}' — "
                 f"name it with Classifier(..., Literal[...])",
             )
-        if marker.variant is None and len(marker.code_values) != 1:
-            _fail(
-                axis,
-                f"alternative '{alternative.__name__}' must declare exactly one code on "
-                f"'{field_name}', got {list(marker.code_values)}",
-            )
         if axis.inverse_field and field_name != axis.inverse_field:
             _fail(
                 axis,
@@ -338,24 +295,6 @@ def _validate_codes_match(axis: EntitySpecializationIntentResolver) -> None:
             f"the head names {len(named)} code(s) for {len(axis.alternatives)} alternative(s): "
             "every alternative needs exactly one code",
         )
-
-
-def _validate_codes_fit_classifier(axis: EntitySpecializationIntentResolver) -> None:
-    """Every named code must be a value the classifier field's annotation can hold."""
-    annotation = axis.head_entity.model_fields[axis.classifier_field].annotation
-    try:
-        adapter = TypeAdapter(annotation)
-    except Exception:  # pragma: no cover - an annotation pydantic cannot build is not ours to explain
-        return
-    for code in axis.codes:
-        try:
-            adapter.validate_python(code)
-        except ValidationError:
-            _fail(
-                axis,
-                f"code '{code}' cannot be stored by classifier field '{axis.classifier_field}' "
-                f"of type {annotation}",
-            )
 
 
 def _validate_codes_unique(axis: EntitySpecializationIntentResolver) -> None:
@@ -404,21 +343,6 @@ def _validate_one_head_per_class(axes: list[EntitySpecializationIntentResolver])
                     f"'{axis.head_entity.__name__}.{axis.field_name}'",
                 )
             claims[alternative] = axis
-
-
-def _validate_one_axis_per_classifier(axes: list[EntitySpecializationIntentResolver]) -> None:
-    """One head cannot carry two axes decided by the same field, or neither could be resolved."""
-    by_head: dict[tuple[type[Any], str], EntitySpecializationIntentResolver] = {}
-    for axis in axes:
-        key = (axis.head_entity, axis.classifier_field)
-        owner = by_head.get(key)
-        if owner is not None:
-            _fail(
-                axis,
-                f"classifier field '{axis.classifier_field}' already decides "
-                f"'{owner.head_entity.__name__}.{owner.field_name}'",
-            )
-        by_head[key] = axis
 
 
 def _validate_no_outside_class_points_at_an_axis(
@@ -491,7 +415,6 @@ def _validate_across_axes_first(
 ) -> None:
     """Rules that name a cause the per-axis rules would describe only as a symptom."""
     _validate_one_head_per_class(axes)
-    _validate_one_axis_per_classifier(axes)
     _validate_no_outside_class_points_at_an_axis(axes, judged)
 
 

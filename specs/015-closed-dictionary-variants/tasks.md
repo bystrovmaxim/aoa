@@ -127,7 +127,7 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 - [x] T035 [US3] Rewrite the codemod in `specs/015-closed-dictionary-variants/evidence/migrate_axes_to_dictionaries.py` — generate one `<Head>KindEnumEntity` per axis from its `Literal`s, delete the head's classifier field, add the dictionary argument, drop the head's `Classifier`, rewrite the extension markers and every construction or payload that set the deleted field, editing `.py` files and `.ipynb` code cells only
 - [ ] T036 [US3] Run the codemod on `examples/step_20_entity/06_specialization.py` with its notebook and on the 37 scripts with their 37 notebooks in `examples/step_21_relations/` — 38 scripts and 38 notebooks in all — then review each diff
 - [x] T037 [US3] Run the codemod on the 7 framework test modules under `packages/aoa-action-machine/tests/action_machine/graph/` (105 `Classifier` declarations, including `test_entity_specialization_sweep.py`), keeping the existing rules' tests unchanged: alternatives are declared entities, one class in one head, no cycles (FR-026)
-- [ ] T038 [US3] Remove the one-argument bridge from `Specialization.__class_getitem__` and the interim `, str` it forced in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, so a container must name its dictionary; then rewrite by hand the examples that assert the replaced rules — `examples/step_21_relations/41_error_codes_not_literal.py` and any other negative case the codemod cannot express — keeping their scenario and their printed message; then run every migrated example script, the whole `aoa-action-machine` suite and the scan, which must report 0 `Classifier(…, Literal[…])` and 0 classifier fields on axes in `packages/` and `examples/`
+- [x] T038 [US3] Remove the one-argument bridge from `Specialization.__class_getitem__` and the interim `, str` it forced in `packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py`, so a container must name its dictionary; then rewrite by hand the examples that assert the replaced rules — `examples/step_21_relations/41_error_codes_not_literal.py` and any other negative case the codemod cannot express — keeping their scenario and their printed message; then run every migrated example script, the whole `aoa-action-machine` suite and the scan, which must report 0 `Classifier(…, Literal[…])` and 0 classifier fields on axes in `packages/` and `examples/`
 
 **Checkpoint**: the whole corpus is on the container form and the refusals have tests.
 
@@ -153,7 +153,7 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 - [x] T045 [US4] Add `values_json` to the `entity` table and `reference_qualname` to the `entity_field` table, and fill them, in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`
 - [x] T046 [US4] Select the two new values into the ERD payload in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` and its schema
 - [x] T047 [US4] Add `values` and `reference_qualname` to `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, render the value rows in the ERD card, draw the reference and label the axis container in `packages/aoa-maxitor/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx`, and write the component README
-- [ ] T048 [US4] Run the scan and `compare_baselines.py`, record `specs/015-closed-dictionary-variants/evidence/baseline.after.json`, and confirm only the intended differences
+- [x] T048 [US4] Run the scan and `compare_baselines.py`, record `specs/015-closed-dictionary-variants/evidence/baseline.after.json`, and confirm only the intended differences
 - [x] T049 [US4] Run `npm run build` in `packages/aoa-maxitor/client` and `pytest packages/aoa-maxitor/tests -q`
 - [x] T050 [US4] Search `packages/aoa-maxitor` for any dictionary, kind or value name of AOA's and remove it from the rendering path
 
@@ -165,8 +165,8 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 **Purpose**: the adversarial sweep before the tail.
 
-- [ ] T051 [P] Break each rule of `contracts/dictionary-declaration.md` §4 and `contracts/specialization-codes.md` §5 in turn — the empty dictionary, the duplicate, the bare code, the copy, the `Literal`, the head-side `Classifier`, the uncovered value, the foreign value, the mismatched pair — confirm the dedicated test fails and no other, then restore each break and record the results in `specs/015-closed-dictionary-variants/evidence/breaks.md`
-- [ ] T052 [P] Run `python specs/015-closed-dictionary-variants/evidence/scan_dictionary_variants.py` and confirm every count of the spec's Success Criteria is at zero, appending the output to `specs/015-closed-dictionary-variants/evidence/scan.after.txt`
+- [x] T051 [P] Break each rule of `contracts/dictionary-declaration.md` §4 and `contracts/specialization-codes.md` §5 in turn — the empty dictionary, the duplicate, the bare code, the copy, the `Literal`, the head-side `Classifier`, the uncovered value, the foreign value, the mismatched pair — confirm the dedicated test fails and no other, then restore each break and record the results in `specs/015-closed-dictionary-variants/evidence/breaks.md`
+- [x] T052 [P] Run `python specs/015-closed-dictionary-variants/evidence/scan_dictionary_variants.py` and confirm every count of the spec's Success Criteria is at zero, appending the output to `specs/015-closed-dictionary-variants/evidence/scan.after.txt`
 
 ---
 

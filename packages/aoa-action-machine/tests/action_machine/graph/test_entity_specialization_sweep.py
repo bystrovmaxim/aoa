@@ -39,7 +39,7 @@ tests own those.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field
@@ -137,7 +137,7 @@ class CodeLessSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
     id: str = Field(description="id")
-    rec: Annotated[Generalization[HeadOverCodeLessCoreEntity], Classifier("rec", Literal["a"])] = Rel(description="d")
+    rec: Generalization[HeadOverCodeLessCoreEntity] = Rel(description="d, naming no value")
 
 
 @exclude_graph_model

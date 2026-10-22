@@ -13,7 +13,7 @@ their pairing, and the two-sided value comparison.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field
@@ -102,10 +102,7 @@ class SilentSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
     id: str = Field(description="id")
-    rec: Annotated[
-        Generalization[SilentHeadCoreEntity],
-        Classifier("rec", Literal["a"]),
-    ] = Rel(description="back")
+    rec: Generalization[SilentHeadCoreEntity] = Rel(description="back, naming no value")
 
 
 @exclude_graph_model

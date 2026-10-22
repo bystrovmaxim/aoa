@@ -90,7 +90,7 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
-from typing import Any, Literal, Self, cast, get_args, get_origin
+from typing import Any, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -111,13 +111,6 @@ class Specialization[T, D](BaseModel):
     id: Any = Field(description="Identifier of the related extension row")
     variant: D = Field(description="The declared value that selects this alternative")
     entity: T | None = Field(default=None, repr=False, description="The hydrated extension row")
-
-    def __class_getitem__(cls, typevar_values: Any) -> Any:
-        """Subscript with the alternatives alone (a code) or with the dictionary too (a value)."""
-        params = typevar_values if isinstance(typevar_values, tuple) else (typevar_values,)
-        if len(params) == 1:
-            params = (params[0], str)
-        return super().__class_getitem__(params)
 
     @model_validator(mode="after")
     def _check_pairing(self) -> Self:
@@ -158,87 +151,56 @@ class Generalization[T](BaseModel):
 class Classifier:
     """
     AI-CORE-BEGIN
-        ROLE: Marks a specialization field on the head: which field chooses, and which codes exist.
-        CONTRACT: ``field`` names the classifier field on the same entity; ``codes`` is a
-            ``Literal`` of the declared codes, in the order the alternatives are written.
-        INVARIANTS: ``field`` is a non-empty string; ``codes`` is a ``Literal`` with at least
-            one member; every member is a non-empty string; frozen.
+        ROLE: Marks an extension's reverse field: which field pairs it, and which value it is.
+        CONTRACT: ``field`` names the extension's field that points back at its head;
+            ``variant`` is one of the head's dictionary values, the object itself.
+        INVARIANTS: ``field`` is a non-empty string; ``variant`` is a declared dictionary
+            value; the marker is frozen.
         AI-CORE-END
     """
 
-    __slots__ = ("_codes", "_field", "_variant")
+    __slots__ = ("_field", "_variant")
 
-    def __init__(self, field: str | None = None, codes: Any = None, *, variant: Any = None) -> None:
+    def __init__(self, field: str, variant: Any = None, *legacy: Any) -> None:
         """
         Args:
-            field: Name of the classifier field whose value selects the alternative.
-            codes: A ``Literal`` of the declared codes, in declaration order.
+            field: Name of the extension's field that points back at its head.
+            variant: The declared dictionary value this class is.
 
         Raises:
-            TypeError: ``field`` is not a ``str``, or ``codes`` is not a ``Literal``.
-            ValueError: ``field`` is empty or whitespace-only, the ``Literal`` has no members,
-                or a member is empty or not a string.
+            TypeError: ``field`` is not a ``str``, or ``variant`` is not a declared value.
+            ValueError: ``field`` is empty or whitespace-only.
         """
-        if variant is not None:
-            # pylint: disable-next=import-outside-toplevel  # the import would close a cycle at module load
-            from aoa.action_machine.domain.enum_entity import BaseEnumEntity
-
-            if not isinstance(variant, BaseEnumEntity):
-                raise TypeError(
-                    f"Classifier: variant must be a declared dictionary value, "
-                    f"got {type(variant).__name__}: {variant!r}."
-                )
-            object.__setattr__(self, "_field", field.strip() if isinstance(field, str) else "")
-            object.__setattr__(self, "_codes", None)
-            object.__setattr__(self, "_variant", variant)
-            return
+        if legacy or variant is None:
+            raise TypeError(
+                "Classifier: name a value, not a list of codes — "
+                "write Classifier(field=..., variant=<Dictionary>.<VALUE>)."
+            )
+        # pylint: disable-next=import-outside-toplevel  # the import would close a cycle at module load
+        from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 
         if not isinstance(field, str):
             raise TypeError(f"Classifier: field must be str, got {type(field).__name__}: {field!r}.")
-
         if not field.strip():
             raise ValueError("Classifier: field cannot be empty or whitespace-only.")
-
-        if get_origin(codes) is not Literal:
+        if not isinstance(variant, BaseEnumEntity):
             raise TypeError(
-                f"Classifier: codes must be a Literal of codes, "
-                f"got {type(codes).__name__}: {codes!r}."
+                f"Classifier: variant must be a declared dictionary value, "
+                f"got {type(variant).__name__}: {variant!r}."
             )
 
-        members = get_args(codes)
-        if not members:
-            raise ValueError("Classifier: codes must declare at least one code.")
-
-        for code in members:
-            if not isinstance(code, str):
-                raise TypeError(f"Classifier: codes must be str, got {type(code).__name__}: {code!r}.")
-            if not code.strip():
-                raise ValueError("Classifier: codes cannot contain an empty or whitespace-only code.")
-
         object.__setattr__(self, "_field", field)
-        object.__setattr__(self, "_codes", codes)
-        object.__setattr__(self, "_variant", None)
+        object.__setattr__(self, "_variant", variant)
 
     @property
     def field(self) -> str:
-        """Name of the classifier field whose value selects the alternative."""
+        """Name of the extension's field that points back at its head."""
         return cast(str, object.__getattribute__(self, "_field"))
 
     @property
-    def codes(self) -> Any:
-        """The ``Literal`` of declared codes, in declaration order (``None`` for the value form)."""
-        return object.__getattribute__(self, "_codes")
-
-    @property
     def variant(self) -> Any:
-        """The declared dictionary value this marker names, or ``None`` for the ``Literal`` form."""
+        """The declared dictionary value this class is."""
         return object.__getattribute__(self, "_variant")
-
-    @property
-    def code_values(self) -> tuple[str, ...]:
-        """The declared codes as plain strings, in declaration order."""
-        codes = object.__getattribute__(self, "_codes")
-        return cast(tuple[str, ...], get_args(codes)) if codes is not None else ()
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Classifier is frozen; assigning to attributes is not allowed.")
@@ -247,21 +209,12 @@ class Classifier:
         raise AttributeError("Classifier is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        field = cast(str, object.__getattribute__(self, "_field"))
-        variant = object.__getattribute__(self, "_variant")
-        if variant is not None:
-            return f"Classifier(field={field!r}, variant={variant!r})"
-        codes = object.__getattribute__(self, "_codes")
-        return f"Classifier(field={field!r}, codes={codes!r})"
+        return f"Classifier(field={self.field!r}, variant={self.variant!r})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Classifier):
             return NotImplemented
-        if self.variant is not None or other.variant is not None:
-            return self.variant is other.variant
-        return self.field == other.field and self.codes == other.codes
+        return self.variant is other.variant and self.field == other.field
 
     def __hash__(self) -> int:
-        if self.variant is not None:
-            return hash(("variant", id(self.variant)))
-        return hash((self.field, str(self.codes)))
+        return hash(("variant", id(self.variant), self.field))
