@@ -303,7 +303,60 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                     "state"
                   ],
                   "description": "Kind of the kind base class the entity inherits; 'state' is admitted for completeness, though status types never become entity rows."
+                },
+                "values": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "The values a closed dictionary declares; required for the enum kind and absent for every other kind.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code",
+                      "display_name",
+                      "properties"
+                    ],
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "properties": {
+                        "type": "object"
+                      }
+                    }
+                  }
                 }
+              }
+            }
+          },
+          "if": {
+            "required": [
+              "properties"
+            ],
+            "properties": {
+              "properties": {
+                "required": [
+                  "entity_kind"
+                ],
+                "properties": {
+                  "entity_kind": {
+                    "const": "enum"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "properties": {
+                "required": [
+                  "values"
+                ]
               }
             }
           }

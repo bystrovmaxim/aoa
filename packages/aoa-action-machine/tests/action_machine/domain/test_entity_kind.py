@@ -20,6 +20,7 @@ from aoa.action_machine.domain import (
     BaseAssocEntity,
     BaseCoreEntity,
     BaseDetailEntity,
+    BaseDomain,
     BaseEntity,
     BaseEnumEntity,
     BaseSpecEntity,
@@ -28,8 +29,17 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
+from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entity import entity
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
+
+
+class ShopDomain(BaseDomain):
+    """The domain the dictionary fixture belongs to."""
+
+    name = "shop"
+    description = "Shop model"
 
 KINDS = (
     (BaseCoreEntity, "core", "CoreEntity"),
@@ -130,6 +140,19 @@ def test_an_ordinary_mixin_does_not_count_as_a_kind() -> None:
         """Audited, still a core entity."""
 
     assert isinstance(AuditedCoreEntity(), AuditedCoreEntity)
+
+
+def test_a_decorated_dictionary_is_a_real_entity_in_the_graph() -> None:
+    """The dictionary kind is an ordinary entity: only its marker is kept out of the model graph."""
+
+    @entity(description="Currency reference value", domain=ShopDomain)
+    class GraphCurrencyEnumEntity(BaseEnumEntity):
+        """A decorated dictionary stays in the graph, like any other entity."""
+
+        USD = GraphCurrencyEnumEntity(code="usd", display_name="US dollar")  # noqa: F821
+
+    assert excluded_from_graph_model(GraphCurrencyEnumEntity) is False
+    assert EntityGraphNode(GraphCurrencyEnumEntity).to_dict()["properties"]["entity_kind"] == "enum"
 
 
 def test_exactly_six_classes_inherit_the_entity_base_and_override_the_hook() -> None:
