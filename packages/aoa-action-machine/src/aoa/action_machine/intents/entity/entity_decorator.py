@@ -204,6 +204,12 @@ def entity(
     def decorator(cls: type) -> type:
         validate_entity_decorator_target(cls)
 
+        # A kind that must declare its values may refuse a concrete class; the class
+        # itself knows the rule, so the decorator only asks.
+        require = getattr(cls, "_require_declared_values", None)
+        if require is not None:
+            require()
+
         cls._entity_info = {  # type: ignore[attr-defined]
             "description": description,
             "domain": domain,

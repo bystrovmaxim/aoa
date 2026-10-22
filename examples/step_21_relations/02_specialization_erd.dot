@@ -4,7 +4,7 @@ digraph ERD {
   edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]
 
   subgraph "cluster_VinylRecordCoreEntity:pressing" {
-    label="pressing (by media)";
+    label="pressing (by VinylRecordKindEnumEntity) (VinylRecordKindEnumEntity)";
     style="rounded,dashed";
     color="#94a3b8";
     fontsize=10;
@@ -21,8 +21,12 @@ digraph ERD {
   }
   "VinylRecordCoreEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>VinylRecordCoreEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
       <TR><TD BGCOLOR="#dbeafe" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>FK</B></FONT></TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT">pressing</TD><TD BGCOLOR="#dbeafe" ALIGN="LEFT" TOOLTIP="first → FirstPressSpecEntity&#10;repress → RepressSpecEntity&#10;test → TestPressSpecEntity"><FONT COLOR="#64748b"><I>Specialization 3+</I></FONT></TD></TR>
-      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">title</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
-      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">media</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR></TABLE>>]
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">title</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR></TABLE>>]
+  "VinylRecordKindEnumEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>VinylRecordKindEnumEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#fef9c3" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>PK</B></FONT></TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT">id</TD><TD BGCOLOR="#fef9c3" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">code</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">display_name</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>str</I></FONT></TD></TR><TR><TD BGCOLOR="#ecfdf5" WIDTH="28"></TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT">first</TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>First</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ecfdf5" WIDTH="28"></TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT">repress</TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>Repress</I></FONT></TD></TR>
+      <TR><TD BGCOLOR="#ecfdf5" WIDTH="28"></TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT">test</TD><TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>Test</I></FONT></TD></TR></TABLE>>]
 
   "FirstPressSpecEntity" -> "VinylRecordCoreEntity" [label="first" fontsize=9 arrowhead=empty]
   "RepressSpecEntity" -> "VinylRecordCoreEntity" [label="repress" fontsize=9 arrowhead=empty]

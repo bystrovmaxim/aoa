@@ -1,43 +1,46 @@
 # tests/action_machine/domain/test_specialization_containers.py
+# ruff: noqa: F821  # the class-name alias is the declaration surface
 """
-Tests for the specialization **containers** and their marker.
+The container types themselves: ``Specialization[Alternatives, Dictionary]`` and ``Generalization[Head]``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A head field points at one of N extension entities. The alternatives live in the
-container's **type argument** — ``Specialization[A | B]`` — and what selects among
-them lives in the ``Classifier`` marker beside it. These tests assert what the type
-argument buys and what the marker promises:
-
-- subscripting a container produces a real class, so a field of that type accepts an
-  instance of it;
-- the type argument is enforced: a narrower parameterisation refuses the other
-  alternatives, and a class outside the union is refused on assignment;
-- a link whose row was not loaded keeps its identifier and its variant — the state a
-  bare union in the type position could not express;
-- printing a head and its extension terminates, although they reference each other;
-- both containers are frozen, and the marker keeps one entry per kind of mistake.
+A field's type argument is a declaration, and these tests are what it actually enforces
+at assignment time: which class may sit in ``entity``, what ``variant`` may hold, and what
+the container refuses outright. The dictionary is part of the type: a container names it,
+and its ``variant`` carries one of that dictionary's values — not a bare code, not a copy,
+not a value of some other dictionary.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- **ValidationError** — an assignment the type argument refuses, or a mutation of a
-  frozen container.
-- **TypeError** / **ValueError** — a wrong or empty argument to ``Classifier``.
-- **AttributeError** — assigning to a frozen marker.
+- **ValidationError** — the assignment the type refuses.
 
-Does not cover parsing, the graph, or the build rules — only the types themselves.
+Does not cover parsing, the graph, or the build rules — only the types themselves. The
+marker's code-list form is gone with the classifier field, so the tests that exercised it
+are gone too; what remains is the value form.
 """
 
-from typing import Any, Literal
+from __future__ import annotations
+
+from typing import Annotated, Any
 
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from aoa.action_machine.domain import Classifier, Generalization, Specialization
+from aoa.action_machine.domain import BaseEnumEntity, Classifier, Generalization, Specialization
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+
+
+@exclude_graph_model
+class KindEnumEntity(BaseEnumEntity):
+    """The dictionary the container borrows its values from."""
+
+    FIRST = KindEnumEntity(code="first", display_name="First")
+    SECOND = KindEnumEntity(code="second", display_name="Second")
 
 
 class FirstEntity(BaseModel):
@@ -45,6 +48,9 @@ class FirstEntity(BaseModel):
 
     id: str = Field(description="id")
     stamper: str = Field(description="a column of its own")
+    marker: Annotated[Any, Classifier(field="marker", variant=KindEnumEntity.FIRST)] = Field(
+        default=None, description="names this class's value"
+    )
 
 
 class SecondEntity(BaseModel):
@@ -52,6 +58,9 @@ class SecondEntity(BaseModel):
 
     id: str = Field(description="id")
     year: int = Field(description="a column of its own")
+    marker: Annotated[Any, Classifier(field="marker", variant=KindEnumEntity.SECOND)] = Field(
+        default=None, description="names this class's value"
+    )
 
 
 class OutsideEntity(BaseModel):
@@ -64,7 +73,9 @@ class _Head(BaseModel):
     """A head whose field carries the union under test."""
 
     id: str = Field(description="id")
-    link: Specialization[FirstEntity | SecondEntity] | None = Field(default=None, description="one of two")
+    link: Specialization[FirstEntity | SecondEntity, KindEnumEntity] | None = Field(
+        default=None, description="one of two"
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -73,164 +84,143 @@ class _Head(BaseModel):
 
 
 def test_subscription_produces_a_real_class() -> None:
-    alias = Specialization[FirstEntity | SecondEntity]
+    """A container is a class, not a typing alias: it can be assigned and validated."""
+    alias = Specialization[FirstEntity | SecondEntity, KindEnumEntity]
+
     assert isinstance(alias, type)
-    instance = alias(id="x", variant="first")
-    assert instance.id == "x"
-    assert instance.variant == "first"
-    assert instance.entity is None
+    assert alias.model_fields["variant"].annotation is KindEnumEntity
 
 
 def test_a_member_of_the_union_is_accepted() -> None:
-    head = _Head(id="h", link=Specialization[FirstEntity | SecondEntity](id="x", variant="first", entity=FirstEntity(id="x", stamper="1A")))
-    assert isinstance(head.link, Specialization)
+    """The class named in the union is what ``entity`` may hold."""
+    head = _Head(
+        id="h",
+        link=Specialization[FirstEntity | SecondEntity, KindEnumEntity](
+            id="x", variant=KindEnumEntity.FIRST, entity=FirstEntity(id="x", stamper="1A")
+        ),
+    )
+
+    assert head.link is not None
     assert isinstance(head.link.entity, FirstEntity)
 
 
 def test_a_class_outside_the_union_is_refused() -> None:
+    """A class the union never named is not a member."""
     with pytest.raises(ValidationError):
         _Head(
             id="h",
-            link=Specialization[FirstEntity | SecondEntity](id="x", variant="v", entity=OutsideEntity(id="x")),
+            link=Specialization[FirstEntity | SecondEntity, KindEnumEntity](
+                id="x", variant=KindEnumEntity.FIRST, entity=OutsideEntity(id="x")
+            ),
         )
 
 
 def test_a_narrower_parameterisation_refuses_the_other_member() -> None:
-    narrow = Specialization[FirstEntity]
-    accepted = narrow(id="x", variant="first", entity=FirstEntity(id="x", stamper="1A"))
-    assert isinstance(accepted.entity, FirstEntity)
+    """One alternative in the union means the other class is not a member."""
+    narrow = Specialization[FirstEntity, KindEnumEntity]
 
     with pytest.raises(ValidationError):
-        narrow(id="x", variant="second", entity=SecondEntity(id="x", year=1997))
+        narrow(id="x", variant=KindEnumEntity.FIRST, entity=SecondEntity(id="x", year=1997))
 
 
 def test_a_plain_string_is_refused_where_a_row_is_expected() -> None:
+    """``entity`` holds a row or nothing."""
     with pytest.raises(ValidationError):
-        Specialization[FirstEntity](id="x", variant="first", entity="not a row")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# A link without a loaded row: the state a bare union could not express
-# ─────────────────────────────────────────────────────────────────────────────
+        Specialization[FirstEntity, KindEnumEntity](id="x", variant=KindEnumEntity.FIRST, entity="not a row")
 
 
 def test_an_unloaded_link_keeps_its_identifier_and_variant() -> None:
-    link = Specialization[FirstEntity | SecondEntity](id="rec-9", variant="test")
-    head = _Head(id="h", link=link)
+    """A link may be known without its row; the value still says which one it is."""
+    link = Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="rec-9", variant=KindEnumEntity.SECOND)
 
-    assert head.link.id == "rec-9"
-    assert head.link.variant == "test"
-    assert head.link.entity is None
+    assert link.id == "rec-9"
+    assert link.variant is KindEnumEntity.SECOND
+    assert link.entity is None
 
 
 def test_the_extension_side_carries_its_identifier() -> None:
-    back = Generalization[FirstEntity](id="rec-1")
-    assert back.id == "rec-1"
-    assert back.entity is None
+    """The reverse container holds the head's id, and the row when it is loaded."""
+    reverse = Generalization[_Head](id="h", entity=_Head(id="h"))
 
-    hydrated = Generalization[FirstEntity](id="rec-1", entity=FirstEntity(id="rec-1", stamper="1A"))
-    assert isinstance(hydrated.entity, FirstEntity)
+    assert reverse.id == "h"
+    assert isinstance(reverse.entity, _Head)
 
 
 def test_the_extension_side_refuses_another_class() -> None:
+    """The reverse container names its head, so nothing else fits."""
     with pytest.raises(ValidationError):
-        Generalization[FirstEntity](id="rec-1", entity=SecondEntity(id="rec-1", year=1997))
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Mutually referencing rows print, and the containers do not change
-# ─────────────────────────────────────────────────────────────────────────────
+        Generalization[_Head](id="h", entity=FirstEntity(id="h", stamper="1A"))
 
 
 def test_repr_of_a_mutually_referencing_pair_terminates() -> None:
-    head = _Head(id="h")
-    link = Specialization[FirstEntity | SecondEntity](id="h", variant="first", entity=FirstEntity(id="h", stamper="1A"))
-    head.link = link
+    """The pair points at each other; its repr must not follow the loop."""
+    link = Specialization[FirstEntity | SecondEntity, KindEnumEntity](
+        id="h", variant=KindEnumEntity.FIRST, entity=FirstEntity(id="h", stamper="1A")
+    )
+    reverse = Generalization[_Head](id="h", entity=_Head(id="h", link=link))
 
-    text = repr(head)
-    assert "Specialization" in text
-    assert text.count("FirstEntity") <= 1, "the row inside must not be printed, or the pair recurses"
+    assert "FirstEntity" in repr(link)
+    assert repr(reverse) == "Generalization[_Head](id='h')", "the row is left out of the repr, so it terminates"
 
 
 def test_both_containers_are_frozen() -> None:
-    link = Specialization[FirstEntity | SecondEntity](id="x", variant="first")
-    with pytest.raises(ValidationError):
-        link.variant = "second"
+    """A link is a value: assigning to it is refused."""
+    link = Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="x", variant=KindEnumEntity.FIRST)
 
-    back = Generalization[FirstEntity](id="x")
     with pytest.raises(ValidationError):
-        back.id = "y"
+        link.id = "y"  # type: ignore[misc]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The marker: two named arguments, one entry per kind of mistake
+# The variant is a value of the dictionary
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_classifier_exposes_the_literal_and_plain_codes() -> None:
-    marker = Classifier(field="media", codes=Literal["first", "repress", "test"])
+def test_the_variant_holds_the_declared_value() -> None:
+    """A declared value passes by identity."""
+    link = Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="x", variant=KindEnumEntity.SECOND)
 
-    assert marker.field == "media"
-    assert marker.code_values == ("first", "repress", "test")
-    assert marker.codes == Literal["first", "repress", "test"]
-
-
-def test_classifier_declaration_order_is_kept() -> None:
-    marker = Classifier(field="media", codes=Literal["repress", "first"])
-    assert marker.code_values == ("repress", "first")
+    assert link.variant is KindEnumEntity.SECOND
 
 
-def test_classifier_is_frozen() -> None:
-    marker = Classifier(field="media", codes=Literal["first"])
+def test_the_variant_refuses_a_bare_code() -> None:
+    """The resource resolves a stored code before the model sees it."""
+    with pytest.raises(ValidationError, match="bare code is not accepted"):
+        Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="x", variant="second")
+
+
+def test_the_variant_refuses_an_undeclared_code() -> None:
+    """The dictionary in the type argument is the closed set."""
+    with pytest.raises(ValidationError, match="is not a declared value"):
+        Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="x", variant={"code": "elsewhere"})
+
+
+def test_the_variant_serializes_as_the_reference_object() -> None:
+    """The wire carries the value whole."""
+    link = Specialization[FirstEntity | SecondEntity, KindEnumEntity](id="x", variant=KindEnumEntity.FIRST)
+
+    assert link.model_dump()["variant"] == {"code": "first", "display_name": "First", "properties": {}}
+
+
+def test_a_mismatched_pair_is_refused() -> None:
+    """The value and the class of the loaded row must agree."""
+    with pytest.raises(ValidationError, match="does not match"):
+        Specialization[FirstEntity | SecondEntity, KindEnumEntity](
+            id="x", variant=KindEnumEntity.FIRST, entity=SecondEntity(id="x", year=1997)
+        )
+
+
+def test_classifier_names_one_value_and_stays_frozen() -> None:
+    """The extension's marker names a value and cannot be edited afterwards."""
+    marker = Classifier(field="record", variant=KindEnumEntity.FIRST)
+
+    assert marker.variant is KindEnumEntity.FIRST
+    assert marker.field == "record"
     with pytest.raises(AttributeError):
-        marker.field = "other"
+        marker.field = "other"  # type: ignore[misc]
 
 
-def test_classifier_equality_follows_its_arguments() -> None:
-    same = Classifier(field="media", codes=Literal["first", "repress"])
-    other = Classifier(field="media", codes=Literal["first", "repress"])
-    different = Classifier(field="channel", codes=Literal["first", "repress"])
-
-    assert same == other
-    assert hash(same) == hash(other)
-    assert same != different
-
-
-def test_classifier_refuses_a_missing_or_empty_field_name() -> None:
-    with pytest.raises(TypeError):
-        Classifier(field=123, codes=Literal["first"])  # type: ignore[arg-type]
-    with pytest.raises(ValueError):
-        Classifier(field="   ", codes=Literal["first"])
-
-
-def test_classifier_refuses_codes_that_are_not_a_literal() -> None:
-    with pytest.raises(TypeError):
-        Classifier(field="media", codes="first")  # type: ignore[arg-type]
-    with pytest.raises(TypeError):
-        Classifier(field="media", codes=("first",))  # type: ignore[arg-type]
-
-
-def test_classifier_refuses_an_empty_literal() -> None:
-    with pytest.raises(ValueError):
-        Classifier(field="media", codes=Literal[()])
-
-
-def test_classifier_refuses_a_non_string_code() -> None:
-    with pytest.raises(TypeError):
-        Classifier(field="media", codes=Literal[1])  # type: ignore[arg-type]
-
-
-def test_classifier_refuses_an_empty_code() -> None:
-    with pytest.raises(ValueError):
-        Classifier(field="media", codes=Literal["first", "   "])
-
-
-def test_classifier_repr_names_both_arguments() -> None:
-    marker = Classifier(field="media", codes=Literal["first"])
-    assert repr(marker) == "Classifier(field='media', codes=typing.Literal['first'])"
-
-
-def test_the_marker_keeps_the_argument_it_was_given() -> None:
-    codes: Any = Literal["first", "repress"]
-    marker = Classifier(field="media", codes=codes)
-    assert marker.codes is codes
+def test_classifier_refuses_a_list_of_codes() -> None:
+    """A code list is not a value: the marker refuses it outright."""
+    with pytest.raises(TypeError, match=r"must be a declared dictionary value"):
+        Classifier("media", ["first"])

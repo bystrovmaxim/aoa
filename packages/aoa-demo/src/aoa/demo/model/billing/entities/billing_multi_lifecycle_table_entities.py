@@ -18,6 +18,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
+from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
 
 
 class CounterpartyLinkageStateEntity(BaseStateEntity):
@@ -181,7 +182,7 @@ class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     case_reference: str = Field(description="Issuer case reference visible to ops")
 
 
@@ -199,7 +200,7 @@ class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     corridor_code: str = Field(description="Treasury corridor identifier")
 
 
@@ -220,5 +221,5 @@ class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: str = Field(description="Declared ISO-4217 money unit")
+    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
     audit_window_code: str = Field(description="Named reconciliation window (e.g. EOD-Europe)")

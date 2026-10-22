@@ -7,12 +7,13 @@ Run: uv run python examples/step_20_entity/06_specialization.py
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     BaseCoreEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -32,15 +33,20 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
+@entity(description="Kind of CounterpartyCoreEntity", domain=ShopDomain)
+class CounterpartyKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    ORGANISATION = CounterpartyKindEnumEntity(code="organisation", display_name="Organisation")  # noqa: F821
+
+
 @entity(description="Counterparty", domain=ShopDomain)
 class CounterpartyCoreEntity(BaseCoreEntity):
     """Hold the common identity and the selected counterparty kind."""
 
     id: str = Field(description="Counterparty identifier")
-    kind: str = Field(description="Counterparty variant code")
     details: Annotated[
-        Specialization[OrganisationSpecEntity],
-        Classifier(field="kind", codes=Literal["organisation"]),
+        Specialization[OrganisationSpecEntity, CounterpartyKindEnumEntity],
         Inverse(field_name="counterparty"),
     ] = Rel(description="Variant-specific data")
 
@@ -53,7 +59,7 @@ class OrganisationSpecEntity(BaseSpecEntity):
     registration: str = Field(description="Organisation registration number")
     counterparty: Annotated[
         Generalization[CounterpartyCoreEntity],
-        Classifier("counterparty", Literal["organisation"]),
+        Classifier(field="counterparty", variant=CounterpartyKindEnumEntity.ORGANISATION),
         Inverse(CounterpartyCoreEntity, "details"),
     ] = Rel(description="Common counterparty data")
 
@@ -68,8 +74,10 @@ details = OrganisationSpecEntity(
     counterparty=Generalization[CounterpartyCoreEntity](id="party-1"),
 )
 party = CounterpartyCoreEntity(
-    id="party-1", kind="organisation",
-    details=Specialization[OrganisationSpecEntity](id="party-1", variant="organisation", entity=details),
+    id="party-1",
+    details=Specialization[OrganisationSpecEntity, CounterpartyKindEnumEntity](
+        id="party-1", variant=CounterpartyKindEnumEntity.ORGANISATION, entity=details
+    ),
 )
 assert party.id == details.id == details.counterparty.id
 print("same identity:", party.id == details.id)

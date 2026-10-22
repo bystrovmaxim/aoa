@@ -28,7 +28,7 @@ the entity row contributes lifecycle vertices only.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
@@ -78,11 +78,16 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     def __init__(self, entity_cls: type[TEntity]) -> None:
         description = EntityIntentResolver.resolve_description(entity_cls)
         field_edges = EntityFieldGraphEdge.get_entity_field_edges(entity_cls)
+        kind = entity_kind_of(entity_cls)
+        properties: dict[str, Any] = {"description": description, "entity_kind": kind}
+        if kind == "enum":
+            declared = cast(Any, entity_cls).members
+            properties["values"] = [member.to_reference() for member in declared]
         super().__init__(
             node_id=TypeIntrospection.full_qualname(entity_cls),
             node_type=EntityGraphNode.NODE_TYPE,
             label=entity_cls.__name__,
-            properties={"description": description, "entity_kind": entity_kind_of(entity_cls)},
+            properties=properties,
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
@@ -101,15 +106,13 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         object.__setattr__(self, "entity_field_edges", field_edges)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.node_id,
-            "type": self.node_type,
-            "label": self.label,
-            "properties": {
-                "description": str(self.properties["description"]),
-                "entity_kind": str(self.properties["entity_kind"]),
-            },
+        properties: dict[str, Any] = {
+            "description": str(self.properties["description"]),
+            "entity_kind": str(self.properties["entity_kind"]),
         }
+        if "values" in self.properties:
+            properties["values"] = self.properties["values"]
+        return {"id": self.node_id, "type": self.node_type, "label": self.label, "properties": properties}
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Lifecycle field targets and scalar ``EntityField`` vertices."""

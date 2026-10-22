@@ -1,0 +1,32 @@
+# The closing check run (T053)
+
+**Command**: `UV_CACHE_DIR=/tmp/uv-cache bash scripts/run_checks_with_log.sh`
+**Log**: `archive/logs/check-all.txt`
+**Exit code**: 0 — every step passed.
+
+The environment cannot initialise `~/.cache/uv` (the sandbox denies it), so the script needs
+a writable `UV_CACHE_DIR`. That is an environment fact, not a repository change.
+
+## What this run demanded
+
+| Step | Remark | Fix |
+|---|---|---|
+| pylint | `undefined-variable` for the dictionary's class-name alias in the demo | the file disables the rule, as the enum module always has |
+| pylint | `import-outside-toplevel` for the cycle-closing import in the container | one module-level helper, `_declared_value`, carries the late import and its disable |
+| pylint | `keyword-arg-before-vararg` on `Classifier.__init__` | the vararg is gone: the marker names a value or nothing |
+
+## The two accepted remarks
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+/Users/bystrovmaxim/PythonDev/aoa/.venv/lib/python3.12/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+
+Both come from tools rather than from this repository's code, and neither is acted on.
+
+## Scope
+
+This is the run of the finished change: the dictionaries, the reference fields, the axis that
+borrows a dictionary, the demo, Maxitor's store and payload, the client, the migrated corpus
+and the documentation in this branch.
+
+The run was repeated after the documentation and the changelog landed, on the clean tree at
+commit `17760f08`: exit 0 again, the same two accepted remarks, no new step failures.

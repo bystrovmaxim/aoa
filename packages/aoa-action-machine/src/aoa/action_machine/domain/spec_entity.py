@@ -27,10 +27,35 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.specialization_containers import Classifier
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+
+
+def declared_value(entity_cls: type[Any]) -> Any:
+    """
+    Return the dictionary value ``entity_cls`` declares, read from its own marker.
+
+    Read on demand rather than stored at class creation: an extension declared before its
+    head is a forward reference, so the field metadata only exists after ``model_rebuild``.
+    Reading the marker each time keeps the answer true whichever order the module declared
+    its classes in.
+    """
+    for info in getattr(entity_cls, "model_fields", {}).values():
+        for meta in info.metadata:
+            if isinstance(meta, Classifier) and meta.variant is not None:
+                return meta.variant
+    return None
+
+
+class _DeclaredVariant:
+    """Read the class's marker after forward references have been resolved."""
+
+    def __get__(self, instance: Any, owner: type[Any]) -> Any:
+        """Return the currently resolved declaration on the owning class."""
+        return declared_value(owner)
 
 
 @exclude_graph_model
@@ -44,6 +69,8 @@ class BaseSpecEntity(BaseEntity, ABC):
         INVARIANTS: No identity of its own beyond the head's; a head has at most one instance of a given specialization; cannot head another Specialization and cannot be a Composite target.
     AI-CORE-END
     """
+
+    declared_variant: ClassVar[Any] = _DeclaredVariant()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""

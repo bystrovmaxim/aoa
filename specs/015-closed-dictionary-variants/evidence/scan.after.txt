@@ -1,0 +1,1408 @@
+{
+  "generated_at": "2026-10-22T17:23:35+00:00",
+  "commit": "68900948aa347177062ac6d167c257278293e24a",
+  "tools": {
+    "python": "3.12.12",
+    "uv": "uv 0.10.11 (006b56b12 2026-03-16)",
+    "pydantic": "2.12.5"
+  },
+  "areas": {
+    "demo": {
+      "files": 429,
+      "notebook_files": 0,
+      "scripts": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 2,
+        "decorated_dictionaries": 2,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 5,
+        "duplicate_codes": 0,
+        "iso_str_fields": 16,
+        "currency_iso_str_fields": 0,
+        "axes": 1,
+        "classifier_calls": 2,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 2
+      },
+      "notebooks": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "axes": [
+        {
+          "file": "packages/aoa-demo/src/aoa/demo/model/generalization_shapes/entities/generalization_entities.py",
+          "medium": "script",
+          "class": "GeneralizationHeadCoreEntity",
+          "field": "details",
+          "classifier_field": "",
+          "codes": [
+            "variant_a",
+            "variant_b"
+          ],
+          "codes_source": "dictionary"
+        }
+      ]
+    },
+    "examples": {
+      "files": 180,
+      "notebook_files": 178,
+      "scripts": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 29,
+        "decorated_dictionaries": 29,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 77,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 39,
+        "classifier_calls": 71,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 70
+      },
+      "notebooks": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 30,
+        "decorated_dictionaries": 30,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 79,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 39,
+        "classifier_calls": 70,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 69
+      },
+      "axes": [
+        {
+          "file": "examples/step_20_entity/06_specialization.ipynb",
+          "medium": "notebook",
+          "class": "CounterpartyCoreEntity",
+          "field": "details",
+          "classifier_field": "",
+          "codes": [
+            "organisation"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_20_entity/06_specialization.py",
+          "medium": "script",
+          "class": "CounterpartyCoreEntity",
+          "field": "details",
+          "classifier_field": "",
+          "codes": [
+            "organisation"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/02_specialization.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/02_specialization.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/03_specialization_unloaded.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/03_specialization_unloaded.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/04_specialization_reverse.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/04_specialization_reverse.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/05_specialization_mapping.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "test",
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/05_specialization_mapping.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "test",
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/06_specialization_wrong_type.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/06_specialization_wrong_type.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/07_specialization_data_codes.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/07_specialization_data_codes.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/08_specialization_mismatched_data.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/08_specialization_mismatched_data.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/09_specialization_frozen.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/09_specialization_frozen.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/10_specialization_graph.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/10_specialization_graph.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/11_specialization_two_axes.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/11_specialization_two_axes.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "reported_pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/11_specialization_two_axes.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/11_specialization_two_axes.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "reported_pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/12_specialization_hidden_edges.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/12_specialization_hidden_edges.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/13_specialization_erd.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/13_specialization_erd.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/14_specialization_single_alternative.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/14_specialization_single_alternative.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/20_error_missing_classifier.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/20_error_missing_classifier.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/21_error_missing_code.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/21_error_missing_code.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/23_error_unknown_head_code.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "early",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/23_error_unknown_head_code.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "early",
+            "repress",
+            "test",
+            "lost"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/25_error_duplicate_code.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/25_error_duplicate_code.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/29_error_inverse_name.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/29_error_inverse_name.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/30_error_no_reverse.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/30_error_no_reverse.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/31_error_two_reverse_fields.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/31_error_two_reverse_fields.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/32_error_undeclared_entity.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/32_error_undeclared_entity.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/34_error_two_heads.ipynb",
+          "medium": "notebook",
+          "class": "OtherRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/34_error_two_heads.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/34_error_two_heads.py",
+          "medium": "script",
+          "class": "OtherRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/34_error_two_heads.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/35_error_outside_alternative.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/35_error_outside_alternative.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/37_error_cycle.ipynb",
+          "medium": "notebook",
+          "class": "ASpecEntity",
+          "field": "detail",
+          "classifier_field": "",
+          "codes": [
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/37_error_cycle.ipynb",
+          "medium": "notebook",
+          "class": "BSpecEntity",
+          "field": "detail",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/37_error_cycle.py",
+          "medium": "script",
+          "class": "ASpecEntity",
+          "field": "detail",
+          "classifier_field": "",
+          "codes": [
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/37_error_cycle.py",
+          "medium": "script",
+          "class": "BSpecEntity",
+          "field": "detail",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/38_error_axis_subset.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/38_error_axis_subset.ipynb",
+          "medium": "notebook",
+          "class": "VinylRecordCoreEntity",
+          "field": "reported_pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/38_error_axis_subset.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "examples/step_21_relations/38_error_axis_subset.py",
+          "medium": "script",
+          "class": "VinylRecordCoreEntity",
+          "field": "reported_pressing",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        }
+      ]
+    },
+    "framework_tests": {
+      "files": 298,
+      "notebook_files": 0,
+      "scripts": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 29,
+        "decorated_dictionaries": 25,
+        "empty_decorated_dictionaries": 1,
+        "declared_values": 43,
+        "duplicate_codes": 1,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 55,
+        "classifier_calls": 43,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 43
+      },
+      "notebooks": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "axes": [
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/domain/test_spec_entity.py",
+          "medium": "script",
+          "class": "SpecRecordCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/domain/test_specialization_container.py",
+          "medium": "script",
+          "class": "ContainerRecordCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_graph.py",
+          "medium": "script",
+          "class": "_HeadCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "GoodHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "SilentHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "StrangerHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "TwoWayHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "UncoveredHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "UnreachableHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py",
+          "medium": "script",
+          "class": "WronglyPairedHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py",
+          "medium": "script",
+          "class": "ClosedHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py",
+          "medium": "script",
+          "class": "CycleBSpecEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py",
+          "medium": "script",
+          "class": "FirstClaimHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py",
+          "medium": "script",
+          "class": "SecondClaimHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py",
+          "medium": "script",
+          "class": "SelfCycleSpecEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "ClaimFirstHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "ClaimSecondHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "ClosedSweepHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "GoodHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "HeadOverCodeLessCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "HeadOverOrphanValueCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a",
+            "b"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "HeadOverUndeclaredCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "SelfReferringSpecEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py",
+          "medium": "script",
+          "class": "TwoFaultsHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "a"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py",
+          "medium": "script",
+          "class": "VocabularyCopyHeadCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py",
+          "medium": "script",
+          "class": "VocabularyEmptyHeadCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py",
+          "medium": "script",
+          "class": "VocabularyGoodHeadCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py",
+          "medium": "script",
+          "class": "VocabularyWrongHeadCoreEntity",
+          "field": "kind",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/graph/test_graph_json_schema_specialization.py",
+          "medium": "script",
+          "class": "SchemaHeadCoreEntity",
+          "field": "pack",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_BareContainerAssocEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_HeadCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress",
+            "test"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_HeadWithGreedyCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_HeadWithSilentCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_HeadWithTwinCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first",
+            "repress"
+          ],
+          "codes_source": "dictionary"
+        },
+        {
+          "file": "packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py",
+          "medium": "script",
+          "class": "_QuietHeadCoreEntity",
+          "field": "pressed",
+          "classifier_field": "",
+          "codes": [
+            "first"
+          ],
+          "codes_source": "dictionary"
+        }
+      ]
+    },
+    "framework_src": {
+      "files": 344,
+      "notebook_files": 0,
+      "scripts": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "notebooks": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "axes": []
+    },
+    "maxitor": {
+      "files": 33,
+      "notebook_files": 0,
+      "scripts": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "notebooks": {
+        "files": 0,
+        "notebooks": 0,
+        "dictionaries": 0,
+        "decorated_dictionaries": 0,
+        "empty_decorated_dictionaries": 0,
+        "declared_values": 0,
+        "duplicate_codes": 0,
+        "iso_str_fields": 0,
+        "currency_iso_str_fields": 0,
+        "axes": 0,
+        "classifier_calls": 0,
+        "classifier_with_literal": 0,
+        "classifier_with_codes": 0,
+        "classifier_with_variant": 0
+      },
+      "axes": []
+    }
+  },
+  "totals": {
+    "files": 1284,
+    "notebook_files": 178,
+    "scripts": {
+      "files": 0,
+      "notebooks": 0,
+      "dictionaries": 60,
+      "decorated_dictionaries": 56,
+      "empty_decorated_dictionaries": 1,
+      "declared_values": 125,
+      "duplicate_codes": 1,
+      "iso_str_fields": 16,
+      "currency_iso_str_fields": 0,
+      "axes": 95,
+      "classifier_calls": 116,
+      "classifier_with_literal": 0,
+      "classifier_with_codes": 0,
+      "classifier_with_variant": 115
+    },
+    "notebooks": {
+      "files": 0,
+      "notebooks": 0,
+      "dictionaries": 30,
+      "decorated_dictionaries": 30,
+      "empty_decorated_dictionaries": 0,
+      "declared_values": 79,
+      "duplicate_codes": 0,
+      "iso_str_fields": 0,
+      "currency_iso_str_fields": 0,
+      "axes": 39,
+      "classifier_calls": 70,
+      "classifier_with_literal": 0,
+      "classifier_with_codes": 0,
+      "classifier_with_variant": 69
+    }
+  }
+}

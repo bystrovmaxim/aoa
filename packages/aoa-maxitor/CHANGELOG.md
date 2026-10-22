@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dictionaries are visible in the model.** Entity diagrams show a dictionary’s values, names and descriptive properties inside its card, and identify fields that refer to it. Specialization groups name their dictionary and keep its declared order, without a duplicated selector column on the head. ([#241](https://github.com/bystrovmaxim/aoa/issues/241))
 - **The graph carries the meaning of each entity.** Maxitor now preserves the entity kind declared by the model, so graph consumers can distinguish business objects, technical connections, owned parts, specializations and reference values. Regenerate older graph exports before loading them. Automatic hiding of technical connections is not included in this change. ([#210](https://github.com/bystrovmaxim/aoa/issues/210))
 - **Lifecycle diagrams use state descriptions.** States now receive human names, an optional display order and optional outline and fill colours from the model. Initial states stay first; without presentation settings, the existing ordering and palette remain. Other domain fields stay available in the full graph rather than being copied into the diagram response. ([#209](https://github.com/bystrovmaxim/aoa/issues/209))
 

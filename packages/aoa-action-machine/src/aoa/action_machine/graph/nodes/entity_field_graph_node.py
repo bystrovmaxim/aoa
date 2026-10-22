@@ -21,13 +21,40 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
+import types
 from dataclasses import dataclass
-from typing import Annotated, Any, ClassVar, get_args, get_origin
+from typing import Annotated, Any, ClassVar, Union, get_args, get_origin
 
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+
+
+def plain_annotation(annotation: Any) -> Any:
+    """Return the annotation without ``Annotated`` wrappers and without an ``Optional`` union."""
+    current = annotation
+    for _ in range(10):
+        if get_origin(current) is Annotated:
+            current = get_args(current)[0]
+            continue
+        if get_origin(current) in (Union, types.UnionType):
+            members = [member for member in get_args(current) if member is not type(None)]
+            if len(members) != 1:
+                return current
+            current = members[0]
+            continue
+        return current
+    return current
+
+
+def declared_dictionary(annotation: Any) -> type[BaseEnumEntity] | None:
+    """Return the dictionary a field is typed by, when it is one with values."""
+    plain = plain_annotation(annotation)
+    if isinstance(plain, type) and issubclass(plain, BaseEnumEntity) and plain.members:
+        return plain
+    return None
 
 
 @dataclass(frozen=True)
@@ -82,6 +109,13 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
         stripped = field_name.strip()
         field_type = type(self).pretty_annotation(annotation)
         primary_key_hint = stripped == "id"
+        dictionary = declared_dictionary(annotation)
+        properties: dict[str, Any] = {
+            "field_type": field_type,
+            "primary_key_hint": primary_key_hint,
+        }
+        if dictionary is not None:
+            properties["reference_qualname"] = TypeIntrospection.full_qualname(dictionary)
         node_obj = EntityFieldGraphPayload(
             entity_type=entity_cls,
             field_name=stripped,
@@ -92,23 +126,18 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
             node_id=f"{TypeIntrospection.full_qualname(entity_cls)}:{stripped}",
             node_type=EntityFieldGraphNode.NODE_TYPE,
             label=stripped,
-            properties={
-                "field_type": field_type,
-                "primary_key_hint": primary_key_hint,
-            },
+            properties=properties,
             node_obj=node_obj,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.node_id,
-            "type": self.node_type,
-            "label": self.label,
-            "properties": {
-                "field_type": str(self.properties["field_type"]),
-                "primary_key_hint": bool(self.properties["primary_key_hint"]),
-            },
+        properties: dict[str, Any] = {
+            "field_type": str(self.properties["field_type"]),
+            "primary_key_hint": bool(self.properties["primary_key_hint"]),
         }
+        if "reference_qualname" in self.properties:
+            properties["reference_qualname"] = str(self.properties["reference_qualname"])
+        return {"id": self.node_id, "type": self.node_type, "label": self.label, "properties": properties}
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
         """Scalar field rows only ship outbound edges when future metadata requires them."""
