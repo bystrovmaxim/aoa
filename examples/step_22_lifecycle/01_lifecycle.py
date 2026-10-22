@@ -5,23 +5,25 @@ Move an order from draft to paid while keeping the original order unchanged.
 Run: uv run python examples/step_22_lifecycle/01_lifecycle.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
+    PAID = OrderStateEntity(code="paid", display_name="Payment received")  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow a draft order to become paid."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-    PAID = OrderStateEntity(code="paid", display_name="Payment received")
 
     _template = (
         Lifecycle()
-        .state(DRAFT).to(PAID).initial()
-        .state(PAID).final()
+        .state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial()
+        .state(OrderStateEntity.PAID).final()
     )
 
 from pydantic import Field
@@ -42,9 +44,9 @@ updated = order.model_copy(update={"lifecycle": paid})
 assert order.lifecycle.current_state == "draft"
 assert updated.lifecycle.current_state == "paid"
 assert paid is not order.lifecycle
-assert paid.current_status is OrderLifecycle.PAID
-assert order.lifecycle.current_status is OrderLifecycle.DRAFT
+assert paid.current_status is OrderStateEntity.PAID
+assert order.lifecycle.current_status is OrderStateEntity.DRAFT
 print("original:", order.lifecycle.current_state)
 print("updated:", updated.lifecycle.current_state)
 print("final:", updated.lifecycle.is_final)
-print("declared target:", paid.current_status is OrderLifecycle.PAID)
+print("declared target:", paid.current_status is OrderStateEntity.PAID)

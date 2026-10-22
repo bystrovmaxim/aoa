@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "https://github.com/bystrovmaxim/aoa/issues/237 — The status objects of a lifecycle axis move from the axis class to the state type they belong to. The state type declares its own statuses in its own body as `DRAFT = OrderStateEntity(...)`; the axis becomes a generic `Lifecycle[OrderStateEntity]` and keeps only the transitions. The type then carries the catalogue (`members`, `codes()`, `by_code()`, `entity_type`) and the axis refuses two declaration mistakes at class creation: a status that is not a declared object of the type, and a declared status that the axis never uses. `StateVocabulary` is removed, the 55 existing axis declarations migrate, and the entity field, the runtime and the graph do not change."
+**Input**: User description: "https://github.com/bystrovmaxim/aoa/issues/237 — The status objects of a lifecycle axis move from the axis class to the state type they belong to. The state type declares its own statuses in its own body as `DRAFT = OrderStateEntity(...)`; the axis becomes a generic `Lifecycle[OrderStateEntity]` and keeps only the transitions. The type then carries the catalogue (`members`, `codes()`, `by_code()`, `entity_type`) and the axis refuses two declaration mistakes at class creation: a status that is not a declared object of the type, and a declared status that the axis never uses. `StateVocabulary` is removed, the existing axis declarations migrate, and the entity field, the runtime and the graph do not change. The two obsolete negative examples and one test axis are removed; the final corpus is 49 axes and 64 state types."
 
 ## Context: what is true today, measured on 2026-10-22
 
@@ -23,7 +23,7 @@
       _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
   ```
 
-- **The corpus.** 55 declarations of `(Lifecycle, StateVocabulary)` exist today: 32 in `packages/aoa-demo/src/aoa/demo/model/`, 16 in `examples/`, and 7 in the framework's tests. 64 classes descend directly from `BaseStateEntity`: 32 in the demo, 24 in the examples, 8 in the framework's tests. Two further snippets live in code docstrings (`domain/__init__.py`, `state_entity.py`, and the deleted `state_vocabulary.py`); they are documentation, not declarations, and are updated or removed with the modules.
+- **The corpus.** 51 declarations of `(Lifecycle, StateVocabulary)` exist today: 32 in `packages/aoa-demo/src/aoa/demo/model/`, 16 in `examples/`, and 3 in the framework's tests. 63 classes descend directly from `BaseStateEntity`: 32 in the demo, 24 in the examples, 7 in the framework's tests. Two further snippets live in code docstrings (`domain/__init__.py`, `state_entity.py`, and the deleted `state_vocabulary.py`); they are documentation, not declarations, and are updated or removed with the modules. Four vocabulary axes and one state type are declared inside test functions to be refused, and five plain `Lifecycle` axes carry no vocabulary; none is a corpus declaration and none is counted.
 - **The catalogue API lives on the axis.** `OrderLifecycle.members`, `codes()`, `by_code("paid")` and `entity_type` are axis attributes; the state type owns only its fields.
 - **Two declaration mistakes pass silently.**
   1. **A declared status the axis never uses.** `members` can report `['draft', 'paid', 'cancelled']` while the machine has two states; nothing warns, and the diagram shows a machine narrower than the declared vocabulary.
@@ -44,12 +44,13 @@
 - **The catalogue moves to the type.** `members`, `codes()`, `by_code()`, `entity_type` become the state type's API. `by_code` raises `KeyError` for an unknown code. A subclass with no statuses inherits `members`; a subclass that declares statuses gets its own catalogue.
 - **`StateVocabulary` is removed.** Its job splits between the state type's conversion hook and `Lifecycle.__init_subclass__`. There is no alias and no deprecation release: two vocabularies would be a second grammar.
 - **The generic axis is the declared form.** The specification follows the issue's example, `Lifecycle[OrderStateEntity]`. The class-keyword alternative is recorded in Assumptions and is not part of this scope.
-- **The migration is mechanical.** The status lines are copied unchanged from the axis to the type; no `state(...)`, no `cast`, no parentheses are rewritten. All 55 declarations migrate in this change.
+- **The migration is mechanical.** The status lines are copied unchanged from the axis to the type; no `state(...)`, no `cast`, no parentheses are rewritten. All 51 declarations migrate in this change.
+- **Documentation is updated in place.** The entity, runtime, graph and Maxitor behaviour does not change, and no new user-facing case is introduced: only the declaration form changes. The existing pages and the example/notebook snippets that show the old declaration are updated point-wise; there is no new tutorial, no new example series and no wholesale notebook re-execution.
 
 ### Session 2026-10-22 — clarifications
 
-- Q: Which axis form does the specification fix: the generic `Lifecycle[OrderStateEntity]`, or the class keyword `Lifecycle, state_type=OrderStateEntity`? → A: The generic form; `Lifecycle` becomes generic, every bare `Lifecycle` annotation and all 55 axes are parameterised, and the class-keyword alternative is out of scope.
-- Q: Is `StateVocabulary` removed now, or kept as a deprecation alias for one release? → A: Removed now; one grammar, all 55 declarations migrate in this change, the old import fails, and the changelog records the break. No compatibility tests for the old form.
+- Q: Which axis form does the specification fix: the generic `Lifecycle[OrderStateEntity]`, or the class keyword `Lifecycle, state_type=OrderStateEntity`? → A: The generic form; `Lifecycle` becomes generic, every bare `Lifecycle` annotation and all 51 axes are parameterised, and the class-keyword alternative is out of scope.
+- Q: Is `StateVocabulary` removed now, or kept as a deprecation alias for one release? → A: Removed now; one grammar, all 51 declarations migrate in this change, the old import fails, and the changelog records the break. No compatibility tests for the old form.
 - Q: Must every axis list every status of its type, or may an axis use a subset? → A: Every status is mandatory. A type and its axis are one to one; two axes may share a type only if both list every status, and a narrowed specialized axis declares its own state type rather than skipping a status.
 - Q: Is the declaration factory `state(...)` a public authoring surface, or internal to the framework? → A: Internal. The class name is the only documented surface, and the placeholder type appears in framework tests only.
 
@@ -96,7 +97,7 @@ The model author (or an agent) moves the status lines from each axis to its stat
 
 **Why this priority**: The feature is only real when the existing corpus is on the new form; the mechanical move is what keeps the migration safe.
 
-**Independent Test**: Migrate the 55 declarations, import the 32 demo axes, run the lifecycle examples and the suite, and compare the graph state rows and the entity field types before and after.
+**Independent Test**: Migrate the 51 declarations, import the 32 demo axes, run the lifecycle examples and the suite, and compare the graph state rows and the entity field types before and after.
 
 **Acceptance Scenarios**:
 
@@ -106,18 +107,19 @@ The model author (or an agent) moves the status lines from each axis to its stat
 
 ---
 
-### User Story 4 - An AI author writes the simple surface (Priority: P3)
+### User Story 4 - The existing pages show the simple surface (Priority: P3)
 
 An AI author writing on the engine sees one declaration form and no framework-specific factory: the status name is the class name, the fields are typed, and the errors are field-level or membership-level rather than a raw `NameError`.
 
 **Why this priority**: The engine is AI-first; the surface must be the one an AI copies from the docs without a cast or a second concept.
 
-**Independent Test**: From the documentation alone, write a new state type and axis; check that the code contains only `NAME = Type(...)` and that the checks fire as documented.
+**Independent Test**: From the updated snippets in the existing tutorial and reference, write a state type and axis; check that the code contains only `NAME = Type(...)`, that the checks fire as documented, and that the pages kept their structure (no new example series).
 
 **Acceptance Scenarios**:
 
 1. **Given** the tutorial and the reference page, **When** an author writes a state type and an axis, **Then** no `state(...)`, `cast` or `TYPE_CHECKING` appears in the authored code.
 2. **Given** a typo in a status field or a forgotten status, **When** the module is imported, **Then** the error names the class and the field or the missing code.
+3. **Given** the existing pages, **When** the declaration snippet is updated, **Then** the pages keep their structure and no new example series or tutorial is added.
 
 ---
 
@@ -158,7 +160,7 @@ An AI author writing on the engine sees one declaration form and no framework-sp
 - **FR-010**: Every declared status of the type MUST appear as a state in the axis; a missing one MUST raise `MissingStateError` listing the missing codes. A status used only as a transition target MUST NOT count as a state.
 - **FR-011**: Both refusals MUST run at class creation (import time), before any graph is built, and MUST cost nothing at runtime.
 - **FR-012**: A plain `Lifecycle` subclass with no type parameter MUST keep today's behaviour and MUST NOT be checked.
-- **FR-013**: `StateVocabulary` MUST be removed from the public API; all 55 declarations MUST migrate to the new form; no deprecation alias MUST remain.
+- **FR-013**: `StateVocabulary` MUST be removed from the public API; every remaining declaration (49 axes, 64 state types) MUST migrate to the new form; no deprecation alias MUST remain.
 - **FR-014**: The entity field type (`lifecycle: OrderLifecycle`), the runtime construction (`OrderLifecycle(current_state=...)`), the graph state row (`status.model_dump()`) and the Maxitor payload MUST NOT change.
 - **FR-015**: The authored code MUST type-check without `cast` or a `TYPE_CHECKING` block; a status attribute MUST be typed as the state type, including its domain fields; `mypy --strict` MUST be clean.
 - **FR-016**: The declaration factory MUST be internal to the framework; the class name MUST be the only documented surface, and the placeholder type MUST appear in framework tests only.
@@ -179,12 +181,12 @@ An AI author writing on the engine sees one declaration form and no framework-sp
 ### Measurable Outcomes
 
 - **SC-001**: A new state type with three statuses and six fields is declared, created and used without any framework factory appearing in the authored code; 100 % of its fields are present in `model_dump()`.
-- **SC-002**: All 55 declarations are on the new form; 0 occurrences of `StateVocabulary` remain in `packages/` and `examples/`; all 32 demo axes import.
+- **SC-002**: All remaining declarations (49 axes — 32 demo, 14 examples, 3 framework tests; 64 state types — 32/21/11) are on the new form; 0 occurrences of `StateVocabulary` remain in `packages/` and `examples/`; all 32 demo axes import.
 - **SC-003**: The three refusal cases (foreign type, equal-but-distinct instance, missing status) each raise their named error in a dedicated test, and no other test fails.
 - **SC-004**: A misspelled status field, a missing required field and a wrong type each fail at class creation with a message naming the class and the field; a coercible value is accepted and stored by Pydantic's rules.
 - **SC-005**: The demo graph before and after the change reports the same entity field types, state row attributes, labels and transitions for every axis.
 - **SC-006**: `mypy --strict` is clean across the eight packages, no new `# type: ignore` is introduced, and the closing check run reports only the two accepted remarks (Vite chunk-size, LangGraph deprecation).
-- **SC-007**: The documentation and the example set show every case introduced here: the valid declaration, all fields, defaults, the three refusals, the field errors and the plain `Lifecycle` escape.
+- **SC-007**: The existing pages and the example/notebook snippets that show the old declaration are updated point-wise: the declaration, the fields and defaults, the refusals and the plain `Lifecycle` escape appear where they already appeared. No new tutorial, no new example series and no wholesale notebook re-execution.
 
 ## Assumptions
 
@@ -194,8 +196,8 @@ An AI author writing on the engine sees one declaration form and no framework-sp
 - **The declaration factory is internal.** `state()` and the placeholder type are framework implementation; the class name is the only documented surface.
 - **The alias shadows a same-named global.** A state type body that references a global with the same name as the class receives the declaration factory instead. This is the documented diagnostic cost of the surface and is covered by a test.
 - **Field names in the call are checked at class creation, not by mypy.** Pydantic validates the arguments; the `pydantic.mypy` plugin would check them statically and is out of scope.
-- **The generic migration is part of this change.** `mypy --strict` with `disallow_any_generics` requires every bare `Lifecycle` annotation to be parameterised; the 55 axes and the core annotations migrate together.
-- **The corpus count is a snapshot.** 55 declarations and 64 state types were measured on `main` after #210 (PR #238); new axes declared before implementation increase the migration count.
+- **The generic migration is part of this change.** `mypy --strict` with `disallow_any_generics` requires every bare `Lifecycle` annotation to be parameterised; the 51 axes and the core annotations migrate together.
+- **The corpus count is a snapshot.** 51 declarations and 63 state types were measured on `main` after #210 (PR #238); new axes declared before implementation increase the migration count.
 - **The dependency is closed.** #210 is merged; the branch is based on `545b5c43`, and the demo and the examples are already on the `Entity` naming convention.
 - **Pydantic supports the conversion hook.** The installed Pydantic version provides the post-model hook and the ignored-types configuration used by the conversion; no version change is planned.
 

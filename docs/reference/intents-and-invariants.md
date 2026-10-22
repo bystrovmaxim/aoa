@@ -468,38 +468,38 @@ A single-alternative axis is accepted by the model. The current ERD emits no alt
 
 ## Lifecycle FSM
 
-A lifecycle axis is one aspect of an entity's progress, with its own possible states and transitions. For example, payment and delivery may have separate lifecycles. `BaseStateEntity` describes a possible status; a `Lifecycle` instance holds a reference to the selected declared status object. `StateVocabulary`, used alongside `Lifecycle`, collects the descriptions declared on that class and provides lookup by code.
+A lifecycle axis is one aspect of an entity's progress, with its own possible states and transitions. For example, payment and delivery may have separate lifecycles. `BaseStateEntity` describes a possible status; a `Lifecycle` instance holds a reference to the selected declared status object. The state type declares its own statuses and carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`.
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-
-class OrderLifecycle(Lifecycle, StateVocabulary):
-    """Declare the statuses and allowed order transitions."""
-
     NEW = OrderStateEntity(code="new", display_name="New")
     CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
     SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
 
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
+    """Declare the allowed order transitions; the statuses live on the type."""
+
     _template = (
         Lifecycle()
-        .state(NEW).to(CONFIRMED).initial()
-        .state(CONFIRMED).to(SHIPPED).intermediate()
-        .state(SHIPPED).final()
+        .state(OrderStateEntity.NEW).to(OrderStateEntity.CONFIRMED).initial()
+        .state(OrderStateEntity.CONFIRMED).to(OrderStateEntity.SHIPPED).intermediate()
+        .state(OrderStateEntity.SHIPPED).final()
     )
 ```
 
 | Contract | Behaviour |
 | --- | --- |
 | Status fields | `code` and `display_name` are required non-blank strings; extra domain fields must be declared on the status subclass. Status objects are frozen. |
-| Vocabulary members | Status attributes are collected in declaration order. Their codes must be unique within the vocabulary and their concrete Python types must match. |
-| Lookup | `members` is a tuple; `codes()` returns a list in declaration order; `entity_type` is the common type; `by_code(code)` returns the declared object or raises `KeyError`. |
-| Declaring a template | `.state(status)` and `.to(*statuses)` take status objects, not strings. Referenced statuses must belong to the vocabulary when its class declares `_template`. A new template without status attributes is refused. |
-| Inheritance | A subclass without new status attributes or a replacement template inherits its parent's members and rules. `StateVocabulary` cannot be applied without `Lifecycle`. |
+| Status catalogue | Status attributes are declared on the state type and collected in declaration order; their codes must be unique within the type and every status has that concrete type. |
+| Lookup | `members` is a tuple; `codes()` returns a list in declaration order; `entity_type` is the type; `by_code(code)` returns the declared object or raises `KeyError`. All four live on the state type. |
+| Declaring a template | `.state(status)` and `.to(*statuses)` take status objects, not strings. Every referenced status must be a declared member of the axis's state type, and every declared status must appear as a state; a foreign or missing status is refused at class definition. |
+| Inheritance | A subclass without statuses inherits its parent's catalogue; a subclass with statuses gets its own. The axis reads the state type from `Lifecycle[StateType]`. |
 | Classification | `.initial()`, `.intermediate()` and `.final()` belong to the template; a status field does not imply a classification. The same description may be classified differently in different templates. |
 | Runtime | The constructor and `transition(target)` take code strings and resolve them to declared status objects. `current_status` returns that exact object; `current_state` returns its code. No separate current code is stored. A transition checks the edge and creates a new Lifecycle, not a new status object, leaving the original unchanged. |
 | Current metadata | `current_state_info` still returns the template's `StateInfo`, with classification and transitions. Reading current-state properties on a template raises `RuntimeError`. |

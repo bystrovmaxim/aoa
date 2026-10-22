@@ -31,7 +31,7 @@ from aoa.action_machine.graph.edges.lifecycle_state_graph_edge import LifeCycleS
 from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-TLifecycle = TypeVar("TLifecycle", bound=Lifecycle)
+TLifecycle = TypeVar("TLifecycle", bound=Lifecycle[Any])
 
 
 @dataclass(frozen=True)
@@ -40,7 +40,7 @@ class LifeCycleGraphPayload:
 
     host_cls: type[Any]
     field_name: str
-    lifecycle_class: type[Lifecycle]
+    lifecycle_class: type[Lifecycle[Any]]
 
 
 @dataclass(init=False, frozen=True)

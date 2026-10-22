@@ -1,4 +1,5 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py
+# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Lifecycle graph for payment-event entity (parallel to ``SalesOrderLifecycle`` in store)."""
 
 from pydantic import Field
@@ -6,7 +7,6 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
-    StateVocabulary,
 )
 
 
@@ -15,22 +15,24 @@ class PaymentEventStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    RECORDED = PaymentEventStateEntity(code="recorded", display_name="Recorded", sort_order=1)  # noqa: F821
+    SETTLED = PaymentEventStateEntity(code="settled", display_name="Settled", sort_order=2)  # noqa: F821
+    ARCHIVED = PaymentEventStateEntity(code="archived", display_name="Archived", sort_order=3)  # noqa: F821
 
-class PaymentEventLifecycle(Lifecycle, StateVocabulary):
+
+
+class PaymentEventLifecycle(Lifecycle[PaymentEventStateEntity]):
     """Three states: recorded → settled → archived."""
 
-    RECORDED = PaymentEventStateEntity(code="recorded", display_name="Recorded", sort_order=1)
-    SETTLED = PaymentEventStateEntity(code="settled", display_name="Settled", sort_order=2)
-    ARCHIVED = PaymentEventStateEntity(code="archived", display_name="Archived", sort_order=3)
 
     _template = (
         Lifecycle()
-        .state(RECORDED)
-        .to(SETTLED)
+        .state(PaymentEventStateEntity.RECORDED)
+        .to(PaymentEventStateEntity.SETTLED)
         .initial()
-        .state(SETTLED)
-        .to(ARCHIVED)
+        .state(PaymentEventStateEntity.SETTLED)
+        .to(PaymentEventStateEntity.ARCHIVED)
         .intermediate()
-        .state(ARCHIVED)
+        .state(PaymentEventStateEntity.ARCHIVED)
         .final()
     )

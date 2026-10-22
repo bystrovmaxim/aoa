@@ -34,7 +34,6 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     Rel,
-    StateVocabulary,
     build,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -71,28 +70,30 @@ class OrderStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)  # noqa: F821
+    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed", sort_order=2)  # noqa: F821
+    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
+    DELIVERED = OrderStateEntity(code="delivered", display_name="Delivered", sort_order=4)  # noqa: F821
+    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
-    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
-    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed", sort_order=2)
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)
-    DELIVERED = OrderStateEntity(code="delivered", display_name="Delivered", sort_order=4)
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
 
     _template = (
         Lifecycle()
-        .state(NEW)
-        .to(CONFIRMED, CANCELLED)
+        .state(OrderStateEntity.NEW)
+        .to(OrderStateEntity.CONFIRMED, OrderStateEntity.CANCELLED)
         .initial()
-        .state(CONFIRMED)
-        .to(SHIPPED, CANCELLED)
+        .state(OrderStateEntity.CONFIRMED)
+        .to(OrderStateEntity.SHIPPED, OrderStateEntity.CANCELLED)
         .intermediate()
-        .state(SHIPPED)
-        .to(DELIVERED)
+        .state(OrderStateEntity.SHIPPED)
+        .to(OrderStateEntity.DELIVERED)
         .intermediate()
-        .state(DELIVERED)
+        .state(OrderStateEntity.DELIVERED)
         .final()
-        .state(CANCELLED)
+        .state(OrderStateEntity.CANCELLED)
         .final()
     )
 
@@ -102,28 +103,30 @@ class OrderLineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
+    PENDING = OrderLineStateEntity(code="pending", display_name="Pending", sort_order=1)  # noqa: F821
+    RESERVED = OrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)  # noqa: F821
+    SHIPPED = OrderLineStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
+    DELIVERED = OrderLineStateEntity(code="delivered", display_name="Delivered", sort_order=4)  # noqa: F821
+    CANCELLED = OrderLineStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)  # noqa: F821
 
-class OrderLineLifecycle(Lifecycle, StateVocabulary):
-    PENDING = OrderLineStateEntity(code="pending", display_name="Pending", sort_order=1)
-    RESERVED = OrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)
-    SHIPPED = OrderLineStateEntity(code="shipped", display_name="Shipped", sort_order=3)
-    DELIVERED = OrderLineStateEntity(code="delivered", display_name="Delivered", sort_order=4)
-    CANCELLED = OrderLineStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)
+
+
+class OrderLineLifecycle(Lifecycle[OrderLineStateEntity]):
 
     _template = (
         Lifecycle()
-        .state(PENDING)
-        .to(RESERVED, CANCELLED)
+        .state(OrderLineStateEntity.PENDING)
+        .to(OrderLineStateEntity.RESERVED, OrderLineStateEntity.CANCELLED)
         .initial()
-        .state(RESERVED)
-        .to(SHIPPED)
+        .state(OrderLineStateEntity.RESERVED)
+        .to(OrderLineStateEntity.SHIPPED)
         .intermediate()
-        .state(SHIPPED)
-        .to(DELIVERED)
+        .state(OrderLineStateEntity.SHIPPED)
+        .to(OrderLineStateEntity.DELIVERED)
         .intermediate()
-        .state(DELIVERED)
+        .state(OrderLineStateEntity.DELIVERED)
         .final()
-        .state(CANCELLED)
+        .state(OrderLineStateEntity.CANCELLED)
         .final()
     )
 

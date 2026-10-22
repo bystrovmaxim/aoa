@@ -8,7 +8,7 @@ Run: uv run python examples/step_22_lifecycle/19_non_json_field.py
 from pydantic import ConfigDict, Field
 from pydantic_core import PydanticSerializationError
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle, StateVocabulary
+from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle
 from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
 
 
@@ -21,12 +21,14 @@ class OrderStateEntity(BaseStateEntity):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     value: Opaque = Field(description="An opaque Python value")
 
+    DRAFT = OrderStateEntity(code="draft", display_name="Draft", value=Opaque())  # noqa: F821
+    PAID = OrderStateEntity(code="paid", display_name="Paid", value=Opaque())  # noqa: F821
 
-class OrderLifecycle(Lifecycle, StateVocabulary):
+
+
+class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Use otherwise valid transitions."""
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft", value=Opaque())
-    PAID = OrderStateEntity(code="paid", display_name="Paid", value=Opaque())
-    _template = Lifecycle().state(DRAFT).to(PAID).initial().state(PAID).final()
+    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
 
 
 class OrderCoreEntity(BaseCoreEntity):
