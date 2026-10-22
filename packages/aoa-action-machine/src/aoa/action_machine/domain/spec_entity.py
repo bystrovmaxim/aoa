@@ -27,9 +27,10 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.specialization_containers import Classifier
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 
@@ -45,7 +46,19 @@ class BaseSpecEntity(BaseEntity, ABC):
     AI-CORE-END
     """
 
+    declared_variant: ClassVar[Any] = None
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("SpecEntity")
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        """Expose the declared value this extension's own marker names."""
+        super().__pydantic_init_subclass__(**kwargs)
+        for info in cls.model_fields.values():
+            for meta in info.metadata:
+                if isinstance(meta, Classifier) and meta.variant is not None:
+                    cls.declared_variant = meta.variant
+                    return

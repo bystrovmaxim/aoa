@@ -283,7 +283,7 @@ def _axis_from_field(
         )
 
     alternatives: list[type[Any]] = []
-    for argument in container_args:
+    for argument in container_args[:1]:
         alternatives.extend(_union_members(argument))
 
     codes = marker.code_values
