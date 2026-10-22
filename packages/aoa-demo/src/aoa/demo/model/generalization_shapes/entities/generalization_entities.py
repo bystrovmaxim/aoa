@@ -30,13 +30,14 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
 from aoa.action_machine.domain import (
     AssociationOne,
     BaseCoreEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -53,6 +54,14 @@ from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCore
 from aoa.demo.model.store.entities.audit_log_entry import AuditLogEntryDetailEntity
 
 
+@entity(description="Shape: the dictionary the drawing axis borrows its codes from", domain=GeneralizationShapesDomain)
+class GeneralizationShapesKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the drawing axis borrows."""
+
+    VARIANT_A = GeneralizationShapesKindEnumEntity(code="variant_a", display_name="Variant A")  # noqa: F821
+    VARIANT_B = GeneralizationShapesKindEnumEntity(code="variant_b", display_name="Variant B")  # noqa: F821
+
+
 @entity(
     description="Shape: the specialization head — its axis and the two extensions draw the ERD generalization",
     domain=GeneralizationShapesDomain,
@@ -67,11 +76,11 @@ class GeneralizationHeadCoreEntity(BaseCoreEntity):
     """
 
     id: str = Field(description="Head row id")
-    variant_code: str = Field(description="Classifier field selecting the variant for a row")
 
     details: Annotated[
-        Specialization[GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity, str],
-        Classifier(field="variant_code", codes=Literal["variant_a", "variant_b"]),
+        Specialization[
+            GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity, GeneralizationShapesKindEnumEntity
+        ],
         Inverse(field_name="head"),
     ] = Rel(
         description="Shape: the specialization axis — one of the declared variants"
@@ -102,7 +111,7 @@ class GeneralizationVariantASpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier("head", Literal["variant_a"]),
+        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]
@@ -139,7 +148,7 @@ class GeneralizationVariantBSpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier("head", Literal["variant_b"]),
+        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]

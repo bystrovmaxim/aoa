@@ -124,11 +124,16 @@ class Specialization[T, D](BaseModel):
         """Refuse a value that disagrees with the class of the hydrated row."""
         if self.entity is None:
             return self
-        declared = getattr(type(self.entity), "declared_variant", None)
-        if declared is not None and self.variant is not declared:
+        from aoa.action_machine.domain.spec_entity import declared_value
+
+        declared = declared_value(type(self.entity))
+        if declared is None:
+            return self
+        declared_code = getattr(declared, "code", declared)
+        if getattr(self.variant, "code", self.variant) != declared_code:
             raise ValueError(
                 f"variant {getattr(self.variant, 'code', self.variant)!r} does not match "
-                f"{type(self.entity).__name__}, which declares {getattr(declared, 'code', declared)!r}"
+                f"{type(self.entity).__name__}, which declares {declared_code!r}"
             )
         return self
 

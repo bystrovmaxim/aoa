@@ -28,7 +28,7 @@ Does not cover the graph, the rules decided across several heads, or the runtime
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field
@@ -37,6 +37,7 @@ from aoa.action_machine.domain import (
     BaseAssocEntity,
     BaseCoreEntity,
     BaseEntity,
+    BaseEnumEntity,
     BaseSpecEntity,
     Classifier,
     Generalization,
@@ -66,7 +67,11 @@ def _code_of(cls: type[BaseEntity]) -> str | None:
     """Return the single code ``cls`` declares on its reverse field, or ``None``."""
     for info in cls.model_fields.values():
         marker = next((item for item in info.metadata if isinstance(item, Classifier)), None)
-        if marker is not None and len(marker.code_values) == 1:
+        if marker is None:
+            continue
+        if marker.variant is not None:
+            return str(marker.variant.code)
+        if len(marker.code_values) == 1:
             return marker.code_values[0]
     return None
 
@@ -82,7 +87,7 @@ class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -93,7 +98,7 @@ class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["repress"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -104,19 +109,26 @@ class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier("record", Literal["test"]),
+        Classifier(field="record", variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
+@entity(description="Kind of _HeadCoreEntity", domain=_SDomain)
+class _HeadKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _HeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = _HeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    TEST = _HeadKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+
+@exclude_graph_model
 @entity(description="Head", domain=_SDomain)
 class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity, _HeadKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="how it was pressed")
 
@@ -145,19 +157,25 @@ class _FirstForSilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithSilentCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=_HeadWithSilentKindEnumEntity.FIRST),
         Inverse(_HeadWithSilentCoreEntity, "pressed"),
     ] = Rel(description="back")
 
 
 @exclude_graph_model
+@entity(description="Kind of _HeadWithSilentCoreEntity", domain=_SDomain)
+class _HeadWithSilentKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _HeadWithSilentKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = _HeadWithSilentKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+
+@exclude_graph_model
 @entity(description="Head over a silent class", domain=_SDomain)
 class _HeadWithSilentCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstForSilentSpecEntity | _SilentSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress"]),
+        Specialization[_FirstForSilentSpecEntity | _SilentSpecEntity, _HeadWithSilentKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="one class declares nothing")
 
@@ -173,19 +191,24 @@ class _GreedySpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithGreedyCoreEntity],
-        Classifier("record", Literal["first", "repress"]),
+        Classifier(field="record", variant=_HeadWithGreedyKindEnumEntity.FIRST),
         Inverse(_HeadWithGreedyCoreEntity, "pressed"),
     ] = Rel(description="back, with two codes")
 
 
 @exclude_graph_model
+@entity(description="Kind of _HeadWithGreedyCoreEntity", domain=_SDomain)
+class _HeadWithGreedyKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _HeadWithGreedyKindEnumEntity(code="first", display_name="First")  # noqa: F821
+
+@exclude_graph_model
 @entity(description="Head over a greedy class", domain=_SDomain)
 class _HeadWithGreedyCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_GreedySpecEntity],
-        Classifier(field="media", codes=Literal["first"]),
+        Specialization[_GreedySpecEntity, _HeadWithGreedyKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="one class declares two codes")
 
@@ -201,7 +224,7 @@ class _TwinASpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithTwinCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -212,19 +235,25 @@ class _TwinBSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithTwinCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back, with the same code")
 
 
 @exclude_graph_model
+@entity(description="Kind of _HeadWithTwinCoreEntity", domain=_SDomain)
+class _HeadWithTwinKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _HeadWithTwinKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    REPRESS = _HeadWithTwinKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+
+@exclude_graph_model
 @entity(description="Head over twins", domain=_SDomain)
 class _HeadWithTwinCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_TwinASpecEntity | _TwinBSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress"]),
+        Specialization[_TwinASpecEntity | _TwinBSpecEntity, _HeadWithTwinKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="two classes answer to one code")
 
@@ -249,13 +278,18 @@ class _BareContainerAssocEntity(BaseAssocEntity):
 
 
 @exclude_graph_model
+@entity(description="Kind of _QuietHeadCoreEntity", domain=_SDomain)
+class _QuietHeadKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    FIRST = _QuietHeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
+
+@exclude_graph_model
 @entity(description="Quiet head", domain=_SDomain)
 class _QuietHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    media: str = Field(description="classifier")
     pressed: Annotated[
-        Specialization[_FirstSpecEntity],
-        Classifier(field="media", codes=Literal["first"]),
+        Specialization[_FirstSpecEntity, _QuietHeadKindEnumEntity],
         NoGraphEdge(),
         Inverse(field_name="record"),
     ] = Rel(description="kept out of the graph")
@@ -294,7 +328,8 @@ def test_an_axis_is_read_with_its_classes_codes_and_classifier() -> None:
 
     assert axis.field_name == "pressed"
     assert axis.head_entity is _HeadCoreEntity
-    assert axis.classifier_field == "media"
+    assert axis.classifier_field == "", "a dictionary-classified head has no classifier field"
+    assert axis.dictionary is _HeadKindEnumEntity
     assert axis.alternatives == (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity)
     assert axis.codes == ("first", "repress", "test")
     assert axis.inverse_field == "record"
@@ -347,9 +382,12 @@ def test_a_class_that_declares_no_code_leaves_the_mapping_short() -> None:
     assert _code_of(_SilentSpecEntity) is None
 
 
-def test_a_class_that_declares_two_codes_is_refused_where_its_code_is_read() -> None:
-    with pytest.raises(SpecializationDeclarationError, match="must declare exactly one code"):
-        _axis(_HeadWithGreedyCoreEntity)
+def test_a_marker_names_exactly_one_value() -> None:
+    """The old form could name two codes; a value marker names one, so the rule is a type now."""
+    axis = _axis(_HeadWithGreedyCoreEntity)
+
+    assert axis.codes == ("first",)
+    assert _code_of(_GreedySpecEntity) == "first"
 
 
 def test_a_repeated_code_leaves_two_classes_on_one_code() -> None:
