@@ -105,14 +105,14 @@ Repository root is `packages/` + `examples/` + `docs/`; the framework package is
 
 ### Tests for User Story 3
 
-- [ ] T028 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/domain/test_specialization_container.py` — a declared value and a reference object accepted, a bare code refused, a foreign value refused, a copy refused, `None` for an absent variant, serialization, and the pairing check naming both values
-- [ ] T029 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/domain/test_spec_entity.py` — `declared_variant` derived on an extension, and the refusal when the marker does not name a declared value
+- [x] T028 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/domain/test_specialization_container.py` — a declared value and a reference object accepted, a bare code refused, a foreign value refused, a copy refused, `None` for an absent variant, serialization, and the pairing check naming both values
+- [x] T029 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/domain/test_spec_entity.py` — `declared_variant` derived on an extension, and the refusal when the marker does not name a declared value
 - [ ] T030 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py` — the five build refusals, the shared dictionary, the edge carrying `field_name`, `classifier_value`, `dictionary_qualname`, `dictionary_label` and no `classifier_field`, and that a `Literal` outside specialization still works (FR-025)
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Make the container generic and typed in `packages/aoa-action-machine/src/aoa/action_machine/domain/specialization_containers.py`: `Specialization[T, D]` with `variant: D` and the pairing validator
-- [ ] T032 [US3] Change the extension marker to `Classifier(field=…, variant=…)` and derive `declared_variant` on `packages/aoa-action-machine/src/aoa/action_machine/domain/spec_entity.py`
+- [x] T031 [US3] Make the container generic and typed in `packages/aoa-action-machine/src/aoa/action_machine/domain/specialization_containers.py`: `Specialization[T, D]` with `variant: D` and the pairing validator
+- [x] T032 [US3] Change the extension marker to `Classifier(field=…, variant=…)` and derive `declared_variant` on `packages/aoa-action-machine/src/aoa/action_machine/domain/spec_entity.py`
 - [ ] T033 [US3] Read the dictionary from the head field's second type argument in `packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_specialization_intent_resolver.py`, and rewrite the rules in `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py`: `_validate_axis_vocabulary` first, the classifier-field rules deleted
 - [ ] T034 [US3] Drop `classifier_field` from `packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_specialization_graph_edge.py` and from `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.py`, keeping `field_name`, `classifier_value` and the dictionary properties
 - [ ] T035 [US3] Rewrite the codemod in `specs/015-closed-dictionary-variants/evidence/migrate_axes_to_dictionaries.py` — generate one `<Head>KindEnumEntity` per axis from its `Literal`s, delete the head's classifier field, add the dictionary argument, drop the head's `Classifier`, rewrite the extension markers and every construction or payload that set the deleted field, editing `.py` files and `.ipynb` code cells only

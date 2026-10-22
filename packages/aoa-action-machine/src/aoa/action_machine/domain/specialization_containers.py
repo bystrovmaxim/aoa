@@ -90,12 +90,12 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast, get_args, get_origin
+from typing import Any, Literal, Self, cast, get_args, get_origin
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class Specialization[T](BaseModel):
+class Specialization[T, D](BaseModel):
     """
     AI-CORE-BEGIN
         ROLE: Head-side container: a link to one of the declared alternatives.
@@ -109,8 +109,29 @@ class Specialization[T](BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: Any = Field(description="Identifier of the related extension row")
-    variant: str = Field(description="The declared code that selects this alternative")
+    variant: D = Field(description="The declared value that selects this alternative")
     entity: T | None = Field(default=None, repr=False, description="The hydrated extension row")
+
+    def __class_getitem__(cls, params: Any) -> Any:
+        """Subscript with the alternatives alone (a code) or with the dictionary too (a value)."""
+        if not isinstance(params, tuple):
+            params = (params,)
+        if len(params) == 1:
+            params = (params[0], str)
+        return super().__class_getitem__(params)
+
+    @model_validator(mode="after")
+    def _check_pairing(self) -> Self:
+        """Refuse a value that disagrees with the class of the hydrated row."""
+        if self.entity is None:
+            return self
+        declared = getattr(type(self.entity), "declared_variant", None)
+        if declared is not None and self.variant is not declared:
+            raise ValueError(
+                f"variant {getattr(self.variant, 'code', self.variant)!r} does not match "
+                f"{type(self.entity).__name__}, which declares {getattr(declared, 'code', declared)!r}"
+            )
+        return self
 
 
 class Generalization[T](BaseModel):
@@ -141,9 +162,9 @@ class Classifier:
         AI-CORE-END
     """
 
-    __slots__ = ("_codes", "_field")
+    __slots__ = ("_codes", "_field", "_variant")
 
-    def __init__(self, field: str, codes: Any) -> None:
+    def __init__(self, field: str | None = None, codes: Any = None, *, variant: Any = None) -> None:
         """
         Args:
             field: Name of the classifier field whose value selects the alternative.
@@ -154,6 +175,19 @@ class Classifier:
             ValueError: ``field`` is empty or whitespace-only, the ``Literal`` has no members,
                 or a member is empty or not a string.
         """
+        if variant is not None:
+            from aoa.action_machine.domain.enum_entity import BaseEnumEntity
+
+            if not isinstance(variant, BaseEnumEntity):
+                raise TypeError(
+                    f"Classifier: variant must be a declared dictionary value, "
+                    f"got {type(variant).__name__}: {variant!r}."
+                )
+            object.__setattr__(self, "_field", field.strip() if isinstance(field, str) else "")
+            object.__setattr__(self, "_codes", None)
+            object.__setattr__(self, "_variant", variant)
+            return
+
         if not isinstance(field, str):
             raise TypeError(f"Classifier: field must be str, got {type(field).__name__}: {field!r}.")
 
@@ -178,6 +212,7 @@ class Classifier:
 
         object.__setattr__(self, "_field", field)
         object.__setattr__(self, "_codes", codes)
+        object.__setattr__(self, "_variant", None)
 
     @property
     def field(self) -> str:
@@ -186,13 +221,19 @@ class Classifier:
 
     @property
     def codes(self) -> Any:
-        """The ``Literal`` of declared codes, in declaration order."""
+        """The ``Literal`` of declared codes, in declaration order (``None`` for the value form)."""
         return object.__getattribute__(self, "_codes")
+
+    @property
+    def variant(self) -> Any:
+        """The declared dictionary value this marker names, or ``None`` for the ``Literal`` form."""
+        return object.__getattribute__(self, "_variant")
 
     @property
     def code_values(self) -> tuple[str, ...]:
         """The declared codes as plain strings, in declaration order."""
-        return cast(tuple[str, ...], get_args(object.__getattribute__(self, "_codes")))
+        codes = object.__getattribute__(self, "_codes")
+        return cast(tuple[str, ...], get_args(codes)) if codes is not None else ()
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("Classifier is frozen; assigning to attributes is not allowed.")
@@ -202,13 +243,20 @@ class Classifier:
 
     def __repr__(self) -> str:
         field = cast(str, object.__getattribute__(self, "_field"))
+        variant = object.__getattribute__(self, "_variant")
+        if variant is not None:
+            return f"Classifier(field={field!r}, variant={variant!r})"
         codes = object.__getattribute__(self, "_codes")
         return f"Classifier(field={field!r}, codes={codes!r})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Classifier):
             return NotImplemented
+        if self.variant is not None or other.variant is not None:
+            return self.variant is other.variant
         return self.field == other.field and self.codes == other.codes
 
     def __hash__(self) -> int:
+        if self.variant is not None:
+            return hash(("variant", id(self.variant)))
         return hash((self.field, str(self.codes)))
