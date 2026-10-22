@@ -70,7 +70,7 @@ from __future__ import annotations
 import types
 import typing
 from dataclasses import dataclass, field
-from typing import Any, get_args, get_origin
+from typing import Any, cast, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
@@ -211,10 +211,7 @@ def read_declared_code(target: type[Any], head_entity: type[Any], *, field_name:
         marker = _classifier_marker(tuple(info.metadata))
         if marker is None:
             continue
-        if marker.variant is not None:
-            return str(marker.variant.code)
-        if len(marker.code_values) == 1:
-            return marker.code_values[0]
+        return str(marker.variant.code)
     return ""
 
 
@@ -245,17 +242,7 @@ def _reverse_code(target: type[Any], head_entity: type[Any], field_name: str, ho
         marker = _classifier_marker(tuple(candidate.metadata))
         if marker is None:
             return ""
-        if marker.variant is not None:
-            return str(marker.variant.code)
-        declared = marker.code_values
-        if len(declared) != 1:
-            raise SpecializationDeclarationError(
-                host_name,
-                field_name,
-                f"alternative '{target.__name__}' must declare exactly one code on its reverse field, "
-                f"got {list(declared)}",
-            )
-        return declared[0]
+        return str(marker.variant.code)
     return ""
 
 
@@ -277,8 +264,6 @@ def _axis_from_field(
     container_args = _container_arguments(annotation)
     if container_args is None:
         return None
-    marker = _classifier_marker(metadata)
-
     host_name = host_cls.__name__
 
     # pylint: disable-next=import-outside-toplevel  # a module-level import would close a cycle
@@ -286,30 +271,21 @@ def _axis_from_field(
 
     second = container_args[1] if len(container_args) == 2 else None
     dictionary: type[Any] | None = None
-    if marker is not None and isinstance(second, type) and issubclass(second, BaseEnumEntity):
+    if isinstance(second, type) and issubclass(second, BaseEnumEntity):
+        dictionary = second
+    else:
         raise SpecializationDeclarationError(
             host_name,
             field_name,
-            "names both a Classifier marker and a closed dictionary; a head classified by a "
-            "dictionary has no classifier field, so remove the marker and the field",
+            "is a specialization container whose second type argument is not a closed "
+            "dictionary; write Specialization[Alternatives, Dictionary]",
         )
-    if marker is None:
-        if isinstance(second, type) and issubclass(second, BaseEnumEntity):
-            dictionary = second
-        else:
-            raise SpecializationDeclarationError(
-                host_name,
-                field_name,
-                "is a specialization container but declares neither a Classifier marker nor a "
-                "closed dictionary as its second type argument; write "
-                "Specialization[Alternatives, Dictionary]",
-            )
 
     alternatives: list[type[Any]] = []
     for argument in container_args[:1]:
         alternatives.extend(_union_members(argument))
 
-    codes = tuple(dictionary.codes()) if dictionary is not None else (marker.code_values if marker is not None else ())
+    codes = tuple(cast(Any, dictionary).codes())
     code_to_target: dict[str, type[Any]] = {}
     for target in alternatives:
         code = _reverse_code(target, host_cls, field_name, host_name)
@@ -319,7 +295,7 @@ def _axis_from_field(
     return EntitySpecializationIntentResolver(
         field_name=field_name,
         head_entity=host_cls,
-        classifier_field=marker.field if marker is not None else "",
+        classifier_field="",
         alternatives=tuple(alternatives),
         codes=tuple(codes),
         description=_field_description_hint(field_info),

@@ -47,7 +47,6 @@ from aoa.action_machine.domain import (
     Specialization,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -274,7 +273,9 @@ class _PlainCoreEntity(BaseCoreEntity):
 @entity(description="Bare container", domain=_SDomain)
 class _BareContainerAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
-    pressed: Annotated[Specialization[_FirstSpecEntity], Inverse(field_name="record")] = Rel(description="no marker")
+    pressed: Annotated[
+        Specialization[_FirstSpecEntity, _QuietHeadKindEnumEntity], Inverse(field_name="record")
+    ] = Rel(description="declared, but kept out of the graph")
 
 
 @exclude_graph_model
@@ -413,9 +414,10 @@ def test_a_marker_without_a_container_is_not_an_axis() -> None:
     assert gather_entity_specialization_intent_resolvers(_FirstSpecEntity) == []
 
 
-def test_a_container_without_a_marker_is_refused() -> None:
-    with pytest.raises(SpecializationDeclarationError, match="neither a Classifier marker nor a closed dictionary"):
-        gather_entity_specialization_intent_resolvers(_BareContainerAssocEntity)
+def test_a_container_without_a_dictionary_is_a_type_error() -> None:
+    """The one-argument form is gone, so the refusal is the type's, not the build's."""
+    with pytest.raises(TypeError, match="Too few arguments"):
+        Specialization[_FirstSpecEntity]
 
 
 def test_no_graph_edge_is_carried_onto_the_axis() -> None:

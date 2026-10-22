@@ -7,7 +7,7 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
@@ -48,14 +48,12 @@ class VinylRecordCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     reported_pressing: Annotated[
         Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Pressing reported by another catalogue")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 

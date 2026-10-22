@@ -167,6 +167,7 @@ def transform(text: str, axes: list[dict[str, Any]] | None = None) -> tuple[str,
 
     edits: list[tuple[int, int, str]] = []
     domain = _domain_of(tree)
+    inserted: set[str] = set()
 
     for axis in plan["axes"]:
         head = next(
@@ -220,9 +221,11 @@ def transform(text: str, axes: list[dict[str, Any]] | None = None) -> tuple[str,
         anchor = head.decorator_list[0] if head.decorator_list else head
         anchor_start = _span(text, anchor)[0] - anchor.col_offset
         excluded = any(_dotted(decorator) == "exclude_graph_model" for decorator in head.decorator_list)
-        edits.append(
-            (anchor_start, anchor_start, _dictionary_source(axis, domain, exclude=excluded) + "\n\n\n")
-        )
+        if str(axis["dictionary"]) not in inserted:
+            inserted.add(str(axis["dictionary"]))
+            edits.append(
+                (anchor_start, anchor_start, _dictionary_source(axis, domain, exclude=excluded) + "\n\n\n")
+            )
 
         edits.extend(_rewrite_markers(text, tree, axis))
         edits.extend(_drop_constructor_arguments(text, tree, axis))

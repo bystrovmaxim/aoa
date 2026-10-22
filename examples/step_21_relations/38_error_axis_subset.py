@@ -7,7 +7,7 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
@@ -38,6 +38,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
 
     FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
     REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    TEST = VinylRecordKindEnumEntity(code="test", display_name="Test")  # noqa: F821
 
 
 @entity(description="Vinyl record", domain=MusicDomain)
@@ -46,14 +47,12 @@ class VinylRecordCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     reported_pressing: Annotated[
         Specialization[FirstPressSpecEntity | RepressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Pressing reported by another catalogue")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity],
-        Classifier(field="media", codes=Literal["first", "repress", "test"]),
+        Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -92,7 +91,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["test"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

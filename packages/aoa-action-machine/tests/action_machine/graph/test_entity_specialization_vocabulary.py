@@ -11,7 +11,7 @@ and a head may not name both a dictionary and the earlier `Classifier` marker.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 from pydantic import Field
@@ -206,36 +206,6 @@ def test_a_copy_of_a_value_is_not_a_value() -> None:
         validate_entity_specializations([VocabularyCopyHeadCoreEntity, VocabularyCopySpecEntity])
 
 
-@exclude_graph_model
-@entity(description="Both head", domain=VocabularyDomain)
-class VocabularyBothHeadCoreEntity(BaseCoreEntity):
-    """Names a dictionary and the earlier marker at once."""
-
-    id: str = Field(description="Head id")
-    kind_code: Literal["first", "repress"] = Field(description="Classifier field")
-    kind: Annotated[
-        Specialization[VocabularyBothSpecEntity, VocabularyKindEnumEntity],
-        Classifier("kind_code", Literal["first", "repress"]),
-    ] = Rel(description="Kind")
-
-
-@exclude_graph_model
-@entity(description="Both extension", domain=VocabularyDomain)
-class VocabularyBothSpecEntity(BaseSpecEntity):
-    """Points back at the head that carries both forms."""
-
-    record: Annotated[
-        Generalization[VocabularyBothHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
-
-
-def test_a_head_cannot_name_both_forms() -> None:
-    """A head classified by a dictionary has no classifier field, so the marker is a contradiction."""
-    with pytest.raises(SpecializationDeclarationError, match="names both a Classifier marker and a closed dictionary"):
-        gather_entity_specialization_intent_resolvers(VocabularyBothHeadCoreEntity)
-
-
 for _fixture in (
     VocabularyKindEnumEntity,
     VocabularyGoodHeadCoreEntity,
@@ -247,7 +217,5 @@ for _fixture in (
     VocabularyWrongSpecEntity,
     VocabularyCopyHeadCoreEntity,
     VocabularyCopySpecEntity,
-    VocabularyBothHeadCoreEntity,
-    VocabularyBothSpecEntity,
 ):
     _fixture.model_rebuild()

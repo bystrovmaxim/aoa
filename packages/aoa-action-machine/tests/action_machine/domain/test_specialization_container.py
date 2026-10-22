@@ -85,7 +85,6 @@ ContainerVariant = Specialization[
     ContainerFirstPressSpecEntity | ContainerRepressSpecEntity,
     ContainerEditionKindEnumEntity,
 ]
-ContainerCodeVariant = Specialization[ContainerFirstPressSpecEntity | ContainerRepressSpecEntity]
 
 
 def test_the_container_holds_the_declared_value() -> None:
@@ -154,8 +153,7 @@ def test_an_absent_row_keeps_the_value_known() -> None:
     assert container.variant.code == "first"
 
 
-def test_the_one_argument_form_stays_a_code() -> None:
-    """Until the corpus migrates, a container subscripted with the alternatives alone holds a code."""
-    container = ContainerCodeVariant(id="p1", variant="first")
-
-    assert container.variant == "first"
+def test_a_container_must_name_its_dictionary() -> None:
+    """The one-argument form is gone: a container without a dictionary is a TypeError."""
+    with pytest.raises(TypeError, match="Too few arguments"):
+        Specialization[ContainerFirstPressSpecEntity | ContainerRepressSpecEntity]
