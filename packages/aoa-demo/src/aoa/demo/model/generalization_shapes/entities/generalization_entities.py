@@ -28,6 +28,8 @@ ARCHITECTURE / DATA FLOW
         └── audit_log: AssociationOne[AuditLogEntry]          → store domain
 """
 
+# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
+
 from __future__ import annotations
 
 from typing import Annotated

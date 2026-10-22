@@ -118,9 +118,11 @@ You can see how each declared intent became a node or an edge: the domain and th
 
 An **entity–relationship diagram**, abbreviated **ERD**, shows the declared data model. Each table-shaped box represents an entity class. Its header names the class, and the rows beneath it name fields and their types. AOA's entities are not database mappings, so a table-shaped box does not establish that a physical database table exists. The `PK` and `FK` decorations are diagram hints for identifiers and references, not proof of database constraints.
 
-The [record example](step-21-relations.md#generalization-and-specialization) separates an album title and a pressing code from the details of each kind of pressing. `VinylRecordCoreEntity` is the common class, or head. `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity` are the possible detail classes, or alternatives. The head's `pressing` field and its `media` classifier form one specialization axis: one declared choice among those alternatives.
+The [record example](step-21-relations.md#generalization-and-specialization) separates an album title from the details of each kind of pressing. `VinylRecordCoreEntity` is the common class, or head. `FirstPressSpecEntity`, `RepressSpecEntity`, and `TestPressSpecEntity` are the possible detail classes, or alternatives. The head's `pressing` field and the closed dictionary it names form one specialization axis: one declared choice among those alternatives.
 
-The ERD payload gives that field one row named `pressing`. The specialization group carries the label `pressing (by media)`, identifying both the reference field and its classifier. The type text lists `FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)`. Read each pair as a class display name followed by its declared code. The `Entity` suffix is omitted in this type text to reduce repetition; the class names in the table headers retain it.
+The ERD payload gives that field one row named `pressing`. The specialization group carries the label `pressing (by VinylRecordKindEnumEntity)`, identifying the reference field and the dictionary that classifies it. The type text lists `FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)`. Read each pair as a class display name followed by its declared code. The `Entity` suffix is omitted in this type text to reduce repetition; the class names in the table headers retain it.
+
+The card of a dictionary shows its values as rows under its fields — the code and the display name, with no key marker — and a field typed by a dictionary shows the dictionary's short name after its type in teal, prefixed with an arrow. Nothing in the rendering knows a domain's vocabulary: the payload carries `entity_kind`, `values` and `reference_qualname`, and a model that declares no dictionary simply has none of them.
 
 There is one row because `pressing` is one field. Listing three alternatives does not add three simultaneous references to every record. It tells us which kinds of object this field can refer to. The diagram describes the declaration; it does not show which alternative a particular stored record currently has.
 
@@ -209,11 +211,20 @@ A model may declare `Specialization[FirstPressSpecEntity]` with the single code 
 ```python
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseSpecEntity, Classifier, Generalization, Inverse, Rel, Specialization
+from aoa.action_machine.domain import (
+    BaseCoreEntity,
+    BaseEnumEntity,
+    BaseSpecEntity,
+    Classifier,
+    Generalization,
+    Inverse,
+    Rel,
+    Specialization,
+)
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -226,16 +237,21 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
+@entity(description="Pressing kind", domain=MusicDomain)
+class VinylRecordKindEnumEntity(BaseEnumEntity):
+    """Declare the values the axis borrows."""
+
+    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")
+
+
 @entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
     id: str = Field(description="Record identifier")
     title: str = Field(description="Album title")
-    media: str = Field(description="Pressing code")
     pressing: Annotated[
-        Specialization[FirstPressSpecEntity],
-        Classifier(field="media", codes=Literal["first"]),
+        Specialization[FirstPressSpecEntity, VinylRecordKindEnumEntity],
         Inverse(field_name="record"),
     ] = Rel(description="Details of this pressing")
 
@@ -248,7 +264,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier("record", Literal["first"]),
+        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

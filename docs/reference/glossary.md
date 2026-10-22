@@ -152,11 +152,17 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Alternative / variant / extension** — one of the detail classes listed by a specialization field. `FirstPressSpecEntity` is an alternative because it holds information specific to a first pressing. It declares its own code and a reverse link to the head; it need not be a Python subclass of that head.
 
-**Classifier field** — the head's ordinary data field whose value identifies the kind of details, such as `media="first"`. On the head, `Classifier(field="media", codes=Literal["first", "repress", "test"])` names this field and declares the codes. On an alternative's reverse link, a `Classifier` marker declares that alternative's single code.
+**Closed dictionary** — an entity of kind `enum` that declares its values in its own class body: `VinylRecordKindEnumEntity` with `EARLY = VinylRecordKindEnumEntity(code="early", …)`. The set is closed — a subclass declares its own values instead of inheriting them — and a stored value is its `code`. A dictionary is not a state kind: it has no lifecycle.
 
-**Variant code** — an application-chosen string such as `first` that identifies an alternative in the declaration. It is not the class name. The head lists the codes and each alternative declares its own; the build compares those declarations. That comparison does not validate every code supplied in instance data.
+**Declared value** — one member of a dictionary's body, carrying `code`, `display_name` and whatever extra fields the dictionary declares. A reference field holds the declared value itself, not a copy and not a code; the wire form is the reference object `{code, display_name, properties}`.
 
-**Specialization axis** — one specialization field together with its classifier and alternatives. The name distinguishes multiple choices on one head, such as `pressing` and `reported_pressing`. The current validator restricts which multiple-axis arrangements are accepted.
+**Reference field** — a field whose type is a closed dictionary, such as `currency_iso: CurrencyEnumEntity`. It accepts the declared value or its reference object, refuses a bare code, an undeclared code and a copy, and names the dictionary in the graph as `reference_qualname`.
+
+**Classifier marker** — the `Classifier(field="record", variant=VinylRecordKindEnumEntity.EARLY)` on an alternative's reverse link. It names the field that pairs the class with its head and the dictionary value the class is. A head carries no marker: it names the dictionary as the second type argument of its container.
+
+**Variant code** — the `code` of a declared value, such as `first`. It is not the class name. The dictionary declares the codes; each alternative names one of its values; the build compares both sides, so a value with no alternative, an alternative with no value and a foreign value are all refused.
+
+**Specialization axis** — one specialization field together with its dictionary and alternatives, declared as `Specialization[Alternatives, Dictionary]`. The name distinguishes multiple choices on one head, such as `pressing` and `reported_pressing`; both may borrow the same dictionary, and a head may carry several axes.
 
 **Generalization** — for entity specialization, the reverse direction from specific details to the common entity. `Generalization[VinylRecordCoreEntity]` holds a reference back to the record. The associated graph edge uses the `Generalization` relationship; this does not make the two Python classes inherit from one another.
 

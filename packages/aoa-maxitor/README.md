@@ -82,7 +82,15 @@ On the diagram you see:
 
 The ERD is built from classes inheriting an entity kind base and their relation fields. Each exported Entity node carries `properties.entity_kind`; Maxitor preserves it in the `entity` table. This distinguishes independent objects, technical associations, owned parts, specializations and reference values. State types are excluded from ordinary Entity nodes and belong to lifecycle diagrams instead.
 
-Kind metadata does not yet change diagram rendering or automatically hide technical associations. Rebuild graph exports created before the required property was introduced. The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) demonstrates the value arriving unchanged in Maxitor.
+Kind metadata does not yet hide technical associations on its own. Rebuild graph exports created before the required property was introduced. The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) demonstrates the value arriving unchanged in Maxitor.
+
+### A closed dictionary, and a field that references one
+
+A dictionary is an Entity node whose `entity_kind` is `enum`; it carries `properties.values`, the values it declares, each one its reference object `{code, display_name, properties}`. The ERD card draws those values as rows under the fields, with no key marker, so a reader sees what the dictionary can hold without opening it.
+
+A field typed by a dictionary carries `reference_qualname`, the dictionary's interchange id. The card shows the dictionary's short name after the type, prefixed with an arrow. The axis container's label names the dictionary that classifies it.
+
+The payload's own schema is strict, so a value row carries `code` and `display_name` only: a value's extra fields travel in the graph but not in that payload. An entity that declares no dictionary has no values and no reference, and nothing in the rendering knows any domain's vocabulary.
 
 ---
 
