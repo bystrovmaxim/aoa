@@ -90,9 +90,8 @@ def _specialization_properties(
     index: int,
 ) -> dict[str, Any]:
     """Return the property set shared by every edge of one axis."""
-    return {
+    properties: dict[str, Any] = {
         "field_name": axis.field_name,
-        "classifier_field": axis.classifier_field,
         "classifier_value": code,
         "alternative_index": index,
         "alternatives": _alternative_identifiers(axis),
@@ -103,6 +102,12 @@ def _specialization_properties(
         "has_inverse": bool(axis.inverse_field),
         "deprecated": axis.deprecated,
     }
+    if axis.classifier_field:
+        properties["classifier_field"] = axis.classifier_field
+    if axis.dictionary is not None:
+        properties["dictionary_qualname"] = TypeIntrospection.full_qualname(axis.dictionary)
+        properties["dictionary_label"] = axis.dictionary.__name__
+    return properties
 
 
 class EntitySpecializationGraphEdge(AssociationGraphEdge):
@@ -150,7 +155,6 @@ class EntitySpecializationGraphEdge(AssociationGraphEdge):
             "is_dag": self.is_dag,
             "properties": {
                 "field_name": str(self.properties["field_name"]),
-                "classifier_field": str(self.properties["classifier_field"]),
                 "classifier_value": str(self.properties["classifier_value"]),
                 "alternative_index": int(self.properties["alternative_index"]),
                 "alternatives": [str(item) for item in self.properties["alternatives"]],
@@ -160,6 +164,11 @@ class EntitySpecializationGraphEdge(AssociationGraphEdge):
                 "description": str(self.properties["description"]),
                 "has_inverse": bool(self.properties["has_inverse"]),
                 "deprecated": bool(self.properties["deprecated"]),
+                **{
+                    key: str(self.properties[key])
+                    for key in ("classifier_field", "dictionary_qualname", "dictionary_label")
+                    if key in self.properties
+                },
             },
         }
 

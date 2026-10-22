@@ -99,6 +99,7 @@ class EntitySpecializationIntentResolver:
     code_to_target: dict[str, type[Any]] = field(default_factory=dict)
     deprecated: bool = False
     omit_graph_edge: bool = False
+    dictionary: type[Any] | None = None
 
 
 def _container_arguments_of(annotation: Any, container: type[Any]) -> tuple[Any, ...] | None:
@@ -208,7 +209,11 @@ def read_declared_code(target: type[Any], head_entity: type[Any], *, field_name:
         if field_name and name != field_name:
             continue
         marker = _classifier_marker(tuple(info.metadata))
-        if marker is not None and len(marker.code_values) == 1:
+        if marker is None:
+            continue
+        if marker.variant is not None:
+            return str(marker.variant.code)
+        if len(marker.code_values) == 1:
             return marker.code_values[0]
     return ""
 
@@ -240,6 +245,8 @@ def _reverse_code(target: type[Any], head_entity: type[Any], field_name: str, ho
         marker = _classifier_marker(tuple(candidate.metadata))
         if marker is None:
             return ""
+        if marker.variant is not None:
+            return str(marker.variant.code)
         declared = marker.code_values
         if len(declared) != 1:
             raise SpecializationDeclarationError(
@@ -274,19 +281,35 @@ def _axis_from_field(
 
     host_name = host_cls.__name__
 
-    if marker is None:
+    # pylint: disable-next=import-outside-toplevel  # a module-level import would close a cycle
+    from aoa.action_machine.domain.enum_entity import BaseEnumEntity
+
+    second = container_args[1] if len(container_args) == 2 else None
+    dictionary: type[Any] | None = None
+    if marker is not None and isinstance(second, type) and issubclass(second, BaseEnumEntity):
         raise SpecializationDeclarationError(
             host_name,
             field_name,
-            "is a specialization container but declares no Classifier marker; "
-            "name the choosing field and the codes beside it",
+            "names both a Classifier marker and a closed dictionary; a head classified by a "
+            "dictionary has no classifier field, so remove the marker and the field",
         )
+    if marker is None:
+        if isinstance(second, type) and issubclass(second, BaseEnumEntity):
+            dictionary = second
+        else:
+            raise SpecializationDeclarationError(
+                host_name,
+                field_name,
+                "is a specialization container but declares neither a Classifier marker nor a "
+                "closed dictionary as its second type argument; write "
+                "Specialization[Alternatives, Dictionary]",
+            )
 
     alternatives: list[type[Any]] = []
     for argument in container_args[:1]:
         alternatives.extend(_union_members(argument))
 
-    codes = marker.code_values
+    codes = tuple(dictionary.codes()) if dictionary is not None else (marker.code_values if marker is not None else ())
     code_to_target: dict[str, type[Any]] = {}
     for target in alternatives:
         code = _reverse_code(target, host_cls, field_name, host_name)
@@ -296,7 +319,7 @@ def _axis_from_field(
     return EntitySpecializationIntentResolver(
         field_name=field_name,
         head_entity=host_cls,
-        classifier_field=marker.field,
+        classifier_field=marker.field if marker is not None else "",
         alternatives=tuple(alternatives),
         codes=tuple(codes),
         description=_field_description_hint(field_info),
@@ -304,6 +327,7 @@ def _axis_from_field(
         code_to_target=code_to_target,
         deprecated=bool(getattr(field_info, "deprecated", False)),
         omit_graph_edge=any(isinstance(item, NoGraphEdge) for item in metadata),
+        dictionary=dictionary,
     )
 
 

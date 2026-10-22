@@ -376,7 +376,7 @@ def test_a_marker_without_a_container_is_not_an_axis() -> None:
 
 
 def test_a_container_without_a_marker_is_refused() -> None:
-    with pytest.raises(SpecializationDeclarationError, match="declares no Classifier marker"):
+    with pytest.raises(SpecializationDeclarationError, match="neither a Classifier marker nor a closed dictionary"):
         gather_entity_specialization_intent_resolvers(_BareContainerAssocEntity)
 
 

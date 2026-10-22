@@ -1188,7 +1188,6 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               "additionalProperties": false,
               "required": [
                 "field_name",
-                "classifier_field",
                 "classifier_value",
                 "alternative_index",
                 "alternatives",
@@ -1208,7 +1207,17 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 "classifier_field": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "The field whose value selects among the alternatives."
+                  "description": "The field whose value selects among the alternatives; absent on an axis classified by a dictionary, because the head has no classifier field."
+                },
+                "dictionary_qualname": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Interchange qualname of the closed dictionary the axis borrows its codes from."
+                },
+                "dictionary_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The dictionary's label, so a consumer can caption the axis without resolving the qualname."
                 },
                 "classifier_value": {
                   "type": "string",
