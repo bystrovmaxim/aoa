@@ -153,7 +153,7 @@ A model author who writes a union of two structural entities, a heterogeneous co
 - **FR-003**: A collection of dictionary values — `tuple[D, ...]`, `list[D]`, `Sequence[D]`, `set[D]`, `frozenset[D]`, `dict[K, D]` — MUST be refused with a message naming the owner, the field, the resolved dictionary and the two accepted forms, and MUST NOT offer a relation container.
 - **FR-004**: A relation container of the existing eight (`AssociationOne`/`AssociationMany`, `CompositeOne`/`CompositeMany`, `AggregateOne`/`AggregateMany`, `Specialization`, `Generalization`) whose target is a dictionary type MUST be refused with a message naming the field and stating that a dictionary value is a shared reference, not an association target.
 - **FR-005**: `NoRelation("reason")` on a dictionary MUST stay refused, and the message MUST say that the bare dictionary type already declares the reference, rather than implying the marker belongs to another kind.
-- **FR-006**: A field typed by a dictionary with no declared values MUST be refused at the declaration boundary in every form — accepted or refused — with a message naming the field and the dictionary. The graph edge MUST NOT keep its own copy of that rule.
+- **FR-006**: A field typed by a dictionary with no declared values MUST be refused at the declaration boundary in every form — accepted or refused — with a message naming the field and the dictionary. The graph edge MUST NOT keep its own copy of that rule. When a dictionary is both empty and outside the graph, the empty-catalogue refusal is the one reported, because it names the cause the author can fix.
 - **FR-007**: The judgement MUST apply after resolution, to inherited fields, forward references and `Annotated` forms, and MUST NOT judge a class outside the graph, exactly as #249 decided.
 - **FR-008**: The rule MUST read the resolved type only. No annotation string may be evaluated, and no relation or reference may be inferred from a field's name.
 - **FR-009**: The dictionary kind MUST be distinguishable from Core, Assoc, Detail, Spec and State in the classification the rule uses, so a future kind is added in one place and a dictionary is never silently treated as one of the existing kinds.
@@ -171,7 +171,7 @@ A model author who writes a union of two structural entities, a heterogeneous co
 **The ERD shows the reference**
 
 - **FR-017**: The ERD payload MUST expose the reference so the card can draw the link between the field and the dictionary card, and MUST keep `reference_qualname` on the field row for existing consumers.
-- **FR-018**: The rendered card MUST keep the field row and MUST NOT print the same reference twice; the dictionary card MUST show one link from the field to the dictionary.
+- **FR-018**: The rendered card MUST keep the field row, which prints the dictionary name once as the reference, and the reference edge MUST be labelled with the field name; the same text MUST NOT be printed twice. The dictionary card MUST show exactly one link from the field to the dictionary.
 - **FR-019**: The dictionary card's #249 behaviour MUST be unchanged — no `code` and no `display_name` field rows for the enum kind, no code cell in a value row, and the code available as a tooltip.
 - **FR-020**: A non-dictionary entity's rows MUST be unchanged, and a legacy graph that carries the reference only as `reference_qualname` MUST render without a rebuild.
 - **FR-021**: A graph slice that requests neighbours MUST include a referenced dictionary from another domain; without neighbours, the reference MUST remain unresolved rather than point at a card the slice did not include.
@@ -187,10 +187,10 @@ A model author who writes a union of two structural entities, a heterogeneous co
 **Verification and delivery**
 
 - **FR-027**: Each corrected defect and each new refusal MUST be reintroduced in isolation, its targeted test confirmed to fail while an unrelated control test in the same run passes, and the implementation restored.
-- **FR-028**: The reporting model's reproducer MUST become a checked regression: `region` accepted with an edge, `regions` refused with the collection message, and no `unjudged` dictionary field anywhere.
+- **FR-028**: The reproducer's shapes MUST become a checked regression in the repository's own suite — the same model the quickstart uses: `region` accepted with a reference edge, `regions` refused with the collection message, and no dictionary-typed field passing the rule without a judgement.
 - **FR-029**: The repository check run MUST be taken to zero, and the two accepted remarks — the build's chunk-size advisory and the pending-deprecation warning — MUST NOT be acted on.
 - **FR-030**: English documentation MUST be reconciled in the same change — at least `docs/how-to/explicit-entity-fields.md`, whose boundaries paragraph says "Dictionary references ... retain their own forms", and `docs/reference/intents-and-invariants.md`, whose dictionary graph row says "references carry `reference_qualname`; values are not separate nodes" — together with the dictionary tutorial, the ERD example and each affected package's changelog article.
-- **FR-031**: The corpus MUST be re-measured at the start of the phase and recorded in the plan: the container's 49 non-test dictionary fields (26 in `packages/aoa-demo`, 23 in `examples/`) plus 11 in tests, and the reporting model's 9. Under D-1 no corpus declaration changes; under the alternative in D-1 all of them do.
+- **FR-031**: The corpus MUST be re-measured at the start of the phase and recorded in the plan: the repository's 49 non-test dictionary fields (26 in `packages/aoa-demo`, 23 in `examples/`) plus 11 in tests, and the reporting model's 9. Under D-1 no corpus declaration changes; under the alternative in D-1 all of them do.
 - **FR-032**: The change MUST NOT add a new default rule, requiredness rule or description rule for dictionary references; the reference is judged on its type, and the #249 relation-field contract does not extend to it.
 
 ### Key Entities
@@ -207,7 +207,7 @@ A model author who writes a union of two structural entities, a heterogeneous co
 
 - **SC-001**: 100 % of the forms in the field-form table are judged — accepted or refused — and 0 dictionary-typed fields pass the rule without a judgement. Measured by a table-driven test with one case per row.
 - **SC-002**: 0 of the 49 non-test dictionary fields in `packages/aoa-demo` and `examples/` produces a field row without a reference edge, and 0 test fields do either. The counts are re-measured at the start of the phase and recorded.
-- **SC-003**: The reporting model's two collection fields (`OfferCoreEntity.regions`, `ShowcaseCoreEntity.industries`) are refused with the collection message on the first build after the change, and its seven scalar and optional fields each carry a reference edge.
+- **SC-003**: The repository's checked regression covers one accepted reference, one refused collection, one refused container, one refused marker and one refused empty catalogue, and each answer matches `quickstart.md`; the reporting model's 9 fields are the acceptance its owner runs against this build and are not claimed by the closing check run.
 - **SC-004**: A graph document containing a dictionary reference validates against the graph JSON schema, and the edge count for the reproducer is the count the model declares.
 - **SC-005**: The ERD payload and the rendered SVG show the reference once per field, the dictionary card keeps the #249 behaviour, and the payload, the graph document and the rendered text are checked separately.
 - **SC-006**: 100 % of the three diagnostic cases (union, heterogeneous collection, mapping) name the actual shape, and none of them becomes accepted, confirmed by the same tests that refused them before.

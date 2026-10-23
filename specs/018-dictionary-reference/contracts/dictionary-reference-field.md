@@ -34,6 +34,10 @@ settlement_currency: CurrencyEnumEntity | None = Field(default=None, description
 
 Each refusal names the owner, the field and the resolved type, and shows the form that fits. Every message is one paragraph: what is wrong with this field, and what to write instead.
 
+A dictionary that is both empty and outside the graph is reported as empty first: `@entity`
+already refuses an empty dictionary at class creation, so the catalogue is the cause the author
+can fix, and the graph-model refusal is the second answer, not the first.
+
 ```text
 OfferCoreEntity.regions: a collection of dictionary values has no declared form
 (tuple[RegionEnumEntity, ...]). A dictionary reference is one value: write

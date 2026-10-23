@@ -72,7 +72,7 @@ specs/018-dictionary-reference/
 │   ├── dictionary-reference-field.md  # the form table and the refusals
 │   ├── reference-edge.md              # the graph edge, the row, the payload relation
 │   └── refusal-diagnostics.md         # the three corrected messages
-└── tasks.md                         # Phase 2 output (/speckit-tasks — not created here)
+└── tasks.md                         # Phase 2 output: 38 tasks in commit order
 ```
 
 ### Source Code (repository root)
@@ -98,6 +98,7 @@ packages/aoa-maxitor/client/src/lib/buildDotSource.ts  # unchanged; the relation
 packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts  # asserts the arrow and label
 
 packages/*/tests/                            # the form table, the edge, the payload, the messages
+packages/aoa-demo/tests/test_demo_dictionary_graph.py  # the demo graph builds and its slice carries the reference
 examples/step_20_dictionaries/               # the new cases as scripts and notebooks
 docs/                                        # the four pages the old behaviour states
 ```
@@ -112,19 +113,19 @@ Each phase is one commit on instruction, leaves the tree green, and carries its 
 
 In `entity_field_validator.py`, turn `_STRUCTURAL_BASES` into `_ENTITY_BASES` with the Enum entry, and make `_kind_of` return `"Enum"`. In `_check_field`, accept `D` and `D | None` as the declared reference; refuse a collection of `D` with a message naming the two accepted forms; refuse a relation container whose target is a dictionary; refuse `NoRelation` on a dictionary with the corrected text; refuse a dictionary whose catalogue is empty in every form; refuse a dictionary that is not a graph model (`entity_info_is_set` and not `excluded_from_graph_model`). Move the empty-catalogue refusal out of `EntityFieldGraphEdge._refuse_empty_dictionary` so the rule lives in one place, and keep the graph-edge test's message as the validator's.
 
-Exit: one test per row of the form table passes; the 60 corpus fields build unchanged; the two reporting-model collections are refused with the collection message; the empty-catalogue test now fails at the validator.
+Exit: one test per row of the form table passes; the 60 corpus fields build unchanged; a collection of dictionary values is refused with the collection message; the empty-catalogue refusal now comes from the validator.
 
 ### Phase 2 — The graph carries the reference
 
 Add `EntityReferenceGraphEdge` (`AssociationGraphEdge`, `edge_name` `entity_reference`, properties `field_name` and `cardinality`), build `references` in `EntityGraphNode.__init__` from the accepted dictionary fields, return them from `get_all_edges()` and update the class contract. Declare the edge in `graph_json_schema.py` (`$defs/entity_reference` plus `link.oneOf`). Move `validate_entity_fields()` to the start of `NodeGraphCoordinator.build()`, so a refused target is named before the wiring pass can report a dangling edge. Register `entity_reference` in the Maxitor resource in the same commit — a `CREATE TABLE entity_reference_edges`, its fill function, the union view entry and `known_edges` — because the resource raises `KeyError` on an unknown edge type and the demo graph already carries dictionary references.
 
-Exit: the reproducer graph has one `entity_reference` edge to the dictionary; the graph document validates against `GRAPH_JSON_SCHEMA`; the visible corpus graph still builds through `DuckDBGraphResource`; a reference to an excluded dictionary is refused by the validator, not by referential integrity.
+Exit: the reproducer graph has one `entity_reference` edge to the dictionary; the graph document validates against `GRAPH_JSON_SCHEMA`; the demo graph still builds through `DuckDBGraphResource`; a reference to an excluded dictionary is refused by the validator, not by referential integrity.
 
 ### Phase 3 — The ERD shows the reference
 
 Append the reference rows to `relation_sql` in `list_entities_action.py` (`relationship_kind` `reference`, label the field name, cardinals `one` / `zero_many`) and extend `neighbor_clause` to union `entity_reference_edges`, so a dictionary in another domain joins the slice when neighbours are requested. No renderer change: the relation loop already draws any non-specialization kind with its label. Add the payload assertion to `test_list_entities_payload_dictionary.py`, extend `test_demo_dictionary_graph.py`, and extend the client check to assert the arrow and the label beside the dictionary card.
 
-Exit: the payload carries one reference relation per accepted field; the SVG has the arrow and the field label; the dictionary card keeps the #249 rows; a cross-domain dictionary is present with neighbours and absent without them.
+Exit: the payload carries one reference relation per accepted field; the SVG has the arrow and the field label; the dictionary card keeps the #249 rows; a cross-domain dictionary is present with neighbours and absent without them; a legacy graph carrying only `reference_qualname` still renders.
 
 ### Phase 4 — A refusal names the shape that is wrong
 
