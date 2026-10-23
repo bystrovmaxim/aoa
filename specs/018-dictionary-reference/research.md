@@ -19,7 +19,11 @@ Every decision below was taken against the merged baseline `d1f28968` and confir
 | Heterogeneous collection | `heterogeneous tuple` | refused as "a collection", naming only the first entity |
 | Mapping | `mapping` | refused as "a collection", offering `AssociationMany` |
 
-### Reproduced verbatim at `d1f28968`
+### Reproduced at `d1f28968`
+
+The block below is the probe's output abridged at the long refusal texts, which are elided with
+`...`; the exhaustive run is the probe itself, and T001 pastes its full output here before the
+work starts.
 
 ```text
 == the rule sees no dictionary ==

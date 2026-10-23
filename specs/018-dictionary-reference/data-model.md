@@ -18,6 +18,7 @@ One annotated line in a model body, judged by its resolved type at the declarati
 | Refused | `Annotated[D, NoRelation("…")]` |
 | Refused | `D` whose catalogue is empty |
 | Refused | `D` that is not a graph model (`@entity`, not `@exclude_graph_model`) |
+| Precedence | an empty catalogue is reported before the not-a-graph-model refusal, because `@entity` already refuses an empty dictionary and the author can only fix the catalogue |
 | Where it is judged | the declaration boundary, before the graph's referential-integrity pass |
 | Forward reference | judged after resolution |
 | Inherited field | judged on the class that reports it in `model_fields` |
