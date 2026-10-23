@@ -235,7 +235,7 @@ ValueError: LabelsEnumEntity: the property 'labels' of member 'ITEM' holds str (
 
 ## Migrate completed values
 
-Previously, an after-validator could publish a value outside its literal choices or null for a union that excluded it. Those class declarations now raise `ValueError` before the member is published. Integer properties also refuse booleans, even though Python treats `bool` as a subclass of `int`. Fix the validator to return the declared type and choice; change an annotation only if the additional value belongs to the intended vocabulary.
+Previously, an after-validator could publish a value outside its literal choices or null for a union that excluded it. Those class declarations now raise `ValueError` before the member is published. Integer properties also refuse booleans, even though Python treats `bool` as a subclass of `int`. A leaf property compares the exact declared type, so an `int` result is refused for a `float` property and a `datetime` result is refused for a `date` property. Input is still coerced before the check: a `float` property declared with `1` holds `1.0`. Fix the validator to return the declared type and choice; change an annotation only if the additional value belongs to the intended vocabulary.
 
 | Property annotation | Completed value | Result |
 | --- | --- | --- |
@@ -247,6 +247,8 @@ Previously, an after-validator could publish a value outside its literal choices
 | `str | int | None` | `None` | Accepted |
 | `Literal["a", None]` | `None` | Accepted |
 | `int` | `True` | Refused |
+| `float` | `1` (an `int`) | Refused; return `1.0` |
+| `date` | `datetime(...)` | Refused; return a `date` |
 | `None` alone | Any declaration | Refused at annotation checking |
 
 A nullable annotation permits null; it does not by itself make a containing model field omittable. Tuple checks apply the item annotation and name the failing index in the diagnostic. The cases below show both refusals and accepted neighbors.
@@ -592,19 +594,20 @@ ValueError: ChoiceEnumEntity: the property 'choice[1]' of member 'ITEM' holds No
 Completed value: ('a', None)
 ```
 
-## Property declarations distinguish nullability and integer types
+## Property declarations distinguish nullability and exact leaf types
 
-Choose an annotation that describes a useful property. A property consisting only of null is refused; a literal can include null alongside another choice. Integer properties keep integers rather than accepting boolean results.
+Choose an annotation that describes a useful property. A property consisting only of null is refused; a literal can include null alongside another choice. Integer properties keep integers rather than accepting boolean results, and a leaf keeps its exact type: an `int` is not a `float`, and a `datetime` is not a `date`.
 
 [Script](../../examples/step_20_dictionaries/47_property_declarations.py) · [Notebook](../../examples/step_20_dictionaries/47_property_declarations.ipynb)
 
 Run the complete script in a fresh process, or run the notebook cases in order.
 
 ```python
-"""Property declarations distinguish nullability and integer types.
+"""Property declarations distinguish nullability and exact leaf types.
 Run: .venv/bin/python examples/step_20_dictionaries/47_property_declarations.py
 """
 
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import field_validator
@@ -676,11 +679,68 @@ def reject_boolean_integer() -> None:
         raise AssertionError("The invalid dictionary declaration was accepted")
 
 
+def reject_subclass_results() -> None:
+    """Refuse a subclass result for a float and for a date property."""
+    try:
+
+        class RatioEnumEntity(BaseEnumEntity):
+            """Declare the property under examination."""
+
+            ratio: float
+            ITEM = value(code="item", display_name="Item", ratio=1.5)
+
+            @field_validator("ratio", mode="after")
+            @classmethod
+            def replace(cls, ratio: float) -> int:
+                """Return the completed value under examination."""
+                return 1
+    except ValueError as error:
+        print(type(error).__name__ + ": " + str(error))
+        assert "holds int (expected float)" in str(error)
+    else:
+        raise AssertionError("An integer result was published for a float property")
+
+    try:
+
+        class DayEnumEntity(BaseEnumEntity):
+            """Declare the property under examination."""
+
+            day: date
+            ITEM = value(code="item", display_name="Item", day=date(2020, 1, 2))
+
+            @field_validator("day", mode="after")
+            @classmethod
+            def replace(cls, day: date) -> datetime:
+                """Return the completed value under examination."""
+                return datetime(2020, 1, 2, 3, 4)
+    except ValueError as error:
+        print(type(error).__name__ + ": " + str(error))
+        assert "holds datetime (expected date)" in str(error)
+    else:
+        raise AssertionError("A datetime result was published for a date property")
+
+
+def accept_declared_leaf_types() -> None:
+    """Accept the declared type, and the coercion Pydantic applies before the check."""
+
+    class RatioEnumEntity(BaseEnumEntity):
+        """Declare the property under examination with an integer input."""
+
+        ratio: float
+        ITEM = value(code="item", display_name="Item", ratio=1)
+
+    print("Completed value:", repr(RatioEnumEntity.ITEM.ratio))
+    assert RatioEnumEntity.ITEM.ratio == 1.0
+    assert type(RatioEnumEntity.ITEM.ratio) is float
+
+
 def main() -> None:
     """Run the refusals and accepted neighbors in this scenario."""
     reject_null_only_property()
     accept_nullable_literal()
     reject_boolean_integer()
+    reject_subclass_results()
+    accept_declared_leaf_types()
 
 
 if __name__ == "__main__":
@@ -693,6 +753,9 @@ Actual output:
 ValueError: ChoiceEnumEntity: field 'choice' is NoneType, which a dictionary value cannot carry; supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.
 Completed value: None
 ValueError: ChoiceEnumEntity: the property 'choice' of member 'ITEM' holds bool (expected int); supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.
+ValueError: RatioEnumEntity: the property 'ratio' of member 'ITEM' holds int (expected float); supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.
+ValueError: DayEnumEntity: the property 'day' of member 'ITEM' holds datetime (expected date); supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.
+Completed value: 1.0
 ```
 
 ## Export and migration
@@ -703,6 +766,6 @@ Every property emitted by serialization is required in the nested output object,
 
 ## Checked boundaries
 
-Literal choices match by both type and value. A union accepts null only if one of its members is `None`; a literal may also list `None` explicitly. An annotation consisting only of `None` is not a supported dictionary property. These checks run while the dictionary class is created and also reach tuple items. The dictionary rule does not restrict lifecycle-status property types.
+Literal choices match by both type and value. A union accepts null only if one of its members is `None`; a literal may also list `None` explicitly. An annotation consisting only of `None` is not a supported dictionary property. A leaf compares the exact type, so a subclass is refused: `True` is not an `int`, `1` is not a `float`, and a `datetime` is not a `date`. These checks run while the dictionary class is created and also reach tuple items. The dictionary rule does not restrict lifecycle-status property types.
 
 Input and output schemas retain their existing responsibilities. The completed-value fix does not change the reference payload. See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [invariant reference](../reference/intents-and-invariants.md), and [explicit entity fields](explicit-entity-fields.md).

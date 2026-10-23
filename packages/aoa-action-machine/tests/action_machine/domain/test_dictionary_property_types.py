@@ -463,3 +463,130 @@ def test_a_property_annotated_only_none_is_refused_at_declaration() -> None:
     """Null alone is not a property type; it is supported only inside a union."""
     with pytest.raises(ValueError, match=r"ProbeEnumEntity: field 'note' is NoneType"):
         _build(**{"__annotations__": {"note": None}, "V": value(code="v", display_name="V", note=None)})
+
+
+def test_an_int_result_is_refused_for_a_float_property() -> None:
+    """A leaf compares the exact type: an integer is not a float, although JSON allows 1 as a number."""
+    with pytest.raises(
+        ValueError, match=r"FloatEnumEntity: the property 'ratio' of member 'ITEM' holds int \(expected float\)"
+    ):
+
+        class FloatEnumEntity(BaseEnumEntity):
+            """Declare a float property."""
+
+            ratio: float
+
+            ITEM = value(code="item", display_name="Item", ratio=1.5)
+
+            @field_validator("ratio", mode="after")
+            @classmethod
+            def replace(cls, ratio: float) -> int:
+                """Return an integer although the annotation declares a float."""
+                return 1
+
+
+def test_a_float_result_publishes_for_a_float_property() -> None:
+    """The neighbour of the exact-type refusal: the declared type is accepted."""
+
+    class FloatEnumEntity(BaseEnumEntity):
+        """Declare a float property."""
+
+        ratio: float
+
+        ITEM = value(code="item", display_name="Item", ratio=1.5)
+
+        @field_validator("ratio", mode="after")
+        @classmethod
+        def replace(cls, ratio: float) -> float:
+            """Return a float of the declared type."""
+            return 2.5
+
+    assert FloatEnumEntity.ITEM.ratio == 2.5
+    assert type(FloatEnumEntity.ITEM.ratio) is float
+
+
+def test_an_integer_input_is_coerced_before_the_completed_check() -> None:
+    """The declaration path keeps Pydantic's coercion: a float property declared with 1 holds 1.0."""
+
+    class FloatEnumEntity(BaseEnumEntity):
+        """Declare a float property with an integer input."""
+
+        ratio: float
+
+        ITEM = value(code="item", display_name="Item", ratio=1)
+
+    assert FloatEnumEntity.ITEM.ratio == 1.0
+    assert type(FloatEnumEntity.ITEM.ratio) is float
+
+
+def test_a_datetime_result_is_refused_for_a_date_property() -> None:
+    """A datetime is a subclass of date, but the schema describes a date, not a date-time."""
+    with pytest.raises(
+        ValueError, match=r"DateEnumEntity: the property 'day' of member 'ITEM' holds datetime \(expected date\)"
+    ):
+
+        class DateEnumEntity(BaseEnumEntity):
+            """Declare a date property."""
+
+            day: date
+
+            ITEM = value(code="item", display_name="Item", day=date(2020, 1, 2))
+
+            @field_validator("day", mode="after")
+            @classmethod
+            def replace(cls, day: date) -> datetime:
+                """Return a datetime although the annotation declares a date."""
+                return datetime(2020, 1, 2, 3, 4)
+
+
+def test_a_date_result_publishes_for_a_date_property() -> None:
+    """The neighbour of the date refusal: the declared type is accepted."""
+
+    class DateEnumEntity(BaseEnumEntity):
+        """Declare a date property."""
+
+        day: date
+
+        ITEM = value(code="item", display_name="Item", day=date(2020, 1, 2))
+
+        @field_validator("day", mode="after")
+        @classmethod
+        def replace(cls, day: date) -> date:
+            """Return a date of the declared type."""
+            return date(2021, 3, 4)
+
+    assert DateEnumEntity.ITEM.day == date(2021, 3, 4)
+    assert type(DateEnumEntity.ITEM.day) is date
+
+
+def test_the_exact_leaf_type_holds_inside_a_tuple_and_a_nullable_union() -> None:
+    """The leaf rule is reached through the container walk, and the path keeps the item index."""
+    with pytest.raises(ValueError, match=r"property 'ratios\[1\]' of member 'ITEM' holds int \(expected float\)"):
+
+        class TupleFloatEnumEntity(BaseEnumEntity):
+            """Declare a tuple of floats."""
+
+            ratios: tuple[float, ...]
+
+            ITEM = value(code="item", display_name="Item", ratios=(1.5,))
+
+            @field_validator("ratios", mode="after")
+            @classmethod
+            def replace(cls, ratios: tuple[float, ...]) -> tuple[float | int, ...]:
+                """Return an integer in the second position."""
+                return (1.5, 1)
+
+    with pytest.raises(ValueError, match=r"property 'day' of member 'ITEM' holds datetime"):
+
+        class NullableDateEnumEntity(BaseEnumEntity):
+            """Declare a nullable date property."""
+
+            day: date | None
+
+            ITEM = value(code="item", display_name="Item", day=date(2020, 1, 2))
+
+            @field_validator("day", mode="after")
+            @classmethod
+            def replace(cls, day: date | None) -> datetime:
+                """Return a datetime in a nullable date position."""
+                return datetime(2020, 1, 2, 3, 4)

@@ -20,4 +20,8 @@ Three adversarial checks restored one old function at a time in an isolated proc
 
 All 12 complete Python blocks in the dictionary tutorial and how-to were run from clean temporary files and their output matched exactly. All 149 local links in the touched guide, tutorial, invariant reference and report resolved. Existing source changes were preserved. No additional code fix is established by this verification; it is not a claim that every possible annotation combination has been audited. The full repository check runner is outside this scoped verification and was not executed.
 
+## Later change
+
+[#254](https://github.com/bystrovmaxim/aoa/issues/254) settled the leaf comparison that this pass left as `isinstance`. A completed value must be the declared type, so a `datetime` returned for a `date` property is now refused along with any other subclass; an integer for a `float` was already refused and is now the stated rule. The migration table in the guide lists each refused pair with its accepted neighbour.
+
 See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [migration and refusals](../how-to/dictionary-validation-and-export.md), and [invariant reference](../reference/intents-and-invariants.md).
