@@ -1,6 +1,7 @@
 # packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, ``NoRelation``, and
+``Rel``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
@@ -33,6 +34,8 @@ SCOPE (IN / OUT)
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
     ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
     suppresses interchange edges for that field while keeping it in graph node metadata.
+    ``NoRelation("reason")`` declares that a structural-entity field is an embedded value
+    with no model relation at all, which the graph build refuses to guess.
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
@@ -227,6 +230,62 @@ class NoGraphEdge:
 
     def __hash__(self) -> int:
         return hash("NoGraphEdge")
+
+
+class NoRelation:
+    """
+    AI-CORE-BEGIN
+        ROLE: Explicit declaration that a structural-entity field embeds a value, not a relation.
+        CONTRACT: Sit inside ``Annotated`` on a Core, Assoc, Detail or Spec field with a non-blank
+            reason; the field stays an ordinary column and gains no relation edge, no foreign key
+            and no storage inference.
+        INVARIANTS: The reason is a non-empty string; the marker is frozen and value-equal; it is
+            never combined with a relation container or another relation marker, and never marks a
+            state entity, whose only form is a ``Lifecycle[...]`` field.
+        AI-CORE-END
+    """
+
+    __slots__ = ("_reason",)
+
+    def __init__(self, reason: str) -> None:
+        """
+        Args:
+            reason: Why this field holds the entity as a value instead of as a relation.
+
+        Raises:
+            TypeError: ``reason`` is not a ``str``.
+            ValueError: ``reason`` is empty or whitespace-only.
+        """
+        if not isinstance(reason, str):
+            raise TypeError(f"NoRelation: reason must be str, got {type(reason).__name__}: {reason!r}.")
+        if not reason.strip():
+            raise ValueError("NoRelation: reason cannot be empty or whitespace-only.")
+        object.__setattr__(self, "_reason", reason)
+
+    @property
+    def reason(self) -> str:
+        """Return why the field holds an embedded value."""
+        return cast(str, object.__getattribute__(self, "_reason"))
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        raise AttributeError("NoRelation is frozen; assigning to attributes is not allowed.")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("NoRelation is frozen; deleting attributes is not allowed.")
+
+    def __repr__(self) -> str:
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return f"NoRelation({reason!r})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NoRelation):
+            return NotImplemented
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return reason == other.reason
+
+    def __hash__(self) -> int:
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return hash(reason)
 
 
 class Rel:

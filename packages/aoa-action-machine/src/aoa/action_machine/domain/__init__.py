@@ -120,6 +120,7 @@ from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, e
 from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
+    EntityFieldDeclarationError,
     FieldNotLoadedError,
     ForeignStateError,
     LifecycleGraphError,
@@ -145,6 +146,7 @@ from aoa.action_machine.domain.relation_markers import (
     Inverse,
     NoGraphEdge,
     NoInverse,
+    NoRelation,
     Rel,
 )
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
@@ -174,6 +176,7 @@ __all__ = [
     "CompositeOne",
     # Exceptions
     "EntityDecoratorError",
+    "EntityFieldDeclarationError",
     "EntityIntent",
     "EntitySchemaMarker",
     "FieldNotLoadedError",
@@ -188,6 +191,7 @@ __all__ = [
     "MissingStateError",
     "NoGraphEdge",
     "NoInverse",
+    "NoRelation",
     "Rel",
     "RelationNotLoadedError",
     "RelationType",
