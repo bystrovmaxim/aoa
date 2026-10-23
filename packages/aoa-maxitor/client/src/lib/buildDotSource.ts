@@ -52,8 +52,6 @@ export type ErdGroup = {
   group_id: string;
   label: string;
   classifier_field?: string;
-  /** The closed dictionary the axis borrows its codes from, when it borrows one. */
-  dictionary_label?: string;
   members: string[];
 };
 
@@ -204,7 +202,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     if (members.length < 2) continue;
     lines.push(
       `  subgraph "cluster_${group.group_id}" {`,
-      `    label="${escHtml(group.label)}${group.dictionary_label ? ` (${escHtml(group.dictionary_label)})` : ""}";`,
+      `    label="${escHtml(group.label)}";`,
       '    style="rounded,dashed";',
       '    color="#94a3b8";',
       '    fontsize=10;',

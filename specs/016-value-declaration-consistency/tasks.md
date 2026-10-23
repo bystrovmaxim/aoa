@@ -153,15 +153,15 @@ Repository root holds `packages/`, `examples/`, `docs/`, `specs/`. The framework
 
 ### Tests for User Story 6
 
-- [ ] T038 [P] [US6] Update `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py` — the group's key set loses `dictionary_label`, and the label is `field (by Dictionary)`; the same key set in `packages/aoa-maxitor/tests/test_entity_specialization_erd.py` (FR-027)
-- [ ] T039 [P] [US6] Add `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` — take the payload the server test produces, render it through `buildDotSource`, and assert the dictionary name appears exactly once and escaping happens once (FR-028, FR-029)
+- [x] T038 [P] [US6] Update `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py` — the group's key set loses `dictionary_label`, and the label is `field (by Dictionary)`; the same key set in `packages/aoa-maxitor/tests/test_entity_specialization_erd.py` (FR-027)
+- [x] T039 [P] [US6] Add `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` — take the payload the server test produces, render it through `buildDotSource`, and assert the dictionary name appears exactly once and escaping happens once (FR-028, FR-029)
 
 ### Implementation for User Story 6
 
-- [ ] T040 [US6] Remove `dictionary_label` from the group `SELECT` and the group dict in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py`, keeping the composed `label` and `classifier_field` (FR-027)
-- [ ] T041 [US6] Remove the property from the group item in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action_schema.py` and from `ErdGroup` in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` (FR-027)
-- [ ] T042 [US6] Delete the second append in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` — the label is rendered as received, escaped once (FR-028)
-- [ ] T043 [US6] Run `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py`, `packages/aoa-maxitor/tests/test_entity_specialization_erd.py`, `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` and the Maxitor client build (FR-027 to FR-029, SC-006)
+- [x] T040 [US6] Remove `dictionary_label` from the group `SELECT` and the group dict in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py`, keeping the composed `label` and `classifier_field` (FR-027)
+- [x] T041 [US6] Remove the property from the group item in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action_schema.py` and from `ErdGroup` in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` (FR-027)
+- [x] T042 [US6] Delete the second append in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` — the label is rendered as received, escaped once (FR-028)
+- [x] T043 [US6] Run `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py`, `packages/aoa-maxitor/tests/test_entity_specialization_erd.py`, `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` and the Maxitor client build (FR-027 to FR-029, SC-006)
 
 **Checkpoint**: one owner for the label, and two layer-local tests can no longer hide the duplication.
 
