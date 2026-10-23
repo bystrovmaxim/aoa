@@ -128,9 +128,11 @@ def test_a_state_type_keeps_its_mutable_properties() -> None:
     assert probe.codes() == ["free"]
     assert probe.L.labels == ["original"]
 
+
 def test_a_validator_that_returns_a_list_is_refused_before_publication() -> None:
     """The completed member is checked, not only its annotation."""
     with pytest.raises(ValueError, match=r"property 'labels'.*holds list.*tuple\[str, \.\.\.\]"):
+
         class LabelsEnumEntity(BaseEnumEntity):
             """Declare labels shared by all users of this value."""
 
@@ -148,6 +150,7 @@ def test_a_validator_that_returns_a_list_is_refused_before_publication() -> None
 def test_a_validator_that_returns_another_immutable_type_is_refused() -> None:
     """An immutable value of the wrong shape contradicts the schema the dictionary publishes."""
     with pytest.raises(ValueError, match=r"property 'labels'.*holds str.*tuple\[str, \.\.\.\]"):
+
         class ShapeEnumEntity(BaseEnumEntity):
             """Declare a tuple property."""
 
@@ -165,6 +168,7 @@ def test_a_validator_that_returns_another_immutable_type_is_refused() -> None:
 def test_a_list_nested_inside_a_tuple_is_refused() -> None:
     """The runtime check is recursive, like the annotation check."""
     with pytest.raises(ValueError, match=r"labels\[1\].*list"):
+
         class NestedEnumEntity(BaseEnumEntity):
             """Declare a tuple property whose validator hides a list inside it."""
 
@@ -181,12 +185,14 @@ def test_a_list_nested_inside_a_tuple_is_refused() -> None:
 
 def test_an_enum_with_a_mutable_value_is_refused() -> None:
     """Accepting the annotation alone does not establish that the value is immutable."""
+
     class Flags(Enum):
         """Name the flags."""
 
         X = ["a", "b"]
 
     with pytest.raises(ValueError, match=r"property 'flags'.*Flags.*list"):
+
         class FlagsEnumEntity(BaseEnumEntity):
             """Carry an enum property whose value is a list."""
 
@@ -197,6 +203,7 @@ def test_an_enum_with_a_mutable_value_is_refused() -> None:
 
 def test_a_validator_that_returns_an_equal_tuple_publishes_the_member() -> None:
     """A valid immutable result keeps working, including export independence."""
+
     class CopyEnumEntity(BaseEnumEntity):
         """Declare a tuple property a validator rebuilds."""
 
@@ -216,3 +223,243 @@ def test_a_validator_that_returns_an_equal_tuple_publishes_the_member() -> None:
     exported["properties"]["labels"].append("changed")
     assert CopyEnumEntity.ITEM.labels == ("original",)
     assert CopyEnumEntity.by_code("item").to_reference()["properties"]["labels"] == ["original"]
+
+
+def test_a_literal_result_outside_the_choices_is_refused() -> None:
+    """A supported scalar is not enough: it must be one of the declared choices."""
+    with pytest.raises(
+        ValueError,
+        match=r"LiteralEnumEntity: the property 'choice' of member 'ITEM' holds str \(expected Literal\['a'\]\)",
+    ):
+
+        class LiteralEnumEntity(BaseEnumEntity):
+            """Declare one permitted choice."""
+
+            choice: Literal["a"]
+
+            ITEM = value(code="item", display_name="Item", choice="a")
+
+            @field_validator("choice", mode="after")
+            @classmethod
+            def replace(cls, choice: str) -> str:
+                """Return a scalar outside the permitted choices."""
+                return "b"
+
+
+def test_a_literal_result_inside_the_choices_publishes_the_member() -> None:
+    """The neighbour of the refusal: another permitted choice is published unchanged."""
+
+    class OtherLiteralEnumEntity(BaseEnumEntity):
+        """Declare two permitted choices."""
+
+        choice: Literal["a", "b"]
+
+        ITEM = value(code="item", display_name="Item", choice="a")
+
+        @field_validator("choice", mode="after")
+        @classmethod
+        def replace(cls, choice: str) -> str:
+            """Return the second permitted choice."""
+            return "b"
+
+    assert OtherLiteralEnumEntity.ITEM.choice == "b"
+
+
+def test_none_is_refused_for_a_non_nullable_union() -> None:
+    """A union of several types does not permit null by itself."""
+    with pytest.raises(
+        ValueError,
+        match=r"UnionEnumEntity: the property 'choice' of member 'ITEM' holds NoneType \(expected str \| int\)",
+    ):
+
+        class UnionEnumEntity(BaseEnumEntity):
+            """Declare a union without null."""
+
+            choice: str | int
+
+            ITEM = value(code="item", display_name="Item", choice="a")
+
+            @field_validator("choice", mode="after")
+            @classmethod
+            def replace(cls, choice: str | int) -> None:
+                """Return null although the annotation excludes it."""
+                return None
+
+
+def test_a_union_member_publishes_the_member() -> None:
+    """The neighbour of the null refusal: a declared member type is accepted."""
+
+    class MemberUnionEnumEntity(BaseEnumEntity):
+        """Declare a union without null."""
+
+        choice: str | int
+
+        ITEM = value(code="item", display_name="Item", choice="a")
+
+        @field_validator("choice", mode="after")
+        @classmethod
+        def replace(cls, choice: str | int) -> int:
+            """Return the other declared member type."""
+            return 10
+
+    assert MemberUnionEnumEntity.ITEM.choice == 10
+
+
+def test_none_is_accepted_for_a_nullable_union() -> None:
+    """Null is accepted when the union names it."""
+
+    class NullableUnionEnumEntity(BaseEnumEntity):
+        """Declare a union that includes null."""
+
+        choice: str | int | None
+
+        ITEM = value(code="item", display_name="Item", choice="a")
+
+        @field_validator("choice", mode="after")
+        @classmethod
+        def replace(cls, choice: str | int | None) -> None:
+            """Return the null the annotation permits."""
+            return None
+
+    assert NullableUnionEnumEntity.ITEM.choice is None
+
+
+def test_a_literal_outside_the_choices_is_refused_inside_a_tuple() -> None:
+    """The literal rule reaches a tuple item and the path names its index."""
+    with pytest.raises(
+        ValueError,
+        match=r"TupleLiteralEnumEntity: the property 'choices\[1\]' of member 'ITEM' holds str "
+        r"\(expected Literal\['a'\]\)",
+    ):
+
+        class TupleLiteralEnumEntity(BaseEnumEntity):
+            """Declare a tuple of one permitted choice."""
+
+            choices: tuple[Literal["a"], ...]
+
+            ITEM = value(code="item", display_name="Item", choices=("a",))
+
+            @field_validator("choices", mode="after")
+            @classmethod
+            def replace(cls, choices: tuple[Literal["a"], ...]) -> tuple[str, ...]:
+                """Return a choice outside the permitted one."""
+                return ("a", "b")
+
+
+def test_none_is_refused_inside_a_tuple_for_a_non_nullable_union() -> None:
+    """The null rule reaches a tuple item and the path names its index."""
+    with pytest.raises(
+        ValueError,
+        match=r"TupleUnionEnumEntity: the property 'choices\[1\]' of member 'ITEM' holds NoneType "
+        r"\(expected str \| int\)",
+    ):
+
+        class TupleUnionEnumEntity(BaseEnumEntity):
+            """Declare a tuple of a union without null."""
+
+            choices: tuple[str | int, ...]
+
+            ITEM = value(code="item", display_name="Item", choices=("a",))
+
+            @field_validator("choices", mode="after")
+            @classmethod
+            def replace(cls, choices: tuple[str | int, ...]) -> tuple[str | int | None, ...]:
+                """Return null although the item annotation excludes it."""
+                return ("a", None)
+
+
+def test_none_is_accepted_inside_a_tuple_for_a_nullable_union() -> None:
+    """A nullable item annotation accepts null in the same position."""
+
+    class NullableTupleEnumEntity(BaseEnumEntity):
+        """Declare a tuple whose items may be null."""
+
+        choices: tuple[str | None, ...]
+
+        ITEM = value(code="item", display_name="Item", choices=("a",))
+
+        @field_validator("choices", mode="after")
+        @classmethod
+        def replace(cls, choices: tuple[str | None, ...]) -> tuple[str | None, ...]:
+            """Return a null item the annotation permits."""
+            return ("a", None)
+
+    assert NullableTupleEnumEntity.ITEM.choices == ("a", None)
+
+
+def test_a_literal_choice_is_matched_by_type_not_only_equality() -> None:
+    """``True`` equals ``1`` but is not the literal ``1``, and the reverse holds too."""
+    with pytest.raises(ValueError, match=r"property 'flag' of member 'ITEM' holds int \(expected Literal\[True\]\)"):
+
+        class TrueLiteralEnumEntity(BaseEnumEntity):
+            """Declare the literal true."""
+
+            flag: Literal[True]
+
+            ITEM = value(code="item", display_name="Item", flag=True)
+
+            @field_validator("flag", mode="after")
+            @classmethod
+            def replace(cls, flag: bool) -> int:
+                """Return an integer equal to true."""
+                return 1
+
+    with pytest.raises(ValueError, match=r"property 'count' of member 'ITEM' holds bool \(expected Literal\[1\]\)"):
+
+        class OneLiteralEnumEntity(BaseEnumEntity):
+            """Declare the literal one."""
+
+            count: Literal[1]
+
+            ITEM = value(code="item", display_name="Item", count=1)
+
+            @field_validator("count", mode="after")
+            @classmethod
+            def replace(cls, count: int) -> bool:
+                """Return a boolean equal to one."""
+                return True
+
+
+def test_bool_is_refused_for_an_int_property() -> None:
+    """The leaf rule does not accept a boolean where the schema says integer."""
+    with pytest.raises(
+        ValueError, match=r"IntEnumEntity: the property 'count' of member 'ITEM' holds bool \(expected int\)"
+    ):
+
+        class IntEnumEntity(BaseEnumEntity):
+            """Declare an integer property."""
+
+            count: int
+
+            ITEM = value(code="item", display_name="Item", count=1)
+
+            @field_validator("count", mode="after")
+            @classmethod
+            def replace(cls, count: int) -> bool:
+                """Return a boolean although the annotation excludes it."""
+                return True
+
+
+def test_true_is_accepted_for_the_boolean_literal() -> None:
+    """The neighbour of the type distinction: the exact literal type is accepted."""
+
+    class BoolLiteralEnumEntity(BaseEnumEntity):
+        """Declare the literal true."""
+
+        flag: Literal[True]
+
+        ITEM = value(code="item", display_name="Item", flag=True)
+
+        @field_validator("flag", mode="after")
+        @classmethod
+        def replace(cls, flag: bool) -> bool:
+            """Return the same literal."""
+            return True
+
+    assert BoolLiteralEnumEntity.ITEM.flag is True
+
+
+def test_a_property_annotated_only_none_is_refused_at_declaration() -> None:
+    """Null alone is not a property type; it is supported only inside a union."""
+    with pytest.raises(ValueError, match=r"ProbeEnumEntity: field 'note' is NoneType"):
+        _build(**{"__annotations__": {"note": None}, "V": value(code="v", display_name="V", note=None)})

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 
+- **Completed dictionary values must preserve their declared types.** An after-validator returning `bool` for `int` is refused, and a dictionary property annotated only `None` is rejected at class creation. Return an integer for an integer field; declare a nullable union or a literal that includes `None` when absence is allowed. ([#252](https://github.com/bystrovmaxim/aoa/issues/252))
+
 - **Entity fields state their relationship explicitly** — Structural entity fields require a relation container or an embedded-value marker with a reason; ambiguous bare and collection forms fail at graph build. Put relation descriptions in `Field(description=...)`, supply required values, and use `default=None` only on nullable relations. Factories and other defaults are refused. Classifiers name the dictionary value without a repeated field argument. See the [migration and exact refusals](../../docs/how-to/explicit-entity-fields.md).
 
 - **Explicit declarations and consistent dictionary references.** Declare dictionary values and statuses with the imported `value(...)` factory instead of calling the enclosing class inside its body. Codes and catalogue lookups stay the same. Dictionary properties now use a restricted set of immutable annotations; `to_reference()` applies field serializers and returns JSON-compatible data. Input schemas accept a code-only reference, while output schemas describe the exported properties. ([#244](https://github.com/bystrovmaxim/aoa/issues/244))
@@ -21,7 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Dictionary validation checks completed members** — Values returned by custom validators are checked against supported property shapes before publication; mutable results, mismatched types and enum members holding mutable values are refused. Literal membership and nullability of non-optional unions still have confirmed gaps; see [additional code fixes](../../docs/reports/additional-code-fixes.md).
+- **Literal and union results are checked after user validation.** Literal choices match both type and value, so `True` cannot satisfy `Literal[1]` or the reverse. Null is accepted only when included in the union or literal. These checks also reach tuple items and name the failing index in the error. Correctly typed union members and nullable choices continue to work; reference exports are unchanged. The examples group refusals and accepted neighbors into four scenarios, each with a script and an executed notebook. See [runnable refusals and accepted neighbors](../../docs/how-to/dictionary-validation-and-export.md#migrate-completed-values). ([#252](https://github.com/bystrovmaxim/aoa/issues/252))
+
+- **Dictionary validation checks completed members** — Values returned by custom validators are checked against supported property shapes before publication; mutable results, mismatched types and enum members holding mutable values are refused. Literal membership and union nullability are now enforced too; see the [current verification report](../../docs/reports/additional-code-fixes.md).
 - **Export schemas retain enum definitions** — Serialization schemas now resolve enum-property references inside standalone and containing models, require every emitted property including nullable ones, and omit excluded fields. Code-only input references keep their existing form. See the [executed export example](../../docs/how-to/dictionary-validation-and-export.md).
 
 ## [1.0.1a5] – 2026-10-18
