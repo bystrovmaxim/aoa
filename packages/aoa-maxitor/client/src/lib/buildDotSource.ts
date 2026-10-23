@@ -146,8 +146,10 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
         (value) =>
           "<TR>" +
           `<TD BGCOLOR="#ecfdf5" WIDTH="28"></TD>` +
-          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT">${escHtml(value.code)}</TD>` +
-          `<TD BGCOLOR="#ecfdf5" ALIGN="LEFT"><FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT>` +
+          // The label identifies the value; the code is storage identity, so it stays on the
+          // row as a tooltip and never becomes printed text of its own.
+          `<TD BGCOLOR="#ecfdf5" COLSPAN="2" ALIGN="LEFT" TOOLTIP="code: ${escHtml(value.code)}">` +
+          `<FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT>` +
           (value.properties || [])
             .map((item) => `<BR ALIGN="LEFT"/>${escHtml(item.name)}: ${escHtml(item.value)}`)
             .join("") +

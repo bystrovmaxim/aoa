@@ -35,6 +35,11 @@ from aoa.maxitor.model.diagrams.actions.list_entities_action_schema import ListE
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
+_KIND_FIELDS = frozenset({"code", "display_name"})
+"""The field rows a dictionary kind supplies: never printed, always kept in ``values``."""
+
+
+
 
 @meta(
     description="List entities, fields, and relations for interchange domain qualnames (diagrams)",
@@ -341,6 +346,12 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         relations.extend(duck.execute_fetch_dicts(parent_entity_sql, [qual]))
         entities = duck.execute_fetch_dicts(entity_sql, [qual])
         for entity in entities:
+            if entity.get("entity_kind") == "enum":
+                # The card shows labels: the two rows the dictionary kind supplies are storage
+                # identity, and the code stays in ``values`` for every consumer that needs it.
+                entity["fields"] = [
+                    field for field in entity.get("fields") or [] if field.get("name") not in _KIND_FIELDS
+                ]
             declared = json.loads(entity.pop("values_json") or "[]")
             entity["values"] = [
                 {

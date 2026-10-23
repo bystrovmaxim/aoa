@@ -52,11 +52,15 @@ def diagram() -> dict[str, Any]:
         "nodes": [
             {"id": _DOMAIN, "type": "Domain", "label": "ShopDomain", "properties": {"name": "shop", "description": "Shop"}},
             {"id": _CURRENCY, "type": "Entity", "label": "CurrencyEnumEntity", "properties": {"description": "Currencies", "entity_kind": "enum", "values": _VALUES}},
+            {"id": _CURRENCY + ":code", "type": "EntityField", "label": "code", "properties": {"field_type": "str", "primary_key_hint": False}},
+            {"id": _CURRENCY + ":display_name", "type": "EntityField", "label": "display_name", "properties": {"field_type": "str", "primary_key_hint": False}},
             {"id": _TAG, "type": "Entity", "label": "PriceTagCoreEntity", "properties": {"description": "Tag", "entity_kind": "core"}},
             {"id": _TAG + ":currency", "type": "EntityField", "label": "currency", "properties": {"field_type": "CurrencyEnumEntity", "primary_key_hint": False, "reference_qualname": _CURRENCY}},
         ],
         "edges": [
             *({"source_id": identifier, "target_id": _DOMAIN, "type": "domain", "relationship": "Composition", "is_dag": False} for identifier in (_CURRENCY, _TAG)),
+            {"source_id": _CURRENCY, "target_id": _CURRENCY + ":code", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 0, "field_name": "code"}},
+            {"source_id": _CURRENCY, "target_id": _CURRENCY + ":display_name", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 1, "field_name": "display_name"}},
             {"source_id": _TAG, "target_id": _TAG + ":currency", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 0, "field_name": "currency"}},
         ],
     }
@@ -158,3 +162,24 @@ def test_a_lossy_conversion_is_caught_by_the_invariant(rich_diagram: dict[str, A
 
     with pytest.raises(AssertionError, match="lost a property"):
         _assert_one_item_per_property(lossy, _RICH_VALUES)
+
+def test_a_dictionary_card_drops_the_rows_the_kind_supplies(diagram: dict[str, Any]) -> None:
+    """A reader sees labels, not storage identity: the two kind rows never reach the card."""
+    currency = next(item for item in diagram["entities"] if item["id"] == _CURRENCY)
+
+    assert currency["fields"] == []
+
+
+def test_a_dictionary_value_keeps_its_code_in_the_payload(diagram: dict[str, Any]) -> None:
+    """Dropping the printed rows must not drop the data the graph and the exports keep."""
+    currency = next(item for item in diagram["entities"] if item["id"] == _CURRENCY)
+
+    assert [value["code"] for value in currency["values"]] == ["eur", "usd"]
+    assert [value["display_name"] for value in currency["values"]] == ["Euro", "US dollar"]
+
+
+def test_a_plain_entity_keeps_every_field_row(diagram: dict[str, Any]) -> None:
+    """The projection belongs to the dictionary kind alone."""
+    tag = next(item for item in diagram["entities"] if item["id"] == _TAG)
+
+    assert [field["name"] for field in tag["fields"]] == ["currency"]
