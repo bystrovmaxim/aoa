@@ -911,6 +911,9 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           "$ref": "#/$defs/entity_relation"
         },
         {
+          "$ref": "#/$defs/entity_reference"
+        },
+        {
           "$ref": "#/$defs/entity_specialization"
         },
         {
@@ -1172,6 +1175,15 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
           }
         }
       ]
+    },
+    "entity_reference": {
+      "allOf": [{"$ref": "#/$defs/link_row"}, {
+        "properties": {
+          "type": {"const": "entity_reference"},
+          "properties": {"type": "object", "additionalProperties": false, "required": ["field_name", "cardinality"],
+            "properties": {"field_name": {"type": "string"}, "cardinality": {"type": "string"}}}
+        }
+      }]
     },
     "entity_specialization": {
       "allOf": [

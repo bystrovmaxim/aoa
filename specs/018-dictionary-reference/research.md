@@ -21,9 +21,9 @@ Every decision below was taken against the merged baseline `d1f28968` and confir
 
 ### Reproduced at `d1f28968`
 
-The block below is the probe's output abridged at the long refusal texts, which are elided with
-`...`; the exhaustive run is the probe itself, and T001 pastes its full output here before the
-work starts.
+The exact output of `baseline_probe.py` at the base commit, captured before the first edit of the
+phase. The probe reproduces the baseline, so it prints these answers only at that commit; on the
+branch it prints the answers the change produced.
 
 ```text
 == the rule sees no dictionary ==
@@ -43,9 +43,9 @@ relation target: RegionEnumEntity
 == empty catalogue ==
 graph build: ValueError: EmptyDictionaryCoreEntity.region: EmptyDictionaryEnumEntity declares no values; type the field with a concrete dictionary.
 == refusal wording ==
-union: REFUSED the field's type is a collection of an entity (TargetCoreEntity | BaseSpecEntity); a collection is not a relation. Declare the many relation (Annotated[AssociationMany[TargetCoreEntity], Inverse(...)]) ...
-heterogeneous tuple: REFUSED the field's type is a collection of an entity (tuple); ... (Annotated[AssociationMany[TargetCoreEntity], ...])
-mapping: REFUSED the field's type is a collection of an entity (dict); ... (Annotated[AssociationMany[TargetCoreEntity], ...])
+union: REFUSED the field's type is a collection of an entity (__main__.TargetCoreEntity | aoa.action_machine.domain.spec_entity.BaseSpecEntity); a collection is not a relation. Declare the many relation (Annotated[AssociationMany[TargetCoreEntity], Inverse(...)]) or mark the field as an embedded value (Annotated[TargetCoreEntity, NoRelation("reason")]).
+heterogeneous tuple: REFUSED the field's type is a collection of an entity (tuple); a collection is not a relation. Declare the many relation (Annotated[AssociationMany[TargetCoreEntity], Inverse(...)]) or mark the field as an embedded value (Annotated[TargetCoreEntity, NoRelation("reason")]).
+mapping: REFUSED the field's type is a collection of an entity (dict); a collection is not a relation. Declare the many relation (Annotated[AssociationMany[TargetCoreEntity], Inverse(...)]) or mark the field as an embedded value (Annotated[TargetCoreEntity, NoRelation("reason")]).
 ```
 
 Two facts the table above does not show. First, `AssociationOne[RegionEnumEntity]` already produces an `entity_relation` edge today, so a dictionary reference currently has two representations that disagree: the bare type is a column, the container is a relation. Second, the empty-catalogue refusal happens after the declaration boundary, so an author who types a field with an empty dictionary hears about it from the graph edge, not from the rule.

@@ -27,7 +27,8 @@ settlement_currency: CurrencyEnumEntity | None = Field(default=None, description
 | Written | Answer |
 | --- | --- |
 | `items: tuple[D, ...]`, `list[D]`, `Sequence[D]`, `set[D]`, `frozenset[D]`, `dict[K, D]` | refused: a collection of dictionary values has no declared form; the message names `D` and `D \| None` |
-| `currency: AssociationOne[D]` and the other seven containers | refused: a dictionary value is a shared reference, not an association target |
+| `currency: AssociationOne[D]`, the other five association/composition/aggregate containers and `Generalization[D]` | refused: a dictionary value is a shared reference, not an association target |
+| `Specialization[A \| B, D]` | accepted unchanged: the dictionary is the axis's vocabulary, not the container's target |
 | `Annotated[D, NoRelation("…")]` | refused: the bare dictionary type already declares the reference |
 | `currency: EmptyEnumEntity` | refused: the dictionary declares no values |
 | `currency: ExcludedEnumEntity` | refused: the dictionary is not a node of the graph, so the reference cannot be drawn |

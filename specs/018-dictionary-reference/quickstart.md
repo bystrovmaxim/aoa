@@ -18,13 +18,22 @@ Proves FR-001, FR-002, US1 scenarios 1–2.
 ```bash
 uv run --extra dev python - <<'PY'
 from pydantic import Field
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.entity import entity
 
+class ShopDomain(BaseDomain):
+    """Group the declarations."""
+    name = "shop"
+    description = "Shop"
+
+@entity(description="Currencies", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the money vocabulary."""
     USD = value(code="usd", display_name="US dollar")
 
+@entity(description="Price", domain=ShopDomain)
 class PriceCoreEntity(BaseCoreEntity):
     """Reference a dictionary, once required and once optional."""
     id: str = Field(description="Price id")
@@ -45,9 +54,16 @@ Proves FR-003, US1 scenario 3.
 ```bash
 uv run --extra dev python - <<'PY'
 from pydantic import Field
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 
+class ShopDomain(BaseDomain):
+    """Group the declarations."""
+    name = "shop"
+    description = "Shop"
+
+@entity(description="Regions", domain=ShopDomain)
 class RegionEnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
     EU = value(code="eu", display_name="Europe")
@@ -74,9 +90,16 @@ Proves FR-004, US1 scenario 4.
 uv run --extra dev python - <<'PY'
 from typing import Annotated
 from pydantic import Field
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDomain, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 
+class ShopDomain(BaseDomain):
+    """Group the declarations."""
+    name = "shop"
+    description = "Shop"
+
+@entity(description="Regions", domain=ShopDomain)
 class RegionEnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
     EU = value(code="eu", display_name="Europe")
@@ -103,9 +126,16 @@ Proves FR-005, US1 scenario 5.
 uv run --extra dev python - <<'PY'
 from typing import Annotated
 from pydantic import Field
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, NoRelation, value
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, NoRelation, value
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 
+class ShopDomain(BaseDomain):
+    """Group the declarations."""
+    name = "shop"
+    description = "Shop"
+
+@entity(description="Regions", domain=ShopDomain)
 class RegionEnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
     EU = value(code="eu", display_name="Europe")
@@ -133,6 +163,7 @@ uv run --extra dev python - <<'PY'
 from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 
 class EmptyEnumEntity(BaseEnumEntity):
     """A dictionary that declares no values; @entity refuses one, so it stays bare."""
@@ -161,6 +192,7 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, BaseDomain, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity import entity
 
 class ShopDomain(BaseDomain):
@@ -278,6 +310,7 @@ uv run --extra dev python - <<'PY'
 from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseSpecEntity
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entity import entity
 
 class FirstCoreEntity(BaseCoreEntity):
     """One entity."""
@@ -311,6 +344,26 @@ PY
 ```
 
 Expected: each of the three refusals names its shape — union, collection, mapping — and names every entity it holds; none of them is accepted. The baseline calls all three a collection.
+
+## Recorded answers (phase 1)
+
+Proofs 1–6 were run on the branch at the end of the rule phase; these are their exact answers,
+copied from the run.
+
+```text
+proof 1: accepted
+proof 2: EntityFieldDeclarationError Field 'regions' on entity 'OfferCoreEntity' is invalid: a collection of dictionary values has no declared form (tuple[__main__.RegionEnumEntity, ...]); a dictionary reference is one value. Write RegionEnumEntity, or RegionEnumEntity | None for an optional one.
+proof 3: EntityFieldDeclarationError Field 'region' on entity 'OfferCoreEntity' is invalid: the field's type is a relation container around a dictionary (RegionEnumEntity); a dictionary value is a shared reference, not an association target. Write RegionEnumEntity on the field instead.
+proof 4: EntityFieldDeclarationError Field 'region' on entity 'OfferCoreEntity' is invalid: NoRelation marks an embedded structural entity, and this field's type is a dictionary (RegionEnumEntity): the bare dictionary type already declares the reference. Remove the marker and keep RegionEnumEntity on the field.
+proof 5: EntityFieldDeclarationError Field 'currency' on entity 'PriceCoreEntity' is invalid: EmptyEnumEntity declares no values; type the field with a concrete dictionary.
+proof 6: EntityFieldDeclarationError Field 'currency' on entity 'PriceCoreEntity' is invalid: HiddenEnumEntity has no node in the graph: it is not a declared @entity class, or it is marked exclude_graph_model, so the reference could not be drawn. Keep the dictionary in the graph.
+```
+
+proof 7: edge: region -> RegionEnumEntity / row: RegionEnumEntity
+proof 8: one relation with label `region`, kind `reference`, target the dictionary
+proof 9: UnionCoreEntity -> the field's type is a union of entities (...), so the field names FirstCoreEntity and SecondSpecEntity at once
+         MixedCoreEntity -> the field's type is a collection of 2 entities (...); ... Declare one field per entity (FirstCoreEntity, SecondSpecEntity)
+         MappingCoreEntity -> the field's type is a mapping to an entity (...), and a mapping is not a relation
 
 ## What a green phase looks like
 

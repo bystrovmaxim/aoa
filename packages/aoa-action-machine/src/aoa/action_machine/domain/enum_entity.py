@@ -99,7 +99,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
-        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; the dictionary node carries its values in the graph.
+        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; the dictionary node carries its values in the graph, and a field typed by the dictionary is a reference: the graph carries one ``entity_reference`` edge to the dictionary beside the field row.
         INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; the rule is checked twice, on the declared annotation and on the completed member after user validation, so a validator cannot publish a list, a value of another type, or an Enum whose own value is mutable; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
@@ -119,9 +119,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     def __init__(self, **data: Any) -> None:  # pylint: disable=super-init-not-called
         """Build a value from its validated fields."""
         # Use BaseModel's validation path with a private, type-specific construction context.
-        self.__pydantic_validator__.validate_python(
-            data, self_instance=self, context=(_VALUE_CONSTRUCTION, type(self))
-        )
+        self.__pydantic_validator__.validate_python(data, self_instance=self, context=(_VALUE_CONSTRUCTION, type(self)))
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
@@ -196,9 +194,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
         # references stay registered and its `$ref` resolves in the finished document.
         emitted = handler(model_schema)
         properties = {
-            name: {
-                key: value for key, value in definition.items() if key not in {"title", "description"}
-            }
+            name: {key: value for key, value in definition.items() if key not in {"title", "description"}}
             for name, definition in emitted.get("properties", {}).items()
             if name not in {"code", "display_name"}
         }
@@ -244,9 +240,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     def _serialize_as_reference(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         """Serialize the value whole: its code, its label and its extra fields under ``properties``."""
         exported = handler(self)
-        properties = {
-            name: item for name, item in exported.items() if name not in {"code", "display_name"}
-        }
+        properties = {name: item for name, item in exported.items() if name not in {"code", "display_name"}}
         return {
             "code": exported["code"],
             "display_name": exported["display_name"],

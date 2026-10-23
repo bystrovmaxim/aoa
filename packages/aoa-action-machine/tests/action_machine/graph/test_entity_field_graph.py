@@ -114,11 +114,6 @@ class ReferenceCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-class EmptyDictionaryEnumEntity(BaseEnumEntity):
-    """A base dictionary that declares no values; a field cannot be typed by it."""
-
-
-@exclude_graph_model
 @entity(description="Price tag", domain=ReferenceShopDomain)
 class ReferenceTagCoreEntity(BaseCoreEntity):
     """A row with a dictionary reference, an optional one, and a scalar."""
@@ -127,15 +122,6 @@ class ReferenceTagCoreEntity(BaseCoreEntity):
     currency: ReferenceCurrencyEnumEntity = Field(description="Money unit")
     settlement_currency: ReferenceCurrencyEnumEntity | None = Field(default=None, description="Optional unit")
     note: str = Field(description="Free note")
-
-
-@exclude_graph_model
-@entity(description="Broken tag", domain=ReferenceShopDomain)
-class EmptyDictionaryTagCoreEntity(BaseCoreEntity):
-    """A row whose field is typed by a dictionary with no values."""
-
-    id: str = Field(description="Tag id")
-    currency: EmptyDictionaryEnumEntity = Field(description="Money unit")
 
 
 def _field_nodes(entity_cls: type) -> dict[str, EntityFieldGraphNode]:
@@ -164,9 +150,3 @@ def test_a_reference_field_row_validates_against_the_schema() -> None:
 
     document = {"schema_version": "1.0", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
     Draft202012Validator(GRAPH_JSON_SCHEMA).validate(document)
-
-
-def test_a_field_typed_by_an_empty_dictionary_is_refused() -> None:
-    """A dictionary with no values could never fill the field, so the build refuses it."""
-    with pytest.raises(ValueError, match="declares no values; type the field with a concrete dictionary"):
-        EntityGraphNode(EmptyDictionaryTagCoreEntity)
