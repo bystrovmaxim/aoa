@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-23] — Dictionary selections become visible references
+
+A field selecting a dictionary value now connects the owning object to its dictionary in the model and entity diagram. The existing field and its type hint remain available. Optional selections have the same connection and may hold no value.
+
+Keep existing bare dictionary annotations. Rebuild older graph exports to show their connections. Multiple selections need a separate link object: collections of dictionary values are refused. Relationship containers and embedded-value markers must be replaced by the bare dictionary type.
+
+A reference also requires a nonempty dictionary included in the model. Refusals identify the field and explain the supported declaration. Structural unions, mixed collections and mappings keep their refusals with more precise guidance.
+
+([#256](https://github.com/bystrovmaxim/aoa/issues/256))
+
 ## [2026-10-23] — A completed value must be the declared type
 
 A dictionary property now compares the exact type of the value a custom validator returns, not merely that the value belongs to that type in Python's class hierarchy. A `datetime` no longer passes for a `date`, and any subclass of a declared property type is refused, because the exported schema describes the declared type rather than its subclasses. The rule that already refused `bool` for `int` and an integer for a `float` is now the stated rule instead of a side effect of the comparison.

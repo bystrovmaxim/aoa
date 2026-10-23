@@ -1,7 +1,7 @@
 """Read dictionary values in the ERD payload.
+Run: uv run python examples/step_20_dictionaries/09_erd.py
 
 Follow one dictionary through the actual Maxitor query.
-Run: uv run python examples/step_20_dictionaries/09_erd.py
 """
 
 from pydantic import Field
@@ -51,8 +51,10 @@ def main() -> None:
     diagram = ListEntitiesAction._slice_payload(store, domain, include_neighbors=False)
     currency = next(item for item in diagram["entities"] if item["label"] == "CurrencyEnumEntity")
     tag = next(item for item in diagram["entities"] if item["label"] == "PriceTagCoreEntity")
+    relation = next(item for item in diagram["relations"] if item["relationship_kind"] == "reference")
     print(currency["values"][0])
     print(next(field["reference_qualname"] for field in tag["fields"] if field["name"] == "currency").split(".")[-1])
+    print("Relation:", relation["label"], "->", relation["target"].split(".")[-1])
 
 
 if __name__ == "__main__":

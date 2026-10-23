@@ -1,7 +1,7 @@
-"""The dictionary carries values in the graph.
-
-Inspect the dictionary and a field that refers to it.
+"""The dictionary carries values and references in the graph.
 Run: uv run python examples/step_20_dictionaries/08_graph.py
+
+Inspect the dictionary, the field that refers to it, and the edge that carries the reference.
 """
 
 from pydantic import Field
@@ -44,9 +44,11 @@ def main() -> None:
     dictionary = EntityGraphNode(CurrencyEnumEntity)
     tag = EntityGraphNode(PriceTagCoreEntity)
     field = next(edge.target_node for edge in tag.entity_field_edges if edge.target_node.label == "currency")
+    reference = next(edge for edge in tag.references if edge.properties["field_name"] == "currency")
     print("Kind:", dictionary.properties["entity_kind"])
     print("Values:", [value["code"] for value in dictionary.properties["values"]])
     print("Reference:", field.properties["reference_qualname"].split(".")[-1])
+    print("Edge:", reference.edge_name, "->", reference.target_node_id.split(".")[-1])
 
 
 if __name__ == "__main__":

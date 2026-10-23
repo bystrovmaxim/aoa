@@ -378,3 +378,7 @@ Each Entity node carries `properties.entity_kind`, identifying the role declared
 The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) prints `graph: core` and `Maxitor store: core` for the same order. A graph produced before this required property was added must be regenerated. Class renames also change labels and identifiers containing qualified Python names.
 
 This makes the domain distinction available to consumers. It does not yet change the renderer: associative entities are not automatically hidden or replaced by direct edges. Such a presentation can safely rely on `assoc` only because that kind means a technical link without business data; a supplier offer with price and terms is a core object and must retain its own representation.
+
+## Follow a dictionary reference
+
+Keep the bare dictionary type for a single selection. The graph now carries an `entity_reference` edge beside the field row, and the entity diagram draws the reference to the dictionary card. Rebuild older exports to obtain the edge. Multiple selections require a separate model rather than a collection of dictionary values. See [the reference guide and executed scenarios](../how-to/dictionary-references.md).

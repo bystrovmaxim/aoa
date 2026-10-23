@@ -36,6 +36,7 @@ from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
 from aoa.action_machine.graph.edges.entity_field_graph_edge import EntityFieldGraphEdge
 from aoa.action_machine.graph.edges.entity_graph_edge import EntityGraphEdge
+from aoa.action_machine.graph.edges.entity_reference_graph_edge import EntityReferenceGraphEdge
 from aoa.action_machine.graph.edges.entity_specialization_graph_edge import (
     EntitySpecializationGraphEdge,
 )
@@ -63,13 +64,14 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`lifecycles` / :attr:`entity_field_edges` from scalar fields; :meth:`get_all_edges` lists domain, relations, lifecycle compositions, and ``entity_field`` edges; :meth:`get_companion_nodes` returns lifecycle targets and :class:`EntityFieldGraphNode` targets. JSON omits nested ``fields``/``field_order`` on the entity row.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`references` / :attr:`lifecycles` / :attr:`entity_field_edges` from scalar fields; :meth:`get_all_edges` lists domain, relations, dictionary references, lifecycle compositions, and ``entity_field`` edges; :meth:`get_companion_nodes` returns lifecycle targets and :class:`EntityFieldGraphNode` targets. JSON omits nested ``fields``/``field_order`` on the entity row.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Entity"
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
     relations: list[EntityGraphEdge] = field(init=False)
+    references: list[EntityReferenceGraphEdge] = field(init=False)
     specializations: list[EntitySpecializationGraphEdge] = field(init=False)
     generalizations: list[ParentEntityGraphEdge] = field(init=False)
     lifecycles: list[LifeCycleGraphEdge] = field(init=False)
@@ -92,6 +94,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
+        object.__setattr__(self, "references", EntityReferenceGraphEdge.get_entity_reference_edges(entity_cls))
         object.__setattr__(
             self,
             "specializations",
@@ -121,10 +124,11 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return [*lifecycle_targets, *field_targets]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, relations, specialization alternatives, generalizations, lifecycles and fields."""
+        """Return ``domain``, relations, references, specializations, generalizations, lifecycles and fields."""
         return [
             self.domain,
             *self.relations,
+            *self.references,
             *self.specializations,
             *self.generalizations,
             *self.lifecycles,

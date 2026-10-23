@@ -7,6 +7,8 @@ import json
 from typing import Any
 
 from aoa.demo.model.interchange_demo_coordinator import build_registered_interchange_coordinator
+from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 def _graph() -> dict[str, Any]:
@@ -54,3 +56,48 @@ def test_the_drawing_axis_borrows_its_codes_and_has_no_classifier_field() -> Non
         assert edge["properties"]["dictionary_label"] == "GeneralizationShapesKindEnumEntity"
         assert edge["properties"]["dictionary_qualname"].endswith("GeneralizationShapesKindEnumEntity")
         assert "classifier_field" not in edge["properties"]
+
+
+def test_the_demo_graph_carries_the_reference_edges() -> None:
+    """Every reference is an edge, not only a column property."""
+    graph = _graph()
+    references = [edge for edge in graph["edges"] if edge.get("type") == "entity_reference"]
+
+    assert len(references) >= 26, f"expected the demo's currency references, got {len(references)}"
+    for edge in references:
+        assert edge["target_id"].endswith("CurrencyEnumEntity")
+        assert edge["properties"]["cardinality"] == "one"
+        assert edge["properties"]["field_name"]
+
+
+def test_the_demo_graph_loads_into_the_viewer_with_the_new_edge() -> None:
+    """An edge type the resource does not know raises ``KeyError``; the demo must load."""
+    store = DuckDBGraphResource.build_from_json(_graph())
+
+    assert store is not None
+
+
+def test_the_demo_slice_carries_a_reference_relation() -> None:
+    """The ERD has an arrow from the host to the dictionary, labelled with the field name."""
+    graph = _graph()
+    reference = next(
+        edge
+        for edge in graph["edges"]
+        if edge.get("type") == "entity_reference" and edge["target_id"].endswith("CurrencyEnumEntity")
+    )
+    domain = next(
+        edge["target_id"]
+        for edge in graph["edges"]
+        if edge.get("type") == "domain" and edge["source_id"] == reference["source_id"]
+    )
+    store = DuckDBGraphResource.build_from_json(graph)
+    diagram = ListEntitiesAction._slice_payload(store, domain, include_neighbors=True)
+
+    assert reference["target_id"] in {entity["id"] for entity in diagram["entities"]}
+    assert any(
+        relation["relationship_kind"] == "reference"
+        and relation["source"] == reference["source_id"]
+        and relation["target"] == reference["target_id"]
+        and relation["label"] == reference["properties"]["field_name"]
+        for relation in diagram["relations"]
+    )

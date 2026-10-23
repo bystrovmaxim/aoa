@@ -18,17 +18,26 @@ call and never joins the global model other tests build.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated
 
 import pytest
 from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import (
+    AggregateMany,
+    AggregateOne,
     AssociationMany,
     AssociationOne,
+    BaseAssocEntity,
     BaseCoreEntity,
+    BaseDetailEntity,
     BaseDomain,
     BaseEnumEntity,
+    BaseSpecEntity,
+    CompositeMany,
+    CompositeOne,
+    Generalization,
     Inverse,
     NoGraphEdge,
     NoInverse,
@@ -38,7 +47,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.graph.validators.entity_field_validator import _kind_of, validate_entity_fields
 from aoa.action_machine.graph.validators.entity_specialization_validator import declared_entity_classes
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.model.base_schema import BaseSchema
@@ -61,10 +70,9 @@ class ShowcaseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Showcase identifier")
 
 
-@exclude_graph_model
 @entity(description="Dictionary", domain=FieldRulesDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
-    """A dictionary reference the rule leaves alone."""
+    """A dictionary reference the rule accepts as the bare type."""
 
     symbol: str = Field(description="Currency symbol")
 
@@ -128,6 +136,30 @@ class TupleCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
+@entity(description="Gallery", domain=FieldRulesDomain)
+class GalleryCoreEntity(BaseCoreEntity):
+    """A second structural entity, for a union and a mixed collection."""
+
+    id: str = Field(description="Identifier")
+
+
+@exclude_graph_model
+@entity(description="Union of entities", domain=FieldRulesDomain)
+class UnionCoreEntity(BaseCoreEntity):
+    """Name two entities on one field."""
+
+    ref: ShowcaseCoreEntity | GalleryCoreEntity = Field(description="Union")
+
+
+@exclude_graph_model
+@entity(description="Mixed collection", domain=FieldRulesDomain)
+class MixedCollectionCoreEntity(BaseCoreEntity):
+    """Collect two different entities in one field."""
+
+    ref: tuple[ShowcaseCoreEntity, GalleryCoreEntity] = Field(description="Mixed")
+
+
+@exclude_graph_model
 @entity(description="State field", domain=FieldRulesDomain)
 class StateFieldCoreEntity(BaseCoreEntity):
     """Declare a state entity as a field."""
@@ -167,6 +199,227 @@ class MarkerWithRelationCoreEntity(BaseCoreEntity):
     showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoRelation("embedded showcase")] = Field(
         description="Showcase"
     )
+
+
+@exclude_graph_model
+@entity(description="Dictionary references", domain=FieldRulesDomain)
+class DictionaryReferenceCoreEntity(BaseCoreEntity):
+    """Reference a dictionary as a required, optional, defaulted and factory value."""
+
+    id: str = Field(description="Identifier")
+    currency: CurrencyEnumEntity = Field(description="Required reference")
+    settlement: CurrencyEnumEntity | None = Field(default=None, description="Optional reference")
+    fallback: CurrencyEnumEntity = Field(default=CurrencyEnumEntity.EUR, description="Defaulted reference")
+    copied: CurrencyEnumEntity = Field(default_factory=lambda: CurrencyEnumEntity.EUR, description="Factory reference")
+    unguarded: CurrencyEnumEntity = Field(default=None, description="A default the relation rule would refuse")
+
+
+@exclude_graph_model
+@entity(description="Annotated dictionary reference", domain=FieldRulesDomain)
+class AnnotatedDictionaryCoreEntity(BaseCoreEntity):
+    """Declare the reference through the inner ``Field`` syntax."""
+
+    currency: Annotated[CurrencyEnumEntity, Field(description="Annotated reference")]
+
+
+@exclude_graph_model
+@entity(description="Dictionary tuple", domain=FieldRulesDomain)
+class DictionaryTupleCoreEntity(BaseCoreEntity):
+    """Store many dictionary values in a tuple."""
+
+    currencies: tuple[CurrencyEnumEntity, ...] = Field(default=(), description="Currencies")
+
+
+@exclude_graph_model
+@entity(description="Dictionary list", domain=FieldRulesDomain)
+class DictionaryListCoreEntity(BaseCoreEntity):
+    """Store many dictionary values in a list."""
+
+    currencies: list[CurrencyEnumEntity] = Field(default_factory=list, description="Currencies")
+
+
+@exclude_graph_model
+@entity(description="Dictionary sequence", domain=FieldRulesDomain)
+class DictionarySequenceCoreEntity(BaseCoreEntity):
+    """Store many dictionary values in a sequence."""
+
+    currencies: Sequence[CurrencyEnumEntity] = Field(default=(), description="Currencies")
+
+
+@exclude_graph_model
+@entity(description="Dictionary set", domain=FieldRulesDomain)
+class DictionarySetCoreEntity(BaseCoreEntity):
+    """Store many dictionary values in a frozen set."""
+
+    currencies: frozenset[CurrencyEnumEntity] = Field(default_factory=frozenset, description="Currencies")
+
+
+@exclude_graph_model
+@entity(description="Dictionary mapping", domain=FieldRulesDomain)
+class DictionaryMappingCoreEntity(BaseCoreEntity):
+    """Store many dictionary values in a mapping."""
+
+    currencies: dict[str, CurrencyEnumEntity] = Field(default_factory=dict, description="Currencies")
+
+
+@exclude_graph_model
+@entity(description="Second dictionary", domain=FieldRulesDomain)
+class CountryEnumEntity(BaseEnumEntity):
+    """Be the second dictionary a union can name."""
+
+    EU = value(code="eu", display_name="Europe")
+
+
+@exclude_graph_model
+@entity(description="Dictionary union", domain=FieldRulesDomain)
+class DictionaryUnionCoreEntity(BaseCoreEntity):
+    """Name two dictionaries on one field."""
+
+    currency: CurrencyEnumEntity | CountryEnumEntity = Field(description="Union")
+
+
+@exclude_graph_model
+@entity(description="Association one of a dictionary", domain=FieldRulesDomain)
+class AssociationOneDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a one association."""
+
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Association many of a dictionary", domain=FieldRulesDomain)
+class AssociationManyDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a many association."""
+
+    currency: Annotated[AssociationMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Composite one of a dictionary", domain=FieldRulesDomain)
+class CompositeOneDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a one composition."""
+
+    currency: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Composite many of a dictionary", domain=FieldRulesDomain)
+class CompositeManyDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a many composition."""
+
+    currency: Annotated[CompositeMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Aggregate one of a dictionary", domain=FieldRulesDomain)
+class AggregateOneDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a one aggregate."""
+
+    currency: Annotated[AggregateOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Aggregate many of a dictionary", domain=FieldRulesDomain)
+class AggregateManyDictionaryCoreEntity(BaseCoreEntity):
+    """Wrap a shared value in a many aggregate."""
+
+    currency: Annotated[AggregateMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Generalization of a dictionary", domain=FieldRulesDomain)
+class GeneralizationDictionaryCoreEntity(BaseCoreEntity):
+    """Declare a dictionary as a generalization head."""
+
+    currency: Annotated[Generalization[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+
+@exclude_graph_model
+class EmptyEnumEntity(BaseEnumEntity):
+    """A dictionary with no values; ``@entity`` refuses one, so it stays undecorated."""
+
+
+@exclude_graph_model
+@entity(description="Empty catalogue", domain=FieldRulesDomain)
+class EmptyCatalogueCoreEntity(BaseCoreEntity):
+    """Reference a dictionary that declares nothing."""
+
+    currency: EmptyEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Hidden dictionary", domain=FieldRulesDomain)
+class HiddenEnumEntity(BaseEnumEntity):
+    """Be a dictionary marked outside the graph."""
+
+    USD = value(code="usd", display_name="US dollar")
+
+
+@exclude_graph_model
+@entity(description="Hidden dictionary reference", domain=FieldRulesDomain)
+class HiddenDictionaryCoreEntity(BaseCoreEntity):
+    """Reference a dictionary that has no graph node."""
+
+    currency: HiddenEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Spec host", domain=FieldRulesDomain)
+class SpecDictionarySpecEntity(BaseSpecEntity):
+    """Reference a dictionary from a Spec host."""
+
+    id: str = Field(description="Identifier")
+    currency: CurrencyEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Assoc host", domain=FieldRulesDomain)
+class AssocDictionaryAssocEntity(BaseAssocEntity):
+    """Reference a dictionary from an Assoc host."""
+
+    id: str = Field(description="Identifier")
+    currency: CurrencyEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Detail host", domain=FieldRulesDomain)
+class DetailDictionaryDetailEntity(BaseDetailEntity):
+    """Reference a dictionary from a Detail host."""
+
+    id: str = Field(description="Identifier")
+    currency: CurrencyEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Dictionary base", domain=FieldRulesDomain)
+class DictionaryBaseCoreEntity(BaseCoreEntity):
+    """Declare a reference on a base class."""
+
+    currency: CurrencyEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Dictionary child", domain=FieldRulesDomain)
+class InheritedDictionaryCoreEntity(DictionaryBaseCoreEntity):
+    """Inherit the reference."""
+
+    extra: str = Field(description="Extra")
+
+
+@exclude_graph_model
+@entity(description="Forward dictionary reference", domain=FieldRulesDomain)
+class ForwardDictionaryCoreEntity(BaseCoreEntity):
+    """Name its dictionary before that dictionary exists."""
+
+    currency: LaterHiddenEnumEntity = Field(description="Currency")
+
+
+@exclude_graph_model
+@entity(description="Forward hidden dictionary", domain=FieldRulesDomain)
+class LaterHiddenEnumEntity(BaseEnumEntity):
+    """Be the dictionary the forward reference names, and stay outside the graph."""
+
+    USD = value(code="usd", display_name="US dollar")
 
 
 @exclude_graph_model
@@ -230,9 +483,7 @@ class OrdinaryCoreEntity(BaseCoreEntity):
 class RequiredRelationCoreEntity(BaseCoreEntity):
     """Declare a relation that must be supplied."""
 
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
-        description="Required showcase"
-    )
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="Required showcase")
 
 
 @exclude_graph_model
@@ -240,9 +491,7 @@ class RequiredRelationCoreEntity(BaseCoreEntity):
 class NullableRequiredCoreEntity(BaseCoreEntity):
     """Declare a nullable relation that must still be supplied."""
 
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
-        description="Nullable showcase"
-    )
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(description="Nullable showcase")
 
 
 @exclude_graph_model
@@ -260,9 +509,7 @@ class OmittableCoreEntity(BaseCoreEntity):
 class NonNullableDefaultCoreEntity(BaseCoreEntity):
     """Default ``None`` on a relation that does not allow it."""
 
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
-        default=None, description="Showcase"
-    )
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
 
 
 @exclude_graph_model
@@ -323,9 +570,7 @@ class HiddenEdgeCoreEntity(BaseCoreEntity):
 class InnerSyntaxCoreEntity(BaseCoreEntity):
     """A description supplied by the ``Field`` inside ``Annotated``."""
 
-    showcase: Annotated[
-        AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")
-    ] = Field()
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field()
 
 
 @exclude_graph_model
@@ -333,9 +578,9 @@ class InnerSyntaxCoreEntity(BaseCoreEntity):
 class BothSyntaxesCoreEntity(BaseCoreEntity):
     """A description supplied twice: the assignment wins."""
 
-    showcase: Annotated[
-        AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")
-    ] = Field(description="Outer showcase")
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field(
+        description="Outer showcase"
+    )
 
 
 @exclude_graph_model
@@ -343,9 +588,7 @@ class BothSyntaxesCoreEntity(BaseCoreEntity):
 class RelationBaseCoreEntity(BaseCoreEntity):
     """Declare a relation on a base class."""
 
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
-        default=None, description="Showcase"
-    )
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
 
 
 @exclude_graph_model
@@ -384,7 +627,7 @@ def test_a_bare_optional_entity_field_is_refused() -> None:
 
 @pytest.mark.parametrize(
     "entity_cls",
-    [ListCoreEntity, DictCoreEntity, SetCoreEntity, TupleCoreEntity],
+    [ListCoreEntity, SetCoreEntity, TupleCoreEntity],
 )
 def test_a_collection_of_entities_is_refused(entity_cls: type) -> None:
     """A container of an entity is not a relation; the many forms are named instead."""
@@ -392,6 +635,43 @@ def test_a_collection_of_entities_is_refused(entity_cls: type) -> None:
 
     assert error.field_name == "showcases"
     assert "AssociationMany" in error.details
+
+
+def test_a_union_of_entities_names_both_and_asks_for_two_fields() -> None:
+    """A union is not a collection, and it has no single container."""
+    error = _refusal(UnionCoreEntity)
+
+    assert "union" in error.details
+    assert "ShowcaseCoreEntity" in error.details
+    assert "GalleryCoreEntity" in error.details
+    assert "collection" not in error.details
+    assert "AssociationMany" not in error.details
+
+
+def test_a_heterogeneous_collection_names_every_entity() -> None:
+    """One many-relation cannot point at two entities."""
+    error = _refusal(MixedCollectionCoreEntity)
+
+    assert "collection of 2 entities" in error.details
+    assert "ShowcaseCoreEntity" in error.details
+    assert "GalleryCoreEntity" in error.details
+    assert "AssociationMany" not in error.details
+
+
+def test_a_mapping_is_described_as_a_mapping() -> None:
+    """A mapping is not a relation, and no many-relation fits it."""
+    error = _refusal(DictCoreEntity)
+
+    assert "mapping" in error.details
+    assert "ShowcaseCoreEntity" in error.details
+    assert "AssociationMany" not in error.details
+
+
+def test_the_other_refusals_keep_their_message() -> None:
+    """Only the three shapes change: the bare, homogeneous and dictionary cases are as before."""
+    assert "AssociationOne" in _refusal(BareCoreEntity).details
+    assert "AssociationMany" in _refusal(ListCoreEntity).details
+    assert "no declared form" in _refusal(DictionaryTupleCoreEntity).details
 
 
 def test_a_state_entity_field_names_the_lifecycle_form() -> None:
@@ -422,6 +702,126 @@ def test_the_embedded_marker_is_refused_on_a_dictionary() -> None:
 
     assert "NoRelation" in error.details
     assert "CurrencyEnumEntity" in error.details
+    assert "already declares the reference" in error.details
+
+
+def test_a_bare_dictionary_reference_is_accepted() -> None:
+    """The dictionary type itself is the declaration, as #241 decided."""
+    validate_entity_fields([DictionaryReferenceCoreEntity, AnnotatedDictionaryCoreEntity])
+
+
+def test_a_dictionary_reference_acquires_no_relation_default_rule() -> None:
+    """The default contract binds relation containers; a reference keeps its own defaults (FR-032)."""
+    validate_entity_fields([DictionaryReferenceCoreEntity])
+
+    assert DictionaryReferenceCoreEntity.model_fields["fallback"].default is CurrencyEnumEntity.EUR
+    assert DictionaryReferenceCoreEntity.model_fields["copied"].default_factory is not None
+    assert DictionaryReferenceCoreEntity.model_fields["unguarded"].default is None
+
+
+@pytest.mark.parametrize(
+    "entity_cls",
+    [
+        DictionaryTupleCoreEntity,
+        DictionaryListCoreEntity,
+        DictionarySequenceCoreEntity,
+        DictionarySetCoreEntity,
+        DictionaryMappingCoreEntity,
+    ],
+)
+def test_a_collection_of_dictionary_values_is_refused(entity_cls: type) -> None:
+    """A collection of dictionary values has no declared form."""
+    error = _refusal(entity_cls)
+
+    assert error.field_name == "currencies"
+    assert "no declared form" in error.details
+    assert "CurrencyEnumEntity" in error.details
+    assert "AssociationMany" not in error.details
+
+
+def test_a_union_of_two_dictionaries_is_refused() -> None:
+    """A field names one dictionary, not a choice between two."""
+    error = _refusal(DictionaryUnionCoreEntity)
+
+    assert "more than one dictionary" in error.details
+    assert "AssociationMany" not in error.details
+
+
+@pytest.mark.parametrize(
+    "entity_cls",
+    [
+        AssociationOneDictionaryCoreEntity,
+        AssociationManyDictionaryCoreEntity,
+        CompositeOneDictionaryCoreEntity,
+        CompositeManyDictionaryCoreEntity,
+        AggregateOneDictionaryCoreEntity,
+        AggregateManyDictionaryCoreEntity,
+        GeneralizationDictionaryCoreEntity,
+    ],
+)
+def test_a_relation_container_around_a_dictionary_is_refused(entity_cls: type) -> None:
+    """A shared value is not an association target."""
+    error = _refusal(entity_cls)
+
+    assert error.field_name == "currency"
+    assert "shared reference" in error.details
+    assert "CurrencyEnumEntity" in error.details
+
+
+def test_an_empty_dictionary_is_refused_at_the_declaration_boundary() -> None:
+    """A dictionary with no values could never fill the field, and the rule says so first."""
+    error = _refusal(EmptyCatalogueCoreEntity)
+
+    assert "declares no values" in error.details
+    assert "concrete dictionary" in error.details
+
+
+def test_a_dictionary_outside_the_graph_is_refused() -> None:
+    """A reference edge needs a node; an excluded dictionary has none."""
+    error = _refusal(HiddenDictionaryCoreEntity)
+
+    assert "no node in the graph" in error.details
+    assert "exclude_graph_model" in error.details
+
+
+def test_an_empty_dictionary_outside_the_graph_reports_the_catalogue_first() -> None:
+    """The cause the author can fix is named first (FR-006)."""
+    error = _refusal(EmptyCatalogueCoreEntity)
+
+    assert "declares no values" in error.details
+    assert "no node in the graph" not in error.details
+
+
+def test_the_kind_classifier_names_the_dictionary_kind() -> None:
+    """The dictionary is a kind of its own, next to the structural ones and the state."""
+    assert _kind_of(CurrencyEnumEntity) == "Enum"
+    assert _kind_of(ShowcaseCoreEntity) == "Core"
+    assert _kind_of(DraftStateEntity) == "State"
+    assert _kind_of(str) is None
+
+
+@pytest.mark.parametrize(
+    "entity_cls",
+    [SpecDictionarySpecEntity, AssocDictionaryAssocEntity, DetailDictionaryDetailEntity],
+)
+def test_a_dictionary_reference_is_judged_on_every_structural_host(entity_cls: type) -> None:
+    """The host's kind does not change the reference rule."""
+    validate_entity_fields([entity_cls])
+
+
+def test_an_inherited_dictionary_reference_is_judged() -> None:
+    """An inherited field is judged on the class that reports it."""
+    validate_entity_fields([InheritedDictionaryCoreEntity])
+
+
+def test_a_forward_referenced_dictionary_is_judged_after_resolution() -> None:
+    """An unresolved name is not evidence of a scalar, and the dictionary is judged once resolved."""
+    validate_entity_fields([ForwardDictionaryCoreEntity])
+
+    ForwardDictionaryCoreEntity.model_rebuild()
+    error = _refusal(ForwardDictionaryCoreEntity)
+
+    assert "LaterHiddenEnumEntity" in error.details
 
 
 def test_the_embedded_marker_cannot_accompany_a_relation() -> None:
@@ -476,19 +876,19 @@ def test_a_class_outside_the_graph_is_not_judged() -> None:
 
     validate_entity_fields()
 
+
 def test_the_graph_build_runs_the_field_pass(monkeypatch: pytest.MonkeyPatch) -> None:
     """The rule belongs to the build: a caller cannot publish a graph without it."""
     from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
     from aoa.action_machine.graph.validators import entity_field_validator as validator_module
 
     calls: list[bool] = []
-    monkeypatch.setattr(
-        validator_module, "validate_entity_fields", lambda entities=None: calls.append(True)
-    )
+    monkeypatch.setattr(validator_module, "validate_entity_fields", lambda entities=None: calls.append(True))
 
     NodeGraphCoordinator().build([])
 
     assert calls == [True]
+
 
 def test_a_required_relation_must_be_supplied() -> None:
     """The default contract, row one: no default at all."""
@@ -542,9 +942,7 @@ def test_a_factory_is_refused_and_never_executed() -> None:
     assert _FACTORY_CALLS == []
 
 
-@pytest.mark.parametrize(
-    "entity_cls", [BlankDescriptionCoreEntity, MissingDescriptionCoreEntity, HiddenEdgeCoreEntity]
-)
+@pytest.mark.parametrize("entity_cls", [BlankDescriptionCoreEntity, MissingDescriptionCoreEntity, HiddenEdgeCoreEntity])
 def test_a_relation_without_a_description_is_refused(entity_cls: type) -> None:
     """A missing, blank or whitespace-only description is refused, hidden edge or not."""
     error = _refusal(entity_cls)

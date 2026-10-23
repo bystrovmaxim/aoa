@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dictionary references connect entity cards.** Rebuilt graph exports supply named reference relations to dictionary cards while preserving the field type hint and catalogue descriptions. Regenerate older exports to supply the reference edges. ([#256](https://github.com/bystrovmaxim/aoa/issues/256))
+
 - **Dictionary cards emphasize human labels** — Value rows print labels and descriptive properties, while codes remain in tooltips. The inherited code and display-name fields are omitted from ordinary dictionary field rows; other entity fields are preserved. Existing reference payloads retain their codes. See the [diagram guide](../../docs/tutorials/step-26-maxitor.md).
 
 ### Changed
