@@ -7,6 +7,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -15,9 +16,9 @@ class CatalogDenseStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    DRAFT = CatalogDenseStateEntity(code="draft", display_name="Draft", sort_order=1)  # noqa: F821
-    STAGED = CatalogDenseStateEntity(code="staged", display_name="Staged", sort_order=2)  # noqa: F821
-    ARCHIVED = CatalogDenseStateEntity(code="archived", display_name="Archived", sort_order=3)  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft", sort_order=1)
+    STAGED = value(code="staged", display_name="Staged", sort_order=2)
+    ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
 

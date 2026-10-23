@@ -5,6 +5,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -13,9 +14,9 @@ class AnalyticsPipelineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    INGEST = AnalyticsPipelineStateEntity(code="ingest", display_name="Ingest", sort_order=1)  # noqa: F821
-    HYDRATE = AnalyticsPipelineStateEntity(code="hydrate", display_name="Hydrate", sort_order=2)  # noqa: F821
-    COMMIT = AnalyticsPipelineStateEntity(code="commit", display_name="Committed", sort_order=3)  # noqa: F821
+    INGEST = value(code="ingest", display_name="Ingest", sort_order=1)
+    HYDRATE = value(code="hydrate", display_name="Hydrate", sort_order=2)
+    COMMIT = value(code="commit", display_name="Committed", sort_order=3)
 
 
 
@@ -33,9 +34,9 @@ class AnalyticsFactStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    OPEN = AnalyticsFactStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
-    INDEXED = AnalyticsFactStateEntity(code="indexed", display_name="Indexed", sort_order=2)  # noqa: F821
-    FROZEN = AnalyticsFactStateEntity(code="frozen", display_name="Frozen", sort_order=3)  # noqa: F821
+    OPEN = value(code="open", display_name="Open", sort_order=1)
+    INDEXED = value(code="indexed", display_name="Indexed", sort_order=2)
+    FROZEN = value(code="frozen", display_name="Frozen", sort_order=3)
 
 
 

@@ -4,7 +4,7 @@ Pass a list of code strings to Classifier.
 Run: uv run python examples/step_21_relations/41_error_codes_not_literal.py
 """
 
-from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier
+from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier, value
 from aoa.action_machine.intents.entity import entity
 
 
@@ -19,7 +19,7 @@ class MediaDomain(BaseDomain):
 class MediaKindEnumEntity(BaseEnumEntity):
     """Declare the codes an axis borrows, in the class body."""
 
-    VINYL = MediaKindEnumEntity(code="vinyl", display_name="Vinyl")  # noqa: F821
+    VINYL = value(code="vinyl", display_name="Vinyl")
 
 
 def main() -> None:

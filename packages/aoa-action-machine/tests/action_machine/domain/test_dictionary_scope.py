@@ -1,5 +1,5 @@
 # tests/action_machine/domain/test_dictionary_scope.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
+# the class-name alias is the surface this module tests
 """
 Tests for the dictionary kind's closed set: its values, its catalogue and its refusals.
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 import pytest
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.domain import BaseDomain, BaseEnumEntity
+from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 
@@ -35,8 +35,8 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
+    EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
 def test_the_kind_supplies_exactly_two_fields() -> None:
@@ -70,7 +70,7 @@ def test_values_are_not_inherited() -> None:
     class FiatCurrencyEnumEntity(CurrencyEnumEntity):
         """A different dictionary that reuses the fields."""
 
-        GBP = FiatCurrencyEnumEntity(code="gbp", display_name="Pound sterling", symbol="£")
+        GBP = value(code="gbp", display_name="Pound sterling", symbol="£")
 
     assert FiatCurrencyEnumEntity.codes() == ["gbp"]
     with pytest.raises(KeyError):
@@ -107,8 +107,8 @@ def test_duplicate_codes_are_refused() -> None:
         class DuplicateEnumEntity(BaseEnumEntity):
             """Declare the same code twice."""
 
-            ONE = DuplicateEnumEntity(code="same", display_name="One")
-            TWO = DuplicateEnumEntity(code="same", display_name="Two")
+            ONE = value(code="same", display_name="One")
+            TWO = value(code="same", display_name="Two")
 
 
 def test_a_blank_code_or_label_is_refused() -> None:
@@ -124,12 +124,12 @@ def test_a_child_without_extra_fields_constructs_its_own_values() -> None:
     @exclude_graph_model
     class ParentEnumEntity(BaseEnumEntity):
         """Declare the parent vocabulary."""
-        OLD = ParentEnumEntity(code="old", display_name="Old")
+        OLD = value(code="old", display_name="Old")
 
     @exclude_graph_model
     class ChildEnumEntity(ParentEnumEntity):
         """Declare a separate vocabulary using the same fields."""
-        NEW = ChildEnumEntity(code="new", display_name="New")
+        NEW = value(code="new", display_name="New")
 
     assert ChildEnumEntity.codes() == ["new"]
     assert ChildEnumEntity.NEW.code == "new"

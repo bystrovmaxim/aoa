@@ -15,6 +15,7 @@ One authored line inside a kind's class body.
 | Fields | `code` and `display_name` from the kind (required, non-blank) plus the model's own fields |
 | Import | `from aoa.action_machine.domain import value` |
 | Result at runtime | a `ValueSpec` placeholder, replaced after the class is created |
+| Name collision | a class body that binds `value` itself (a field of that name) shadows the factory; the model imports it under another name and declares with that one |
 | Removed form | `NAME = TheClass(...)` — the class name does not exist while its body runs, so the line fails; no alias remains |
 
 ## Placeholder

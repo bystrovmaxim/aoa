@@ -7,6 +7,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -15,8 +16,8 @@ class BillingDenseStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    OPEN = BillingDenseStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
-    FINALIZED = BillingDenseStateEntity(code="finalized", display_name="Finalized", sort_order=2)  # noqa: F821
+    OPEN = value(code="open", display_name="Open", sort_order=1)
+    FINALIZED = value(code="finalized", display_name="Finalized", sort_order=2)
 
 
 
@@ -32,9 +33,9 @@ class BillingPipelineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    STAGED = BillingPipelineStateEntity(code="staged", display_name="Staged", sort_order=1)  # noqa: F821
-    VALIDATED = BillingPipelineStateEntity(code="validated", display_name="Validated", sort_order=2)  # noqa: F821
-    EXPORTED = BillingPipelineStateEntity(code="exported", display_name="Exported", sort_order=3)  # noqa: F821
+    STAGED = value(code="staged", display_name="Staged", sort_order=1)
+    VALIDATED = value(code="validated", display_name="Validated", sort_order=2)
+    EXPORTED = value(code="exported", display_name="Exported", sort_order=3)
 
 
 

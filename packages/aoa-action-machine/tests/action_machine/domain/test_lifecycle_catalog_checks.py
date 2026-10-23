@@ -1,26 +1,26 @@
 # packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
+# the class-name alias is the surface this module tests
 """The axis refuses a foreign status and a missing status at class creation."""
 
 from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.domain import BaseStateEntity, ForeignStateError, Lifecycle, MissingStateError
+from aoa.action_machine.domain import BaseStateEntity, ForeignStateError, Lifecycle, MissingStateError, value
 
 
 class CheckStateEntity(BaseStateEntity):
     """Status type used by the refusal tests."""
 
-    DRAFT = CheckStateEntity(code="draft", display_name="Draft")
-    PAID = CheckStateEntity(code="paid", display_name="Paid")
-    CANCELLED = CheckStateEntity(code="cancelled", display_name="Cancelled")
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Paid")
+    CANCELLED = value(code="cancelled", display_name="Cancelled")
 
 
 class OtherStateEntity(BaseStateEntity):
     """A second status type, to be refused by the first axis."""
 
-    GHOST = OtherStateEntity(code="ghost", display_name="Ghost")
+    GHOST = value(code="ghost", display_name="Ghost")
 
 
 class EmptyCheckStateEntity(BaseStateEntity):

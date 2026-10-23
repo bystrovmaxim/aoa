@@ -5,14 +5,14 @@ Construct a lifecycle using a code absent from its template.
 Run: uv run python examples/step_22_lifecycle/04_unknown_state.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received")  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received")
 
 
 

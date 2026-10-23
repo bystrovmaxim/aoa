@@ -47,6 +47,7 @@ from aoa.action_machine.domain import (
     NoInverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentCoreEntity
@@ -60,8 +61,8 @@ from aoa.demo.model.store.entities.audit_log_entry import AuditLogEntryDetailEnt
 class GeneralizationShapesKindEnumEntity(BaseEnumEntity):
     """Declare the codes the drawing axis borrows."""
 
-    VARIANT_A = GeneralizationShapesKindEnumEntity(code="variant_a", display_name="Variant A")  # noqa: F821
-    VARIANT_B = GeneralizationShapesKindEnumEntity(code="variant_b", display_name="Variant B")  # noqa: F821
+    VARIANT_A = value(code="variant_a", display_name="Variant A")
+    VARIANT_B = value(code="variant_b", display_name="Variant B")
 
 
 @entity(

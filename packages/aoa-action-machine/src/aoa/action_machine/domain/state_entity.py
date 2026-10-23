@@ -14,11 +14,13 @@ show, and whatever domain fields the status needs.
 The type also declares its own statuses in its own body::
 
     class OrderStateEntity(BaseStateEntity):
-        DRAFT = OrderStateEntity(code="draft", display_name="Draft")
+        DRAFT = value(code="draft", display_name="Draft")
 
-Inside the body the type's name resolves to the internal declaration factory;
-after the class is created every name is a real instance and the type carries
-the catalogue: ``members``, ``codes()``, ``by_code()`` and ``entity_type``.
+``value`` returns a placeholder; after the class is created every name is a real
+instance and the type carries the catalogue: ``members``, ``codes()``,
+``by_code()`` and ``entity_type``. A class body cannot also bind the name
+``value``; a model that needs such a field imports the factory under another
+name.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCOPE (IN / OUT)
@@ -40,10 +42,10 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    class body                     conversion hook                 consumers
-    DRAFT = OrderStateEntity(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
-    (ValueSpec placeholder)            full instance, fields validated    codes(), by_code(),
-                                                                          entity_type
+    class body            conversion hook                consumers
+    DRAFT = value(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
+    (ValueSpec placeholder)  full instance, validated       codes(), by_code(),
+                                                             entity_type
                                   │
                                   ├── lifecycle template: key = code, label = display_name
                                   └── interchange graph: label + properties.attributes
@@ -55,8 +57,8 @@ USAGE
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
 
-        DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)
-        PAID = OrderStateEntity(code="paid", display_name="Paid", sort_order=1)
+        DRAFT = value(code="draft", display_name="Draft", sort_order=99)
+        PAID = value(code="paid", display_name="Paid", sort_order=1)
 """
 
 from __future__ import annotations
@@ -67,7 +69,6 @@ from typing import Any
 from pydantic import ConfigDict, Field, field_validator
 
 from aoa.action_machine.domain.declared_values import (
-    DeclaredValuesMeta,
     ValueSpec,
     _DeclaredValues,
 )
@@ -75,7 +76,7 @@ from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 
-class BaseStateEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesMeta):
+class BaseStateEntity(_DeclaredValues, BaseEntity, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Marker of the state kind — a status type that declares its own statuses and carries their catalogue.

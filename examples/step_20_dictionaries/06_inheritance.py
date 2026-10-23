@@ -6,7 +6,7 @@ Run: uv run python examples/step_20_dictionaries/06_inheritance.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -24,8 +24,8 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
 @entity(description="Price tag", domain=ShopDomain)
@@ -44,7 +44,7 @@ def main() -> None:
     class LocalCurrencyEnumEntity(CurrencyEnumEntity):
         """Reuse the currency fields with a separate vocabulary."""
 
-        GBP = LocalCurrencyEnumEntity(code="gbp", display_name="Pound", symbol="£")  # noqa: F821
+        GBP = value(code="gbp", display_name="Pound", symbol="£")
 
     print("Parent:", CurrencyEnumEntity.codes())
     print("Child:", LocalCurrencyEnumEntity.codes())

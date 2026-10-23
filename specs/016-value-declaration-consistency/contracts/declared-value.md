@@ -34,6 +34,7 @@ Guarantees:
 3. After class creation every declared name is an instance of the declaring type, with defaults applied and unknown keys refused; the class name itself never resolves inside its body, so the replaced form fails at the line that writes it.
 4. `members`, `codes()`, `by_code()`, `entity_type`, declaration order, the duplicate refusal and each kind's inheritance and empty-catalogue rules are unchanged.
 5. The conversion of placeholders into instances stays automatic and happens once per class; it is documented as the one remaining automatic step.
+6. A declaring class body cannot also bind the name `value`: an annotation such as `value: Opaque = Field(...)` shadows the factory for the lines that follow. A model that needs a field called `value` on a declaring kind imports the factory under another name — `from aoa.action_machine.domain import value as declared` — and declares with that name; the test `test_a_field_named_value_needs_the_factory_under_another_name` proves the escape hatch.
 
 ## 2. Which properties a dictionary value may declare
 

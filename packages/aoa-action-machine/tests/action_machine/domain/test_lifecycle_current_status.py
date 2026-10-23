@@ -3,7 +3,7 @@
 import pytest
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 from aoa.action_machine.domain.lifecycle import InvalidStateError, InvalidTransitionError
 
 
@@ -13,8 +13,8 @@ class OrderStateEntity(BaseStateEntity):
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
     labels: list[str] = Field(default_factory=list, description="Additional domain labels")
 
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")  # noqa: F821
+    PAID = value(code="paid", display_name="Payment received", requires_receipt=True)
+    SHIPPED = value(code="shipped", display_name="Shipped")
 
 
 

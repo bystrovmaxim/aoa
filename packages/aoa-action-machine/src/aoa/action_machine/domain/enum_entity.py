@@ -14,12 +14,14 @@ body, the way a state type declares its statuses::
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
-        EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")
+        USD = value(code="usd", display_name="US dollar", symbol="$")
+        EUR = value(code="eur", display_name="Euro", symbol="€")
 
-Inside the body the type's name resolves to the internal declaration factory;
-after the class is created every name is a real instance and the type carries the
-catalogue: ``members``, ``codes()``, ``by_code()`` and ``entity_type``.
+``value`` returns a placeholder; after the class is created every name is a real
+instance and the type carries the catalogue: ``members``, ``codes()``,
+``by_code()`` and ``entity_type``. A class body cannot also bind the name
+``value``; a model that needs such a field imports the factory under another
+name.
 
 The set is closed: a dictionary declares every value it has, and nothing else is
 a value. A dictionary maintained in data is a different kind.
@@ -43,9 +45,9 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    class body                      conversion hook              consumers
-    USD = CurrencyEnumEntity(...) ──►  CurrencyEnumEntity(...) ──►  members, codes(),
-    (ValueSpec placeholder)            full instance, validated     by_code(), entity_type
+    class body            conversion hook                consumers
+    USD = value(...)  ──►  CurrencyEnumEntity(**kwargs) ──►  members, codes(),
+    (ValueSpec placeholder)  full instance, validated       by_code(), entity_type
                                   │
                                   ├── interchange graph: properties.values
                                   └── a field typed by the dictionary: its reference object
@@ -58,7 +60,7 @@ USAGE
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
+        USD = value(code="usd", display_name="US dollar", symbol="$")
 
     CurrencyEnumEntity.codes()          # ["usd"]
     CurrencyEnumEntity.by_code("usd")   # the declared USD value
@@ -74,7 +76,6 @@ from pydantic import ConfigDict, Field, GetCoreSchemaHandler, ValidationInfo, fi
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
-    DeclaredValuesMeta,
     ValueSpec,
     _DeclaredValues,
 )
@@ -84,7 +85,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 _VALUE_CONSTRUCTION = object()
 
 
-class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesMeta):
+class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     """
     A shared reference value identified by its dictionary code.
 

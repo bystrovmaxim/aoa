@@ -35,6 +35,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     Rel,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -75,10 +76,10 @@ class OrderStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Paid", sort_order=2)  # noqa: F821
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=4)  # noqa: F821
+    NEW = value(code="new", display_name="New", sort_order=1)
+    PAID = value(code="paid", display_name="Paid", sort_order=2)
+    SHIPPED = value(code="shipped", display_name="Shipped", sort_order=3)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=4)
 
 
 
