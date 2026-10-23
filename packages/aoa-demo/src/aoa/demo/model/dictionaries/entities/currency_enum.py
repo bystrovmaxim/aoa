@@ -1,7 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/dictionaries/entities/currency_enum.py
 """Currency dictionaries the demo's monetary fields reference."""
 
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 
 from __future__ import annotations
 

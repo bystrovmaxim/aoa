@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/audit_log_entry_lifecycle.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Audit log entry lifecycle demo."""
 
 from __future__ import annotations

@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_graph_json_schema_values.py
-# the class-name alias is the surface this module tests
 """
 Tests for the dictionary values on the graph node and in the interchange schema.
 

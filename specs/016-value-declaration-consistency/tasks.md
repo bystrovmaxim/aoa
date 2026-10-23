@@ -93,14 +93,14 @@ Repository root holds `packages/`, `examples/`, `docs/`, `specs/`. The framework
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Extend `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py` — a custom serializer's text in the reference, a `date` as its ISO string without one, `json.dumps` not raising, the Python-mode dump documented as possibly different, and a value with two extra fields where only one has a serializer: the other keeps its own emitted form (FR-013 to FR-015)
-- [ ] T024 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py` — the actual node's `properties["values"]` survives `json.dumps` and carries the serializer's text (FR-016)
+- [x] T023 [P] [US3] Extend `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py` — a custom serializer's text in the reference, a `date` as its ISO string without one, `json.dumps` not raising, the Python-mode dump documented as possibly different, and a value with two extra fields where only one has a serializer: the other keeps its own emitted form (FR-013 to FR-015)
+- [x] T024 [P] [US3] Add `packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py` — the actual node's `properties["values"]` survives `json.dumps` and carries the serializer's text (FR-016)
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Replace the `getattr` loop in `to_reference()` with the split of `model_dump(mode="json")` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, and state the JSON-only contract in its docstring (FR-013, FR-014; research D5)
-- [ ] T026 [US3] Re-check the plain-serializer lambda and the validation path in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` for recursion — the reference must be produced once per serialization (FR-013)
-- [ ] T027 [US3] Re-run the corpus checks that compare the reference with a dump — `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_scope.py` and `uv run python examples/step_20_dictionaries/03_serialization.py` — and reword the assertion to name the mode where it compares with `model_dump()` (FR-014, SC-004)
+- [x] T025 [US3] Replace the `getattr` loop in `to_reference()` with the split of `model_dump(mode="json")` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`, and state the JSON-only contract in its docstring (FR-013, FR-014; research D5)
+- [x] T026 [US3] Re-check the plain-serializer lambda and the validation path in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` for recursion — the reference must be produced once per serialization (FR-013)
+- [x] T027 [US3] Re-run the corpus checks that compare the reference with a dump — `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_scope.py` and `uv run python examples/step_20_dictionaries/03_serialization.py` — and reword the assertion to name the mode where it compares with `model_dump()` (FR-014, SC-004)
 
 **Checkpoint**: no entry point can return a non-serializable leaf.
 

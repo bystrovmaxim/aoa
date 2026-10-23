@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/store_er_cycle_ping_pong.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Artificial mutual ``AssociationOne`` pair for ERD cyclic-FK demos (store domain).
 

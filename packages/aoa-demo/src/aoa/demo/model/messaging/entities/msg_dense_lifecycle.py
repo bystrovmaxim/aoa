@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_dense_lifecycle.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Lifecycles for expanded messaging / outbox graph demo."""
 
 from pydantic import Field

@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_spec_entity.py
-# the class-name alias is the surface this module tests
 """
 Tests for the value an extension declares.
 

@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_dense_lifecycle.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Tiny lifecycles for expanded billing ER demo rows."""
 
 from pydantic import Field

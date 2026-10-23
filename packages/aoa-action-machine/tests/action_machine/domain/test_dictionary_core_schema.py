@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_dictionary_core_schema.py
-# the class-name alias is the surface this module tests
 """
 Tests for a field typed by a dictionary: what it accepts, what it refuses, what it serializes.
 
@@ -10,8 +9,11 @@ serialized form is the reference object, and reading is driven by the code.
 
 from __future__ import annotations
 
+import json
+from datetime import date
+
 import pytest
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, field_serializer
 
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -34,6 +36,32 @@ class SchemaCurrencyEnumEntity(BaseEnumEntity):
 
     USD = value(code="usd", display_name="US dollar", symbol="$")
     EUR = value(code="eur", display_name="Euro", symbol="€")
+
+
+@exclude_graph_model
+@entity(description="Dated reference value", domain=CoreSchemaShopDomain)
+class SchemaDatedEnumEntity(BaseEnumEntity):
+    """A dictionary whose date field carries its own serializer."""
+
+    since: date = Field(description="Start date")
+    note: str = Field(description="A plain note")
+
+    ITEM = value(code="item", display_name="Item", since=date(2020, 1, 2), note="plain")
+
+    @field_serializer("since")
+    def serialize_since(self, moment: date) -> str:
+        """Format the date for consumers."""
+        return moment.strftime("%d/%m/%Y")
+
+
+@exclude_graph_model
+@entity(description="Plain dated reference value", domain=CoreSchemaShopDomain)
+class SchemaPlainDatedEnumEntity(BaseEnumEntity):
+    """A dictionary whose date field has no serializer, so JSON mode chooses the form."""
+
+    since: date = Field(description="Start date")
+
+    ITEM = value(code="item", display_name="Item", since=date(2020, 1, 2))
 
 
 @exclude_graph_model
@@ -129,3 +157,39 @@ def test_flat_model_data_cannot_fabricate_a_dictionary_field(code: str) -> None:
             id="flat", amount=1.0,
             currency={"code": code, "display_name": "Forged", "symbol": "?"},
         )
+
+
+def test_a_field_serializer_reaches_the_reference_form() -> None:
+    """The serializer the model declares is what a consumer of the reference sees."""
+    reference = SchemaDatedEnumEntity.ITEM.to_reference()
+
+    assert reference["properties"]["since"] == "02/01/2020"
+    assert json.loads(SchemaDatedEnumEntity.ITEM.model_dump_json())["properties"]["since"] == "02/01/2020"
+
+
+def test_a_plain_date_is_emitted_as_its_json_string() -> None:
+    """Without a serializer the reference still carries JSON, not a Python date."""
+    assert SchemaPlainDatedEnumEntity.ITEM.to_reference()["properties"]["since"] == "2020-01-02"
+
+
+def test_the_reference_form_is_always_json_serializable() -> None:
+    """Every reference can be handed to a JSON writer, which the old getattr loop could not promise."""
+    for reference in (
+        SchemaDatedEnumEntity.ITEM.to_reference(),
+        SchemaPlainDatedEnumEntity.ITEM.to_reference(),
+        SchemaCurrencyEnumEntity.EUR.to_reference(),
+    ):
+        assert json.loads(json.dumps(reference)) == reference
+
+
+def test_python_mode_may_keep_the_native_value_while_the_reference_does_not() -> None:
+    """The reference is the JSON export; `model_dump()` in Python mode is a different contract."""
+    assert SchemaPlainDatedEnumEntity.ITEM.model_dump()["properties"]["since"] == date(2020, 1, 2)
+    assert isinstance(SchemaPlainDatedEnumEntity.ITEM.to_reference()["properties"]["since"], str)
+
+
+def test_a_serializer_does_not_bleed_into_the_other_extra_fields() -> None:
+    """One field's serializer changes that field only; the neighbour keeps its own emitted form."""
+    reference = SchemaDatedEnumEntity.ITEM.to_reference()
+
+    assert reference["properties"] == {"since": "02/01/2020", "note": "plain"}

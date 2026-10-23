@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_rules_axis.py
-# the class-name alias is the declaration surface
 """
 The rules read on one axis, in the form the dictionary made current.
 

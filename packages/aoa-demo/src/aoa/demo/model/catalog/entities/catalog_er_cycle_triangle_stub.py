@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_er_cycle_triangle_stub.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Three ``BaseEntity`` rows wired as a directed 3-cycle A\u2192B\u2192C\u2192A (catalog domain).
 

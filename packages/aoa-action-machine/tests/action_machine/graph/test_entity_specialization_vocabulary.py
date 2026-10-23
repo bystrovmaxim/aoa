@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_vocabulary.py
-# the class-name alias is the declaration surface
 """
 The build rules an axis classified by a closed dictionary must satisfy.
 
