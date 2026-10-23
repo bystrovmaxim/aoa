@@ -78,14 +78,14 @@ US4, which extends the validator US1 creates.
 
 ### Tests for User Story 5
 
-- [ ] T013 [P] [US5] Add to `packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py`: `Classifier(field=…)` raises `TypeError`, and head/alternative, inverse, dictionary-membership and variant/data checks each still refuse their case (FR-033, FR-034, FR-035)
+- [x] T013 [P] [US5] Add to `packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py`: `Classifier(field=…)` raises `TypeError`, and head/alternative, inverse, dictionary-membership and variant/data checks each still refuse their case (FR-033, FR-034, FR-035)
 
 ### Implementation for User Story 5
 
-- [ ] T014 [US5] Remove `field` from `Classifier` in `packages/aoa-action-machine/src/aoa/action_machine/domain/specialization_containers.py` — slot, constructor argument and validation, AI-CORE block, docstring — and refuse `variant=None` as today (FR-033)
-- [ ] T015 [US5] Delete the `marker.field != field_name` comparison in `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py` and keep every other check, including the head's comparison against the attribute name (FR-034)
-- [ ] T016 [US5] Migrate every `Classifier(field=…, variant=…)` to `Classifier(variant=…)` across `packages/`, `examples/` and `docs/` scripts, and the notebook matches, in one pass; report the refreshed count from T002 (FR-036; SC-006)
-- [ ] T017 [US5] Adversarially restore the deleted comparison, confirm T013's matching case fails while an unrelated check passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py`) (FR-034, FR-042)
+- [x] T014 [US5] Remove `field` from `Classifier` in `packages/aoa-action-machine/src/aoa/action_machine/domain/specialization_containers.py` — slot, constructor argument and validation, AI-CORE block, docstring — and refuse `variant=None` as today (FR-033)
+- [x] T015 [US5] Delete the `marker.field != field_name` comparison in `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py` and keep every other check, including the head's comparison against the attribute name (FR-034)
+- [x] T016 [US5] Migrate every `Classifier(field=…, variant=…)` to `Classifier(variant=…)` across `packages/`, `examples/` and `docs/` scripts, and the notebook matches, in one pass; report the refreshed count from T002 (FR-036; SC-006)
+- [x] T017 [US5] Adversarially restore the deleted comparison, confirm T013's matching case fails while an unrelated check passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py`) (FR-034, FR-042)
 
 **Checkpoint**: 0 `field=` arguments remain and the five checks still refuse.
 

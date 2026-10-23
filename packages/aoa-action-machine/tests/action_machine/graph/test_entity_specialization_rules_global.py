@@ -87,11 +87,11 @@ class SharedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     first: Annotated[
         Generalization[FirstClaimHeadCoreEntity],
-        Classifier(field="first", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back to the first head")
     second: Annotated[
         Generalization[SecondClaimHeadCoreEntity],
-        Classifier(field="second", variant=_KindEnumEntity.B),
+        Classifier(variant=_KindEnumEntity.B),
     ] = Rel(description="back to the second head")
 
 
@@ -139,7 +139,7 @@ class NamedAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[ClosedHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back")
 
 
@@ -202,7 +202,7 @@ class SelfCycleSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SelfCycleSpecEntity],
-        Classifier(field="rec", variant=_SelfKindEnumEntity.A),
+        Classifier(variant=_SelfKindEnumEntity.A),
     ] = Rel(description="back to itself")
     pack: Specialization[SelfCycleSpecEntity, _SelfKindEnumEntity] = Rel(description="names itself")
 
@@ -222,7 +222,7 @@ class CycleASpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[CycleBSpecEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back")
 
 
@@ -234,7 +234,7 @@ class CycleBSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[CycleASpecEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.B),
+        Classifier(variant=_KindEnumEntity.B),
     ] = Rel(description="back")
     pack: Specialization[CycleASpecEntity, _KindEnumEntity] = Rel(description="names A")
 

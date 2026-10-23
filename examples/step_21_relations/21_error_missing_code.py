@@ -73,7 +73,7 @@ class RepressSpecEntity(BaseSpecEntity):
     year: int = Field(description="Re-pressing year")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.REPRESS),
+        Classifier(variant=VinylRecordKindEnumEntity.REPRESS),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -86,7 +86,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.TEST),
+        Classifier(variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 

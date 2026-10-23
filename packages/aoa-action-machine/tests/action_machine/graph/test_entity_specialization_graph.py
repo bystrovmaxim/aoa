@@ -81,7 +81,7 @@ class _FirstSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.FIRST),
+        Classifier(variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -93,7 +93,7 @@ class _SecondSpecEntity(BaseSpecEntity):
     year: int = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.REPRESS),
+        Classifier(variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -104,7 +104,7 @@ class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.TEST),
+        Classifier(variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 

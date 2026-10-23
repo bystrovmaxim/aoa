@@ -86,7 +86,7 @@ class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.FIRST),
+        Classifier(variant=SchemaHeadKindEnumEntity.FIRST),
         Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
@@ -97,7 +97,7 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.REPRESS),
+        Classifier(variant=SchemaHeadKindEnumEntity.REPRESS),
         Inverse(SchemaHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 

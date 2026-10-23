@@ -48,7 +48,7 @@ class ASpecEntity(BaseSpecEntity):
     )
     back: Annotated[
         Generalization[BSpecEntity],
-        Classifier(field="back", variant=BSpecEntityKindEnumEntity.A),
+        Classifier(variant=BSpecEntityKindEnumEntity.A),
         Inverse(BSpecEntity, "detail"),
     ] = Rel(description="Return to B")
 
@@ -67,7 +67,7 @@ class BSpecEntity(BaseSpecEntity):
     id: str = Field(description="Identifier")
     back: Annotated[
         Generalization[ASpecEntity],
-        Classifier(field="back", variant=ASpecEntityKindEnumEntity.B),
+        Classifier(variant=ASpecEntityKindEnumEntity.B),
         Inverse(ASpecEntity, "detail"),
     ] = Rel(description="Return to A")
     detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(

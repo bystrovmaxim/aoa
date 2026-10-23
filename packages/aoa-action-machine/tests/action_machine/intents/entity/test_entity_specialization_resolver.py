@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 A head field parameterises ``Specialization[A | B | C]`` and carries a
-``Classifier(field=…, codes=Literal[…])`` marker. These tests assert what the parser
+``Classifier(variant=…)`` marker. These tests assert what the parser
 reads out of that, and — the part everything else consumes — the mapping from a code
 to the class it selects, gathered from each extension's own reverse field.
 
@@ -87,7 +87,7 @@ class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.FIRST),
+        Classifier(variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -98,7 +98,7 @@ class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.REPRESS),
+        Classifier(variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -109,7 +109,7 @@ class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.TEST),
+        Classifier(variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -157,7 +157,7 @@ class _FirstForSilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithSilentCoreEntity],
-        Classifier(field="record", variant=_HeadWithSilentKindEnumEntity.FIRST),
+        Classifier(variant=_HeadWithSilentKindEnumEntity.FIRST),
         Inverse(_HeadWithSilentCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -191,7 +191,7 @@ class _GreedySpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithGreedyCoreEntity],
-        Classifier(field="record", variant=_HeadWithGreedyKindEnumEntity.FIRST),
+        Classifier(variant=_HeadWithGreedyKindEnumEntity.FIRST),
         Inverse(_HeadWithGreedyCoreEntity, "pressed"),
     ] = Rel(description="back, with two codes")
 
@@ -224,7 +224,7 @@ class _TwinASpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithTwinCoreEntity],
-        Classifier(field="record", variant=_HeadWithTwinKindEnumEntity.FIRST),
+        Classifier(variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back")
 
@@ -235,7 +235,7 @@ class _TwinBSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadWithTwinCoreEntity],
-        Classifier(field="record", variant=_HeadWithTwinKindEnumEntity.FIRST),
+        Classifier(variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
     ] = Rel(description="back, with the same code")
 

@@ -113,7 +113,7 @@ class GeneralizationVariantASpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
+        Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]
@@ -150,7 +150,7 @@ class GeneralizationVariantBSpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
+        Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
     ] = Rel(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
     )  # type: ignore[assignment]

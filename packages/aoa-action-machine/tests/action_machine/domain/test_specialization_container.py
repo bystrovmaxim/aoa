@@ -65,7 +65,7 @@ class ContainerFirstPressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[ContainerRecordCoreEntity],
-        Classifier(field="record", variant=ContainerEditionKindEnumEntity.FIRST),
+        Classifier(variant=ContainerEditionKindEnumEntity.FIRST),
     ] = Rel(description="The head row")
 
 
@@ -76,7 +76,7 @@ class ContainerRepressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[ContainerRecordCoreEntity],
-        Classifier(field="record", variant=ContainerEditionKindEnumEntity.REPRESS),
+        Classifier(variant=ContainerEditionKindEnumEntity.REPRESS),
     ] = Rel(description="The head row")
 
 

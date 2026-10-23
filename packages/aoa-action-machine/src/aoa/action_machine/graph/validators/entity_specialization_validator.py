@@ -174,7 +174,7 @@ def _validate_declared_variants(axis: EntitySpecializationIntentResolver) -> Non
             _fail(
                 axis,
                 f"alternative '{alternative.__name__}' names no value of '{dictionary.__name__}' — "
-                f"write Classifier(field=..., variant={dictionary.__name__}.<VALUE>)",
+                f"write Classifier(variant={dictionary.__name__}.<VALUE>)",
             )
         if not any(declared is member for member in members):
             _fail(
@@ -241,13 +241,7 @@ def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
             _fail(
                 axis,
                 f"alternative '{alternative.__name__}' declares no code on '{field_name}' — "
-                "name it with Classifier(field=..., variant=Dictionary.VALUE)",
-            )
-        if marker.field != field_name:
-            _fail(
-                axis,
-                f"Classifier on '{alternative.__name__}.{field_name}' names '{marker.field}', "
-                f"but must name its reverse field '{field_name}'",
+                "name it with Classifier(variant=Dictionary.VALUE)",
             )
         if axis.inverse_field and field_name != axis.inverse_field:
             _fail(
