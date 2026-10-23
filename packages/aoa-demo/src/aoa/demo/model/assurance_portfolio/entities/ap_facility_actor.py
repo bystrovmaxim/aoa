@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -26,9 +26,9 @@ class AssuranceFacilityActorCoreEntity(BaseCoreEntity):
     account_phase_axis: Annotated[
         AssociationOne[AssuranceAccountPhaseAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Credential posture snapshot"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceFacilityActorCoreEntity.model_rebuild()

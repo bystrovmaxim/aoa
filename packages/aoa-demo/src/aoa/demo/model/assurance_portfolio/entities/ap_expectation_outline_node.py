@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_catalog_stub import (
@@ -32,16 +32,16 @@ class AssuranceExpectationOutlineNodeCoreEntity(BaseCoreEntity):
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent catalog capsule"
-    )  # type: ignore[assignment]
+    )
 
     depth_axis: Annotated[
         AssociationOne[AssuranceSpecificationDepthAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Depth posture on catalog spine"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceExpectationOutlineNodeCoreEntity.model_rebuild()

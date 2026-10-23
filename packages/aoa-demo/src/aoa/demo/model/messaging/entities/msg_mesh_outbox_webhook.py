@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
@@ -29,16 +29,16 @@ class MsgOutboxWebhookCorrelateCoreEntity(BaseCoreEntity):
     outbox_row: Annotated[
         AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream outbox linkage"
-    )  # type: ignore[assignment]
+    )
 
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Verified webhook linkage"
-    )  # type: ignore[assignment]
+    )
 
 
 MsgOutboxWebhookCorrelateCoreEntity.model_rebuild()

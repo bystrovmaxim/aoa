@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
@@ -26,9 +26,9 @@ class DedupeCorrelationCoreEntity(BaseCoreEntity):
     dispatcher_cursor: Annotated[
         AssociationOne[DispatcherCursorShardCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning dispatcher shard"
-    )  # type: ignore[assignment]
+    )
 
 
 DedupeCorrelationCoreEntity.model_rebuild()

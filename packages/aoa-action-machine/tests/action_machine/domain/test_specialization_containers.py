@@ -47,7 +47,7 @@ class FirstEntity(BaseModel):
 
     id: str = Field(description="id")
     stamper: str = Field(description="a column of its own")
-    marker: Annotated[Any, Classifier(field="marker", variant=KindEnumEntity.FIRST)] = Field(
+    marker: Annotated[Any, Classifier(variant=KindEnumEntity.FIRST)] = Field(
         default=None, description="names this class's value"
     )
 
@@ -57,7 +57,7 @@ class SecondEntity(BaseModel):
 
     id: str = Field(description="id")
     year: int = Field(description="a column of its own")
-    marker: Annotated[Any, Classifier(field="marker", variant=KindEnumEntity.SECOND)] = Field(
+    marker: Annotated[Any, Classifier(variant=KindEnumEntity.SECOND)] = Field(
         default=None, description="names this class's value"
     )
 
@@ -211,15 +211,15 @@ def test_a_mismatched_pair_is_refused() -> None:
 
 def test_classifier_names_one_value_and_stays_frozen() -> None:
     """The extension's marker names a value and cannot be edited afterwards."""
-    marker = Classifier(field="record", variant=KindEnumEntity.FIRST)
+    marker = Classifier(variant=KindEnumEntity.FIRST)
 
     assert marker.variant is KindEnumEntity.FIRST
-    assert marker.field == "record"
+    assert not hasattr(marker, "field"), "the marker names no field: the attribute it sits on is the pair"
     with pytest.raises(AttributeError):
-        marker.field = "other"  # type: ignore[misc]
+        marker.__setattr__("_variant", KindEnumEntity.SECOND)
 
 
 def test_classifier_refuses_a_list_of_codes() -> None:
     """A code list is not a value: the marker refuses it outright."""
     with pytest.raises(TypeError, match=r"must be a declared dictionary value"):
-        Classifier("media", ["first"])
+        Classifier(["first"])

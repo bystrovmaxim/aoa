@@ -27,7 +27,7 @@ TERMINOLOGY
 ═══════════════════════════════════════════════════════════════════════════════
 
 Uses the same words as production code: **entity** (`@entity`, `BaseEntity`),
-**lifecycle** (fluent template + instance state), **relation** (`Rel`,
+**lifecycle** (fluent template + instance state), **relation** (`Inverse`,
 `Inverse` / `NoInverse`, association containers), **hydration** (`build()` from
 plain data).
 """

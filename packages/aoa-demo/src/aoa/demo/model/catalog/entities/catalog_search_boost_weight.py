@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_availability_projection import AvailabilityProjectionCoreEntity
@@ -26,9 +26,9 @@ class SearchBoostWeightCoreEntity(BaseCoreEntity):
     availability_projection: Annotated[
         AssociationOne[AvailabilityProjectionCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent availability projection"
-    )  # type: ignore[assignment]
+    )
 
 
 SearchBoostWeightCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
@@ -26,9 +26,9 @@ class LotAgeBucketCoreEntity(BaseCoreEntity):
     quality_hold: Annotated[
         AssociationOne[LotQualityHoldCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream hold row"
-    )  # type: ignore[assignment]
+    )
 
 
 LotAgeBucketCoreEntity.model_rebuild()

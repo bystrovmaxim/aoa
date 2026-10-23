@@ -53,7 +53,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -89,9 +88,9 @@ class GoodFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[GoodHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
         Inverse(GoodHeadCoreEntity, "pack"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 @exclude_graph_model
@@ -101,7 +100,7 @@ class GoodHeadCoreEntity(BaseCoreEntity):
     pack: Annotated[
         Specialization[GoodFirstSpecEntity, _KindEnumEntity],
         Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 GoodHeadCoreEntity.model_rebuild()
@@ -124,7 +123,7 @@ class UndeclaredAssocEntity(BaseAssocEntity):
 @entity(description="Head over an undeclared class", domain=SweepDomain)
 class HeadOverUndeclaredCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[UndeclaredAssocEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[UndeclaredAssocEntity, _KindEnumEntity] = Field(description="d")
 
 
 UndeclaredAssocEntity.model_rebuild()
@@ -137,14 +136,14 @@ class CodeLessSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
     id: str = Field(description="id")
-    rec: Generalization[HeadOverCodeLessCoreEntity] = Rel(description="d, naming no value")
+    rec: Generalization[HeadOverCodeLessCoreEntity] = Field(description="d, naming no value")
 
 
 @exclude_graph_model
 @entity(description="Head over a code-less class", domain=SweepDomain)
 class HeadOverCodeLessCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[CodeLessSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[CodeLessSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 HeadOverCodeLessCoreEntity.model_rebuild()
@@ -166,15 +165,15 @@ class OrphanAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[HeadOverOrphanValueCoreEntity],
-        Classifier(field="rec", variant=OrphanValueKindEnumEntity.A),
-    ] = Rel(description="d")
+        Classifier(variant=OrphanValueKindEnumEntity.A),
+    ] = Field(description="d")
 
 
 @exclude_graph_model
 @entity(description="Head over an orphan value", domain=SweepDomain)
 class HeadOverOrphanValueCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[OrphanAlternativeSpecEntity, OrphanValueKindEnumEntity] = Rel(description="d")
+    pack: Specialization[OrphanAlternativeSpecEntity, OrphanValueKindEnumEntity] = Field(description="d")
 
 
 HeadOverOrphanValueCoreEntity.model_rebuild()
@@ -192,26 +191,26 @@ class ClaimedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     first: Annotated[
         Generalization[ClaimFirstHeadCoreEntity],
-        Classifier(field="first", variant=_KindEnumEntity.A),
-    ] = Rel(description="d")
+        Classifier(variant=_KindEnumEntity.A),
+    ] = Field(description="d")
     second: Annotated[
         Generalization[ClaimSecondHeadCoreEntity],
-        Classifier(field="second", variant=_KindEnumEntity.A),
-    ] = Rel(description="d")
+        Classifier(variant=_KindEnumEntity.A),
+    ] = Field(description="d")
 
 
 @exclude_graph_model
 @entity(description="Claim first", domain=SweepDomain)
 class ClaimFirstHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 @exclude_graph_model
 @entity(description="Claim second", domain=SweepDomain)
 class ClaimSecondHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 for _cls in (ClaimedSpecEntity, ClaimFirstHeadCoreEntity, ClaimSecondHeadCoreEntity):
@@ -224,22 +223,22 @@ class ClosedNamedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[ClosedSweepHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
-    ] = Rel(description="d")
+        Classifier(variant=_KindEnumEntity.A),
+    ] = Field(description="d")
 
 
 @exclude_graph_model
 @entity(description="Closed intruder", domain=SweepDomain)
 class ClosedIntruderSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
-    rec: Generalization[ClosedSweepHeadCoreEntity] = Rel(description="d")
+    rec: Generalization[ClosedSweepHeadCoreEntity] = Field(description="d")
 
 
 @exclude_graph_model
 @entity(description="Closed head", domain=SweepDomain)
 class ClosedSweepHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
-    pack: Specialization[ClosedNamedSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[ClosedNamedSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 for _cls in (ClosedNamedSpecEntity, ClosedIntruderSpecEntity, ClosedSweepHeadCoreEntity):
@@ -260,9 +259,9 @@ class SelfReferringSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SelfReferringSpecEntity],
-        Classifier(field="rec", variant=_SelfKindEnumEntity.A),
-    ] = Rel(description="d")
-    pack: Specialization[SelfReferringSpecEntity, _SelfKindEnumEntity] = Rel(description="d")
+        Classifier(variant=_SelfKindEnumEntity.A),
+    ] = Field(description="d")
+    pack: Specialization[SelfReferringSpecEntity, _SelfKindEnumEntity] = Field(description="d")
 
 
 SelfReferringSpecEntity.model_rebuild()
@@ -369,9 +368,9 @@ class MismatchedTwinSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[TwoFaultsHeadCoreEntity],
-        Classifier(field="rec", variant=_OtherKindEnumEntity.A),
+        Classifier(variant=_OtherKindEnumEntity.A),
         Inverse(TwoFaultsHeadCoreEntity, "pack"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 @exclude_graph_model
@@ -391,7 +390,7 @@ class TwoFaultsHeadCoreEntity(BaseCoreEntity):
     pack: Annotated[
         Specialization[UndeclaredTwinAlternativeAssocEntity | MismatchedTwinSpecEntity, _KindEnumEntity],
         Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 @exclude_graph_model

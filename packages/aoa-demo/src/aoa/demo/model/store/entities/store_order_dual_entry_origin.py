@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.store_dual_entry_lifecycle import StoreDualEntryLifecycle
@@ -31,9 +31,9 @@ class OrderDualEntryOriginTraceCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Related order aggregate for this origin trace"
-    )  # type: ignore[assignment]
+    )
 
 
 OrderDualEntryOriginTraceCoreEntity.model_rebuild()

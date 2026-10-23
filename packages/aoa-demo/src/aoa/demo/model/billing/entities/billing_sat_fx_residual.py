@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class FxResidualTagCoreEntity(BaseCoreEntity):
     narrative: Annotated[
         AssociationOne[NarrativeCorrectionCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream narrative correction"
-    )  # type: ignore[assignment]
+    )
 
     quote_currency_iso: CurrencyEnumEntity = Field(description="Currency used for hedge quote")
     base_amount_minor: int = Field(description="Amount in transactional currency minors", ge=0)

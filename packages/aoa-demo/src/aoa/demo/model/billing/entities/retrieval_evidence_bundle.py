@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class RetrievalEvidenceBundleCoreEntity(BaseCoreEntity):
     chargeback_ticket: Annotated[
         AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent dispute ticket"
-    )  # type: ignore[assignment]
+    )
 
     bundle_kind: str = Field(description="Evidence bundle category")
     retrieval_deadline_iso: str = Field(description="Cutoff for representment package (UTC)")

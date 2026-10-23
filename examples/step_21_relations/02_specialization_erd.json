@@ -145,22 +145,6 @@
           "primary_key": true,
           "foreign_key": false,
           "reference_qualname": null
-        },
-        {
-          "field_id": "VinylRecordKindEnumEntity:code",
-          "name": "code",
-          "type": "str",
-          "primary_key": false,
-          "foreign_key": false,
-          "reference_qualname": null
-        },
-        {
-          "field_id": "VinylRecordKindEnumEntity:display_name",
-          "name": "display_name",
-          "type": "str",
-          "primary_key": false,
-          "foreign_key": false,
-          "reference_qualname": null
         }
       ],
       "values": [

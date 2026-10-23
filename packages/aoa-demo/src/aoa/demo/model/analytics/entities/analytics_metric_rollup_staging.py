@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
@@ -28,9 +28,9 @@ class AnalyticsMetricRollupStagingCoreEntity(BaseCoreEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Canonical telemetry parent"
-    )  # type: ignore[assignment]
+    )
 
 
 AnalyticsMetricRollupStagingCoreEntity.model_rebuild()

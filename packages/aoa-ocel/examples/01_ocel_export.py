@@ -28,7 +28,6 @@ from aoa.action_machine.domain import (
     AssociationOne,
     BaseCoreEntity,
     NoInverse,
-    Rel,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -65,7 +64,7 @@ class OrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerCoreEntity] | None,
         NoInverse(),
-    ] = Rel(description="Customer who placed the order")  # type: ignore[assignment]
+    ] = Field(description="Customer who placed the order")  # type: ignore[assignment]
 
 
 # ── Action that emits an OcelFrame ───────────────────────────────────────────

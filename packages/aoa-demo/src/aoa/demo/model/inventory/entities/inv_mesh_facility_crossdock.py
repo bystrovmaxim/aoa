@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
@@ -29,16 +29,16 @@ class InvFacilityCrossdockBridgeCoreEntity(BaseCoreEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning facility artefact"
-    )  # type: ignore[assignment]
+    )
 
     crossdock_gate: Annotated[
         AssociationOne[CrossDockStagingCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Cross-dock staging gate anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 InvFacilityCrossdockBridgeCoreEntity.model_rebuild()

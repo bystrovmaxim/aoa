@@ -22,7 +22,6 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Classifier,
     Generalization,
-    Rel,
     Specialization,
     value,
 )
@@ -74,7 +73,7 @@ class VocabularyGoodHeadCoreEntity(BaseCoreEntity):
     """An axis classified by the dictionary."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyFirstSpecEntity | VocabularyRepressSpecEntity, VocabularyKindEnumEntity] = Rel(
+    kind: Specialization[VocabularyFirstSpecEntity | VocabularyRepressSpecEntity, VocabularyKindEnumEntity] = Field(
         description="Which pressing this is"
     )
 
@@ -86,8 +85,8 @@ class VocabularyFirstSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
+        Classifier(variant=VocabularyKindEnumEntity.FIRST),
+    ] = Field(description="The head row")
 
 
 @exclude_graph_model
@@ -97,8 +96,8 @@ class VocabularyRepressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.REPRESS),
-    ] = Rel(description="The head row")
+        Classifier(variant=VocabularyKindEnumEntity.REPRESS),
+    ] = Field(description="The head row")
 
 
 
@@ -131,7 +130,7 @@ class VocabularyEmptyHeadCoreEntity(BaseCoreEntity):
     """An axis borrowing from a dictionary that declares nothing."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyEmptySpecEntity, EmptyKindEnumEntity] = Rel(description="Empty dictionary")
+    kind: Specialization[VocabularyEmptySpecEntity, EmptyKindEnumEntity] = Field(description="Empty dictionary")
 
 
 @exclude_graph_model
@@ -141,8 +140,8 @@ class VocabularyEmptySpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyEmptyHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
+        Classifier(variant=VocabularyKindEnumEntity.FIRST),
+    ] = Field(description="The head row")
 
 
 def test_an_axis_cannot_borrow_from_an_empty_dictionary() -> None:
@@ -157,7 +156,7 @@ class VocabularyWrongHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a value of another dictionary."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyWrongSpecEntity, VocabularyKindEnumEntity] = Rel(description="Kind")
+    kind: Specialization[VocabularyWrongSpecEntity, VocabularyKindEnumEntity] = Field(description="Kind")
 
 
 @exclude_graph_model
@@ -167,8 +166,8 @@ class VocabularyWrongSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyWrongHeadCoreEntity],
-        Classifier(field="record", variant=OtherKindEnumEntity.EXTRA),
-    ] = Rel(description="The head row")
+        Classifier(variant=OtherKindEnumEntity.EXTRA),
+    ] = Field(description="The head row")
 
 
 def test_an_extension_must_name_this_dictionary_s_value() -> None:
@@ -183,7 +182,7 @@ class VocabularyCopyHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a copy of a declared value."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyCopySpecEntity, VocabularyKindEnumEntity] = Rel(description="Kind")
+    kind: Specialization[VocabularyCopySpecEntity, VocabularyKindEnumEntity] = Field(description="Kind")
 
 
 @exclude_graph_model
@@ -194,10 +193,9 @@ class VocabularyCopySpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyCopyHeadCoreEntity],
         Classifier(
-            field="record",
             variant=VocabularyKindEnumEntity(code="first", display_name="First press", note="mine"),
         ),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 def test_a_copy_of_a_value_is_not_a_value() -> None:
@@ -225,7 +223,7 @@ def test_a_head_side_classifier_is_refused(monkeypatch: pytest.MonkeyPatch) -> N
     """The dictionary is the head's only classification declaration."""
     info = VocabularyGoodHeadCoreEntity.model_fields["kind"]
     monkeypatch.setattr(info, "metadata", [
-        *info.metadata, Classifier(field="id", variant=VocabularyKindEnumEntity.FIRST),
+        *info.metadata, Classifier(variant=VocabularyKindEnumEntity.FIRST),
     ])
     with pytest.raises(SpecializationDeclarationError, match=r"head.*Classifier"):
         validate_entity_specializations([
@@ -233,14 +231,10 @@ def test_a_head_side_classifier_is_refused(monkeypatch: pytest.MonkeyPatch) -> N
         ])
 
 
-def test_a_classifier_must_name_the_reverse_field_it_marks(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A marker cannot silently point at a nonexistent reverse field."""
-    info = VocabularyFirstSpecEntity.model_fields["record"]
-    monkeypatch.setattr(info, "metadata", [Classifier(field="missing", variant=VocabularyKindEnumEntity.FIRST)])
-    with pytest.raises(SpecializationDeclarationError, match=r"names 'missing'.*'record'"):
-        validate_entity_specializations([
-            VocabularyGoodHeadCoreEntity, VocabularyFirstSpecEntity, VocabularyRepressSpecEntity,
-        ])
+def test_a_classifier_cannot_name_a_field_any_more() -> None:
+    """The marker names a value only: the attribute it sits on is the pair, so the name is gone."""
+    with pytest.raises(TypeError, match="field"):
+        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST)
 
 
 def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
@@ -257,7 +251,7 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
     @entity(description="Optional head", domain=VocabularyDomain)
     class OptionalHeadCoreEntity(BaseCoreEntity):
         """Allow a head whose classification has not been supplied."""
-        kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Rel(description="Optional choice")
+        kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Field(description="Optional choice")
 
     @exclude_graph_model
     @entity(description="Optional details", domain=VocabularyDomain)
@@ -265,8 +259,8 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
         """Describe the classified head."""
         record: Annotated[
             Generalization[OptionalHeadCoreEntity],
-            Classifier(field="record", variant=OptionalKindEnumEntity.FIRST),
-        ] = Rel(description="Head")
+            Classifier(variant=OptionalKindEnumEntity.FIRST),
+        ] = Field(description="Head")
 
     OptionalHeadCoreEntity.model_rebuild(_types_namespace=locals())
     OptionalDetailsSpecEntity.model_rebuild(_types_namespace=locals())

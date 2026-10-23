@@ -162,7 +162,7 @@ returns JSON-compatible `{code, display_name, properties}` data, applying field 
 
 **Reference field** — a field whose type is a closed dictionary, such as `currency_iso: CurrencyEnumEntity`. It accepts the declared value or its reference object, refuses a bare code, an undeclared code and a copy, and names the dictionary in the graph as `reference_qualname`.
 
-**Classifier marker** — the `Classifier(field="record", variant=VinylRecordKindEnumEntity.EARLY)` on an alternative's reverse link. It names the field that pairs the class with its head and the dictionary value the class is. A head carries no marker: it names the dictionary as the second type argument of its container.
+**Classifier marker** — the `Classifier(variant=VinylRecordKindEnumEntity.EARLY)` on an alternative's reverse link. It names the field that pairs the class with its head and the dictionary value the class is. A head carries no marker: it names the dictionary as the second type argument of its container.
 
 **Variant code** — the `code` of a declared value, such as `first`. It is not the class name. The dictionary declares the codes; each alternative names one of its values; the build compares both sides, so a value with no alternative, an alternative with no value and a foreign value are all refused.
 

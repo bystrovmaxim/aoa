@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -27,16 +27,16 @@ class ReturnRequestCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Returned order"
-    )  # type: ignore[assignment]
+    )
 
     reverse_logistics_metrics_batch: Annotated[
         AssociationOne[AnalyticsIngressBatchCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Analytics ingress shard for reverse-logistics telemetry"
-    )  # type: ignore[assignment]
+    )
 
 
 ReturnRequestCoreEntity.model_rebuild()

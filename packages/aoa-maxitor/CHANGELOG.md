@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dictionary cards emphasize human labels** — Value rows print labels and descriptive properties, while codes remain in tooltips. The inherited code and display-name fields are omitted from ordinary dictionary field rows; other entity fields are preserved. Existing reference payloads retain their codes. See the [diagram guide](../../docs/tutorials/step-26-maxitor.md).
+
+### Changed
+
 - **Dictionary descriptions reach the diagram consistently.** Dictionary cards preserve exported properties, including formatted dates and collection values, as readable text. Specialization groups display one complete label supplied by the server, so the dictionary name no longer appears twice. Existing graph files that already contain these properties need no rebuild. ([#244](https://github.com/bystrovmaxim/aoa/issues/244))
 - **Dictionaries are visible in the model.** Entity diagrams show a dictionary’s values, names and descriptive properties inside its card, and identify fields that refer to it. Specialization groups name their dictionary and keep its declared order, without a duplicated selector column on the head. ([#241](https://github.com/bystrovmaxim/aoa/issues/241))
 - **The graph carries the meaning of each entity.** Maxitor now preserves the entity kind declared by the model, so graph consumers can distinguish business objects, technical connections, owned parts, specializations and reference values. Regenerate older graph exports before loading them. Automatic hiding of technical connections is not included in this change. ([#210](https://github.com/bystrovmaxim/aoa/issues/210))

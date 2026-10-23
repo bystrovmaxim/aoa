@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_geographic_anchor import ClinicalGeographicAnchorCoreEntity
@@ -26,9 +26,9 @@ class ClinicalPartnerHubCoreEntity(BaseCoreEntity):
     site_anchor: Annotated[
         AssociationOne[ClinicalGeographicAnchorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Registered geography"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalPartnerHubCoreEntity.model_rebuild()

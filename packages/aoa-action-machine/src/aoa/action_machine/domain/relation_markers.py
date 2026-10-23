@@ -1,6 +1,6 @@
 # packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, and ``Rel``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge`` and ``NoRelation``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
@@ -31,8 +31,10 @@ SCOPE (IN / OUT)
 **In scope**
     Constructing immutable marker objects and validating their constructor inputs.
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
-    ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
+    ``= Field(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
     suppresses interchange edges for that field while keeping it in graph node metadata.
+    ``NoRelation("reason")`` declares that a structural-entity field is an embedded value
+    with no model relation at all, which the graph build refuses to guess.
 
 **Out of scope**
     Proving the inverse field exists, types match, or ownership is compatible —
@@ -47,16 +49,16 @@ ARCHITECTURE / DATA FLOW
 
     Annotated[AssociationOne[CustomerCoreEntity], Inverse(CustomerCoreEntity, "orders")]
         │
-        │  class default
+        │  field metadata
         v
-    = Rel(description="…")
+    = Field(description="…")
         │
         │  ``NodeGraphCoordinator.build()`` / ``EntityIntentResolver``
         v
     validated entity–entity edges (composition / aggregation / association)
 
-Coordinator checks (conceptually): inverse field present and typed, both ends
-carry ``Rel``, ownership matrix, etc.
+Coordinator checks (conceptually): inverse field present and typed, every relation field
+carries a description in ``FieldInfo.description``, ownership matrix, etc.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
@@ -75,9 +77,8 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 - **Import**: markers are instantiated in class bodies as annotations/defaults.
 - **Build**: coordinator consumes markers from entity metadata.
-- **Runtime**: entity instances hold **container** values; ``Rel`` typically
-  remains only as the class-level default unless the constructor still sees it
-  (e.g. optional relation omitted in ``build()``).
+- **Runtime**: entity instances hold **container** values or an explicit ``None``;
+  the description never reaches an instance.
 
 """
 
@@ -229,57 +230,57 @@ class NoGraphEdge:
         return hash("NoGraphEdge")
 
 
-class Rel:
+class NoRelation:
     """
     AI-CORE-BEGIN
-        ROLE: Mandatory relation description carrier.
-        CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
-        INVARIANTS: Description is validated and immutable after construction.
+        ROLE: Explicit declaration that a structural-entity field embeds a value, not a relation.
+        CONTRACT: Sit inside ``Annotated`` on a Core, Assoc, Detail or Spec field with a non-blank
+            reason; the field stays an ordinary column and gains no relation edge, no foreign key
+            and no storage inference.
+        INVARIANTS: The reason is a non-empty string; the marker is frozen and value-equal; it is
+            never combined with a relation container or another relation marker, and never marks a
+            state entity, whose only form is a ``Lifecycle[...]`` field.
         AI-CORE-END
     """
 
-    __slots__ = ("_description",)
+    __slots__ = ("_reason",)
 
-    def __init__(self, *, description: str) -> None:
+    def __init__(self, reason: str) -> None:
         """
         Args:
-            description: Non-empty relation description (keyword-only).
+            reason: Why this field holds the entity as a value instead of as a relation.
 
         Raises:
-            TypeError: ``description`` is not a ``str``.
-            ValueError: Empty or whitespace-only ``description``.
+            TypeError: ``reason`` is not a ``str``.
+            ValueError: ``reason`` is empty or whitespace-only.
         """
-        if not isinstance(description, str):
-            raise TypeError(f"Rel: description must be str, " f"got {type(description).__name__}: {description!r}.")
-
-        if not description.strip():
-            raise ValueError(
-                "Rel: description cannot be empty or whitespace-only. " "Provide a non-empty relation description."
-            )
-
-        object.__setattr__(self, "_description", description)
+        if not isinstance(reason, str):
+            raise TypeError(f"NoRelation: reason must be str, got {type(reason).__name__}: {reason!r}.")
+        if not reason.strip():
+            raise ValueError("NoRelation: reason cannot be empty or whitespace-only.")
+        object.__setattr__(self, "_reason", reason)
 
     @property
-    def description(self) -> str:
-        """Relation description for this direction."""
-        return cast(str, object.__getattribute__(self, "_description"))
+    def reason(self) -> str:
+        """Return why the field holds an embedded value."""
+        return cast(str, object.__getattribute__(self, "_reason"))
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Rel is frozen; assigning to attributes is not allowed.")
+        raise AttributeError("NoRelation is frozen; assigning to attributes is not allowed.")
 
     def __delattr__(self, name: str) -> None:
-        raise AttributeError("Rel is frozen; deleting attributes is not allowed.")
+        raise AttributeError("NoRelation is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return f"Rel(description='{description}')"
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return f"NoRelation({reason!r})"
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Rel):
+        if not isinstance(other, NoRelation):
             return NotImplemented
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return description == other.description
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return reason == other.reason
 
     def __hash__(self) -> int:
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return hash(description)
+        reason = cast(str, object.__getattribute__(self, "_reason"))
+        return hash(reason)

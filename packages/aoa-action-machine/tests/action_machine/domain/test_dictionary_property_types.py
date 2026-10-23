@@ -18,7 +18,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from aoa.action_machine.domain import BaseEnumEntity, BaseStateEntity, value
 
@@ -127,3 +127,92 @@ def test_a_state_type_keeps_its_mutable_properties() -> None:
     )
     assert probe.codes() == ["free"]
     assert probe.L.labels == ["original"]
+
+def test_a_validator_that_returns_a_list_is_refused_before_publication() -> None:
+    """The completed member is checked, not only its annotation."""
+    with pytest.raises(ValueError, match=r"property 'labels'.*holds list.*tuple\[str, \.\.\.\]"):
+        class LabelsEnumEntity(BaseEnumEntity):
+            """Declare labels shared by all users of this value."""
+
+            labels: tuple[str, ...]
+
+            ITEM = value(code="item", display_name="Item", labels=("original",))
+
+            @field_validator("labels", mode="after")
+            @classmethod
+            def replace_with_list(cls, labels: tuple[str, ...]) -> list[str]:
+                """Return a list, violating the property contract."""
+                return list(labels)
+
+
+def test_a_validator_that_returns_another_immutable_type_is_refused() -> None:
+    """An immutable value of the wrong shape contradicts the schema the dictionary publishes."""
+    with pytest.raises(ValueError, match=r"property 'labels'.*holds str.*tuple\[str, \.\.\.\]"):
+        class ShapeEnumEntity(BaseEnumEntity):
+            """Declare a tuple property."""
+
+            labels: tuple[str, ...]
+
+            ITEM = value(code="item", display_name="Item", labels=("a",))
+
+            @field_validator("labels", mode="after")
+            @classmethod
+            def join(cls, labels: tuple[str, ...]) -> str:
+                """Return a different immutable type."""
+                return ",".join(labels)
+
+
+def test_a_list_nested_inside_a_tuple_is_refused() -> None:
+    """The runtime check is recursive, like the annotation check."""
+    with pytest.raises(ValueError, match=r"labels\[1\].*list"):
+        class NestedEnumEntity(BaseEnumEntity):
+            """Declare a tuple property whose validator hides a list inside it."""
+
+            labels: tuple[str, ...]
+
+            ITEM = value(code="item", display_name="Item", labels=("a",))
+
+            @field_validator("labels", mode="after")
+            @classmethod
+            def hide_a_list(cls, labels: tuple[str, ...]) -> tuple[object, ...]:
+                """Return a tuple holding a mutable value."""
+                return ("a", ["b"])
+
+
+def test_an_enum_with_a_mutable_value_is_refused() -> None:
+    """Accepting the annotation alone does not establish that the value is immutable."""
+    class Flags(Enum):
+        """Name the flags."""
+
+        X = ["a", "b"]
+
+    with pytest.raises(ValueError, match=r"property 'flags'.*Flags.*list"):
+        class FlagsEnumEntity(BaseEnumEntity):
+            """Carry an enum property whose value is a list."""
+
+            flags: Flags
+
+            ITEM = value(code="item", display_name="Item", flags=Flags.X)
+
+
+def test_a_validator_that_returns_an_equal_tuple_publishes_the_member() -> None:
+    """A valid immutable result keeps working, including export independence."""
+    class CopyEnumEntity(BaseEnumEntity):
+        """Declare a tuple property a validator rebuilds."""
+
+        labels: tuple[str, ...]
+
+        ITEM = value(code="item", display_name="Item", labels=("original",))
+
+        @field_validator("labels", mode="after")
+        @classmethod
+        def rebuild(cls, labels: tuple[str, ...]) -> tuple[str, ...]:
+            """Return an equal tuple."""
+            return tuple(labels)
+
+    assert CopyEnumEntity.by_code("item").labels == ("original",)
+
+    exported = CopyEnumEntity.ITEM.to_reference()
+    exported["properties"]["labels"].append("changed")
+    assert CopyEnumEntity.ITEM.labels == ("original",)
+    assert CopyEnumEntity.by_code("item").to_reference()["properties"]["labels"] == ["original"]

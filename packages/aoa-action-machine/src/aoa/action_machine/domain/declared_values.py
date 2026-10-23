@@ -118,6 +118,96 @@ def _refused_property_type(annotation: Any) -> str | None:
     return refused
 
 
+def _type_name(runtime_value: Any) -> str:
+    """Return the short type name of a runtime value."""
+    return type(runtime_value).__name__
+
+
+def _annotation_name(annotation: Any) -> str:
+    """Return a readable name for an annotation, keeping a subscripted form subscripted."""
+    if get_origin(annotation) is not None:
+        return str(annotation).replace("typing.", "")
+    name = getattr(annotation, "__name__", None)
+    return str(name) if isinstance(name, str) else str(annotation)
+
+
+def _mismatch(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str]:
+    """Return the refusal for a value the annotation does not describe."""
+    return (path, f"holds {_type_name(runtime_value)} (expected {_annotation_name(annotation)})")
+
+
+def _enum_value_refusal(enum_cls: type[Enum], runtime_value: Any, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a declared value whose own ``Enum`` value is mutable."""
+    declared = runtime_value.value
+    if declared is None or isinstance(declared, _SUPPORTED_LEAVES):
+        return None
+    if isinstance(declared, tuple):
+        for item in declared:
+            if item is not None and not isinstance(item, _SUPPORTED_LEAVES):
+                return (path, f"holds {enum_cls.__name__}, whose value holds {_type_name(item)}")
+        return None
+    return (path, f"holds {enum_cls.__name__}, whose value is {_type_name(declared)}")
+
+
+def _union_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a union annotation, or ``None`` when one member accepts the value."""
+    if runtime_value is None:
+        return None
+    for argument in get_args(annotation):
+        if argument is type(None):
+            continue
+        if _runtime_refusal(runtime_value, argument, path) is None:
+            return None
+    return _mismatch(runtime_value, annotation, path)
+
+
+def _tuple_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a tuple annotation, walking the items recursively."""
+    if not isinstance(runtime_value, tuple):
+        return _mismatch(runtime_value, annotation, path)
+    arguments = get_args(annotation)
+    if len(arguments) == 2 and arguments[1] is Ellipsis:
+        for index, item in enumerate(runtime_value):
+            found = _runtime_refusal(item, arguments[0], f"{path}[{index}]")
+            if found is not None:
+                return found
+        return None
+    if len(arguments) != len(runtime_value):
+        return _mismatch(runtime_value, annotation, path)
+    for index, (item, argument) in enumerate(zip(runtime_value, arguments, strict=True)):
+        found = _runtime_refusal(item, argument, f"{path}[{index}]")
+        if found is not None:
+            return found
+    return None
+
+
+def _leaf_refusal(runtime_value: Any, annotation: type, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a leaf annotation, or ``None`` when the value satisfies it."""
+    if not isinstance(runtime_value, annotation):
+        return _mismatch(runtime_value, annotation, path)
+    if issubclass(annotation, Enum):
+        return _enum_value_refusal(annotation, runtime_value, path)
+    if annotation in _SUPPORTED_LEAVES:
+        return None
+    return (path, f"holds {_type_name(runtime_value)}")
+
+
+def _runtime_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the first property path and reason a runtime value breaks, or ``None`` when it holds."""
+    origin = get_origin(annotation)
+    if origin in (Union, UnionType):
+        return _union_refusal(runtime_value, annotation, path)
+    if origin is Literal:
+        if isinstance(runtime_value, _SUPPORTED_LEAVES) or runtime_value is None:
+            return None
+        return (path, f"holds {_type_name(runtime_value)}")
+    if origin is tuple:
+        return _tuple_refusal(runtime_value, annotation, path)
+    if isinstance(annotation, type):
+        return _leaf_refusal(runtime_value, annotation, path)
+    return None
+
+
 class _DeclaredValues:
     """
     Mixin: the declaration factory, the catalogue and the conversion of placeholders.
@@ -129,7 +219,10 @@ class _DeclaredValues:
     refusal calls the values (``__declared_values_noun__``), and whether a value
     may carry only immutable property types (``__declared_values_immutable__``).
     The last one is off by default and on for the dictionary kind: a dictionary
-    value is exported to every consumer, a status is not.
+    value is exported to every consumer, a status is not. It is enforced twice —
+    on the annotation when the class is created, and on the completed member after
+    the model's own validators have run — because a validator can replace a tuple
+    with a list, and the catalogue must never publish such a value.
     """
 
     __declared_values_inherit__: ClassVar[bool] = True
@@ -161,7 +254,10 @@ class _DeclaredValues:
             return
 
         for name, spec in specs.items():
-            setattr(cls, name, cls(**spec.kwargs))
+            member = cls(**spec.kwargs)
+            if cls.__declared_values_immutable__:
+                cls._require_immutable_runtime(member, name)
+            setattr(cls, name, member)
         members = tuple(getattr(cls, name) for name in specs)
         codes = [member.code for member in members]
         if len(codes) != len(set(codes)):
@@ -178,6 +274,18 @@ class _DeclaredValues:
             if refused is not None:
                 raise ValueError(
                     f"{cls.__name__}: field '{name}' is {refused}, which a dictionary value cannot carry; "
+                    f"supported: {_SUPPORTED_SUMMARY}."
+                )
+
+    @classmethod
+    def _require_immutable_runtime(cls, member: Any, attribute: str) -> None:
+        """Refuse a completed member whose runtime value breaks the immutable contract."""
+        for field_name, field in getattr(cls, "model_fields", {}).items():
+            found = _runtime_refusal(getattr(member, field_name), field.annotation, field_name)
+            if found is not None:
+                path, reason = found
+                raise ValueError(
+                    f"{cls.__name__}: the property '{path}' of member '{attribute}' {reason}; "
                     f"supported: {_SUPPORTED_SUMMARY}."
                 )
 

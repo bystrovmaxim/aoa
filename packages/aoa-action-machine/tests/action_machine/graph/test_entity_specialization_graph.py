@@ -48,7 +48,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -81,9 +80,9 @@ class _FirstSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.FIRST),
+        Classifier(variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -93,9 +92,9 @@ class _SecondSpecEntity(BaseSpecEntity):
     year: int = Field(description="a column of its own")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.REPRESS),
+        Classifier(variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -104,9 +103,9 @@ class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
         Generalization[_HeadCoreEntity],
-        Classifier(field="record", variant=_HeadKindEnumEntity.TEST),
+        Classifier(variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -127,7 +126,7 @@ class _HeadCoreEntity(BaseCoreEntity):
     pressed: Annotated[
         Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity, _HeadKindEnumEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="how it was pressed")
+    ] = Field(description="how it was pressed")
 
 
 @exclude_graph_model
@@ -309,7 +308,7 @@ def test_a_link_keeps_its_identifier_and_variant_without_a_loaded_row() -> None:
 
 
 def test_a_loaded_row_reads_back_as_the_object_put_in() -> None:
-    row = _FirstSpecEntity(id="h", stamper="1A")
+    row = _FirstSpecEntity(id="h", stamper="1A", record=Generalization[_HeadCoreEntity](id="h"))
     head = _HeadCoreEntity(
         id="h", title="t", pressed=Specialization[_FirstSpecEntity, _HeadKindEnumEntity](id="h", variant=_HeadKindEnumEntity.FIRST, entity=row)
     )

@@ -21,7 +21,6 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Classifier,
     Generalization,
-    Rel,
     Specialization,
     value,
 )
@@ -53,7 +52,7 @@ class ContainerRecordCoreEntity(BaseCoreEntity):
     """The head whose field is the container."""
 
     id: str = Field(description="Record id")
-    kind: Specialization[ContainerFirstPressSpecEntity | ContainerRepressSpecEntity, ContainerEditionKindEnumEntity] = Rel(
+    kind: Specialization[ContainerFirstPressSpecEntity | ContainerRepressSpecEntity, ContainerEditionKindEnumEntity] = Field(
         description="Which pressing this is"
     )
 
@@ -65,8 +64,8 @@ class ContainerFirstPressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[ContainerRecordCoreEntity],
-        Classifier(field="record", variant=ContainerEditionKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
+        Classifier(variant=ContainerEditionKindEnumEntity.FIRST),
+    ] = Field(description="The head row")
 
 
 @exclude_graph_model
@@ -76,8 +75,8 @@ class ContainerRepressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[ContainerRecordCoreEntity],
-        Classifier(field="record", variant=ContainerEditionKindEnumEntity.REPRESS),
-    ] = Rel(description="The head row")
+        Classifier(variant=ContainerEditionKindEnumEntity.REPRESS),
+    ] = Field(description="The head row")
 
 
 ContainerVariant = Specialization[

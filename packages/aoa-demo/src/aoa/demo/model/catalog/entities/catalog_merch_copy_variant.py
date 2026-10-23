@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
@@ -26,9 +26,9 @@ class MerchCopyVariantCoreEntity(BaseCoreEntity):
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning shelf placement artefact"
-    )  # type: ignore[assignment]
+    )
 
 
 MerchCopyVariantCoreEntity.model_rebuild()
