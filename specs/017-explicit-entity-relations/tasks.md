@@ -99,15 +99,15 @@ US4, which extends the validator US1 creates.
 
 ### Tests and checks for User Story 6
 
-- [ ] T018 [P] [US6] Extend `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts`: the printed text carries no code, the DOT carries `TOOLTIP="code: …"`, a code needing escaping is escaped in the tooltip too, a non-dictionary entity's rows are unchanged, and a graph saved before the change renders without a rebuild (FR-038, FR-039, FR-040; SC-007)
-- [ ] T019 [P] [US6] Extend `packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py`: the enum kind's field list has no `code`/`display_name`, each value still carries its code in `properties.values`, and the payload satisfies its declared schema (FR-037, FR-041)
+- [x] T018 [P] [US6] Extend `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts`: the printed text carries no code, the DOT carries `TOOLTIP="code: …"`, a code needing escaping is escaped in the tooltip too, a non-dictionary entity's rows are unchanged, and a graph saved before the change renders without a rebuild (FR-038, FR-039, FR-040; SC-007)
+- [x] T019 [P] [US6] Extend `packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py`: the enum kind's field list has no `code`/`display_name`, each value still carries its code in `properties.values`, and the payload satisfies its declared schema (FR-037, FR-041)
 
 ### Implementation for User Story 6
 
-- [ ] T020 [US6] Omit `code` and `display_name` from the payload field list for the enum kind in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py`, leaving the graph SQL and `graph_json_schema.py` untouched (FR-037)
-- [ ] T021 [US6] Drop the code cell and add the row tooltip in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, following the tooltip the specialization axis row already uses (FR-038, FR-039)
-- [ ] T022 [US6] Reconcile §3 of `specs/016-value-declaration-consistency/contracts/dictionary-card.md` to the final behaviour instead of adding a second contract (FR-041)
-- [ ] T023 [US6] Adversarially restore the printed code cell, confirm T018 fails while the payload test passes, then restore (file: `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`) (FR-042; SC-007)
+- [x] T020 [US6] Omit `code` and `display_name` from the payload field list for the enum kind in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py`, leaving the graph SQL and `graph_json_schema.py` untouched (FR-037)
+- [x] T021 [US6] Drop the code cell and add the row tooltip in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, following the tooltip the specialization axis row already uses (FR-038, FR-039)
+- [x] T022 [US6] Reconcile §3 of `specs/016-value-declaration-consistency/contracts/dictionary-card.md` to the final behaviour instead of adding a second contract (FR-041)
+- [x] T023 [US6] Adversarially restore the printed code cell, confirm T018 fails while the payload test passes, then restore (file: `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`) (FR-042; SC-007)
 
 **Checkpoint**: three client checks green, payload schema green, an old graph renders.
 

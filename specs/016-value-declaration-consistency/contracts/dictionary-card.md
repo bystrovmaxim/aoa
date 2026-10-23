@@ -49,12 +49,19 @@ The dictionary node keeps `properties.values` as an array of references, and a r
 
 ## 3. The rendered card
 
+Amended by #249: the card shows labels, and the code is no longer printed anywhere. The
+final behaviour is specified in `specs/017-explicit-entity-relations/spec.md` (US6, FR-037 to
+FR-040) and in `specs/017-explicit-entity-relations/data-model.md`; the rules below are it.
+
 | Rule | Statement |
 | --- | --- |
 | Placement | property rows inside the dictionary's value row — never nodes, never a second card |
-| Escaping | name and value are HTML-escaped once; `<`, `>`, `&` display literally and the SVG stays valid |
+| Printed text | the label and the value's own properties; the code is never printed, and the two field rows the kind supplies (`code`, `display_name`) are not part of the dictionary card at all |
+| Code | stays in the graph document, in `properties.values` and in the payload; the renderer carries it as a `TOOLTIP` on the value row, which Graphviz emits as an `xlink:title` in the SVG |
+| Escaping | name, value and the tooltip text are HTML-escaped once; `<`, `>`, `&` display literally and the SVG stays valid |
 | Vocabulary | no dictionary name, kind or field is named by the renderer; `symbol` and `note` are examples only |
-| Degradation | a value with no properties shows code and label and no empty row; a model with no dictionaries renders as today |
+| Degradation | a value with no properties shows its label and no empty row; a model with no dictionaries renders as today |
+| Old payload | a payload produced before the change that still carries the kind's rows renders, because the action drops them before the card sees them; the renderer gains no field list of its own |
 | Rendering | the check runs the real layout (`@hpcc-js/wasm-graphviz`), not a string comparison of DOT alone |
 
 ## 4. The specialization group label
@@ -83,7 +90,7 @@ The dictionary node keeps `properties.values` as an array of references, and a r
 | --- | --- |
 | `packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py` | the payload shape, the text forms, the schema validation |
 | `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py` | the group's key set after `dictionary_label` leaves, and the label text |
-| `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` | escaping and the rendered SVG |
+| `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` | the printed label, the absent code cell, the escaped tooltip, the rendered SVG |
 | `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` (new) | the server payload driven through the client renderer, dictionary named once |
 | `packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py` (new) | the actual graph document, JSON-parsed, carrying the serializer's text |
 
