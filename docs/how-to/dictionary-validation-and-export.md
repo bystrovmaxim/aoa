@@ -769,3 +769,7 @@ Every property emitted by serialization is required in the nested output object,
 Literal choices match by both type and value. A union accepts null only if one of its members is `None`; a literal may also list `None` explicitly. An annotation consisting only of `None` is not a supported dictionary property. A leaf compares the exact type, so a subclass is refused: `True` is not an `int`, `1` is not a `float`, and a `datetime` is not a `date`. These checks run while the dictionary class is created and also reach tuple items. The dictionary rule does not restrict lifecycle-status property types.
 
 Input and output schemas retain their existing responsibilities. The completed-value fix does not change the reference payload. See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [invariant reference](../reference/intents-and-invariants.md), and [explicit entity fields](explicit-entity-fields.md).
+
+## Dictionary reference declarations
+
+A bare dictionary type selects one declared value and supplies a reference edge. Nullable fields keep cardinality `one`. Collections, relation containers and `NoRelation` are refused for dictionary references at model build. See [supported forms, migration and exact refusals](dictionary-references.md).

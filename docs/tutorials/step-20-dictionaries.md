@@ -221,3 +221,7 @@ An input schema checks the shape of a reference; runtime validation resolves its
 The completed-value check reads the whole annotation. A value outside its `Literal` choices and `None` for a union that excludes it are refused, as is `bool` where `int` is declared. A leaf keeps its exact type, so an `int` is not a `float` and a `datetime` is not a `date`; input given to the declaration is still coerced first, so `ratio: float` with `1` holds `1.0`. For accepted neighbors, use a declared literal choice, a member of the union, an explicitly nullable union or literal, or a value of the declared type. A property annotated only `None` is refused; tuple diagnostics identify the failing item. See [the complete migration and exact outputs](../how-to/dictionary-validation-and-export.md#migrate-completed-values).
 
 See [validation and export](../how-to/dictionary-validation-and-export.md), [relations and specializations](step-21-relations.md#generalization-and-specialization), and [entity invariants](../reference/intents-and-invariants.md).
+
+## Follow a dictionary reference
+
+Keep the bare dictionary type for a single selection. The graph now carries an `entity_reference` edge beside the field row, and the entity diagram draws the reference to the dictionary card. Rebuild older exports to obtain the edge. Multiple selections require a separate model rather than a collection of dictionary values. See [the reference guide and executed scenarios](../how-to/dictionary-references.md).

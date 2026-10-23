@@ -128,6 +128,9 @@ class NodeGraphCoordinator(BaseCoordinator):
         Collect nodes from each inspector instance via :meth:`BaseGraphNodeInspector.get_graph_nodes`,
         validate, index, and store the graph for read APIs.
 
+        The entity-field declaration pass runs first, before a node is gathered, so a field that
+        declares no form is named by the rule instead of surfacing as a dangling edge.
+
         Args:
             inspectors: Inspector instances contributing interchange nodes.
             export_json_schema: Ignored; retained only for backward-compatible keyword arguments.
@@ -144,10 +147,10 @@ class NodeGraphCoordinator(BaseCoordinator):
         if self._built:
             msg = "NodeGraphCoordinator.build() was already called on this instance."
             raise RuntimeError(msg)
+        entity_field_validator.validate_entity_fields()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
-        entity_field_validator.validate_entity_fields()
         entity_specialization_validator.validate_entity_specializations()
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
@@ -359,8 +362,7 @@ class NodeGraphCoordinator(BaseCoordinator):
 
                 if target_node is None:
                     raise InvalidGraphError(
-                        f"Edge {edge.edge_name!r} from {source_id!r} references "
-                        f"missing target_node_id {target_id!r}.",
+                        f"Edge {edge.edge_name!r} from {source_id!r} references missing target_node_id {target_id!r}.",
                     )
                 if edge.target_node is not target_node:
                     raise InvalidGraphError(
@@ -386,5 +388,5 @@ class NodeGraphCoordinator(BaseCoordinator):
             return
         if not _dag.is_dag_slice_acyclic(dag_adjacency, ids):
             raise InvalidGraphError(
-                "Edges with is_dag=True form a directed cycle. " "Review interchange link wiring.",
+                "Edges with is_dag=True form a directed cycle. Review interchange link wiring.",
             )

@@ -50,18 +50,90 @@ def diagram() -> dict[str, Any]:
     graph = {
         "schema_version": "1.0",
         "nodes": [
-            {"id": _DOMAIN, "type": "Domain", "label": "ShopDomain", "properties": {"name": "shop", "description": "Shop"}},
-            {"id": _CURRENCY, "type": "Entity", "label": "CurrencyEnumEntity", "properties": {"description": "Currencies", "entity_kind": "enum", "values": _VALUES}},
-            {"id": _CURRENCY + ":code", "type": "EntityField", "label": "code", "properties": {"field_type": "str", "primary_key_hint": False}},
-            {"id": _CURRENCY + ":display_name", "type": "EntityField", "label": "display_name", "properties": {"field_type": "str", "primary_key_hint": False}},
-            {"id": _TAG, "type": "Entity", "label": "PriceTagCoreEntity", "properties": {"description": "Tag", "entity_kind": "core"}},
-            {"id": _TAG + ":currency", "type": "EntityField", "label": "currency", "properties": {"field_type": "CurrencyEnumEntity", "primary_key_hint": False, "reference_qualname": _CURRENCY}},
+            {
+                "id": _DOMAIN,
+                "type": "Domain",
+                "label": "ShopDomain",
+                "properties": {"name": "shop", "description": "Shop"},
+            },
+            {
+                "id": _CURRENCY,
+                "type": "Entity",
+                "label": "CurrencyEnumEntity",
+                "properties": {"description": "Currencies", "entity_kind": "enum", "values": _VALUES},
+            },
+            {
+                "id": _CURRENCY + ":code",
+                "type": "EntityField",
+                "label": "code",
+                "properties": {"field_type": "str", "primary_key_hint": False},
+            },
+            {
+                "id": _CURRENCY + ":display_name",
+                "type": "EntityField",
+                "label": "display_name",
+                "properties": {"field_type": "str", "primary_key_hint": False},
+            },
+            {
+                "id": _TAG,
+                "type": "Entity",
+                "label": "PriceTagCoreEntity",
+                "properties": {"description": "Tag", "entity_kind": "core"},
+            },
+            {
+                "id": _TAG + ":currency",
+                "type": "EntityField",
+                "label": "currency",
+                "properties": {
+                    "field_type": "CurrencyEnumEntity",
+                    "primary_key_hint": False,
+                    "reference_qualname": _CURRENCY,
+                },
+            },
         ],
         "edges": [
-            *({"source_id": identifier, "target_id": _DOMAIN, "type": "domain", "relationship": "Composition", "is_dag": False} for identifier in (_CURRENCY, _TAG)),
-            {"source_id": _CURRENCY, "target_id": _CURRENCY + ":code", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 0, "field_name": "code"}},
-            {"source_id": _CURRENCY, "target_id": _CURRENCY + ":display_name", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 1, "field_name": "display_name"}},
-            {"source_id": _TAG, "target_id": _TAG + ":currency", "type": "entity_field", "relationship": "Composition", "is_dag": False, "properties": {"ordinal": 0, "field_name": "currency"}},
+            *(
+                {
+                    "source_id": identifier,
+                    "target_id": _DOMAIN,
+                    "type": "domain",
+                    "relationship": "Composition",
+                    "is_dag": False,
+                }
+                for identifier in (_CURRENCY, _TAG)
+            ),
+            {
+                "source_id": _CURRENCY,
+                "target_id": _CURRENCY + ":code",
+                "type": "entity_field",
+                "relationship": "Composition",
+                "is_dag": False,
+                "properties": {"ordinal": 0, "field_name": "code"},
+            },
+            {
+                "source_id": _CURRENCY,
+                "target_id": _CURRENCY + ":display_name",
+                "type": "entity_field",
+                "relationship": "Composition",
+                "is_dag": False,
+                "properties": {"ordinal": 1, "field_name": "display_name"},
+            },
+            {
+                "source_id": _TAG,
+                "target_id": _TAG + ":currency",
+                "type": "entity_field",
+                "relationship": "Composition",
+                "is_dag": False,
+                "properties": {"ordinal": 0, "field_name": "currency"},
+            },
+            {
+                "source_id": _TAG,
+                "target_id": _CURRENCY,
+                "type": "entity_reference",
+                "relationship": "Association",
+                "is_dag": False,
+                "properties": {"field_name": "currency", "cardinality": "one"},
+            },
         ],
     }
     store = DuckDBGraphResource.build_from_json(graph)
@@ -76,6 +148,30 @@ def test_the_dictionary_row_carries_its_values(diagram: dict[str, Any]) -> None:
         {"code": "eur", "display_name": "Euro", "properties": [{"name": "symbol", "value": "€"}]},
         {"code": "usd", "display_name": "US dollar", "properties": [{"name": "symbol", "value": "$"}]},
     ]
+
+
+def test_a_reference_field_is_a_relation_entry(diagram: dict[str, Any]) -> None:
+    """The ERD draws an arrow from the host to the dictionary it references."""
+    entries = [entry for entry in diagram["relations"] if entry["relationship_kind"] == "reference"]
+
+    assert entries == [
+        {
+            "source": _TAG,
+            "target": _CURRENCY,
+            "label": "currency",
+            "relationship_kind": "reference",
+            "source_cardinality": "one",
+            "target_cardinality": "zero_many",
+        },
+    ]
+
+
+def test_the_diagram_satisfies_the_slice_contract(diagram: dict[str, Any]) -> None:
+    """The reference entry validates against the payload schema the action declares."""
+    jsonschema.validate(
+        [{"domain_label": "ShopDomain", "domain_qualname": _DOMAIN, "list_entities": diagram}],
+        _SCHEMA,
+    )
 
 
 def test_a_plain_entity_carries_no_values(diagram: dict[str, Any]) -> None:
@@ -96,11 +192,27 @@ def rich_diagram() -> dict[str, Any]:
     graph = {
         "schema_version": "1.0",
         "nodes": [
-            {"id": _RICH_DOMAIN, "type": "Domain", "label": "ExtrasDomain", "properties": {"name": "extras", "description": "Extras"}},
-            {"id": _RICH_DICTIONARY, "type": "Entity", "label": "ExtrasEnumEntity", "properties": {"description": "Extras", "entity_kind": "enum", "values": _RICH_VALUES}},
+            {
+                "id": _RICH_DOMAIN,
+                "type": "Domain",
+                "label": "ExtrasDomain",
+                "properties": {"name": "extras", "description": "Extras"},
+            },
+            {
+                "id": _RICH_DICTIONARY,
+                "type": "Entity",
+                "label": "ExtrasEnumEntity",
+                "properties": {"description": "Extras", "entity_kind": "enum", "values": _RICH_VALUES},
+            },
         ],
         "edges": [
-            {"source_id": _RICH_DICTIONARY, "target_id": _RICH_DOMAIN, "type": "domain", "relationship": "Composition", "is_dag": False},
+            {
+                "source_id": _RICH_DICTIONARY,
+                "target_id": _RICH_DOMAIN,
+                "type": "domain",
+                "relationship": "Composition",
+                "is_dag": False,
+            },
         ],
     }
     store = DuckDBGraphResource.build_from_json(graph)
@@ -163,6 +275,7 @@ def test_a_lossy_conversion_is_caught_by_the_invariant(rich_diagram: dict[str, A
     with pytest.raises(AssertionError, match="lost a property"):
         _assert_one_item_per_property(lossy, _RICH_VALUES)
 
+
 def test_a_dictionary_card_drops_the_rows_the_kind_supplies(diagram: dict[str, Any]) -> None:
     """A reader sees labels, not storage identity: the two kind rows never reach the card."""
     currency = next(item for item in diagram["entities"] if item["id"] == _CURRENCY)
@@ -183,3 +296,109 @@ def test_a_plain_entity_keeps_every_field_row(diagram: dict[str, Any]) -> None:
     tag = next(item for item in diagram["entities"] if item["id"] == _TAG)
 
     assert [field["name"] for field in tag["fields"]] == ["currency"]
+
+
+_OTHER_DOMAIN = "shop.SecondDomain"
+_OTHER_HOST = "shop.SecondHostCoreEntity"
+
+
+@pytest.fixture(scope="module")
+def cross_domain() -> DuckDBGraphResource:
+    """Build a graph whose host references a dictionary that lives in another domain."""
+    graph = {
+        "schema_version": "1.0",
+        "nodes": [
+            {
+                "id": _DOMAIN,
+                "type": "Domain",
+                "label": "ShopDomain",
+                "properties": {"name": "shop", "description": "Shop"},
+            },
+            {
+                "id": _CURRENCY,
+                "type": "Entity",
+                "label": "CurrencyEnumEntity",
+                "properties": {"description": "Currencies", "entity_kind": "enum", "values": _VALUES},
+            },
+            {
+                "id": _CURRENCY + ":code",
+                "type": "EntityField",
+                "label": "code",
+                "properties": {"field_type": "str", "primary_key_hint": False},
+            },
+            {
+                "id": _OTHER_DOMAIN,
+                "type": "Domain",
+                "label": "SecondDomain",
+                "properties": {"name": "second", "description": "Second"},
+            },
+            {
+                "id": _OTHER_HOST,
+                "type": "Entity",
+                "label": "SecondHostCoreEntity",
+                "properties": {"description": "Host", "entity_kind": "core"},
+            },
+            {
+                "id": _OTHER_HOST + ":currency",
+                "type": "EntityField",
+                "label": "currency",
+                "properties": {
+                    "field_type": "CurrencyEnumEntity",
+                    "primary_key_hint": False,
+                    "reference_qualname": _CURRENCY,
+                },
+            },
+        ],
+        "edges": [
+            {
+                "source_id": _CURRENCY,
+                "target_id": _DOMAIN,
+                "type": "domain",
+                "relationship": "Composition",
+                "is_dag": False,
+            },
+            {
+                "source_id": _OTHER_HOST,
+                "target_id": _OTHER_DOMAIN,
+                "type": "domain",
+                "relationship": "Composition",
+                "is_dag": False,
+            },
+            {
+                "source_id": _OTHER_HOST,
+                "target_id": _OTHER_HOST + ":currency",
+                "type": "entity_field",
+                "relationship": "Composition",
+                "is_dag": False,
+                "properties": {"ordinal": 0, "field_name": "currency"},
+            },
+            {
+                "source_id": _OTHER_HOST,
+                "target_id": _CURRENCY,
+                "type": "entity_reference",
+                "relationship": "Association",
+                "is_dag": False,
+                "properties": {"field_name": "currency", "cardinality": "one"},
+            },
+        ],
+    }
+    return DuckDBGraphResource.build_from_json(graph)
+
+
+def test_a_dictionary_in_another_domain_joins_the_slice_with_neighbours(cross_domain: DuckDBGraphResource) -> None:
+    """A one-hop slice pulls the referenced dictionary in, so the arrow resolves."""
+    diagram = ListEntitiesAction._slice_payload(cross_domain, _OTHER_DOMAIN, include_neighbors=True)
+
+    assert _CURRENCY in {entity["id"] for entity in diagram["entities"]}
+    assert any(
+        relation["relationship_kind"] == "reference" and relation["target"] == _CURRENCY
+        for relation in diagram["relations"]
+    )
+
+
+def test_the_same_slice_without_neighbours_leaves_the_dictionary_out(cross_domain: DuckDBGraphResource) -> None:
+    """Without neighbours the slice must not invent a card it did not include."""
+    diagram = ListEntitiesAction._slice_payload(cross_domain, _OTHER_DOMAIN, include_neighbors=False)
+
+    assert _CURRENCY not in {entity["id"] for entity in diagram["entities"]}
+    assert [relation for relation in diagram["relations"] if relation["relationship_kind"] == "reference"] == []

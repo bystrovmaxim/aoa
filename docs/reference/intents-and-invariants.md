@@ -439,7 +439,7 @@ inherit its parent's catalogue instead.
 | Completed values | Checked after user validators; Literal choices match by type and value; a leaf matches the exact declared type, so bool is not int, int is not float and datetime is not date |
 | Nullability | A union accepts None only when included; Literal may list None explicitly; a property annotated only None is refused |
 | Tuple properties | Each item follows its annotation; a refusal identifies the item index |
-| Graph | The dictionary Entity node carries properties.values; references carry reference_qualname; values are not separate nodes |
+| Graph | The dictionary Entity node carries properties.values; references carry reference_qualname and one entity_reference edge per field (field_name, cardinality one); values are not separate nodes |
 
 The property check inspects the annotation when the class is created and the completed member
 after custom validators run: a result outside the declared types, outside a `Literal`'s
@@ -619,3 +619,5 @@ Maxitor draws lifecycles as FSM diagrams straight from the entity code. The anal
   <td align="center"><a href="../index.md">Contents</a></td>
   <td align="right"></td>
 </tr></table>
+
+Dictionary fields accept the bare type or its nullable form. Collections, relation containers, embedded markers, empty catalogues and targets outside the graph are refused at model build. See [dictionary reference declarations](../how-to/dictionary-references.md).
