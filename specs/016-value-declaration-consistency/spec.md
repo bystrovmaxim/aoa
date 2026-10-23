@@ -265,7 +265,7 @@ A reader of the ERD sees a group labelled `kind (by EditionKindEnumEntity)` — 
 - **SC-004**: The four reproduced defects each have a dedicated test that passes, and the same test fails when the defect is reintroduced: a mutable property type accepted at declaration, a bypassed field serializer, a non-serializable export, and an input schema that rejects a code-only reference.
 - **SC-005**: A property present in a saved graph appears in the rendered diagram for 100 % of the covered cases, including a value with a tuple property, a supported non-string property, a property whose value is `None` or an empty string, and a property containing `<`, `>` and `&`.
 - **SC-006**: A group label contains the dictionary name exactly once, proven by a test that consumes the server payload.
-- **SC-007**: The closing check run reports only the two accepted remarks, and the documentation pages named in Dependencies are reconciled in place, with no new tutorial series and no Russian draft.
+- **SC-007**: The closing check run reports only the two accepted remarks, and the documentation pages named in Dependencies are reconciled in place, with no new tutorial series and no Russian draft of a page (the task list keeps its own `tasks.ru_draft.md`).
 
 ## Assumptions
 

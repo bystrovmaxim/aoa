@@ -148,9 +148,9 @@ Prototyped: the serialized property comes out as `{"type": "string"}` — no sta
 
 ## D11 — The Russian drafts
 
-**Decision**: this change creates no `*.ru_draft.md` file and refreshes none. The English pages are updated in place.
+**Decision**: the documentation pages of this change get no `*.ru_draft.md`; the English pages are updated in place. The planning artifacts keep their Russian twin — `tasks.ru_draft.md` beside `tasks.md` — because `.gitignore` keeps `*_draft.md` out of a commit and the maintainer reads the list in Russian.
 
-**Rationale**: #244 states it twice — "Do not create Russian draft documentation" and "Do not create Russian drafts". The repository rule that a report links the Russian twin is a rule about reporting; where the issue forbids the draft, the report says so instead.
+**Rationale**: #244 states it twice — "Do not create Russian draft documentation" and "Do not create Russian drafts" — and that sentence is about the pages under `docs/`, which a reader of the manual sees. The task list is a working artifact the maintainer reads while directing the work; #241 kept `tasks.ru_draft.md` the same way, and it never entered a commit.
 
 ## Open questions
 

@@ -1,0 +1,57 @@
+# Phase 1 baseline — measured on the feature branch
+
+Recorded: 2026-10-23, before any implementation of this feature.
+
+## T001 — where the tree stands
+
+branch          : feature/issue-244-simplify-value-declarations
+base commit     : e791ad28 (the merged baseline the spec quotes)
+head commit     : efc54658 (the specification artifacts, committed on instruction)
+working tree    : 4 modified spec artifacts — the Russian-draft wording clarification in
+                  plan.md, research.md, spec.md and tasks.md; nothing else, and tasks.ru_draft.md
+                  is ignored by .gitignore
+python          : 3.12.12
+pydantic        : 2.12.5
+uv              : uv 0.10.11 (006b56b12 2026-03-16)
+
+uv sync         : exit 0, but only with UV_CACHE_DIR=/tmp/uv-cache — the file sandbox denies
+                  writing to ~/.cache/uv ("Failed to initialize cache ... Operation not permitted").
+                  The workspace .venv was already complete; the sync re-resolved 143 packages
+                  and checked 61 without changing them.
+
+## T002 — the declaration forms and the suppressions
+
+Command: uv run python specs/016-value-declaration-consistency/evidence/scan_value_declarations.py
+
+area                           class-name value(...) suppressed  classes  files  sup files
+packages/aoa-action-machine            76          0         35       62     20         21
+packages/aoa-maxitor                    0          0          0        0      0          0
+packages/aoa-demo                     103          0        103       34     25         25
+examples                              194          0        194       91     71         71
+total                                 373          0        332      187    116        117
+
+A declaration is an uppercase assignment inside a class body whose base name ends in
+EnumEntity or StateEntity; a constructor call outside such a body — the deliberately built
+copy in examples/step_20_dictionaries/22_copy.py — is not counted.
+
+## T003 — the four defects, reproduced
+
+Command: uv run python specs/016-value-declaration-consistency/evidence/reproduce_defects.py
+Output : evidence/defects.before.txt
+
+1. nested mutation reaches the declared value: ['original', 'changed']
+2. model_dump_json: {"code":"item","display_name":"Item","properties":{"since":"2020-01-02"}}
+2. expected by the serializer: 02/01/2020
+3. json.dumps(to_reference()): TypeError: Object of type date is not JSON serializable
+4. runtime accepts a code-only reference: True
+4. the validation schema rejects it with: ["'display_name' is a required property", "'properties' is a required property"]
+
+## T004 — the migration tool, dry run
+
+Command: uv run python specs/016-value-declaration-consistency/evidence/migrate_value_declarations.py
+
+found: 373 declaration(s) in 116 file(s); 116 import(s) would be updated; 0 refusal(s)
+
+The tool's counts agree with the scan above: 373 declarations in 116 files, 0 refusals.
+It refuses a declaring class body that names another class, and on any refusal it writes
+nothing at all (verified on a scratch copy: exit 1, the untouched file's checksum unchanged).

@@ -24,10 +24,10 @@ Repository root holds `packages/`, `examples/`, `docs/`, `specs/`. The framework
 
 **Purpose**: the baseline every later phase is measured against, and the tool that performs the migration.
 
-- [ ] T001 Confirm the branch `feature/issue-244-simplify-value-declarations` is based on `e791ad28`, the tree is otherwise clean, and `uv sync` succeeds; record the commit and the Pydantic version in `specs/016-value-declaration-consistency/evidence/baseline.before.txt`
-- [ ] T002 [P] Run `uv run python specs/016-value-declaration-consistency/evidence/scan_value_declarations.py` and append its table to `specs/016-value-declaration-consistency/evidence/baseline.before.txt`; it must print `373` class-name declarations in `116` files and `332` suppressed lines in `117` files
-- [ ] T003 [P] Add `specs/016-value-declaration-consistency/evidence/reproduce_defects.py` printing the four baseline defects — nested mutation of `to_reference()`, an ignored `@field_serializer`, `json.dumps(to_reference())` raising, and the input schema rejecting a code-only reference — and store its output beside the scan
-- [ ] T004 Write `specs/016-value-declaration-consistency/evidence/migrate_value_declarations.py`: rewrite `NAME = <Owner>Entity(` to `NAME = value(` only for uppercase targets inside a declaring class body, add `value` to the module's `aoa.action_machine.domain` import, strip `# noqa: F821` / `# type: ignore[name-defined]` from the migrated lines, and refuse a file whose migrated count differs from the count it found
+- [x] T001 Confirm the branch `feature/issue-244-simplify-value-declarations` is based on `e791ad28`, the tree is otherwise clean, and `uv sync` succeeds; record the commit and the Pydantic version in `specs/016-value-declaration-consistency/evidence/baseline.before.txt`
+- [x] T002 [P] Run `uv run python specs/016-value-declaration-consistency/evidence/scan_value_declarations.py` and append its table to `specs/016-value-declaration-consistency/evidence/baseline.before.txt`; it must print `373` class-name declarations in `116` files and `332` suppressed lines in `117` files
+- [x] T003 [P] Add `specs/016-value-declaration-consistency/evidence/reproduce_defects.py` printing the four baseline defects — nested mutation of `to_reference()`, an ignored `@field_serializer`, `json.dumps(to_reference())` raising, and the input schema rejecting a code-only reference — and store its output beside the scan
+- [x] T004 Write `specs/016-value-declaration-consistency/evidence/migrate_value_declarations.py`: rewrite `NAME = <Owner>Entity(` to `NAME = value(` only for uppercase targets inside a declaring class body, add `value` to the module's `aoa.action_machine.domain` import, strip `# noqa: F821` / `# type: ignore[name-defined]` from the migrated lines, and refuse a file whose migrated count differs from the count it found
 
 **Checkpoint**: the baseline is recorded and the migration tool exists and refuses a partial rewrite.
 
@@ -229,5 +229,5 @@ US2 (a value that cannot be changed) → US3 (a reference a consumer can seriali
 ### What is deliberately not a task
 
 - No commit, push, pull request or merge: those happen on instruction only (constitution I).
-- No Russian draft: #244 forbids it (research D11).
+- No Russian draft for the documentation pages: #244 forbids it (research D11). The task list keeps `tasks.ru_draft.md` beside it for the maintainer, and `.gitignore` keeps that file out of a commit.
 - No compatibility shim for the removed alias, no separate `Enum`, no new generic parameter, no demo behaviour change, no storage migration, no graph rebuild.
