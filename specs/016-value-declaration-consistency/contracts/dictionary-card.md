@@ -75,7 +75,7 @@ The dictionary node keeps `properties.values` as an array of references, and a r
 | Removed member | `dictionary_label` leaves the group shape — payload, JSON schema and `ErdGroup` |
 | Kept member | `classifier_field` stays, because it is a fact and not the label |
 | Escaping | once, in the renderer |
-| Degradation | no label → the group id; never `(by )` |
+| Label contract | The server supplies a complete label; the client renders it as received. A missing-label fallback is not part of the current renderer contract. |
 
 ## 5. The proof
 

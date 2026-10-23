@@ -40,13 +40,13 @@ The system's data language. An immutable Pydantic model with dot-path navigation
 
 ```python
 class CreateOrderAction(BaseAction[...]):
-    class Params(BaseParams):     # what comes in
+    class Params(BaseParams):  # what comes in
         user_id: str
 
-    class Result(BaseResult):     # what goes out
+    class Result(BaseResult):  # what goes out
         order_id: str
 
-    class State(BaseState):       # what's visible inside
+    class State(BaseState):  # what's visible inside
         created: bool = False
 ```
 
@@ -59,8 +59,7 @@ class CreateOrderAction(BaseAction[...]):
 What the system **does**. An operation with an explicit contract: input parameters, an output result, access, rollbacks, dependencies.
 
 ```python
-class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.Result]):
-    ...
+class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.Result]): ...
 ```
 
 ---
@@ -83,6 +82,8 @@ How the system **talks to the outside world over a protocol**. A transport layer
 
 ```python
 class FastApiAdapter(BaseAdapter): ...
+
+
 class McpAdapter(BaseAdapter): ...
 ```
 
@@ -94,7 +95,11 @@ How the machine **changes its own behavior**. Coordinators intercept execution p
 
 ```python
 class AuthCoordinator(BaseCoordinator): ...
+
+
 class CacheCoordinator(BaseCoordinator): ...
+
+
 class SagaCoordinator(BaseCoordinator): ...
 ```
 
@@ -107,13 +112,22 @@ How the machine **reports on itself**. Observers receive lifecycle events and `b
 **The key guarantee:** remove every `BaseObserver` descendant, and the system's behavior doesn't change. They're invisible to business logic.
 
 ```python
-class BaseLogger(BaseObserver): ...           # root of all loggers
-class ConsoleLogger(BaseLogger): ...          # box.info → stdout
-class KafkaLogger(BaseLogger): ...            # box.info → Kafka
+class BaseLogger(BaseObserver): ...  # root of all loggers
+
+
+class ConsoleLogger(BaseLogger): ...  # box.info → stdout
+
+
+class KafkaLogger(BaseLogger): ...  # box.info → Kafka
+
 
 class Plugin(OnIntent, BaseObserver, ABC): ...  # root of all plugins
-class OpenTelemetryPlugin(Plugin): ...        # traces and metrics
-class OcelPlugin(Plugin): ...                 # object-centric event log
+
+
+class OpenTelemetryPlugin(Plugin): ...  # traces and metrics
+
+
+class OcelPlugin(Plugin): ...  # object-centric event log
 ```
 
 `LogCoordinator` and `PluginCoordinator` remain `BaseCoordinator` — they manage the bus and the lifecycle. `BaseLogger` and `Plugin` are observers: they only receive events and react.
@@ -133,9 +147,13 @@ How a class **declares its participation** in AOA's grammar. An Intent is a mixi
 An Intent carries no behavior — it gives inspectors and coordinators an entry point for discovery and validation.
 
 ```python
-class CheckRolesIntent(BaseIntent): ...    # the class declares role requirements
-class EntityIntent(BaseIntent): ...        # the class participates in the @entity grammar
-class CacheIntent(BaseIntent): ...         # the class declares cache_key / on_cache_write
+class CheckRolesIntent(BaseIntent): ...  # the class declares role requirements
+
+
+class EntityIntent(BaseIntent): ...  # the class participates in the @entity grammar
+
+
+class CacheIntent(BaseIntent): ...  # the class declares cache_key / on_cache_write
 ```
 
 An Intent is orthogonal to the other primitives — it can be mixed into `BaseAction`, `BaseEntity`, or any other class.
@@ -149,15 +167,15 @@ A lifecycle is a set of possible states and permitted transitions for one aspect
 A status object supplies the stable code, a human label and any additional domain fields. The state type declares its own statuses and carries their catalogue; the axis names that type as `Lifecycle[OrderStateEntity]`. The template on the axis gives each state its classification and its outgoing transitions:
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    NEW = OrderStateEntity(code="new", display_name="New")
-    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
+    NEW = value(code="new", display_name="New")
+    CONFIRMED = value(code="confirmed", display_name="Confirmed")
+    SHIPPED = value(code="shipped", display_name="Shipped")
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
@@ -165,9 +183,14 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
 
     _template = (
         Lifecycle()
-        .state(OrderStateEntity.NEW).to(OrderStateEntity.CONFIRMED).initial()
-        .state(OrderStateEntity.CONFIRMED).to(OrderStateEntity.SHIPPED).intermediate()
-        .state(OrderStateEntity.SHIPPED).final()
+        .state(OrderStateEntity.NEW)
+        .to(OrderStateEntity.CONFIRMED)
+        .initial()
+        .state(OrderStateEntity.CONFIRMED)
+        .to(OrderStateEntity.SHIPPED)
+        .intermediate()
+        .state(OrderStateEntity.SHIPPED)
+        .final()
     )
 ```
 

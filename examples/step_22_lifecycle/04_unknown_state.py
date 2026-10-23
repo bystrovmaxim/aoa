@@ -6,6 +6,7 @@ Run: uv run python examples/step_22_lifecycle/04_unknown_state.py
 """
 
 from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
+from aoa.action_machine.domain.lifecycle import InvalidStateError
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -15,18 +16,18 @@ class OrderStateEntity(BaseStateEntity):
     PAID = value(code="paid", display_name="Payment received")
 
 
-
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow a draft order to become paid."""
 
-
     _template = (
         Lifecycle()
-        .state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial()
-        .state(OrderStateEntity.PAID).final()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
     )
 
-from aoa.action_machine.domain.lifecycle import InvalidStateError
 
 # Run the case.
 try:

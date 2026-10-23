@@ -19,6 +19,9 @@
     II — the paragraph allowing Russian in `*.ru.md` files and in the notes under
       `archive/` was removed at the maintainer's instruction; the rule has no
       exceptions now
+    I — the paragraph making a request to write an issue an instruction to create it
+      was added at the maintainer's instruction; commits, pushes, pull requests and
+      merges keep their own instruction
   Follow-up TODOs:
     - TODO(RATIFICATION_DATE): the maintainer confirms the date this text is adopted
     - TODO(GOVERNANCE_RULES): amendment procedure, versioning policy and compliance
@@ -36,6 +39,10 @@
 ### I. The maintainer decides — commits, pull requests and merges happen only on instruction (NON-NEGOTIABLE)
 
 Commits, pushes, pull requests and merges are made **only on an explicit instruction from the maintainer, given in the current conversation**. An agent may read, edit and run checks, and it must show what it changed — but it does not commit, push, open a pull request or merge on its own initiative: not as a side effect of finishing a task, not because a plan or an issue lists it as a phase, and not because the work looks complete. Preparing a change and shipping it are two separate decisions, and the second one belongs to the maintainer.
+
+Writing an issue **is** the instruction to create it. When the maintainer asks for an issue, the agent creates it in the same turn, with the title and the body it just wrote, and reports the number and the link. It does not hand the text back as a draft and wait for a second confirmation: a request to write an issue is the permission to write it. The same holds when the request is to add a requirement to an existing issue — the issue is edited in that turn.
+
+This is authoring a document, not shipping a change. Nothing above is loosened: a commit, a push, a pull request and a merge still wait for their own instruction, and the issue an agent creates never authorizes the branch that closes it.
 
 ### II. English in commits, in git, and in code (NON-NEGOTIABLE)
 

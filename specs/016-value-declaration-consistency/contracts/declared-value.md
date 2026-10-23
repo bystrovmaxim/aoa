@@ -1,119 +1,105 @@
-# Contract: declaring a value, and what a consumer may do with it
+# Contract: explicit declarations and dictionary references
 
-**Feature**: `specs/016-value-declaration-consistency` | **Plan**: [../plan.md](../plan.md) | **Data model**: [../data-model.md](../data-model.md) | **Research**: [../research.md](../research.md)
+**Feature:** #244 · [Plan](../plan.md) · [Dictionary card](dictionary-card.md)
 
-This is what a model author writes, what a consumer receives, and what the two JSON schemas say. It is asserted by the tests named at the end.
+This page describes the implemented behavior. The tutorial in
+[Closed dictionaries](../../../docs/tutorials/step-20-dictionaries.md) introduces the
+concepts and links each experiment to a runnable script and notebook.
 
-## 1. The declaration surface
+## Declaration and catalogue
 
 ```python
 from aoa.action_machine.domain import BaseEnumEntity, value
 
+
 class CurrencyEnumEntity(BaseEnumEntity):
-    """Declare the supported currencies."""
+    """Describe the supported currency."""
 
     symbol: str
     EUR = value(code="eur", display_name="Euro", symbol="€")
+
+
+assert CurrencyEnumEntity.by_code("eur") is CurrencyEnumEntity.EUR
 ```
 
-```python
-from aoa.action_machine.domain import BaseStateEntity, value
+`value` records keyword arguments in a placeholder. After the model class exists, its
+hook constructs validated instances and populates the catalogue. Defaults and field
+validators apply; unknown constructor arguments are refused. This hook remains
+automatic, but the class namespace no longer substitutes a factory for its own name.
+An old constructor-looking declaration follows normal Python lookup: an unbound name
+raises NameError, while an existing outer binding can resolve to a different object.
 
-class OrderStateEntity(BaseStateEntity):
-    """Declare order statuses and their properties."""
+`BaseStateEntity` uses the same declaration factory. `members`, `codes()`, `by_code()`
+and `entity_type` keep their existing meanings. Codes are unique and nonblank; the
+catalogue keeps declaration order. A dictionary subclass owns its own catalogue;
+an undecorated intermediate can be empty, while `@entity` requires at least one value.
+A state subclass without new declarations can inherit its parent's catalogue.
 
-    requires_receipt: bool
-    NEW = value(code="new", display_name="New", requires_receipt=False)
-    PAID = value(code="paid", display_name="Payment received", requires_receipt=True)
-```
+If a class assigns a field named `value`, use `from aoa.action_machine.domain import
+value as declared` and call `declared(...)` in that body. A plain annotation without an
+assignment does not itself bind a Python local name.
 
-Guarantees:
+## Dictionary property annotations
 
-1. `value` is imported from `aoa.action_machine.domain`; it is the only declaration form for both kinds.
-2. `value(...)` returns an internal placeholder. All arguments are keyword arguments and are passed to the class's own constructor after the class exists.
-3. After class creation every declared name is an instance of the declaring type, with defaults applied and unknown keys refused; the class name itself never resolves inside its body, so the replaced form fails at the line that writes it.
-4. `members`, `codes()`, `by_code()`, `entity_type`, declaration order, the duplicate refusal and each kind's inheritance and empty-catalogue rules are unchanged.
-5. The conversion of placeholders into instances stays automatic and happens once per class; it is documented as the one remaining automatic step.
-6. A declaring class body cannot also bind the name `value`: an annotation such as `value: Opaque = Field(...)` shadows the factory for the lines that follow. A model that needs a field called `value` on a declaring kind imports the factory under another name — `from aoa.action_machine.domain import value as declared` — and declares with that name; the test `test_a_field_named_value_needs_the_factory_under_another_name` proves the escape hatch.
+Accepted types are `str`, `int`, `float`, `bool`, `Decimal`, `date`, `datetime`, `time`,
+`UUID`, an Enum subclass, Literal, unions of accepted types (including None) and tuples
+of accepted types. The check recurses through tuples and unions. `list`, `dict`, `set`,
+`frozenset`, `Any`, `object`, arbitrary classes and nested models are rejected.
 
-## 2. Which properties a dictionary value may declare
+This is a supported-type policy, not a universal proof of deep immutability. The current
+hook inspects annotations; it does not recheck a custom validator's returned object or
+recursively inspect Enum member internals. Validators must preserve their declared types.
+The refusal names the dictionary class, the field and the unsupported type, including
+an unsupported type nested inside a tuple; it does not report a nested index path.
 
-The supported set is immutable and enforced at class creation:
+The policy applies to dictionaries only. State properties retain their existing freedom.
+Frozen models refuse attribute reassignment but do not recursively freeze a status list.
 
-| Accepted | Refused |
-| --- | --- |
-| `str`, `int`, `float`, `bool` | `list`, `dict`, `set`, `frozenset` |
-| `Decimal`, `date`, `datetime`, `time` | a nested model or any other class |
-| `UUID`, `Enum` subclass, `Literal[...]` | `Any`, `object` |
-| `tuple[...]` of accepted types | a container holding a refused type at any depth |
-| `Optional[X]` / `X \| None` where `X` is accepted | — |
+## Input and reference export
 
-The rule binds the **dictionary** kind. A state type keeps its present freedom, because a status may carry data that need not be hashable and a value with no JSON form — both are existing lifecycle scenarios.
+A dictionary field accepts its declared instance or a reference mapping whose code
+selects a member. The label and properties in an incoming mapping do not override the
+declaration. The only permitted top-level keys are code, display_name and properties.
+Bare strings, missing/blank/unknown codes and copied or foreign instances are refused.
+An optional reference can be None. Constructing a separate instance does not register it.
 
-## 3. Immutability
+`to_reference()` is `model_dump(mode="json")`. Its outer shape is
+`{code, display_name, properties}`; additional fields appear under properties after
+Pydantic applies field serializers. Ordinary `model_dump()` uses Python mode and may
+retain native values, unless a serializer transforms them in that mode too. A serializer
+with `when_used="json"` applies only to the JSON path.
 
-| Attempt | Result |
-| --- | --- |
-| `CurrencyEnumEntity.EUR.display_name = "Changed"` | refused by the frozen model (`ValidationError`), as today |
-| mutating a container under `to_reference()["properties"]` | no such container exists: refused types never enter the class |
-| mutating a tuple's content | tuples are immutable |
-| mutating a nested mapping | no nested mapping exists |
+Dates, times and UUIDs become strings; Decimal becomes a string; tuples become arrays.
+The output may contain mutable dictionaries and lists: those are payload containers,
+not mutable fields of the declared value. Editing an exported array made from a tuple
+does not modify the catalogue member or a later export. Custom serializer outputs must
+be JSON-serializable; unsupported return values can still raise an export error.
 
-A copy — shallow or deep — is not used as the protection: the declared value carries no mutable data at all.
+## Validation and serialization schemas
 
-## 4. The reference form
-
-```python
-CurrencyEnumEntity.EUR.to_reference()
-# {"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}
-```
-
-| Rule | Statement |
-| --- | --- |
-| Mode | the value's JSON export; there is no Python-native variant |
-| Serializer | `@field_serializer` on an extra field is applied; its return value is what a consumer sees |
-| Standard types | `date` → `"2020-01-02"` (or the serializer's text), `Decimal` → `"9.99"`, tuple → `["a", "b"]` |
-| Leaves | JSON values only; `json.dumps(value.to_reference())` never raises |
-| Python mode | `model_dump()` may differ — a `date` stays a `date` there — and the pages say so |
-| Read side | the `code` is authoritative; a payload's `display_name` and `properties` are ignored |
-
-## 5. The two JSON schemas
-
-For a dictionary-typed field, `model_json_schema(mode="validation")` describes what is accepted and `mode="serialization"` describes what is emitted.
-
-| Input | Validation schema | Runtime |
+| Mode | Required top-level keys | Descriptive properties |
 | --- | --- | --- |
-| `{"code": "eur"}` | accepted | resolves to the declared value |
-| `{"code": "eur", "display_name": "Euro"}` | accepted | resolved by code, label ignored |
-| `{"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}` | accepted | resolved by code, properties ignored |
-| `{"display_name": "Euro"}` | refused (no `code`) | refused as malformed |
-| `{"code": ""}` | refused (`minLength: 1`) | refused: a blank code |
-| `{"code": "eur", "extra": 1}` | refused (`additionalProperties: false`) | refused: only `code`, `display_name`, `properties` |
-| `"eur"` | refused (a string is not an object) | refused: a bare code never enters the model |
+| validation | code | Optional label and open properties object |
+| serialization | code, display_name, properties | Named property schemas with their emitted types; unknown keys forbidden |
 
-The output schema additionally requires `display_name` and `properties`, and types each extra property by its **emitted** JSON type — a field with a serializer returning `str` is `{"type": "string"}`, not a date with `format`.
+Both schemas reject unknown top-level keys. The output describes a field serializer's
+return type rather than blindly copying the original Python annotation. The nested
+output properties currently have no required list, even though the ordinary full export
+includes the fields. Input schema validation checks structure; runtime additionally
+checks membership and whitespace-only codes. The schema constrains the types of optional
+label/properties fields, while runtime lookup ignores their contents.
 
-## 6. Refusals and their messages
+Known limitation: generating a serialization schema for an Enum property currently
+raises KeyError for its `#/$defs/...` reference because the extracted schema loses the
+definition. Successful dictionary construction and JSON export do not prove this schema
+path works. Scalar/tuple properties and the documented date-to-string serializer cases
+are covered separately.
 
-| Case | Error | Message names |
-| --- | --- | --- |
-| a list, dict, set, frozenset, a nested model or an `Any` property | `ValueError` at class creation | the class, the field, the refused type, the supported set |
-| a refused type nested in a tuple | the same, at class creation | the same, with the nested position |
-| a mutable property on a **state** type | accepted — the rule does not bind this kind | — |
-| duplicate code | `ValueError` (unchanged) | the class, the duplicated code |
-| an empty concrete dictionary | `ValueError` from the decorator (unchanged) | the class, its noun, what to do |
-| a blank `code` or `display_name` | `ValidationError` (unchanged) | the field |
-| an unknown field in a declaration | `ValidationError` (unchanged) | the field |
-| a bare code in a field | `ValueError` (unchanged) | the class, the accepted forms |
-| an undeclared code in a reference object | `ValueError` (unchanged) | the code, the class, the declared codes |
+## Verification
 
-## 7. Tests that assert this contract
-
-| Test | Covers |
-| --- | --- |
-| `tests/action_machine/domain/test_declared_values.py` | the factory, the conversion, the catalogue, the kind switches — rewritten without the alias |
-| `tests/action_machine/domain/test_value_export.py` | `value` is a public import, and the alias is gone from the package |
-| `tests/action_machine/domain/test_dictionary_scope.py` | non-inheritance, empty dictionary, the reference form's shape |
-| `tests/action_machine/domain/test_dictionary_core_schema.py` | accepted inputs, refusals, JSON-mode serialization |
-| `tests/action_machine/domain/test_dictionary_property_types.py` (new) | every accepted type; every refused type, at top level and nested; a status keeping its freedom |
-| `tests/action_machine/domain/test_dictionary_json_schema.py` (new) | the two modes, a serializer's type in output, no `$defs`, no recursion |
+The branch's tests cover the public factory and catalogue, supported/refused property
+annotations, reference lookup and serializers, validation/output schemas, graph JSON
+and ERD payloads. The documentation examples additionally isolate tuple export
+independence, the factory alias, each unsupported annotation and the difference between
+status and dictionary property rules. The existing tests do not establish the stronger
+custom-validator or Enum-schema guarantees noted as limitations above.

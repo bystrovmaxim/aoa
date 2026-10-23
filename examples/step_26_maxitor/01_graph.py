@@ -13,7 +13,7 @@ and edge-type breakdown the four Maxitor views are drawn from.
 Maxitor itself is an AOA app: its backend is Actions exposed via FastApiAdapter,
 serving this graph as JSON (GET /api/v1/full-graph, .../list-entities, etc.).
 
-Tutorial: ../../docs/tutorials/step-26-maxitor_draft.md  ·  topic: Maxitor (system graph)
+Tutorial: ../../docs/tutorials/step-26-maxitor.md  ·  topic: Maxitor (system graph)
 
 Run:
     uv run python examples/step_26_maxitor/01_graph.py

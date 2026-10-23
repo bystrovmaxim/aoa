@@ -8,7 +8,7 @@ Demonstrates:
   - OrderResource as transport layer (pure transport, no business logic)
   - CreateOrderAction using the resource via @connection — logic separate from transport
 
-Tutorial: ../../docs/tutorials/step-19-resource_draft.md  ·  topic: Domain model / Resource
+Tutorial: ../../docs/tutorials/step-19-resource.md  ·  topic: Domain model / Resource
 
 Run:
     uv run python examples/domain_model/01_domain_model.py

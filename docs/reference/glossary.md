@@ -140,7 +140,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Enumeration entity** (`BaseEnumEntity`) — a declared value of a closed dictionary, such as EUR in a currency vocabulary. The dictionary class declares all its values and supplies their catalogue; each value has a required code and display name plus descriptive fields. Values are shared and have no business lifecycle.
 
-**State entity** (`BaseStateEntity`) — an immutable description of a lifecycle state, identified by its code within that axis. The lifecycle defines transitions; the state supplies its name and additional fields. It is excluded from ordinary Entity graph nodes.
+**State entity** (`BaseStateEntity`) — a shared description of a lifecycle state, identified by its code within that axis. Attribute reassignment is refused; nested mutable data is not recursively frozen. The lifecycle defines transitions; the state supplies its name and additional fields. It is excluded from ordinary Entity graph nodes.
 
 **Relations** — `Association` (equal), `Aggregation` (weak ownership), `Composition` (strong ownership); cardinality is set by the `One`/`Many` suffix. The reverse side is declared via `Inverse(...)` or explicitly absent via `NoInverse()`.
 
@@ -152,9 +152,13 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Alternative / variant / extension** — one of the detail classes listed by a specialization field. `FirstPressSpecEntity` is an alternative because it holds information specific to a first pressing. It names a dictionary value on its reverse link to the head; it need not be a Python subclass of that head.
 
-**Closed dictionary** — an entity of kind `enum` that declares its values in its own class body: `VinylRecordKindEnumEntity` with `EARLY = VinylRecordKindEnumEntity(code="early", …)`. The set is closed — a subclass declares its own values instead of inheriting them — and a stored value is its `code`. A dictionary is not a state kind: it has no lifecycle.
+**Closed dictionary** — an entity of kind `enum` that declares its values in its own class body: `VinylRecordKindEnumEntity` with `EARLY = value(code="early", display_name="Early")`. The set is closed — a subclass declares its own values instead of inheriting them — and a stored value is its `code`. A dictionary is not a state kind: it has no lifecycle.
 
-**Declared value** — one member of a dictionary's body, carrying `code`, `display_name` and whatever extra fields the dictionary declares. A reference field holds the declared value itself, not a copy and not a code; the wire form is the reference object `{code, display_name, properties}`.
+**Declared value** — an object created from a `value(...)` declaration when its dictionary
+or state class is built. The factory is a public import from `aoa.action_machine.domain`;
+it records constructor arguments without pretending that the enclosing class already
+exists. Dictionary references resolve to these shared objects. Their `to_reference()`
+returns JSON-compatible `{code, display_name, properties}` data, applying field serializers.
 
 **Reference field** — a field whose type is a closed dictionary, such as `currency_iso: CurrencyEnumEntity`. It accepts the declared value or its reference object, refuses a bare code, an undeclared code and a copy, and names the dictionary in the graph as `reference_qualname`.
 

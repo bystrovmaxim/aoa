@@ -42,14 +42,14 @@ def main() -> None:
     from aoa.action_machine.domain import build
 
     row = {"tag_key": "tag-1", "price": 9.99, "money_unit": "eur"}
-    value = CurrencyEnumEntity.by_code(row["money_unit"])
+    selected = CurrencyEnumEntity.by_code(row["money_unit"])
     tag = build(
         row,
         PriceTagCoreEntity,
         lambda fields, data: {
             fields.id: data["tag_key"],
             fields.amount: data["price"],
-            fields.currency: value,
+            fields.currency: selected,
         },
     )
     print(tag.id, tag.currency.code)
