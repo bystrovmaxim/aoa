@@ -55,12 +55,21 @@ Five questions were asked and answered; a sixth decision was recorded from the d
 - **Assumptions**: requiredness was separated from partial reading in `FR-023` and in the edge cases — `partial()` keeps `model_construct()` without required-field checks, so a declared requirement never forces a caller to read a whole entity or a whole graph.
 - **No regressions**: no checkbox moved from checked to unchecked.
 
+### Validation record — iteration 4 (phase 1, T001–T002)
+
+The baseline probe was re-run and checked in as `../evidence/baseline_probe.py`; its output is
+pasted verbatim into `../research.md`. Every count in the spec, the plan and the research was
+refreshed against the current tree: `Classifier(field=…)` is **165 occurrences in 52 files** and
+**111 occurrences in 39 notebooks** (the plan and the spec had said 53 files and 112 matches),
+and `= Rel(description=…)` is **262 declarations in 58 files** (7 nullable) with **170
+occurrences in 44 notebooks**. Checkbox state is unchanged: 12/12.
+
 ### Validation record — iteration 3 (`/speckit-analyze`)
 
 Nine findings were raised and applied; checkbox state did not change, so the count stays 12/12 → 12/12.
 
 - **Inconsistency (HIGH) — one enforcement boundary.** The clarification bullet and `FR-005` said the check runs "immediately when a type resolves", while `FR-001` and the plan put it at graph construction. A test could be written to either timing. Both now name one boundary: graph construction, before a usable graph is published, on the annotations Pydantic has already resolved, with classes outside the graph not judged.
-- **Inconsistency (HIGH) — one baseline count.** `FR-036` cited the issue's 162 occurrences in 51 files plus 110 notebook cells while `SC-006` and the Assumptions cited the measured 165 in 53 files plus 112 notebook matches. `FR-036` now cites the measured baseline; the Context still records the issue's figure as the issue's.
+- **Inconsistency (HIGH) — one baseline count.** `FR-036` cited the issue's 162 occurrences in 51 files plus 110 notebook cells while `SC-006` and the Assumptions cited the measured count. `FR-036` now cites the measured baseline; the Context still records the issue's figure as the issue's.
 - **Coverage gap (MEDIUM) — the state kind stays free.** `FR-012`'s second clause had no scenario or task. US2 gained scenario 8 (a state type with a list-valued status still publishes), its independent test names the control, and `T026` carries it.
 - **Coverage gap (MEDIUM) — an old graph renders.** `FR-040`'s "saved graph renders without a rebuild" had no scenario or task. US6 gained scenario 6, and `T018` asserts it beside the non-dictionary rows.
 - **Underspecification (MEDIUM) — inherited relation fields.** `FR-026` named them; no scenario or task did. US4's independent test repeats the default and description checks for an inherited field and a forward-referenced one, an edge case states it, and `T035` covers both.

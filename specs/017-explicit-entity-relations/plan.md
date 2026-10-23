@@ -11,7 +11,7 @@ A field whose type is another entity is accepted as a scalar: the model builds, 
 The change has six work items and nine phases:
 
 1. **An entity-typed field is declared explicitly.** A new boundary validator refuses a bare structural-entity field, a collection of one, and a bare `X | None`, naming the two legal forms; `NoRelation(reason)` is added as the embedded-value marker; a state-typed field is refused with the `Lifecycle[...]` form as its only answer.
-2. **`Classifier` stops restating the field name.** The `field` argument leaves the marker and its comparison check leaves the validator; 165 declarations in 53 files and the notebooks migrate.
+2. **`Classifier` stops restating the field name.** The `field` argument leaves the marker and its comparison check leaves the validator; 165 declarations in 52 files and 111 occurrences across 39 notebooks migrate.
 3. **The dictionary card shows labels.** The enum kind's field list loses `code` and `display_name`, the value row loses its code cell, and the code becomes a tooltip — the graph and the payload keep both.
 4. **A dictionary member is checked after user validation.** The completed member is verified against the declared annotation and the immutable type set, before it joins the catalogue, including `Enum` values and nested tuples.
 5. **The serialization schema stays self-contained.** Definitions survive the reference projection, and `properties.required` describes what is actually emitted.
@@ -37,7 +37,7 @@ Phases 1–6 are the work items, phase 7 is the check run, phase 8 the documenta
 
 **Constraints**: one commit per phase, each leaving the tree green — which forces the `Classifier` migration (phase 2) and the `Rel` migration (phase 6) to carry their whole corpus in the same commit; `Rel` leaves the public surface with no deprecation window (FR-031), so phase 6 migrates every declaration, notebook and page it names; every new symbol keeps its module header (III), AI-CORE block (IV) and a one-line docstring (V); English throughout (II); nothing is committed without instruction (I).
 
-**Scale/Scope**: 6 work items; 262 `= Rel(description=…)` declarations (7 nullable); 165 `Classifier(field=…)` occurrences in 53 Python files plus 112 notebook matches across 39 notebooks; 44 notebooks carrying `Rel(description=…)`; 1 new marker; 1 new validator module wired into `NodeGraphCoordinator.build()`; 2 intent resolvers; 1 payload action; 1 payload schema; 1 client renderer; 3 client checks; 7 documentation pages; 2 package changelogs.
+**Scale/Scope**: 6 work items; 262 `= Rel(description=…)` declarations in 58 files (7 nullable) and 170 occurrences across 44 notebooks; 165 `Classifier(field=…)` occurrences in 52 Python files and 111 occurrences across 39 notebooks; 1 new marker; 1 new validator module wired into `NodeGraphCoordinator.build()`; 2 intent resolvers; 1 payload action; 1 payload schema; 1 client renderer; 3 client checks; 7 documentation pages; 2 package changelogs.
 
 ## Constitution Check
 
@@ -126,7 +126,7 @@ Exit: the four forms have a test each; a model with a refused form fails `build(
 
 ### Phase 2 — `Classifier` states only the variant
 
-Remove `field` from `Classifier.__init__`, its slots, its AI-CORE block and every use; delete the `marker.field != field_name` comparison in `entity_specialization_validator.py` while keeping the head-side refusal, the inverse check, dictionary membership, closure and cycles. Migrate the 165 occurrences in 53 files and the notebook matches in the same commit. A stray `field=` raises `TypeError` from the constructor, which is the refusal FR-035 asks for.
+Remove `field` from `Classifier.__init__`, its slots, its AI-CORE block and every use; delete the `marker.field != field_name` comparison in `entity_specialization_validator.py` while keeping the head-side refusal, the inverse check, dictionary membership, closure and cycles. Migrate the 165 occurrences in 52 files and the 111 notebook occurrences in the same commit. A stray `field=` raises `TypeError` from the constructor, which is the refusal FR-035 asks for.
 
 Exit: the remaining specialization checks each fail a test when broken; the corpus builds with 0 `field=` arguments.
 

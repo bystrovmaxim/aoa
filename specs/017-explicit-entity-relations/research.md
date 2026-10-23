@@ -13,9 +13,35 @@ Every decision below was taken against the merged baseline `2e70a30d` and confir
 | Shape mismatch | a `tuple[str, ...]` property whose after-validator returns a joined `str` | published with a serializer warning; export is `{'labels': 'a'}` |
 | Enum schema | a dictionary with a `Grade` property, `model_json_schema(mode="serialization")` | `KeyError '#/$defs/Grade'` |
 | Relation default | `= Rel(description=…)` | `is_required()` is `False`; the omitted value is a `Rel` |
-| `Classifier(field=…)` | grep over `packages/`, `examples/`, `docs/` | 165 occurrences in 53 files; 112 matches in 39 notebooks |
-| `= Rel(description=…)` | the same grep | 262 declarations, 7 of them nullable; 44 notebooks |
+| `Classifier(field=…)` | grep over `packages/`, `examples/`, `docs/` | 165 occurrences in 52 files; 111 occurrences in 39 notebooks |
+| `= Rel(description=…)` | the same grep | 262 declarations in 58 files, 7 of them nullable; 170 occurrences in 44 notebooks |
 | Python / Pydantic | `python -c` | 3.12.12 / 2.12.5 |
+
+### Reproduced verbatim at `12a24f05`
+
+The probe is checked in as `evidence/baseline_probe.py`; it is re-run, not re-read, whenever
+a phase begins. `uv run --extra dev python specs/017-explicit-entity-relations/evidence/baseline_probe.py`:
+
+```text
+== bare entity field ==
+model_fields: ['id', 'showcase']
+== mutable member ==
+member: list ['original', 'changed']
+== exported shape mismatch ==
+member: str {'code': 'item', 'display_name': 'Item', 'properties': {'labels': 'a'}}
+== enum serialization schema ==
+reference: {'code': 'item', 'display_name': 'Item', 'properties': {'grade': 'a'}}
+schema: KeyError '#/$defs/Grade'
+== relation description in the default slot ==
+Rel required: False
+Field required: True
+omitted value type: Rel
+```
+
+Before `== exported shape mismatch ==` the run prints Pydantic's own serializer warning —
+``Expected `tuple[str, ...]` - serialized value may not be as expected [field_name='labels',
+input_value='a', input_type=str]`` — which is the whole of the defect: the export disagrees with
+the annotation and only a warning says so.
 
 ## D1 — The field refusal binds at the graph-build boundary
 
@@ -126,7 +152,7 @@ Rel required: False    Field required: True    Omitted value type: Rel
 
 **Decision**: each migration phase opens by re-running the same grep that produced its baseline count, and records the new number in the phase's task.
 
-**Rationale**: the counts were measured on `2e70a30d` and the corpus moves between issues — the issue's own `Classifier` figure (162 in 51 files) already differs from the measurement here (165 in 53 files). A migration planned on a stale count leaves a file behind and the phase fails its own exit test.
+**Rationale**: the counts were measured on `2e70a30d` and the corpus moves between issues — the issue's own `Classifier` figure (162 in 51 files) already differs from the measurement here (165 in 52 files). A migration planned on a stale count leaves a file behind and the phase fails its own exit test.
 
 **Alternatives considered**: trusting the issue's inventory (rejected — it is explicitly labelled as a baseline); migrating by search-and-replace only (rejected — `Rel` and `Classifier` both appear inside docstrings and prose that must read naturally afterwards).
 
