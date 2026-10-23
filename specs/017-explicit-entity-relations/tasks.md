@@ -143,14 +143,14 @@ US4, which extends the validator US1 creates.
 
 ### Tests for User Story 3
 
-- [ ] T030 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: the reproducer returns a schema, every local `$ref` resolves, the real export validates, and a disallowed enum value is refused (FR-015, FR-018, FR-021; SC-003)
-- [ ] T031 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: a direct, an optional and a tuple-contained `Enum`; a dictionary field inside a containing model; two definitions with the same short class name; a custom serializer whose output type differs from its enum value (FR-015, FR-016, FR-020)
-- [ ] T032 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: `properties.required` lists a null-emitted key as required, omits an excluded field, and the input schema still accepts a code-only reference (FR-017, FR-019)
+- [x] T030 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: the reproducer returns a schema, every local `$ref` resolves, the real export validates, and a disallowed enum value is refused (FR-015, FR-018, FR-021; SC-003)
+- [x] T031 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: a direct, an optional and a tuple-contained `Enum`; a dictionary field inside a containing model; two definitions with the same short class name; a custom serializer whose output type differs from its enum value (FR-015, FR-016, FR-020)
+- [x] T032 [P] [US3] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py`: `properties.required` lists a null-emitted key as required, omits an excluded field, and the input schema still accepts a code-only reference (FR-017, FR-019)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Rework `_emitted_reference_schema()` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`: keep the generated `$defs` reachable from the emitted property fragments, derive the nested `required` from the generated document, and leave the input schema and the field serializers' output shapes untouched (FR-015, FR-016, FR-017)
-- [ ] T034 [US3] Adversarially drop the definitions again, confirm T030 fails while the input-schema test passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`) (FR-021, FR-042)
+- [x] T033 [US3] Rework `_emitted_reference_schema()` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`: keep the generated `$defs` reachable from the emitted property fragments, derive the nested `required` from the generated document, and leave the input schema and the field serializers' output shapes untouched (FR-015, FR-016, FR-017)
+- [x] T034 [US3] Adversarially drop the definitions again, confirm T030 fails while the input-schema test passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`) (FR-021, FR-042)
 
 **Checkpoint**: the `KeyError` is gone and the export validates against its own schema.
 
