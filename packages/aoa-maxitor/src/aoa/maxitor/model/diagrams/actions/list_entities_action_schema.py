@@ -162,13 +162,6 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                         "minLength": 1,
                                         "description": "`<field> (by <classifier>)` — what the container's boundary says.",
                                     },
-                                    "dictionary_label": {
-                                        "type": "string",
-                                        "description": (
-                                            "The closed dictionary the axis borrows its codes from; "
-                                            "absent when the axis is classified by a field."
-                                        ),
-                                    },
                                     "classifier_field": {
                                         "type": ["string", "null"],
                                         "description": (

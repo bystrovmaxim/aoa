@@ -319,6 +319,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             }
             for group in groups
         )
+        # The relation label above needs the name; the group's own label already carries it, so
+        # the payload hands it over once, inside `label`.
+        for group in groups:
+            group.pop("dictionary_label", None)
         # The generalization half of the axis: each extension points at its head.
         parent_entity_sql = """
         WITH domain_entity AS (
