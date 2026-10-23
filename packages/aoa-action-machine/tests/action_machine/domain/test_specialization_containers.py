@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_specialization_containers.py
-# the class-name alias is the declaration surface
 """
 The container types themselves: ``Specialization[Alternatives, Dictionary]`` and ``Generalization[Head]``.
 

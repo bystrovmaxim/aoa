@@ -40,8 +40,9 @@ class PriceTagCoreEntity(BaseCoreEntity):
 def main() -> None:
     """Run this one learning experiment."""
     tag = PriceTagCoreEntity(id="tag-1", amount=9.99, currency=CurrencyEnumEntity.EUR)
-    print(tag.model_dump()["currency"])
-    assert tag.model_dump()["currency"] == CurrencyEnumEntity.EUR.to_reference()
+    print(tag.model_dump(mode="json")["currency"])
+    # The reference form is the JSON export; a Python-mode dump may keep a native value.
+    assert tag.model_dump(mode="json")["currency"] == CurrencyEnumEntity.EUR.to_reference()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_rules_global.py
-# the class-name alias is the declaration surface
 """
 The rules a specialization must satisfy **across the whole model**: what no single head can decide.
 

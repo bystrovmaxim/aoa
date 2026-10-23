@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_specialization_container.py
-# the class-name alias is the surface this module tests
 """
 Tests for the specialization container when its second type argument is a dictionary.
 

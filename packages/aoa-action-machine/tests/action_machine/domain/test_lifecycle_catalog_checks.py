@@ -1,5 +1,4 @@
 # packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_catalog_checks.py
-# the class-name alias is the surface this module tests
 """The axis refuses a foreign status and a missing status at class creation."""
 
 from __future__ import annotations

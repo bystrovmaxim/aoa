@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_dictionary_scope.py
-# the class-name alias is the surface this module tests
 """
 Tests for the dictionary kind's closed set: its values, its catalogue and its refusals.
 

@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/sales_order_lifecycle.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Sales-order lifecycle demo (confirmed/rework cycle)."""
 
 from __future__ import annotations

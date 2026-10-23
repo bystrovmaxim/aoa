@@ -72,7 +72,15 @@ from abc import ABC
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import ConfigDict, Field, GetCoreSchemaHandler, ValidationInfo, field_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    SerializerFunctionWrapHandler,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
@@ -91,7 +99,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
-        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the dictionary node carries its values in the graph.
+        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the dictionary node carries its values in the graph.
         INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
@@ -156,14 +164,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
                     ) from None
             return value
 
-        return core_schema.with_info_before_validator_function(
-            normalize,
-            model_schema,
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                lambda declared: declared.to_reference(),
-                return_schema=core_schema.any_schema(),
-            ),
-        )
+        return core_schema.with_info_before_validator_function(normalize, model_schema)
 
     @classmethod
     def __get_pydantic_json_schema__(  # pylint: disable=arguments-differ
@@ -201,14 +202,22 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
                 return str(name)
         return "<value>"
 
-    def to_reference(self) -> dict[str, Any]:
-        """Return the value's reference form: its code, its label and its extra fields."""
-        extra = {
-            name: getattr(self, name)
-            for name in type(self).model_fields
-            if name not in {"code", "display_name"}
+    @model_serializer(mode="wrap")
+    def _serialize_as_reference(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """Serialize the value whole: its code, its label and its extra fields under ``properties``."""
+        exported = handler(self)
+        properties = {
+            name: item for name, item in exported.items() if name not in {"code", "display_name"}
         }
-        return {"code": self.code, "display_name": self.display_name, "properties": extra}
+        return {
+            "code": exported["code"],
+            "display_name": exported["display_name"],
+            "properties": properties,
+        }
+
+    def to_reference(self) -> dict[str, Any]:
+        """Return the value's reference form: the value's JSON export."""
+        return self.model_dump(mode="json")
 
     @field_validator("code", "display_name")
     @classmethod

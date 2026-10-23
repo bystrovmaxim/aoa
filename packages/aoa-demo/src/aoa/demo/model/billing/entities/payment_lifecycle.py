@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_lifecycle.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Lifecycle graph for payment-event entity (parallel to ``SalesOrderLifecycle`` in store)."""
 
 from pydantic import Field

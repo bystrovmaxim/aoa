@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/analytics/entities/analytics_er_cycle_quad_stub.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Four analytics sketch entities wired as directed 4-cycle A\u2192B\u2192C\u2192D\u2192A.
 

@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Directed 3-cycle for messaging stubs (alternate narrative from catalog triangle).
 

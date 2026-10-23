@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Demo entities with two or three distinct lifecycle-typed fields (ERD / sidebar stress samples).
 
 Each :class:`~aoa.action_machine.domain.lifecycle.Lifecycle` subclass uses a different-sized

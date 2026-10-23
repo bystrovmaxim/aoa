@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_sweep.py
-# the class-name alias is the declaration surface
 """
 The break-and-restore sweep: one case per build rule, from the rule table rather than the tests.
 
