@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
@@ -27,16 +27,16 @@ class IdentityCredentialRotationStubCoreEntity(BaseCoreEntity):
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream phone factor row"
-    )  # type: ignore[assignment]
+    )
 
     person: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Credential owner"
-    )  # type: ignore[assignment]
+    )
 
 
 IdentityCredentialRotationStubCoreEntity.model_rebuild()

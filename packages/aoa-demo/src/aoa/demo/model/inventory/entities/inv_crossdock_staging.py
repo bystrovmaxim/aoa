@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
 from aoa.demo.model.inventory.domain import InventoryDomain
@@ -27,16 +27,16 @@ class CrossDockStagingCoreEntity(BaseCoreEntity):
     recall_signal: Annotated[
         AssociationOne[RecallSignalCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream recall signal"
-    )  # type: ignore[assignment]
+    )
 
     catalog_product_anchor: Annotated[
         AssociationOne[CatalogProductCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Catalog SKU keyed when diverting stock through cross-dock"
-    )  # type: ignore[assignment]
+    )
 
 
 CrossDockStagingCoreEntity.model_rebuild()

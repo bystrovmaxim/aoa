@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class BillingCanonicalRowArtifactCoreEntity(BaseCoreEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Originating parse pass"
-    )  # type: ignore[assignment]
+    )
 
     logical_row_key: str = Field(description="Dedup-stable business key emitted by parser")
     row_revision_no: int = Field(description="Monotonic intra-pass revision counter", ge=0)

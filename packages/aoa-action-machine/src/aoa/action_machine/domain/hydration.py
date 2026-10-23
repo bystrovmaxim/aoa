@@ -47,13 +47,12 @@ field raises ``AttributeError``.
 RELATIONS AND DEFAULT_FACTORY
 ═══════════════════════════════════════════════════════════════════════════════
 
-Relation fields (``AggregateMany``, ``AssociationOne``, etc.) are often
-declared with ``default_factory=list`` or ``default=None``. When ``build()``
-does not provide a relation value, Pydantic applies that default and may
-produce plain runtime values (e.g. ``[]``), not relation container classes.
-
-This is expected: relation containers are annotation-level semantics for
-inspector/coordinator metadata, not mandatory runtime wrappers.
+Relation fields (``AggregateMany``, ``AssociationOne``, etc.) take their value
+from the caller: a relation with no default must be supplied, and one declared
+``| None`` with ``default=None`` may be omitted and yields ``None``. A
+``default_factory`` is refused at the declaration boundary, so ``build()``
+never produces a plain runtime value such as ``[]`` where a relation is
+expected.
 
 ═══════════════════════════════════════════════════════════════════════════════
 USAGE EXAMPLE

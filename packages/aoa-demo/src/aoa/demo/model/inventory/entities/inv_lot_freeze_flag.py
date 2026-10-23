@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
@@ -27,16 +27,16 @@ class LotFreezeFlagCoreEntity(BaseCoreEntity):
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning bin coordinate"
-    )  # type: ignore[assignment]
+    )
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Facility where the frozen lot is held"
-    )  # type: ignore[assignment]
+    )
 
 
 LotFreezeFlagCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -25,9 +25,9 @@ class AcquirerIntegrityCheckCoreEntity(BaseCoreEntity):
     evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent retrieval submission bundle"
-    )  # type: ignore[assignment]
+    )
 
     checkpoint_kind: str = Field(description="Integrity gate kind (PAN, CSC, MID)")
     adjudication_outcome: str = Field(description="Rule outcome shorthand")

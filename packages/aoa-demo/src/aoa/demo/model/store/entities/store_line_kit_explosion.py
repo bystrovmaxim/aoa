@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
@@ -26,9 +26,9 @@ class KitExplosionLineDetailEntity(BaseDetailEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning order line anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 KitExplosionLineDetailEntity.model_rebuild()

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class MerchantFeeSchedulePointerCoreEntity(BaseCoreEntity):
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent interchange economics row"
-    )  # type: ignore[assignment]
+    )
 
     mcc_bucket_code: str = Field(description="Merchant category bucket key")
     interchange_program_name: str = Field(description="Issuer-branded program moniker")

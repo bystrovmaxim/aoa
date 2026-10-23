@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
@@ -30,16 +30,16 @@ class ClinicalConsumableSkuCoreEntity(BaseCoreEntity):
     material_anchor: Annotated[
         AssociationOne[ClinicalMaterialAnchorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Compound / sterility anchor"
-    )  # type: ignore[assignment]
+    )
 
     inventory_lot_mirror: Annotated[
         AssociationOne[LotSnapshotLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Inventory lot snapshot keyed for sterile consumable traceability"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalConsumableSkuCoreEntity.model_rebuild()

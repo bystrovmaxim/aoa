@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -29,16 +29,16 @@ class AssurancePortfolioWorkspaceCouplerCoreEntity(BaseCoreEntity):
     portfolio_lane: Annotated[
         AssociationOne[AssurancePortfolioLaneStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning lane headline"
-    )  # type: ignore[assignment]
+    )
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Contained workspace capsule"
-    )  # type: ignore[assignment]
+    )
 
 
 AssurancePortfolioWorkspaceCouplerCoreEntity.model_rebuild()

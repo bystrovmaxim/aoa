@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
@@ -30,16 +30,16 @@ class SupportTicketParticipantPairCoreEntity(BaseCoreEntity):
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Ticket aggregate anchor"
-    )  # type: ignore[assignment]
+    )
 
     participant: Annotated[
         AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Participant row anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 SupportTicketParticipantPairCoreEntity.model_rebuild()

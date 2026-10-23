@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -34,16 +34,16 @@ class AssuranceInstructionExpectationAnchorCoreEntity(BaseCoreEntity):
     instruction_line: Annotated[
         AssociationOne[AssuranceScenarioInstructionLineDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Scenario choreography row"
-    )  # type: ignore[assignment]
+    )
 
     expectation_row: Annotated[
         AssociationOne[AssuranceRegulatedExpectationRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Validated expectation corpus entry"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceInstructionExpectationAnchorCoreEntity.model_rebuild()

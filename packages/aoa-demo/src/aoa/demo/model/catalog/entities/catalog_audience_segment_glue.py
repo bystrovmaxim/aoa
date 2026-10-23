@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
@@ -30,16 +30,16 @@ class AudienceSegmentGlueCoreEntity(BaseCoreEntity):
     conversion_stub: Annotated[
         AssociationOne[ConversionAttributionStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Attribution conversion stub row"
-    )  # type: ignore[assignment]
+    )
 
     bundle_rule: Annotated[
         AssociationOne[BundleCardinalityRuleCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Cardinality island anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 AudienceSegmentGlueCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
@@ -31,23 +31,23 @@ class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Fulfillment partner"
-    )  # type: ignore[assignment]
+    )
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shipped SKU master"
-    )  # type: ignore[assignment]
+    )
 
     packing_anchor: Annotated[
         AssociationOne[ClinicalPackingAnchorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Lot packing profile"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalInboundShipmentTicketCoreEntity.model_rebuild()

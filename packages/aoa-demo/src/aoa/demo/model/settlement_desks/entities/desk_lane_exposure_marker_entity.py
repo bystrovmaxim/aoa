@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity import ClearingInstructionRowDetailEntity
 from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
@@ -21,6 +21,6 @@ class DeskLaneExposureMarkerCoreEntity(BaseCoreEntity):
     instruction_anchor: Annotated[
         AssociationOne[ClearingInstructionRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Clearing instruction slice this marker amortises across"
-    )  # type: ignore[assignment]
+    )

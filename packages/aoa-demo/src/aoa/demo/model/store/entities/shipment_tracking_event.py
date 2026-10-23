@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
@@ -26,9 +26,9 @@ class ShipmentTrackingEventCoreEntity(BaseCoreEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owner parcel"
-    )  # type: ignore[assignment]
+    )
 
 
 ShipmentTrackingEventCoreEntity.model_rebuild()

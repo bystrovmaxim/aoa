@@ -12,7 +12,7 @@ from typing import Annotated, Any, get_args, get_origin
 from pydantic.fields import FieldInfo
 
 from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
-from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
+from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse
 
 
 @dataclass(frozen=True)
@@ -136,12 +136,8 @@ def _markers_from_annotation_metadata(metadata: tuple[Any, ...]) -> tuple[bool, 
 
 
 def _field_description_hint(field_info: FieldInfo) -> str:
-    default_val = field_info.default
-    if isinstance(default_val, Rel):
-        return default_val.description
-    if field_info.description:
-        return field_info.description
-    return ""
+    """Return the description the field carries in its own metadata."""
+    return field_info.description or ""
 
 
 def _relation_from_field(

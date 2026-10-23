@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -27,16 +27,16 @@ class DiscountApplicationCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Discounted order"
-    )  # type: ignore[assignment]
+    )
 
     acquisition_attribution_head: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Catalog acquisition ledger head for attributed demand"
-    )  # type: ignore[assignment]
+    )
 
 
 DiscountApplicationCoreEntity.model_rebuild()

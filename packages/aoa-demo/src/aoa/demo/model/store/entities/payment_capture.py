@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -27,16 +27,16 @@ class PaymentCaptureCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Captured order"
-    )  # type: ignore[assignment]
+    )
 
     processor_webhook_receipt: Annotated[
         AssociationOne[WebhookIngressReceiptCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Ingress receipt for PSP / acquirer callback correlation"
-    )  # type: ignore[assignment]
+    )
 
 
 PaymentCaptureCoreEntity.model_rebuild()

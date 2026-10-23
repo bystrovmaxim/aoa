@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
@@ -28,9 +28,9 @@ class LoyaltyEarnProjectionCoreEntity(BaseCoreEntity):
     invoice: Annotated[
         AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning invoice artefact"
-    )  # type: ignore[assignment]
+    )
 
 
 LoyaltyEarnProjectionCoreEntity.model_rebuild()

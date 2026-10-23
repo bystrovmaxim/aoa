@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.audit_log_entry_lifecycle import AuditLogEntryLifecycle
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -26,9 +26,9 @@ class AuditLogEntryDetailEntity(BaseDetailEntity):
     target_order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Related order"
-    )  # type: ignore[assignment]
+    )
 
 
 AuditLogEntryDetailEntity.model_rebuild()

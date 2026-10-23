@@ -38,7 +38,7 @@ def test_intents_on_getattr_raises_on_unknown_name() -> None:
 
 def test_domain_public_exports_resolve() -> None:
     domain = importlib.import_module("aoa.action_machine.domain")
-    for name in ("BaseDomain", "BaseEntity", "Lifecycle", "Rel", "build", "make"):
+    for name in ("BaseDomain", "BaseEntity", "Lifecycle", "NoRelation", "build", "make"):
         assert getattr(domain, name) is not None
 
 

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -28,9 +28,9 @@ class AssuranceScenarioSheetCoreEntity(BaseCoreEntity):
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning assurance workspace"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceScenarioSheetCoreEntity.model_rebuild()

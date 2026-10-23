@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity import (
     TelemetryIngestEnvelopeCoreEntity,
@@ -22,6 +22,6 @@ class RoutedObservationSliceDetailEntity(BaseDetailEntity):
     source_envelope: Annotated[
         AssociationOne[TelemetryIngestEnvelopeCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Source envelope powering this routed slice"
-    )  # type: ignore[assignment]
+    )

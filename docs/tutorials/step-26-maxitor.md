@@ -122,7 +122,7 @@ database constraints.
 
 A closed dictionary is one entity class with several declared values. Maxitor therefore
 shows one dictionary card, with its values listed beneath its fields. Each value row shows
-its code and display name, followed by descriptive properties such as a currency symbol.
+its display name, followed by descriptive properties such as a currency symbol. The code is available in the tooltip rather than printed in a separate cell. The inherited code and display-name fields no longer appear as ordinary field rows.
 The values are not separate cards or graph nodes. A field typed by a dictionary names the
 referenced dictionary beside its type, with an arrow marker.
 
@@ -162,7 +162,7 @@ Both item fields are strings. A string property remains its text. Other JSON val
 rendered with JSON notation: `true`, `42`, `null` or `["a", "b"]`. The renderer displays
 each name/value pair beneath the value's label and escapes both strings, so a note such
 as `<safe> & readable` appears as text rather than diagram markup. A value with no extra
-properties has `properties: []` and still shows its code and label.
+properties has `properties: []` and still shows its label and keeps its code in the tooltip.
 
 This conversion belongs to the ERD response; the graph keeps the original properties
 object. The payload also retains `entity_kind`, `values` and a referencing field's

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -26,16 +26,16 @@ class CashApplicationHintCoreEntity(BaseCoreEntity):
     funding_window: Annotated[
         AssociationOne[FundingWindowHintCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream funding guidance row"
-    )  # type: ignore[assignment]
+    )
 
     arbitration_brief: Annotated[
         AssociationOne[ArbitrationBriefStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Arbitration brief context for disputed cash-application routing"
-    )  # type: ignore[assignment]
+    )
 
     routing_lane: str = Field(description="Cash-application routing lane key")
     tentative_clearing_date_iso: str = Field(description="Target clearing calendar date")

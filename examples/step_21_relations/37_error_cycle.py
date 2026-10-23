@@ -16,7 +16,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -43,14 +42,14 @@ class ASpecEntity(BaseSpecEntity):
     """Declare the first level of detail."""
 
     id: str = Field(description="Identifier")
-    detail: Annotated[Specialization[BSpecEntity, ASpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
+    detail: Annotated[Specialization[BSpecEntity, ASpecEntityKindEnumEntity], Inverse(field_name="back")] = Field(
         description="Next level"
     )
     back: Annotated[
         Generalization[BSpecEntity],
-        Classifier(field="back", variant=BSpecEntityKindEnumEntity.A),
+        Classifier(variant=BSpecEntityKindEnumEntity.A),
         Inverse(BSpecEntity, "detail"),
-    ] = Rel(description="Return to B")
+    ] = Field(description="Return to B")
 
 
 @entity(description="Kind of BSpecEntity", domain=MusicDomain)
@@ -67,10 +66,10 @@ class BSpecEntity(BaseSpecEntity):
     id: str = Field(description="Identifier")
     back: Annotated[
         Generalization[ASpecEntity],
-        Classifier(field="back", variant=ASpecEntityKindEnumEntity.B),
+        Classifier(variant=ASpecEntityKindEnumEntity.B),
         Inverse(ASpecEntity, "detail"),
-    ] = Rel(description="Return to A")
-    detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Rel(
+    ] = Field(description="Return to A")
+    detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Field(
         description="Next level"
     )
 

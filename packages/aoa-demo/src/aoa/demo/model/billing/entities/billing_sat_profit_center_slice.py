@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class ProfitCenterContributionCoreEntity(BaseCoreEntity):
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning ingest manifest"
-    )  # type: ignore[assignment]
+    )
 
     cost_center_code: str = Field(description="Finance cost center key")
     allocation_ratio: float = Field(description="Allocated share of manifest totals", gt=0.0, le=1.0)

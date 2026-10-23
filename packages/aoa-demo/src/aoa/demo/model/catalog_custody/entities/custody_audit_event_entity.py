@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
 from aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity import (
@@ -23,6 +23,6 @@ class CustodyAuditEventCoreEntity(BaseCoreEntity):
     subject_sku_row: Annotated[
         AssociationOne[RegulatedStockKeepingUnitRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Regulated SKU row this audit references"
-    )  # type: ignore[assignment]
+    )

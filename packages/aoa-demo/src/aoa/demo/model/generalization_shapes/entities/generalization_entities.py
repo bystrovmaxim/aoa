@@ -44,7 +44,6 @@ from aoa.action_machine.domain import (
     Generalization,
     Inverse,
     NoInverse,
-    Rel,
     Specialization,
     value,
 )
@@ -84,16 +83,16 @@ class GeneralizationHeadCoreEntity(BaseCoreEntity):
             GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity, GeneralizationShapesKindEnumEntity
         ],
         Inverse(field_name="head"),
-    ] = Rel(
+    ] = Field(
         description="Shape: the specialization axis — one of the declared variants"
-    )  # type: ignore[assignment]
+    )
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shape: a plain relation from the head into the messaging domain"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(
@@ -113,24 +112,24 @@ class GeneralizationVariantASpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
-    ] = Rel(
+        Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
+    ] = Field(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
-    )  # type: ignore[assignment]
+    )
 
     touch_moment: Annotated[
         AssociationOne[TouchMomentCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shape: a direct relation from variant A into the catalog domain"
-    )  # type: ignore[assignment]
+    )
 
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shape: a direct relation from variant A into the inventory domain"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(
@@ -150,17 +149,17 @@ class GeneralizationVariantBSpecEntity(BaseSpecEntity):
 
     head: Annotated[
         Generalization[GeneralizationHeadCoreEntity],
-        Classifier(field="head", variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
-    ] = Rel(
+        Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
+    ] = Field(
         description="Shape: the extension's reverse field — the parent_entity edge into the head"
-    )  # type: ignore[assignment]
+    )
 
     audit_log: Annotated[
         AssociationOne[AuditLogEntryDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shape: a direct relation from variant B into the store domain"
-    )  # type: ignore[assignment]
+    )
 
 
 GeneralizationHeadCoreEntity.model_rebuild()

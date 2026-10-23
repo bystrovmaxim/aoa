@@ -28,7 +28,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
 
@@ -51,9 +51,9 @@ class CascadeBoundaryAssocEntity(BaseAssocEntity):
     peer_boundary: Annotated[
         AssociationOne[CascadeBoundaryAssocEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="One-sided boundary to a peer row — the absent reverse side is the shape"
-    )  # type: ignore[assignment]
+    )
 
 
 CascadeBoundaryAssocEntity.model_rebuild()

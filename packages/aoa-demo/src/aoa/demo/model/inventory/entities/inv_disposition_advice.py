@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
@@ -27,16 +27,16 @@ class DispositionAdviceCoreEntity(BaseCoreEntity):
     freeze_flag: Annotated[
         AssociationOne[LotFreezeFlagCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream freeze flag"
-    )  # type: ignore[assignment]
+    )
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Facility execution context"
-    )  # type: ignore[assignment]
+    )
 
 
 DispositionAdviceCoreEntity.model_rebuild()

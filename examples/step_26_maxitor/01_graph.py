@@ -34,7 +34,6 @@ from aoa.action_machine.domain import (
     BaseStateEntity,
     Inverse,
     Lifecycle,
-    Rel,
     value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -107,7 +106,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     orders: Annotated[
         AssociationMany[OrderCoreEntity],
         Inverse(OrderCoreEntity, "customer"),
-    ] = Rel(description="Orders of this customer")
+    ] = Field(description="Orders of this customer")
 
 
 @entity(description="Order", domain=ShopDomain)
@@ -118,7 +117,7 @@ class OrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerCoreEntity],
         Inverse(CustomerCoreEntity, "orders"),
-    ] = Rel(description="Customer who placed the order")
+    ] = Field(description="Customer who placed the order")
 
 
 CustomerCoreEntity.model_rebuild()

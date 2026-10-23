@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dedupe_correlation import DedupeCorrelationCoreEntity
@@ -26,9 +26,9 @@ class DownstreamWatermarkCoreEntity(BaseCoreEntity):
     dedupe: Annotated[
         AssociationOne[DedupeCorrelationCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream dedupe correlation row"
-    )  # type: ignore[assignment]
+    )
 
 
 DownstreamWatermarkCoreEntity.model_rebuild()

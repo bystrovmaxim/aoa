@@ -56,7 +56,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -86,9 +85,9 @@ class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.FIRST),
+        Classifier(variant=SchemaHeadKindEnumEntity.FIRST),
         Inverse(SchemaHeadCoreEntity, "pack"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -97,9 +96,9 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SchemaHeadCoreEntity],
-        Classifier(field="rec", variant=SchemaHeadKindEnumEntity.REPRESS),
+        Classifier(variant=SchemaHeadKindEnumEntity.REPRESS),
         Inverse(SchemaHeadCoreEntity, "pack"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -118,7 +117,7 @@ class SchemaHeadCoreEntity(BaseCoreEntity):
     pack: Annotated[
         Specialization[SchemaFirstSpecEntity | SchemaSecondSpecEntity, SchemaHeadKindEnumEntity],
         Inverse(field_name="rec"),
-    ] = Rel(description="one of two")
+    ] = Field(description="one of two")
 
 
 for _cls in (SchemaFirstSpecEntity, SchemaSecondSpecEntity, SchemaHeadCoreEntity):

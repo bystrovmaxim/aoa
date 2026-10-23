@@ -85,9 +85,7 @@ class TestBuildFunction:
         assert entity.children is None
 
     def test_build_without_optional_relations(self):
-        """Omitted optional relation key keeps class-level `Rel` default."""
-        from aoa.action_machine.domain.relation_markers import Rel
-
+        """An omittable relation yields ``None``: its default is the absence, not a marker."""
         data = {
             "id": "parent-123",
             "title": "Parent Entity",
@@ -97,8 +95,7 @@ class TestBuildFunction:
         entity = build(data, RelatedCoreEntity)
 
         assert entity.id == "parent-123"
-        # `children` not in input → pydantic uses field default (`Rel(...)`)
-        assert isinstance(entity.children, Rel)
+        assert entity.children is None
 
     def test_build_partial_data(self):
         """Missing required scalar fields → `ValidationError`."""

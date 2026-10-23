@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
@@ -27,16 +27,16 @@ class BinCoordinateStubCoreEntity(BaseCoreEntity):
     aisle: Annotated[
         AssociationOne[StorageAisleRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent aisle"
-    )  # type: ignore[assignment]
+    )
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning warehouse facility"
-    )  # type: ignore[assignment]
+    )
 
 
 BinCoordinateStubCoreEntity.model_rebuild()

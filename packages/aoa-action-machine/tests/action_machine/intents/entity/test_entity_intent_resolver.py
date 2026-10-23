@@ -5,7 +5,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse, Rel
+from pydantic import Field
+
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -24,7 +26,7 @@ class _TargetAssocEntity(BaseAssocEntity):
 @entity(description="Host", domain=_TDomain)
 class _HostAssocEntity(BaseAssocEntity):
     id: str
-    other: Annotated[AssociationOne[_TargetAssocEntity], NoInverse()] = Rel(
+    other: Annotated[AssociationOne[_TargetAssocEntity], NoInverse()] = Field(
         description="link",
     )  # type: ignore[assignment]
 

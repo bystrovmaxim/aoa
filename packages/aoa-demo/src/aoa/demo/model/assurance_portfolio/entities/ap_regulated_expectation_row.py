@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_catalog_stub import (
@@ -32,23 +32,23 @@ class AssuranceRegulatedExpectationRowDetailEntity(BaseDetailEntity):
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Containing catalog"
-    )  # type: ignore[assignment]
+    )
 
     genre_axis: Annotated[
         AssociationOne[AssuranceExpectationGenreAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Expectation genre discriminator"
-    )  # type: ignore[assignment]
+    )
 
     phase_axis: Annotated[
         AssociationOne[AssuranceExpectationPhaseAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Expectation lifecycle phase"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceRegulatedExpectationRowDetailEntity.model_rebuild()

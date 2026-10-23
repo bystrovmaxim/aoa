@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
@@ -28,16 +28,16 @@ class StoreCustomerOrderAffinityCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Buyer profile anchor"
-    )  # type: ignore[assignment]
+    )
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Order aggregate anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 StoreCustomerOrderAffinityCoreEntity.model_rebuild()

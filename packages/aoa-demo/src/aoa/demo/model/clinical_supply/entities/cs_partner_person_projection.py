@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
@@ -29,9 +29,9 @@ class ClinicalPartnerPersonProjectionCoreEntity(BaseCoreEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent partner aggregate"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalPartnerPersonProjectionCoreEntity.model_rebuild()
