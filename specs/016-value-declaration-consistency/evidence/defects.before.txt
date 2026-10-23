@@ -1,0 +1,6 @@
+1. nested mutation reaches the declared value: ['original', 'changed']
+2. model_dump_json: {"code":"item","display_name":"Item","properties":{"since":"2020-01-02"}}
+2. expected by the serializer: 02/01/2020
+3. json.dumps(to_reference()): TypeError: Object of type date is not JSON serializable
+4. runtime accepts a code-only reference: True
+4. the validation schema rejects it with: ["'display_name' is a required property", "'properties' is a required property"]
