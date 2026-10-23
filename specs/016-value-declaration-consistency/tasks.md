@@ -114,15 +114,15 @@ Repository root holds `packages/`, `examples/`, `docs/`, `specs/`. The framework
 
 ### Tests for User Story 4
 
-- [ ] T028 [P] [US4] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py` — code-only, code+label and full reference validate on the input side; a blank code and an extra member are refused; the output side requires `code`, `display_name`, `properties` and types each property; a serializer's field is a plain `string`; no `$defs`; the hook is entered once per mode (FR-017 to FR-020)
-- [ ] T029 [P] [US4] Keep `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py`'s runtime refusals green — missing, blank and unknown codes; a stale label and stale properties ignored (FR-019)
+- [x] T028 [P] [US4] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_json_schema.py` — code-only, code+label and full reference validate on the input side; a blank code and an extra member are refused; the output side requires `code`, `display_name`, `properties` and types each property; a serializer's field is a plain `string`; no `$defs`; the hook is entered once per mode (FR-017 to FR-020)
+- [x] T029 [P] [US4] Keep `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_core_schema.py`'s runtime refusals green — missing, blank and unknown codes; a stale label and stale properties ignored (FR-019)
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Rewrite `__get_pydantic_json_schema__` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` to branch on `handler.mode`: the validation branch accepts a code-only reference with an open `properties`; the serialization branch requires all three members (FR-017, FR-018)
-- [ ] T031 [US4] Add the helper, with its one-line docstring (constitution V), that lifts the emitted `properties` from `GenerateJsonSchema().generate(copy, mode="serialization")` over a metadata-stripped core schema, stripping `title` and `description` from each property schema, in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` (research D6)
-- [ ] T032 [US4] Document the asymmetry as intentional in the hook's docstring and in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`'s AI-CORE `CONTRACT` (FR-018)
-- [ ] T033 [US4] Run `pytest packages/aoa-action-machine/tests/action_machine/graph/ -q` and `pytest packages/aoa-maxitor/tests/ -q` to prove the graph schema and the ERD payload schema — which describe other documents — are unaffected (FR-021)
+- [x] T030 [US4] Rewrite `__get_pydantic_json_schema__` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` to branch on `handler.mode`: the validation branch accepts a code-only reference with an open `properties`; the serialization branch requires all three members (FR-017, FR-018)
+- [x] T031 [US4] Add the helper, with its one-line docstring (constitution V), that lifts the emitted `properties` from `GenerateJsonSchema().generate(copy, mode="serialization")` over a metadata-stripped core schema, stripping `title` and `description` from each property schema, in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` (research D6)
+- [x] T032 [US4] Document the asymmetry as intentional in the hook's docstring and in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py`'s AI-CORE `CONTRACT` (FR-018)
+- [x] T033 [US4] Run `pytest packages/aoa-action-machine/tests/action_machine/graph/ -q` and `pytest packages/aoa-maxitor/tests/ -q` to prove the graph schema and the ERD payload schema — which describe other documents — are unaffected (FR-021)
 
 **Checkpoint**: each schema describes one side of the contract, and no runtime refusal changed.
 
