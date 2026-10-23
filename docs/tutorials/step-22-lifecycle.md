@@ -29,6 +29,12 @@ There are three different things to keep separate:
 
 `BaseStateEntity` supplies the required code and name. A subclass defines any extra fields that this kind of status needs and declares its statuses in its own body. The type carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`. The catalogue is not a second lifecycle or a database table.
 
+Each assignment uses the public `value(...)` factory. It records the fields of a future
+status while Python executes the class body. After the class exists, the framework creates
+and validates the status objects and fills the catalogue. `OrderStateEntity.PAID` is then
+a real shared instance. There is no special meaning for the class's own name inside its
+body and no separate Python `Enum` to maintain.
+
 A template is built by chained method calls. `.state(DRAFT)` selects the state being described, `.to(PAID)` adds an allowed destination, and `.initial()` finishes that declaration as an initial state. `.intermediate()` marks a state from which work can continue. `.final()` marks a state with no outgoing transitions. This classification belongs to the template, not to fields on the status object.
 
 ## Apply one allowed transition
@@ -38,23 +44,29 @@ A template is built by chained method calls. `.state(DRAFT)` selects the state b
 This complete declaration uses only two statuses. Paid is final for this particular example; a real order lifecycle may continue to shipping.
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from pydantic import Field
+
+from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-    PAID = OrderStateEntity(code="paid", display_name="Payment received")
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received")
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow a draft order to become paid."""
 
-    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
-
-from pydantic import Field
-from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity
+    _template = (
+        Lifecycle()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
+    )
 
 
 class OrderCoreEntity(BaseCoreEntity):
@@ -100,7 +112,8 @@ A code is suitable for identifying a state, while a screen needs a label and app
 
 ```python
 from pydantic import Field
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -108,14 +121,21 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received", requires_receipt=True)
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Declare the transition; the statuses live on the type."""
 
-    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
+    _template = (
+        Lifecycle()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
+    )
 ```
 
 The constructor accepts the code read from a database row. Read the selected object directly through `current_status`:
@@ -184,7 +204,9 @@ The model graph is AOA's exported description of the application: its entities, 
 ```python
 machine = ActionProductMachine(loggers=[])
 graph = json.loads(machine.graph_coordinator.to_json())
-row = next(node for node in graph["nodes"] if node["type"].startswith("State") and node["properties"]["state_key"] == "paid")
+row = next(
+    node for node in graph["nodes"] if node["type"].startswith("State") and node["properties"]["state_key"] == "paid"
+)
 assert row["id"].endswith(":lifecycle:lifecycle:paid")
 assert row["label"] == "Payment received"
 assert row["properties"]["attributes"]["requires_receipt"] is True
@@ -252,6 +274,46 @@ first template: FINAL
 second template: INTERMEDIATE
 ```
 
+## A frozen status and its property types
+
+Statuses and dictionaries share `value(...)` and the catalogue methods, but they have
+different property rules. The new supported-type restriction applies to dictionary
+properties only. A status can still declare a list or, with the appropriate Pydantic
+configuration, a custom Python object. Frozen prevents replacing a status attribute; it
+does not recursively freeze those objects.
+
+The [status-property script](../../examples/step_22_lifecycle/21_status_property_scope.py)
+and [notebook](../../examples/step_22_lifecycle/21_status_property_scope.ipynb) isolate
+this distinction:
+
+```python
+from aoa.action_machine.domain import BaseStateEntity, value
+
+
+class OrderStateEntity(BaseStateEntity):
+    """Describe a status with the existing state property rules."""
+
+    labels: list[str]
+    DRAFT = value(code="draft", display_name="Draft", labels=["new"])
+
+
+print("Status accepted:", OrderStateEntity.DRAFT.labels)
+print("Property type:", type(OrderStateEntity.DRAFT.labels).__name__)
+```
+
+```text
+Status accepted: ['new']
+Property type: list
+```
+
+Treat shared status descriptions as fixed application data. Prefer tuples when a
+collection should not change. Acceptance by the state class does not guarantee that the
+value can be written to the graph: the separate
+[non-JSON property case](../../examples/step_22_lifecycle/19_non_json_field.py)
+([notebook](../../examples/step_22_lifecycle/19_non_json_field.ipynb)) demonstrates an
+export failure. Dictionary reference serialization and status graph attributes are
+different contracts.
+
 ## When invalid declarations fail
 
 Validation happens at different moments. Creating a status checks its fields. Defining a state type checks its statuses and codes; defining an axis checks the template against them. Calling `.state()` or `.to()` checks the argument type immediately, usually while that class body is executing. Building the application graph checks the complete transition structure and exports status fields to JSON. Calling `transition()` checks a move from the current runtime state.
@@ -262,7 +324,7 @@ Each refusal below has its own small script and notebook. The examples catch the
 | --- | --- | --- |
 | Reject a blank code | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/09_blank_code.py) · [Notebook](../../examples/step_22_lifecycle/09_blank_code.ipynb) |
 | Reject a blank display_name | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/10_blank_display_name.py) · [Notebook](../../examples/step_22_lifecycle/10_blank_display_name.ipynb) |
-| Keep a status object immutable | `ValidationError` at assignment | [Python](../../examples/step_22_lifecycle/11_immutable_status.py) · [Notebook](../../examples/step_22_lifecycle/11_immutable_status.ipynb) |
+| Reject reassignment of a status field | `ValidationError` at assignment | [Python](../../examples/step_22_lifecycle/11_immutable_status.py) · [Notebook](../../examples/step_22_lifecycle/11_immutable_status.ipynb) |
 | Reject duplicate codes on one state type | `ValueError` at class definition | [Python](../../examples/step_22_lifecycle/12_duplicate_code.py) · [Notebook](../../examples/step_22_lifecycle/12_duplicate_code.ipynb) |
 | Reject a status of another type | `ForeignStateError` at class definition | [Python](../../examples/step_22_lifecycle/15_foreign_status.py) · [Notebook](../../examples/step_22_lifecycle/15_foreign_status.ipynb) |
 | Reject a string in the template | `TypeError` at template call | [Python](../../examples/step_22_lifecycle/17_string_state.py) · [Notebook](../../examples/step_22_lifecycle/17_string_state.ipynb) |
@@ -282,19 +344,40 @@ RuntimeError: Lifecycle is a template, not an instance. current_state is only av
 RuntimeError: Lifecycle is a template, not an instance. current_status is only available on instances such as Lifecycle('state_key').
 ```
 
-## Migrating a string-based template
+## Migrate declarations without changing stored codes
 
-Change the declaration, keeping the existing codes. Move labels into status objects, collect those objects on the lifecycle class, and pass them to the builder:
+For a model already using status objects, the declaration migration is one import and
+one call-name replacement inside the status class:
 
-| Previous declaration or call | Current form |
+```python
+from aoa.action_machine.domain import BaseStateEntity, value
+
+
+class OrderStateEntity(BaseStateEntity):
+    """Describe the order statuses."""
+
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received")
+```
+
+`DRAFT = OrderStateEntity(...)` inside that class is the removed form. Keep the codes,
+labels and other arguments. `OrderStateEntity.by_code("paid")`, `OrderStateEntity.PAID`,
+`OrderLifecycle("draft")` and `current.transition("paid")` retain their meanings.
+`current_state` still supplies the stored string; `current_status` supplies its declared
+object. If a field assignment binds `value` in the class body, import the factory with an
+alias such as `value as declared`.
+
+For an older string-based template, first declare the statuses on the state type, then
+use those objects in the template:
+
+| Previous template call | Current template call |
 | --- | --- |
-| `.state("draft", "Draft")` | Declare `DRAFT = OrderStateEntity(code="draft", display_name="Draft")`, then use `.state(DRAFT)` |
-| `.to("paid")` | Declare `PAID`, then use `.to(PAID)` |
-| `OrderLifecycle("draft")` | Unchanged |
-| `current.transition("paid")` | Unchanged |
-| `current.current_state` | Still a string code |
+| `.state("draft", "Draft")` | `.state(OrderStateEntity.DRAFT)` |
+| `.to("paid")` | `.to(OrderStateEntity.PAID)` |
 
-Keep existing stored codes. The database supplies a code; the lifecycle selects the declared object and exposes its code again through `current_state`. `current_status` adds direct access to the object without changing the existing code-based calls. The vocabulary does not load itself from a database.
+The status type owns the descriptions; `Lifecycle[OrderStateEntity]` owns the transition
+rules. Stored codes need no renaming, and a transition does not perform business work or
+save anything to a database.
 
 ## Review and practice
 

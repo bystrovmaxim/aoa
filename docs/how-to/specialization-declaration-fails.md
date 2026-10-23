@@ -18,6 +18,16 @@ The declaration examples call the validator directly so that graph expansion can
 the intended diagnostic. Normal machine creation also performs declaration validation,
 but an invalid model can fail earlier during graph construction.
 
+## Check the declaration form first
+
+Import `value` from `aoa.action_machine.domain` and write dictionary members as
+`FIRST = value(code="first", display_name="First")`. The removed class-name alias can
+fail before specialization validation even runs. A mutable or unsupported dictionary
+property annotation also fails when its class is created; use the
+[dictionary refusal examples](../tutorials/step-20-dictionaries.md#read-a-refusal-as-a-specific-contract-violation)
+to distinguish that error from a missing alternative or an incorrect reverse relationship.
+
+
 ## Declaration failures
 
 ### The second argument must be a dictionary
@@ -373,9 +383,7 @@ from pydantic import ValidationError
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    pressing=Specialization[
-        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
-    ](
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
         id="rec-1",
         variant=VinylRecordKindEnumEntity.FIRST,
     ),

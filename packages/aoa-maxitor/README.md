@@ -92,6 +92,17 @@ A field typed by a dictionary carries `reference_qualname`, the dictionary's int
 
 The ERD payload carries each value's `code`, `display_name` and descriptive `properties` as name/value text rows. The card renders these properties below the label; the full graph retains their original object form. The renderer escapes property text and does not know any domain-specific names. Ordinary entities have an empty value list.
 
+Dictionary references arrive from the graph in JSON form, including any declared field
+serializer's output. The server converts properties to `{name, value}` text items for
+the strict ERD response schema; strings stay text and other values use JSON notation.
+A saved graph that already includes those properties needs no rebuild for this display.
+
+The server also supplies each specialization group's complete `label`, such as
+`pressing (by VinylRecordKindEnumEntity)`. The client displays it once. `dictionary_label`
+is no longer a member of the ERD group response; it remains model metadata on the graph
+edge. The [group-label example](../../examples/step_21_relations/51_group_label.py) and
+[notebook](../../examples/step_21_relations/51_group_label.ipynb) print the actual response.
+
 See the [dictionary example](../../examples/step_20_dictionaries/09_erd.py) and [Maxitor tutorial](../../docs/tutorials/step-26-maxitor.md#dictionaries-values-inside-the-entity-card) for the actual output.
 
 ---

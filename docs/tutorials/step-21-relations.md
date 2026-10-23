@@ -136,30 +136,33 @@ Loading the related object into a container is also called **hydration**. It doe
 
 ```python
 order = OrderCoreEntity(
-    id="ord-1", total=1500.0,
-    customer=AssociationOne[CustomerCoreEntity](id="cust-1"),          # id only
-    lines=CompositeMany[OrderLineDetailEntity](ids=("line-1", "line-2")),# ids only
+    id="ord-1",
+    total=1500.0,
+    customer=AssociationOne[CustomerCoreEntity](id="cust-1"),  # id only
+    lines=CompositeMany[OrderLineDetailEntity](ids=("line-1", "line-2")),  # ids only
 )
 
-order.customer.id      # ok — the id is always there
-order.customer.name    # RelationNotLoadedError — the customer row is not loaded
-len(order.lines)       # 2 — the number of ids is known
-list(order.lines)      # RelationNotLoadedError — the line entities are not hydrated
+order.customer.id  # ok — the id is always there
+order.customer.name  # RelationNotLoadedError — the customer row is not loaded
+len(order.lines)  # 2 — the number of ids is known
+list(order.lines)  # RelationNotLoadedError — the line entities are not hydrated
 ```
 
 To make a relation loaded, pass the entity itself (`One`) or the entities (`Many`) into the container; then attribute access is proxied to it:
 
 ```python
 customer = CustomerCoreEntity(
-    id="cust-1", name="Alice",
+    id="cust-1",
+    name="Alice",
     orders=AssociationMany[OrderCoreEntity](ids=("ord-1",)),
 )
 order2 = OrderCoreEntity(
-    id="ord-2", total=99.0,
+    id="ord-2",
+    total=99.0,
     customer=AssociationOne[CustomerCoreEntity](id="cust-1", entity=customer),  # hydrated
     lines=CompositeMany[OrderLineDetailEntity](entities=(), entities_loaded=True),
 )
-order2.customer.name   # "Alice"
+order2.customer.name  # "Alice"
 ```
 
 **Run:**
@@ -224,6 +227,12 @@ calls. Run it before an experiment below. Every linked script and notebook conta
 own copy, so each experiment can also be run independently. Do not import several of the
 intentionally invalid examples into one process: model build examines loaded declarations.
 
+The dictionary declares its members with `value(...)`. This is an explicit declaration
+factory: when the dictionary class has been created, `FIRST`, `REPRESS` and `TEST` are
+its validated instances. `Classifier` receives one of those objects; it does not declare
+another value. The change from constructor-looking declarations to `value(...)` leaves
+`Specialization[Alternatives, Dictionary]` and `Generalization[Head]` unchanged.
+
 ```python
 from __future__ import annotations
 
@@ -240,6 +249,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -257,9 +267,9 @@ class MusicDomain(BaseDomain):
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
-    TEST = VinylRecordKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
+    TEST = value(code="test", display_name="Test")
 
 
 @entity(description="Vinyl record", domain=MusicDomain)
@@ -357,9 +367,7 @@ first = FirstPressSpecEntity(
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    pressing=Specialization[
-        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
-    ](
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
         id="rec-1",
         variant=VinylRecordKindEnumEntity.FIRST,
         entity=first,
@@ -447,9 +455,7 @@ Compare two Generalization references to the same record.
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    pressing=Specialization[
-        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
-    ](
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
         id="rec-1",
         variant=VinylRecordKindEnumEntity.FIRST,
     ),
@@ -481,9 +487,9 @@ value = VinylRecordKindEnumEntity.by_code(row["edition_key"])
 record = VinylRecordCoreEntity(
     id=row["id"],
     title=row["title"],
-    pressing=Specialization[
-        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
-    ](id=row["id"], variant=value),
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
+        id=row["id"], variant=value
+    ),
 )
 print(record.pressing.variant.code)
 print("Same value:", record.pressing.variant is VinylRecordKindEnumEntity.FIRST)
@@ -567,9 +573,7 @@ from pydantic import ValidationError
 record = VinylRecordCoreEntity(
     id="rec-1",
     title="Kind of Blue",
-    pressing=Specialization[
-        FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity
-    ](
+    pressing=Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
         id="rec-1",
         variant=VinylRecordKindEnumEntity.FIRST,
     ),
@@ -691,10 +695,14 @@ Pair a first-pressing object with another dictionary's value named first.
 ```python
 from pydantic import ValidationError
 
+from aoa.action_machine.domain import value
+
+
 class OtherKindEnumEntity(BaseEnumEntity):
     """Supply a distinct vocabulary with a coincidentally equal code."""
 
-    FIRST = OtherKindEnumEntity(code="first", display_name="Other first")  # noqa: F821
+    FIRST = value(code="first", display_name="Other first")
+
 
 first = FirstPressSpecEntity(id="rec-1", stamper="1A", record=Generalization[VinylRecordCoreEntity](id="rec-1"))
 try:

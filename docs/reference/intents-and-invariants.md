@@ -138,6 +138,7 @@ Every public operation must have `@check_roles`. Without it the machine will not
 @meta(description="Delete order", domain=StoreDomain)
 class DeleteOrderAction(BaseAction[...]): ...
 
+
 # ✓ open to everyone — said explicitly
 @meta(description="Get status", domain=StoreDomain)
 @check_roles(GuestRole)
@@ -150,6 +151,7 @@ A role also declares its lifecycle mode, once, with `@role_mode`. The set is clo
 # ✗ the string the enum carries — RoleModeDeclarationError at import
 @role_mode("alive")
 class ViewerRole(ApplicationRole): ...
+
 
 # ✓ the member — and what it means is still the consumer's business
 @role_mode(RoleMode.ALIVE)
@@ -271,18 +273,24 @@ This eliminates an entire class of defects of the form "the next step broke beca
 
 ```python
 from typing import Any
-from aoa.action_machine.model import BaseParams
+
+from aoa.action_machine.model import BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import BaseResource
-from aoa.action_machine.model import BaseResult
-from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
+
+
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
-async def validate_aspect(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+async def validate_aspect(
+    self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections
+) -> dict[str, Any]:
     return {"validated_id": params.order_id}
 
+
 @summary_aspect("Creation")
-async def create_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
+async def create_summary(
+    self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections
+) -> BaseResult:
     state.validated_id  # guaranteed to be there — usable without a check
 ```
 
@@ -404,28 +412,38 @@ For Many containers: `entities_loaded=False` with a non-empty `entities` tuple i
 
 ---
 
-### Closed dictionaries
+### Closed dictionaries and declared values
 
-`BaseEnumEntity` supplies required nonblank `code` and `display_name`. A class declares
-its values in its own body; each becomes a shared frozen instance. `members` is an ordered
-tuple, `codes()` follows declaration order, and `by_code(code)` returns the declared
-instance or raises `KeyError`. `entity_type` is the dictionary class. Duplicate codes fail
-while the class is created. Empty undecorated intermediates are allowed; `@entity` refuses
-an empty catalogue. Fields may be inherited, but dictionary values are not inherited.
+Both dictionaries and lifecycle statuses declare catalogue members with `value(...)`,
+imported from `aoa.action_machine.domain`. The factory records keyword arguments; the
+class-creation hook constructs the members after the model exists. No custom namespace
+substitutes a factory for the class name. `members`, `codes()`, `by_code()` and
+`entity_type` retain their catalogue meanings. Duplicated codes fail at class creation.
 
-A dictionary-typed field accepts a declared instance or a reference mapping containing
-`code` and optional descriptive `display_name` and `properties`. It resolves the code to
-the declared object and ignores payload descriptions. Bare strings, unknown/missing/blank
-codes, copies, foreign instances and mappings with constructor fields at the top level
-are refused. `None` is allowed only by an explicitly optional annotation. Direct
-construction of a separate dictionary instance does not add it to the catalogue.
+A dictionary supplies required nonblank `code` and `display_name`, and its fields may be
+inherited. Its catalogue is its own: `@entity` rejects an empty dictionary, while an
+undecorated intermediate may be empty. A state subclass without new declarations can
+inherit its parent's catalogue instead.
 
-Serialization emits `{"code": ..., "display_name": ..., "properties": {...}}`; additional
-fields go under `properties`. The published JSON Schema requires all three keys, although
-Python validation also accepts a code-only reference. The dictionary Entity node carries
-`properties.values`; a dictionary-typed field names it through `reference_qualname`.
-Values are not separate Entity nodes. The
-[dictionary guide](../tutorials/step-20-dictionaries.md) demonstrates these contracts.
+| Boundary | Contract |
+| --- | --- |
+| Dictionary property declaration | Supported scalar/date/time/UUID types, Enum, Literal, unions and tuples; list/dict/set/frozenset/Any/nested models are refused, including inside unions or tuples |
+| Runtime reference | A declared instance or mapping with code; copied or foreign instances, unknown/missing/blank codes, bare strings and unknown top-level keys are refused |
+| Reference descriptions | Incoming display_name and properties do not change the declared value; the code selects it |
+| Optional reference | None only when the containing field permits it; an unknown code never becomes absence |
+| Export | to_reference() equals model_dump(mode="json"); field serializers run and extra fields appear under properties |
+| Input schema | Requires code, allows optional label/properties and rejects unknown top-level keys; runtime still checks membership and whitespace-only codes |
+| Output schema | Requires code/display_name/properties, describes the emitted type of each extra property and rejects unknown nested keys; nested properties currently have no required list |
+| Graph | The dictionary Entity node carries properties.values; references carry reference_qualname; values are not separate nodes |
+
+The property check inspects annotations, not arbitrary values returned by custom
+validators or the internals of Enum members. Maintain annotation contracts in validators.
+Serialization-schema generation currently fails for Enum properties whose schemas need
+`$defs`; this is separate from successful instance creation and JSON export. A state's
+property types remain unrestricted by the dictionary rule, and frozen models do not
+recursively freeze mutable state properties. The
+[dictionary guide](../tutorials/step-20-dictionaries.md) demonstrates the supported paths
+and documents these limits.
 
 ### Entity specialization: the build rules
 
@@ -528,15 +546,15 @@ properties. See [Step 26](../tutorials/step-26-maxitor.md#specialization-the-var
 A lifecycle axis is one aspect of an entity's progress, with its own possible states and transitions. For example, payment and delivery may have separate lifecycles. `BaseStateEntity` describes a possible status; a `Lifecycle` instance holds a reference to the selected declared status object. The state type declares its own statuses and carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`.
 
 ```python
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    NEW = OrderStateEntity(code="new", display_name="New")
-    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed")
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped")
+    NEW = value(code="new", display_name="New")
+    CONFIRMED = value(code="confirmed", display_name="Confirmed")
+    SHIPPED = value(code="shipped", display_name="Shipped")
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
@@ -544,15 +562,20 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
 
     _template = (
         Lifecycle()
-        .state(OrderStateEntity.NEW).to(OrderStateEntity.CONFIRMED).initial()
-        .state(OrderStateEntity.CONFIRMED).to(OrderStateEntity.SHIPPED).intermediate()
-        .state(OrderStateEntity.SHIPPED).final()
+        .state(OrderStateEntity.NEW)
+        .to(OrderStateEntity.CONFIRMED)
+        .initial()
+        .state(OrderStateEntity.CONFIRMED)
+        .to(OrderStateEntity.SHIPPED)
+        .intermediate()
+        .state(OrderStateEntity.SHIPPED)
+        .final()
     )
 ```
 
 | Contract | Behaviour |
 | --- | --- |
-| Status fields | `code` and `display_name` are required non-blank strings; extra domain fields must be declared on the status subclass. Status objects are frozen. |
+| Status fields | `code` and `display_name` are required non-blank strings; extra domain fields must be declared on the status subclass. Status objects reject attribute reassignment; nested mutable values are not recursively frozen. |
 | Status catalogue | Status attributes are declared on the state type and collected in declaration order; their codes must be unique within the type and every status has that concrete type. |
 | Lookup | `members` is a tuple; `codes()` returns a list in declaration order; `entity_type` is the type; `by_code(code)` returns the declared object or raises `KeyError`. All four live on the state type. |
 | Declaring a template | `.state(status)` and `.to(*statuses)` take status objects, not strings. Every referenced status must be a declared member of the axis's state type, and every declared status must appear as a state; a foreign or missing status is refused at class definition. |

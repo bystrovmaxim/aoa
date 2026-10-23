@@ -7,9 +7,9 @@ Run: uv run python examples/step_22_lifecycle/12_duplicate_code.py
 
 from aoa.action_machine.domain import BaseStateEntity, value
 
-
 # Run the case.
 try:
+
     class OrderStateEntity(BaseStateEntity):
         """Intentionally declare an ambiguous code."""
 

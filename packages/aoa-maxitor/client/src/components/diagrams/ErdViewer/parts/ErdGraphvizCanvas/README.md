@@ -53,8 +53,21 @@ what the dictionary can hold without opening it. Each value's `properties` is an
 
 A field whose type is a dictionary carries `reference_qualname`. The card shows the dictionary's
 short name after the type in teal, prefixed with an arrow: the field is not a string, it is a reference,
-and the payload names the target. The axis container is labelled with `dictionary_label` when the
-group carries one, so a cluster says which dictionary classifies it.
+and the payload names the target.
+
+## Render the server's group label once
+
+The group response contains a complete `label`, for example
+`pressing (by VinylRecordKindEnumEntity)`. `buildDotSource` escapes and displays that text;
+it does not append a dictionary name. `dictionary_label` is absent from the current
+`ErdGroup` type and response schema. It still exists in the underlying graph metadata,
+which the server reads to produce the label. A stale extra field on an old payload must
+not cause the name to be appended again.
+
+The property list is a display representation: strings remain text and other JSON values
+arrive as JSON text. Empty properties produce no extra lines. `check-erd-dictionary-values.ts`
+checks escaping and actual SVG rendering; `check-erd-group-label.ts` checks that a complete
+label remains unchanged, including with a stale dictionary_label beside it.
 
 Nothing here knows a domain's vocabulary: every name comes from the payload, and a model that declares
 no dictionary has an empty `values` array, and ordinary scalar fields have no `reference_qualname`.
