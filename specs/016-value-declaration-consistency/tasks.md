@@ -72,14 +72,14 @@ Repository root holds `packages/`, `examples/`, `docs/`, `specs/`. The framework
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py` — one accepted case per leaf type (`str`, `int`, `float`, `bool`, `Decimal`, `date`, `datetime`, `time`, `UUID`, an `Enum`, a `Literal`), accepted `tuple[...]`, accepted `Optional[...]`; refusals for `list`, `dict`, `set`, `frozenset`, a nested model, `Any`; a refused type nested inside a tuple; and a state type declaring `list[str]` accepted (FR-009 to FR-012)
+- [x] T018 [P] [US2] Add `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py` — one accepted case per leaf type (`str`, `int`, `float`, `bool`, `Decimal`, `date`, `datetime`, `time`, `UUID`, an `Enum`, a `Literal`), accepted `tuple[...]`, accepted `Optional[...]`; refusals for `list`, `dict`, `set`, `frozenset`, a nested model, `Any`; a refused type nested inside a tuple; and a state type declaring `list[str]` accepted (FR-009 to FR-012)
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Add the per-kind switch `__declared_values_immutable__` to the mixin in `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, off by default (research D3)
-- [ ] T020 [US2] Add the recursive annotation walk and its refusal to `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, run from `__pydantic_init_subclass__` when the switch is on, with the message of `specs/016-value-declaration-consistency/contracts/declared-value.md` §6 (FR-010, FR-011)
-- [ ] T021 [US2] Turn the switch on for `BaseEnumEntity` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` and update its AI-CORE `INVARIANTS` line with the supported types (FR-010)
-- [ ] T022 [US2] Prove the state kind is untouched: run `pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_current_status.py packages/aoa-action-machine/tests/action_machine/graph_host/test_lifecycle_graph_node.py -q` unedited, and run `uv run python examples/step_22_lifecycle/19_non_json_field.py` (FR-012, FR-031)
+- [x] T019 [US2] Add the per-kind switch `__declared_values_immutable__` to the mixin in `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, off by default (research D3)
+- [x] T020 [US2] Add the recursive annotation walk and its refusal to `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, run from `__pydantic_init_subclass__` when the switch is on, with the message of `specs/016-value-declaration-consistency/contracts/declared-value.md` §6 (FR-010, FR-011)
+- [x] T021 [US2] Turn the switch on for `BaseEnumEntity` in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` and update its AI-CORE `INVARIANTS` line with the supported types (FR-010)
+- [x] T022 [US2] Prove the state kind is untouched: run `pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_current_status.py packages/aoa-action-machine/tests/action_machine/graph_host/test_lifecycle_graph_node.py -q` unedited, and run `uv run python examples/step_22_lifecycle/19_non_json_field.py` (FR-012, FR-031)
 
 **Checkpoint**: the reproduced mutation defect is impossible, and the lifecycle suite is unchanged.
 

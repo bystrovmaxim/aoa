@@ -92,7 +92,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
         CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the dictionary node carries its values in the graph.
-        INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
+        INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
 
@@ -100,6 +100,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
 
     __declared_values_inherit__ = False
     __declared_values_require_any__ = True
+    __declared_values_immutable__ = True
     __declared_values_noun__ = "value"
     __declared_values_noun_plural__ = "values"
     __declared_values_empty_refusal__ = "a closed dictionary states its values."

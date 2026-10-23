@@ -97,7 +97,7 @@ The output schema additionally requires `display_name` and `properties`, and typ
 
 | Case | Error | Message names |
 | --- | --- | --- |
-| a list, dict or set property | `ValueError` at class creation | the class, the field, the refused type, the supported set |
+| a list, dict, set, frozenset, a nested model or an `Any` property | `ValueError` at class creation | the class, the field, the refused type, the supported set |
 | a refused type nested in a tuple | the same, at class creation | the same, with the nested position |
 | a mutable property on a **state** type | accepted — the rule does not bind this kind | — |
 | duplicate code | `ValueError` (unchanged) | the class, the duplicated code |
