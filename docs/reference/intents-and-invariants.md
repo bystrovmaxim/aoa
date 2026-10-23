@@ -435,15 +435,17 @@ inherit its parent's catalogue instead.
 | Optional reference | None only when the containing field permits it; an unknown code never becomes absence |
 | Export | to_reference() equals model_dump(mode="json"); field serializers run and extra fields appear under properties |
 | Input schema | Requires code, allows optional label/properties and rejects unknown top-level keys; runtime still checks membership and whitespace-only codes |
-| Output schema | Requires code/display_name/properties, describes the emitted type of each extra property and rejects unknown nested keys; nested properties currently have no required list |
+| Output schema | Requires code/display_name/properties, describes the emitted type of each extra property and rejects unknown nested keys; nested properties require every emitted property, including null values, and an excluded property is absent |
+| Completed values | Checked after user validators; Literal choices match by type and value, and bool does not satisfy int |
+| Nullability | A union accepts None only when included; Literal may list None explicitly; a property annotated only None is refused |
+| Tuple properties | Each item follows its annotation; a refusal identifies the item index |
 | Graph | The dictionary Entity node carries properties.values; references carry reference_qualname; values are not separate nodes |
 
-The property check inspects annotations, not arbitrary values returned by custom
-validators or the internals of Enum members. Maintain annotation contracts in validators.
-Serialization-schema generation currently fails for Enum properties whose schemas need
-`$defs`; this is separate from successful instance creation and JSON export. A state's
-property types remain unrestricted by the dictionary rule, and frozen models do not
-recursively freeze mutable state properties. The
+The property check inspects the annotation when the class is created and the completed member
+after custom validators run: a result outside the declared types, outside a `Literal`'s
+choices, or null where the union excludes it is refused. Serialization schemas retain the
+definitions used by Enum properties. A state's property types remain unrestricted by the
+dictionary rule, and frozen models do not recursively freeze mutable state properties. The
 [dictionary guide](../tutorials/step-20-dictionaries.md) demonstrates the supported paths
 and documents these limits.
 
