@@ -261,3 +261,34 @@ class SpecializationDeclarationError(Exception):
         self.details: str = details
 
         super().__init__(f"Specialization '{field_name}' on entity '{entity_name}' is invalid: {details}")
+
+class EntityFieldDeclarationError(Exception):
+    """
+    An entity field is declared in a form the framework cannot honour.
+
+    Raised while the graph is assembled, when a field whose resolved type is a structural
+    entity is written as a plain scalar, as a collection of an entity, as a bare
+    ``X | None``, or as a state entity — none of which the graph can publish truthfully.
+    The point of the error is that the declaration is refused by name instead of becoming
+    a column that silently means nothing.
+
+    Attributes:
+        entity_name:
+            Entity class the offending declaration sits on.
+        field_name:
+            Field the violation was found on.
+        details:
+            What rule was broken and which legal forms the field may take instead.
+    """
+
+    def __init__(
+        self,
+        entity_name: str,
+        field_name: str,
+        details: str,
+    ) -> None:
+        self.entity_name: str = entity_name
+        self.field_name: str = field_name
+        self.details: str = details
+
+        super().__init__(f"Field '{field_name}' on entity '{entity_name}' is invalid: {details}")

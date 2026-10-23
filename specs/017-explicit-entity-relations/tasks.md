@@ -39,8 +39,8 @@ US4, which extends the validator US1 creates.
 
 ## Phase 1: Setup
 
-- [ ] T001 Re-run the four baseline reproductions (bare field, mutable member, shape mismatch, `Rel` default, `Enum` schema) and paste each exact output into the "Measured baseline" table of `specs/017-explicit-entity-relations/research.md` (FR-009, FR-015, FR-031; SC-003)
-- [ ] T002 Refresh both migration counts — `Classifier(field=…)` over `packages/`, `examples/`, `docs/` including `--include=*.ipynb`, and `= Rel(description=…)` — and update the Scale/Scope of `specs/017-explicit-entity-relations/plan.md` and the opening count of each migration task below (FR-031, FR-036; SC-004, SC-006)
+- [x] T001 Re-run the four baseline reproductions (bare field, mutable member, shape mismatch, `Rel` default, `Enum` schema) and paste each exact output into the "Measured baseline" table of `specs/017-explicit-entity-relations/research.md` (FR-009, FR-015, FR-031; SC-003)
+- [x] T002 Refresh both migration counts — `Classifier(field=…)` over `packages/`, `examples/`, `docs/` including `--include=*.ipynb`, and `= Rel(description=…)` — and update the Scale/Scope of `specs/017-explicit-entity-relations/plan.md` and the opening count of each migration task below (FR-031, FR-036; SC-004, SC-006)
 
 ---
 
@@ -52,19 +52,19 @@ US4, which extends the validator US1 creates.
 
 ### Tests for User Story 1
 
-- [ ] T003 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a bare entity field is refused and the message names the owner, the field, the resolved type and both forms (FR-001, FR-002; SC-002)
-- [ ] T004 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a relation container is accepted, the graph gains the edge, and the field is a foreign-key row (FR-003)
-- [ ] T005 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: `NoRelation("reason")` is accepted, adds no edge, and a blank reason is refused at construction (FR-004; SC-002)
-- [ ] T006 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a state-typed field is refused bare, inside a container and with the marker, each naming `Lifecycle[...]` (FR-003; SC-002)
-- [ ] T007 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: `list[X]`, `dict[str, X]`, `set[X]`, `tuple[X, …]` and a bare `X | None` are refused; a forward-referenced field is judged after resolution; an `exclude_graph_model` class is skipped (FR-003, FR-005; SC-002)
-- [ ] T008 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: ordinary scalars, a dictionary reference, a `Lifecycle[...]` field and a `BaseSchema` subclass are accepted unchanged (FR-006)
+- [x] T003 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a bare entity field is refused and the message names the owner, the field, the resolved type and both forms (FR-001, FR-002; SC-002)
+- [x] T004 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a relation container is accepted, the graph gains the edge, and the field is a foreign-key row (FR-003)
+- [x] T005 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: `NoRelation("reason")` is accepted, adds no edge, and a blank reason is refused at construction (FR-004; SC-002)
+- [x] T006 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: a state-typed field is refused bare, inside a container and with the marker, each naming `Lifecycle[...]` (FR-003; SC-002)
+- [x] T007 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: `list[X]`, `dict[str, X]`, `set[X]`, `tuple[X, …]` and a bare `X | None` are refused; a forward-referenced field is judged after resolution; an `exclude_graph_model` class is skipped (FR-003, FR-005; SC-002)
+- [x] T008 [P] [US1] Add to `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py`: ordinary scalars, a dictionary reference, a `Lifecycle[...]` field and a `BaseSchema` subclass are accepted unchanged (FR-006)
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add `NoRelation(reason)` to `packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py` — frozen slots, nonblank reason, `__eq__`/`__hash__`/`__repr__`, AI-CORE block, one-line docstrings — and export it from `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py` (FR-004)
-- [ ] T010 [US1] Create `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py` with module header, one public `validate_entity_fields()`, the resolved-annotation walker, the kind test and the four refusals, reusing `declared_entity_classes()` and skipping excluded classes (FR-001, FR-002, FR-005)
-- [ ] T011 [US1] Call `validate_entity_fields()` from `packages/aoa-action-machine/src/aoa/action_machine/graph/core/node_graph_coordinator.py` beside the specialization pass (FR-001, FR-005)
-- [ ] T012 [US1] Adversarially reintroduce the silent acceptance (skip the bare-field refusal), confirm T003 fails while an unrelated test in the same run passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py`) (FR-001, FR-042)
+- [x] T009 [US1] Add `NoRelation(reason)` to `packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py` — frozen slots, nonblank reason, `__eq__`/`__hash__`/`__repr__`, AI-CORE block, one-line docstrings — and export it from `packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py` (FR-004)
+- [x] T010 [US1] Create `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py` with module header, one public `validate_entity_fields()`, the resolved-annotation walker, the kind test and the four refusals, reusing `declared_entity_classes()` and skipping excluded classes (FR-001, FR-002, FR-005)
+- [x] T011 [US1] Call `validate_entity_fields()` from `packages/aoa-action-machine/src/aoa/action_machine/graph/core/node_graph_coordinator.py` beside the specialization pass (FR-001, FR-005)
+- [x] T012 [US1] Adversarially reintroduce the silent acceptance (skip the bare-field refusal), confirm T003 fails while an unrelated test in the same run passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py`) (FR-001, FR-042)
 
 **Checkpoint**: the four answers exist and the corpus still builds.
 
