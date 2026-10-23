@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
@@ -26,9 +26,9 @@ class AnalyticsCanonicalTelemetryRowDetailEntity(BaseDetailEntity):
     dedup: Annotated[
         AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Dedup bloom parent"
-    )  # type: ignore[assignment]
+    )
 
 
 AnalyticsCanonicalTelemetryRowDetailEntity.model_rebuild()

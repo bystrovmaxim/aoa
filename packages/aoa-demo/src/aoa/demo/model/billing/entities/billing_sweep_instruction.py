@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class BillingSweepInstructionCoreEntity(BaseCoreEntity):
     payout_plan: Annotated[
         AssociationOne[BillingPayoutPlanCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent payout plan"
-    )  # type: ignore[assignment]
+    )
 
     corridor_code: str = Field(description="Treasury corridor identifier")
     priority_rank: int = Field(description="Relative ordering within plan", ge=0)

@@ -16,7 +16,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, Inverse, Rel
+from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, Inverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.entity_projection_demo.domain import EntityProjectionDemoDomain
 from aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle import (
@@ -35,9 +35,9 @@ class ProjectionDemoCustomerCoreEntity(BaseCoreEntity):
     orders: Annotated[
         AssociationMany[ProjectionDemoOrderCoreEntity],
         Inverse(ProjectionDemoOrderCoreEntity, "customer"),
-    ] = Rel(
+    ] = Field(
         description="Orders for this customer"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Demo storefront order", domain=EntityProjectionDemoDomain)
@@ -50,9 +50,9 @@ class ProjectionDemoOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[ProjectionDemoCustomerCoreEntity],
         Inverse(ProjectionDemoCustomerCoreEntity, "orders"),
-    ] = Rel(
+    ] = Field(
         description="Buyer"
-    )  # type: ignore[assignment]
+    )
 
 
 ProjectionDemoCustomerCoreEntity.model_rebuild()

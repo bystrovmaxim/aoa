@@ -28,7 +28,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -79,7 +78,7 @@ class StrangerHeadCoreEntity(BaseCoreEntity):
     """Names a class the walk never sees."""
 
     id: str = Field(description="id")
-    pack: Specialization[StrangerAxisAssocEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[StrangerAxisAssocEntity, _KindEnumEntity] = Field(description="d")
 
 
 StrangerHeadCoreEntity.model_rebuild()
@@ -102,7 +101,7 @@ class SilentSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
     id: str = Field(description="id")
-    rec: Generalization[SilentHeadCoreEntity] = Rel(description="back, naming no value")
+    rec: Generalization[SilentHeadCoreEntity] = Field(description="back, naming no value")
 
 
 @exclude_graph_model
@@ -111,7 +110,7 @@ class SilentHeadCoreEntity(BaseCoreEntity):
     """One alternative answers with a code, not a value."""
 
     id: str = Field(description="id")
-    pack: Specialization[SilentSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[SilentSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 SilentHeadCoreEntity.model_rebuild()
@@ -132,7 +131,7 @@ class _AlphaSpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[UncoveredHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -141,7 +140,7 @@ class UncoveredHeadCoreEntity(BaseCoreEntity):
     """Borrows two values but declares one alternative."""
 
     id: str = Field(description="id")
-    pack: Specialization[_AlphaSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[_AlphaSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 UncoveredHeadCoreEntity.model_rebuild()
@@ -172,7 +171,7 @@ class UnreachableHeadCoreEntity(BaseCoreEntity):
     """One alternative cannot be reached from the head's side."""
 
     id: str = Field(description="id")
-    pack: Specialization[UnreachableSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[UnreachableSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 UnreachableHeadCoreEntity.model_rebuild()
@@ -192,11 +191,11 @@ class TwoWaySpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[TwoWayHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back")
+    ] = Field(description="back")
     spare: Annotated[
         Generalization[TwoWayHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.B),
-    ] = Rel(description="back again")
+    ] = Field(description="back again")
 
 
 @exclude_graph_model
@@ -205,7 +204,7 @@ class TwoWayHeadCoreEntity(BaseCoreEntity):
     """The head of the two-way alternative."""
 
     id: str = Field(description="id")
-    pack: Specialization[TwoWaySpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[TwoWaySpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 TwoWayHeadCoreEntity.model_rebuild()
@@ -225,8 +224,8 @@ class WronglyPairedSpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[WronglyPairedHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back")
-    other: AssociationOne[WronglyPairedHeadCoreEntity] = Rel(
+    ] = Field(description="back")
+    other: AssociationOne[WronglyPairedHeadCoreEntity] = Field(
         description="a second link, so the inverse name can disagree"
     )
 
@@ -240,7 +239,7 @@ class WronglyPairedHeadCoreEntity(BaseCoreEntity):
     pack: Annotated[
         Specialization[WronglyPairedSpecEntity, _KindEnumEntity],
         Inverse(field_name="other"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 WronglyPairedHeadCoreEntity.model_rebuild()
@@ -267,7 +266,7 @@ class _GoodFirstSpecEntity(BaseSpecEntity):
         Generalization[GoodHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
         Inverse(GoodHeadCoreEntity, "pack"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -280,7 +279,7 @@ class _GoodSecondSpecEntity(BaseSpecEntity):
         Generalization[GoodHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.B),
         Inverse(GoodHeadCoreEntity, "pack"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -292,7 +291,7 @@ class GoodHeadCoreEntity(BaseCoreEntity):
     pack: Annotated[
         Specialization[_GoodFirstSpecEntity | _GoodSecondSpecEntity, _KindEnumEntity],
         Inverse(field_name="rec"),
-    ] = Rel(description="d")
+    ] = Field(description="d")
 
 
 GoodHeadCoreEntity.model_rebuild()

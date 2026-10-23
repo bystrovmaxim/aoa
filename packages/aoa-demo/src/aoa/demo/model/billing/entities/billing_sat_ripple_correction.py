@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class SettlementRippleCorrectionCoreEntity(BaseCoreEntity):
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent sweep instruction"
-    )  # type: ignore[assignment]
+    )
 
     ripple_sequence: int = Field(description="Monotonic ripple attempt within sweep", ge=0)
     ripple_amount_minor: int = Field(description="Memoized adjustment in minor units")

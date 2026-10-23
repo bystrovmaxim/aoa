@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class DuplicateSuppressionLedgerCoreEntity(BaseCoreEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning parse pass"
-    )  # type: ignore[assignment]
+    )
 
     suppression_scope: str = Field(description="Scope key (merchant, MID, PAN prefix)")
     fingerprint_hex: str = Field(description="Payload fingerprint sampled for duplicate probes")

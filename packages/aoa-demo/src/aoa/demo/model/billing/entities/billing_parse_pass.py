@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
@@ -24,23 +24,23 @@ class BillingParsePassCoreEntity(BaseCoreEntity):
     manifest: Annotated[
         AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Source manifest"
-    )  # type: ignore[assignment]
+    )
 
     fx_residual_tag: Annotated[
         AssociationOne[FxResidualTagCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="FX residual tag linked to this parse pass"
-    )  # type: ignore[assignment]
+    )
 
     retrieval_evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Retrieval evidence bundle associated with parse outcome"
-    )  # type: ignore[assignment]
+    )
 
     parser_semver: str = Field(description="Parser implementation semantic version")
     pass_sequence_no: int = Field(description="Monotonic retry index for same manifest hash", ge=0)

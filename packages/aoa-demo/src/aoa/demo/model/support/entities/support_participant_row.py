@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
@@ -26,9 +26,9 @@ class SupportParticipantCoreEntity(BaseCoreEntity):
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent ticket aggregate"
-    )  # type: ignore[assignment]
+    )
 
 
 SupportParticipantCoreEntity.model_rebuild()

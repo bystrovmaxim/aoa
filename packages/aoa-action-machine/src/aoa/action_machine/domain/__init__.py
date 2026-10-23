@@ -55,7 +55,7 @@ State machines:
 Relations between entities:
     CompositeOne/Many, AggregateOne/Many, AssociationOne/Many — typed containers.
     RelationType — ownership kind (composition / aggregation / association).
-    Inverse, NoInverse, Rel — markers and default for relation metadata.
+    Inverse, NoInverse — markers for relation metadata.
 
 Utilities:
     build — hydrate an entity from flat dict data (optional typed mapper).
@@ -79,8 +79,7 @@ EXAMPLES
         CompositeMany,
         Inverse,
         Lifecycle,
-        Rel,
-        build,
+            build,
         value,
     )
 
@@ -147,7 +146,6 @@ from aoa.action_machine.domain.relation_markers import (
     NoGraphEdge,
     NoInverse,
     NoRelation,
-    Rel,
 )
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
 from aoa.action_machine.domain.specialization_containers import Classifier, Generalization, Specialization
@@ -192,7 +190,6 @@ __all__ = [
     "NoGraphEdge",
     "NoInverse",
     "NoRelation",
-    "Rel",
     "RelationNotLoadedError",
     "RelationType",
     "Specialization",

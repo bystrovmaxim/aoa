@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
@@ -27,16 +27,16 @@ class AnalyticsDedupDimensionCorrelateCoreEntity(BaseCoreEntity):
     dedup_row: Annotated[
         AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Dedup bloom anchor"
-    )  # type: ignore[assignment]
+    )
 
     dimension_stub: Annotated[
         AssociationOne[DimensionSliceStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Dimension slice anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 AnalyticsDedupDimensionCorrelateCoreEntity.model_rebuild()

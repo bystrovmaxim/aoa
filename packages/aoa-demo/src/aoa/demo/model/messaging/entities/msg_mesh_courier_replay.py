@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
@@ -29,16 +29,16 @@ class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     courier_ledger: Annotated[
         AssociationOne[CourierAttemptLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Courier attempt ledger linkage"
-    )  # type: ignore[assignment]
+    )
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Replay ticket linkage"
-    )  # type: ignore[assignment]
+    )
 
 
 MsgCourierReplayCorrelateCoreEntity.model_rebuild()

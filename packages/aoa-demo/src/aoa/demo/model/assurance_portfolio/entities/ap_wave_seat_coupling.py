@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerCoreEntity
@@ -27,16 +27,16 @@ class AssuranceWaveSeatCouplingCoreEntity(BaseCoreEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Duty-bound actor"
-    )  # type: ignore[assignment]
+    )
 
     campaign_wave: Annotated[
         AssociationOne[AssuranceCampaignWaveBannerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Subject wave banner"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceWaveSeatCouplingCoreEntity.model_rebuild()

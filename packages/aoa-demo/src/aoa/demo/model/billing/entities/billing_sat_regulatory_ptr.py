@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
@@ -23,9 +23,9 @@ class RegulatorySubmissionPointerCoreEntity(BaseCoreEntity):
     brief: Annotated[
         AssociationOne[ArbitrationBriefStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream arbitration artefact"
-    )  # type: ignore[assignment]
+    )
 
     regulator_code: str = Field(description="Regulator identifier")
     submission_channel: str = Field(description="Portal or batch channel code")

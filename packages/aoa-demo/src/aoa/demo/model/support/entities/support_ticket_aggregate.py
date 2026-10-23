@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
@@ -26,9 +26,9 @@ class SupportTicketAggregateCoreEntity(BaseCoreEntity):
     related_commerce_order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Linked storefront sales order motivating the ticket"
-    )  # type: ignore[assignment]
+    )
 
 
 SupportTicketAggregateCoreEntity.model_rebuild()

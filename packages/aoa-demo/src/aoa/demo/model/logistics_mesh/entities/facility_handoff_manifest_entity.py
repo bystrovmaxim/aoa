@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity import FreightWaypointLegCoreEntity
 from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
@@ -20,6 +20,6 @@ class FacilityHandoffManifestAssocEntity(BaseAssocEntity):
     next_leg_placeholder: Annotated[
         AssociationOne[FreightWaypointLegCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Next relay leg reserved for cargo slice"
-    )  # type: ignore[assignment]
+    )

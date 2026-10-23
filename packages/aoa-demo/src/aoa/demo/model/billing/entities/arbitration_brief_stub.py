@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class ArbitrationBriefStubCoreEntity(BaseCoreEntity):
     integrity_checkpoint: Annotated[
         AssociationOne[AcquirerIntegrityCheckCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream acquirer integrity artefact"
-    )  # type: ignore[assignment]
+    )
 
     dispute_stage: str = Field(description="Arbitration stage label")
     claimant_reference: str = Field(description="Internal claimant handle")

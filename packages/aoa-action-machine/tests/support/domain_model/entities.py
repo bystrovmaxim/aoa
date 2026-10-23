@@ -47,7 +47,7 @@ These entities are used in unit tests to verify:
 - Correct construction via @entity
 - Metadata assembly via ``NodeGraphCoordinator.build()`` and interchange snapshots / ``get_snapshot``
 - Lifecycle validation (eight integrity rules)
-- Relations (Annotated + Inverse/NoInverse + Rel)
+- Relations (Annotated + Inverse/NoInverse + Field description)
 - build() and make() behavior
 - Specialized Lifecycle helpers (current_state, transition)
 """
@@ -65,7 +65,6 @@ from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
     NoInverse,
-    Rel,
     value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -168,12 +167,12 @@ class RelatedCoreEntity(BaseCoreEntity):
     parent: Annotated[
         AssociationOne[RelatedCoreEntity] | None,
         NoInverse(),
-    ] = Rel(description="Parent entity")
+    ] = Field(description="Parent entity")
 
     children: Annotated[
         AggregateMany[RelatedCoreEntity] | None,
         NoInverse(),
-    ] = Rel(description="Child entities")
+    ] = Field(default=None, description="Child entities")
 
 
 @entity(description="Complex entity", domain=TestDomain)
@@ -197,9 +196,9 @@ class ComplexCoreEntity(BaseCoreEntity):
     owner: Annotated[
         AssociationOne[LifecycleCoreEntity] | None,
         NoInverse(),
-    ] = Rel(description="Owner")
+    ] = Field(description="Owner")
 
     related_items: Annotated[
         AggregateMany[RelatedCoreEntity] | None,
         NoInverse(),
-    ] = Rel(description="Related items")
+    ] = Field(description="Related items")

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -27,16 +27,16 @@ class InvoiceRecordCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Invoiced order"
-    )  # type: ignore[assignment]
+    )
 
     invoice_outbox_row: Annotated[
         AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Transactional outbox publish for invoice side-effects"
-    )  # type: ignore[assignment]
+    )
 
 
 InvoiceRecordCoreEntity.model_rebuild()

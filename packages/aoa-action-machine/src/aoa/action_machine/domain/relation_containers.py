@@ -31,7 +31,7 @@ SCOPE (IN / OUT)
     Lazy loading or automatic fetches — see `RelationNotLoadedError` in
     `exceptions.py`.
     Enforcing the inverse-side **compatibility matrix** — ``NodeGraphCoordinator``
-    validates `Inverse` / `Rel` pairings at **build** time, not inside these
+    validates `Inverse` pairings at **build** time, not inside these
     containers.
     Choosing id types (``str``, ``int``, ``UUID``, …) — whatever the target
     entity uses.
@@ -384,7 +384,7 @@ class CompositeOne(BaseRelationOne[T]):
         shipping_address: Annotated[
             CompositeOne[AddressEntity],
             Inverse(AddressEntity, "order"),
-        ] = Rel(description="Delivery address")
+        ] = Field(description="Delivery address")
     """
 
     relation_type = RelationType.COMPOSITION
@@ -399,7 +399,7 @@ class CompositeMany(BaseRelationMany[T]):
         items: Annotated[
             CompositeMany[OrderItemEntity],
             Inverse(OrderItemEntity, "order"),
-        ] = Rel(description="Line items")
+        ] = Field(description="Line items")
     """
 
     relation_type = RelationType.COMPOSITION
@@ -419,7 +419,7 @@ class AggregateOne(BaseRelationOne[T]):
         leader: Annotated[
             AggregateOne[EmployeeEntity],
             Inverse(EmployeeEntity, "led_team"),
-        ] = Rel(description="Team lead")
+        ] = Field(description="Team lead")
     """
 
     relation_type = RelationType.AGGREGATION
@@ -434,7 +434,7 @@ class AggregateMany(BaseRelationMany[T]):
         members: Annotated[
             AggregateMany[EmployeeEntity],
             Inverse(EmployeeEntity, "team"),
-        ] = Rel(description="Team members")
+        ] = Field(description="Team members")
     """
 
     relation_type = RelationType.AGGREGATION
@@ -456,7 +456,7 @@ class AssociationOne(BaseRelationOne[T]):
         customer: Annotated[
             AssociationOne[CustomerCoreEntity],
             Inverse(CustomerCoreEntity, "orders"),
-        ] = Rel(description="Customer who placed the order")
+        ] = Field(description="Customer who placed the order")
     """
 
     relation_type = RelationType.ASSOCIATION
@@ -471,7 +471,7 @@ class AssociationMany(BaseRelationMany[T]):
         orders: Annotated[
             AssociationMany[OrderCoreEntity],
             Inverse(OrderCoreEntity, "customer"),
-        ] = Rel(description="Customer orders")
+        ] = Field(description="Customer orders")
     """
 
     relation_type = RelationType.ASSOCIATION

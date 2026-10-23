@@ -277,15 +277,8 @@ def _axis_from_field(
 
 
 def _field_description_hint(field_info: FieldInfo) -> str:
-    """Return the field's declared description, from ``Rel`` or from ``Field``."""
-    from aoa.action_machine.domain.relation_markers import Rel  # pylint: disable=import-outside-toplevel
-
-    default_val = field_info.default
-    if isinstance(default_val, Rel):
-        return default_val.description
-    if field_info.description:
-        return field_info.description
-    return ""
+    """Return the description the field carries in its own metadata."""
+    return field_info.description or ""
 
 
 def gather_entity_specialization_intent_resolvers(host_cls: type) -> list[EntitySpecializationIntentResolver]:

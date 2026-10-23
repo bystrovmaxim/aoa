@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
@@ -26,9 +26,9 @@ class StorageAisleRowDetailEntity(BaseDetailEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent facility warehouse"
-    )  # type: ignore[assignment]
+    )
 
 
 StorageAisleRowDetailEntity.model_rebuild()

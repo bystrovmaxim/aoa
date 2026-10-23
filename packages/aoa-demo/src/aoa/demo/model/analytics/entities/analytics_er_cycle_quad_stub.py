@@ -19,7 +19,6 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     NoInverse,
-    Rel,
     value,
 )
 from aoa.action_machine.intents.entity import entity
@@ -60,16 +59,16 @@ class AnalyticsDirectedCycleQuadACoreEntity(BaseCoreEntity):
     follow_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadBCoreEntity, "back_from_a"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter A\u2192B"
-    )  # type: ignore[assignment]
+    )
 
     back_from_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadDCoreEntity, "follow_a"),
-    ] = Rel(
+    ] = Field(
         description="Closing hop D\u2192A pair"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", domain=AnalyticsDomain)
@@ -86,23 +85,23 @@ class AnalyticsDirectedCycleQuadBCoreEntity(BaseCoreEntity):
     back_from_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadACoreEntity],
         Inverse(AnalyticsDirectedCycleQuadACoreEntity, "follow_b"),
-    ] = Rel(
+    ] = Field(
         description="Reciprocal B\u2192A"
-    )  # type: ignore[assignment]
+    )
 
     follow_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadCCoreEntity, "back_from_b"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter B\u2192C"
-    )  # type: ignore[assignment]
+    )
 
     anchor_canonical_telemetry_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Connects quad vertex B to canonical telemetry facet chain"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", domain=AnalyticsDomain)
@@ -119,16 +118,16 @@ class AnalyticsDirectedCycleQuadCCoreEntity(BaseCoreEntity):
     back_from_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadBCoreEntity, "follow_c"),
-    ] = Rel(
+    ] = Field(
         description="Reciprocal C\u2192B"
-    )  # type: ignore[assignment]
+    )
 
     follow_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadDCoreEntity, "back_from_c"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter C\u2192D"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", domain=AnalyticsDomain)
@@ -145,16 +144,16 @@ class AnalyticsDirectedCycleQuadDCoreEntity(BaseCoreEntity):
     back_from_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadCCoreEntity, "follow_d"),
-    ] = Rel(
+    ] = Field(
         description="Reciprocal D\u2192C"
-    )  # type: ignore[assignment]
+    )
 
     follow_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadACoreEntity],
         Inverse(AnalyticsDirectedCycleQuadACoreEntity, "back_from_d"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter D\u2192A"
-    )  # type: ignore[assignment]
+    )
 
 
 AnalyticsDirectedCycleQuadACoreEntity.model_rebuild()

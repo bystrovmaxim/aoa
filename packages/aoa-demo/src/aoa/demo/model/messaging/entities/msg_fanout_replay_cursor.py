@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
@@ -26,9 +26,9 @@ class FanoutReplayCursorCoreEntity(BaseCoreEntity):
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Verified webhook signature row"
-    )  # type: ignore[assignment]
+    )
 
 
 FanoutReplayCursorCoreEntity.model_rebuild()

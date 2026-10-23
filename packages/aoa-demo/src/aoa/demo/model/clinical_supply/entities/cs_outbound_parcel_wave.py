@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_care_site_unit import ClinicalCareSiteUnitCoreEntity
@@ -26,9 +26,9 @@ class ClinicalOutboundParcelWaveCoreEntity(BaseCoreEntity):
     issuing_site: Annotated[
         AssociationOne[ClinicalCareSiteUnitCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Care unit authoring wave"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalOutboundParcelWaveCoreEntity.model_rebuild()

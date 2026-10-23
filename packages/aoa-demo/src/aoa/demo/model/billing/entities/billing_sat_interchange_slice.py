@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -34,6 +34,6 @@ class InterchangeAssessmentSliceCoreEntity(BaseCoreEntity):
     chargeback_ingest_correlate: Annotated[
         AssociationOne[BillingChargebackIngestCorrelateCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Correlate row linking dispute artefacts to ingest manifests",
-    )  # type: ignore[assignment]
+    )

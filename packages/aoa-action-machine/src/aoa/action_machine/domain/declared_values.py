@@ -118,9 +118,9 @@ def _refused_property_type(annotation: Any) -> str | None:
     return refused
 
 
-def _type_name(value: Any) -> str:
+def _type_name(runtime_value: Any) -> str:
     """Return the short type name of a runtime value."""
-    return type(value).__name__
+    return type(runtime_value).__name__
 
 
 def _annotation_name(annotation: Any) -> str:
@@ -131,9 +131,14 @@ def _annotation_name(annotation: Any) -> str:
     return str(name) if isinstance(name, str) else str(annotation)
 
 
-def _enum_value_refusal(enum_cls: type[Enum], value: Any, path: str) -> tuple[str, str] | None:
+def _mismatch(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str]:
+    """Return the refusal for a value the annotation does not describe."""
+    return (path, f"holds {_type_name(runtime_value)} (expected {_annotation_name(annotation)})")
+
+
+def _enum_value_refusal(enum_cls: type[Enum], runtime_value: Any, path: str) -> tuple[str, str] | None:
     """Return the refusal for a declared value whose own ``Enum`` value is mutable."""
-    declared = value.value
+    declared = runtime_value.value
     if declared is None or isinstance(declared, _SUPPORTED_LEAVES):
         return None
     if isinstance(declared, tuple):
@@ -144,45 +149,62 @@ def _enum_value_refusal(enum_cls: type[Enum], value: Any, path: str) -> tuple[st
     return (path, f"holds {enum_cls.__name__}, whose value is {_type_name(declared)}")
 
 
-def _runtime_refusal(value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
-    """Return the first property path and reason a runtime value breaks, or ``None`` when it holds."""
-    origin = get_origin(annotation)
-    if origin in (Union, UnionType):
-        if value is None:
+def _union_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a union annotation, or ``None`` when one member accepts the value."""
+    if runtime_value is None:
+        return None
+    for argument in get_args(annotation):
+        if argument is type(None):
+            continue
+        if _runtime_refusal(runtime_value, argument, path) is None:
             return None
-        for argument in get_args(annotation):
-            if argument is type(None):
-                continue
-            if _runtime_refusal(value, argument, path) is None:
-                return None
-        return (path, f"holds {_type_name(value)} (expected {_annotation_name(annotation)})")
-    if origin is Literal:
-        return None if isinstance(value, _SUPPORTED_LEAVES) or value is None else (path, f"holds {_type_name(value)}")
-    if origin is tuple:
-        if not isinstance(value, tuple):
-            return (path, f"holds {_type_name(value)} (expected {_annotation_name(annotation)})")
-        arguments = get_args(annotation)
-        if len(arguments) == 2 and arguments[1] is Ellipsis:
-            for index, item in enumerate(value):
-                found = _runtime_refusal(item, arguments[0], f"{path}[{index}]")
-                if found is not None:
-                    return found
-            return None
-        if len(arguments) != len(value):
-            return (path, f"holds {_type_name(value)} (expected {_annotation_name(annotation)})")
-        for index, (item, argument) in enumerate(zip(value, arguments, strict=True)):
-            found = _runtime_refusal(item, argument, f"{path}[{index}]")
+    return _mismatch(runtime_value, annotation, path)
+
+
+def _tuple_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a tuple annotation, walking the items recursively."""
+    if not isinstance(runtime_value, tuple):
+        return _mismatch(runtime_value, annotation, path)
+    arguments = get_args(annotation)
+    if len(arguments) == 2 and arguments[1] is Ellipsis:
+        for index, item in enumerate(runtime_value):
+            found = _runtime_refusal(item, arguments[0], f"{path}[{index}]")
             if found is not None:
                 return found
         return None
-    if isinstance(annotation, type) and issubclass(annotation, Enum):
-        if not isinstance(value, annotation):
-            return (path, f"holds {_type_name(value)} (expected {annotation.__name__})")
-        return _enum_value_refusal(annotation, value, path)
+    if len(arguments) != len(runtime_value):
+        return _mismatch(runtime_value, annotation, path)
+    for index, (item, argument) in enumerate(zip(runtime_value, arguments, strict=True)):
+        found = _runtime_refusal(item, argument, f"{path}[{index}]")
+        if found is not None:
+            return found
+    return None
+
+
+def _leaf_refusal(runtime_value: Any, annotation: type, path: str) -> tuple[str, str] | None:
+    """Return the refusal for a leaf annotation, or ``None`` when the value satisfies it."""
+    if not isinstance(runtime_value, annotation):
+        return _mismatch(runtime_value, annotation, path)
+    if issubclass(annotation, Enum):
+        return _enum_value_refusal(annotation, runtime_value, path)
+    if annotation in _SUPPORTED_LEAVES:
+        return None
+    return (path, f"holds {_type_name(runtime_value)}")
+
+
+def _runtime_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str, str] | None:
+    """Return the first property path and reason a runtime value breaks, or ``None`` when it holds."""
+    origin = get_origin(annotation)
+    if origin in (Union, UnionType):
+        return _union_refusal(runtime_value, annotation, path)
+    if origin is Literal:
+        if isinstance(runtime_value, _SUPPORTED_LEAVES) or runtime_value is None:
+            return None
+        return (path, f"holds {_type_name(runtime_value)}")
+    if origin is tuple:
+        return _tuple_refusal(runtime_value, annotation, path)
     if isinstance(annotation, type):
-        if not isinstance(value, annotation):
-            return (path, f"holds {_type_name(value)} (expected {annotation.__name__})")
-        return None if annotation in _SUPPORTED_LEAVES else (path, f"holds {_type_name(value)}")
+        return _leaf_refusal(runtime_value, annotation, path)
     return None
 
 

@@ -21,7 +21,6 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     NoInverse,
-    Rel,
     value,
 )
 from aoa.action_machine.intents.entity import entity
@@ -64,23 +63,23 @@ class CatalogDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     follow_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBCoreEntity],
         Inverse(CatalogDirectedCycleTriangleBCoreEntity, "back_from_a"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter arc A\u2192B"
-    )  # type: ignore[assignment]
+    )
 
     back_from_c: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleCCoreEntity],
         Inverse(CatalogDirectedCycleTriangleCCoreEntity, "follow_a"),
-    ] = Rel(
+    ] = Field(
         description="Closing arc C\u2192A (reciprocal pair)"
-    )  # type: ignore[assignment]
+    )
 
     anchor_product_row: Annotated[
         AssociationOne[CatalogProductCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Bridges vertex A into the primary catalog product table"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(
@@ -100,23 +99,23 @@ class CatalogDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     back_from_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleACoreEntity],
         Inverse(CatalogDirectedCycleTriangleACoreEntity, "follow_b"),
-    ] = Rel(
+    ] = Field(
         description="Arc B\u2192A reciprocal"
-    )  # type: ignore[assignment]
+    )
 
     follow_c: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleCCoreEntity],
         Inverse(CatalogDirectedCycleTriangleCCoreEntity, "back_from_b"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter arc B\u2192C"
-    )  # type: ignore[assignment]
+    )
 
     anchor_acquisition_channel: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Bridges vertex B into acquisition-channel ledger stubs"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(
@@ -136,16 +135,16 @@ class CatalogDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     back_from_b: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleBCoreEntity],
         Inverse(CatalogDirectedCycleTriangleBCoreEntity, "follow_c"),
-    ] = Rel(
+    ] = Field(
         description="Arc C\u2192B reciprocal"
-    )  # type: ignore[assignment]
+    )
 
     follow_a: Annotated[
         AssociationOne[CatalogDirectedCycleTriangleACoreEntity],
         Inverse(CatalogDirectedCycleTriangleACoreEntity, "back_from_c"),
-    ] = Rel(
+    ] = Field(
         description="Perimeter arc C\u2192A"
-    )  # type: ignore[assignment]
+    )
 
 
 CatalogDirectedCycleTriangleACoreEntity.model_rebuild()

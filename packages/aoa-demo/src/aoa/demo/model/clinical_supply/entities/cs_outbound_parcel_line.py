@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
@@ -30,16 +30,16 @@ class ClinicalOutboundParcelLineDetailEntity(BaseDetailEntity):
     parcel_wave: Annotated[
         AssociationOne[ClinicalOutboundParcelWaveCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent parcel wave"
-    )  # type: ignore[assignment]
+    )
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Issued SKU"
-    )  # type: ignore[assignment]
+    )
 
 
 ClinicalOutboundParcelLineDetailEntity.model_rebuild()

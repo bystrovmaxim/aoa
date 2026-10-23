@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
@@ -23,9 +23,9 @@ class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent canonical ingest artifact"
-    )  # type: ignore[assignment]
+    )
 
     correction_reason_code: str = Field(description="Reason vocabulary key")
     editor_actor_id: str = Field(description="Actor approving narrative delta")

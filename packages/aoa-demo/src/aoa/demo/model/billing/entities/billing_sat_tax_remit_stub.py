@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -23,9 +23,9 @@ class TaxRemittanceAdviceCoreEntity(BaseCoreEntity):
     cash_apply_hint: Annotated[
         AssociationOne[CashApplicationHintCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream cash-application hint"
-    )  # type: ignore[assignment]
+    )
 
     jurisdiction_code: str = Field(description="Tax authority region code")
     filing_period_id: str = Field(description="Closed reporting period key")

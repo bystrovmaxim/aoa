@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import pytest
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import (
     AssociationMany,
@@ -30,6 +30,7 @@ from aoa.action_machine.domain import (
     BaseDomain,
     BaseEnumEntity,
     Inverse,
+    NoGraphEdge,
     NoInverse,
     NoRelation,
     value,
@@ -224,6 +225,137 @@ class OrdinaryCoreEntity(BaseCoreEntity):
     params: HostParams = Field(description="Parameters")
 
 
+@exclude_graph_model
+@entity(description="Required relation", domain=FieldRulesDomain)
+class RequiredRelationCoreEntity(BaseCoreEntity):
+    """Declare a relation that must be supplied."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+        description="Required showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Nullable required relation", domain=FieldRulesDomain)
+class NullableRequiredCoreEntity(BaseCoreEntity):
+    """Declare a nullable relation that must still be supplied."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
+        description="Nullable showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Omittable relation", domain=FieldRulesDomain)
+class OmittableCoreEntity(BaseCoreEntity):
+    """Declare a nullable relation that may be omitted."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
+        default=None, description="Omittable showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Non-nullable default", domain=FieldRulesDomain)
+class NonNullableDefaultCoreEntity(BaseCoreEntity):
+    """Default ``None`` on a relation that does not allow it."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+        default=None, description="Showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Prebuilt default", domain=FieldRulesDomain)
+class PrebuiltDefaultCoreEntity(BaseCoreEntity):
+    """A prebuilt relation container as the default."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+        default=AssociationOne(id="x"), description="Showcase"
+    )
+
+
+_FACTORY_CALLS: list[bool] = []
+
+
+def _factory() -> None:
+    """Record that the framework executed a factory it must not execute."""
+    _FACTORY_CALLS.append(True)
+    return None
+
+
+@exclude_graph_model
+@entity(description="Factory default", domain=FieldRulesDomain)
+class FactoryCoreEntity(BaseCoreEntity):
+    """A factory as the default, even one returning ``None``."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
+        default_factory=_factory, description="Showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Blank description", domain=FieldRulesDomain)
+class BlankDescriptionCoreEntity(BaseCoreEntity):
+    """A relation whose description is whitespace only."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="   ")
+
+
+@exclude_graph_model
+@entity(description="Missing description", domain=FieldRulesDomain)
+class MissingDescriptionCoreEntity(BaseCoreEntity):
+    """A relation with no description at all."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field()
+
+
+@exclude_graph_model
+@entity(description="Hidden edge", domain=FieldRulesDomain)
+class HiddenEdgeCoreEntity(BaseCoreEntity):
+    """A relation whose edge is hidden, with no description."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), NoGraphEdge()] = Field()
+
+
+@exclude_graph_model
+@entity(description="Inner syntax", domain=FieldRulesDomain)
+class InnerSyntaxCoreEntity(BaseCoreEntity):
+    """A description supplied by the ``Field`` inside ``Annotated``."""
+
+    showcase: Annotated[
+        AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")
+    ] = Field()
+
+
+@exclude_graph_model
+@entity(description="Both syntaxes", domain=FieldRulesDomain)
+class BothSyntaxesCoreEntity(BaseCoreEntity):
+    """A description supplied twice: the assignment wins."""
+
+    showcase: Annotated[
+        AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")
+    ] = Field(description="Outer showcase")
+
+
+@exclude_graph_model
+@entity(description="Relation base", domain=FieldRulesDomain)
+class RelationBaseCoreEntity(BaseCoreEntity):
+    """Declare a relation on a base class."""
+
+    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+        default=None, description="Showcase"
+    )
+
+
+@exclude_graph_model
+@entity(description="Inherited relation", domain=FieldRulesDomain)
+class InheritedRelationCoreEntity(RelationBaseCoreEntity):
+    """Inherit a relation the rule must still judge."""
+
+    id: str = Field(description="Identifier")
+
+
 def _refusal(entity_cls: type) -> EntityFieldDeclarationError:
     """Return the refusal raised for one class."""
     with pytest.raises(EntityFieldDeclarationError) as caught:
@@ -357,3 +489,81 @@ def test_the_graph_build_runs_the_field_pass(monkeypatch: pytest.MonkeyPatch) ->
     NodeGraphCoordinator().build([])
 
     assert calls == [True]
+
+def test_a_required_relation_must_be_supplied() -> None:
+    """The default contract, row one: no default at all."""
+    validate_entity_fields([RequiredRelationCoreEntity])
+
+    with pytest.raises(ValidationError):
+        RequiredRelationCoreEntity()
+    with pytest.raises(ValidationError):
+        RequiredRelationCoreEntity(showcase=None)
+
+
+def test_a_nullable_required_relation_still_must_be_supplied() -> None:
+    """The default contract, row two: ``| None`` alone gives no default."""
+    validate_entity_fields([NullableRequiredCoreEntity])
+
+    with pytest.raises(ValidationError):
+        NullableRequiredCoreEntity()
+    assert NullableRequiredCoreEntity(showcase=None).showcase is None
+
+
+def test_an_omittable_relation_yields_none() -> None:
+    """The default contract, row three: a nullable relation with an explicit ``None``."""
+    validate_entity_fields([OmittableCoreEntity])
+
+    assert OmittableCoreEntity().showcase is None
+    assert OmittableCoreEntity(showcase=None).showcase is None
+
+
+def test_none_on_a_non_nullable_relation_is_refused_at_declaration() -> None:
+    """The default contract, row four: ``default=None`` needs a nullable annotation."""
+    error = _refusal(NonNullableDefaultCoreEntity)
+
+    assert "showcase" in str(error)
+    assert "None" in error.details
+
+
+def test_a_prebuilt_relation_default_is_refused() -> None:
+    """A value in the default slot is not a default the framework can honour."""
+    error = _refusal(PrebuiltDefaultCoreEntity)
+
+    assert "showcase" in str(error)
+
+
+def test_a_factory_is_refused_and_never_executed() -> None:
+    """Refusing a factory must not run user code."""
+    _FACTORY_CALLS.clear()
+
+    with pytest.raises(EntityFieldDeclarationError):
+        validate_entity_fields([FactoryCoreEntity])
+
+    assert _FACTORY_CALLS == []
+
+
+@pytest.mark.parametrize(
+    "entity_cls", [BlankDescriptionCoreEntity, MissingDescriptionCoreEntity, HiddenEdgeCoreEntity]
+)
+def test_a_relation_without_a_description_is_refused(entity_cls: type) -> None:
+    """A missing, blank or whitespace-only description is refused, hidden edge or not."""
+    error = _refusal(entity_cls)
+
+    assert "description" in error.details
+
+
+def test_both_field_syntaxes_feed_one_description() -> None:
+    """The assignment wins over the inner ``Field``, and each alone is enough."""
+    validate_entity_fields([InnerSyntaxCoreEntity, BothSyntaxesCoreEntity])
+
+    inner = InnerSyntaxCoreEntity.model_fields["showcase"].description
+    outer = BothSyntaxesCoreEntity.model_fields["showcase"].description
+    assert inner == "Inner showcase"
+    assert outer == "Outer showcase"
+
+
+def test_an_inherited_relation_is_judged() -> None:
+    """A relation declared on a base class obeys the same rules on the class that inherits it."""
+    error = _refusal(InheritedRelationCoreEntity)
+
+    assert error.field_name == "showcase"

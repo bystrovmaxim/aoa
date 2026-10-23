@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -26,9 +26,9 @@ class AssuranceExecutionAttemptTicketCoreEntity(BaseCoreEntity):
     actor_person_hub: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Identity hub for executor attribution and segregation boundaries"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceExecutionAttemptTicketCoreEntity.model_rebuild()

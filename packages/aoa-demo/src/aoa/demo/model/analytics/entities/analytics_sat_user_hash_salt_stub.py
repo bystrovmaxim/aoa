@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
@@ -26,9 +26,9 @@ class UserHashSaltStubCoreEntity(BaseCoreEntity):
     bucket_mapper: Annotated[
         AssociationOne[TimeBucketMapperCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream bucket mapper facet"
-    )  # type: ignore[assignment]
+    )
 
 
 UserHashSaltStubCoreEntity.model_rebuild()

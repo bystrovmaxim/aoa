@@ -17,7 +17,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -52,7 +51,7 @@ class VinylRecordCoreEntity(BaseCoreEntity):
         Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity]
         | None,
         Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing")
+    ] = Field(description="Details of this pressing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
@@ -65,7 +64,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
         Generalization[VinylRecordCoreEntity],
         Classifier(variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 @entity(description="Re-pressing", domain=MusicDomain)
@@ -78,7 +77,7 @@ class RepressSpecEntity(BaseSpecEntity):
         Generalization[VinylRecordCoreEntity],
         Classifier(variant=VinylRecordKindEnumEntity.REPRESS),
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 @entity(description="Test pressing", domain=MusicDomain)
@@ -91,7 +90,7 @@ class TestPressSpecEntity(BaseSpecEntity):
         Generalization[VinylRecordCoreEntity],
         Classifier(variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, TestPressSpecEntity):

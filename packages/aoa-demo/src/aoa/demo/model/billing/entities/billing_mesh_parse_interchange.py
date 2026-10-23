@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -25,16 +25,16 @@ class BillingParseInterchangeBridgeCoreEntity(BaseCoreEntity):
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parser spine anchor"
-    )  # type: ignore[assignment]
+    )
 
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Interchange economics anchor"
-    )  # type: ignore[assignment]
+    )
 
     bridge_quality_tier: str = Field(description="Sync quality tier label")
     last_synced_at_iso: str = Field(description="Last successful bridge refresh (UTC)")

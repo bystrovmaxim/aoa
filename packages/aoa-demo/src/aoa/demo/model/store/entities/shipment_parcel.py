@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
@@ -27,16 +27,16 @@ class ShipmentParcelCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Shipped order"
-    )  # type: ignore[assignment]
+    )
 
     origin_facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Inventory facility staging this shipment"
-    )  # type: ignore[assignment]
+    )
 
 
 ShipmentParcelCoreEntity.model_rebuild()

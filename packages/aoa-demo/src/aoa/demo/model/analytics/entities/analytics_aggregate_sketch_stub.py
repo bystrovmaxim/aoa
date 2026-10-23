@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
@@ -26,9 +26,9 @@ class AnalyticsAggregateSketchStubCoreEntity(BaseCoreEntity):
     policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent sampling policy"
-    )  # type: ignore[assignment]
+    )
 
 
 AnalyticsAggregateSketchStubCoreEntity.model_rebuild()

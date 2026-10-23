@@ -15,7 +15,6 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -38,7 +37,7 @@ class VinylRecordCoreEntity(BaseCoreEntity):
     pressing: Annotated[
         Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, str],
         Inverse(field_name="record"),
-    ] = Rel(description="Details of this pressing, classified by nothing")
+    ] = Field(description="Details of this pressing, classified by nothing")
 
 
 @entity(description="First pressing", domain=MusicDomain)
@@ -50,7 +49,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 @entity(description="Re-pressing", domain=MusicDomain)
@@ -62,7 +61,7 @@ class RepressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 @entity(description="Test pressing", domain=MusicDomain)
@@ -74,7 +73,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
         Inverse(VinylRecordCoreEntity, "pressing"),
-    ] = Rel(description="Record described by this pressing")
+    ] = Field(description="Record described by this pressing")
 
 
 for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, TestPressSpecEntity):
