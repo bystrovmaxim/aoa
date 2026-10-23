@@ -2,7 +2,7 @@
 
 **Feature**: `specs/016-value-declaration-consistency` | **Plan**: [plan.md](./plan.md) | **Contracts**: [declared-value](./contracts/declared-value.md), [dictionary-card](./contracts/dictionary-card.md)
 
-Every scenario is runnable from the repository root with the repository's own environment. Outputs below are the expected ones: they are executed when the phase that produces them lands, and the documentation phase re-runs each script before the page quotes it. Each scenario states the test that keeps it true, so a scenario that stops printing what is shown here is a failing test, not a stale page.
+Every scenario below was run on the tree that carries phases 1–7, and the output quoted is what it printed — not an expectation. Each scenario names the test that keeps it true, so a scenario that stops printing what is shown here is a failing test, not a stale page.
 
 ## Prerequisites
 
@@ -67,25 +67,30 @@ Kept true by `test_declared_values.py::test_a_class_body_naming_its_own_class_fa
 from pydantic import Field
 from aoa.action_machine.domain import BaseEnumEntity, BaseStateEntity, value
 
-class LabelsEnumEntity(BaseEnumEntity):
-    """Declare a value with nested data."""
+try:
+    class LabelsEnumEntity(BaseEnumEntity):
+        """Declare a value with nested data."""
 
-    labels: list[str] = Field(description="Labels")
-    ITEM = value(code="item", display_name="Item", labels=["original"])
+        labels: list[str] = Field(description="Labels")
+        ITEM = value(code="item", display_name="Item", labels=["original"])
+except ValueError as error:
+    print(error)
 
 class StatusStateEntity(BaseStateEntity):
     """Carry data that need not be hashable, as the lifecycle suite does."""
 
     labels: list[str] = Field(default_factory=list, description="Labels")
     A = value(code="a", display_name="A")
+
+print("status accepted:", StatusStateEntity.A.labels)
 ```
 
 ```
-ValueError: LabelsEnumEntity: field 'labels' is list, which a declared value cannot carry;
-supported: str, int, float, bool, Decimal, date, datetime, time, UUID, Enum, Literal, tuple[…]
+LabelsEnumEntity: field 'labels' is list, which a dictionary value cannot carry; supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.
+status accepted: []
 ```
 
-The status class is accepted; only the dictionary is refused. Kept true by `test_dictionary_property_types.py`.
+The refusal binds the dictionary kind; the status class is accepted with the same `list[str]`. Kept true by `test_dictionary_property_types.py`.
 
 ## Scenario 4 — a serializer and a standard type reach the wire
 
@@ -106,7 +111,7 @@ class DatedEnumEntity(BaseEnumEntity):
         return moment.strftime("%d/%m/%Y")
 
 print(json.dumps(DatedEnumEntity.ITEM.to_reference()))
-print(DatedEnumEntity.ITEM.model_dump()["since"])
+print(DatedEnumEntity.ITEM.model_dump()["properties"]["since"])
 ```
 
 ```
@@ -114,7 +119,7 @@ print(DatedEnumEntity.ITEM.model_dump()["since"])
 02/01/2020
 ```
 
-Without the serializer the reference carries `"2020-01-02"`; the Python-mode dump would carry a `date` object, and the page says so. Kept true by `test_dictionary_core_schema.py`.
+Without the serializer the reference carries `"2020-01-02"`. `model_dump()` in Python mode keeps the serializer's text here, because a field serializer's default is `when_used="always"`; with no serializer it keeps a `date` object, while `to_reference()` emits the JSON string either way — the reference is defined as the JSON export. Kept true by `test_dictionary_core_schema.py`.
 
 ## Scenario 5 — the output schema describes the emitted property
 
@@ -134,27 +139,41 @@ class Invoice(BaseModel):
 
     currency: CurrencyEnumEntity
 
-print(json.dumps(Invoice.model_json_schema(mode="serialization")["$defs"]["CurrencyEnumEntity"], indent=1))
+print(json.dumps(Invoice.model_json_schema(mode="serialization")["properties"]["currency"], indent=1))
 ```
 
 ```
 {
  "additionalProperties": false,
  "properties": {
-  "code": {"minLength": 1, "type": "string"},
-  "display_name": {"minLength": 1, "type": "string"},
+  "code": {
+   "minLength": 1,
+   "type": "string"
+  },
+  "display_name": {
+   "minLength": 1,
+   "type": "string"
+  },
   "properties": {
+   "type": "object",
    "additionalProperties": false,
-   "properties": {"symbol": {"type": "string"}},
-   "type": "object"
+   "properties": {
+    "symbol": {
+     "type": "string"
+    }
+   }
   }
  },
- "required": ["code", "display_name", "properties"],
+ "required": [
+  "code",
+  "display_name",
+  "properties"
+ ],
  "type": "object"
 }
 ```
 
-Kept true by `test_dictionary_json_schema.py`.
+The schema is inlined at the field, not registered under `$defs`, and `properties` names `symbol` with its emitted type. Kept true by `test_dictionary_json_schema.py`.
 
 ## Scenario 6 — the input schema accepts a code-only reference
 
@@ -193,13 +212,22 @@ Kept true by `test_dictionary_json_schema.py`.
 ```python
 import json
 from datetime import date
-from aoa.action_machine.domain import BaseEnumEntity, value
+from pydantic import Field
+from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entity import entity
 
+class DatedDomain(BaseDomain):
+    """Domain for the graph case."""
+
+    name = "dated"
+    description = "Dated"
+
+@entity(description="Dated reference value", domain=DatedDomain)
 class DatedEnumEntity(BaseEnumEntity):
     """Declare a dated reference value."""
 
-    since: date
+    since: date = Field(description="Start date")
     ITEM = value(code="item", display_name="Item", since=date(2020, 1, 2))
 
 document = json.dumps(EntityGraphNode(DatedEnumEntity).properties["values"])
@@ -210,31 +238,31 @@ print(document)
 [{"code": "item", "display_name": "Item", "properties": {"since": "2020-01-02"}}]
 ```
 
-The assertion is that `json.dumps` does not raise and the leaf is a string. Kept true by `test_dictionary_reference_json.py`.
+The class is decorated because the node resolves its `@entity` metadata; the assertion is that `json.dumps` does not raise and the leaf is a string. Kept true by `test_dictionary_reference_json.py`.
 
 ## Scenario 8 — the card shows the properties, escaped and rendered
 
 ```bash
-cd packages/aoa-maxitor/client && node --experimental-strip-types scripts/check-erd-dictionary-values.ts
+cd packages/aoa-maxitor/client && node scripts/check-erd-dictionary-values.ts
 ```
 
 ```
 Dictionary card: properties preserved, escaped and rendered
 ```
 
-Extend the same script with a value carrying no properties, and with a property whose value is an array, before the phase closes.
+The check covers a value with two properties, one containing `<`, `>`, `&`, a value with an array property and a value with no properties — asserting the DOT escaping, the JSON text of the array, the absence of a row for the empty value, and the same text inside the rendered SVG. Kept true by `test_list_entities_payload_dictionary.py` and the script itself.
 
 ## Scenario 9 — the group label names the dictionary once
 
 ```bash
-cd packages/aoa-maxitor/client && node --experimental-strip-types scripts/check-erd-group-label.ts
+cd packages/aoa-maxitor/client && node scripts/check-erd-group-label.ts
 ```
 
 ```
-Group label: kind (by EditionKindEnumEntity)
+Group label: composed once, rendered as received
 ```
 
-The script feeds the payload `test_list_entities_specialization_contract.py` produces into `buildDotSource`, so a layer that composes the name twice fails here.
+The script feeds a group payload shaped like the server's through `buildDotSource`, including a stale payload that still carries `dictionary_label`, and counts the dictionary name: a layer that composes it twice fails here. Kept true by `test_list_entities_specialization_contract.py` and the script itself.
 
 ## Scenario 10 — the corpus is on one form
 
@@ -244,7 +272,11 @@ uv run python specs/016-value-declaration-consistency/evidence/scan_value_declar
 
 ```
 area                           class-name value(...) suppressed  classes  files  sup files
-total                                   0        373          0      187    116          0
+packages/aoa-action-machine             0         82          2       67     22          2
+packages/aoa-maxitor                    0          0          0        0      0          0
+packages/aoa-demo                       0        103          0       34     25          0
+examples                                0        194          0       91     71          0
+total                                   0        379          2      192    118          2
 ```
 
-The same script run on the baseline printed `373` class-name declarations and `332` suppressed lines; the two runs are the evidence for SC-001 and SC-002.
+The same script on the baseline printed `373` class-name declarations in `116` files and `332` suppressed lines in `117` files. The tree grew to `379` declarations in `118` files because the phases added test fixtures; the two remaining suppressions are deliberate — an undefined name under test in `test_state_entity.py` and an undefined annotation in `test_aspect_signature_types.py`.
