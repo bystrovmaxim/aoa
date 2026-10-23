@@ -81,7 +81,6 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
@@ -173,7 +172,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     ) -> dict[str, Any]:
         """Publish the accepting shape in validation mode and the emitted shape in serialization mode."""
         if handler.mode == "serialization":
-            return cls._emitted_reference_schema(schema)
+            return cls._emitted_reference_schema(schema, handler)
         return {
             "type": "object",
             "additionalProperties": False,
@@ -186,14 +185,16 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
         }
 
     @classmethod
-    def _emitted_reference_schema(cls, schema: CoreSchema) -> dict[str, Any]:
+    def _emitted_reference_schema(cls, schema: CoreSchema, handler: Any) -> dict[str, Any]:
         """Describe the emitted reference: three members, each property by its serialized type."""
         model_schema = dict(schema)
         while model_schema.get("type") in {"function-before", "function-after", "function-wrap"}:
             model_schema = dict(model_schema["schema"])
         model_schema.pop("metadata", None)
         model_schema.pop("serialization", None)
-        emitted = GenerateJsonSchema().generate(model_schema, mode="serialization")
+        # The enclosing generator produces the property shapes, so the definitions a property
+        # references stay registered and its `$ref` resolves in the finished document.
+        emitted = handler(model_schema)
         properties = {
             name: {
                 key: value for key, value in definition.items() if key not in {"title", "description"}
@@ -201,6 +202,9 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
             for name, definition in emitted.get("properties", {}).items()
             if name not in {"code", "display_name"}
         }
+        # Requiredness follows the export, not the constructor: a property serialization always
+        # writes is present even when its value is null, and an excluded one is not there at all.
+        required = list(properties)
         return {
             "type": "object",
             "additionalProperties": False,
@@ -212,6 +216,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
                     "type": "object",
                     "additionalProperties": False,
                     "properties": properties,
+                    "required": required,
                 },
             },
         }
