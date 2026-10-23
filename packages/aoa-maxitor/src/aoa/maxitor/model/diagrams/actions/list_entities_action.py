@@ -39,8 +39,6 @@ _KIND_FIELDS = frozenset({"code", "display_name"})
 """The field rows a dictionary kind supplies: never printed, always kept in ``values``."""
 
 
-
-
 @meta(
     description="List entities, fields, and relations for interchange domain qualnames (diagrams)",
     domain=DiagramsDomain,
@@ -167,6 +165,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         SELECT er.target_id FROM entity_relation_edges er JOIN domain_entity de ON er.source_id = de.id
         UNION
         SELECT er.source_id FROM entity_relation_edges er JOIN domain_entity de ON er.target_id = de.id
+        UNION
+        SELECT rr.target_id FROM entity_reference_edges rr JOIN domain_entity de ON rr.source_id = de.id
+        UNION
+        SELECT rr.source_id FROM entity_reference_edges rr JOIN domain_entity de ON rr.target_id = de.id
         """
             if include_neighbors
             else ""
@@ -299,17 +301,29 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT id FROM domain_entity
           {neighbor_clause}
         )
-        SELECT er.source_id AS source, er.target_id AS target,
-               CASE WHEN er.cardinality = '' THEN er.field_name ELSE er.field_name || ' (' || er.cardinality || ')' END AS label,
-               COALESCE(NULLIF(er.relation_type, ''), 'association') AS relationship_kind,
-               CASE WHEN er.cardinality = 'one' THEN 'zero_many' ELSE 'one' END AS source_cardinality,
-               CASE WHEN er.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality
-        FROM entity_relation_edges er
-        JOIN selected_entity src ON src.id = er.source_id
-        JOIN selected_entity tgt ON tgt.id = er.target_id
-        WHERE er.source_id IN (SELECT id FROM domain_entity)
-           OR er.target_id IN (SELECT id FROM domain_entity)
-        ORDER BY er.source_id, er.target_id, er.field_name
+        SELECT * FROM (
+          SELECT er.source_id AS source, er.target_id AS target,
+                 CASE WHEN er.cardinality = '' THEN er.field_name ELSE er.field_name || ' (' || er.cardinality || ')' END AS label,
+                 COALESCE(NULLIF(er.relation_type, ''), 'association') AS relationship_kind,
+                 CASE WHEN er.cardinality = 'one' THEN 'zero_many' ELSE 'one' END AS source_cardinality,
+                 CASE WHEN er.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality
+          FROM entity_relation_edges er
+          JOIN selected_entity src ON src.id = er.source_id
+          JOIN selected_entity tgt ON tgt.id = er.target_id
+          WHERE er.source_id IN (SELECT id FROM domain_entity)
+             OR er.target_id IN (SELECT id FROM domain_entity)
+          UNION ALL
+          SELECT rr.source_id AS source, rr.target_id AS target, rr.field_name AS label,
+                 'reference' AS relationship_kind,
+                 'one' AS source_cardinality,
+                 'zero_many' AS target_cardinality
+          FROM entity_reference_edges rr
+          JOIN selected_entity src ON src.id = rr.source_id
+          JOIN selected_entity tgt ON tgt.id = rr.target_id
+          WHERE rr.source_id IN (SELECT id FROM domain_entity)
+             OR rr.target_id IN (SELECT id FROM domain_entity)
+        ) rows
+        ORDER BY source, target, label
     """
         relations = duck.execute_fetch_dicts(relation_sql, [qual])
         groups = duck.execute_fetch_dicts(group_sql, [qual])

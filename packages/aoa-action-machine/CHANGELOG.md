@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 
+- **Dictionary fields declare one reference.** Bare and nullable dictionary fields now produce a reference edge beside their column. Collections, relation containers, embedded markers and unavailable catalogues fail declaration validation at model build. Keep scalar annotations; replace wrappers with the dictionary type and model multiple selections through a link entity. ([#256](https://github.com/bystrovmaxim/aoa/issues/256))
+
 - **Completed dictionary values must preserve their declared types.** An after-validator returning `bool` for `int` is refused, and a dictionary property annotated only `None` is rejected at class creation. Return an integer for an integer field; declare a nullable union or a literal that includes `None` when absence is allowed. ([#252](https://github.com/bystrovmaxim/aoa/issues/252))
 
 - **A completed leaf value must be the declared type, not a subclass.** An after-validator returning a `datetime` for a `date` property is refused, and so is any subclass of a declared leaf type. Input keeps Pydantic's coercion: a `float` property declared with `1` still holds `1.0` before the check. Return the declared type from the validator. ([#254](https://github.com/bystrovmaxim/aoa/issues/254))

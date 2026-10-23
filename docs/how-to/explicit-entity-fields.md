@@ -721,3 +721,7 @@ ValidationError: Field required
 The embedded marker applies to Core, Assoc, Detail and Spec values. It does not make a collection a relation. It cannot accompany relation markers or a relation container. A state entity is represented through a lifecycle type, rather than an entity field. Dictionary references, schemas and scalar fields retain their own forms. A hidden edge still needs a valid declaration and description.
 
 See [relation tutorial](../tutorials/step-21-relations.md), [invariants](../reference/intents-and-invariants.md), and [specialization refusals](specialization-declaration-fails.md).
+
+## Dictionary reference declarations
+
+A bare dictionary type selects one declared value and supplies a reference edge. Nullable fields keep cardinality `one`. Collections, relation containers and `NoRelation` are refused for dictionary references at model build. See [supported forms, migration and exact refusals](dictionary-references.md).

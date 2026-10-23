@@ -14,7 +14,8 @@ One annotated line in a model body, judged by its resolved type at the declarati
 | Accepted form 1 | `D` |
 | Accepted form 2 | `D \| None` |
 | Refused | a collection (`tuple`, `list`, `Sequence`, `set`, `frozenset`, `dict`) of `D` |
-| Refused | any of the eight relation containers whose argument is `D` |
+| Refused | `AssociationOne`/`Many`, `CompositeOne`/`Many`, `AggregateOne`/`Many` and `Generalization` around `D` |
+| Accepted unchanged | `Specialization[A \| B, D]` — the dictionary is the axis's vocabulary, not its target |
 | Refused | `Annotated[D, NoRelation("…")]` |
 | Refused | `D` whose catalogue is empty |
 | Refused | `D` that is not a graph model (`@entity`, not `@exclude_graph_model`) |

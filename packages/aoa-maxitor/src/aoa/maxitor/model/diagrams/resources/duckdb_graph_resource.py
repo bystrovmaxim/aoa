@@ -373,6 +373,14 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       inverse_entity_id VARCHAR,
       inverse_field VARCHAR
     );""",
+            """CREATE TABLE entity_reference_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL,
+      field_name VARCHAR NOT NULL,
+      cardinality VARCHAR NOT NULL
+    );""",
             """CREATE TABLE entity_specialization_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
@@ -539,6 +547,7 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "connection_edges",
     "required_context_edges",
     "entity_relation_edges",
+    "entity_reference_edges",
     "entity_specialization_edges",
     "parent_entity_edges",
     "entity_view_edges",
@@ -602,6 +611,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key) AS payload FROM connection_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field) AS payload FROM entity_relation_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_reference_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'cardinality', cardinality) AS payload FROM entity_reference_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_specialization_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'dictionary_qualname', dictionary_qualname, 'dictionary_label', dictionary_label, 'classifier_field', classifier_field, 'classifier_value', classifier_value, 'alternative_index', alternative_index, 'alternatives', alternatives, 'labels', labels, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated) AS payload FROM entity_specialization_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('parent_entity_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'inverse_field', inverse_field, 'classifier_value', classifier_value, 'head_entity_id', head_entity_id) AS payload FROM parent_entity_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_view_edges' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM entity_view_edges",
@@ -796,7 +806,14 @@ def _fill_table_state(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]
         t = node["type"]
         con.execute(
             "INSERT INTO state VALUES (?, ?, ?, ?, ?, ?)",
-            [node["id"], node["label"], t, p["lifecycle_class_id"], p["state_key"], _pack_json_or_none(p.get("attributes", {}))],
+            [
+                node["id"],
+                node["label"],
+                t,
+                p["lifecycle_class_id"],
+                p["state_key"],
+                _pack_json_or_none(p.get("attributes", {})),
+            ],
         )
 
 
@@ -973,6 +990,18 @@ def _fill_table_entity_relation_edges(con: duckdb.DuckDBPyConnection, rows: list
     _executemany(
         con,
         "INSERT INTO entity_relation_edges (source_id, target_id, relationship, is_dag, field_name, relation_type, cardinality, description, has_inverse, deprecated, inverse_entity_id, inverse_field) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        data,
+    )
+
+
+def _fill_table_entity_reference_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
+    data: list[list[Any]] = []
+    for edge in rows:
+        p = _get_properties(edge)
+        data.append([*_base_edge_row(edge), p["field_name"], p["cardinality"]])
+    _executemany(
+        con,
+        "INSERT INTO entity_reference_edges (source_id, target_id, relationship, is_dag, field_name, cardinality) VALUES (?, ?, ?, ?, ?, ?)",
         data,
     )
 
@@ -1220,10 +1249,7 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     _executemany(
         con,
         "INSERT INTO access_decide VALUES (?, ?, ?)",
-        [
-            [n["id"], n["label"], _get_properties(n).get("description")]
-            for n in nodes_by_type.get("AccessDecide", [])
-        ],
+        [[n["id"], n["label"], _get_properties(n).get("description")] for n in nodes_by_type.get("AccessDecide", [])],
     )
     _executemany(
         con,
@@ -1298,6 +1324,7 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     _fill_table_connection_edges(con, edges_by_type.get("@connection", []))
     _fill_table_required_context_edges(con, edges_by_type.get("@required_context", []))
     _fill_table_entity_relation_edges(con, edges_by_type.get("entity_relation", []))
+    _fill_table_entity_reference_edges(con, edges_by_type.get("entity_reference", []))
     _fill_table_entity_specialization_edges(con, edges_by_type.get("entity_specialization", []))
     _fill_table_parent_entity_edges(con, edges_by_type.get("parent_entity", []))
     _fill_table_entity_view_edges(con, edges_by_type.get("entity_view", []))
@@ -1359,6 +1386,7 @@ def _assert_no_unknown_graph_types(
         "@connection",
         "@required_context",
         "entity_relation",
+        "entity_reference",
         "entity_specialization",
         "parent_entity",
         "entity_view",

@@ -1,11 +1,12 @@
-"""Reproduce, on the merged baseline, what a dictionary-typed field does today.
+"""Reproduce, at the merged baseline, what a dictionary-typed field does.
 
-Run from the repository root:
+Run from the repository root at the base commit (``d1f28968``):
 
     uv run --extra dev python specs/018-dictionary-reference/evidence/baseline_probe.py
 
-Every block prints one measurement the specification rests on. The probe is re-run, not
-re-read, whenever a phase begins.
+Every block prints one measurement the specification rests on. The probe reproduces the
+baseline, so on a branch that carries the change it prints the changed answers; run it at
+the base commit when a phase opens, not from memory.
 """
 
 from __future__ import annotations
