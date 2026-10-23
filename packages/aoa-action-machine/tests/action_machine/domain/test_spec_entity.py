@@ -63,7 +63,7 @@ class SpecFirstPressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[SpecRecordCoreEntity],
-        Classifier(field="record", variant=SpecEditionKindEnumEntity.FIRST),
+        Classifier(variant=SpecEditionKindEnumEntity.FIRST),
     ] = Rel(description="The head row")
 
 
@@ -74,7 +74,7 @@ class SpecRepressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[SpecRecordCoreEntity],
-        Classifier(field="record", variant=SpecEditionKindEnumEntity.REPRESS),
+        Classifier(variant=SpecEditionKindEnumEntity.REPRESS),
     ] = Rel(description="The head row")
 
 
@@ -110,7 +110,7 @@ def test_declared_variant_is_available_after_resolving_a_forward_head() -> None:
         """Describe a head declared later in the module."""
         record: Annotated[
             Generalization[LaterCoreEntity],
-            Classifier(field="record", variant=SpecEditionKindEnumEntity.FIRST),
+            Classifier(variant=SpecEditionKindEnumEntity.FIRST),
         ]
 
     @exclude_graph_model

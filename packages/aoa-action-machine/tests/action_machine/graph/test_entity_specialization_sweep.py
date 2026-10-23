@@ -89,7 +89,7 @@ class GoodFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[GoodHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
         Inverse(GoodHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 
@@ -166,7 +166,7 @@ class OrphanAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[HeadOverOrphanValueCoreEntity],
-        Classifier(field="rec", variant=OrphanValueKindEnumEntity.A),
+        Classifier(variant=OrphanValueKindEnumEntity.A),
     ] = Rel(description="d")
 
 
@@ -192,11 +192,11 @@ class ClaimedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     first: Annotated[
         Generalization[ClaimFirstHeadCoreEntity],
-        Classifier(field="first", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="d")
     second: Annotated[
         Generalization[ClaimSecondHeadCoreEntity],
-        Classifier(field="second", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="d")
 
 
@@ -224,7 +224,7 @@ class ClosedNamedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[ClosedSweepHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="d")
 
 
@@ -260,7 +260,7 @@ class SelfReferringSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[SelfReferringSpecEntity],
-        Classifier(field="rec", variant=_SelfKindEnumEntity.A),
+        Classifier(variant=_SelfKindEnumEntity.A),
     ] = Rel(description="d")
     pack: Specialization[SelfReferringSpecEntity, _SelfKindEnumEntity] = Rel(description="d")
 
@@ -369,7 +369,7 @@ class MismatchedTwinSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[TwoFaultsHeadCoreEntity],
-        Classifier(field="rec", variant=_OtherKindEnumEntity.A),
+        Classifier(variant=_OtherKindEnumEntity.A),
         Inverse(TwoFaultsHeadCoreEntity, "pack"),
     ] = Rel(description="d")
 

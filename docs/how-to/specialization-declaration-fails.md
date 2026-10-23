@@ -7,7 +7,7 @@ alternatives. If these terms are new, begin with the
 
 The supported declaration has two parts. The head uses
 `Specialization[Alternatives, Dictionary]`. Each alternative has a `Generalization[Head]`
-field marked with `Classifier(field="record", variant=Dictionary.VALUE)`.
+field marked with `Classifier(variant=Dictionary.VALUE)`.
 The marker belongs on the reverse field whose name it states. The dictionary supplies
 the entire vocabulary, and every value must have exactly one alternative.
 
@@ -53,10 +53,10 @@ Leave the first pressing's reverse field without Classifier.
 Output:
 
 ```text
-SpecializationDeclarationError: Specialization 'pressing' on entity 'VinylRecordCoreEntity' is invalid: alternative 'FirstPressSpecEntity' names no value of 'VinylRecordKindEnumEntity' — write Classifier(field=..., variant=VinylRecordKindEnumEntity.<VALUE>)
+SpecializationDeclarationError: Specialization 'pressing' on entity 'VinylRecordCoreEntity' is invalid: alternative 'FirstPressSpecEntity' names no value of 'VinylRecordKindEnumEntity' — write Classifier(variant=VinylRecordKindEnumEntity.<VALUE>)
 ```
 
-Add Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST). A reverse link alone does not state which dictionary value selects this class.
+Add Classifier(variant=VinylRecordKindEnumEntity.FIRST). A reverse link alone does not state which dictionary value selects this class.
 
 ### Every dictionary value needs an alternative
 
@@ -212,7 +212,7 @@ A dictionary value, not a code list: vinyl
 Declared: ['vinyl']
 ```
 
-Write Classifier(field="record", variant=MediaKindEnumEntity.VINYL). The marker belongs to the reverse link; the head names the dictionary in its type argument.
+Write Classifier(variant=MediaKindEnumEntity.VINYL). The marker belongs to the reverse link; the head names the dictionary in its type argument.
 
 ### A head-side Classifier is refused
 

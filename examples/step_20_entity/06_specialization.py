@@ -60,7 +60,7 @@ class OrganisationSpecEntity(BaseSpecEntity):
     registration: str = Field(description="Organisation registration number")
     counterparty: Annotated[
         Generalization[CounterpartyCoreEntity],
-        Classifier(field="counterparty", variant=CounterpartyKindEnumEntity.ORGANISATION),
+        Classifier(variant=CounterpartyKindEnumEntity.ORGANISATION),
         Inverse(CounterpartyCoreEntity, "details"),
     ] = Rel(description="Common counterparty data")
 

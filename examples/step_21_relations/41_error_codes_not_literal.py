@@ -25,13 +25,13 @@ class MediaKindEnumEntity(BaseEnumEntity):
 def main() -> None:
     """Run this one learning experiment."""
     try:
-        Classifier("media", ["first"])  # a list is not a value
+        Classifier(["first"])  # a list is not a value, and the marker no longer names a field
     except TypeError as error:
         print(type(error).__name__ + ": " + str(error))
     else:
         raise AssertionError("The invalid marker was accepted")
 
-    marker = Classifier(field="record", variant=MediaKindEnumEntity.VINYL)
+    marker = Classifier(variant=MediaKindEnumEntity.VINYL)
     print("A dictionary value, not a code list:", marker.variant.code)
     print("Declared:", MediaKindEnumEntity.codes())
 

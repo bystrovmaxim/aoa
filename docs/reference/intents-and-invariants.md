@@ -457,7 +457,7 @@ provides a complete model before introducing the individual operations.
 
 The head declares `Specialization[Alternatives, Dictionary]`, optionally unioned with
 `None`, and normally `Inverse(field_name="record")`. Each alternative declares
-`Generalization[Head]`, `Classifier(field="record", variant=Dictionary.VALUE)` and the
+`Generalization[Head]`, `Classifier(variant=Dictionary.VALUE)` and the
 paired `Inverse(Head, "pressing")`. Use `Rel(description=...)` for descriptions.
 The head has no classification marker or duplicated selector. A single alternative is
 allowed; one type is used instead of a union in the first argument.

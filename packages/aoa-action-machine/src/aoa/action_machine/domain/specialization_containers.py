@@ -12,7 +12,7 @@ the head to those details. ``Generalization[Head]`` points back to the common da
 These relationships do not create tables or Python inheritance between the classes.
 
 The dictionary is the vocabulary. On each alternative's reverse field,
-``Classifier(field="record", variant=EditionKindEnumEntity.FIRST)`` identifies
+``Classifier(variant=EditionKindEnumEntity.FIRST)`` identifies
 one declared value. The head needs no separate classifier field or marker.
 
 A specialization holds an identifier, a declared dictionary value and an optional
@@ -41,7 +41,7 @@ Model build validates the dictionary and alternatives independently of loading.
 
 from __future__ import annotations
 
-from typing import Any, Self, cast
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -108,51 +108,39 @@ class Generalization[T](BaseModel):
 class Classifier:
     """
     AI-CORE-BEGIN
-        ROLE: Marks an extension's reverse field: which field pairs it, and which value it is.
-        CONTRACT: ``field`` names the extension's field that points back at its head;
-            ``variant`` is one of the head's dictionary values, the object itself.
-        INVARIANTS: ``field`` is a non-empty string; ``variant`` is a declared dictionary
-            value; the marker is frozen.
+        ROLE: Marks an extension's reverse field with the dictionary value it is.
+        CONTRACT: ``variant`` is one of the head's dictionary values, the object itself; the
+            field the marker sits on is the pair, so the marker never restates its name.
+        INVARIANTS: ``variant`` is a declared dictionary value; the marker is frozen; it has
+            no ``field`` argument and no ``field`` attribute.
         AI-CORE-END
     """
 
-    __slots__ = ("_field", "_variant")
+    __slots__ = ("_variant",)
 
-    def __init__(self, field: str, variant: Any = None) -> None:
+    def __init__(self, variant: Any = None) -> None:
         """
         Args:
-            field: Name of the extension's field that points back at its head.
             variant: The declared dictionary value this class is.
 
         Raises:
-            TypeError: ``field`` is not a ``str``, or ``variant`` is not a declared value.
-            ValueError: ``field`` is empty or whitespace-only.
+            TypeError: ``variant`` is not a declared dictionary value.
         """
         if variant is None:
             raise TypeError(
                 "Classifier: name a value, not a list of codes — "
-                "write Classifier(field=..., variant=<Dictionary>.<VALUE>)."
+                "write Classifier(variant=<Dictionary>.<VALUE>)."
             )
         # pylint: disable-next=import-outside-toplevel  # the import would close a cycle at module load
         from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 
-        if not isinstance(field, str):
-            raise TypeError(f"Classifier: field must be str, got {type(field).__name__}: {field!r}.")
-        if not field.strip():
-            raise ValueError("Classifier: field cannot be empty or whitespace-only.")
         if not isinstance(variant, BaseEnumEntity):
             raise TypeError(
                 f"Classifier: variant must be a declared dictionary value, "
                 f"got {type(variant).__name__}: {variant!r}."
             )
 
-        object.__setattr__(self, "_field", field)
         object.__setattr__(self, "_variant", variant)
-
-    @property
-    def field(self) -> str:
-        """Name of the extension's field that points back at its head."""
-        return cast(str, object.__getattribute__(self, "_field"))
 
     @property
     def variant(self) -> Any:
@@ -166,12 +154,12 @@ class Classifier:
         raise AttributeError("Classifier is frozen; deleting attributes is not allowed.")
 
     def __repr__(self) -> str:
-        return f"Classifier(field={self.field!r}, variant={self.variant!r})"
+        return f"Classifier(variant={self.variant!r})"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Classifier):
             return NotImplemented
-        return self.variant is other.variant and self.field == other.field
+        return self.variant is other.variant
 
     def __hash__(self) -> int:
-        return hash(("variant", id(self.variant), self.field))
+        return hash(("variant", id(self.variant)))

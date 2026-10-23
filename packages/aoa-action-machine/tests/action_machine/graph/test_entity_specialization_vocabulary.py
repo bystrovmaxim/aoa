@@ -86,7 +86,7 @@ class VocabularyFirstSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST),
+        Classifier(variant=VocabularyKindEnumEntity.FIRST),
     ] = Rel(description="The head row")
 
 
@@ -97,7 +97,7 @@ class VocabularyRepressSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.REPRESS),
+        Classifier(variant=VocabularyKindEnumEntity.REPRESS),
     ] = Rel(description="The head row")
 
 
@@ -141,7 +141,7 @@ class VocabularyEmptySpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyEmptyHeadCoreEntity],
-        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST),
+        Classifier(variant=VocabularyKindEnumEntity.FIRST),
     ] = Rel(description="The head row")
 
 
@@ -167,7 +167,7 @@ class VocabularyWrongSpecEntity(BaseSpecEntity):
 
     record: Annotated[
         Generalization[VocabularyWrongHeadCoreEntity],
-        Classifier(field="record", variant=OtherKindEnumEntity.EXTRA),
+        Classifier(variant=OtherKindEnumEntity.EXTRA),
     ] = Rel(description="The head row")
 
 
@@ -194,7 +194,6 @@ class VocabularyCopySpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyCopyHeadCoreEntity],
         Classifier(
-            field="record",
             variant=VocabularyKindEnumEntity(code="first", display_name="First press", note="mine"),
         ),
     ] = Rel(description="The head row")
@@ -225,7 +224,7 @@ def test_a_head_side_classifier_is_refused(monkeypatch: pytest.MonkeyPatch) -> N
     """The dictionary is the head's only classification declaration."""
     info = VocabularyGoodHeadCoreEntity.model_fields["kind"]
     monkeypatch.setattr(info, "metadata", [
-        *info.metadata, Classifier(field="id", variant=VocabularyKindEnumEntity.FIRST),
+        *info.metadata, Classifier(variant=VocabularyKindEnumEntity.FIRST),
     ])
     with pytest.raises(SpecializationDeclarationError, match=r"head.*Classifier"):
         validate_entity_specializations([
@@ -233,14 +232,10 @@ def test_a_head_side_classifier_is_refused(monkeypatch: pytest.MonkeyPatch) -> N
         ])
 
 
-def test_a_classifier_must_name_the_reverse_field_it_marks(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A marker cannot silently point at a nonexistent reverse field."""
-    info = VocabularyFirstSpecEntity.model_fields["record"]
-    monkeypatch.setattr(info, "metadata", [Classifier(field="missing", variant=VocabularyKindEnumEntity.FIRST)])
-    with pytest.raises(SpecializationDeclarationError, match=r"names 'missing'.*'record'"):
-        validate_entity_specializations([
-            VocabularyGoodHeadCoreEntity, VocabularyFirstSpecEntity, VocabularyRepressSpecEntity,
-        ])
+def test_a_classifier_cannot_name_a_field_any_more() -> None:
+    """The marker names a value only: the attribute it sits on is the pair, so the name is gone."""
+    with pytest.raises(TypeError, match="field"):
+        Classifier(field="record", variant=VocabularyKindEnumEntity.FIRST)
 
 
 def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
@@ -265,7 +260,7 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
         """Describe the classified head."""
         record: Annotated[
             Generalization[OptionalHeadCoreEntity],
-            Classifier(field="record", variant=OptionalKindEnumEntity.FIRST),
+            Classifier(variant=OptionalKindEnumEntity.FIRST),
         ] = Rel(description="Head")
 
     OptionalHeadCoreEntity.model_rebuild(_types_namespace=locals())

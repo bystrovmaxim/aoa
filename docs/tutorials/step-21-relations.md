@@ -292,7 +292,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     stamper: str = Field(description="Stamper code")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST),
+        Classifier(variant=VinylRecordKindEnumEntity.FIRST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -305,7 +305,7 @@ class RepressSpecEntity(BaseSpecEntity):
     year: int = Field(description="Re-pressing year")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.REPRESS),
+        Classifier(variant=VinylRecordKindEnumEntity.REPRESS),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -318,7 +318,7 @@ class TestPressSpecEntity(BaseSpecEntity):
     approved_by: str = Field(description="Reviewer name")
     record: Annotated[
         Generalization[VinylRecordCoreEntity],
-        Classifier(field="record", variant=VinylRecordKindEnumEntity.TEST),
+        Classifier(variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Rel(description="Record described by this pressing")
 
@@ -335,7 +335,7 @@ and no `Classifier` marker. `Inverse(field_name="record")` names the paired fiel
 alternative. `Rel` provides the relationship description, not loaded data.
 
 Now read `FirstPressSpecEntity.record`. `Generalization[VinylRecordCoreEntity]` identifies
-the head. `Classifier(field="record", variant=VinylRecordKindEnumEntity.FIRST)` says which
+the head. `Classifier(variant=VinylRecordKindEnumEntity.FIRST)` says which
 reverse field this marker describes and which dictionary value selects this class.
 `Inverse(VinylRecordCoreEntity, "pressing")` identifies the paired field on the head.
 The other alternatives follow the same form with their own values.

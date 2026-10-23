@@ -120,7 +120,7 @@ SilentSpecEntity.model_rebuild()
 
 def test_an_alternative_that_names_no_value_is_refused() -> None:
     message = _refuses([SilentHeadCoreEntity, SilentSpecEntity], "names no value")
-    assert "Classifier(field=..., variant=" in message, "the message says how to fix it"
+    assert "Classifier(variant=" in message, "the message says how to fix it"
 
 
 @exclude_graph_model
@@ -131,7 +131,7 @@ class _AlphaSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[UncoveredHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back")
 
 
@@ -191,11 +191,11 @@ class TwoWaySpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[TwoWayHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back")
     spare: Annotated[
         Generalization[TwoWayHeadCoreEntity],
-        Classifier(field="spare", variant=_KindEnumEntity.B),
+        Classifier(variant=_KindEnumEntity.B),
     ] = Rel(description="back again")
 
 
@@ -224,7 +224,7 @@ class WronglyPairedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[WronglyPairedHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
     ] = Rel(description="back")
     other: AssociationOne[WronglyPairedHeadCoreEntity] = Rel(
         description="a second link, so the inverse name can disagree"
@@ -265,7 +265,7 @@ class _GoodFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[GoodHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.A),
+        Classifier(variant=_KindEnumEntity.A),
         Inverse(GoodHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
@@ -278,7 +278,7 @@ class _GoodSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
         Generalization[GoodHeadCoreEntity],
-        Classifier(field="rec", variant=_KindEnumEntity.B),
+        Classifier(variant=_KindEnumEntity.B),
         Inverse(GoodHeadCoreEntity, "pack"),
     ] = Rel(description="back")
 
