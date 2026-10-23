@@ -61,7 +61,12 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from datetime import date, datetime, time
+from decimal import Decimal
+from enum import Enum
+from types import UnionType
+from typing import Any, ClassVar, Literal, Union, get_args, get_origin
+from uuid import UUID
 
 
 class ValueSpec:
@@ -85,19 +90,51 @@ def value(**kwargs: Any) -> Any:
     return ValueSpec(kwargs)
 
 
+_SUPPORTED_LEAVES: tuple[type[Any], ...] = (str, int, float, bool, Decimal, date, datetime, time, UUID)
+_SUPPORTED_SUMMARY = (
+    "str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, "
+    "Optional of a supported type, or a tuple of supported types"
+)
+
+
+def _refused_property_type(annotation: Any) -> str | None:
+    """Return what to call ``annotation`` when it is unsupported, or ``None`` when it is supported."""
+    refused: str | None = None
+    origin = get_origin(annotation)
+    if annotation is Any:
+        refused = "Any"
+    elif isinstance(annotation, type):
+        supported = annotation is type(None) or annotation in _SUPPORTED_LEAVES or issubclass(annotation, Enum)
+        refused = None if supported else annotation.__name__
+    elif annotation is not None and origin is not Literal:
+        if origin in (Union, UnionType) or origin is tuple:
+            for argument in get_args(annotation):
+                candidate = None if argument is Ellipsis else _refused_property_type(argument)
+                if candidate is not None:
+                    refused = candidate
+                    break
+        else:
+            refused = getattr(origin, "__name__", None) or str(annotation)
+    return refused
+
+
 class _DeclaredValues:
     """
     Mixin: the declaration factory, the catalogue and the conversion of placeholders.
 
-    A kind inheriting this mixin states three things about its own values:
+    A kind inheriting this mixin states four things about its own values:
     whether a class without values of its own inherits the parent's catalogue
     (``__declared_values_inherit__``), whether a decorated class must declare at
-    least one value (``__declared_values_require_any__``), and what the duplicate
-    refusal calls the values (``__declared_values_noun__``).
+    least one value (``__declared_values_require_any__``), what the duplicate
+    refusal calls the values (``__declared_values_noun__``), and whether a value
+    may carry only immutable property types (``__declared_values_immutable__``).
+    The last one is off by default and on for the dictionary kind: a dictionary
+    value is exported to every consumer, a status is not.
     """
 
     __declared_values_inherit__: ClassVar[bool] = True
     __declared_values_require_any__: ClassVar[bool] = False
+    __declared_values_immutable__: ClassVar[bool] = False
     __declared_values_noun__: ClassVar[str] = "declared"
     __declared_values_noun_plural__: ClassVar[str] = "values"
     __declared_values_empty_refusal__: ClassVar[str] = "declare them in the class body."
@@ -112,6 +149,8 @@ class _DeclaredValues:
         parent_hook = getattr(super(), "__pydantic_init_subclass__", None)
         if parent_hook is not None:
             parent_hook(**kwargs)
+        if cls.__declared_values_immutable__:
+            cls._require_immutable_properties()
         cls.entity_type = cls
         specs = {name: spec for name, spec in cls.__dict__.items() if isinstance(spec, ValueSpec)}
 
@@ -130,6 +169,17 @@ class _DeclaredValues:
             raise ValueError(f"{cls.__name__}: duplicate {cls.__declared_values_noun__} code(s) in {duplicates}.")
         cls.members = members
         cls._by_code = {member.code: member for member in members}
+
+    @classmethod
+    def _require_immutable_properties(cls) -> None:
+        """Refuse a property type a shared value cannot promise to keep immutable."""
+        for name, field in getattr(cls, "model_fields", {}).items():
+            refused = _refused_property_type(field.annotation)
+            if refused is not None:
+                raise ValueError(
+                    f"{cls.__name__}: field '{name}' is {refused}, which a dictionary value cannot carry; "
+                    f"supported: {_SUPPORTED_SUMMARY}."
+                )
 
     @classmethod
     def _require_declared_values(cls) -> None:
