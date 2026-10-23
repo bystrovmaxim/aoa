@@ -14,12 +14,14 @@ body, the way a state type declares its statuses::
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
-        EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")
+        USD = value(code="usd", display_name="US dollar", symbol="$")
+        EUR = value(code="eur", display_name="Euro", symbol="€")
 
-Inside the body the type's name resolves to the internal declaration factory;
-after the class is created every name is a real instance and the type carries the
-catalogue: ``members``, ``codes()``, ``by_code()`` and ``entity_type``.
+``value`` returns a placeholder; after the class is created every name is a real
+instance and the type carries the catalogue: ``members``, ``codes()``,
+``by_code()`` and ``entity_type``. A class body cannot also bind the name
+``value``; a model that needs such a field imports the factory under another
+name.
 
 The set is closed: a dictionary declares every value it has, and nothing else is
 a value. A dictionary maintained in data is a different kind.
@@ -43,9 +45,9 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    class body                      conversion hook              consumers
-    USD = CurrencyEnumEntity(...) ──►  CurrencyEnumEntity(...) ──►  members, codes(),
-    (ValueSpec placeholder)            full instance, validated     by_code(), entity_type
+    class body            conversion hook                consumers
+    USD = value(...)  ──►  CurrencyEnumEntity(**kwargs) ──►  members, codes(),
+    (ValueSpec placeholder)  full instance, validated       by_code(), entity_type
                                   │
                                   ├── interchange graph: properties.values
                                   └── a field typed by the dictionary: its reference object
@@ -58,7 +60,7 @@ USAGE
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
+        USD = value(code="usd", display_name="US dollar", symbol="$")
 
     CurrencyEnumEntity.codes()          # ["usd"]
     CurrencyEnumEntity.by_code("usd")   # the declared USD value
@@ -70,11 +72,19 @@ from abc import ABC
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import ConfigDict, Field, GetCoreSchemaHandler, ValidationInfo, field_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    SerializerFunctionWrapHandler,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
+from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
-    DeclaredValuesMeta,
     ValueSpec,
     _DeclaredValues,
 )
@@ -84,14 +94,14 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 _VALUE_CONSTRUCTION = object()
 
 
-class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesMeta):
+class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     """
     A shared reference value identified by its dictionary code.
 
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
-        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the dictionary node carries its values in the graph.
-        INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
+        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; the dictionary node carries its values in the graph.
+        INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
 
@@ -99,6 +109,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
 
     __declared_values_inherit__ = False
     __declared_values_require_any__ = True
+    __declared_values_immutable__ = True
     __declared_values_noun__ = "value"
     __declared_values_noun_plural__ = "values"
     __declared_values_empty_refusal__ = "a closed dictionary states its values."
@@ -154,21 +165,42 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
                     ) from None
             return value
 
-        return core_schema.with_info_before_validator_function(
-            normalize,
-            model_schema,
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                lambda declared: declared.to_reference(),
-                return_schema=core_schema.any_schema(),
-            ),
-        )
+        return core_schema.with_info_before_validator_function(normalize, model_schema)
 
     @classmethod
     def __get_pydantic_json_schema__(  # pylint: disable=arguments-differ
         cls, schema: CoreSchema, handler: Any
     ) -> dict[str, Any]:
-        """Publish the reference object as this type's JSON shape."""
-        _ = (schema, handler)
+        """Publish the accepting shape in validation mode and the emitted shape in serialization mode."""
+        if handler.mode == "serialization":
+            return cls._emitted_reference_schema(schema)
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["code"],
+            "properties": {
+                "code": {"type": "string", "minLength": 1},
+                "display_name": {"type": "string", "minLength": 1},
+                "properties": {"type": "object"},
+            },
+        }
+
+    @classmethod
+    def _emitted_reference_schema(cls, schema: CoreSchema) -> dict[str, Any]:
+        """Describe the emitted reference: three members, each property by its serialized type."""
+        model_schema = dict(schema)
+        while model_schema.get("type") in {"function-before", "function-after", "function-wrap"}:
+            model_schema = dict(model_schema["schema"])
+        model_schema.pop("metadata", None)
+        model_schema.pop("serialization", None)
+        emitted = GenerateJsonSchema().generate(model_schema, mode="serialization")
+        properties = {
+            name: {
+                key: value for key, value in definition.items() if key not in {"title", "description"}
+            }
+            for name, definition in emitted.get("properties", {}).items()
+            if name not in {"code", "display_name"}
+        }
         return {
             "type": "object",
             "additionalProperties": False,
@@ -176,7 +208,11 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
             "properties": {
                 "code": {"type": "string", "minLength": 1},
                 "display_name": {"type": "string", "minLength": 1},
-                "properties": {"type": "object"},
+                "properties": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": properties,
+                },
             },
         }
 
@@ -199,14 +235,22 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC, metaclass=DeclaredValuesM
                 return str(name)
         return "<value>"
 
-    def to_reference(self) -> dict[str, Any]:
-        """Return the value's reference form: its code, its label and its extra fields."""
-        extra = {
-            name: getattr(self, name)
-            for name in type(self).model_fields
-            if name not in {"code", "display_name"}
+    @model_serializer(mode="wrap")
+    def _serialize_as_reference(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """Serialize the value whole: its code, its label and its extra fields under ``properties``."""
+        exported = handler(self)
+        properties = {
+            name: item for name, item in exported.items() if name not in {"code", "display_name"}
         }
-        return {"code": self.code, "display_name": self.display_name, "properties": extra}
+        return {
+            "code": exported["code"],
+            "display_name": exported["display_name"],
+            "properties": properties,
+        }
+
+    def to_reference(self) -> dict[str, Any]:
+        """Return the value's reference form: the value's JSON export."""
+        return self.model_dump(mode="json")
 
     @field_validator("code", "display_name")
     @classmethod

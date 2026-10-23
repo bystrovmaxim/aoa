@@ -8,7 +8,7 @@ Demonstrates:
   - OrderResource as transport layer (pure transport, no business logic)
   - CreateOrderAction using the resource via @connection — logic separate from transport
 
-Tutorial: ../../docs/tutorials/step-19-resource_draft.md  ·  topic: Domain model / Resource
+Tutorial: ../../docs/tutorials/step-19-resource.md  ·  topic: Domain model / Resource
 
 Run:
     uv run python examples/domain_model/01_domain_model.py
@@ -35,6 +35,7 @@ from aoa.action_machine.domain import (
     Lifecycle,
     Rel,
     build,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -70,11 +71,11 @@ class OrderStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)  # noqa: F821
-    CONFIRMED = OrderStateEntity(code="confirmed", display_name="Confirmed", sort_order=2)  # noqa: F821
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
-    DELIVERED = OrderStateEntity(code="delivered", display_name="Delivered", sort_order=4)  # noqa: F821
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)  # noqa: F821
+    NEW = value(code="new", display_name="New", sort_order=1)
+    CONFIRMED = value(code="confirmed", display_name="Confirmed", sort_order=2)
+    SHIPPED = value(code="shipped", display_name="Shipped", sort_order=3)
+    DELIVERED = value(code="delivered", display_name="Delivered", sort_order=4)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=5)
 
 
 
@@ -103,11 +104,11 @@ class OrderLineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    PENDING = OrderLineStateEntity(code="pending", display_name="Pending", sort_order=1)  # noqa: F821
-    RESERVED = OrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)  # noqa: F821
-    SHIPPED = OrderLineStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
-    DELIVERED = OrderLineStateEntity(code="delivered", display_name="Delivered", sort_order=4)  # noqa: F821
-    CANCELLED = OrderLineStateEntity(code="cancelled", display_name="Cancelled", sort_order=5)  # noqa: F821
+    PENDING = value(code="pending", display_name="Pending", sort_order=1)
+    RESERVED = value(code="reserved", display_name="Reserved", sort_order=2)
+    SHIPPED = value(code="shipped", display_name="Shipped", sort_order=3)
+    DELIVERED = value(code="delivered", display_name="Delivered", sort_order=4)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=5)
 
 
 

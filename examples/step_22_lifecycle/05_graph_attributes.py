@@ -5,9 +5,13 @@ Build the actual model graph and inspect the paid state row.
 Run: uv run python examples/step_22_lifecycle/05_graph_attributes.py
 """
 
+import json
+
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
+from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -15,21 +19,21 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
-
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received", requires_receipt=True)
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Collect statuses and declare their allowed transition."""
 
-    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial().state(OrderStateEntity.PAID).final()
-
-import json
-
-from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
-from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+    _template = (
+        Lifecycle()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
+    )
 
 
 class ShopDomain(BaseDomain):
@@ -46,10 +50,13 @@ class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
 
+
 # Run the case.
 machine = ActionProductMachine(loggers=[])
 graph = json.loads(machine.graph_coordinator.to_json())
-row = next(node for node in graph["nodes"] if node["type"].startswith("State") and node["properties"]["state_key"] == "paid")
+row = next(
+    node for node in graph["nodes"] if node["type"].startswith("State") and node["properties"]["state_key"] == "paid"
+)
 assert row["id"].endswith(":lifecycle:lifecycle:paid")
 assert row["label"] == "Payment received"
 assert row["properties"]["attributes"]["requires_receipt"] is True

@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-23] — Explicit values and consistent references
+
+Dictionaries and lifecycle statuses now declare their members with `value(...)`, keeping
+existing codes and lookups. Dictionaries reject mutable property types at declaration;
+reference exports apply the declared formatting and carry JSON-compatible descriptions.
+Input schemas allow a code-only reference, while output schemas describe the returned
+properties. Maxitor preserves those descriptions in dictionary cards and displays each
+specialization group's dictionary name once. Existing declarations need the new factory
+import and call. ([#244](https://github.com/bystrovmaxim/aoa/issues/244))
+
 ## [2026-10-22] — Closed dictionaries and consistent variant choices
 
 A dictionary now declares the complete set of values the model accepts. References keep

@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_er_cycle_triangle_stub.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """
 Directed 3-cycle for messaging stubs (alternate narrative from catalog triangle).
 
@@ -22,6 +21,7 @@ from aoa.action_machine.domain import (
     Lifecycle,
     NoInverse,
     Rel,
+    value,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
@@ -33,8 +33,8 @@ class _MsgDirectedCycleSketchStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    OPEN = _MsgDirectedCycleSketchStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
-    SETTLED = _MsgDirectedCycleSketchStateEntity(code="settled", display_name="Settled", sort_order=2)  # noqa: F821
+    OPEN = value(code="open", display_name="Open", sort_order=1)
+    SETTLED = value(code="settled", display_name="Settled", sort_order=2)
 
 
 

@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_rules_global.py
-# ruff: noqa: F821  # the class-name alias is the declaration surface
 """
 The rules a specialization must satisfy **across the whole model**: what no single head can decide.
 
@@ -42,6 +41,7 @@ from aoa.action_machine.domain import (
     Generalization,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -70,8 +70,8 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary the cases borrow from."""
 
-    A = _KindEnumEntity(code="a", display_name="A")
-    B = _KindEnumEntity(code="b", display_name="B")
+    A = value(code="a", display_name="A")
+    B = value(code="b", display_name="B")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ def test_the_named_alternative_itself_is_not_reported_as_an_intruder() -> None:
 class _SelfKindEnumEntity(BaseEnumEntity):
     """One value, so the cycle rule is what reports the case."""
 
-    A = _SelfKindEnumEntity(code="a", display_name="A")
+    A = value(code="a", display_name="A")
 
 
 @exclude_graph_model

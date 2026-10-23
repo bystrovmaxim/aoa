@@ -5,9 +5,17 @@ Load the exported graph into Maxitor and request its lifecycle diagram data.
 Run: uv run python examples/step_22_lifecycle/06_maxitor_states.py
 """
 
+import asyncio
+import json
+
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
+from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
+from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -18,21 +26,24 @@ class OrderStateEntity(BaseStateEntity):
     fill_color: str = Field(default="#e3f2fd", description="State fill colour")
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)  # noqa: F821
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)  # noqa: F821
-
+    DRAFT = value(code="draft", display_name="Draft", sort_order=99)
+    PAID = value(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=2)
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Keep the initial state first despite its high sort order."""
 
-    _template = Lifecycle().state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID, OrderStateEntity.CANCELLED).initial().state(OrderStateEntity.PAID).final().state(OrderStateEntity.CANCELLED).final()
-import json
-
-from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
-from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+    _template = (
+        Lifecycle()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID, OrderStateEntity.CANCELLED)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
+        .state(OrderStateEntity.CANCELLED)
+        .final()
+    )
 
 
 class ShopDomain(BaseDomain):
@@ -49,12 +60,6 @@ class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
 
-import asyncio
-
-from aoa.action_machine.context import Context
-from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
-
 
 # Run the case.
 async def read_states():
@@ -64,7 +69,8 @@ async def read_states():
     lifecycle = next(node for node in graph["nodes"] if node["type"] == "Lifecycle")
     resource = DuckDBGraphResource.build_from_json(graph)
     result = await machine.run(
-        Context(), GetLifecycleFiniteAutomatonAction(),
+        Context(),
+        GetLifecycleFiniteAutomatonAction(),
         GetLifecycleFiniteAutomatonAction.Params(lifecycle_graph_node_id=lifecycle["id"]),
         {DUCKDB_GRAPH_CONNECTION_KEY: resource},
     )
@@ -76,5 +82,6 @@ async def read_states():
     print("state order:", [state["key"] for state in states])
     print("paid label:", paid["display_name"])
     print("diagram attributes:", paid["attributes"])
+
 
 asyncio.run(read_states())

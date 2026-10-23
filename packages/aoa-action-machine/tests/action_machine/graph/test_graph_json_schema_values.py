@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_graph_json_schema_values.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
 """
 Tests for the dictionary values on the graph node and in the interchange schema.
 
@@ -15,7 +14,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseDomain, BaseEnumEntity
+from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
@@ -36,8 +35,8 @@ class SchemaShopDomain(BaseDomain):
 class EditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary used to build one entity node."""
 
-    FIRST = EditionKindEnumEntity(code="first", display_name="First press")
-    REPRESS = EditionKindEnumEntity(code="repress", display_name="Repress")
+    FIRST = value(code="first", display_name="First press")
+    REPRESS = value(code="repress", display_name="Repress")
 
 
 def _document(properties: dict) -> dict:

@@ -8,25 +8,25 @@ PURPOSE
 
 Two kinds declare a closed set of values in their own class body: the state kind
 declares its statuses, the dictionary kind declares its reference values. The
-form is one: ::
+form is one, and it is explicit: ::
 
     class OrderStateEntity(BaseStateEntity):
-        DRAFT = OrderStateEntity(code="draft", display_name="Draft")
+        DRAFT = value(code="draft", display_name="Draft")
 
     class CurrencyEnumEntity(BaseEnumEntity):
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar")
+        USD = value(code="usd", display_name="US dollar")
 
-The class does not exist while its body runs, so the type's own name resolves to
-:func:`value` there. The factory returns a :class:`ValueSpec`; the Pydantic hook
+:func:`value` returns a :class:`ValueSpec` placeholder; the Pydantic hook
 :meth:`_DeclaredValues.__pydantic_init_subclass__` turns every placeholder into a
-real instance after the model is built and fills the catalogue.
+real instance after the model is built and fills the catalogue. That conversion
+is the one automatic step that remains, and it reads only the class body.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
 **In scope**
-    The namespace alias, the placeholder, the conversion hook, the catalogue
+    The ``value`` factory, the placeholder, the conversion hook, the catalogue
     (``members``, ``codes()``, ``by_code()``, ``entity_type``), the duplicate
     refusal, and the two per-kind switches: whether a class without its own
     values inherits the parent's catalogue, and what the duplicate message calls
@@ -53,17 +53,20 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    class body                        conversion hook                consumers
-    DRAFT = OrderStateEntity(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
-    (ValueSpec placeholder)             full instance, validated         codes(), by_code(),
-                                                                         entity_type
+    class body            conversion hook                consumers
+    DRAFT = value(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
+    (ValueSpec placeholder)  full instance, validated        codes(), by_code(),
+                                                             entity_type
 """
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
-
-from pydantic._internal._model_construction import ModelMetaclass
+from datetime import date, datetime, time
+from decimal import Decimal
+from enum import Enum
+from types import UnionType
+from typing import Any, ClassVar, Literal, Union, get_args, get_origin
+from uuid import UUID
 
 
 class ValueSpec:
@@ -74,54 +77,64 @@ class ValueSpec:
         self.kwargs = kwargs
 
 
-def value(**kwargs: Any) -> ValueSpec:
-    """Declare a value inside a kind's class body; the class turns it into an instance."""
+def value(**kwargs: Any) -> Any:
+    """
+    Declare a value inside a kind's class body; the class turns it into an instance.
+
+    AI-CORE-BEGIN
+        ROLE: The one declaration form for a dictionary value and a lifecycle status — the line inside a kind's class body that names the fields of one value.
+        CONTRACT: Returns a ``ValueSpec`` placeholder that the class's ``__pydantic_init_subclass__`` converts into a validated instance after the model exists; ``code`` and ``display_name`` are the kind's required fields and the rest are the model's own; the value is reachable as the declared attribute and through ``by_code()``.
+        INVARIANTS: Usable only inside a declaring class body for its effect; the placeholder is never a model field and never reaches a consumer; a returned object is annotated ``Any`` because the declaring class does not exist at the call site.
+    AI-CORE-END
+    """
     return ValueSpec(kwargs)
 
 
-class _DeclaredValuesNamespace(dict[str, Any]):
-    """The class namespace that answers the declaring type's own name with the factory."""
-
-    def __init__(self, name: str, factory: Any) -> None:
-        """Remember the class name and the factory this namespace answers with."""
-        super().__init__()
-        self._name = name
-        self._factory = factory
-
-    def __getitem__(self, key: str) -> Any:
-        """Return the stored value, or the declaration factory for the class's own name."""
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            if key == self._name:
-                return self._factory
-            raise
+_SUPPORTED_LEAVES: tuple[type[Any], ...] = (str, int, float, bool, Decimal, date, datetime, time, UUID)
+_SUPPORTED_SUMMARY = (
+    "str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, "
+    "Optional of a supported type, or a tuple of supported types"
+)
 
 
-class DeclaredValuesMeta(ModelMetaclass):
-    """Metaclass of a declaring kind: the class's own name is the declaration factory."""
-
-    @classmethod
-    def __prepare__(mcs, *args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: N804
-        """Give the class body the alias before the class itself exists."""
-        _ = mcs  # the metaclass is bound by the class machinery; the name keeps the pylint contract
-        name = args[0] if args else kwargs.get("name", "")
-        return _DeclaredValuesNamespace(str(name), value)
+def _refused_property_type(annotation: Any) -> str | None:
+    """Return what to call ``annotation`` when it is unsupported, or ``None`` when it is supported."""
+    refused: str | None = None
+    origin = get_origin(annotation)
+    if annotation is Any:
+        refused = "Any"
+    elif isinstance(annotation, type):
+        supported = annotation is type(None) or annotation in _SUPPORTED_LEAVES or issubclass(annotation, Enum)
+        refused = None if supported else annotation.__name__
+    elif annotation is not None and origin is not Literal:
+        if origin in (Union, UnionType) or origin is tuple:
+            for argument in get_args(annotation):
+                candidate = None if argument is Ellipsis else _refused_property_type(argument)
+                if candidate is not None:
+                    refused = candidate
+                    break
+        else:
+            refused = getattr(origin, "__name__", None) or str(annotation)
+    return refused
 
 
 class _DeclaredValues:
     """
     Mixin: the declaration factory, the catalogue and the conversion of placeholders.
 
-    A kind inheriting this mixin states three things about its own values:
+    A kind inheriting this mixin states four things about its own values:
     whether a class without values of its own inherits the parent's catalogue
     (``__declared_values_inherit__``), whether a decorated class must declare at
-    least one value (``__declared_values_require_any__``), and what the duplicate
-    refusal calls the values (``__declared_values_noun__``).
+    least one value (``__declared_values_require_any__``), what the duplicate
+    refusal calls the values (``__declared_values_noun__``), and whether a value
+    may carry only immutable property types (``__declared_values_immutable__``).
+    The last one is off by default and on for the dictionary kind: a dictionary
+    value is exported to every consumer, a status is not.
     """
 
     __declared_values_inherit__: ClassVar[bool] = True
     __declared_values_require_any__: ClassVar[bool] = False
+    __declared_values_immutable__: ClassVar[bool] = False
     __declared_values_noun__: ClassVar[str] = "declared"
     __declared_values_noun_plural__: ClassVar[str] = "values"
     __declared_values_empty_refusal__: ClassVar[str] = "declare them in the class body."
@@ -136,6 +149,8 @@ class _DeclaredValues:
         parent_hook = getattr(super(), "__pydantic_init_subclass__", None)
         if parent_hook is not None:
             parent_hook(**kwargs)
+        if cls.__declared_values_immutable__:
+            cls._require_immutable_properties()
         cls.entity_type = cls
         specs = {name: spec for name, spec in cls.__dict__.items() if isinstance(spec, ValueSpec)}
 
@@ -154,6 +169,17 @@ class _DeclaredValues:
             raise ValueError(f"{cls.__name__}: duplicate {cls.__declared_values_noun__} code(s) in {duplicates}.")
         cls.members = members
         cls._by_code = {member.code: member for member in members}
+
+    @classmethod
+    def _require_immutable_properties(cls) -> None:
+        """Refuse a property type a shared value cannot promise to keep immutable."""
+        for name, field in getattr(cls, "model_fields", {}).items():
+            refused = _refused_property_type(field.annotation)
+            if refused is not None:
+                raise ValueError(
+                    f"{cls.__name__}: field '{name}' is {refused}, which a dictionary value cannot carry; "
+                    f"supported: {_SUPPORTED_SUMMARY}."
+                )
 
     @classmethod
     def _require_declared_values(cls) -> None:

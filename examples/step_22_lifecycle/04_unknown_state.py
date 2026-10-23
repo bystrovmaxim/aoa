@@ -5,28 +5,29 @@ Construct a lifecycle using a code absent from its template.
 Run: uv run python examples/step_22_lifecycle/04_unknown_state.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
+from aoa.action_machine.domain.lifecycle import InvalidStateError
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received")  # noqa: F821
-
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received")
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
     """Allow a draft order to become paid."""
 
-
     _template = (
         Lifecycle()
-        .state(OrderStateEntity.DRAFT).to(OrderStateEntity.PAID).initial()
-        .state(OrderStateEntity.PAID).final()
+        .state(OrderStateEntity.DRAFT)
+        .to(OrderStateEntity.PAID)
+        .initial()
+        .state(OrderStateEntity.PAID)
+        .final()
     )
 
-from aoa.action_machine.domain.lifecycle import InvalidStateError
 
 # Run the case.
 try:

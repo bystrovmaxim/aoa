@@ -8,7 +8,7 @@ Run: uv run python examples/step_22_lifecycle/19_non_json_field.py
 from pydantic import ConfigDict, Field
 from pydantic_core import PydanticSerializationError
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle, value
 from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
 
 
@@ -19,10 +19,10 @@ class Opaque:
 class OrderStateEntity(BaseStateEntity):
     """Allow a Python object that has no JSON form."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    value: Opaque = Field(description="An opaque Python value")
+    payload: Opaque = Field(description="An opaque Python value")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft", value=Opaque())  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Paid", value=Opaque())  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft", payload=Opaque())
+    PAID = value(code="paid", display_name="Paid", payload=Opaque())
 
 
 

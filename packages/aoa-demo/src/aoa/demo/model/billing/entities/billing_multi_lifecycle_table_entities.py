@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/billing_multi_lifecycle_table_entities.py
-# pylint: disable=undefined-variable  # the class-name alias is the declaration surface
 """Demo entities with two or three distinct lifecycle-typed fields (ERD / sidebar stress samples).
 
 Each :class:`~aoa.action_machine.domain.lifecycle.Lifecycle` subclass uses a different-sized
@@ -15,6 +14,7 @@ from aoa.action_machine.domain import (
     BaseCoreEntity,
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
@@ -26,8 +26,8 @@ class CounterpartyLinkageStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    UNLINKED = CounterpartyLinkageStateEntity(code="unlinked", display_name="Unlinked", sort_order=1)  # noqa: F821
-    VERIFIED = CounterpartyLinkageStateEntity(code="verified", display_name="Verified", sort_order=2)  # noqa: F821
+    UNLINKED = value(code="unlinked", display_name="Unlinked", sort_order=1)
+    VERIFIED = value(code="verified", display_name="Verified", sort_order=2)
 
 
 
@@ -43,9 +43,9 @@ class LedgerPostingWaveStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    QUEUED = LedgerPostingWaveStateEntity(code="queued", display_name="Queued", sort_order=1)  # noqa: F821
-    POSTED = LedgerPostingWaveStateEntity(code="posted", display_name="Posted", sort_order=2)  # noqa: F821
-    RECONCILED = LedgerPostingWaveStateEntity(code="reconciled", display_name="Reconciled", sort_order=3)  # noqa: F821
+    QUEUED = value(code="queued", display_name="Queued", sort_order=1)
+    POSTED = value(code="posted", display_name="Posted", sort_order=2)
+    RECONCILED = value(code="reconciled", display_name="Reconciled", sort_order=3)
 
 
 
@@ -71,14 +71,14 @@ class SchemeDisputeClockStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NOTICE_RECEIVED = SchemeDisputeClockStateEntity(  # noqa: F821
+    NOTICE_RECEIVED = value(
         code="notice_received", display_name="Notice received", sort_order=1
     )
-    EVIDENCE_WINDOW = SchemeDisputeClockStateEntity(  # noqa: F821
+    EVIDENCE_WINDOW = value(
         code="evidence_window", display_name="Evidence window", sort_order=2
     )
-    RULING_PENDING = SchemeDisputeClockStateEntity(code="ruling_pending", display_name="Ruling pending", sort_order=3)  # noqa: F821
-    CLOSED = SchemeDisputeClockStateEntity(code="closed", display_name="Closed", sort_order=4)  # noqa: F821
+    RULING_PENDING = value(code="ruling_pending", display_name="Ruling pending", sort_order=3)
+    CLOSED = value(code="closed", display_name="Closed", sort_order=4)
 
 
 
@@ -107,11 +107,11 @@ class TreasuryCutoverProgramStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    BLUEPRINT = TreasuryCutoverProgramStateEntity(code="blueprint", display_name="Blueprint", sort_order=1)  # noqa: F821
-    DRY_RUN = TreasuryCutoverProgramStateEntity(code="dry_run", display_name="Dry run", sort_order=2)  # noqa: F821
-    CANARY = TreasuryCutoverProgramStateEntity(code="canary", display_name="Canary", sort_order=3)  # noqa: F821
-    FULL_CUT = TreasuryCutoverProgramStateEntity(code="full_cut", display_name="Full cut", sort_order=4)  # noqa: F821
-    STEADY = TreasuryCutoverProgramStateEntity(code="steady", display_name="Steady state", sort_order=5)  # noqa: F821
+    BLUEPRINT = value(code="blueprint", display_name="Blueprint", sort_order=1)
+    DRY_RUN = value(code="dry_run", display_name="Dry run", sort_order=2)
+    CANARY = value(code="canary", display_name="Canary", sort_order=3)
+    FULL_CUT = value(code="full_cut", display_name="Full cut", sort_order=4)
+    STEADY = value(code="steady", display_name="Steady state", sort_order=5)
 
 
 
@@ -143,9 +143,9 @@ class NostroLiquiditySweepStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    SWEEP_PLANNED = NostroLiquiditySweepStateEntity(code="sweep_planned", display_name="Sweep planned", sort_order=1)  # noqa: F821
-    SWEEP_SENT = NostroLiquiditySweepStateEntity(code="sweep_sent", display_name="Sweep sent", sort_order=2)  # noqa: F821
-    SWEEP_ACKNOWLEDGED = NostroLiquiditySweepStateEntity(  # noqa: F821
+    SWEEP_PLANNED = value(code="sweep_planned", display_name="Sweep planned", sort_order=1)
+    SWEEP_SENT = value(code="sweep_sent", display_name="Sweep sent", sort_order=2)
+    SWEEP_ACKNOWLEDGED = value(
         code="sweep_acknowledged", display_name="Sweep acknowledged", sort_order=3
     )
 

@@ -6,7 +6,7 @@ Run: uv run python examples/step_20_dictionaries/04_storage_mapping.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -24,8 +24,8 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
 @entity(description="Price tag", domain=ShopDomain)
@@ -42,14 +42,14 @@ def main() -> None:
     from aoa.action_machine.domain import build
 
     row = {"tag_key": "tag-1", "price": 9.99, "money_unit": "eur"}
-    value = CurrencyEnumEntity.by_code(row["money_unit"])
+    selected = CurrencyEnumEntity.by_code(row["money_unit"])
     tag = build(
         row,
         PriceTagCoreEntity,
         lambda fields, data: {
             fields.id: data["tag_key"],
             fields.amount: data["price"],
-            fields.currency: value,
+            fields.currency: selected,
         },
     )
     print(tag.id, tag.currency.code)

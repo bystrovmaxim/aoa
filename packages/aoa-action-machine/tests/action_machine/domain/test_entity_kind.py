@@ -25,6 +25,7 @@ from aoa.action_machine.domain import (
     BaseEnumEntity,
     BaseSpecEntity,
     BaseStateEntity,
+    value,
 )
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
@@ -149,7 +150,7 @@ def test_a_decorated_dictionary_is_a_real_entity_in_the_graph() -> None:
     class GraphCurrencyEnumEntity(BaseEnumEntity):
         """A decorated dictionary stays in the graph, like any other entity."""
 
-        USD = GraphCurrencyEnumEntity(code="usd", display_name="US dollar")  # noqa: F821
+        USD = value(code="usd", display_name="US dollar")
 
     assert excluded_from_graph_model(GraphCurrencyEnumEntity) is False
     assert EntityGraphNode(GraphCurrencyEnumEntity).to_dict()["properties"]["entity_kind"] == "enum"

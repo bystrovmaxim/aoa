@@ -5,19 +5,19 @@ Reference a status object that is not a declared member of the axis's state type
 Run: uv run python examples/step_22_lifecycle/15_foreign_status.py
 """
 
-from aoa.action_machine.domain import BaseStateEntity, ForeignStateError, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, ForeignStateError, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
     """Describe one possible order status."""
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft")
 
 
 class OtherStateEntity(BaseStateEntity):
     """A second state type, not the one the axis names."""
 
-    FOREIGN = OtherStateEntity(code="foreign", display_name="Foreign")  # noqa: F821
+    FOREIGN = value(code="foreign", display_name="Foreign")
 
 
 # Run the case.

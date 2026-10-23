@@ -22,8 +22,8 @@ An order is something the business identifies in its own right. It stays the sam
 from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity, build
-from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entity import entity
 
 
 class ShopDomain(BaseDomain):
@@ -135,7 +135,10 @@ not remove its currency. Unlike a state, the currency is not a position in a pro
 `BaseEnumEntity` describes a **closed dictionary**: the complete set of allowed values is
 declared in the class body. It supplies required, nonblank `code` and `display_name`
 fields. The currency class adds `symbol` and declares EUR and USD. These declarations
-become immutable, shared instances when the class is created.
+use `EUR = value(code="eur", display_name="Euro", symbol="€")`, with `value` imported
+from `aoa.action_machine.domain`. The factory records arguments; after class creation
+EUR is a validated, shared instance. Dictionary properties are restricted to supported
+immutable annotations: use a tuple for a fixed sequence rather than a list.
 
 The example reads the catalogue:
 
@@ -166,7 +169,9 @@ serialization, optional absence, inheritance, graph export and each invalid inpu
 
 “Paid” describes where an order stands in its lifecycle. Unlike a currency, it participates in a process with allowed transitions. The lifecycle template defines those transitions and determines which states are initial, intermediate or final. The state object holds its code, human-readable name and any additional descriptive fields.
 
-`BaseStateEntity` supplies `code` and `display_name` and requires nonblank values. State objects are immutable and can be shared. A thousand paid orders can point to the same declared `PAID` object while each lifecycle instance holds its own current-state reference.
+`BaseStateEntity` supplies `code` and `display_name` and requires nonblank values. Statuses are declared with `PAID = value(...)` and can be shared. Their model is frozen
+against attribute reassignment, but nested mutable properties are not recursively frozen;
+the dictionary's property-type restriction does not apply to states. A thousand paid orders can point to the same declared `PAID` object while each lifecycle instance holds its own current-state reference.
 
 The example moves a draft order lifecycle to paid and prints:
 
@@ -193,10 +198,14 @@ Selecting a kind leaves the common entity operations available. If storage colum
 
 ```python
 row = {"order_id": "ord-2", "amount": 99.5}
-order = build(row, OrderCoreEntity, lambda fields, row: {
-    fields.id: row["order_id"],
-    fields.total: row["amount"],
-})
+order = build(
+    row,
+    OrderCoreEntity,
+    lambda fields, row: {
+        fields.id: row["order_id"],
+        fields.total: row["amount"],
+    },
+)
 print(order.id, order.total)
 ```
 

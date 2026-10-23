@@ -58,6 +58,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -106,8 +107,8 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
 class SchemaHeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = SchemaHeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = SchemaHeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
 
 
 @exclude_graph_model
