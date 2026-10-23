@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
@@ -28,9 +28,9 @@ class DerivedMetricFenceCoreEntity(BaseCoreEntity):
     slice_stub: Annotated[
         AssociationOne[DimensionSliceStubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream dimension slice facet"
-    )  # type: ignore[assignment]
+    )
 
 
 DerivedMetricFenceCoreEntity.model_rebuild()

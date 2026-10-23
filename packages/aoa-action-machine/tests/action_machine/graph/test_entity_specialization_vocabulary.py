@@ -22,7 +22,6 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Classifier,
     Generalization,
-    Rel,
     Specialization,
     value,
 )
@@ -74,7 +73,7 @@ class VocabularyGoodHeadCoreEntity(BaseCoreEntity):
     """An axis classified by the dictionary."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyFirstSpecEntity | VocabularyRepressSpecEntity, VocabularyKindEnumEntity] = Rel(
+    kind: Specialization[VocabularyFirstSpecEntity | VocabularyRepressSpecEntity, VocabularyKindEnumEntity] = Field(
         description="Which pressing this is"
     )
 
@@ -87,7 +86,7 @@ class VocabularyFirstSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
         Classifier(variant=VocabularyKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 @exclude_graph_model
@@ -98,7 +97,7 @@ class VocabularyRepressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyGoodHeadCoreEntity],
         Classifier(variant=VocabularyKindEnumEntity.REPRESS),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 
@@ -131,7 +130,7 @@ class VocabularyEmptyHeadCoreEntity(BaseCoreEntity):
     """An axis borrowing from a dictionary that declares nothing."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyEmptySpecEntity, EmptyKindEnumEntity] = Rel(description="Empty dictionary")
+    kind: Specialization[VocabularyEmptySpecEntity, EmptyKindEnumEntity] = Field(description="Empty dictionary")
 
 
 @exclude_graph_model
@@ -142,7 +141,7 @@ class VocabularyEmptySpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyEmptyHeadCoreEntity],
         Classifier(variant=VocabularyKindEnumEntity.FIRST),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 def test_an_axis_cannot_borrow_from_an_empty_dictionary() -> None:
@@ -157,7 +156,7 @@ class VocabularyWrongHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a value of another dictionary."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyWrongSpecEntity, VocabularyKindEnumEntity] = Rel(description="Kind")
+    kind: Specialization[VocabularyWrongSpecEntity, VocabularyKindEnumEntity] = Field(description="Kind")
 
 
 @exclude_graph_model
@@ -168,7 +167,7 @@ class VocabularyWrongSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[VocabularyWrongHeadCoreEntity],
         Classifier(variant=OtherKindEnumEntity.EXTRA),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 def test_an_extension_must_name_this_dictionary_s_value() -> None:
@@ -183,7 +182,7 @@ class VocabularyCopyHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a copy of a declared value."""
 
     id: str = Field(description="Head id")
-    kind: Specialization[VocabularyCopySpecEntity, VocabularyKindEnumEntity] = Rel(description="Kind")
+    kind: Specialization[VocabularyCopySpecEntity, VocabularyKindEnumEntity] = Field(description="Kind")
 
 
 @exclude_graph_model
@@ -196,7 +195,7 @@ class VocabularyCopySpecEntity(BaseSpecEntity):
         Classifier(
             variant=VocabularyKindEnumEntity(code="first", display_name="First press", note="mine"),
         ),
-    ] = Rel(description="The head row")
+    ] = Field(description="The head row")
 
 
 def test_a_copy_of_a_value_is_not_a_value() -> None:
@@ -252,7 +251,7 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
     @entity(description="Optional head", domain=VocabularyDomain)
     class OptionalHeadCoreEntity(BaseCoreEntity):
         """Allow a head whose classification has not been supplied."""
-        kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Rel(description="Optional choice")
+        kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Field(description="Optional choice")
 
     @exclude_graph_model
     @entity(description="Optional details", domain=VocabularyDomain)
@@ -261,7 +260,7 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
         record: Annotated[
             Generalization[OptionalHeadCoreEntity],
             Classifier(variant=OptionalKindEnumEntity.FIRST),
-        ] = Rel(description="Head")
+        ] = Field(description="Head")
 
     OptionalHeadCoreEntity.model_rebuild(_types_namespace=locals())
     OptionalDetailsSpecEntity.model_rebuild(_types_namespace=locals())

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
@@ -27,16 +27,16 @@ class FulfillmentTaskCoreEntity(BaseCoreEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Target order line"
-    )  # type: ignore[assignment]
+    )
 
     lot_inventory_slice: Annotated[
         AssociationOne[LotSnapshotLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Inventory lot snapshot consulted for allocation"
-    )  # type: ignore[assignment]
+    )
 
 
 FulfillmentTaskCoreEntity.model_rebuild()

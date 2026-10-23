@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
@@ -32,16 +32,16 @@ class AssuranceDutyPrivilegeBridgeCoreEntity(BaseCoreEntity):
     duty_axis: Annotated[
         AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Duty template anchoring grant"
-    )  # type: ignore[assignment]
+    )
 
     privilege_grain: Annotated[
         AssociationOne[AssurancePrivilegeGrainAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Granted privilege grain"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceDutyPrivilegeBridgeCoreEntity.model_rebuild()

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -25,16 +25,16 @@ class BillingChargebackIngestCorrelateCoreEntity(BaseCoreEntity):
     dispute: Annotated[
         AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Dispute ticket anchor"
-    )  # type: ignore[assignment]
+    )
 
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Ingest workload anchor"
-    )  # type: ignore[assignment]
+    )
 
     correlate_confidence_bps: int = Field(description="Heuristic linkage confidence basis points", ge=0, le=10000)
     correlate_reason_code: str = Field(description="Why entities were bridged together")

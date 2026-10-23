@@ -12,7 +12,7 @@ ownership meaning:
 `Inverse(Target, "field")` names the reverse side so the coordinator can verify
 mirroring (types, target, cardinality) when the graph is built — a broken
 relation model fails at startup, not half a year later in a report. `NoInverse()`
-marks a deliberately one-way link. Every declared edge carries `Rel(description=)`.
+marks a deliberately one-way link. Every declared edge carries `Field(description=)`.
 
 Relations load partially like fields: the container always knows the id(s), but
 the target row may not be hydrated — reaching through it raises
@@ -37,7 +37,6 @@ from aoa.action_machine.domain import (
     BaseDetailEntity,
     CompositeMany,
     Inverse,
-    Rel,
     RelationNotLoadedError,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -58,7 +57,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     orders: Annotated[
         AssociationMany[OrderCoreEntity],
         Inverse(OrderCoreEntity, "customer"),
-    ] = Rel(description="Orders placed by this customer")
+    ] = Field(description="Orders placed by this customer")
 
 
 @entity(description="Customer order", domain=ShopDomain)
@@ -70,13 +69,13 @@ class OrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerCoreEntity],
         Inverse(CustomerCoreEntity, "orders"),
-    ] = Rel(description="Customer who placed the order")
+    ] = Field(description="Customer who placed the order")
 
     # composition — line items cannot exist without this order
     lines: Annotated[
         CompositeMany[OrderLineDetailEntity],
         Inverse(OrderLineDetailEntity, "order"),
-    ] = Rel(description="Line items of the order")
+    ] = Field(description="Line items of the order")
 
 
 @entity(description="Single line of an order", domain=ShopDomain)
@@ -87,7 +86,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
     order: Annotated[
         AssociationOne[OrderCoreEntity],
         Inverse(OrderCoreEntity, "lines"),
-    ] = Rel(description="Parent order")
+    ] = Field(description="Parent order")
 
 
 CustomerCoreEntity.model_rebuild()

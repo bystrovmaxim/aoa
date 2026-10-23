@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -22,23 +22,23 @@ class ChargebackTicketCoreEntity(BaseCoreEntity):
     payment_event: Annotated[
         AssociationOne[PaymentEventLogCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Funding payment event anchor"
-    )  # type: ignore[assignment]
+    )
 
     interchange_assessment_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Associated interchange assessment economics slice"
-    )  # type: ignore[assignment]
+    )
 
     tax_remit_advice: Annotated[
         AssociationOne[TaxRemittanceAdviceCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Associated tax remittance advice stub row"
-    )  # type: ignore[assignment]
+    )
 
     issuer_case_id: str = Field(description="Issuer or acquirer case identifier")
     network_reason_code: str = Field(description="Network standardized dispute reason code")

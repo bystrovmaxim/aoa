@@ -57,9 +57,13 @@ from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, NoRelation
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
+from aoa.action_machine.domain.specialization_containers import Generalization
 from aoa.action_machine.domain.state_entity import BaseStateEntity
 from aoa.action_machine.graph.validators.entity_specialization_validator import declared_entity_classes
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is_relation_container
+from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
+    is_specialization_field,
+)
 
 __all__ = ["validate_entity_fields"]
 
@@ -155,11 +159,57 @@ def _refuse(entity_cls: type[BaseEntity], field_name: str, details: str) -> None
     raise EntityFieldDeclarationError(entity_cls.__name__, field_name, details)
 
 
+def _is_relation_field(annotation: Any) -> bool:
+    """True when the annotation is any of the eight relation containers."""
+    if is_relation_container(annotation) or is_specialization_field(annotation):
+        return True
+    return isinstance(annotation, type) and issubclass(annotation, Generalization)
+
+
+def _require_relation_metadata(
+    entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any
+) -> None:
+    """Enforce the description and default contract of a relation field."""
+    description = field_info.description
+    if not isinstance(description, str) or not description.strip():
+        _refuse(
+            entity_cls,
+            field_name,
+            'a relation field needs a non-blank description; write it as Field(description="...").',
+        )
+    if field_info.default_factory is not None:
+        _refuse(
+            entity_cls,
+            field_name,
+            "a relation field cannot use default_factory; supply the value, or declare "
+            "default=None on a nullable relation.",
+        )
+    if field_info.is_required():
+        return
+    inner, allows_none = _strip_optional(annotation)
+    default = field_info.default
+    if default is None:
+        if allows_none:
+            return
+        _refuse(
+            entity_cls,
+            field_name,
+            f"default=None needs a nullable annotation; write "
+            f"Annotated[{_describe(inner)} | None, ...] = Field(default=None, description=...).",
+        )
+    _refuse(
+        entity_cls,
+        field_name,
+        "a relation field takes no default other than an explicit None on a nullable relation; "
+        "a description belongs to Field(description=...), and the value is supplied by the caller.",
+    )
+
+
 def _check_relation(
     entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any
 ) -> bool:
-    """Check a relation-container field and return whether the field was one."""
-    if not is_relation_container(annotation):
+    """Check a relation field and return whether the field was one."""
+    if not _is_relation_field(annotation):
         return False
     if any(isinstance(marker, NoRelation) for marker in field_info.metadata):
         _refuse(
@@ -171,6 +221,7 @@ def _check_relation(
     target = _entity_inside(annotation)
     if target is not None and _kind_of(target) == "State":
         _refuse(entity_cls, field_name, _state_refusal(target))
+    _require_relation_metadata(entity_cls, field_name, field_info, annotation)
     return True
 
 

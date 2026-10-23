@@ -18,7 +18,6 @@ from aoa.action_machine.domain import (
     Classifier,
     Generalization,
     Inverse,
-    Rel,
     Specialization,
     value,
 )
@@ -49,7 +48,7 @@ class CounterpartyCoreEntity(BaseCoreEntity):
     details: Annotated[
         Specialization[OrganisationSpecEntity, CounterpartyKindEnumEntity],
         Inverse(field_name="counterparty"),
-    ] = Rel(description="Variant-specific data")
+    ] = Field(description="Variant-specific data")
 
 
 @entity(description="Organisation data of a counterparty", domain=ShopDomain)
@@ -62,7 +61,7 @@ class OrganisationSpecEntity(BaseSpecEntity):
         Generalization[CounterpartyCoreEntity],
         Classifier(variant=CounterpartyKindEnumEntity.ORGANISATION),
         Inverse(CounterpartyCoreEntity, "details"),
-    ] = Rel(description="Common counterparty data")
+    ] = Field(description="Common counterparty data")
 
 
 CounterpartyCoreEntity.model_rebuild()

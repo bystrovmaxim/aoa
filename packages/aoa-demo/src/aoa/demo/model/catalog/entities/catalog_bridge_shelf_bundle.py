@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
@@ -27,16 +27,16 @@ class CatalogShelfBundleLinkCoreEntity(BaseCoreEntity):
     shelf_hint: Annotated[
         AssociationOne[ShelfPlacementHintCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Planogram spine anchor"
-    )  # type: ignore[assignment]
+    )
 
     bundle_rule: Annotated[
         AssociationOne[BundleCardinalityRuleCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Bundle cardinality anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 CatalogShelfBundleLinkCoreEntity.model_rebuild()

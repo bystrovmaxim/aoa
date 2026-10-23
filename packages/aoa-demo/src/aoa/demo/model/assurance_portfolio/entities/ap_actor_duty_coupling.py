@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
@@ -27,16 +27,16 @@ class AssuranceActorDutyCouplingCoreEntity(BaseCoreEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Subject actor"
-    )  # type: ignore[assignment]
+    )
 
     duty_axis: Annotated[
         AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Assigned duty template"
-    )  # type: ignore[assignment]
+    )
 
 
 AssuranceActorDutyCouplingCoreEntity.model_rebuild()

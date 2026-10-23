@@ -14,7 +14,6 @@ from aoa.action_machine.domain import (
     BaseCoreEntity,
     FieldNotLoadedError,
     NoInverse,
-    Rel,
 )
 from aoa.action_machine.intents.entity import entity
 
@@ -107,7 +106,7 @@ class TestRelationForeignKeys:
             policy: Annotated[
                 AssociationOne[OrderCoreEntity] | None,
                 NoInverse(),
-            ] = Rel(
+            ] = Field(
                 description="Policy"
             )  # type: ignore[assignment]
 
@@ -126,7 +125,7 @@ class TestRelationForeignKeys:
             policy: Annotated[
                 AssociationOne[OrderCoreEntity] | None,
                 NoInverse(),
-            ] = Rel(
+            ] = Field(
                 description="Policy"
             )  # type: ignore[assignment]
 

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
@@ -26,9 +26,9 @@ class CartMergeTraceCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent customer aggregate"
-    )  # type: ignore[assignment]
+    )
 
 
 CartMergeTraceCoreEntity.model_rebuild()

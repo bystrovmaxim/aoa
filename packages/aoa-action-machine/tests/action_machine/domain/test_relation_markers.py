@@ -1,6 +1,6 @@
 # tests/domain/test_relation_markers.py
 """
-Tests for relation **markers**: `Inverse`, `NoInverse`, and `Rel`.
+Tests for relation **markers**: `Inverse`, `NoInverse` and `NoGraphEdge`.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -14,7 +14,7 @@ These tests assert constructor validation, repr, equality for the singleton
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- **TypeError** — wrong types for `Inverse` / `Rel` arguments.
+- **TypeError** — wrong types for `Inverse` arguments.
 - **ValueError** — empty `Inverse.field_name`.
 - **AttributeError** — mutation on frozen marker instances.
 
@@ -24,7 +24,7 @@ types themselves.
 
 import pytest
 
-from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, Rel
+from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse
 
 
 class _Entity:
@@ -93,24 +93,3 @@ def test_no_graph_edge_frozen() -> None:
         marker.x = 1  # type: ignore[misc]
     with pytest.raises(AttributeError, match="NoGraphEdge is frozen"):
         del marker.x  # type: ignore[attr-defined]
-
-
-def test_rel_ok() -> None:
-    r = Rel(description="Customer orders")
-    assert r.description == "Customer orders"
-
-
-def test_rel_description_not_str() -> None:
-    with pytest.raises(TypeError, match="Rel: description must be str"):
-        Rel(description=99)  # type: ignore[arg-type]
-
-
-def test_rel_description_empty() -> None:
-    with pytest.raises(ValueError, match="Rel: description cannot be empty"):
-        Rel(description="  \t")
-
-
-def test_rel_frozen() -> None:
-    r = Rel(description="x")
-    with pytest.raises(AttributeError, match="Rel is frozen"):
-        r.description = "y"  # type: ignore[misc]

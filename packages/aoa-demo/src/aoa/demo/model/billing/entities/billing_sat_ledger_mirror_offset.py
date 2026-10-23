@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
@@ -24,9 +24,9 @@ class LedgerMirrorOffsetCoreEntity(BaseCoreEntity):
     fee_schedule_pointer: Annotated[
         AssociationOne[MerchantFeeSchedulePointerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream fee schedule pointer"
-    )  # type: ignore[assignment]
+    )
 
     mirror_partition_id: str = Field(description="Sharding partition for mirrored ledger")
     observation_lag_seconds: int = Field(description="Replication lag observed at capture", ge=0)

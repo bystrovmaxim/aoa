@@ -21,7 +21,6 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     NoInverse,
-    Rel,
     value,
 )
 from aoa.action_machine.intents.entity import entity
@@ -63,16 +62,16 @@ class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
     pong_peer: Annotated[
         AssociationOne[StoreDirectedCyclePongCoreEntity],
         Inverse(StoreDirectedCyclePongCoreEntity, "ping_peer"),
-    ] = Rel(
+    ] = Field(
         description="Points at pong counterpart; closes a 2-node cycle"
-    )  # type: ignore[assignment]
+    )
 
     storefront_customer_anchor: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Sample FK tying the ping row into core customer/order graph (no reciprocal field)",
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(
@@ -92,16 +91,16 @@ class StoreDirectedCyclePongCoreEntity(BaseCoreEntity):
     ping_peer: Annotated[
         AssociationOne[StoreDirectedCyclePingCoreEntity],
         Inverse(StoreDirectedCyclePingCoreEntity, "pong_peer"),
-    ] = Rel(
+    ] = Field(
         description="Points at ping counterpart; completes mutual reference"
-    )  # type: ignore[assignment]
+    )
 
     storefront_order_anchor: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Sample FK tying the pong row into the sales-order spine (no reciprocal field)",
-    )  # type: ignore[assignment]
+    )
 
 
 StoreDirectedCyclePingCoreEntity.model_rebuild()

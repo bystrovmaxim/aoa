@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
@@ -26,9 +26,9 @@ class SupportSlaIntervalCoreEntity(BaseCoreEntity):
     participant: Annotated[
         AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Upstream participant linkage"
-    )  # type: ignore[assignment]
+    )
 
 
 SupportSlaIntervalCoreEntity.model_rebuild()

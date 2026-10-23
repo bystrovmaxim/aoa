@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
@@ -26,9 +26,9 @@ class DimensionSliceStubCoreEntity(BaseCoreEntity):
     ingress_batch: Annotated[
         AssociationOne[AnalyticsIngressBatchCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning ingest workload batch"
-    )  # type: ignore[assignment]
+    )
 
 
 DimensionSliceStubCoreEntity.model_rebuild()

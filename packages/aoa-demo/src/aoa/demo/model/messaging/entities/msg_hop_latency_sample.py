@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
@@ -26,9 +26,9 @@ class HopLatencySampleCoreEntity(BaseCoreEntity):
     ledger: Annotated[
         AssociationOne[CourierAttemptLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Courier ledger parent"
-    )  # type: ignore[assignment]
+    )
 
 
 HopLatencySampleCoreEntity.model_rebuild()

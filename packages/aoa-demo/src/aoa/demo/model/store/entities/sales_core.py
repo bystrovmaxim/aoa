@@ -23,7 +23,6 @@ from aoa.action_machine.domain import (
     CompositeMany,
     Inverse,
     NoInverse,
-    Rel,
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
@@ -50,16 +49,16 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
     identity_party: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Canonical person aggregate in the identity bounded context"
-    )  # type: ignore[assignment]
+    )
 
     orders: Annotated[
         AssociationMany[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "customer"),
-    ] = Rel(
+    ] = Field(
         description="Orders"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Customer order", domain=StoreDomain)
@@ -76,23 +75,23 @@ class SalesOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         Inverse(CustomerAccountCoreEntity, "orders"),
-    ] = Rel(
+    ] = Field(
         description="Customer"
-    )  # type: ignore[assignment]
+    )
 
     order_lines: Annotated[
         CompositeMany[SalesOrderLineDetailEntity],
         Inverse(SalesOrderLineDetailEntity, "order"),
-    ] = Rel(
+    ] = Field(
         description="Line items"
-    )  # type: ignore[assignment]
+    )
 
     payment_capture_audit: Annotated[
         AssociationOne[PaymentEventLogCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Settlement-side payment telemetry for this storefront order"
-    )  # type: ignore[assignment]
+    )
 
 
 @entity(description="Order line", domain=StoreDomain)
@@ -109,16 +108,16 @@ class SalesOrderLineDetailEntity(BaseDetailEntity):
     catalog_product: Annotated[
         AssociationOne[CatalogProductCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Anchored SKU row from the commerce catalog"
-    )  # type: ignore[assignment]
+    )
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "order_lines"),
-    ] = Rel(
+    ] = Field(
         description="Parent order"
-    )  # type: ignore[assignment]
+    )
 
 
 CustomerAccountCoreEntity.model_rebuild()

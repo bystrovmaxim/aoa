@@ -33,7 +33,6 @@ from aoa.action_machine.domain import (
     CompositeMany,
     Inverse,
     Lifecycle,
-    Rel,
     build,
     value,
 )
@@ -148,9 +147,9 @@ class CustomerCoreEntity(BaseCoreEntity):
 
     # association many — customer exists independently of any order
     orders: Annotated[
-        AssociationMany[OrderCoreEntity],
+        AssociationMany[OrderCoreEntity] | None,
         Inverse(OrderCoreEntity, "customer"),
-    ] = Rel(description="Orders placed by this customer")
+    ] = Field(default=None, description="Orders placed by this customer; NULL when not loaded")
 
 
 @entity(description="Customer order", domain=StoreDomain)
@@ -164,13 +163,13 @@ class OrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerCoreEntity],
         Inverse(CustomerCoreEntity, "orders"),
-    ] = Rel(description="Customer who placed the order")
+    ] = Field(description="Customer who placed the order")
 
     # composition one-to-many — order lines cannot exist without this order
     lines: Annotated[
         CompositeMany[OrderLineDetailEntity],
         Inverse(OrderLineDetailEntity, "order"),
-    ] = Rel(description="Line items of the order")
+    ] = Field(description="Line items of the order")
 
 
 @entity(description="Single line item within an order", domain=StoreDomain)
@@ -186,7 +185,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
     order: Annotated[
         AssociationOne[OrderCoreEntity],
         Inverse(OrderCoreEntity, "lines"),
-    ] = Rel(description="Parent order")
+    ] = Field(description="Parent order")
 
 
 # Rebuild forward references after all three classes are defined

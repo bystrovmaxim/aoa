@@ -43,7 +43,6 @@ from aoa.action_machine.domain import (
     Generalization,
     Inverse,
     NoGraphEdge,
-    Rel,
     Specialization,
     value,
 )
@@ -89,7 +88,7 @@ class _FirstSpecEntity(BaseSpecEntity):
         Generalization[_HeadCoreEntity],
         Classifier(variant=_HeadKindEnumEntity.FIRST),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -100,7 +99,7 @@ class _SecondSpecEntity(BaseSpecEntity):
         Generalization[_HeadCoreEntity],
         Classifier(variant=_HeadKindEnumEntity.REPRESS),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -111,7 +110,7 @@ class _ThirdSpecEntity(BaseSpecEntity):
         Generalization[_HeadCoreEntity],
         Classifier(variant=_HeadKindEnumEntity.TEST),
         Inverse(_HeadCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -130,7 +129,7 @@ class _HeadCoreEntity(BaseCoreEntity):
     pressed: Annotated[
         Specialization[_FirstSpecEntity | _SecondSpecEntity | _ThirdSpecEntity, _HeadKindEnumEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="how it was pressed")
+    ] = Field(description="how it was pressed")
 
 
 for _cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity, _HeadCoreEntity):
@@ -146,7 +145,7 @@ for _cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity, _HeadCoreEnt
 @entity(description="Silent", domain=_SDomain)
 class _SilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
-    record: Annotated[Generalization[_HeadWithSilentCoreEntity], Inverse(_HeadWithSilentCoreEntity, "pressed")] = Rel(
+    record: Annotated[Generalization[_HeadWithSilentCoreEntity], Inverse(_HeadWithSilentCoreEntity, "pressed")] = Field(
         description="back, with no code"
     )
 
@@ -159,7 +158,7 @@ class _FirstForSilentSpecEntity(BaseSpecEntity):
         Generalization[_HeadWithSilentCoreEntity],
         Classifier(variant=_HeadWithSilentKindEnumEntity.FIRST),
         Inverse(_HeadWithSilentCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -177,7 +176,7 @@ class _HeadWithSilentCoreEntity(BaseCoreEntity):
     pressed: Annotated[
         Specialization[_FirstForSilentSpecEntity | _SilentSpecEntity, _HeadWithSilentKindEnumEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="one class declares nothing")
+    ] = Field(description="one class declares nothing")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -193,7 +192,7 @@ class _GreedySpecEntity(BaseSpecEntity):
         Generalization[_HeadWithGreedyCoreEntity],
         Classifier(variant=_HeadWithGreedyKindEnumEntity.FIRST),
         Inverse(_HeadWithGreedyCoreEntity, "pressed"),
-    ] = Rel(description="back, with two codes")
+    ] = Field(description="back, with two codes")
 
 
 @exclude_graph_model
@@ -210,7 +209,7 @@ class _HeadWithGreedyCoreEntity(BaseCoreEntity):
     pressed: Annotated[
         Specialization[_GreedySpecEntity, _HeadWithGreedyKindEnumEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="one class declares two codes")
+    ] = Field(description="one class declares two codes")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -226,7 +225,7 @@ class _TwinASpecEntity(BaseSpecEntity):
         Generalization[_HeadWithTwinCoreEntity],
         Classifier(variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -237,7 +236,7 @@ class _TwinBSpecEntity(BaseSpecEntity):
         Generalization[_HeadWithTwinCoreEntity],
         Classifier(variant=_HeadWithTwinKindEnumEntity.FIRST),
         Inverse(_HeadWithTwinCoreEntity, "pressed"),
-    ] = Rel(description="back, with the same code")
+    ] = Field(description="back, with the same code")
 
 
 @exclude_graph_model
@@ -255,7 +254,7 @@ class _HeadWithTwinCoreEntity(BaseCoreEntity):
     pressed: Annotated[
         Specialization[_TwinASpecEntity | _TwinBSpecEntity, _HeadWithTwinKindEnumEntity],
         Inverse(field_name="record"),
-    ] = Rel(description="two classes answer to one code")
+    ] = Field(description="two classes answer to one code")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +275,7 @@ class _BareContainerAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
     pressed: Annotated[
         Specialization[_FirstSpecEntity, _QuietHeadKindEnumEntity], Inverse(field_name="record")
-    ] = Rel(description="declared, but kept out of the graph")
+    ] = Field(description="declared, but kept out of the graph")
 
 
 @exclude_graph_model
@@ -294,7 +293,7 @@ class _QuietHeadCoreEntity(BaseCoreEntity):
         Specialization[_FirstSpecEntity, _QuietHeadKindEnumEntity],
         NoGraphEdge(),
         Inverse(field_name="record"),
-    ] = Rel(description="kept out of the graph")
+    ] = Field(description="kept out of the graph")
 
 
 for _cls in (

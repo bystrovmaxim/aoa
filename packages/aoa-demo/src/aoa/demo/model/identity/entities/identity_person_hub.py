@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.identity.domain import IdentityDomain
@@ -26,9 +26,9 @@ class IdentityPersonHubCoreEntity(BaseCoreEntity):
     acquisition_channel_anchor: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Acquisition ledger bridge for federation and marketing checks"
-    )  # type: ignore[assignment]
+    )
 
 
 IdentityPersonHubCoreEntity.model_rebuild()

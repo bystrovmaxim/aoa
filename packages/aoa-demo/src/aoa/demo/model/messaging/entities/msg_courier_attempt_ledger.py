@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_batching_fence import BatchingFenceCoreEntity
@@ -26,9 +26,9 @@ class CourierAttemptLedgerCoreEntity(BaseCoreEntity):
     batching_fence: Annotated[
         AssociationOne[BatchingFenceCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Owning batch coordination fence row"
-    )  # type: ignore[assignment]
+    )
 
 
 CourierAttemptLedgerCoreEntity.model_rebuild()

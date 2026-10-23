@@ -379,20 +379,22 @@ Every ownership-relation field must have either `Inverse(TargetEntity, "field_na
 customer: Annotated[
     AssociationOne[CustomerCoreEntity],
     Inverse(CustomerCoreEntity, "orders"),
-] = Rel(description="The customer who placed the order")
+] = Field(description="The customer who placed the order")
 
 # ✓ intentionally one-way link
 audit_log: Annotated[
     CompositeMany[AuditLogEntity],
     NoInverse(),
-] = Rel(description="Audit log")
+] = Field(description="Audit log")
 ```
 
 `Inverse.field_name` cannot be an empty string (`ValueError`) or a non-string (`TypeError`); `target_entity` must be a type for an ownership relation. On a specialization head, `Inverse(field_name="record")` omits the target class because the alternatives already specify it.
 
-### Mandatory Rel description
+### Relation descriptions and defaults
 
-Every ownership-relation field must have `= Rel(description="...")` as its default value. An empty or whitespace-only description is a `ValueError` at class definition. The description is mandatory on both sides: the forward relation and the reverse one.
+Every ownership, specialization and generalization relation requires a non-blank `Field` description. Missing or blank descriptions raise `EntityFieldDeclarationError` when the graph is built. The description is metadata, not an instance default. Required relation fields have no default. Only a nullable relation may use `default=None`; factories and all other defaults are refused. The rule applies even when an edge is hidden.
+
+A bare Core, Assoc, Detail or Spec field, including optional and collection forms, is refused. Use a relation container, or `Annotated[EntityType, NoRelation("reason")]` for an embedded value. A State field uses a lifecycle type. See [complete declarations and refusals](../how-to/explicit-entity-fields.md).
 
 ### The hydration invariant (fail-fast)
 
@@ -458,7 +460,7 @@ provides a complete model before introducing the individual operations.
 The head declares `Specialization[Alternatives, Dictionary]`, optionally unioned with
 `None`, and normally `Inverse(field_name="record")`. Each alternative declares
 `Generalization[Head]`, `Classifier(variant=Dictionary.VALUE)` and the
-paired `Inverse(Head, "pressing")`. Use `Rel(description=...)` for descriptions.
+paired `Inverse(Head, "pressing")`. Use `Field(description=...)` for descriptions.
 The head has no classification marker or duplicated selector. A single alternative is
 allowed; one type is used instead of a union in the first argument.
 

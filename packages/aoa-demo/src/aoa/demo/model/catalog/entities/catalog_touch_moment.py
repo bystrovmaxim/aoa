@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
@@ -27,16 +27,16 @@ class TouchMomentCoreEntity(BaseCoreEntity):
     channel_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Acquisition ledger segment"
-    )  # type: ignore[assignment]
+    )
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Messaging replay ticket for deterministic touch lineage"
-    )  # type: ignore[assignment]
+    )
 
 
 TouchMomentCoreEntity.model_rebuild()

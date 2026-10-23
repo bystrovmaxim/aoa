@@ -1,7 +1,6 @@
 # packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py
 """
-**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge``, ``NoRelation``, and
-``Rel``.
+**Relation markers** for entity fields: ``Inverse``, ``NoInverse``, ``NoGraphEdge`` and ``NoRelation``.
 
 These types sit beside relation **container** types (``AssociationOne``, …) in
 ``typing.Annotated`` and in field defaults. They tell the gate **coordinator**
@@ -32,7 +31,7 @@ SCOPE (IN / OUT)
 **In scope**
     Constructing immutable marker objects and validating their constructor inputs.
     Pairing with ``Annotated[..., Inverse(...)]`` or ``NoInverse()`` plus
-    ``= Rel(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
+    ``= Field(description=...)`` on entity model fields. Optional ``NoGraphEdge()``
     suppresses interchange edges for that field while keeping it in graph node metadata.
     ``NoRelation("reason")`` declares that a structural-entity field is an embedded value
     with no model relation at all, which the graph build refuses to guess.
@@ -50,16 +49,16 @@ ARCHITECTURE / DATA FLOW
 
     Annotated[AssociationOne[CustomerCoreEntity], Inverse(CustomerCoreEntity, "orders")]
         │
-        │  class default
+        │  field metadata
         v
-    = Rel(description="…")
+    = Field(description="…")
         │
         │  ``NodeGraphCoordinator.build()`` / ``EntityIntentResolver``
         v
     validated entity–entity edges (composition / aggregation / association)
 
-Coordinator checks (conceptually): inverse field present and typed, both ends
-carry ``Rel``, ownership matrix, etc.
+Coordinator checks (conceptually): inverse field present and typed, every relation field
+carries a description in ``FieldInfo.description``, ownership matrix, etc.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
@@ -78,9 +77,8 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 - **Import**: markers are instantiated in class bodies as annotations/defaults.
 - **Build**: coordinator consumes markers from entity metadata.
-- **Runtime**: entity instances hold **container** values; ``Rel`` typically
-  remains only as the class-level default unless the constructor still sees it
-  (e.g. optional relation omitted in ``build()``).
+- **Runtime**: entity instances hold **container** values or an explicit ``None``;
+  the description never reaches an instance.
 
 """
 
@@ -286,59 +284,3 @@ class NoRelation:
     def __hash__(self) -> int:
         reason = cast(str, object.__getattribute__(self, "_reason"))
         return hash(reason)
-
-
-class Rel:
-    """
-    AI-CORE-BEGIN
-        ROLE: Mandatory relation description carrier.
-        CONTRACT: Provide non-empty documentation text for one direction of an entity relation edge.
-        INVARIANTS: Description is validated and immutable after construction.
-        AI-CORE-END
-    """
-
-    __slots__ = ("_description",)
-
-    def __init__(self, *, description: str) -> None:
-        """
-        Args:
-            description: Non-empty relation description (keyword-only).
-
-        Raises:
-            TypeError: ``description`` is not a ``str``.
-            ValueError: Empty or whitespace-only ``description``.
-        """
-        if not isinstance(description, str):
-            raise TypeError(f"Rel: description must be str, " f"got {type(description).__name__}: {description!r}.")
-
-        if not description.strip():
-            raise ValueError(
-                "Rel: description cannot be empty or whitespace-only. " "Provide a non-empty relation description."
-            )
-
-        object.__setattr__(self, "_description", description)
-
-    @property
-    def description(self) -> str:
-        """Relation description for this direction."""
-        return cast(str, object.__getattribute__(self, "_description"))
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("Rel is frozen; assigning to attributes is not allowed.")
-
-    def __delattr__(self, name: str) -> None:
-        raise AttributeError("Rel is frozen; deleting attributes is not allowed.")
-
-    def __repr__(self) -> str:
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return f"Rel(description='{description}')"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Rel):
-            return NotImplemented
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return description == other.description
-
-    def __hash__(self) -> int:
-        description = cast(str, object.__getattribute__(self, "_description"))
-        return hash(description)

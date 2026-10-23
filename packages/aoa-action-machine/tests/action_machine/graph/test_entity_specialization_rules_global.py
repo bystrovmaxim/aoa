@@ -39,7 +39,6 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Classifier,
     Generalization,
-    Rel,
     Specialization,
     value,
 )
@@ -88,11 +87,11 @@ class SharedAlternativeSpecEntity(BaseSpecEntity):
     first: Annotated[
         Generalization[FirstClaimHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back to the first head")
+    ] = Field(description="back to the first head")
     second: Annotated[
         Generalization[SecondClaimHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.B),
-    ] = Rel(description="back to the second head")
+    ] = Field(description="back to the second head")
 
 
 @exclude_graph_model
@@ -101,7 +100,7 @@ class FirstClaimHeadCoreEntity(BaseCoreEntity):
     """Claims the shared class."""
 
     id: str = Field(description="id")
-    pack: Specialization[SharedAlternativeSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[SharedAlternativeSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 @exclude_graph_model
@@ -110,7 +109,7 @@ class SecondClaimHeadCoreEntity(BaseCoreEntity):
     """Claims the same class through its own axis."""
 
     id: str = Field(description="id")
-    pack: Specialization[SharedAlternativeSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[SharedAlternativeSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 for _cls in (
@@ -140,7 +139,7 @@ class NamedAlternativeSpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[ClosedHeadCoreEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -149,7 +148,7 @@ class IntruderSpecEntity(BaseSpecEntity):
     """Points at the head without being one of its alternatives."""
 
     id: str = Field(description="id")
-    rec: Generalization[ClosedHeadCoreEntity] = Rel(description="back, but not named")
+    rec: Generalization[ClosedHeadCoreEntity] = Field(description="back, but not named")
 
 
 @exclude_graph_model
@@ -158,7 +157,7 @@ class ClosedHeadCoreEntity(BaseCoreEntity):
     """Names one alternative, and something else points at it."""
 
     id: str = Field(description="id")
-    pack: Specialization[NamedAlternativeSpecEntity, _KindEnumEntity] = Rel(description="d")
+    pack: Specialization[NamedAlternativeSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 for _cls in (NamedAlternativeSpecEntity, IntruderSpecEntity, ClosedHeadCoreEntity):
@@ -203,8 +202,8 @@ class SelfCycleSpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[SelfCycleSpecEntity],
         Classifier(variant=_SelfKindEnumEntity.A),
-    ] = Rel(description="back to itself")
-    pack: Specialization[SelfCycleSpecEntity, _SelfKindEnumEntity] = Rel(description="names itself")
+    ] = Field(description="back to itself")
+    pack: Specialization[SelfCycleSpecEntity, _SelfKindEnumEntity] = Field(description="names itself")
 
 
 SelfCycleSpecEntity.model_rebuild()
@@ -223,7 +222,7 @@ class CycleASpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[CycleBSpecEntity],
         Classifier(variant=_KindEnumEntity.A),
-    ] = Rel(description="back")
+    ] = Field(description="back")
 
 
 @exclude_graph_model
@@ -235,8 +234,8 @@ class CycleBSpecEntity(BaseSpecEntity):
     rec: Annotated[
         Generalization[CycleASpecEntity],
         Classifier(variant=_KindEnumEntity.B),
-    ] = Rel(description="back")
-    pack: Specialization[CycleASpecEntity, _KindEnumEntity] = Rel(description="names A")
+    ] = Field(description="back")
+    pack: Specialization[CycleASpecEntity, _KindEnumEntity] = Field(description="names A")
 
 
 CycleASpecEntity.model_rebuild()

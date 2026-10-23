@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
@@ -29,16 +29,16 @@ class CatalogPriceAcquisitionLinkCoreEntity(BaseCoreEntity):
     price_ribbon: Annotated[
         AssociationOne[PriceRibbonSnapshotCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Ribbon spine anchor"
-    )  # type: ignore[assignment]
+    )
 
     acquisition_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Acquisition ledger anchor"
-    )  # type: ignore[assignment]
+    )
 
 
 CatalogPriceAcquisitionLinkCoreEntity.model_rebuild()

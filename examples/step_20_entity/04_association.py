@@ -9,7 +9,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, BaseCoreEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -41,8 +41,8 @@ class ProductCategoryAssocEntity(BaseAssocEntity):
 
     id: str = Field(description="Storage identifier of the link")
     created_at: str = Field(description="Storage insertion timestamp")
-    product: Annotated[AssociationOne[ProductCoreEntity], NoInverse()] = Rel(description="Linked product")
-    category: Annotated[AssociationOne[CategoryCoreEntity], NoInverse()] = Rel(description="Linked category")
+    product: Annotated[AssociationOne[ProductCoreEntity], NoInverse()] = Field(description="Linked product")
+    category: Annotated[AssociationOne[CategoryCoreEntity], NoInverse()] = Field(description="Linked category")
 
 link = ProductCategoryAssocEntity(
     id="link-1", created_at="2026-10-22T09:00:00Z",

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse, Rel
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.messaging.domain import MessagingDomain
@@ -27,16 +27,16 @@ class ReplayTicketCoreEntity(BaseCoreEntity):
     watermark: Annotated[
         AssociationOne[DownstreamWatermarkCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Parent watermark row"
-    )  # type: ignore[assignment]
+    )
 
     billing_parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Rel(
+    ] = Field(
         description="Billing parse artifact correlated with replay bookkeeping"
-    )  # type: ignore[assignment]
+    )
 
 
 ReplayTicketCoreEntity.model_rebuild()

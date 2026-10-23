@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-23] — Entity fields declare their meaning
+
+A field containing another entity now states whether it is a relationship or an embedded value. Ambiguous declarations are refused when the model is assembled, with guidance on the supported forms. Relationship descriptions are field metadata; a relationship value comes from the caller. Existing declarations must move descriptions into field metadata and explicitly choose whether a nullable relationship may be omitted.
+
+A specialization alternative now names only its dictionary value, without repeating the name of the field carrying the declaration. Dictionary values are checked again after custom validation, so a validator cannot publish a list in place of a tuple. Export schemas retain the definitions used by enum properties and require the properties actually written, including null values. Two validator gaps remain: literal membership and null returned for a non-nullable union. These are documented defects that need a follow-up correction.
+
+Dictionary cards show human labels and descriptive properties. Codes remain available in tooltips, and the inherited identity fields no longer occupy ordinary field rows. The declaration, refusal and export examples are available as executable scripts and notebooks.
+
+([#249](https://github.com/bystrovmaxim/aoa/issues/249))
+
 ## [2026-10-23] — Explicit values and consistent references
 
 Dictionaries and lifecycle statuses now declare their members with `value(...)`, keeping
