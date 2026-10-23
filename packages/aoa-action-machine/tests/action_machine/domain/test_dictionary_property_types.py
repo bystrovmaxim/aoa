@@ -55,8 +55,8 @@ class Nested(BaseModel):
 
 
 def _build(**namespace: object) -> type[BaseEnumEntity]:
-    """Build a dictionary class with the given class-body namespace."""
-    return type("ProbeEnumEntity", (BaseEnumEntity,), dict(namespace))
+    """Build a graph-excluded dictionary class with the given class-body namespace."""
+    return type("ProbeEnumEntity", (BaseEnumEntity,), {"__graph_exclude_graph_model__": True, **namespace})
 
 
 @pytest.mark.parametrize(("name", "annotation", "sample"), _ACCEPTED)

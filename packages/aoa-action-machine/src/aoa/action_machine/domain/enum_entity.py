@@ -81,6 +81,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import CoreSchema, core_schema
 
 from aoa.action_machine.domain.declared_values import (
@@ -99,7 +100,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
-        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the dictionary node carries its values in the graph.
+        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; the dictionary node carries its values in the graph.
         INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
@@ -170,8 +171,36 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     def __get_pydantic_json_schema__(  # pylint: disable=arguments-differ
         cls, schema: CoreSchema, handler: Any
     ) -> dict[str, Any]:
-        """Publish the reference object as this type's JSON shape."""
-        _ = (schema, handler)
+        """Publish the accepting shape in validation mode and the emitted shape in serialization mode."""
+        if handler.mode == "serialization":
+            return cls._emitted_reference_schema(schema)
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["code"],
+            "properties": {
+                "code": {"type": "string", "minLength": 1},
+                "display_name": {"type": "string", "minLength": 1},
+                "properties": {"type": "object"},
+            },
+        }
+
+    @classmethod
+    def _emitted_reference_schema(cls, schema: CoreSchema) -> dict[str, Any]:
+        """Describe the emitted reference: three members, each property by its serialized type."""
+        model_schema = dict(schema)
+        while model_schema.get("type") in {"function-before", "function-after", "function-wrap"}:
+            model_schema = dict(model_schema["schema"])
+        model_schema.pop("metadata", None)
+        model_schema.pop("serialization", None)
+        emitted = GenerateJsonSchema().generate(model_schema, mode="serialization")
+        properties = {
+            name: {
+                key: value for key, value in definition.items() if key not in {"title", "description"}
+            }
+            for name, definition in emitted.get("properties", {}).items()
+            if name not in {"code", "display_name"}
+        }
         return {
             "type": "object",
             "additionalProperties": False,
@@ -179,7 +208,11 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
             "properties": {
                 "code": {"type": "string", "minLength": 1},
                 "display_name": {"type": "string", "minLength": 1},
-                "properties": {"type": "object"},
+                "properties": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": properties,
+                },
             },
         }
 
