@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-23] — A completed value must be the declared type
+
+A dictionary property now compares the exact type of the value a custom validator returns, not merely that the value belongs to that type in Python's class hierarchy. A `datetime` no longer passes for a `date`, and any subclass of a declared property type is refused, because the exported schema describes the declared type rather than its subclasses. The rule that already refused `bool` for `int` and an integer for a `float` is now the stated rule instead of a side effect of the comparison.
+
+Input is unchanged: a declaration that gives `1` to a `float` property still stores `1.0` before the completed-value check, because Pydantic coerces ordinary input first. A validator that computes a value must return the declared type. The migration table in the dictionary guide lists each refused pair with its accepted neighbour.
+
+([#254](https://github.com/bystrovmaxim/aoa/issues/254))
+
 ## [2026-10-23] — Dictionary values keep their declared choices
 
 A shared dictionary value now keeps the choices and types its declaration promises, even after custom validation. A validator cannot publish an unlisted choice or an absent value where one is required. Booleans and integers remain distinct, including choices that Python would otherwise compare as equal.

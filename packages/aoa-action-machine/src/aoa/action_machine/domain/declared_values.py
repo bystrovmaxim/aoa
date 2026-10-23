@@ -193,10 +193,14 @@ def _tuple_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str,
 
 
 def _leaf_refusal(runtime_value: Any, annotation: type, path: str) -> tuple[str, str] | None:
-    """Return the refusal for a leaf annotation, or ``None`` when the value satisfies it."""
-    if isinstance(runtime_value, bool) and annotation is not bool:
-        return _mismatch(runtime_value, annotation, path)
-    if not isinstance(runtime_value, annotation):
+    """
+    Return the refusal for a leaf annotation, or ``None`` when the value satisfies it.
+
+    The runtime type must be the declared one: a subclass is the same trap as ``bool`` for
+    ``int``, because the exported schema describes the declared type, not its subclasses.
+    """
+    # The exact type is the rule here, so a subclass is refused; C0123 suggests isinstance().
+    if type(runtime_value) is not annotation:  # pylint: disable=unidiomatic-typecheck
         return _mismatch(runtime_value, annotation, path)
     if issubclass(annotation, Enum):
         return _enum_value_refusal(annotation, runtime_value, path)

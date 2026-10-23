@@ -436,7 +436,7 @@ inherit its parent's catalogue instead.
 | Export | to_reference() equals model_dump(mode="json"); field serializers run and extra fields appear under properties |
 | Input schema | Requires code, allows optional label/properties and rejects unknown top-level keys; runtime still checks membership and whitespace-only codes |
 | Output schema | Requires code/display_name/properties, describes the emitted type of each extra property and rejects unknown nested keys; nested properties require every emitted property, including null values, and an excluded property is absent |
-| Completed values | Checked after user validators; Literal choices match by type and value, and bool does not satisfy int |
+| Completed values | Checked after user validators; Literal choices match by type and value; a leaf matches the exact declared type, so bool is not int, int is not float and datetime is not date |
 | Nullability | A union accepts None only when included; Literal may list None explicitly; a property annotated only None is refused |
 | Tuple properties | Each item follows its annotation; a refusal identifies the item index |
 | Graph | The dictionary Entity node carries properties.values; references carry reference_qualname; values are not separate nodes |
