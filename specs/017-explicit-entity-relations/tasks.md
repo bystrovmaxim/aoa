@@ -121,15 +121,15 @@ US4, which extends the validator US1 creates.
 
 ### Tests for User Story 2
 
-- [ ] T024 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a validator returning `list(...)` is refused, and neither `members` nor `by_code()` exposes the member (FR-008, FR-009, FR-012, FR-014)
-- [ ] T025 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a model-level after-validator mutating a tuple's contents is refused; an `Enum` whose value is a list is refused naming the enum class and the value type (FR-010, FR-011)
-- [ ] T026 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a validator returning a different immutable type is refused with the declared and the actual type; a validator returning an equal tuple is accepted; a state type whose status holds a list is still published; editing an exported array never reaches the declared tuple (FR-011, FR-012, FR-013)
+- [x] T024 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a validator returning `list(...)` is refused, and neither `members` nor `by_code()` exposes the member (FR-008, FR-009, FR-012, FR-014)
+- [x] T025 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a model-level after-validator mutating a tuple's contents is refused; an `Enum` whose value is a list is refused naming the enum class and the value type (FR-010, FR-011)
+- [x] T026 [P] [US2] Add to `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_property_types.py`: a validator returning a different immutable type is refused with the declared and the actual type; a validator returning an equal tuple is accepted; a state type whose status holds a list is still published; editing an exported array never reaches the declared tuple (FR-011, FR-012, FR-013)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Add the runtime member check to `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, between member construction and the assignment of `members`/`_by_code`: annotation agreement plus the recursive immutable set, refusing — never freezing — with the four-part message (FR-008, FR-009, FR-010)
-- [ ] T028 [US2] Update the `BaseEnumEntity` AI-CORE block and docstring in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` to state the runtime member contract (FR-008)
-- [ ] T029 [US2] Adversarially remove the runtime check (keep the annotation check), confirm T024 fails while the valid-tuple case passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`) (FR-014, FR-042; SC-003)
+- [x] T027 [US2] Add the runtime member check to `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`, between member construction and the assignment of `members`/`_by_code`: annotation agreement plus the recursive immutable set, refusing — never freezing — with the four-part message (FR-008, FR-009, FR-010)
+- [x] T028 [US2] Update the `BaseEnumEntity` AI-CORE block and docstring in `packages/aoa-action-machine/src/aoa/action_machine/domain/enum_entity.py` to state the runtime member contract (FR-008)
+- [x] T029 [US2] Adversarially remove the runtime check (keep the annotation check), confirm T024 fails while the valid-tuple case passes, then restore (file: `packages/aoa-action-machine/src/aoa/action_machine/domain/declared_values.py`) (FR-014, FR-042; SC-003)
 
 **Checkpoint**: no member with a mutable value or a mismatched type is reachable.
 
