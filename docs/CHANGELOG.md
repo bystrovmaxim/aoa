@@ -1,10 +1,20 @@
 # Changelog
 
+## [2026-10-23] — Dictionary values keep their declared choices
+
+A shared dictionary value now keeps the choices and types its declaration promises, even after custom validation. A validator cannot publish an unlisted choice or an absent value where one is required. Booleans and integers remain distinct, including choices that Python would otherwise compare as equal.
+
+Existing validators must return a permitted value of the declared type. If absence is part of the vocabulary, declare it alongside the other permitted values or types. A property declared to contain only absence is refused. The same checks apply to tuple items, and refusal messages identify the member, property and failing item.
+
+This resolves the previously reported gaps in checking completed dictionary members. Reference payloads and their schema modes keep their existing form. Four learning scenarios group the refusals with their accepted neighbors: literal choices, union nullability, tuple items and property declarations. Each has one executable script and one notebook that presents the related cases in order.
+
+([#252](https://github.com/bystrovmaxim/aoa/issues/252))
+
 ## [2026-10-23] — Entity fields declare their meaning
 
 A field containing another entity now states whether it is a relationship or an embedded value. Ambiguous declarations are refused when the model is assembled, with guidance on the supported forms. Relationship descriptions are field metadata; a relationship value comes from the caller. Existing declarations must move descriptions into field metadata and explicitly choose whether a nullable relationship may be omitted.
 
-A specialization alternative now names only its dictionary value, without repeating the name of the field carrying the declaration. Dictionary values are checked again after custom validation, so a validator cannot publish a list in place of a tuple. Export schemas retain the definitions used by enum properties and require the properties actually written, including null values. Two validator gaps remain: literal membership and null returned for a non-nullable union. These are documented defects that need a follow-up correction.
+A specialization alternative now names only its dictionary value, without repeating the name of the field carrying the declaration. Dictionary values are checked again after custom validation, so a validator cannot publish a list in place of a tuple. Export schemas retain the definitions used by enum properties and require the properties actually written, including null values. At the time of this entry, literal membership and null returned for a non-nullable union remained unchecked. The later entry above records their correction.
 
 Dictionary cards show human labels and descriptive properties. Codes remain available in tooltips, and the inherited identity fields no longer occupy ordinary field rows. The declaration, refusal and export examples are available as executable scripts and notebooks.
 

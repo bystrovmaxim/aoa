@@ -1,77 +1,23 @@
-# Additional code fixes after documentation verification
+# Completed dictionary values: verification status
 
-Comparison base: `origin/main`, merge-base `2e70a30d36471518df9a64f855b30a8c32118ecb`. Evidence includes the committed branch changes and the current working tree. No source behavior was changed during this documentation pass.
+Comparison base: `origin/main`, merge-base `69f430de4a156c8ce3b81c234003df89d44ada6e`. The review included the branch history, staged changes, unstaged changes and new example files. Behavior was checked on the current working tree rather than inferred from an issue description.
 
-## Fix Literal membership after user validation
+## Previously reported defects are resolved
 
-Priority: high. A dictionary annotated with `Literal["a"]` publishes `"b"` when an after-validator returns it. The completed-value check accepts a supported scalar without checking membership in the literal choices. This allows the member to contradict its declared schema.
+The two earlier reproductions no longer publish invalid members: a value outside `Literal` choices and null for a non-nullable union raise `ValueError` while the dictionary class is created. Booleans are distinguished from integers for literal choices and integer properties. Tuple checks preserve the failing item index. A property annotated only `None` is refused during annotation checking; a nullable union or a literal explicitly listing `None` can still accept null.
 
-The next code change should reject a completed member outside the literal choices. Add a regression test that currently fails, a valid-member neighbor, and nested tuple and optional cases. Keep the diagnostic consistent with other dictionary-property refusals. The exact future diagnostic is not specified here because it does not exist yet.
+The old reproducer stopped at its first class definition under the corrected code, so it could no longer demonstrate both outcomes. It has been replaced by [independent executable refusals and accepted neighbors](../how-to/dictionary-validation-and-export.md#migrate-completed-values), with exact outputs and matching notebooks.
 
-## Reject None in a non-nullable union
+## Example organization
 
-Priority: high. A dictionary property annotated with `str | int` publishes `None` after user validation. The completed-value check accepts null before checking whether the union includes it.
+Twelve small completed-value examples are consolidated into four scenarios: literal choices, union nullability, tuple-item validation and property declarations. Each script contains its related refusals and accepted neighbors; each notebook presents those cases as sequential cells. The behavior coverage remains, while the reader opens four examples instead of twelve.
 
-The next code change should accept null only when the annotation includes it. Test both `str | int` and `str | int | None`, including nested tuple properties. This is independent of a relation field's nullable/default rules.
+## Evidence
 
-## Reproduce both defects
+The dictionary property and serialization-schema test suites passed: 57 tests. All 47 dictionary scripts and all 47 notebooks executed successfully with matching output. Notebook Python cells were executed in fresh Python processes and their outputs and execution counts were saved; a Jupyter kernel was not used.
 
-Save this complete block to a clean file and run it with the repository Python environment:
+Three adversarial checks restored one old function at a time in an isolated process. The literal regression test failed while its accepted neighbor passed; the null-union test failed while its nullable neighbor passed; the bool/int regression test failed while all nine scalar neighbors passed. These mutations never wrote source files.
 
-```python
-from typing import Literal
-from pydantic import field_validator
-from aoa.action_machine.domain import BaseEnumEntity, value
+All 12 complete Python blocks in the dictionary tutorial and how-to were run from clean temporary files and their output matched exactly. All 149 local links in the touched guide, tutorial, invariant reference and report resolved. Existing source changes were preserved. No additional code fix is established by this verification; it is not a claim that every possible annotation combination has been audited. The full repository check runner is outside this scoped verification and was not executed.
 
-class LiteralProbeEnumEntity(BaseEnumEntity):
-    """Reproduce a validator escaping a literal constraint."""
-    choice: Literal["a"]
-    ITEM = value(code="item", display_name="Item", choice="a")
-
-    @field_validator("choice", mode="after")
-    @classmethod
-    def replace(cls, original: str) -> str:
-        """Return a scalar outside the permitted choices."""
-        return "b"
-
-class UnionProbeEnumEntity(BaseEnumEntity):
-    """Reproduce a validator escaping a non-null union."""
-    choice: str | int
-    ITEM = value(code="item", display_name="Item", choice="a")
-
-    @field_validator("choice", mode="after")
-    @classmethod
-    def replace(cls, original: str | int) -> None:
-        """Return null although the annotation excludes it."""
-        return None
-
-print("Literal result:", LiteralProbeEnumEntity.ITEM.choice)
-print("Non-null union result:", UnionProbeEnumEntity.ITEM.choice)
-```
-
-Actual output:
-
-```text
-Literal result: b
-Non-null union result: None
-```
-
-Expected after correction: both invalid class declarations are refused before a member is published. The current output above records defects, not supported forms.
-
-## Documentation and examples delivered
-
-The [dictionary tutorial](../tutorials/step-20-dictionaries.md) and [relation tutorial](../tutorials/step-21-relations.md) now use complete independently runnable examples. [Explicit entity fields](../how-to/explicit-entity-fields.md) explains required values, nullable defaults, embedded entities and exact graph-build refusals. [Dictionary validation and export](../how-to/dictionary-validation-and-export.md) covers completed-value refusals and real serialization schemas. The [invariant reference](../reference/intents-and-invariants.md#relation-descriptions-and-defaults) distinguishes field metadata from relation values.
-
-Before, a relation description occupied the field's default. Now `Field(description="Target")` supplies metadata and the caller supplies the relation value; use `Field(default=None, description="Target")` only with a nullable annotation to allow omission. The classifier now names its dictionary value without repeating the field carrying the marker.
-
-## Verification and its limits
-
-The selected domain, field-declaration, hydration and specialization tests passed: 106 tests. The selected diagram payload and specialization tests passed: 33 tests. The dictionary card renderer check printed `Dictionary card: labels printed, codes carried as tooltips, everything escaped`.
-
-100 scripts and 100 matching notebooks passed. All 23 complete Python blocks in the four rewritten tutorial and how-to pages matched their displayed output. All 245 local links in the new and rewritten pages resolved.
-
-The documentation's complete Python blocks were copied into clean files, run in separate processes, and compared byte-for-byte with the displayed output. Example scripts and Python notebook cells were executed in fresh processes; notebook execution counts and captured outputs were saved. Notebook cells were executed directly as Python, without a Jupyter kernel.
-
-An adversarial run disabled the completed-value check in memory. The mutable-result example then failed with `AssertionError: A mutable dictionary property was published`; the adjacent serialization-schema example still passed. The original function was restored, and source files were not modified by this experiment. A second isolated mutation disabled entity-field declaration validation: the bare-entity example failed with `AssertionError: The invalid declaration was accepted`, while the nullable-relation neighbor passed.
-
-The full repository check runner was not executed during this scoped verification. No claim of a fully green repository gate is made. The two reproductions above remain code defects and need regression tests and fixes before the completed-value check can be described as enforcing every supported annotation.
+See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [migration and refusals](../how-to/dictionary-validation-and-export.md), and [invariant reference](../reference/intents-and-invariants.md).

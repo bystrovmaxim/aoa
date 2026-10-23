@@ -204,14 +204,20 @@ The following cases are separate scripts and notebooks. Each was executed agains
 | nested model | [36_nested_model](../../examples/step_20_dictionaries/36_nested_model.py) | [Notebook](../../examples/step_20_dictionaries/36_nested_model.ipynb) |
 | optional mutable | [37_optional_mutable](../../examples/step_20_dictionaries/37_optional_mutable.py) | [Notebook](../../examples/step_20_dictionaries/37_optional_mutable.ipynb) |
 | old declaration | [38_old_declaration](../../examples/step_20_dictionaries/38_old_declaration.py) | [Notebook](../../examples/step_20_dictionaries/38_old_declaration.ipynb) |
+| validator wrong type | [41_validator_wrong_type](../../examples/step_20_dictionaries/41_validator_wrong_type.py) | [Notebook](../../examples/step_20_dictionaries/41_validator_wrong_type.ipynb) |
 | validator nested list | [42_validator_nested_list](../../examples/step_20_dictionaries/42_validator_nested_list.py) | [Notebook](../../examples/step_20_dictionaries/42_validator_nested_list.ipynb) |
 | mutable enum value | [43_mutable_enum_value](../../examples/step_20_dictionaries/43_mutable_enum_value.py) | [Notebook](../../examples/step_20_dictionaries/43_mutable_enum_value.ipynb) |
-| validator wrong type | [41_validator_wrong_type](../../examples/step_20_dictionaries/41_validator_wrong_type.py) | [Notebook](../../examples/step_20_dictionaries/41_validator_wrong_type.ipynb) |
+| literal choices | [44_literal_choices](../../examples/step_20_dictionaries/44_literal_choices.py) | [Notebook](../../examples/step_20_dictionaries/44_literal_choices.ipynb) |
+| union nullability | [45_union_nullability](../../examples/step_20_dictionaries/45_union_nullability.py) | [Notebook](../../examples/step_20_dictionaries/45_union_nullability.ipynb) |
+| tuple item validation | [46_tuple_item_validation](../../examples/step_20_dictionaries/46_tuple_item_validation.py) | [Notebook](../../examples/step_20_dictionaries/46_tuple_item_validation.ipynb) |
+| property declarations | [47_property_declarations](../../examples/step_20_dictionaries/47_property_declarations.py) | [Notebook](../../examples/step_20_dictionaries/47_property_declarations.ipynb) |
+
+The four completed-value scenarios group refusals with their accepted neighbors: literal choices, union nullability, tuple items and property declarations. Each notebook keeps the cases as separate steps within the same scenario.
 
 ## Boundaries
 
 An input schema checks the shape of a reference; runtime validation resolves its code. Dictionary properties use the supported immutable annotations. Lifecycle status properties have a separate contract.
 
-The completed-value check still accepts two invalid after-validator results: a value outside a `Literal` choice and `None` for a non-nullable union. These are defects, not supported declaration forms. Preserve both constraints in user validators.
+The completed-value check reads the whole annotation. A value outside its `Literal` choices and `None` for a union that excludes it are refused, as is `bool` where `int` is declared. For accepted neighbors, use a declared literal choice, a member of the union, or an explicitly nullable union or literal. A property annotated only `None` is refused; tuple diagnostics identify the failing item. See [the complete migration and exact outputs](../how-to/dictionary-validation-and-export.md#migrate-completed-values).
 
 See [validation and export](../how-to/dictionary-validation-and-export.md), [relations and specializations](step-21-relations.md#generalization-and-specialization), and [entity invariants](../reference/intents-and-invariants.md).
