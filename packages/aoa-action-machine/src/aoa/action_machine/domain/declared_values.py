@@ -8,25 +8,25 @@ PURPOSE
 
 Two kinds declare a closed set of values in their own class body: the state kind
 declares its statuses, the dictionary kind declares its reference values. The
-form is one: ::
+form is one, and it is explicit: ::
 
     class OrderStateEntity(BaseStateEntity):
-        DRAFT = OrderStateEntity(code="draft", display_name="Draft")
+        DRAFT = value(code="draft", display_name="Draft")
 
     class CurrencyEnumEntity(BaseEnumEntity):
-        USD = CurrencyEnumEntity(code="usd", display_name="US dollar")
+        USD = value(code="usd", display_name="US dollar")
 
-The class does not exist while its body runs, so the type's own name resolves to
-:func:`value` there. The factory returns a :class:`ValueSpec`; the Pydantic hook
+:func:`value` returns a :class:`ValueSpec` placeholder; the Pydantic hook
 :meth:`_DeclaredValues.__pydantic_init_subclass__` turns every placeholder into a
-real instance after the model is built and fills the catalogue.
+real instance after the model is built and fills the catalogue. That conversion
+is the one automatic step that remains, and it reads only the class body.
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCOPE (IN / OUT)
 ═══════════════════════════════════════════════════════════════════════════════
 
 **In scope**
-    The namespace alias, the placeholder, the conversion hook, the catalogue
+    The ``value`` factory, the placeholder, the conversion hook, the catalogue
     (``members``, ``codes()``, ``by_code()``, ``entity_type``), the duplicate
     refusal, and the two per-kind switches: whether a class without its own
     values inherits the parent's catalogue, and what the duplicate message calls
@@ -53,17 +53,15 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    class body                        conversion hook                consumers
-    DRAFT = OrderStateEntity(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
-    (ValueSpec placeholder)             full instance, validated         codes(), by_code(),
-                                                                         entity_type
+    class body            conversion hook                consumers
+    DRAFT = value(...)  ──►  OrderStateEntity(**kwargs)  ──►  members,
+    (ValueSpec placeholder)  full instance, validated        codes(), by_code(),
+                                                             entity_type
 """
 
 from __future__ import annotations
 
 from typing import Any, ClassVar
-
-from pydantic._internal._model_construction import ModelMetaclass
 
 
 class ValueSpec:
@@ -74,39 +72,17 @@ class ValueSpec:
         self.kwargs = kwargs
 
 
-def value(**kwargs: Any) -> ValueSpec:
-    """Declare a value inside a kind's class body; the class turns it into an instance."""
+def value(**kwargs: Any) -> Any:
+    """
+    Declare a value inside a kind's class body; the class turns it into an instance.
+
+    AI-CORE-BEGIN
+        ROLE: The one declaration form for a dictionary value and a lifecycle status — the line inside a kind's class body that names the fields of one value.
+        CONTRACT: Returns a ``ValueSpec`` placeholder that the class's ``__pydantic_init_subclass__`` converts into a validated instance after the model exists; ``code`` and ``display_name`` are the kind's required fields and the rest are the model's own; the value is reachable as the declared attribute and through ``by_code()``.
+        INVARIANTS: Usable only inside a declaring class body for its effect; the placeholder is never a model field and never reaches a consumer; a returned object is annotated ``Any`` because the declaring class does not exist at the call site.
+    AI-CORE-END
+    """
     return ValueSpec(kwargs)
-
-
-class _DeclaredValuesNamespace(dict[str, Any]):
-    """The class namespace that answers the declaring type's own name with the factory."""
-
-    def __init__(self, name: str, factory: Any) -> None:
-        """Remember the class name and the factory this namespace answers with."""
-        super().__init__()
-        self._name = name
-        self._factory = factory
-
-    def __getitem__(self, key: str) -> Any:
-        """Return the stored value, or the declaration factory for the class's own name."""
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            if key == self._name:
-                return self._factory
-            raise
-
-
-class DeclaredValuesMeta(ModelMetaclass):
-    """Metaclass of a declaring kind: the class's own name is the declaration factory."""
-
-    @classmethod
-    def __prepare__(mcs, *args: Any, **kwargs: Any) -> dict[str, Any]:  # noqa: N804
-        """Give the class body the alias before the class itself exists."""
-        _ = mcs  # the metaclass is bound by the class machinery; the name keeps the pylint contract
-        name = args[0] if args else kwargs.get("name", "")
-        return _DeclaredValuesNamespace(str(name), value)
 
 
 class _DeclaredValues:

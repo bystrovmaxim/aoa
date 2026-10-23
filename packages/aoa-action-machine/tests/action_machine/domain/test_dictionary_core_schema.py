@@ -1,5 +1,5 @@
 # tests/action_machine/domain/test_dictionary_core_schema.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
+# the class-name alias is the surface this module tests
 """
 Tests for a field typed by a dictionary: what it accepts, what it refuses, what it serializes.
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 
@@ -32,8 +32,8 @@ class SchemaCurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    USD = SchemaCurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")
-    EUR = SchemaCurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
+    EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
 @exclude_graph_model

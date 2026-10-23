@@ -9,6 +9,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -17,9 +18,9 @@ class SalesOrderLineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    OPEN = SalesOrderLineStateEntity(code="open", display_name="Open", sort_order=1)  # noqa: F821
-    RESERVED = SalesOrderLineStateEntity(code="reserved", display_name="Reserved", sort_order=2)  # noqa: F821
-    FULFILLED = SalesOrderLineStateEntity(code="fulfilled", display_name="Fulfilled", sort_order=3)  # noqa: F821
+    OPEN = value(code="open", display_name="Open", sort_order=1)
+    RESERVED = value(code="reserved", display_name="Reserved", sort_order=2)
+    FULFILLED = value(code="fulfilled", display_name="Fulfilled", sort_order=3)
 
 
 

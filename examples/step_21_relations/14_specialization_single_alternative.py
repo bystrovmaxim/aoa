@@ -19,6 +19,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -36,7 +37,7 @@ class MusicDomain(BaseDomain):
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
 
 
 @entity(description="Vinyl record", domain=MusicDomain)

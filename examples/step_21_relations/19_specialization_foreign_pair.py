@@ -19,6 +19,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -35,9 +36,9 @@ class MusicDomain(BaseDomain):
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = VinylRecordKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = VinylRecordKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
-    TEST = VinylRecordKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
+    TEST = value(code="test", display_name="Test")
 
 
 @entity(description="Vinyl record", domain=MusicDomain)
@@ -102,7 +103,7 @@ def main() -> None:
     class OtherKindEnumEntity(BaseEnumEntity):
         """Supply a distinct vocabulary with a coincidentally equal code."""
 
-        FIRST = OtherKindEnumEntity(code="first", display_name="Other first")  # noqa: F821
+        FIRST = value(code="first", display_name="Other first")
 
     first = FirstPressSpecEntity(id="rec-1", stamper="1A", record=Generalization[VinylRecordCoreEntity](id="rec-1"))
     try:

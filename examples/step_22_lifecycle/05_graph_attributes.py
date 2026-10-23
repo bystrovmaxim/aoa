@@ -7,7 +7,7 @@ Run: uv run python examples/step_22_lifecycle/05_graph_attributes.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -15,8 +15,8 @@ class OrderStateEntity(BaseStateEntity):
 
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft")  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", requires_receipt=True)  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft")
+    PAID = value(code="paid", display_name="Payment received", requires_receipt=True)
 
 
 

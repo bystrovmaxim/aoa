@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseEnumEntity
+from aoa.action_machine.domain import BaseEnumEntity, value
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.dictionaries.domain import DictionariesDomain
 
@@ -18,6 +18,6 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
-    RUB = CurrencyEnumEntity(code="rub", display_name="Ruble", symbol="₽")  # noqa: F821
+    USD = value(code="usd", display_name="US dollar", symbol="$")
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+    RUB = value(code="rub", display_name="Ruble", symbol="₽")

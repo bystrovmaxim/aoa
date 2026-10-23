@@ -1,0 +1,74 @@
+# Phase 2 after — one declaration form, and the corpus on it
+
+Recorded: 2026-10-23, at the end of phase 2 (not yet committed).
+
+## The scan
+
+Command: uv run python specs/016-value-declaration-consistency/evidence/scan_value_declarations.py
+
+area                           class-name value(...) suppressed  classes  files  sup files
+packages/aoa-action-machine             0         75          2       60     20          2
+packages/aoa-maxitor                    0          0          0        0      0          0
+packages/aoa-demo                       0        103          0       34     25          0
+examples                                0        194          0       91     71          0
+total                                   0        372          2      185    116          2
+
+The two suppressed lines left are not alias leftovers: test_state_entity.py asserts that an
+undefined name still raises (MISSING), and test_aspect_signature_types.py declares an
+undefined annotation on purpose (NeverDefinedAnywhere).
+
+## The migration tool is idempotent
+
+Command: uv run python specs/016-value-declaration-consistency/evidence/migrate_value_declarations.py
+
+found: 0 declaration(s) in 0 file(s); 0 import(s) would be updated; 0 refusal(s)
+
+## Where it was applied
+
+packages/aoa-action-machine   73 declarations in 20 files (the 4 fixtures of
+                              test_declared_values.py were rewritten by hand)
+packages/aoa-demo            103 declarations in 25 files
+examples/                    194 declarations in 71 scripts
+examples/ (notebooks)        194 declarations in 71 notebooks, code cells only,
+                              sources rewritten in place; the parse status of every
+                              code cell is unchanged (736 cells, the same 47 pre-existing
+                              magic/partial cells do not parse before or after)
+
+## The suites
+
+aoa-action-machine   2775 passed
+aoa-ocel               26 passed
+aoa-otel               63 passed
+aoa-fastapi-adapter   161 passed
+aoa-mcp-adapter       130 passed
+aoa-langgraph          87 passed, 1 warning
+aoa-maxitor           142 passed, 1 skipped, 1 xfailed
+aoa-demo               76 passed
+
+mypy --strict, eight packages, 846 source files: Success: no issues found.
+ruff check packages/ tests/ scripts/ aoa_run/: All checks passed.
+
+Every one of the 194 migrated example scripts was run once: 71 scripts, 0 failures.
+
+## What the migration found that the plan did not
+
+examples/step_22_lifecycle/19_non_json_field.py declares a state field named `value`:
+
+    value: Opaque = Field(description="An opaque Python value")
+    DRAFT = value(code="draft", display_name="Draft", value=Opaque())
+
+The annotation binds the name `value` in the class body, so the factory is shadowed and the
+declaration fails with `TypeError: 'FieldInfo' object is not callable`. The alias never
+collided because it answered the class's own name. The example now calls the field
+`payload`, the constraint is written into contracts/declared-value.md §1 and data-model.md,
+and the escape hatch is covered by
+test_declared_values.py::test_a_field_named_value_needs_the_factory_under_another_name:
+a model that needs the field imports the factory as `value as declared`.
+
+## One trap for later phases
+
+`ruff check --fix` rewrites .ipynb files, turning each code cell's source string into a list
+and removing imports it finds unused — it dropped a class definition from
+examples/step_26_maxitor/01_graph.ipynb. That run was reverted, the migration was re-applied
+with the notebook migrator, and examples/ must not be passed to ruff with --fix. The check
+run does not include examples/, so this is a local-workflow note, not a gate.

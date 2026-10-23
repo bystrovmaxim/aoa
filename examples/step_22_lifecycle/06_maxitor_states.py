@@ -7,7 +7,7 @@ Run: uv run python examples/step_22_lifecycle/06_maxitor_states.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseStateEntity, Lifecycle
+from aoa.action_machine.domain import BaseStateEntity, Lifecycle, value
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -18,9 +18,9 @@ class OrderStateEntity(BaseStateEntity):
     fill_color: str = Field(default="#e3f2fd", description="State fill colour")
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = OrderStateEntity(code="draft", display_name="Draft", sort_order=99)  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)  # noqa: F821
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)  # noqa: F821
+    DRAFT = value(code="draft", display_name="Draft", sort_order=99)
+    PAID = value(code="paid", display_name="Payment received", sort_order=1, requires_receipt=True)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=2)
 
 
 

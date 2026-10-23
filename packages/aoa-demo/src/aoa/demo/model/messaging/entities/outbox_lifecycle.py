@@ -7,6 +7,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -15,9 +16,9 @@ class OutboxMessageStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    PENDING = OutboxMessageStateEntity(code="pending", display_name="Pending", sort_order=1)  # noqa: F821
-    PUBLISHED = OutboxMessageStateEntity(code="published", display_name="Published", sort_order=2)  # noqa: F821
-    CONSUMED = OutboxMessageStateEntity(code="consumed", display_name="Consumed", sort_order=3)  # noqa: F821
+    PENDING = value(code="pending", display_name="Pending", sort_order=1)
+    PUBLISHED = value(code="published", display_name="Published", sort_order=2)
+    CONSUMED = value(code="consumed", display_name="Consumed", sort_order=3)
 
 
 

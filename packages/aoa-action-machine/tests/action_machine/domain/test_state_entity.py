@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_state_entity.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
 """
 Tests for `BaseStateEntity`, its status catalogue and the graph exclusion.
 
@@ -10,14 +9,11 @@ of the model graph.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
-
 import pytest
 from pydantic import ConfigDict, Field, ValidationError
 from pydantic.errors import PydanticUserError
 
-from aoa.action_machine.domain import BaseStateEntity
-from aoa.action_machine.domain.declared_values import value as state
+from aoa.action_machine.domain import BaseStateEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.graph.inspectors.entity_graph_node_inspector import EntityGraphNodeInspector
 
@@ -27,9 +23,9 @@ class SampleStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NEW = SampleStateEntity(code="new", display_name="New", sort_order=1)
-    PAID = SampleStateEntity(code="paid", display_name="Paid", sort_order=2)
-    CANCELLED = SampleStateEntity(code="cancelled", display_name="Cancelled", sort_order=3)
+    NEW = value(code="new", display_name="New", sort_order=1)
+    PAID = value(code="paid", display_name="Paid", sort_order=2)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=3)
 
 
 
@@ -40,9 +36,9 @@ class CatalogueStateEntity(BaseStateEntity):
     color: str = Field(default="#9e9e9e", description="Diagram colour")
     requires_receipt: bool = Field(default=False, description="Whether a receipt is needed")
 
-    DRAFT = CatalogueStateEntity(code="draft", display_name="Draft", sort_order=99)
-    PAID = CatalogueStateEntity(code="paid", display_name="Paid", sort_order=1, requires_receipt=True)
-    CANCELLED = CatalogueStateEntity(code="cancelled", display_name="Cancelled", sort_order=2)
+    DRAFT = value(code="draft", display_name="Draft", sort_order=99)
+    PAID = value(code="paid", display_name="Paid", sort_order=1, requires_receipt=True)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=2)
 
 
 class EmptyCatalogueStateEntity(BaseStateEntity):
@@ -56,7 +52,7 @@ class InheritedCatalogueStateEntity(CatalogueStateEntity):
 class ExtendedCatalogueStateEntity(CatalogueStateEntity):
     """A subclass that declares its own status."""
 
-    EXTRA = ExtendedCatalogueStateEntity(code="extra", display_name="Extra")
+    EXTRA = value(code="extra", display_name="Extra")
 
 
 class TestStateEntity:
@@ -125,25 +121,25 @@ class TestStateTypeCatalogue:
 
             class BrokenStateEntity(BaseStateEntity):
                 sort_order: int = Field(default=0)
-                DRAFT = BrokenStateEntity(code="draft", display_name="Draft", sort_ordr=1)
+                DRAFT = value(code="draft", display_name="Draft", sort_ordr=1)
 
     def test_missing_required_field_is_refused(self):
         with pytest.raises(ValidationError, match="Field required"):
 
             class IncompleteStateEntity(BaseStateEntity):
-                DRAFT = IncompleteStateEntity(display_name="Draft")
+                DRAFT = value(display_name="Draft")
 
     def test_wrong_type_is_refused(self):
         with pytest.raises(ValidationError, match="valid integer"):
 
             class WrongTypeStateEntity(BaseStateEntity):
                 sort_order: int = Field(default=0)
-                DRAFT = WrongTypeStateEntity(code="draft", display_name="Draft", sort_order="abc")
+                DRAFT = value(code="draft", display_name="Draft", sort_order="abc")
 
     def test_coercible_value_is_stored_by_pydantic(self):
         class CoercedStateEntity(BaseStateEntity):
             sort_order: int = Field(default=0)
-            DRAFT = CoercedStateEntity(code="draft", display_name="Draft", sort_order="42")
+            DRAFT = value(code="draft", display_name="Draft", sort_order="42")
 
         assert CoercedStateEntity.DRAFT.sort_order == 42
 
@@ -151,8 +147,8 @@ class TestStateTypeCatalogue:
         with pytest.raises(ValueError, match="duplicate status code"):
 
             class DuplicateStateEntity(BaseStateEntity):
-                A = DuplicateStateEntity(code="same", display_name="A")
-                B = DuplicateStateEntity(code="same", display_name="B")
+                A = value(code="same", display_name="A")
+                B = value(code="same", display_name="B")
 
     def test_empty_catalogue_is_valid(self):
         assert EmptyCatalogueStateEntity.members == ()
@@ -169,30 +165,15 @@ class TestStateTypeCatalogue:
         assert ExtendedCatalogueStateEntity.by_code("extra") is ExtendedCatalogueStateEntity.EXTRA
         assert ExtendedCatalogueStateEntity.entity_type is ExtendedCatalogueStateEntity
 
-    def test_the_alias_is_only_the_call(self):
-        class AliasStateEntity(BaseStateEntity):
-            ALIAS: ClassVar[Any] = AliasStateEntity
-
-        assert AliasStateEntity.ALIAS is state
-
     def test_an_unknown_name_still_raises_name_error(self):
         with pytest.raises(NameError):
 
             class UnknownStateEntity(BaseStateEntity):
-                X = MISSING
-
-    def test_a_global_with_the_same_name_is_shadowed(self):
-        shadowed_state_entity = object()
-
-        class ShadowedStateEntity(BaseStateEntity):
-            DRAFT = ShadowedStateEntity(code="draft", display_name="Draft")
-
-        assert ShadowedStateEntity is not shadowed_state_entity
-        assert ShadowedStateEntity.DRAFT.code == "draft"
+                X = MISSING  # noqa: F821 - the undefined name is the case under test
 
     def test_removing_ignored_types_fails_class_creation(self):
         with pytest.raises(PydanticUserError):
 
             class UnignoredStateEntity(BaseStateEntity):
                 model_config = ConfigDict(ignored_types=())
-                DRAFT = UnignoredStateEntity(code="draft", display_name="Draft")
+                DRAFT = value(code="draft", display_name="Draft")

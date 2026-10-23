@@ -1,5 +1,5 @@
 # tests/action_machine/graph/test_entity_specialization_rules_axis.py
-# ruff: noqa: F821  # the class-name alias is the declaration surface
+# the class-name alias is the declaration surface
 """
 The rules read on one axis, in the form the dictionary made current.
 
@@ -31,6 +31,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -59,8 +60,8 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary most cases borrow from."""
 
-    A = _KindEnumEntity(code="a", display_name="A")
-    B = _KindEnumEntity(code="b", display_name="B")
+    A = value(code="a", display_name="A")
+    B = value(code="b", display_name="B")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -15,9 +16,9 @@ class PaymentEventStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    RECORDED = PaymentEventStateEntity(code="recorded", display_name="Recorded", sort_order=1)  # noqa: F821
-    SETTLED = PaymentEventStateEntity(code="settled", display_name="Settled", sort_order=2)  # noqa: F821
-    ARCHIVED = PaymentEventStateEntity(code="archived", display_name="Archived", sort_order=3)  # noqa: F821
+    RECORDED = value(code="recorded", display_name="Recorded", sort_order=1)
+    SETTLED = value(code="settled", display_name="Settled", sort_order=2)
+    ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
 

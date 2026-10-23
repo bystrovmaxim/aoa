@@ -5,6 +5,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -13,9 +14,9 @@ class InvDenseStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    AVAILABLE = InvDenseStateEntity(code="available", display_name="Available", sort_order=1)  # noqa: F821
-    COMMITTED = InvDenseStateEntity(code="committed", display_name="Committed", sort_order=2)  # noqa: F821
-    DEPLETED = InvDenseStateEntity(code="depleted", display_name="Depleted", sort_order=3)  # noqa: F821
+    AVAILABLE = value(code="available", display_name="Available", sort_order=1)
+    COMMITTED = value(code="committed", display_name="Committed", sort_order=2)
+    DEPLETED = value(code="depleted", display_name="Depleted", sort_order=3)
 
 
 
@@ -41,9 +42,9 @@ class InvPipelineStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    RECEIPT = InvPipelineStateEntity(code="receipt", display_name="Receipt", sort_order=1)  # noqa: F821
-    STAGING = InvPipelineStateEntity(code="staging", display_name="Staging", sort_order=2)  # noqa: F821
-    ANCHORED = InvPipelineStateEntity(code="anchored", display_name="Anchored", sort_order=3)  # noqa: F821
+    RECEIPT = value(code="receipt", display_name="Receipt", sort_order=1)
+    STAGING = value(code="staging", display_name="Staging", sort_order=2)
+    ANCHORED = value(code="anchored", display_name="Anchored", sort_order=3)
 
 
 

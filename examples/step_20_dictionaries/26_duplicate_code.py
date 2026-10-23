@@ -6,7 +6,7 @@ Run: uv run python examples/step_20_dictionaries/26_duplicate_code.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -24,8 +24,8 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
 @entity(description="Price tag", domain=ShopDomain)
@@ -44,8 +44,8 @@ def main() -> None:
         class DuplicateEnumEntity(BaseEnumEntity):
             """Intentionally give two values one identity."""
 
-            FIRST = DuplicateEnumEntity(code="same", display_name="First")  # noqa: F821
-            SECOND = DuplicateEnumEntity(code="same", display_name="Second")  # noqa: F821
+            FIRST = value(code="same", display_name="First")
+            SECOND = value(code="same", display_name="Second")
     except ValueError as error:
         print(str(error))
     else:

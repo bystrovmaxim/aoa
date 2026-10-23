@@ -9,6 +9,7 @@ from pydantic import Field
 from aoa.action_machine.domain import (
     BaseStateEntity,
     Lifecycle,
+    value,
 )
 
 
@@ -17,9 +18,9 @@ class AuditLogEntryStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    WRITTEN = AuditLogEntryStateEntity(code="written", display_name="Written", sort_order=1)  # noqa: F821
-    INDEXED = AuditLogEntryStateEntity(code="indexed", display_name="Indexed", sort_order=2)  # noqa: F821
-    RETAINED = AuditLogEntryStateEntity(code="retained", display_name="Retained", sort_order=3)  # noqa: F821
+    WRITTEN = value(code="written", display_name="Written", sort_order=1)
+    INDEXED = value(code="indexed", display_name="Indexed", sort_order=2)
+    RETAINED = value(code="retained", display_name="Retained", sort_order=3)
 
 
 

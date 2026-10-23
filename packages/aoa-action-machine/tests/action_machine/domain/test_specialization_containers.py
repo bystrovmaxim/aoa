@@ -1,5 +1,5 @@
 # tests/action_machine/domain/test_specialization_containers.py
-# ruff: noqa: F821  # the class-name alias is the declaration surface
+# the class-name alias is the declaration surface
 """
 The container types themselves: ``Specialization[Alternatives, Dictionary]`` and ``Generalization[Head]``.
 
@@ -31,7 +31,7 @@ from typing import Annotated, Any
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from aoa.action_machine.domain import BaseEnumEntity, Classifier, Generalization, Specialization
+from aoa.action_machine.domain import BaseEnumEntity, Classifier, Generalization, Specialization, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
 
@@ -39,8 +39,8 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 class KindEnumEntity(BaseEnumEntity):
     """The dictionary the container borrows its values from."""
 
-    FIRST = KindEnumEntity(code="first", display_name="First")
-    SECOND = KindEnumEntity(code="second", display_name="Second")
+    FIRST = value(code="first", display_name="First")
+    SECOND = value(code="second", display_name="Second")
 
 
 class FirstEntity(BaseModel):
