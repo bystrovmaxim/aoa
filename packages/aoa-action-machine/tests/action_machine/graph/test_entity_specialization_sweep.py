@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_sweep.py
-# ruff: noqa: F821  # the class-name alias is the declaration surface
 """
 The break-and-restore sweep: one case per build rule, from the rule table rather than the tests.
 
@@ -56,6 +55,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -75,7 +75,7 @@ class SweepDomain(BaseDomain):
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary most cases borrow from."""
 
-    A = _KindEnumEntity(code="a", display_name="A")
+    A = value(code="a", display_name="A")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -156,8 +156,8 @@ CodeLessSpecEntity.model_rebuild()
 class OrphanValueKindEnumEntity(BaseEnumEntity):
     """Two values, and the head's one alternative answers for only one of them."""
 
-    A = OrphanValueKindEnumEntity(code="a", display_name="A")
-    B = OrphanValueKindEnumEntity(code="b", display_name="B")
+    A = value(code="a", display_name="A")
+    B = value(code="b", display_name="B")
 
 
 @exclude_graph_model
@@ -251,7 +251,7 @@ for _cls in (ClosedNamedSpecEntity, ClosedIntruderSpecEntity, ClosedSweepHeadCor
 class _SelfKindEnumEntity(BaseEnumEntity):
     """One value, so the cycle rule is what reports the self-reference."""
 
-    A = _SelfKindEnumEntity(code="a", display_name="A")
+    A = value(code="a", display_name="A")
 
 
 @exclude_graph_model
@@ -379,7 +379,7 @@ class MismatchedTwinSpecEntity(BaseSpecEntity):
 class _OtherKindEnumEntity(BaseEnumEntity):
     """A second dictionary, whose value does not belong to the head's."""
 
-    A = _OtherKindEnumEntity(code="a", display_name="A")
+    A = value(code="a", display_name="A")
 
 
 @exclude_graph_model

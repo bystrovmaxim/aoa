@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_spec_entity.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
 """
 Tests for the value an extension declares.
 
@@ -23,6 +22,7 @@ from aoa.action_machine.domain import (
     Generalization,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -41,8 +41,8 @@ class SpecShopDomain(BaseDomain):
 class SpecEditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary."""
 
-    FIRST = SpecEditionKindEnumEntity(code="first", display_name="First press")
-    REPRESS = SpecEditionKindEnumEntity(code="repress", display_name="Repress")
+    FIRST = value(code="first", display_name="First press")
+    REPRESS = value(code="repress", display_name="Repress")
 
 
 @exclude_graph_model

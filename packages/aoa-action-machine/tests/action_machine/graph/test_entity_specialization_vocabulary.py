@@ -1,5 +1,4 @@
 # tests/action_machine/graph/test_entity_specialization_vocabulary.py
-# ruff: noqa: F821  # the class-name alias is the declaration surface
 """
 The build rules an axis classified by a closed dictionary must satisfy.
 
@@ -25,6 +24,7 @@ from aoa.action_machine.domain import (
     Generalization,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -51,8 +51,8 @@ class VocabularyKindEnumEntity(BaseEnumEntity):
 
     note: str = Field(default="", description="Free note")
 
-    FIRST = VocabularyKindEnumEntity(code="first", display_name="First press")
-    REPRESS = VocabularyKindEnumEntity(code="repress", display_name="Repress")
+    FIRST = value(code="first", display_name="First press")
+    REPRESS = value(code="repress", display_name="Repress")
 
 
 @exclude_graph_model
@@ -65,7 +65,7 @@ class EmptyKindEnumEntity(BaseEnumEntity):
 class OtherKindEnumEntity(BaseEnumEntity):
     """A second dictionary, whose values do not belong to the first."""
 
-    EXTRA = OtherKindEnumEntity(code="extra", display_name="Extra")
+    EXTRA = value(code="extra", display_name="Extra")
 
 
 @exclude_graph_model
@@ -251,7 +251,7 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
     @entity(description="Optional kind", domain=VocabularyDomain)
     class OptionalKindEnumEntity(BaseEnumEntity):
         """Declare the one possible classification."""
-        FIRST = OptionalKindEnumEntity(code="first", display_name="First")
+        FIRST = value(code="first", display_name="First")
 
     @exclude_graph_model
     @entity(description="Optional head", domain=VocabularyDomain)

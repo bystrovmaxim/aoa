@@ -152,3 +152,20 @@ No. An association field is a reference between objects. `BaseAssocEntity` descr
 ### Does the kind marker enforce the whole domain contract?
 
 No. The hierarchy checks kind inheritance and suffixes when Python creates a class, including undecorated and intermediate classes. It does not infer business meaning from field names, create composite database keys, check equal specialization keys or execute ownership deletion. Existing relationship and lifecycle validators still perform their own checks.
+
+### Why does a dictionary or status declare members with value(...)?
+
+The class does not exist while Python executes its body. `value(...)` explicitly records
+arguments for a member; after class creation the framework constructs and validates the
+objects. Import it from `aoa.action_machine.domain`. Member access and catalogue lookups
+still return shared instances. The old constructor-looking class-name alias is removed;
+see the [declaration migration](../tutorials/step-20-dictionaries.md#migrate-an-existing-declaration).
+
+### Why can a dictionary input contain only code while its output contains more?
+
+The code identifies a value already known to the model. The response also carries its
+label and properties for consumers that do not have that model. Request
+`model_json_schema(mode="validation")` for input and `mode="serialization"` for output.
+Use `to_reference()` for JSON-compatible export; a Python-mode `model_dump()` can keep
+native date or Decimal objects. The schema describes structure; runtime validation still
+checks whether the code belongs to the dictionary.

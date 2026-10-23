@@ -20,6 +20,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -37,7 +38,7 @@ class ShopDomain(BaseDomain):
 class CounterpartyKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    ORGANISATION = CounterpartyKindEnumEntity(code="organisation", display_name="Organisation")  # noqa: F821
+    ORGANISATION = value(code="organisation", display_name="Organisation")
 
 
 @entity(description="Counterparty", domain=ShopDomain)

@@ -13,7 +13,7 @@ and edge-type breakdown the four Maxitor views are drawn from.
 Maxitor itself is an AOA app: its backend is Actions exposed via FastApiAdapter,
 serving this graph as JSON (GET /api/v1/full-graph, .../list-entities, etc.).
 
-Tutorial: ../../docs/tutorials/step-26-maxitor_draft.md  ·  topic: Maxitor (system graph)
+Tutorial: ../../docs/tutorials/step-26-maxitor.md  ·  topic: Maxitor (system graph)
 
 Run:
     uv run python examples/step_26_maxitor/01_graph.py
@@ -35,6 +35,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Lifecycle,
     Rel,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
@@ -75,10 +76,10 @@ class OrderStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)  # noqa: F821
-    PAID = OrderStateEntity(code="paid", display_name="Paid", sort_order=2)  # noqa: F821
-    SHIPPED = OrderStateEntity(code="shipped", display_name="Shipped", sort_order=3)  # noqa: F821
-    CANCELLED = OrderStateEntity(code="cancelled", display_name="Cancelled", sort_order=4)  # noqa: F821
+    NEW = value(code="new", display_name="New", sort_order=1)
+    PAID = value(code="paid", display_name="Paid", sort_order=2)
+    SHIPPED = value(code="shipped", display_name="Shipped", sort_order=3)
+    CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=4)
 
 
 

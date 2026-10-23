@@ -1,5 +1,4 @@
 # tests/action_machine/domain/test_specialization_container.py
-# ruff: noqa: F821  # the class-name alias is the surface this module tests
 """
 Tests for the specialization container when its second type argument is a dictionary.
 
@@ -24,6 +23,7 @@ from aoa.action_machine.domain import (
     Generalization,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
@@ -43,8 +43,8 @@ class ContainerEditionKindEnumEntity(BaseEnumEntity):
 
     note: str = Field(default="", description="Free note")
 
-    FIRST = ContainerEditionKindEnumEntity(code="first", display_name="First press")
-    REPRESS = ContainerEditionKindEnumEntity(code="repress", display_name="Repress")
+    FIRST = value(code="first", display_name="First press")
+    REPRESS = value(code="repress", display_name="Repress")
 
 
 @exclude_graph_model
@@ -163,7 +163,7 @@ def test_matching_codes_from_different_dictionaries_do_not_make_a_matching_pair(
     @exclude_graph_model
     class OtherEditionEnumEntity(BaseEnumEntity):
         """Reuse a code in an independent dictionary."""
-        FIRST = OtherEditionEnumEntity(code="first", display_name="Another first")
+        FIRST = value(code="first", display_name="Another first")
 
     with pytest.raises(ValidationError, match="does not match"):
         Specialization[ContainerFirstPressSpecEntity, OtherEditionEnumEntity](

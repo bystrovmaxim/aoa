@@ -221,7 +221,6 @@
       "group_id": "VinylRecordCoreEntity:pressing",
       "label": "pressing (by VinylRecordKindEnumEntity)",
       "classifier_field": null,
-      "dictionary_label": "VinylRecordKindEnumEntity",
       "members": [
         "FirstPressSpecEntity",
         "RepressSpecEntity",

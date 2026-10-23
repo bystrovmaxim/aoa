@@ -45,6 +45,7 @@ from aoa.action_machine.domain import (
     NoGraphEdge,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -118,9 +119,9 @@ class _ThirdSpecEntity(BaseSpecEntity):
 class _HeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _HeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = _HeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
-    TEST = _HeadKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
+    TEST = value(code="test", display_name="Test")
 
 @exclude_graph_model
 @entity(description="Head", domain=_SDomain)
@@ -166,8 +167,8 @@ class _FirstForSilentSpecEntity(BaseSpecEntity):
 class _HeadWithSilentKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _HeadWithSilentKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = _HeadWithSilentKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
 
 @exclude_graph_model
 @entity(description="Head over a silent class", domain=_SDomain)
@@ -200,7 +201,7 @@ class _GreedySpecEntity(BaseSpecEntity):
 class _HeadWithGreedyKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _HeadWithGreedyKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
 
 @exclude_graph_model
 @entity(description="Head over a greedy class", domain=_SDomain)
@@ -244,8 +245,8 @@ class _TwinBSpecEntity(BaseSpecEntity):
 class _HeadWithTwinKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _HeadWithTwinKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = _HeadWithTwinKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
 
 @exclude_graph_model
 @entity(description="Head over twins", domain=_SDomain)
@@ -283,7 +284,7 @@ class _BareContainerAssocEntity(BaseAssocEntity):
 class _QuietHeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _QuietHeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
 
 @exclude_graph_model
 @entity(description="Quiet head", domain=_SDomain)

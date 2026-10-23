@@ -18,6 +18,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
@@ -34,7 +35,7 @@ class MusicDomain(BaseDomain):
 class ASpecEntityKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    B = ASpecEntityKindEnumEntity(code="b", display_name="B")  # noqa: F821
+    B = value(code="b", display_name="B")
 
 
 @entity(description="First level", domain=MusicDomain)
@@ -56,7 +57,7 @@ class ASpecEntity(BaseSpecEntity):
 class BSpecEntityKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    A = BSpecEntityKindEnumEntity(code="a", display_name="A")  # noqa: F821
+    A = value(code="a", display_name="A")
 
 
 @entity(description="Second level", domain=MusicDomain)

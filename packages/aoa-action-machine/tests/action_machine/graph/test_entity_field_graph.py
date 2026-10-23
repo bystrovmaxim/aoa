@@ -11,7 +11,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
@@ -110,7 +110,7 @@ class ReferenceShopDomain(BaseDomain):
 class ReferenceCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary a field can reference."""
 
-    USD = ReferenceCurrencyEnumEntity(code="usd", display_name="US dollar")  # noqa: F821
+    USD = value(code="usd", display_name="US dollar")
 
 
 @exclude_graph_model

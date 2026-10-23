@@ -6,7 +6,7 @@ Run: uv run python examples/step_20_dictionaries/03_serialization.py
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity
+from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -24,8 +24,8 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
     symbol: str = Field(description="Currency symbol")
 
-    EUR = CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")  # noqa: F821
-    USD = CurrencyEnumEntity(code="usd", display_name="US dollar", symbol="$")  # noqa: F821
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+    USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
 @entity(description="Price tag", domain=ShopDomain)
@@ -40,8 +40,9 @@ class PriceTagCoreEntity(BaseCoreEntity):
 def main() -> None:
     """Run this one learning experiment."""
     tag = PriceTagCoreEntity(id="tag-1", amount=9.99, currency=CurrencyEnumEntity.EUR)
-    print(tag.model_dump()["currency"])
-    assert tag.model_dump()["currency"] == CurrencyEnumEntity.EUR.to_reference()
+    print(tag.model_dump(mode="json")["currency"])
+    # The reference form is the JSON export; a Python-mode dump may keep a native value.
+    assert tag.model_dump(mode="json")["currency"] == CurrencyEnumEntity.EUR.to_reference()
 
 
 if __name__ == "__main__":

@@ -1,3 +1,8 @@
+> Current declaration and export updates: #244 replaces class-name declarations with
+> `value(...)`, restricts dictionary property annotations, applies field serializers in
+> JSON references and separates validation/output schemas. See the
+> [current contract](../../016-value-declaration-consistency/contracts/declared-value.md).
+
 # Contract: declaring a closed dictionary and referencing its values
 
 **Feature**: `specs/015-closed-dictionary-variants` | **Plan**: [../plan.md](../plan.md) | **Data model**: [../data-model.md](../data-model.md)
@@ -73,3 +78,13 @@ Serialization of a field: `{"code": "...", "display_name": "...", "properties": 
 - `packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_scope.py` — non-inheritance, the empty decorated dictionary, duplicates.
 - `packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_graph.py` — `reference_qualname`, `values` in the schema.
 - The demo's own tests — the dictionary node, the references, the values.
+
+## Current ERD representation
+
+The graph still keeps a value's extra fields under `properties` as an object. Maxitor's
+ERD response converts that object to `properties: [{"name": "symbol", "value": "€"}]`;
+its strict schema declares both item fields and forbids additional keys. The card displays
+the escaped name/value text inside the value row. This was implemented in PR #243, and
+#244 verifies it after the serialization changes. The earlier proposal to add
+`properties_json` is superseded. Specialization group labels are supplied complete by the
+server and rendered once; `dictionary_label` is no longer part of the ERD group payload.

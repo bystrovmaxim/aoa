@@ -135,11 +135,45 @@ model and pass its actual graph through Maxitor's query. They print:
 CurrencyEnumEntity
 ```
 
-The full graph preserves descriptive fields in each value's `properties` object. The ERD
-response converts them to name/value text rows for presentation. This allows the card to
-show fields without knowing any currency names or property names. For non-string values,
-the text uses JSON notation. The response also preserves `entity_kind`, `values` and each
-referencing field's `reference_qualname`.
+### Follow one property across the boundary
+
+The graph is a model description. Its dictionary reference keeps properties as an object:
+
+```json
+{"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}
+```
+
+`to_reference()` produces this data in JSON mode. Dates, Decimal values and tuples are
+converted to JSON-compatible values, and a field serializer determines the exported
+representation of its field. The [serializer example](../../examples/step_20_dictionaries/12_field_serializer.py)
+([notebook](../../examples/step_20_dictionaries/12_field_serializer.ipynb)) demonstrates
+this before any viewer is involved. Maxitor receives the saved values; it does not
+reconstruct Python dictionary classes or rerun their serializers.
+
+The ERD response serves a different purpose: it provides display rows. Its schema must
+name the keys of every object, while a dictionary may declare arbitrary property names.
+The server therefore turns the property object into a list with one fixed item shape:
+
+```json
+{"code": "eur", "display_name": "Euro", "properties": [{"name": "symbol", "value": "€"}]}
+```
+
+Both item fields are strings. A string property remains its text. Other JSON values are
+rendered with JSON notation: `true`, `42`, `null` or `["a", "b"]`. The renderer displays
+each name/value pair beneath the value's label and escapes both strings, so a note such
+as `<safe> & readable` appears as text rather than diagram markup. A value with no extra
+properties has `properties: []` and still shows its code and label.
+
+This conversion belongs to the ERD response; the graph keeps the original properties
+object. The payload also retains `entity_kind`, `values` and a referencing field's
+`reference_qualname`. It requires neither a `properties_json` field nor a predefined list
+of domain fields. Existing graph files that already contain the properties need no
+rebuild merely to show them. A graph that omitted data cannot recover that data in the viewer.
+
+The backend checks the response against its schema, and the client check exercises the
+actual Graphviz SVG output, including escaped property text. These are different
+boundaries: successful reference serialization alone does not prove that a property
+survives the query and appears in the card.
 
 ## Specialization: the variants in one frame
 
@@ -187,6 +221,27 @@ Saved: examples/step_21_relations/02_specialization_erd.json
 connections. The type text lists class display names and their declared codes; the `Entity`
 suffix is omitted in that text. The dictionary supplies alternative order, while each
 alternative's marker determines its corresponding code.
+
+### One layer owns the group label
+
+The server builds the complete `label`; the client escapes and renders that label. There
+is no separate `dictionary_label` in the ERD group payload for the client to append.
+The dictionary metadata remains in the graph's specialization edges, where it describes
+the model rather than prescribing display text.
+
+The [group-label script](../../examples/step_21_relations/51_group_label.py) and
+[notebook](../../examples/step_21_relations/51_group_label.ipynb) use the same record model
+but inspect only this contract:
+
+```text
+Label: pressing (by VinylRecordKindEnumEntity)
+Separate dictionary label: False
+```
+
+The label is `pressing (by VinylRecordKindEnumEntity)` once. The server's query still
+uses graph metadata to compose it; the client does not try to reconstruct it. The
+`classifier_field` compatibility member remains in the group and is normally null for
+a dictionary-classified axis. No separate classifier field is added to the head entity.
 
 ### Inspect the actual rendered picture
 

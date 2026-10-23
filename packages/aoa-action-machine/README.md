@@ -22,6 +22,33 @@ The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntit
 
 The [entity tutorial](../../docs/tutorials/step-20-entity.md) explains the distinctions before introducing their code, with a separate script and notebook for each case. The marker does not infer business meaning from fields or impose database keys and deletion behaviour.
 
+## Declared dictionary values and statuses
+
+Import `value` from `aoa.action_machine.domain` and declare members inside their type:
+
+```python
+from aoa.action_machine.domain import BaseEnumEntity, value
+
+
+class CurrencyEnumEntity(BaseEnumEntity):
+    """Describe the accepted currency."""
+
+    symbol: str
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+
+
+assert CurrencyEnumEntity.by_code("eur") is CurrencyEnumEntity.EUR
+```
+
+The same factory declares lifecycle statuses. Replace the former `EUR = CurrencyEnumEntity(...)`
+inside the class with `EUR = value(...)`; catalogue calls and stored codes retain their
+meaning. Dictionary properties use the supported immutable annotations, while status
+property types keep their existing rules. `to_reference()` exports JSON-compatible data
+and applies field serializers. Input and output schemas are separate because a code-only
+input can resolve to a complete reference. See the
+[dictionary tutorial](../../docs/tutorials/step-20-dictionaries.md) and
+[lifecycle tutorial](../../docs/tutorials/step-22-lifecycle.md) for complete cases and limits.
+
 ## Installation
 
 ```bash
@@ -44,6 +71,8 @@ pip install aoa-ocel                  # OCEL 2.0 event log
 An operation is an atomic business operation. Let us assemble the simplest one: it takes a name and returns a greeting. Three declarations are mandatory: the domain (`@meta`), access (`@check_roles`), and a single exit point (`@summary_aspect`).
 
 ```python
+from pydantic import Field
+
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -52,7 +81,6 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from pydantic import Field
 
 
 class GreetingDomain(BaseDomain):
@@ -69,9 +97,8 @@ class GreetResult(BaseResult):
 
 
 @meta(description="Greet by name", domain=GreetingDomain)
-@check_roles(GuestRole)            # GuestRole — the operation is open to everyone (declared explicitly)
+@check_roles(GuestRole)  # GuestRole — the operation is open to everyone (declared explicitly)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
-
     @summary_aspect("Assemble the greeting")
     async def greet_summary(self, params, state, box, connections):
         return GreetResult(message=f"Hello, {params.name}!")
@@ -88,10 +115,12 @@ The single entry point is `ActionProductMachine`. It reads the declarations and 
 ```python
 import asyncio
 
+
 async def main() -> None:
     machine = ActionProductMachine()
     result = await machine.run(Context(), GreetAction(), GreetParams(name="Alice"))
-    print(result.message)   # Hello, Alice!
+    print(result.message)  # Hello, Alice!
+
 
 asyncio.run(main())
 ```
@@ -108,10 +137,10 @@ Usually an operation consists of several steps. An intermediate step — `@regul
 from aoa.action_machine.intents.aspects import regular_aspect
 from aoa.action_machine.intents.checkers import result_string
 
+
 @meta(description="Greet by name", domain=GreetingDomain)
 @check_roles(GuestRole)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
-
     @regular_aspect("Normalise the name")
     @result_string("name", required=True, min_length=1)
     async def normalise_aspect(self, params, state, box, connections):
@@ -134,11 +163,11 @@ Everything external is declared by the operation in its header via `@depends` an
 from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.logging import Channel
 
+
 @meta(description="Greet by name", domain=GreetingDomain)
 @check_roles(GuestRole)
 @depends(GreeterService)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
-
     @summary_aspect("Assemble the greeting")
     async def greet_summary(self, params, state, box, connections):
         greeter = await box.resolve(GreeterService)

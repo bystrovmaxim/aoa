@@ -50,6 +50,7 @@ from aoa.action_machine.domain import (
     Inverse,
     Rel,
     Specialization,
+    value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
@@ -113,9 +114,9 @@ class _ThirdSpecEntity(BaseSpecEntity):
 class _HeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
-    FIRST = _HeadKindEnumEntity(code="first", display_name="First")  # noqa: F821
-    REPRESS = _HeadKindEnumEntity(code="repress", display_name="Repress")  # noqa: F821
-    TEST = _HeadKindEnumEntity(code="test", display_name="Test")  # noqa: F821
+    FIRST = value(code="first", display_name="First")
+    REPRESS = value(code="repress", display_name="Repress")
+    TEST = value(code="test", display_name="Test")
 
 
 @exclude_graph_model

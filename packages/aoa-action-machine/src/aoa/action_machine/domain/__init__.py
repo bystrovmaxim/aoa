@@ -81,6 +81,7 @@ EXAMPLES
         Lifecycle,
         Rel,
         build,
+        value,
     )
 
     class ShopDomain(BaseDomain):
@@ -90,8 +91,8 @@ EXAMPLES
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
 
-        NEW = OrderStateEntity(code="new", display_name="New", sort_order=1)
-        DONE = OrderStateEntity(code="done", display_name="Done", sort_order=2)
+        NEW = value(code="new", display_name="New", sort_order=1)
+        DONE = value(code="done", display_name="Done", sort_order=2)
 
     class OrderLifecycle(Lifecycle):
         _template = (
@@ -112,6 +113,7 @@ EXAMPLES
 from aoa.action_machine.domain.assoc_entity import BaseAssocEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.core_entity import BaseCoreEntity
+from aoa.action_machine.domain.declared_values import value
 from aoa.action_machine.domain.detail_entity import BaseDetailEntity
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker, entity_schema_marker_from_annotated
@@ -197,4 +199,6 @@ __all__ = [
     "build",
     "entity_schema_marker_from_annotated",
     "make",
+    # Declarations
+    "value",
 ]
