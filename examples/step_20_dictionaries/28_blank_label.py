@@ -1,12 +1,15 @@
 """A declared display_name cannot be blank.
+Run: .venv/bin/python examples/step_20_dictionaries/28_blank_label.py
+
 
 Declare a value with a whitespace-only display_name.
-Run: uv run python examples/step_20_dictionaries/28_blank_label.py
 """
+
+from typing import Annotated
 
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,7 +37,7 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:

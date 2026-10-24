@@ -1,7 +1,8 @@
 """Specialization cannot form a cycle.
+Run: .venv/bin/python examples/step_21_relations/37_error_cycle.py
+
 
 Make two classes specialize one another.
-Run: uv run python examples/step_21_relations/37_error_cycle.py
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ class ASpecEntity(BaseSpecEntity):
     back: Annotated[
         Generalization[BSpecEntity],
         Classifier(variant=BSpecEntityKindEnumEntity.A),
-        Inverse(BSpecEntity, "detail"),
+        Inverse(field_name="detail"),
     ] = Field(description="Return to B")
 
 

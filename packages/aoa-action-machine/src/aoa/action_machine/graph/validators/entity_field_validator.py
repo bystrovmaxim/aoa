@@ -1,38 +1,35 @@
 # packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py
 """
-EntityFieldValidator — refuse an entity-typed field that declares nothing.
+EntityFieldValidator — refuse every entity-valued field that lacks a complete declaration.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A field whose resolved type is a structural entity is a relation by nature. Written
-as a bare type, as a collection of an entity, as a bare ``X | None``, or as a state
-entity, it is silently accepted today and becomes an ordinary column with no edge —
-the graph then describes a model that does not exist.
+Every entity-valued field on Core, Assoc, Detail, Spec and Enum must declare its
+relationship completely: a supported relationship container inside ``Annotated``,
+exactly one direction marker (``Inverse(...)`` or ``NoInverse()``) and a non-blank
+assignment-side ``Field(description=...)``. A dictionary field declares that relationship
+as ``AssociationOne[D] | None`` with ``NoInverse()``. ``NoRelation``, a bare or nullable
+bare entity, a raw collection and a bare dictionary no longer satisfy the rule. State
+alone keeps its separate Lifecycle contract.
 
-A field whose resolved type is a dictionary is a reference by nature. Its bare type
-and its optional form are the declaration, so they are accepted; a collection of
-dictionary values, a relation container around one, and the embedded-value marker are
-refused, because each states something the type does not.
-
-This module refuses those forms before the graph is published, and names the legal
-forms in the message: a relation container or ``NoRelation("reason")`` for a
-structural entity, and the dictionary type itself for a reference.
+This module refuses incomplete declarations before the graph is published and names the
+complete correction in the message.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-- A Core, Assoc, Detail or Spec field MUST carry a relation container, or
-  ``NoRelation("reason")``.
-- A state-entity field has no form at all: a state is described by a
-  ``Lifecycle[...]`` subclass, never by the entity type itself.
-- A dictionary field MUST be the bare dictionary type, optionally ``| None``. A
-  collection, a relation container, the marker, an empty catalogue and a dictionary
-  without a graph node are refused.
+- A Core, Assoc, Detail or Spec entity-valued field MUST carry a relation container or a
+  specialization/generalization container, exactly one direction marker and a non-blank
+  description.
+- A dictionary field MUST be ``Annotated[AssociationOne[D] | None, NoInverse()]``.
+- ``NoRelation`` is refused on every entity-valued field.
+- A state-entity field has no form at all: a state is described by a ``Lifecycle[...]``
+  subclass, never by the entity type itself.
 - A lifecycle field, a schema type and every ordinary scalar pass untouched.
-- A class excluded from the graph is not judged.
+- A graph-excluded host is still judged: exclusion suppresses publication, not declaration.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATA FLOW
@@ -42,14 +39,12 @@ DATA FLOW
 
     @entity classes -> model_fields (annotations Pydantic resolved)
                           │
-                          ├─ relation container?  -> accepted, target kind checked
-                          ├─ NoRelation marker?   -> accepted on Core/Assoc/Detail/Spec
-                          ├─ structural type?     -> EntityFieldDeclarationError
-                          ├─ optional of one?     -> EntityFieldDeclarationError
-                          ├─ collection of one?   -> EntityFieldDeclarationError
-                          ├─ dictionary type?     -> accepted, catalogue and node checked
-                          ├─ container of one?    -> EntityFieldDeclarationError
-                          └─ collection/union of  -> EntityFieldDeclarationError
+                          ├─ relation / specialization / generalization -> complete-form check
+                          ├─ NoRelation marker                          -> refused
+                          ├─ bare dictionary type                       -> refused
+                          ├─ bare / optional / collection structural    -> refused
+                          ├─ state entity                               -> refused
+                          └─ lifecycle / schema / scalar               -> untouched
 """
 
 from __future__ import annotations
@@ -57,7 +52,7 @@ from __future__ import annotations
 import types
 import typing
 from collections.abc import Mapping
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, ForwardRef, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
@@ -67,17 +62,18 @@ from aoa.action_machine.domain.detail_entity import BaseDetailEntity
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
-from aoa.action_machine.domain.relation_markers import Inverse, NoGraphEdge, NoInverse, NoRelation
+from aoa.action_machine.domain.relation_containers import AssociationOne
+from aoa.action_machine.domain.relation_markers import Inverse, NoInverse, NoRelation
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
 from aoa.action_machine.domain.specialization_containers import Generalization
 from aoa.action_machine.domain.state_entity import BaseStateEntity
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
-from aoa.action_machine.graph.validators.entity_specialization_validator import declared_entity_classes
 from aoa.action_machine.intents.entity.entity_intent import entity_info_is_set
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is_relation_container
 from aoa.action_machine.intents.entity.entity_specialization_intent_resolver import (
     is_specialization_field,
 )
+from aoa.action_machine.intents.entity.resolved_entity_fields import ResolvedEntityField, resolve_entity_field
 
 __all__ = ["validate_entity_fields"]
 
@@ -87,7 +83,8 @@ _ENTITY_BASES: tuple[tuple[type[Any], str], ...] = (
     (BaseDetailEntity, "Detail"),
     (BaseSpecEntity, "Spec"),
 )
-_RELATION_MARKERS: tuple[type[Any], ...] = (Inverse, NoInverse, NoGraphEdge)
+
+_DIRECTION_MARKERS = (Inverse, NoInverse)
 
 
 def _kind_of(annotation: Any) -> str | None:
@@ -110,6 +107,15 @@ def _describe(annotation: Any) -> str:
     if isinstance(name, str) and get_origin(annotation) is None and not get_args(annotation):
         return name
     return str(annotation)
+
+
+def _has_forward_ref(annotation: Any) -> bool:
+    """True when ``annotation`` carries an unresolved ``ForwardRef`` anywhere inside it."""
+    if isinstance(annotation, ForwardRef):
+        return True
+    if get_origin(annotation) is Annotated:
+        return _has_forward_ref(get_args(annotation)[0])
+    return any(_has_forward_ref(arg) for arg in get_args(annotation))
 
 
 def _strip_optional(annotation: Any) -> tuple[Any, bool]:
@@ -197,9 +203,9 @@ def _structural_refusal(target: Any, annotation: Any) -> str:
     optional = " | None" in str(annotation)
     shape = f"{name} | None" if optional else name
     return (
-        f"the field's type is an entity ({shape}), so the field cannot be a scalar. Declare it as a "
-        f"relation (Annotated[AssociationOne[{name}], Inverse(...)]) or as an embedded value "
-        f'(Annotated[{shape}, NoRelation("reason")]).'
+        f"the field's type is an entity ({shape}), so the field cannot be a scalar. Declare the "
+        f"complete relationship (Annotated[AssociationOne[{name}], Inverse(...) or NoInverse()] "
+        f"= Field(description=...))."
     )
 
 
@@ -208,9 +214,8 @@ def _collection_refusal(target: Any, annotation: Any) -> str:
     name = _describe(target)
     return (
         f"the field's type is a collection of an entity ({_describe(annotation)}); a collection is not "
-        f"a relation. Declare the many relation "
-        f"(Annotated[AssociationMany[{name}], Inverse(...)]) or mark the field as an embedded value "
-        f'(Annotated[{name}, NoRelation("reason")]).'
+        f"a relation. Declare the many relationship "
+        f"(Annotated[AssociationMany[{name}], Inverse(...) or NoInverse()] = Field(description=...))."
     )
 
 
@@ -219,8 +224,7 @@ def _union_refusal(entities: list[Any], annotation: Any) -> str:
     names = " and ".join(_describe(entity) for entity in entities)
     return (
         f"the field's type is a union of entities ({_describe(annotation)}), so the field names "
-        f"{names} at once. Declare one field per entity, each with its own relation or "
-        f"embedded-value form."
+        f"{names} at once. Declare one field per entity, each with its own complete relationship."
     )
 
 
@@ -230,7 +234,7 @@ def _heterogeneous_collection_refusal(entities: list[Any], annotation: Any) -> s
     return (
         f"the field's type is a collection of {len(entities)} entities ({_describe(annotation)}); "
         f"a collection is not a relation. Declare one field per entity ({names}), each with its "
-        f"own relation or embedded-value form."
+        f"own complete relationship."
     )
 
 
@@ -238,8 +242,19 @@ def _mapping_refusal(annotation: Any) -> str:
     """Return the message for a mapping whose value is an entity."""
     return (
         f"the field's type is a mapping to an entity ({_describe(annotation)}), and a mapping is "
-        f"not a relation. Declare the relation on the owning entity, or model the mapping as its "
+        f"not a relation. Declare the relationship on the owning entity, or model the mapping as its "
         f"own entity."
+    )
+
+
+def _bare_dictionary_refusal(dictionary: Any, annotation: Any) -> str:
+    """Return the message for a bare dictionary field."""
+    name = _describe(dictionary)
+    optional = " | None" in str(annotation)
+    shape = f"{name} | None" if optional else name
+    return (
+        f"the field's type is a dictionary ({shape}), which must be an explicit single association; "
+        f"write Annotated[AssociationOne[{name}] | None, NoInverse()] = Field(description=...)."
     )
 
 
@@ -248,7 +263,8 @@ def _dictionary_collection_refusal(target: Any, annotation: Any) -> str:
     name = _describe(target)
     return (
         f"a collection of dictionary values has no declared form ({_describe(annotation)}); a "
-        f"dictionary reference is one value. Write {name}, or {name} | None for an optional one."
+        f"dictionary selection is one value. Write Annotated[AssociationOne[{name}], NoInverse()] "
+        f"= Field(description=...)."
     )
 
 
@@ -257,26 +273,49 @@ def _dictionary_union_refusal(target: Any, annotation: Any) -> str:
     name = _describe(target)
     return (
         f"the field's type names more than one dictionary ({_describe(annotation)}), and a "
-        f"dictionary reference is one value. Write {name}, or {name} | None for an optional one."
+        f"dictionary selection is one value. Write Annotated[AssociationOne[{name}], NoInverse()] "
+        f"= Field(description=...)."
     )
 
 
-def _dictionary_container_refusal(target: Any) -> str:
-    """Return the message for a relation container around a dictionary."""
+def _dictionary_container_refusal(target: Any, container: Any) -> str:
+    """Return the message for a non-AssociationOne container around a dictionary."""
     name = _describe(target)
     return (
-        f"the field's type is a relation container around a dictionary ({name}); a dictionary value "
-        f"is a shared reference, not an association target. Write {name} on the field instead."
+        f"the field's type is {_describe(container)} around a dictionary ({name}); only "
+        f"Annotated[AssociationOne[{name}] | None, NoInverse()] is a legal dictionary relationship."
     )
 
 
-def _dictionary_marker_refusal(target: Any) -> str:
-    """Return the message for the embedded-value marker on a dictionary."""
+def _dictionary_inverse_refusal(target: Any) -> str:
+    """Return the message for ``Inverse`` on a dictionary selection."""
     name = _describe(target)
     return (
-        f"NoRelation marks an embedded structural entity, and this field's type is a dictionary "
-        f"({name}): the bare dictionary type already declares the reference. Remove the marker and "
-        f"keep {name} on the field."
+        f"a dictionary selection has no reciprocal field on the closed catalogue ({name}); write "
+        f"NoInverse(), not Inverse(...)."
+    )
+
+
+def _no_relation_refusal(target: Any, annotation: Any) -> str:
+    """Return the message for the embedded-value marker on an entity field."""
+    name = _describe(target)
+    return (
+        f"NoRelation no longer declares an embedded value; the field's type is an entity "
+        f"({_describe(annotation)}). Declare the complete relationship "
+        f"(Annotated[AssociationOne[{name}], Inverse(...) or NoInverse()] = Field(description=...))."
+    )
+
+
+def _missing_direction_refusal() -> str:
+    """Return the message for a relation field with no direction marker."""
+    return "a relation field needs exactly one direction marker; write Inverse(...) or NoInverse() inside Annotated."
+
+
+def _conflicting_direction_refusal(count: int) -> str:
+    """Return the message for a relation field with more than one direction marker."""
+    return (
+        f"a relation field carries {count} direction markers; write exactly one Inverse(...) or "
+        f"NoInverse() inside Annotated."
     )
 
 
@@ -300,7 +339,7 @@ def _refuse(entity_cls: type[BaseEntity], field_name: str, details: str) -> None
 
 
 def _is_relation_field(annotation: Any) -> bool:
-    """True when the annotation is any of the eight relation containers."""
+    """True when the annotation is a relation container or a specialization/generalization field."""
     if is_relation_container(annotation) or is_specialization_field(annotation):
         return True
     return isinstance(annotation, type) and issubclass(annotation, Generalization)
@@ -345,50 +384,42 @@ def _require_relation_metadata(
     )
 
 
-def _check_relation(entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any) -> bool:
-    """Check a relation field and return whether the field was one."""
+def _require_direction_marker(entity_cls: type[BaseEntity], field_name: str, resolved: ResolvedEntityField) -> None:
+    """Require exactly one direction marker on a complete relation field."""
+    if resolved.direction_marker_count == 0:
+        _refuse(entity_cls, field_name, _missing_direction_refusal())
+    if resolved.direction_marker_count > 1:
+        _refuse(entity_cls, field_name, _conflicting_direction_refusal(resolved.direction_marker_count))
+
+
+def _check_relation_target(entity_cls: type[BaseEntity], field_name: str, resolved: ResolvedEntityField) -> None:
+    """Refuse a structural relation whose target is a state entity or an illegal dictionary form."""
+    target = resolved.targets[0]
+    kind = _kind_of(target)
+    if kind == "State":
+        _refuse(entity_cls, field_name, _state_refusal(target))
+    if kind == "Enum":
+        _require_dictionary_node(entity_cls, field_name, target)
+        if resolved.container is not AssociationOne:
+            _refuse(entity_cls, field_name, _dictionary_container_refusal(target, resolved.container))
+        if resolved.has_inverse:
+            _refuse(entity_cls, field_name, _dictionary_inverse_refusal(target))
+
+
+def _check_complete_relation(
+    entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any
+) -> bool:
+    """Check a relation field and return whether the field was a relation."""
     if not _is_relation_field(annotation):
         return False
     if any(isinstance(marker, NoRelation) for marker in field_info.metadata):
-        _refuse(
-            entity_cls,
-            field_name,
-            "NoRelation and a relation container cannot be combined; keep the container, or state why "
-            "no relation exists.",
-        )
-    target = _entity_inside(annotation)
-    if target is not None and _kind_of(target) == "State":
-        _refuse(entity_cls, field_name, _state_refusal(target))
-    if target is not None and _kind_of(target) == "Enum":
-        _refuse(entity_cls, field_name, _dictionary_container_refusal(target))
+        target = _entity_inside(annotation) or annotation
+        _refuse(entity_cls, field_name, _no_relation_refusal(target, annotation))
+    resolved = resolve_entity_field(entity_cls, field_name, field_info)
+    _require_direction_marker(entity_cls, field_name, resolved)
+    if (resolved.is_relation or resolved.is_generalization) and resolved.targets:
+        _check_relation_target(entity_cls, field_name, resolved)
     _require_relation_metadata(entity_cls, field_name, field_info, annotation)
-    return True
-
-
-def _check_marker(entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any) -> bool:
-    """Check an embedded-value marker and return whether the field carried one."""
-    marker = next((item for item in field_info.metadata if isinstance(item, NoRelation)), None)
-    if marker is None:
-        return False
-    if any(isinstance(item, _RELATION_MARKERS) for item in field_info.metadata):
-        _refuse(
-            entity_cls,
-            field_name,
-            "NoRelation and a relation marker cannot be combined; the field either has a relation or it does not.",
-        )
-    inner, _optional = _strip_optional(annotation)
-    kind = _kind_of(inner)
-    if kind == "State":
-        _refuse(entity_cls, field_name, _state_refusal(inner))
-    if kind == "Enum":
-        _refuse(entity_cls, field_name, _dictionary_marker_refusal(inner))
-    if kind is None:
-        _refuse(
-            entity_cls,
-            field_name,
-            f"NoRelation marks an embedded value, so it applies only to a Core, Assoc, Detail or Spec "
-            f"entity; this field's type is {_describe(annotation)}.",
-        )
     return True
 
 
@@ -412,24 +443,44 @@ def _require_dictionary_node(entity_cls: type[BaseEntity], field_name: str, dict
         _refuse(entity_cls, field_name, _dictionary_outside_graph_refusal(dictionary))
 
 
-def _check_field(entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo) -> None:
-    """Apply the declaration rule to one field."""
-    annotation = field_info.annotation
-    if _check_relation(entity_cls, field_name, field_info, annotation):
-        return
-    if _check_marker(entity_cls, field_name, field_info, annotation):
-        return
+def _check_no_relation(entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo, annotation: Any) -> bool:
+    """Refuse the embedded-value marker and return whether the field carried one."""
+    if not any(isinstance(marker, NoRelation) for marker in field_info.metadata):
+        return False
+    target = _entity_inside(annotation)
+    if target is None:
+        _refuse(
+            entity_cls,
+            field_name,
+            f"NoRelation marks an embedded value, which no longer exists; this field's type is "
+            f"{_describe(annotation)}, not an entity. Declare the field as an ordinary scalar.",
+        )
+    if _kind_of(target) == "State":
+        _refuse(entity_cls, field_name, _state_refusal(target))
+    if _kind_of(target) == "Enum":
+        _refuse(entity_cls, field_name, _dictionary_container_refusal(target, NoRelation))
+    _refuse(entity_cls, field_name, _no_relation_refusal(target, annotation))
+    return True
+
+
+def _check_non_relation_shape(entity_cls: type[BaseEntity], field_name: str, annotation: Any) -> None:
+    """Refuse bare, optional, collection, mapping, dictionary and state shapes with no container."""
     inner, allowed_none = _strip_optional(annotation)
     inner_kind = _kind_of(inner)
     if inner_kind == "Enum":
-        _require_dictionary_node(entity_cls, field_name, inner)
-        return
+        _refuse(entity_cls, field_name, _bare_dictionary_refusal(inner, annotation))
     if inner_kind == "State":
         _refuse(entity_cls, field_name, _state_refusal(inner))
     if inner_kind is not None:
         _refuse(entity_cls, field_name, _structural_refusal(inner, annotation))
     target = _entity_inside(annotation)
     if target is None:
+        if _has_forward_ref(annotation):
+            _refuse(
+                entity_cls,
+                field_name,
+                "the field's annotation is unresolved; resolve it with model_rebuild(...) before building the model.",
+            )
         return
     target_kind = _kind_of(target)
     if target_kind == "State":
@@ -444,19 +495,52 @@ def _check_field(entity_cls: type[BaseEntity], field_name: str, field_info: Fiel
     _refuse(entity_cls, field_name, _collection_refusal(target, annotation))
 
 
+def _check_field(entity_cls: type[BaseEntity], field_name: str, field_info: FieldInfo) -> None:
+    """Apply the complete-declaration rule to one field."""
+    annotation = field_info.annotation
+    if _check_complete_relation(entity_cls, field_name, field_info, annotation):
+        return
+    if _check_no_relation(entity_cls, field_name, field_info, annotation):
+        return
+    _check_non_relation_shape(entity_cls, field_name, annotation)
+
+
+def _all_declared_entity_classes() -> list[type[BaseEntity]]:
+    """
+    Return every ``@entity`` class currently loaded, except graph-excluded hosts.
+
+    ``exclude_graph_model`` keeps a class out of the published graph and out of the global
+    completeness pass; an excluded host is still judged when a caller names it explicitly.
+    The specialization validator keeps its own publication enumeration unchanged.
+    """
+    found: dict[str, type[BaseEntity]] = {}
+    pending: list[type[Any]] = [BaseEntity]
+    seen: set[type[Any]] = set()
+    while pending:
+        current = pending.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        for subclass in current.__subclasses__():
+            pending.append(subclass)
+            if entity_info_is_set(subclass) and not excluded_from_graph_model(subclass):
+                found[f"{subclass.__module__}.{subclass.__qualname__}"] = subclass
+    return [found[key] for key in sorted(found)]
+
+
 def validate_entity_fields(entities: list[type[BaseEntity]] | None = None) -> None:
     """
-    Refuse every entity field that names an entity without declaring its form.
+    Refuse every entity field that names an entity without a complete relationship declaration.
 
     Args:
-        entities: classes to judge; when ``None``, every loaded ``@entity`` class is used.
+        entities: classes to judge; when ``None``, every loaded ``@entity`` class is used,
+            including graph-excluded hosts.
 
     Raises:
         EntityFieldDeclarationError: a field is a bare entity, a collection of one, a bare
-            optional of one, a state entity, a misused embedded-value marker, or a dictionary
-            reference declared as a collection, a container, a marker, an empty catalogue or a
-            dictionary without a graph node.
+            optional of one, a state entity, a bare dictionary, a ``NoRelation`` alternative,
+            or a relation field with missing, duplicate or conflicting direction markers.
     """
-    for entity_cls in declared_entity_classes() if entities is None else entities:
+    for entity_cls in _all_declared_entity_classes() if entities is None else entities:
         for field_name, field_info in entity_cls.model_fields.items():
             _check_field(entity_cls, field_name, field_info)

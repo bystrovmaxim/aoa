@@ -42,6 +42,7 @@ from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
 from aoa.action_machine.graph.nodes.entity_field_graph_node import declared_dictionary
 from aoa.action_machine.intents.entity.entity_intent import entity_info_is_set
+from aoa.action_machine.intents.entity.entity_relation_intent_resolver import is_relation_container
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -90,6 +91,10 @@ class EntityReferenceGraphEdge(AssociationGraphEdge):
         """Return one edge per field whose resolved type is a dictionary with a graph node."""
         edges: list[EntityReferenceGraphEdge] = []
         for field_name, field_info in entity_cls.model_fields.items():
+            if is_relation_container(field_info.annotation):
+                # A dictionary association routes through the ordinary relation path, never
+                # through the special reference edge.
+                continue
             dictionary = declared_dictionary(field_info.annotation)
             if dictionary is None or not entity_info_is_set(dictionary):
                 continue

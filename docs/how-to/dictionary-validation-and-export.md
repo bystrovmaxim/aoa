@@ -762,7 +762,7 @@ Completed value: 1.0
 
 The serialization schema now retains the definitions used by enum properties. Previously this combination could fail during schema generation. Generate input schemas with `mode="validation"` and output schemas with `mode="serialization"`; validate the actual exported payload against the latter. No reference payload migration is required.
 
-Every property emitted by serialization is required in the nested output object, including properties whose value is null. An excluded property is absent. Input can still contain only the dictionary code. Input schema validation checks the reference shape; resolving a code to a declared member remains runtime validation's responsibility.
+Every property emitted by serialization is required in the nested output object, including properties whose value is null. An excluded property is absent. Standalone dictionary/ordinary Pydantic DTO input can still contain only the dictionary code. Entity relationship JSON input instead uses an id object; see [dictionary selections](dictionary-references.md). Input schema validation checks the reference shape; resolving a code to a declared member remains runtime validation's responsibility.
 
 ## Checked boundaries
 
@@ -772,4 +772,6 @@ Input and output schemas retain their existing responsibilities. The completed-v
 
 ## Dictionary reference declarations
 
-A bare dictionary type selects one declared value and supplies a reference edge. Nullable fields keep cardinality `one`. Collections, relation containers and `NoRelation` are refused for dictionary references at model build. See [supported forms, migration and exact refusals](dictionary-references.md).
+An entity field selecting a catalogue uses `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")`. Bare dictionary fields are refused at model build. The plain `Holder(BaseModel)` used in the export examples above is a DTO, not an `@entity` host, so its direct dictionary validation remains supported. Do not copy that DTO field declaration onto an entity.
+
+For entity selections, Python input is an explicit wrapper and JSON input is an id-only object. Export still uses the canonical dictionary reference, but the association's serialization schema currently lacks typed custom-property definitions. The standalone export schema demonstrated above retains them. See [supported forms, migration and exact refusals](dictionary-references.md), the [transport script](../../examples/step_20_dictionaries/56_selection_transport.py), its [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb), and the [schema limitation](../reports/complete-relationship-verification.md#association-serialization-schema).
