@@ -48,7 +48,7 @@ def main() -> None:
         assert error.errors()[0]["loc"] == ("currency",)
         assert (
             error.errors()[0]["msg"]
-            == "Value error, a dictionary association JSON input is an object with exactly one 'id' key."
+            == "Value error, a dictionary relation JSON input is an object with exactly one 'id' key."
         )
         print(type(error).__name__ + ": " + str(error))
     else:

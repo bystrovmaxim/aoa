@@ -1,6 +1,18 @@
 # Changelog
 
+## [2026-10-25] — Compatible endpoint roles and dictionary collections
+
+A reciprocal relationship now checks what each endpoint means. Two associations may pair; an aggregation or composition needs an association on the opposite side. Specialization and generalization pair only with each other. One/Many changes cardinality, not compatibility. Previously accepted ownership/ownership pairs must migrate: keep ownership on the appropriate side and declare its reverse as an association. Refusals identify both fields, their roles and the correction before the model's graph is published.
+
+An ordinary NoInverse field remains an independent one-way link. Two such fields pointing at each other's types are two links, not a reciprocal pair. An Inverse cannot use a NoInverse field as its reverse. Specialization and generalization now refuse NoInverse and require reciprocal markers, closing the earlier missing-direction check.
+
+Dictionary targets support association, aggregation and composition with both One and Many. Use an explicit wrapper in Python. JSON selection input remains one id object for One and is an array of id objects for Many; export contains the canonical member reference or an array of references. Validation keeps the container class, resolves codes in order and leaves the caller's wrapper unchanged. Empty collections and absent nullable values remain distinct, and graph metadata retains the declared family and cardinality.
+
+The documentation and executed scenarios cover permitted pairs, migrations, refusals and independent directions. Verification also records remaining gaps in custom container subclasses, reciprocal catalogue declarations, typed custom-property export schemas and duplicated dictionary field rows in ERD payloads. These require code corrections and are not alternative supported declarations; see the [verification report](reports/endpoint-role-verification.md). ([#261](https://github.com/bystrovmaxim/aoa/issues/261))
+
 ## [2026-10-24] — Complete relationship declarations and explicit dictionary selections
+
+> The dictionary rules in this entry — one association, no inverse, no many or ownership containers — were superseded by the endpoint role compatibility entry above.
 
 Relationships now state their container, direction and description together. Core, association, detail and specialization objects use the complete declaration for their links; selecting a dictionary value uses an explicit single association. Replace bare entity fields and the former embedded-value marker with complete relationships. Raw collections of entity values do not replace relationship declarations. State retains its lifecycle contract.
 
@@ -8,7 +20,7 @@ Ordinary reciprocal links now name each other on both endpoints. Migrate old one
 
 For a dictionary selection, replace the bare dictionary field with `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")`. Pass an explicit wrapper with its code as `id` in Python, or an id-only object in JSON. Validation selects the shared declared member. Export still returns its code, display name and descriptive properties, so selection input and exported references have different shapes. Many-value containers, ownership containers and inverse markers on dictionary selections are refused.
 
-Rebuild model exports after migrating. Verification also identifies remaining gaps in explicit inherited overrides and specialization direction checks, a broad schema for exported association properties, and duplicate dictionary field rows in the entity diagram payload. These are documented limitations requiring code corrections, not supported alternatives to the complete form. See the [verification report](reports/complete-relationship-verification.md). ([#259](https://github.com/bystrovmaxim/aoa/issues/259))
+Rebuild model exports after migrating. At that checkpoint, verification identified gaps in explicit inherited overrides and specialization direction checks, a broad schema for exported association properties, and duplicate dictionary field rows in the entity diagram payload. The later endpoint-role change closes the NoInverse specialization-direction gap. These are documented limitations requiring code corrections, not supported alternatives to the complete form. See the [verification report](reports/complete-relationship-verification.md). ([#259](https://github.com/bystrovmaxim/aoa/issues/259))
 
 ## [2026-10-23] — Dictionary selections become visible references
 

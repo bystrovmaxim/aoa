@@ -1,201 +1,141 @@
-# Select a dictionary value through an association
+# Select dictionary members through complete relationships
 
-Use a dictionary selection when an object chooses one canonical value from a closed catalogue. Declare the field as `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")`. A required selection has no default. For absence, put `| None` inside `Annotated`; add `default=None` only if callers may omit the selection.
+Use a dictionary when the model chooses canonical members of a closed catalogue. A dictionary target now works with all six ordinary containers. Pick the role family for ownership meaning and One/Many for cardinality, then declare the complete field with `Annotated`, exactly one direction marker and an assignment-side `Field(description="...")`.
 
-Previously a bare `D` or `D | None` field selected the value and exported a special reference edge. The complete association is now required. Keep the dictionary's members and codes, replace the field annotation, and wrap Python arguments in `AssociationOne(id=code)`. Rebuild model exports after migration.
+Previously the dictionary-specific validation accepted only AssociationOne with NoInverse. Existing single selections keep their wrapper and transport forms, but diagnostics now say dictionary relation. For multiple selections use a Many container; separate link entities are no longer required solely to select several dictionary members. Replace raw collections with a complete Many relationship, not with a bare dictionary annotation.
 
-## Supported forms and boundaries
+## Supported declaration forms
 
-| Form | Result |
-| --- | --- |
-| `Annotated[AssociationOne[D], NoInverse()]` with assignment-side description | One required selection |
-| `Annotated[AssociationOne[D] | None, NoInverse()]` | One selection or explicit absence; no automatic default |
-| Bare `D`, optional bare `D` or `Annotated[D, ...]` | Refused at model build; use the complete association |
-| Collection or `AssociationMany[D]` | Refused; model multiple selections as separate link entities |
-| Composite, aggregate, specialization or generalization selecting D | Refused; the supported selection is a single association |
-| `Inverse` on a dictionary selection | Refused; a catalogue selection has no reverse field |
-| `NoRelation` around D | Refused; it does not create an embedded-value escape |
-| Empty, undecorated or graph-excluded target catalogue | Refused; provide a nonempty decorated catalogue included in the graph |
+| Container | Python wrapper | JSON selection input | JSON export |
+| --- | --- | --- | --- |
+| AssociationOne[D] | AssociationOne(id=code) | One id object | One member reference |
+| AggregateOne[D] | AggregateOne(id=code) | One id object | One member reference |
+| CompositeOne[D] | CompositeOne(id=code) | One id object | One member reference |
+| AssociationMany[D] | AssociationMany(ids=(...)) | Array of id objects | Array of member references |
+| AggregateMany[D] | AggregateMany(ids=(...)) | Array of id objects | Array of member references |
+| CompositeMany[D] | CompositeMany(ids=(...)) | Array of id objects | Array of member references |
 
-Dictionary classes still use `value(...)` and immutable property annotations. An empty decorated catalogue is refused when `@entity` runs. Target and host field checks run during model assembly. Excluding a host or hiding an edge does not disable those checks. A catalogue may belong to another domain.
+Every row still needs the complete source declaration. A required field has no default. Put `| None` inside `Annotated` to permit absence; add `default=None` only to permit omission. A required nullable field still needs an argument. Raw members, codes, Python mappings and raw lists/tuples are not implicit relationship wrappers.
 
-## Declaration refusals
+The catalogue must be nonempty, decorated with `@entity` and included in the graph. An empty decorated catalogue fails while its decorator runs; incomplete fields and unavailable targets fail during model assembly or public graph projection. NoRelation is not an embedding alternative. State keeps its lifecycle contract. A dictionary used to classify a specialization is a separate role from a relationship target.
 
-The collection/complete-association/embedded-marker scenario includes the corrected alternative. The catalogue scenario distinguishes an empty catalogue from one deliberately excluded from graph publication. These refusals occur at model build, before instance validation.
+## A complete selection and transport example
 
-[Script](../../examples/step_20_dictionaries/50_dictionary_declarations.py) · [Executed notebook](../../examples/step_20_dictionaries/50_dictionary_declarations.ipynb)
-
-```text
-EntityFieldDeclarationError: Field 'regions' on entity 'Offer50CoreEntity' is invalid: a collection of dictionary values has no declared form (tuple[__main__.Region50EnumEntity, ...]); a dictionary selection is one value. Write Annotated[AssociationOne[Region50EnumEntity], NoInverse()] = Field(description=...).
-Complete dictionary association: eu
-EntityFieldDeclarationError: Field 'region' on entity 'Offer52CoreEntity' is invalid: the field's type is NoRelation around a dictionary (Region52EnumEntity); only Annotated[AssociationOne[Region52EnumEntity] | None, NoInverse()] is a legal dictionary relationship.
-```
-
-[Script](../../examples/step_20_dictionaries/53_dictionary_catalogues.py) · [Executed notebook](../../examples/step_20_dictionaries/53_dictionary_catalogues.ipynb)
-
-```text
-EntityFieldDeclarationError: Field 'region' on entity 'Offer53CoreEntity' is invalid: EmptyEnumEntity declares no values; type the field with a concrete dictionary.
-EntityFieldDeclarationError: Field 'region' on entity 'Offer54CoreEntity' is invalid: HiddenRegion54EnumEntity has no node in the graph: it is not a declared @entity class, or it is marked exclude_graph_model, so the reference could not be drawn. Keep the dictionary in the graph.
-```
-
-## A complete Python selection
-
-[Script](../../examples/step_20_dictionaries/01_reference_field.py) · [Executed notebook](../../examples/step_20_dictionaries/01_reference_field.ipynb)
+This independent file uses CompositeOne and AggregateMany to demonstrate that dictionary relationships are not limited to association. The ownership role does not create database cascades or mutate the shared catalogue.
 
 ```python
-"""A field holds the declared object.
-Run: .venv/bin/python examples/step_20_dictionaries/01_reference_field.py
-
-
-A price uses a currency value that other prices can share.
-"""
-
 from typing import Annotated
-
 from pydantic import Field
-
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
-from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.domain import (
+    AggregateMany, BaseCoreEntity, BaseDomain, BaseEnumEntity, CompositeOne, NoInverse, value,
+)
 from aoa.action_machine.intents.entity import entity
 
 
-class ShopDomain(BaseDomain):
-    """Group the shop declarations."""
+class PricingDomain(BaseDomain):
+    """Group the pricing declarations."""
+    name = "pricing"
+    description = "Pricing"
 
-    name = "shop"
-    description = "Shop model"
 
-
-@entity(description="Currencies accepted by the shop", domain=ShopDomain)
+@entity(description="Currencies", domain=PricingDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
-    """Declare the shop's currency vocabulary."""
-
+    """Declare canonical currency values."""
     symbol: str = Field(description="Currency symbol")
-
     EUR = value(code="eur", display_name="Euro", symbol="€")
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Price tag", domain=ShopDomain)
-class PriceTagCoreEntity(BaseCoreEntity):
-    """Associate an amount with its currency."""
-
-    id: str = Field(description="Tag identifier")
-    amount: float = Field(description="Price amount")
-    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
-
-
-def main() -> None:
-    """Run this one learning experiment."""
-    tag = PriceTagCoreEntity(
-        id="tag-1", amount=9.99, currency=AssociationOne(id=CurrencyEnumEntity.EUR.code, entity=CurrencyEnumEntity.EUR)
+@entity(description="Prices", domain=PricingDomain)
+class PricesCoreEntity(BaseCoreEntity):
+    """Use explicit ownership and cardinality for dictionary links."""
+    primary: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Primary currency")
+    alternatives: Annotated[AggregateMany[CurrencyEnumEntity] | None, NoInverse()] = Field(
+        default=None, description="Alternative currencies"
     )
-    print("Shared value:", tag.currency.entity is CurrencyEnumEntity.EUR)
-    print("Symbol:", tag.currency.symbol)
-    assert tag.currency.entity is CurrencyEnumEntity.EUR
 
 
-if __name__ == "__main__":
-    main()
+original = AggregateMany(ids=("usd", "eur"))
+price = PricesCoreEntity(primary=CompositeOne(id="eur"), alternatives=original)
+assert price.primary.entity is CurrencyEnumEntity.EUR
+assert price.alternatives.entities == (CurrencyEnumEntity.USD, CurrencyEnumEntity.EUR)
+assert price.alternatives is not original and original.entities == ()
+transported = PricesCoreEntity.model_validate_json(
+    '{"primary":{"id":"eur"},"alternatives":[{"id":"usd"}]}'
+)
+empty = PricesCoreEntity(primary=CompositeOne(id="eur"), alternatives=AggregateMany(ids=()))
+absent = PricesCoreEntity(primary=CompositeOne(id="eur"))
+assert empty.alternatives.is_loaded and empty.alternatives.entities == ()
+assert absent.alternatives is None
+print("Selected codes:", price.alternatives.ids)
+print("JSON export:", transported.model_dump(mode="json")["alternatives"])
+print("Empty:", empty.model_dump(mode="json")["alternatives"])
+print("Absent:", absent.model_dump(mode="json")["alternatives"])
 ```
 
 Actual output:
 
 ```text
-Shared value: True
-Symbol: €
+Selected codes: ('usd', 'eur')
+JSON export: [{'code': 'usd', 'display_name': 'US dollar', 'properties': {'symbol': '$'}}]
+Empty: []
+Absent: None
 ```
 
-Python input requires an actual `AssociationOne` wrapper. Its `id` must be a nonblank declared string code. The wrapper may omit `entity`, or supply the identical canonical member returned by `D.by_code(code)`. Validation returns a new wrapper containing that member; the caller's original wrapper is unchanged. A raw member, string or Python mapping is refused. A copied member or a canonical member from the wrong code is also refused.
+## Normalization and canonical identity
 
-## JSON input and output are different formats
+Each to-one id resolves to the identical member returned by `D.by_code(code)`. A supplied entity must be that canonical member for the same code. Each Many id resolves in input order. Repeated codes remain repeated; no uniqueness restriction is introduced. Supplied nonempty entities must match the id count and canonical member at every position. Foreign, copied and mismatched members are refused.
 
-Selection input through `model_validate_json` is exactly `{"id":"eur"}` at the relationship field. Missing `id`, extra keys, a blank/non-string id and unknown codes fail during instance validation. The Python mapping `{"id":"eur"}` passed to ordinary model construction is not JSON mode and is refused.
+Validation returns a new container of the declared class and does not mutate the input wrapper. Id-only dictionary wrappers become loaded because their catalogue is available locally. An empty Many selection becomes loaded with zero entities; it exports `[]`. An absent nullable field is `None` and exports `null`. Normalization resolves all selected codes rather than leaving a partially loaded dictionary relationship. Ordinary structural-entity loading behavior is unchanged.
 
-JSON export is the canonical member's reference: `{"code":"eur","display_name":"Euro","properties":{...}}`. Field serializers on dictionary properties still run. Exported references cannot be fed unchanged into the association's JSON input. Convert the output code to an `id` selection explicitly. `model_dump()` in Python mode keeps the wrapper.
+## JSON selection input differs from reference export
 
-The [transport scenario](../../examples/step_20_dictionaries/56_selection_transport.py) and [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb) check canonical identity, new-wrapper normalization, raw-member refusal, JSON selection, nullable absence, export and both schema modes. The [JSON input script](../../examples/step_20_dictionaries/02_reference_payload.py) ([notebook](../../examples/step_20_dictionaries/02_reference_payload.ipynb)) isolates transport selection.
+A to-one input is exactly `{"id":"eur"}`. A to-many input is an array such as `[{"id":"usd"},{"id":"eur"}]`; it is not an `{"ids":[...]}` object. Each item has exactly one id key. Unknown keys, blank/wrong-type codes and unknown catalogue codes are refused during host instance validation. A Python mapping passed to normal model construction is not JSON mode and is refused as a wrapper.
 
-## Exact instance refusals
+Export uses each canonical member's `to_reference()` representation: code, display_name and properties. Dictionary property serializers still run. Exported references are not accepted unchanged as selection input: convert code to id explicitly. Python-mode `model_dump()` retains the relationship wrappers.
 
-Each scenario catches `pydantic.ValidationError` and prints its actual type and text. These errors arise while constructing or validating the host instance, rather than while building the graph.
-
-### Raw code
-
-[Script](../../examples/step_20_dictionaries/20_bare_code.py) · [Executed notebook](../../examples/step_20_dictionaries/20_bare_code.ipynb)
+[Script](../../examples/step_21_relations/72_role_dictionary.py) · [Executed notebook](../../examples/step_21_relations/72_role_dictionary.ipynb)
 
 ```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Input should be an instance of AssociationOne [type=is_instance_of, input_value='eur', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
-```
-
-### Unknown wrapped code
-
-[Script](../../examples/step_20_dictionaries/21_unknown_code.py) · [Executed notebook](../../examples/step_20_dictionaries/21_unknown_code.ipynb)
-
-```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Value error, 'unknown' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=AssociationOne(id='unknown', id_only), input_type=AssociationOne]
+All six container classes retained
+Selection order and repeats: ('usd', 'eur', 'usd')
+Caller loaded: False validated loaded: True
+Empty selection: () loaded: True
+Exported selections: [{'code': 'usd', 'display_name': 'US dollar', 'properties': {'symbol': 'Currency $'}}, {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': 'Currency €'}}]
+Empty export: [] absent export: None
+Input item keys: ['id']
+Output item keys: ['code', 'display_name', 'properties']
+ValidationError: 1 validation error for PriceListCoreEntity
+alternatives
+  Value error, item 1: 'xxx' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=[{'id': 'eur'}, {'id': 'xxx'}], input_type=list]
     For further information visit https://errors.pydantic.dev/2.12/v/value_error
-```
-
-### Copied member inside the wrapper
-
-[Script](../../examples/step_20_dictionaries/22_copy.py) · [Executed notebook](../../examples/step_20_dictionaries/22_copy.ipynb)
-
-```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Value error, the supplied entity is not the declared value for code 'eur'; pass CurrencyEnumEntity.by_code('eur'). [type=value_error, input_value=AssociationOne(id='eur', loaded), input_type=AssociationOne]
+ValidationError: 1 validation error for PriceListCoreEntity
+alternatives
+  Value error, item 0: the supplied entity is not the declared value for code 'eur'. [type=value_error, input_value=AssociationMany(count=1, ...oaded=yes, n_entities=1), input_type=AssociationMany]
     For further information visit https://errors.pydantic.dev/2.12/v/value_error
+Graph roles: {'primary': ('association', 'one'), 'quoted': ('aggregation', 'one'), 'snapshot': ('composition', 'one'), 'alternatives': ('association', 'many'), 'available': ('aggregation', 'many'), 'bundled': ('composition', 'many')}
 ```
 
-### JSON object missing id
+The failure's structured location is the relationship field. A failing Many item is identified by text such as `item 1` in the message; it is not currently a separate numeric component of `ValidationError.errors()[0]["loc"]`. The scenario asserts the actual field location and exact message.
 
-[Script](../../examples/step_20_dictionaries/23_missing_code.py) · [Executed notebook](../../examples/step_20_dictionaries/23_missing_code.ipynb)
+## Direction markers and paired roles
 
-```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Value error, a dictionary association JSON input is an object with exactly one 'id' key. [type=value_error, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.12/v/value_error
-```
+NoInverse is available on each ordinary container for an unpaired link. Two opposite-direction NoInverse fields are independent relationships. An Inverse needs an actual reciprocal Inverse endpoint, and the pair must pass the [role matrix](../reference/intents-and-invariants.md#endpoint-role-compatibility). No role is forbidden merely because the target is Enum.
 
-### Blank wrapped id
+There is an implementation gap: catalogue property validation currently rejects a relationship-valued reverse field while the dictionary class is created. Thus a general inverse rule exists, but a complete reciprocal dictionary example cannot currently be declared through that API. The [minimal reproduction](../reports/endpoint-role-verification.md#dictionary-reverse-endpoints) records this gap; do not interpret it as a supported dictionary-only NoInverse restriction.
 
-[Script](../../examples/step_20_dictionaries/24_blank_reference.py) · [Executed notebook](../../examples/step_20_dictionaries/24_blank_reference.ipynb)
+## Graph and consumer contract
 
-```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Value error, a dictionary association id must be a non-empty string code, got ' '. [type=value_error, input_value=AssociationOne(id=' ', id_only), input_type=AssociationOne]
-    For further information visit https://errors.pydantic.dev/2.12/v/value_error
-```
+A graph-visible dictionary field emits one ordinary `entity_relation` edge with its declared `relation_type` (association, aggregation or composition) and `cardinality` (one or many). The field name, description and direction metadata follow the ordinary relationship contract. Nullability does not change declaration-level cardinality or remove the edge when an instance holds None.
 
-### Raw Python mapping
+The graph retains an EntityField row and its `reference_qualname` identifying the dictionary. Catalogue values stay in the dictionary node's values. Newly generated relationships emit no special entity_reference edge. Older imported graphs may retain that historical edge type.
 
-[Script](../../examples/step_20_dictionaries/25_flat_fields.py) · [Executed notebook](../../examples/step_20_dictionaries/25_flat_fields.ipynb)
+The [graph scenario above](../../examples/step_21_relations/72_role_dictionary.py) asserts all six role/cardinality combinations and their field hints. Maxitor preserves the three relation families, but its query currently emits both a retained field row and synthesized FK row for the same dictionary field. This is a [confirmed consumer defect](../reports/endpoint-role-verification.md#dictionary-field-rows-in-the-erd), not two domain fields or two relationship arrows.
 
-```text
-ValidationError: 1 validation error for PriceTagCoreEntity
-currency
-  Input should be an instance of AssociationOne [type=is_instance_of, input_value={'code': 'bootleg', 'disp...Unknown', 'symbol': '?'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
-```
+## Schema modes and current limits
 
-## The exported graph
+Validation schemas describe id objects or arrays of id objects. Serialization schemas describe references or arrays of references. They reject unknown top-level reference keys and require code/display_name/properties. Runtime validation still establishes catalogue membership and refuses whitespace-only codes.
 
-A selection emits an ordinary `entity_relation` edge from its host to D, with `relation_type="association"`, `cardinality="one"` and `has_inverse=false`. It has the field name and description, and no inverse endpoint properties. A nullable selection still has cardinality `one`; graph declarations do not depend on an instance's current value.
+The emitted relationship schema currently describes nested properties only as an object. It does not retain the standalone dictionary's typed custom-property definitions. The exported values and serializers work, but malformed custom-property types can pass that schema. See the [schema reproduction](../reports/endpoint-role-verification.md#typed-custom-property-schemas). Standalone dictionary/ordinary DTO schemas retain their separate typed export contract.
 
-The host retains its `EntityField` row, description, ordering and `reference_qualname` naming D. Dictionary members remain entries in the dictionary node's `values`, not separate nodes. Newly built graphs do not emit an `entity_reference` edge for this field. Older exported graphs may still contain those special edges; consumers that support old imports must distinguish them from newly generated ordinary associations.
-
-See the [graph script](../../examples/step_20_dictionaries/08_graph.py) and [notebook](../../examples/step_20_dictionaries/08_graph.ipynb). Maxitor reads the ordinary association and dictionary values, but currently duplicates the retained field and synthesized FK row. Its payload must not be treated as having one row per field until that [confirmed defect](../reports/complete-relationship-verification.md#dictionary-fields-in-maxitor) is fixed.
-
-## Schema boundaries
-
-`mode="validation"` describes the `id` object and rejects extra top-level keys. Membership and whitespace-only identifiers are checked at runtime. `mode="serialization"` describes code/display_name/properties. The association's nested `properties` schema is currently only an object; it does not retain the typed custom-property schema available from a standalone dictionary model. Do not rely on it to reject malformed exported custom properties. See the [schema reproduction](../reports/complete-relationship-verification.md#association-serialization-schema).
-
-See [complete entity fields](explicit-entity-fields.md), [dictionary validation and export](dictionary-validation-and-export.md), [the dictionary tutorial](../tutorials/step-20-dictionaries.md) and [entity invariants](../reference/intents-and-invariants.md#closed-dictionaries-and-declared-values).
+See [complete entity fields](explicit-entity-fields.md), [dictionary property validation](dictionary-validation-and-export.md), the [dictionary tutorial](../tutorials/step-20-dictionaries.md) and the [verification report](../reports/endpoint-role-verification.md).

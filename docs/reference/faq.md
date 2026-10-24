@@ -127,7 +127,7 @@ The current closure check still requires every axis to include the classes that 
 
 ### Can I omit the reverse declaration?
 
-An alternative needs a reverse `Generalization` with a Classifier naming a declared dictionary value for the head's mapping to be valid. Use the paired `Inverse` declarations and descriptions shown in the tutorial. Ordinary relationship pairs now require reciprocal markers on both endpoints. Specialization still has a [confirmed gap](../reports/complete-relationship-verification.md#specialization-directions): a generalization inverse can be accepted with a NoInverse head. Do not rely on that missing refusal. An intentional one-way ordinary link uses `NoInverse()`.
+An alternative needs a reverse `Generalization` with a Classifier naming a declared dictionary value for the head's mapping to be valid. Use the paired `Inverse` declarations and descriptions shown in the tutorial. Ordinary relationship pairs now require reciprocal markers on both endpoints. Specialization and Generalization now reject NoInverse and require reciprocal Inverse markers. The role-pair matrix permits only their matching pair. An intentional one-way ordinary link uses `NoInverse()`.
 
 ### Why does an invalid model sometimes raise KeyError?
 
@@ -163,6 +163,10 @@ see the [declaration migration](../tutorials/step-20-dictionaries.md#migrate-an-
 
 ### Why do dictionary selection input and output use different keys?
 
-An entity selects a shared member through `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")`. Python input requires `AssociationOne(id="eur")`; JSON input is an id-only object. JSON output carries the canonical member's code, display_name and serialized properties. Convert an exported code to an input id explicitly; the output is not accepted unchanged as selection input.
+An entity selects shared members through a complete relationship declaration in any of the six ordinary containers. Python input uses the declared wrapper with id for One or ids for Many. JSON input is an id-only object for One or an array of id objects for Many. JSON output carries a canonical member reference or an array of references, each with code, display_name and serialized properties. Convert an exported code to an input id explicitly; the output is not accepted unchanged as selection input.
 
 A standalone dictionary or plain Pydantic DTO still supports a code-based reference. That DTO declaration is not an entity relationship shorthand. Request `model_json_schema(mode="validation")` for input and `mode="serialization"` for output. Membership is checked at runtime. The association's output schema currently lacks typed custom-property definitions; the standalone dictionary output schema retains them. See the [selection guide](../how-to/dictionary-references.md), [transport script](../../examples/step_20_dictionaries/56_selection_transport.py) and [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb).
+
+### Can two ownership roles pair with each other?
+
+No. An ordinary reciprocal pair may have at most one Aggregate or Composite endpoint; the reverse must be AssociationOne or AssociationMany. Two ordinary NoInverse fields are separate links, even when their types point at each other. They are not a reciprocal ownership pair. See the [role guide and actual refusals](../how-to/relationship-role-compatibility.md).

@@ -12,12 +12,12 @@ Previously a bare dictionary selected a value, `NoRelation("reason")` could decl
 | Assoc | Each endpoint is a complete relationship; a technical connection has no shorthand exemption |
 | Detail | Its owner link and other links each use the complete form |
 | Spec | Ordinary links use the complete form; the head link uses `Generalization[Head]`, `Classifier(variant=D.VALUE)` and reciprocal `Inverse` |
-| Enum | A selection targeting a dictionary is `Annotated[AssociationOne[D], NoInverse()] = Field(description=...)`; dictionary member properties still have their separate immutable-type restrictions |
+| Enum | Dictionary targets support all six ordinary containers with a complete declaration; current catalogue property validation blocks a declared reverse relationship ([gap](../reports/endpoint-role-verification.md#dictionary-reverse-endpoints)) |
 | State | Keep the lifecycle contract; use a `Lifecycle[...]` subclass on the owning field, rather than an ordinary link to a status entity |
 
 A dictionary is a catalogue of values, not a host for arbitrary entity-valued properties. Its property type check runs at dictionary class creation. The Enum rule above describes selecting that catalogue from another entity. It does not relax property restrictions.
 
-`AssociationOne`/`AssociationMany` express links without ownership; `CompositeOne`/`CompositeMany` express composition; `AggregateOne`/`AggregateMany` express aggregation. These meanings do not implement deletion, database constraints or a new container-pair compatibility matrix.
+`AssociationOne`/`AssociationMany` express links without ownership; `CompositeOne`/`CompositeMany` express composition; `AggregateOne`/`AggregateMany` express aggregation. A reciprocal ordinary pair may have at most one Aggregate or Composite endpoint; its reverse must be an association. Specialization pairs only with Generalization. One/Many does not alter compatibility. These declarations do not implement storage deletion or database constraints. See the [complete matrix and migration](relationship-role-compatibility.md).
 
 ## Complete declarations and values
 
@@ -213,4 +213,4 @@ The assignment-side `Field` requirement also has a source check. Runtime Pydanti
 
 See the [dictionary selection guide](dictionary-references.md), [relationship tutorial](../tutorials/step-21-relations.md) and [invariant reference](../reference/intents-and-invariants.md#entity-relations). Current verification limits and reproductions are in the [verification report](../reports/complete-relationship-verification.md).
 
-Ordinary relationship pairs undergo reciprocal endpoint checks. Specialization/generalization pairs still have a [confirmed direction-check gap](../reports/complete-relationship-verification.md#specialization-directions): a reverse `Inverse` can currently be paired with a head marked `NoInverse`. Use reciprocal markers on both endpoints; do not rely on the missing refusal.
+Specialization and Generalization now refuse NoInverse on either endpoint. Ordinary NoInverse fields remain valid one-way links, including two opposite-direction fields that declare independent relationships. The [direction scenario](../../examples/step_21_relations/73_role_directions.py) and [notebook](../../examples/step_21_relations/73_role_directions.ipynb) distinguish these cases.

@@ -126,6 +126,7 @@ from aoa.action_machine.domain.exceptions import (
     LifecycleValidationError,
     MissingStateError,
     RelationNotLoadedError,
+    RoleCompatibilityError,
     SpecializationDeclarationError,
 )
 from aoa.action_machine.domain.hydration import build
@@ -192,6 +193,7 @@ __all__ = [
     "NoRelation",
     "RelationNotLoadedError",
     "RelationType",
+    "RoleCompatibilityError",
     "Specialization",
     "SpecializationDeclarationError",
     "StateInfo",

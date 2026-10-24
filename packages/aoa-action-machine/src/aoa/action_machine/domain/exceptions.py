@@ -292,3 +292,39 @@ class EntityFieldDeclarationError(Exception):
         self.details: str = details
 
         super().__init__(f"Field '{field_name}' on entity '{entity_name}' is invalid: {details}")
+
+
+class RoleCompatibilityError(Exception):
+    """
+    AI-CORE-BEGIN
+        ROLE: Fail-fast signal for a prohibited endpoint role pair on one relationship.
+        CONTRACT: Carries both endpoints' entity and field names, both resolved roles, the violated rule and the permitted correction; raised only after reciprocity is proven.
+        INVARIANTS: Raised for a prohibited cell of the symmetric role-pair matrix; never for a missing marker, an unresolved type or an absent reverse endpoint, which earlier checks report first.
+        AI-CORE-END
+    """
+
+    def __init__(
+        self,
+        *,
+        first_entity: str,
+        first_field: str,
+        second_entity: str,
+        second_field: str,
+        first_role: str,
+        second_role: str,
+        rule: str,
+        correction: str,
+    ) -> None:
+        self.first_entity: str = first_entity
+        self.first_field: str = first_field
+        self.second_entity: str = second_entity
+        self.second_field: str = second_field
+        self.first_role: str = first_role
+        self.second_role: str = second_role
+        self.rule: str = rule
+        self.correction: str = correction
+        super().__init__(
+            f"Role pair '{first_role}' ↔ '{second_role}' is not permitted between "
+            f"'{first_field}' on {first_entity} and '{second_field}' on {second_entity}: "
+            f"{rule}; {correction}."
+        )
