@@ -123,7 +123,7 @@ database constraints.
 A closed dictionary is one entity class with several declared values. Maxitor therefore
 shows one dictionary card, with its values listed beneath its fields. Each value row shows
 its display name, followed by descriptive properties such as a currency symbol. The code is available in the tooltip rather than printed in a separate cell. The inherited code and display-name fields no longer appear as ordinary field rows.
-The values are not separate cards or graph nodes. A dictionary selection uses an explicit single association. Its retained field row names the
+The values are not separate cards or graph nodes. A dictionary selection uses an explicit ordinary relationship, including One/Many and ownership containers. Its retained field row names the
 referenced dictionary beside its type, with an arrow marker. The current payload also contains
 a synthesized FK row for the same field; this duplication is a confirmed limitation, not two
 separate domain fields.
@@ -385,8 +385,10 @@ This makes the domain distinction available to consumers. It does not yet change
 
 ## Follow a dictionary reference
 
-Declare a catalogue selection as a complete `AssociationOne[D]` field with `NoInverse()`. Newly built graphs retain its field row and emit an ordinary `entity_relation` association with cardinality `one` and no inverse endpoint. Older graph imports may still contain special reference edges. Rebuild older exports after migrating the declaration.
+Declare a catalogue selection as a complete ordinary relationship field. All six containers support dictionary targets; use NoInverse for an unpaired link. Newly built graphs retain its field row and emit an ordinary `entity_relation` with the declared association/aggregation/composition family and One/Many cardinality. Older graph imports may still contain special reference edges. Rebuild older exports after migrating the declaration.
 
 The current ERD query reads the ordinary association and displays the dictionary values. It does not yet merge the retained field row with its synthesized FK row. A single declared dictionary field therefore produces two payload rows. Consumers must not assume one row per field yet; see the [reproduction and required correction](../reports/complete-relationship-verification.md#dictionary-fields-in-maxitor). No client rendering or full application compatibility claim is made by this backend payload example.
 
 See [selection declarations and transport](../how-to/dictionary-references.md), the [ERD script](../../examples/step_20_dictionaries/09_erd.py) and [executed notebook](../../examples/step_20_dictionaries/09_erd.ipynb).
+
+The [all-container dictionary example](../../examples/step_21_relations/72_role_dictionary.py) and [notebook](../../examples/step_21_relations/72_role_dictionary.ipynb) assert the source graph for all six ordinary roles. The [current consumer reproduction](../reports/endpoint-role-verification.md#dictionary-field-rows-in-the-erd) confirms that Maxitor carries all three families but still returns two payload rows for each retained dictionary field.

@@ -1,12 +1,12 @@
 # Relations between entities
 
-A relationship field gives a link its cardinality, ownership meaning, direction and description. Core, Assoc, Detail and Spec hosts use the complete form. Dictionary targets use a single association with `NoInverse()`. State keeps its lifecycle contract.
+A relationship field gives a link its cardinality, ownership meaning, direction and description. Core, Assoc, Detail and Spec hosts use the complete form. Dictionary targets use any of the six ordinary containers and either direction marker. State keeps its lifecycle contract.
 
 Previously bare dictionary fields, explicit embedded entity values and one-sided inverse pairs were accepted. Migrate each field and both sides of a reciprocal pair; see [complete declarations and exact refusals](../how-to/explicit-entity-fields.md). `NoRelation` no longer declares an embedded entity.
 
 ## Ownership, inverse fields and partial loading
 
-Containers carry ids even when the related entities are not loaded. Access to unloaded data raises `RelationNotLoadedError`; a container does not fetch rows. The ownership container expresses intent, without automatically implementing database deletion rules or a new pair-compatibility matrix.
+Containers carry ids even when the related entities are not loaded. Access to unloaded data raises `RelationNotLoadedError`; a container does not fetch rows. The ownership container expresses intent, without automatically implementing database deletion rules. The endpoint role-pair matrix, however, is enforced at model build: an ownership/ownership pair or a specialization/generalization endpoint paired with an ordinary role is refused. See [the reference](../reference/intents-and-invariants.md#endpoint-role-compatibility) for the symmetric matrix, and [the runnable scenarios](../../examples/step_21_relations/68_role_plain_associations.py) with their executed notebooks.
 
 [Script](../../examples/step_21_relations/01_relations.py) · [Executed notebook](../../examples/step_21_relations/01_relations.ipynb)
 
@@ -512,4 +512,23 @@ Descriptions and defaults are checked for ownership relations, specializations a
 
 `NoRelation` does not allow entity embedding. An unchanged inherited endpoint keeps its base identity; an explicit same-signature override has a [confirmed validation defect](../reports/complete-relationship-verification.md#explicit-overrides). States use lifecycle types. See [specialization refusals](../how-to/specialization-declaration-fails.md), [dictionary selections](../how-to/dictionary-references.md) and [the invariant reference](../reference/intents-and-invariants.md).
 
-Ordinary relationship pairs undergo reciprocal endpoint checks. Specialization/generalization pairs still have a [confirmed direction-check gap](../reports/complete-relationship-verification.md#specialization-directions): a reverse `Inverse` can currently be paired with a head marked `NoInverse`. Use reciprocal markers on both endpoints; do not rely on the missing refusal.
+Specialization and Generalization require Inverse on both endpoints. NoInverse is refused on either specialized field. Ordinary reciprocal pairs are also checked against the endpoint-role matrix during model assembly.
+
+## Endpoint role compatibility
+
+The roles on a reciprocal pair must agree with the [symmetric 8×8 matrix](../reference/intents-and-invariants.md#endpoint-role-compatibility). One/Many is cardinality, not permission to pair two ownership roles. An ordinary pair may have at most one Aggregate or Composite endpoint. Specialization and Generalization pair only with each other.
+
+Previously a complete ownership/ownership pair could pass; change the reverse field to an association before building the model. A prohibited pair now raises RoleCompatibilityError. NoInverse on a specialized field raises EntityFieldDeclarationError earlier, during declaration validation. These are real model-assembly checks, not tests-only rules or row validation on each call.
+
+| Learning topic | Script | Executed notebook |
+| --- | --- | --- |
+| Plain associations and cardinality | [Script](../../examples/step_21_relations/68_role_plain_associations.py) | [Notebook](../../examples/step_21_relations/68_role_plain_associations.ipynb) |
+| Aggregation, refusal and correction | [Script](../../examples/step_21_relations/69_role_aggregation.py) | [Notebook](../../examples/step_21_relations/69_role_aggregation.ipynb) |
+| Composition, refusals and correction | [Script](../../examples/step_21_relations/70_role_composition.py) | [Notebook](../../examples/step_21_relations/70_role_composition.ipynb) |
+| Classified axis and specialized refusals | [Script](../../examples/step_21_relations/71_role_specialization.py) | [Notebook](../../examples/step_21_relations/71_role_specialization.ipynb) |
+| All six dictionary containers and transport | [Script](../../examples/step_21_relations/72_role_dictionary.py) | [Notebook](../../examples/step_21_relations/72_role_dictionary.ipynb) |
+| Independent NoInverse links versus a pair | [Script](../../examples/step_21_relations/73_role_directions.py) | [Notebook](../../examples/step_21_relations/73_role_directions.ipynb) |
+
+Each scenario contains explicit declarations, value assertions and the real error text. The [compatibility how-to](../how-to/relationship-role-compatibility.md) explains each outcome and migration.
+
+Two opposite-direction NoInverse fields are independent links, so no paired role comparison is inferred. An Inverse cannot name a NoInverse field as its reverse. The new dictionary scenario uses Association, Aggregate and Composite with One/Many and shows the different JSON input and export shapes; it does not promise that the catalogue reverse-field or output-schema gaps have been fixed. See the [current verification report](../reports/endpoint-role-verification.md).

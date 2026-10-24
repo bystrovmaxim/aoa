@@ -19,7 +19,7 @@ class SettlementRippleCorrectionCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionCoreEntity],
         NoInverse(),

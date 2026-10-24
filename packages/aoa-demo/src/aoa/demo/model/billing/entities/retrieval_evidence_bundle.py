@@ -19,7 +19,7 @@ class RetrievalEvidenceBundleCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     chargeback_ticket: Annotated[
         AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),

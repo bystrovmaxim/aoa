@@ -141,56 +141,98 @@ def _is_dictionary_type(target: Any) -> bool:
     return issubclass(target, BaseEnumEntity)
 
 
-def _dictionary_association_schema(dictionary: type[BaseEnumEntity]) -> Any:
-    """Build the core schema for ``AssociationOne[D]`` where D is a closed dictionary."""
+def _dictionary_member_of(dictionary: type[BaseEnumEntity], code: Any, *, item_prefix: str = "") -> Any:
+    """Resolve one code to its canonical declared member, refusing blank, wrong-type or unknown codes."""
+    if not isinstance(code, str) or not code.strip():
+        raise ValueError(f"{item_prefix}a dictionary relation id must be a non-empty string code, got {code!r}.")
+    try:
+        return dictionary.by_code(code)
+    except KeyError:
+        raise ValueError(
+            f"{item_prefix}'{code}' is not a declared value of {dictionary.__name__}. Declared: {dictionary.codes()}."
+        ) from None
+
+
+def _dictionary_one_value(container_cls: type[Any], dictionary: type[BaseEnumEntity], value: Any) -> Any:
+    """Resolve a to-one dictionary wrapper to a new wrapper holding the canonical member."""
+    if not isinstance(value, container_cls):
+        raise ValueError(
+            f"a dictionary relation field requires an explicit {container_cls.__name__}[...] wrapper, "
+            f"got {type(value).__name__}."
+        )
+    code = value.id
+    member = _dictionary_member_of(dictionary, code)
+    supplied = value.entity
+    if supplied is not None and supplied is not member:
+        raise ValueError(
+            f"the supplied entity is not the declared value for code '{code}'; pass "
+            f"{dictionary.__name__}.by_code('{code}')."
+        )
+    return container_cls(id=code, entity=member)
+
+
+def _dictionary_many_value(
+    container_cls: type[Any],
+    dictionary: type[BaseEnumEntity],
+    codes: tuple[Any, ...],
+    supplied: tuple[Any, ...] = (),
+) -> Any:
+    """Resolve to-many codes to canonical members, in input order, rejecting foreign members."""
+    members = tuple(
+        _dictionary_member_of(dictionary, code, item_prefix=f"item {index}: ") for index, code in enumerate(codes)
+    )
+    if supplied:
+        if len(supplied) != len(codes):
+            raise ValueError(f"the supplied entities ({len(supplied)}) do not match the ids ({len(codes)}).")
+        for index, (member, given) in enumerate(zip(members, supplied, strict=True)):
+            if given is not member:
+                raise ValueError(
+                    f"item {index}: the supplied entity is not the declared value for code '{codes[index]}'."
+                )
+    return container_cls(ids=tuple(codes), entities=members, entities_loaded=True)
+
+
+def _dictionary_reference_json_schema() -> dict[str, Any]:
+    """The emitted dictionary reference shape."""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["code", "display_name", "properties"],
+        "properties": {
+            "code": {"type": "string", "minLength": 1},
+            "display_name": {"type": "string", "minLength": 1},
+            "properties": {"type": "object"},
+        },
+    }
+
+
+def _dictionary_input_json_schema() -> dict[str, Any]:
+    """The explicit container input shape."""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id"],
+        "properties": {"id": {"type": "string", "minLength": 1}},
+    }
+
+
+def _dictionary_one_schema(container_cls: type[Any], dictionary: type[BaseEnumEntity]) -> Any:
+    """Build the core schema for a to-one container whose target is a closed dictionary."""
 
     def validate_python(value: Any) -> Any:
-        """Resolve the wrapper's code to the canonical member; refuse foreign/mismatched members."""
-        if not isinstance(value, AssociationOne):
-            raise ValueError(
-                f"a dictionary association field requires an explicit AssociationOne[...] wrapper, "
-                f"got {type(value).__name__}."
-            )
-        code = value.id
-        if not isinstance(code, str) or not code.strip():
-            raise ValueError(f"a dictionary association id must be a non-empty string code, got {code!r}.")
-        try:
-            member = dictionary.by_code(code)
-        except KeyError:
-            raise ValueError(
-                f"'{code}' is not a declared value of {dictionary.__name__}. Declared: {dictionary.codes()}."
-            ) from None
-        supplied = value.entity
-        if supplied is not None and supplied is not member:
-            raise ValueError(
-                f"the supplied entity is not the declared value for code '{code}'; pass "
-                f"{dictionary.__name__}.by_code('{code}')."
-            )
-        return AssociationOne(id=code, entity=member)
+        return _dictionary_one_value(container_cls, dictionary, value)
 
     def validate_json(value: Any) -> Any:
-        """Accept only the explicit ``{id: code}`` transport object."""
         if not isinstance(value, dict) or set(value) != {"id"}:
-            raise ValueError("a dictionary association JSON input is an object with exactly one 'id' key.")
+            raise ValueError("a dictionary relation JSON input is an object with exactly one 'id' key.")
         code = value["id"]
-        if not isinstance(code, str) or not code.strip():
-            raise ValueError("the 'id' of a dictionary association JSON input must be a non-empty string.")
-        try:
-            member = dictionary.by_code(code)
-        except KeyError:
-            raise ValueError(
-                f"'{code}' is not a declared value of {dictionary.__name__}. Declared: {dictionary.codes()}."
-            ) from None
-        return AssociationOne(id=code, entity=member)
+        member = _dictionary_member_of(dictionary, code)
+        return container_cls(id=code, entity=member)
 
     def serialize(value: Any) -> Any:
-        """Emit the canonical member's existing reference representation."""
-        if value is None:
+        if value is None or value.entity is None:
             return None
-        entity = value.entity
-        if entity is None:
-            return None
-        return entity.to_reference()
+        return value.entity.to_reference()
 
     return core_schema.json_or_python_schema(
         json_schema=core_schema.no_info_after_validator_function(
@@ -199,10 +241,54 @@ def _dictionary_association_schema(dictionary: type[BaseEnumEntity]) -> Any:
         ),
         python_schema=core_schema.no_info_after_validator_function(
             validate_python,
-            core_schema.is_instance_schema(AssociationOne),
+            core_schema.is_instance_schema(container_cls),
         ),
         serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used="json"),
-        metadata={"dictionary_association": dictionary},
+        metadata={"dictionary_relation": dictionary},
+    )
+
+
+def _dictionary_many_schema(container_cls: type[Any], dictionary: type[BaseEnumEntity]) -> Any:
+    """Build the core schema for a to-many container whose target is a closed dictionary."""
+
+    def validate_python(value: Any) -> Any:
+        if not isinstance(value, container_cls):
+            raise ValueError(
+                f"a dictionary relation field requires an explicit {container_cls.__name__}[...] wrapper, "
+                f"got {type(value).__name__}."
+            )
+        return _dictionary_many_value(container_cls, dictionary, value.ids, value.entities)
+
+    def validate_json(value: Any) -> Any:
+        if not isinstance(value, list):
+            raise ValueError("a dictionary relation JSON input is an array of {'id': code} objects.")
+        codes: list[Any] = []
+        for index, item in enumerate(value):
+            if not isinstance(item, dict) or set(item) != {"id"}:
+                raise ValueError(
+                    f"item {index}: a dictionary relation JSON input is an object with exactly one 'id' key."
+                )
+            codes.append(item["id"])
+        return _dictionary_many_value(container_cls, dictionary, tuple(codes))
+
+    def serialize(value: Any) -> Any:
+        if value is None:
+            return None
+        return [entity.to_reference() for entity in value.entities]
+
+    return core_schema.json_or_python_schema(
+        json_schema=core_schema.no_info_after_validator_function(
+            validate_json,
+            core_schema.list_schema(
+                core_schema.dict_schema(keys_schema=core_schema.str_schema(), values_schema=core_schema.any_schema())
+            ),
+        ),
+        python_schema=core_schema.no_info_after_validator_function(
+            validate_python,
+            core_schema.is_instance_schema(container_cls),
+        ),
+        serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used="json"),
+        metadata={"dictionary_relation": dictionary, "dictionary_many": True},
     )
 
 
@@ -249,36 +335,21 @@ class BaseRelationOne[T]:
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
-        """Give ``AssociationOne[D]`` a dictionary-specific schema; keep structural wrappers opaque."""
+        """Give a to-one container a dictionary-specific schema; keep a structural wrapper opaque."""
         target = _relation_target_of(source_type)
-        if cls is AssociationOne and _is_dictionary_type(target):
-            return _dictionary_association_schema(target)
+        if _is_dictionary_type(target):
+            return _dictionary_one_schema(cls, target)
         return core_schema.is_instance_schema(cls)
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
         """Publish the id-object input shape in validation mode and the reference in serialization mode."""
         metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
-        dictionary = metadata.get("dictionary_association")
-        if dictionary is None:
+        if metadata.get("dictionary_relation") is None:
             return cast(dict[str, Any], handler(schema))
         if handler.mode == "serialization":
-            return {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["code", "display_name", "properties"],
-                "properties": {
-                    "code": {"type": "string", "minLength": 1},
-                    "display_name": {"type": "string", "minLength": 1},
-                    "properties": {"type": "object"},
-                },
-            }
-        return {
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["id"],
-            "properties": {"id": {"type": "string", "minLength": 1}},
-        }
+            return _dictionary_reference_json_schema()
+        return _dictionary_input_json_schema()
 
     def __init__(self, *, id: Any, entity: T | None = None) -> None:  # pylint: disable=redefined-builtin
         """
@@ -371,6 +442,24 @@ class BaseRelationMany[T]:
     __slots__ = ("_entities", "_entities_loaded", "_ids")
 
     relation_type: ClassVar[RelationType]  # pylint: disable=declare-non-slot
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
+        """Give a to-many container a dictionary-specific schema; keep a structural wrapper opaque."""
+        target = _relation_target_of(source_type)
+        if _is_dictionary_type(target):
+            return _dictionary_many_schema(cls, target)
+        return core_schema.is_instance_schema(cls)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
+        """Publish the array input shape in validation mode and the reference array in serialization mode."""
+        metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        if metadata.get("dictionary_relation") is None:
+            return cast(dict[str, Any], handler(schema))
+        if handler.mode == "serialization":
+            return {"type": "array", "items": _dictionary_reference_json_schema()}
+        return {"type": "array", "items": _dictionary_input_json_schema()}
 
     def __init__(
         self,

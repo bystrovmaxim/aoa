@@ -8,12 +8,16 @@ dispute / treasury language rather than generic ``lifecycle_2`` placeholders.
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
 from aoa.action_machine.domain import (
+    AssociationOne,
     BaseCoreEntity,
     BaseStateEntity,
     Lifecycle,
+    NoInverse,
     value,
 )
 from aoa.action_machine.intents.entity import entity
@@ -182,7 +186,7 @@ class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     case_reference: str = Field(description="Issuer case reference visible to ops")
 
 
@@ -200,7 +204,7 @@ class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     corridor_code: str = Field(description="Treasury corridor identifier")
 
 
@@ -221,5 +225,5 @@ class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     audit_window_code: str = Field(description="Named reconciliation window (e.g. EOD-Europe)")

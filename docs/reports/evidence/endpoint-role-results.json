@@ -1,0 +1,259 @@
+{
+  "date": "2026-10-25",
+  "base_commit": "53171199d4953aaaa35514e0c772766006942d27",
+  "head_before_documentation": "afa539898bb22576c818c20591f8ae40ac855483",
+  "production_source_hashes": {
+    "packages/aoa-action-machine/src/aoa/action_machine/domain/__init__.py": "bdd00a27c15142245b864fe25448183d5bb417b098422cdd5b18ae0a057dc98c",
+    "packages/aoa-action-machine/src/aoa/action_machine/domain/exceptions.py": "66f844a6e6a942cbbfbe93da69977526bd460f29852523a75c5ca712c929bfba",
+    "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py": "294ccdaa4e234924e8b2afbd0951817914e1af22014cdf614bae72174494f4de",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/core/node_graph_coordinator.py": "80ac820df30625b5c52f82a028f7e0e1472874ee460235a8194de7a8d275b641",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py": "e3ac8cb9928473bfd90fa75ba317e998df1a9dbab43e12a6d5553b6e2562c407",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py": "4d90986a2a2809eab59a357621a1ac848e462af767eb8b70212f73e4c512825f",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_role_compatibility_validator.py": "7baf569821501a81a744eab23c1f0542600d82b4c8e5c4bababaf9b1627c8c1a",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py": "85fedb460fb29eb22745c4f507ff3b1be2dbd6f0f0d81d70785c950dd45b8df0"
+  },
+  "tests": {
+    "focused_role_dictionary_and_field_suite": "121 passed",
+    "action_machine_full_in_sandbox": "3042 passed, 3 localhost PermissionError failures",
+    "localhost_failure_retry": "3 passed",
+    "maxitor_full": "154 passed, 1 skipped, 1 xfailed"
+  },
+  "examples": {
+    "examples/step_21_relations/68_role_plain_associations.py": {
+      "exit_code": 0,
+      "stdout": "AssociationOne / AssociationOne: accepted\nAssociationOne / AssociationMany: accepted\nAssociationMany / AssociationMany: accepted\ncustomer.account.id: a1\nteam.members.ids: ('m1', 'm2')\n",
+      "stderr": "",
+      "code_cells": 2,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_21_relations/69_role_aggregation.py": {
+      "exit_code": 0,
+      "stdout": "RoleCompatibilityError: Role pair 'AggregateOne' ↔ 'AggregateOne' is not permitted between 'b' on AggregateACoreEntity and 'a' on AggregateBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nAggregateOne / AssociationMany: accepted\nAggregateMany / AssociationOne: accepted\nAggregateOne / AssociationOne: accepted\n",
+      "stderr": "",
+      "code_cells": 4,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_21_relations/70_role_composition.py": {
+      "exit_code": 0,
+      "stdout": "RoleCompatibilityError: Role pair 'CompositeOne' ↔ 'CompositeMany' is not permitted between 'b' on CompositeACoreEntity and 'a' on CompositeBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nRoleCompatibilityError: Role pair 'AggregateOne' ↔ 'CompositeMany' is not permitted between 'b' on CompositeOverAggregateCoreEntity and 'a' on AggregateReverseCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nCompositeMany / AssociationOne: accepted\nCompositeOne / AssociationMany: accepted\nCompositeOne / AssociationOne: accepted\n",
+      "stderr": "",
+      "code_cells": 5,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_21_relations/71_role_specialization.py": {
+      "exit_code": 0,
+      "stdout": "RoleCompatibilityError: Role pair 'Specialization' ↔ 'AssociationOne' is not permitted between 'pressing' on SpecOrdinaryHeadCoreEntity and 'record' on OrdinaryReverseCoreEntity: Specialization and Generalization pair exclusively with each other; declare the reverse endpoint as the matching Specialization or Generalization role.\nRoleCompatibilityError: Role pair 'Generalization' ↔ 'Generalization' is not permitted between 'b' on GeneralizationACoreEntity and 'a' on GeneralizationBCoreEntity: Specialization and Generalization pair exclusively with each other; declare the reverse endpoint as the matching Specialization or Generalization role.\nEntityFieldDeclarationError: Field 'pressing' on entity 'UnpairedHeadCoreEntity' is invalid: a specialization/generalization field requires Inverse, never NoInverse; declare a reciprocal Inverse(field_name=...) on both endpoints.\nEntityFieldDeclarationError: Field 'record' on entity 'UnpairedAlternativeSpecEntity' is invalid: a specialization/generalization field requires Inverse, never NoInverse; declare a reciprocal Inverse(field_name=...) on both endpoints.\nSpecialization / Generalization: accepted\n",
+      "stderr": "",
+      "code_cells": 7,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_21_relations/72_role_dictionary.py": {
+      "exit_code": 0,
+      "stdout": "All six container classes retained\nSelection order and repeats: ('usd', 'eur', 'usd')\nCaller loaded: False validated loaded: True\nEmpty selection: () loaded: True\nExported selections: [{'code': 'usd', 'display_name': 'US dollar', 'properties': {'symbol': 'Currency $'}}, {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': 'Currency €'}}]\nEmpty export: [] absent export: None\nInput item keys: ['id']\nOutput item keys: ['code', 'display_name', 'properties']\nValidationError: 1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 1: 'xxx' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=[{'id': 'eur'}, {'id': 'xxx'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nValidationError: 1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 0: the supplied entity is not the declared value for code 'eur'. [type=value_error, input_value=AssociationMany(count=1, ...oaded=yes, n_entities=1), input_type=AssociationMany]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nGraph roles: {'primary': ('association', 'one'), 'quoted': ('aggregation', 'one'), 'snapshot': ('composition', 'one'), 'alternatives': ('association', 'many'), 'available': ('aggregation', 'many'), 'bundled': ('composition', 'many')}\n",
+      "stderr": "",
+      "code_cells": 5,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_21_relations/73_role_directions.py": {
+      "exit_code": 0,
+      "stdout": "Single NoInverse: accepted\nTwo NoInverse fields: two independent links, no reciprocal pair\nTwo reciprocal Inverse fields: accepted\nEntityFieldDeclarationError: Field 'target' on entity 'SourceCoreEntity' is invalid: the reverse field 'source' on UnpairedCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.\n",
+      "stderr": "",
+      "code_cells": 4,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_20_dictionaries/23_missing_code.py": {
+      "exit_code": 0,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
+      "stderr": "",
+      "code_cells": 2,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_20_dictionaries/24_blank_reference.py": {
+      "exit_code": 0,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary relation id must be a non-empty string code, got ' '. [type=value_error, input_value=AssociationOne(id=' ', id_only), input_type=AssociationOne]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
+      "stderr": "",
+      "code_cells": 2,
+      "notebook_stdout_matches": true
+    },
+    "examples/step_20_dictionaries/56_selection_transport.py": {
+      "exit_code": 0,
+      "stdout": "Python selection: eur €\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Input should be an instance of AssociationOne [type=is_instance_of, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\nJSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nInput keys: ['id']\nOutput keys: ['code', 'display_name', 'properties']\n",
+      "stderr": "",
+      "code_cells": 4,
+      "notebook_stdout_matches": true
+    }
+  },
+  "notebook_execution": "Direct Python cells; fresh process per notebook; no Jupyter kernel",
+  "all_dictionary_and_relation_scripts": {
+    "scripts": 113,
+    "all_passed": true
+  },
+  "documentation_blocks": [
+    {
+      "page": "docs/how-to/explicit-entity-fields.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-references.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 1,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 2,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 3,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 4,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 5,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 6,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 7,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 8,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/how-to/relationship-role-compatibility.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 1,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 2,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 3,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 0,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 1,
+      "exit_code": 0,
+      "matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 2,
+      "exit_code": 0,
+      "matches": true
+    }
+  ],
+  "adversarial": {
+    "current": {
+      "exit_code": 0,
+      "output": "......                                                                   [100%]\n6 passed in 0.11s\n"
+    },
+    "ownership": {
+      "exit_code": 1,
+      "output": ".F....                                                                   [100%]\n=================================== FAILURES ===================================\n_________________________ test_ownership_pair_refused __________________________\ndocs/reports/evidence/endpoint_role_adversarial.py:81: in test_ownership_pair_refused\n    with pytest.raises(RoleCompatibilityError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'aoa.action_machine.domain.exceptions.RoleCompatibilityError'>\n=========================== short test summary info ============================\nFAILED docs/reports/evidence/endpoint_role_adversarial.py::test_ownership_pair_refused\n1 failed, 5 passed in 0.13s\n"
+    },
+    "specialized": {
+      "exit_code": 1,
+      "output": "..F...                                                                   [100%]\n=================================== FAILURES ===================================\n________________________ test_specialized_pair_refused _________________________\ndocs/reports/evidence/endpoint_role_adversarial.py:87: in test_specialized_pair_refused\n    with pytest.raises(RoleCompatibilityError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'aoa.action_machine.domain.exceptions.RoleCompatibilityError'>\n=========================== short test summary info ============================\nFAILED docs/reports/evidence/endpoint_role_adversarial.py::test_specialized_pair_refused\n1 failed, 5 passed in 0.13s\n"
+    },
+    "many": {
+      "exit_code": 1,
+      "output": "...F..                                                                   [100%]\n=================================== FAILURES ===================================\n___________________________ test_permitted_many_pair ___________________________\ndocs/reports/evidence/endpoint_role_adversarial.py:94: in test_permitted_many_pair\n    node = EntityGraphNode(_AGGREGATION[\"DepartmentCoreEntity\"])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npackages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py:86: in __init__\n    validate_entity_role_compatibility([entity_cls])\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_role_compatibility_validator.py:232: in validate_entity_role_compatibility\n    _check_role_pair(field)\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_role_compatibility_validator.py:204: in _check_role_pair\n    raise RoleCompatibilityError(\nE   aoa.action_machine.domain.exceptions.RoleCompatibilityError: Role pair 'AggregateMany' ↔ 'AssociationOne' is not permitted between 'members' on DepartmentCoreEntity and 'department' on StaffCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\n=========================== short test summary info ============================\nFAILED docs/reports/evidence/endpoint_role_adversarial.py::test_permitted_many_pair\n1 failed, 5 passed in 0.13s\n"
+    },
+    "dictionary": {
+      "exit_code": 1,
+      "output": "....F.                                                                   [100%]\n=================================== FAILURES ===================================\n________________________ test_all_dictionary_containers ________________________\ndocs/reports/evidence/endpoint_role_adversarial.py:100: in test_all_dictionary_containers\n    assert len(EntityGraphNode(_DICTIONARY[\"PriceListCoreEntity\"]).relations) == 6\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npackages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py:84: in __init__\n    validate_entity_fields([entity_cls])\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py:540: in validate_entity_fields\n    _check_field(entity_cls, field_name, field_info)\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py:495: in _check_field\n    if _check_complete_relation(entity_cls, field_name, field_info, annotation):\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py:410: in _check_complete_relation\n    _check_relation_target(entity_cls, field_name, resolved)\ndocs/reports/evidence/endpoint_role_adversarial.py:43: in _single_dictionary_only\n    _FIELD._refuse(host, name, \"Restored AssociationOne-only dictionary restriction\")\npackages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py:322: in _refuse\n    raise EntityFieldDeclarationError(entity_cls.__name__, field_name, details)\nE   aoa.action_machine.domain.exceptions.EntityFieldDeclarationError: Field 'quoted' on entity 'PriceListCoreEntity' is invalid: Restored AssociationOne-only dictionary restriction\n=========================== short test summary info ============================\nFAILED docs/reports/evidence/endpoint_role_adversarial.py::test_all_dictionary_containers\n1 failed, 5 passed in 0.14s\n"
+    },
+    "member": {
+      "exit_code": 1,
+      "output": ".....F                                                                   [100%]\n=================================== FAILURES ===================================\n__________________________ test_dictionary_membership __________________________\ndocs/reports/evidence/endpoint_role_adversarial.py:106: in test_dictionary_membership\n    with pytest.raises(ValidationError, match=\"not a declared value\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'pydantic_core._pydantic_core.ValidationError'>\n=========================== short test summary info ============================\nFAILED docs/reports/evidence/endpoint_role_adversarial.py::test_dictionary_membership\n1 failed, 5 passed in 0.13s\n"
+    }
+  },
+  "defect_reproductions": {
+    "endpoint_dictionary_boundaries": {
+      "stdout": "Wrong custom-property types accepted by One and Many export schemas (defect)\nValueError: ReverseEnumEntity: field 'host' is AssociationOne, which a dictionary value cannot carry; supported: str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of a supported type, or a tuple of supported types.\n",
+      "stderr": ""
+    },
+    "endpoint_dictionary_erd": {
+      "stdout": "Rows per declared field: {'primary': 2, 'quoted': 2, 'snapshot': 2, 'alternatives': 2, 'available': 2, 'bundled': 2}\nRelation families: ['aggregation', 'association', 'composition']\n",
+      "stderr": ""
+    },
+    "endpoint_role_subclass": {
+      "stdout": "Custom composition / composition: machine built (validation gap)\n",
+      "stderr": ""
+    }
+  },
+  "preservation": {
+    "production_source_unchanged": true,
+    "head_unchanged": true,
+    "staging_commands_issued": false,
+    "index_changed_during_session": true,
+    "action_on_index_change": "Retained current index; no reset or restore"
+  },
+  "local_link_check": {
+    "links_and_anchors": 587,
+    "errors": 0,
+    "excluded_language_targets_skipped": 2
+  }
+}

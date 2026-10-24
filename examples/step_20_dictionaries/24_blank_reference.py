@@ -48,7 +48,7 @@ def main() -> None:
         assert error.errors()[0]["loc"] == ("currency",)
         assert (
             error.errors()[0]["msg"]
-            == "Value error, a dictionary association id must be a non-empty string code, got ' '."
+            == "Value error, a dictionary relation id must be a non-empty string code, got ' '."
         )
         print(type(error).__name__ + ": " + str(error))
     else:

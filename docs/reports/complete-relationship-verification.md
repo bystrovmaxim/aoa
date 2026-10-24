@@ -1,5 +1,8 @@
 # Complete relationship documentation verification
 
+This is the historical verification checkpoint for the previous relationship change. The NoInverse specialization-direction gap below is now refused by declaration validation. For the current endpoint-role implementation, executed scenarios and remaining gaps, use the [endpoint role verification report](endpoint-role-verification.md).
+
+
 Verified on 2026-10-24 in the existing working tree of `feature/issue-259-complete-annotated-relationships`. The comparison base is `617b05d9b409d9d7d5da80fca5a67e65a03a02c2`, the merge base with `origin/main`. There are no branch commits beyond that base; the implemented change is in the working tree. Committed, staged, unstaged and relevant untracked changes were considered together. Production behavior was not edited during this documentation work.
 
 The implementation context is [the complete-declaration issue](https://github.com/bystrovmaxim/aoa/issues/259), following [dictionary reference declarations](https://github.com/bystrovmaxim/aoa/issues/256). Requirements are distinguished below from observed behavior.
