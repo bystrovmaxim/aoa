@@ -113,6 +113,8 @@ The materials below are not a continuation of the linear I–VII route. They are
 
 - **[Action, aspect, or resource — what to choose](how-to/choosing-action-aspect-resource.md)** — an algorithm for choosing the abstraction, with examples
 - **[Migrating legacy to AOA](how-to/migrating-legacy.md)** — the strangler pattern: monster → port → adapter → aspects, step by step
+- **[Choosing compatible relationship roles](how-to/relationship-role-compatibility.md)** — endpoint matrix, direction markers, migration and executable scenarios
+- **[Selecting dictionary members](how-to/dictionary-references.md)** — six ordinary containers, One/Many transport and verified boundaries
 - **[Diagnosing a specialization declaration](how-to/specialization-declaration-fails.md)** — one mistake per experiment, its actual error, and a verified repair
 
 ### Reference materials

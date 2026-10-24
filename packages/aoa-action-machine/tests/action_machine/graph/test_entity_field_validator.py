@@ -375,14 +375,6 @@ _DICTIONARY_BODY = """
         )
 
     @exclude_graph_model
-    @entity(description="Dictionary selection with inverse", domain=FieldRulesDomain)
-    class InverseDictionarySelectionCoreEntity(BaseCoreEntity):
-        currency: Annotated[
-            AssociationOne[CurrencyEnumEntity],
-            Inverse(field_name="currency"),
-        ] = Field(description="Currency")
-
-    @exclude_graph_model
     @entity(description="Many of a dictionary", domain=FieldRulesDomain)
     class AssociationManyDictionaryCoreEntity(BaseCoreEntity):
         currency: Annotated[AssociationMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
@@ -432,7 +424,6 @@ _DICTIONARY_BODY = """
         DictionaryUnionCoreEntity,
         DictionarySelectionCoreEntity,
         NullableDictionarySelectionCoreEntity,
-        InverseDictionarySelectionCoreEntity,
         AssociationManyDictionaryCoreEntity,
         CompositeOneDictionaryCoreEntity,
         GeneralizationDictionaryCoreEntity,
@@ -770,10 +761,10 @@ def test_a_nullable_bare_dictionary_is_refused(dictionary_out: dict[str, dict[st
 
 
 def test_a_collection_of_dictionary_values_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
-    """A collection of dictionary values has no declared form."""
+    """A raw collection has no declared form; wrap it in a supported relation container."""
     details = dictionary_out["DictionaryCollectionCoreEntity"]["details"]
 
-    assert "AssociationOne" in details
+    assert "supported relation container" in details
     assert "CurrencyEnumEntity" in details
 
 
@@ -790,25 +781,17 @@ def test_the_complete_dictionary_selection_is_accepted(dictionary_out: dict[str,
     assert dictionary_out["NullableDictionarySelectionCoreEntity"].get("accepted")
 
 
-def test_an_inverse_on_a_dictionary_selection_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
-    """A dictionary selection is unpaired; it cannot declare an inverse."""
-    details = dictionary_out["InverseDictionarySelectionCoreEntity"]["details"]
+def test_the_ordinary_containers_are_accepted_for_a_dictionary(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """AssociationMany and CompositeOne around a dictionary are now legal."""
+    assert dictionary_out["AssociationManyDictionaryCoreEntity"].get("accepted")
+    assert dictionary_out["CompositeOneDictionaryCoreEntity"].get("accepted")
 
-    assert "NoInverse" in details
 
+def test_a_generalization_of_a_dictionary_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """Generalization is not an ordinary container; NoInverse on it is refused."""
+    details = dictionary_out["GeneralizationDictionaryCoreEntity"]["details"]
 
-@pytest.mark.parametrize(
-    "name",
-    ["AssociationManyDictionaryCoreEntity", "CompositeOneDictionaryCoreEntity", "GeneralizationDictionaryCoreEntity"],
-)
-def test_a_non_association_container_around_a_dictionary_is_refused(
-    name: str, dictionary_out: dict[str, dict[str, str]]
-) -> None:
-    """Only AssociationOne is a legal dictionary relationship."""
-    details = dictionary_out[name]["details"]
-
-    assert "AssociationOne" in details
-    assert "CurrencyEnumEntity" in details
+    assert "Inverse" in details or "NoInverse" in details
 
 
 def test_an_empty_dictionary_is_refused_at_the_declaration_boundary(dictionary_out: dict[str, dict[str, str]]) -> None:

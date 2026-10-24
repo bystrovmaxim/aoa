@@ -42,7 +42,7 @@ from typing import Any, NoReturn, cast
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
-from aoa.action_machine.domain.relation_markers import Inverse
+from aoa.action_machine.domain.relation_markers import Inverse, NoInverse
 from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.domain.specialization_containers import (
     Classifier,
@@ -147,6 +147,18 @@ def _validate_axis(axis: EntitySpecializationIntentResolver) -> None:
     _validate_declared_codes(axis)
     _validate_codes_match(axis)
     _validate_codes_unique(axis)
+    _validate_head_inverse(axis)
+
+
+def _validate_head_inverse(axis: EntitySpecializationIntentResolver) -> None:
+    """Refuse a head field that explicitly marks ``NoInverse``; the pair requires ``Inverse``."""
+    head_field = axis.head_entity.model_fields.get(axis.field_name)
+    if head_field is not None and any(isinstance(item, NoInverse) for item in head_field.metadata):
+        _fail(
+            axis,
+            "the specialization field marks NoInverse; a specialization/generalization pair "
+            "requires Inverse on both endpoints, never NoInverse",
+        )
 
 
 def _validate_dictionary(axis: EntitySpecializationIntentResolver) -> None:
