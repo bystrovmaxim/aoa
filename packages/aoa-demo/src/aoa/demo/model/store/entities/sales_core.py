@@ -65,7 +65,7 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
 class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
-    currency: CurrencyEnumEntity = Field(default=CurrencyEnumEntity.USD, description="Currency")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
     lifecycle: SalesOrderLifecycle = Field(description="Lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")

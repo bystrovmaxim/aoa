@@ -30,7 +30,7 @@ class InterchangeAssessmentSliceCoreEntity(BaseCoreEntity):
     network_batch_id: str = Field(description="Network settlement batch marker")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     chargeback_ingest_correlate: Annotated[
         AssociationOne[BillingChargebackIngestCorrelateCoreEntity],
         NoInverse(),
