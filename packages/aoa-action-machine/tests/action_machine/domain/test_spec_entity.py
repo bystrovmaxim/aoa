@@ -20,6 +20,7 @@ from aoa.action_machine.domain import (
     BaseSpecEntity,
     Classifier,
     Generalization,
+    NoInverse,
     Specialization,
     value,
 )
@@ -50,9 +51,10 @@ class SpecRecordCoreEntity(BaseCoreEntity):
     """The head of the axis."""
 
     id: str = Field(description="Record id")
-    kind: Specialization[SpecFirstPressSpecEntity | SpecRepressSpecEntity, SpecEditionKindEnumEntity] = Field(
-        description="Which pressing this is"
-    )
+    kind: Annotated[
+        Specialization[SpecFirstPressSpecEntity | SpecRepressSpecEntity, SpecEditionKindEnumEntity],
+        NoInverse(),
+    ] = Field(description="Which pressing this is")
 
 
 @exclude_graph_model
@@ -63,6 +65,7 @@ class SpecFirstPressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[SpecRecordCoreEntity],
         Classifier(variant=SpecEditionKindEnumEntity.FIRST),
+        NoInverse(),
     ] = Field(description="The head row")
 
 
@@ -74,6 +77,7 @@ class SpecRepressSpecEntity(BaseSpecEntity):
     record: Annotated[
         Generalization[SpecRecordCoreEntity],
         Classifier(variant=SpecEditionKindEnumEntity.REPRESS),
+        NoInverse(),
     ] = Field(description="The head row")
 
 
@@ -82,7 +86,7 @@ class SpecRepressSpecEntity(BaseSpecEntity):
 class SpecUnmarkedSpecEntity(BaseSpecEntity):
     """Points back at its head without naming a value."""
 
-    record: Generalization[SpecRecordCoreEntity] = Field(description="The head row")
+    record: Annotated[Generalization[SpecRecordCoreEntity], NoInverse()] = Field(description="The head row")
 
 
 def test_each_extension_exposes_the_value_it_declares() -> None:

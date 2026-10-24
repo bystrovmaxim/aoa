@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
+from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
@@ -60,10 +61,16 @@ class EntityFieldGraphEdge(CompositionGraphEdge):
 
     @staticmethod
     def get_entity_field_edges(entity_cls: type[BaseEntity]) -> list[EntityFieldGraphEdge]:
-        """Return ``entity_field`` composition edges with wired :class:`EntityFieldGraphNode` targets (scalar fields only)."""
-        relation_names = {rel.field_name for rel in EntityIntentResolver.resolve_entity_relations(entity_cls)}
+        """Return ``entity_field`` edges for scalar fields and dictionary associations, excluding structural relations."""
+        relations = EntityIntentResolver.resolve_entity_relations(entity_cls)
+        dictionary_names = {
+            rel.field_name
+            for rel in relations
+            if isinstance(rel.target_entity, type) and issubclass(rel.target_entity, BaseEnumEntity)
+        }
+        structural_names = {rel.field_name for rel in relations if rel.field_name not in dictionary_names}
         items: list[tuple[str, Any]] = [
-            (name, fld.annotation) for name, fld in entity_cls.model_fields.items() if name not in relation_names
+            (name, fld.annotation) for name, fld in entity_cls.model_fields.items() if name not in structural_names
         ]
         if not any(name == "id" for name, _ in items):
             items.insert(0, ("id", str))

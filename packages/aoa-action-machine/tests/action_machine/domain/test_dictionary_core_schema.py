@@ -65,9 +65,8 @@ class SchemaPlainDatedEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Price tag", domain=CoreSchemaShopDomain)
 class SchemaPriceTagCoreEntity(BaseCoreEntity):
-    """A row that references a currency."""
+    """A plain row that references a currency through the standalone dictionary value schema."""
 
     id: str = Field(description="Tag id")
     amount: float = Field(description="Amount")

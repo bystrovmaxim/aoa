@@ -1,24 +1,19 @@
 # Relations between entities
 
-A relation container represents a link to an entity. It may hold only identifiers or loaded entities. Access to unloaded data raises `RelationNotLoadedError`; the container does not fetch it automatically.
+A relationship field gives a link its cardinality, ownership meaning, direction and description. Core, Assoc, Detail and Spec hosts use the complete form. Dictionary targets use a single association with `NoInverse()`. State keeps its lifecycle contract.
 
-A field that names a structural entity now needs an explicit relation container or an embedded-value declaration. Previously an undeclared entity field could be treated as an ordinary field without a relation edge. The graph now refuses it. Use `NoRelation("reason")` to store an embedded entity value deliberately.
-
-## Migrate descriptions and defaults
-
-Import `Field` from `pydantic` and place descriptions in `Field(description="...")`. The former description carrier is no longer exported. A field description is metadata; it does not supply a relation value. Required relations must be supplied by the caller. To allow omission, declare a nullable container and `Field(default=None, description="...")`. Factories and preconstructed defaults are refused at graph build.
-
-See [complete declaration forms and exact refusals](../how-to/explicit-entity-fields.md), with separate scripts and executed notebooks.
+Previously bare dictionary fields, explicit embedded entity values and one-sided inverse pairs were accepted. Migrate each field and both sides of a reciprocal pair; see [complete declarations and exact refusals](../how-to/explicit-entity-fields.md). `NoRelation` no longer declares an embedded entity.
 
 ## Ownership, inverse fields and partial loading
 
-Run this complete example in a fresh Python process.
+Containers carry ids even when the related entities are not loaded. Access to unloaded data raises `RelationNotLoadedError`; a container does not fetch rows. The ownership container expresses intent, without automatically implementing database deletion rules or a new pair-compatibility matrix.
 
-[Script](../../examples/step_21_relations/01_relations.py) · [Notebook](../../examples/step_21_relations/01_relations.ipynb)
+[Script](../../examples/step_21_relations/01_relations.py) · [Executed notebook](../../examples/step_21_relations/01_relations.ipynb)
 
 ```python
-"""
-01_relations.py — Entity relations: ownership, Inverse, partial loading
+"""01_relations.py — Entity relations: ownership, Inverse, partial loading
+Run: .venv/bin/python examples/step_21_relations/01_relations.py
+
 
 An Entity rarely stands alone: an order has a customer and line items. AOA
 declares links with relation containers that carry both cardinality and
@@ -29,7 +24,7 @@ ownership meaning:
     AssociationOne / AssociationMany link without ownership
 
 `Inverse(Target, "field")` names the reverse side so the coordinator can verify
-mirroring (types, target, cardinality) when the graph is built — a broken
+reciprocal endpoint names when the graph is built — a broken
 relation model fails at startup, not half a year later in a report. `NoInverse()`
 marks a deliberately one-way link. Every declared edge carries `Field(description=)`.
 
@@ -37,10 +32,7 @@ Relations load partially like fields: the container always knows the id(s), but
 the target row may not be hydrated — reaching through it raises
 RelationNotLoadedError, never a silent None.
 
-Tutorial: ../../docs/tutorials/step-21-relations_draft.md  ·  topic: Entity relations
 
-Run:
-    uv run python examples/step_21_relations/01_relations.py
 """
 
 from __future__ import annotations
@@ -75,7 +67,7 @@ class CustomerCoreEntity(BaseCoreEntity):
 
     orders: Annotated[
         AssociationMany[OrderCoreEntity],
-        Inverse(OrderCoreEntity, "customer"),
+        Inverse(field_name="customer"),
     ] = Field(description="Orders placed by this customer")
 
 
@@ -93,7 +85,7 @@ class OrderCoreEntity(BaseCoreEntity):
     # composition — line items cannot exist without this order
     lines: Annotated[
         CompositeMany[OrderLineDetailEntity],
-        Inverse(OrderLineDetailEntity, "order"),
+        Inverse(field_name="order"),
     ] = Field(description="Line items of the order")
 
 
@@ -115,7 +107,7 @@ OrderLineDetailEntity.model_rebuild()
 
 def main() -> None:
     # 1) Startup check: building the machine builds the graph, which verifies
-    #    every Inverse mirrors (types, target, cardinality). A broken relation
+    #    every Inverse names a reciprocal endpoint. A broken relation
     #    model would raise here, not in production.
     ActionProductMachine()
     print("1) Machine built — relation model validated at startup (Inverse mirroring OK)")
@@ -131,13 +123,15 @@ def main() -> None:
     print(f"   order.customer.id  = {order.customer.id}   (is_loaded={order.customer.is_loaded})")
     print(f"   len(order.lines)   = {len(order.lines)}   (is_loaded={order.lines.is_loaded})")
     try:
-        _ = order.customer.name        # target row not hydrated
+        _ = order.customer.name  # target row not hydrated
     except RelationNotLoadedError as exc:
         print(f"   order.customer.name -> RelationNotLoadedError: {exc}")
     try:
-        _ = list(order.lines)          # many: iteration requires loaded entities
-    except RelationNotLoadedError:
-        print("   iterating order.lines -> RelationNotLoadedError (ids known, rows not loaded)")
+        _ = list(order.lines)  # many: iteration requires loaded entities
+    except RelationNotLoadedError as error:
+        print("   iterating order.lines -> RelationNotLoadedError:", error)
+    else:
+        raise AssertionError("Unloaded collection was iterable")
 
     # 3) Hydrated relation: pass the loaded target entity; attribute access proxies to it.
     customer = CustomerCoreEntity(
@@ -151,6 +145,8 @@ def main() -> None:
         customer=AssociationOne[CustomerCoreEntity](id="cust-1", entity=customer),
         lines=CompositeMany[OrderLineDetailEntity](entities=(), entities_loaded=True),
     )
+    assert order2.customer.name == "Alice"
+    assert order2.lines.is_loaded
     print("\n3) Hydrated relation:")
     print(f"   order2.customer.name = {order2.customer.name}   (proxied through the loaded entity)")
 
@@ -168,11 +164,140 @@ Actual output:
    order.customer.id  = cust-1   (is_loaded=False)
    len(order.lines)   = 2   (is_loaded=False)
    order.customer.name -> RelationNotLoadedError: Related object in AssociationOne is not loaded (id='cust-1'). Cannot access 'name' — only the identifier is present. Load the related entity through your persistence / manager layer.
-   iterating order.lines -> RelationNotLoadedError (ids known, rows not loaded)
+   iterating order.lines -> RelationNotLoadedError: Related object in CompositeMany is not loaded (id=('line-1', 'line-2')). Cannot access '__iter__' — only the identifier is present. Load the related entity through your persistence / manager layer.
 
 3) Hydrated relation:
    order2.customer.name = Alice   (proxied through the loaded entity)
 ```
+
+## Declare both directions
+
+A reciprocal pair needs `Inverse` on both endpoints, naming each other. An intentional one-way link uses `NoInverse()`. These checks happen during model assembly; normal container construction does not validate the global declaration graph.
+
+[Script](../../examples/step_21_relations/65_reciprocal_directions.py) · [Executed notebook](../../examples/step_21_relations/65_reciprocal_directions.ipynb)
+
+```python
+"""Declare reciprocal pairs and migrate one-sided inverse markers.
+Run: .venv/bin/python examples/step_21_relations/65_reciprocal_directions.py
+"""
+
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, Inverse, NoInverse
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
+from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
+from aoa.action_machine.intents.entity import entity
+
+
+class DirectionDomain(BaseDomain):
+    """Group the direction declarations."""
+
+    name = "directions"
+    description = "Reciprocal directions"
+
+
+@entity(description="Offer", domain=DirectionDomain)
+class OfferCoreEntity(BaseCoreEntity):
+    """Collect the regions offering this product."""
+
+    regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(description="Regions")
+
+
+@entity(description="Region", domain=DirectionDomain)
+class RegionCoreEntity(BaseCoreEntity):
+    """Name the opposite endpoint explicitly."""
+
+    offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
+
+
+@entity(description="One-way bookmark", domain=DirectionDomain)
+class BookmarkCoreEntity(BaseCoreEntity):
+    """Keep an intentional unpaired link."""
+
+    offer: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Bookmarked offer")
+
+
+@entity(description="Old reverse endpoint", domain=DirectionDomain)
+class OldOfferCoreEntity(BaseCoreEntity):
+    """Keep the previous unpaired reverse declaration."""
+
+    regions: Annotated[AssociationMany[OldRegionCoreEntity], NoInverse()] = Field(description="Regions")
+
+
+@entity(description="Old forward endpoint", domain=DirectionDomain)
+class OldRegionCoreEntity(BaseCoreEntity):
+    """Demonstrate the one-sided inverse refusal."""
+
+    offer: Annotated[AssociationOne[OldOfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
+
+
+for model in (OfferCoreEntity, RegionCoreEntity, OldOfferCoreEntity, OldRegionCoreEntity):
+    model.model_rebuild()
+
+
+def reciprocal_pair() -> None:
+    """Validate both endpoints after forward references resolve."""
+    validate_entity_fields([OfferCoreEntity, RegionCoreEntity])
+    validate_entity_inverses([OfferCoreEntity, RegionCoreEntity])
+    offer = OfferCoreEntity(regions=AssociationMany(ids=("region-1",)))
+    assert offer.regions.ids == ("region-1",)
+    print("Reciprocal pair: accepted")
+
+
+def one_way_link() -> None:
+    """Accept an intentionally unpaired association."""
+    validate_entity_fields([BookmarkCoreEntity])
+    validate_entity_inverses([BookmarkCoreEntity])
+    bookmark = BookmarkCoreEntity(offer=AssociationOne(id="offer-1"))
+    assert bookmark.offer.id == "offer-1"
+    print("NoInverse link: accepted")
+
+
+def old_pair_refusal() -> None:
+    """Refuse the old one-sided inverse declaration."""
+    try:
+        validate_entity_inverses([OldRegionCoreEntity])
+    except EntityFieldDeclarationError as error:
+        assert error.field_name == "offer"
+        assert (
+            type(error).__name__ + ": " + str(error)
+            == "EntityFieldDeclarationError: Field 'offer' on entity 'OldRegionCoreEntity' is invalid: the reverse field 'regions' on OldOfferCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints."
+        )
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("A one-sided inverse was accepted")
+
+
+def main() -> None:
+    """Run the related direction cases."""
+    reciprocal_pair()
+    one_way_link()
+    old_pair_refusal()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Actual output:
+
+```text
+Reciprocal pair: accepted
+NoInverse link: accepted
+EntityFieldDeclarationError: Field 'offer' on entity 'OldRegionCoreEntity' is invalid: the reverse field 'regions' on OldOfferCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.
+```
+
+For separate modules, postpone annotations, use `Inverse(field_name="...")` and rebuild both models with an explicit namespace in the composition root. Read the [cross-module script](../../examples/step_21_relations/67_cross_module_inverse.py), [notebook](../../examples/step_21_relations/67_cross_module_inverse.ipynb) and its [endpoint modules](../../examples/step_21_relations/inverse_model/offer.py). The marker itself does not accept a string class name.
+
+## Every structural host uses the same complete form
+
+The [stereotype scenario](../../examples/step_21_relations/66_complete_stereotypes.py) and [notebook](../../examples/step_21_relations/66_complete_stereotypes.ipynb) show Core, Assoc, Detail and Spec fields and an Enum selection. There is no shorthand exemption for technical or owned entities.
 
 ## Generalization and specialization
 
@@ -369,7 +494,7 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 | group label | [51_group_label](../../examples/step_21_relations/51_group_label.py) | [Notebook](../../examples/step_21_relations/51_group_label.ipynb) |
 | required relation | [52_required_relation](../../examples/step_21_relations/52_required_relation.py) | [Notebook](../../examples/step_21_relations/52_required_relation.ipynb) |
 | optional relation | [53_optional_relation](../../examples/step_21_relations/53_optional_relation.py) | [Notebook](../../examples/step_21_relations/53_optional_relation.ipynb) |
-| embedded entity | [54_embedded_entity](../../examples/step_21_relations/54_embedded_entity.py) | [Notebook](../../examples/step_21_relations/54_embedded_entity.ipynb) |
+| former embedded entity refused | [54_embedded_entity](../../examples/step_21_relations/54_embedded_entity.py) | [Notebook](../../examples/step_21_relations/54_embedded_entity.ipynb) |
 | bare entity refused | [55_bare_entity_refused](../../examples/step_21_relations/55_bare_entity_refused.py) | [Notebook](../../examples/step_21_relations/55_bare_entity_refused.ipynb) |
 | relation description | [56_relation_description](../../examples/step_21_relations/56_relation_description.py) | [Notebook](../../examples/step_21_relations/56_relation_description.ipynb) |
 | relation factory | [57_relation_factory](../../examples/step_21_relations/57_relation_factory.py) | [Notebook](../../examples/step_21_relations/57_relation_factory.ipynb) |
@@ -383,6 +508,8 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 
 ## Boundaries
 
-Descriptions and default checks apply to ownership relations, specializations and generalizations. A hidden edge still requires a valid declaration. A nullable relation without a default remains required. `NoRelation` embeds a structural entity; it cannot be combined with a relation container or relation markers. States use lifecycle types.
+Descriptions and defaults are checked for ownership relations, specializations and generalizations. Exactly one direction marker is required. Hidden edges and graph-excluded models still undergo declaration validation. Required nullable fields have no default; `default=None` permits omission only when the container annotation is nullable. Factories and preconstructed defaults are refused.
 
-See [specialization refusals](../how-to/specialization-declaration-fails.md), [dictionary references](step-20-dictionaries.md), and [the invariant reference](../reference/intents-and-invariants.md).
+`NoRelation` does not allow entity embedding. An unchanged inherited endpoint keeps its base identity; an explicit same-signature override has a [confirmed validation defect](../reports/complete-relationship-verification.md#explicit-overrides). States use lifecycle types. See [specialization refusals](../how-to/specialization-declaration-fails.md), [dictionary selections](../how-to/dictionary-references.md) and [the invariant reference](../reference/intents-and-invariants.md).
+
+Ordinary relationship pairs undergo reciprocal endpoint checks. Specialization/generalization pairs still have a [confirmed direction-check gap](../reports/complete-relationship-verification.md#specialization-directions): a reverse `Inverse` can currently be paired with a head marked `NoInverse`. Use reciprocal markers on both endpoints; do not rely on the missing refusal.

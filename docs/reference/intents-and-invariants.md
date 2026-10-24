@@ -358,43 +358,34 @@ The semantic contracts are not a new set of automatic database checks. The marke
 
 Relations between entities are declared with fields of a container type and markers in `Annotated`. The framework guards several separate rules.
 
-### The ownership compatibility matrix
+### Complete fields for every non-state entity kind
 
-Every ownership relation has an ownership type: **Composition** (strong), **Aggregation** (weak), **Association** (none). The reverse side must conform to the matrix:
+| Kind | Required relationship form |
+| --- | --- |
+| Core | A supported relationship container in `Annotated`, exactly one `Inverse` or `NoInverse`, and one assignment-side `Field` with nonblank description |
+| Assoc | The same complete declaration on each endpoint; no shorthand for technical links |
+| Detail | The same complete declaration for its owner and other links |
+| Spec | The same complete ordinary links; a classified head link uses `Generalization`, `Classifier(variant=...)` and reciprocal `Inverse` |
+| Enum | A selection targeting the catalogue uses `AssociationOne[D]` and `NoInverse`; catalogue properties retain their immutable-type restrictions |
+| State | A separate lifecycle contract; a bare status type is not a relationship field |
 
-| Side A | Allowed reverse side |
-|--------|----------------------|
-| `CompositeOne` / `CompositeMany` | `AssociationOne` / `AssociationMany` |
-| `AggregateOne` / `AggregateMany` | `AssociationOne` / `AssociationMany` |
-| `AssociationOne` / `AssociationMany` | any type |
+Bare entities, optional bare entities, raw entity collections/mappings, mixed entity unions and `NoRelation` entity embedding are refused at model build. Nullable relationships contain exactly one non-null container type. `NoGraphEdge` and `exclude_graph_model` do not bypass declaration validation.
 
-Composite↔Composite, Aggregate↔Aggregate, Composite↔Aggregate are forbidden. The check is at `coordinator.build()`.
+Composition, aggregation and association still describe ownership intent. There is no newly enforced container-pair compatibility matrix, automatic ownership deletion or database constraint generation. The former matrix on this page overstated the runtime checks; do not use it as a validation guarantee.
 
 ### Mandatory Inverse or NoInverse
 
-Every ownership-relation field must have either `Inverse(TargetEntity, "field_name")` or `NoInverse()` in `Annotated`. The absence of both is an error at build. `NoInverse` explicitly states that the reverse side is intentionally absent — this is not the same as "forgot to specify".
+Every ordinary relationship field has exactly one direction marker. `NoInverse()` declares an unpaired link. An `Inverse` names an existing reverse relationship with its own `Inverse`, which must name the originating endpoint back. A one-sided inverse is a breaking declaration change and requires migration on both endpoints.
 
-```python
-# ✓ explicit reverse side
-customer: Annotated[
-    AssociationOne[CustomerCoreEntity],
-    Inverse(CustomerCoreEntity, "orders"),
-] = Field(description="The customer who placed the order")
+`Inverse(Target, "field")` names a class object, not a string. `Inverse(field_name="field")` infers that class from the resolved container type, including ordinary relationships. Rebuild postponed annotations with `model_rebuild(_types_namespace=...)` after importing the endpoint modules and before graph assembly. Missing or mismatched reverse endpoints are `EntityFieldDeclarationError` at assembly.
 
-# ✓ intentionally one-way link
-audit_log: Annotated[
-    CompositeMany[AuditLogEntity],
-    NoInverse(),
-] = Field(description="Audit log")
-```
-
-`Inverse.field_name` cannot be an empty string (`ValueError`) or a non-string (`TypeError`); `target_entity` must be a type for an ownership relation. On a specialization head, `Inverse(field_name="record")` omits the target class because the alternatives already specify it.
+An unchanged inherited field keeps its base endpoint identity. Same-signature explicit overrides currently have a [confirmed validation defect](../reports/complete-relationship-verification.md#explicit-overrides); they must not be treated as a supported way to reuse the base pair.
 
 ### Relation descriptions and defaults
 
-Every ownership, specialization and generalization relation requires a non-blank `Field` description. Missing or blank descriptions raise `EntityFieldDeclarationError` when the graph is built. The description is metadata, not an instance default. Required relation fields have no default. Only a nullable relation may use `default=None`; factories and all other defaults are refused. The rule applies even when an edge is hidden.
+Every ownership, specialization and generalization relationship requires a nonblank `Field` description. Required fields have no default, including nullable fields whose argument must still be supplied. Only a nullable relationship may use `default=None`; factories and all other defaults are refused at model build. Scalar fields keep their usual Pydantic defaults.
 
-A bare Core, Assoc, Detail or Spec field, including optional and collection forms, is refused. Use a relation container, or `Annotated[EntityType, NoRelation("reason")]` for an embedded value. A State field uses a lifecycle type. See [complete declarations and refusals](../how-to/explicit-entity-fields.md).
+Write exactly one `Field(...)` on the assignment side, with no `Field` inside `Annotated`. Runtime Pydantic metadata does not retain placement; the complementary source checker `scripts/check_complete_entity_fields.py` verifies that spelling on explicit source roots. A runtime build alone is not proof of source placement. See [complete examples and exact refusals](../how-to/explicit-entity-fields.md).
 
 ### The hydration invariant (fail-fast)
 
@@ -430,16 +421,19 @@ inherit its parent's catalogue instead.
 | Boundary | Contract |
 | --- | --- |
 | Dictionary property declaration | Supported scalar/date/time/UUID types, Enum, Literal, unions and tuples; list/dict/set/frozenset/Any/nested models are refused, including inside unions or tuples |
-| Runtime reference | A declared instance or mapping with code; copied or foreign instances, unknown/missing/blank codes, bare strings and unknown top-level keys are refused |
-| Reference descriptions | Incoming display_name and properties do not change the declared value; the code selects it |
+| Entity selection declaration | Complete `Annotated[AssociationOne[D], NoInverse()]` with an assignment-side `Field`; D must be a nonempty decorated catalogue included in the graph |
+| Entity selection Python input | An explicit `AssociationOne(id=code, entity=optional_canonical_member)`; validation creates a new wrapper with the canonical member, without mutating the caller's wrapper |
+| Entity selection JSON input | Exactly an id-only object, or null when the field is nullable; raw members, strings and Python mappings are not selection inputs |
+| Standalone dictionary/DTO reference | A declared instance or mapping with code; copied or foreign instances, unknown/missing/blank codes, bare strings and unknown top-level keys are refused |
+| Reference descriptions | Standalone reference descriptions do not change the declared value; selection JSON accepts no descriptive keys |
 | Optional reference | None only when the containing field permits it; an unknown code never becomes absence |
 | Export | to_reference() equals model_dump(mode="json"); field serializers run and extra fields appear under properties |
-| Input schema | Requires code, allows optional label/properties and rejects unknown top-level keys; runtime still checks membership and whitespace-only codes |
-| Output schema | Requires code/display_name/properties, describes the emitted type of each extra property and rejects unknown nested keys; nested properties require every emitted property, including null values, and an excluded property is absent |
+| Input schema | Standalone reference requires code and permits label/properties; an entity association requires only id; runtime still checks membership and whitespace-only codes |
+| Output schema | Standalone dictionary schema describes emitted custom property types and retains definitions; association output requires code/display_name/properties but currently describes nested properties only as an object ([limitation](../reports/complete-relationship-verification.md#association-serialization-schema)) |
 | Completed values | Checked after user validators; Literal choices match by type and value; a leaf matches the exact declared type, so bool is not int, int is not float and datetime is not date |
 | Nullability | A union accepts None only when included; Literal may list None explicitly; a property annotated only None is refused |
 | Tuple properties | Each item follows its annotation; a refusal identifies the item index |
-| Graph | The dictionary Entity node carries properties.values; references carry reference_qualname and one entity_reference edge per field (field_name, cardinality one); values are not separate nodes |
+| Graph | The dictionary node carries properties.values; a selection retains its EntityField/reference_qualname and emits one ordinary entity_relation (association, cardinality one, has_inverse false), without a new entity_reference edge; values are not separate nodes |
 
 The property check inspects the annotation when the class is created and the completed member
 after custom validators run: a result outside the declared types, outside a `Literal`'s
@@ -505,9 +499,9 @@ alternatives, while the
 [subset example](../../examples/step_21_relations/38_error_axis_subset.py) is refused.
 Independent disjoint alternative sets on one head are not supported by this check.
 
-Use the paired `Inverse` declarations shown in the tutorial. The specialization validator
-does not require a head `Inverse` or enforce every reverse `Inverse` target/field check
-performed for ownership relations. A bare `Generalization` to a head without an axis
+Use the paired `Inverse` declarations shown in the tutorial. The specialization check still does not enforce every reverse `Inverse` target/field check
+performed for ordinary relationships. In particular, a `Generalization` inverse paired with a
+`NoInverse` specialization head is currently accepted: this is a [confirmed defect](../reports/complete-relationship-verification.md#specialization-directions), not a supported declaration alternative. A bare `Generalization` to a head without an axis
 does not establish a validated specialization.
 
 #### Runtime values and diagnostics
@@ -620,4 +614,4 @@ Maxitor draws lifecycles as FSM diagrams straight from the entity code. The anal
   <td align="right"></td>
 </tr></table>
 
-Dictionary fields accept the bare type or its nullable form. Collections, relation containers, embedded markers, empty catalogues and targets outside the graph are refused at model build. See [dictionary reference declarations](../how-to/dictionary-references.md).
+Dictionary selection fields require a complete single association and NoInverse. Bare dictionary annotations, many/ownership containers, inverse or embedded markers, empty catalogues and targets outside the graph are refused at model build. See [dictionary reference declarations](../how-to/dictionary-references.md).

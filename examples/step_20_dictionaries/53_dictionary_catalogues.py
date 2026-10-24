@@ -1,10 +1,14 @@
 """Validate dictionary declarations and their supported boundaries.
 Run: .venv/bin/python examples/step_20_dictionaries/53_dictionary_catalogues.py
+
+
 """
+
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -28,7 +32,7 @@ class Offer53CoreEntity(BaseCoreEntity):
     """Type a field with a dictionary that declares nothing."""
 
     id: str = Field(description="Offer identifier")
-    region: EmptyEnumEntity = Field(description="Primary region")
+    region: Annotated[AssociationOne[EmptyEnumEntity], NoInverse()] = Field(description="Primary region")
 
 
 def case_53() -> None:
@@ -61,7 +65,7 @@ class Offer54CoreEntity(BaseCoreEntity):
     """Reference a dictionary the graph does not carry."""
 
     id: str = Field(description="Offer identifier")
-    region: HiddenRegion54EnumEntity = Field(description="Primary region")
+    region: Annotated[AssociationOne[HiddenRegion54EnumEntity], NoInverse()] = Field(description="Primary region")
 
 
 def case_54() -> None:

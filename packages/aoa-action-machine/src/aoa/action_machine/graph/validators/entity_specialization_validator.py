@@ -42,6 +42,7 @@ from typing import Any, NoReturn, cast
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
+from aoa.action_machine.domain.relation_markers import Inverse
 from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.domain.specialization_containers import (
     Classifier,
@@ -95,6 +96,11 @@ def _fail(axis: EntitySpecializationIntentResolver, details: str) -> NoReturn:
 def _classifier_marker(field_info: Any) -> Classifier | None:
     """Return the ``Classifier`` marker on a field, or ``None``."""
     return next((item for item in field_info.metadata if isinstance(item, Classifier)), None)
+
+
+def _has_inverse_marker(field_info: Any) -> bool:
+    """True when a field declares an ``Inverse`` direction marker."""
+    return any(isinstance(item, Inverse) for item in field_info.metadata)
 
 
 def _is_specialization_container(annotation: Any) -> bool:
@@ -249,6 +255,13 @@ def _validate_declared_codes(axis: EntitySpecializationIntentResolver) -> None:
                 f"alternative '{alternative.__name__}' points back through '{field_name}', "
                 f"but the axis names '{axis.inverse_field}'",
             )
+        if axis.inverse_field and not _has_inverse_marker(info):
+            _fail(
+                axis,
+                f"the head names inverse field '{axis.inverse_field}', but alternative "
+                f"'{alternative.__name__}' declares no Inverse on '{field_name}'; declare a "
+                f"reciprocal Inverse(field_name=...) on both endpoints.",
+            )
 
 
 def _validate_codes_match(axis: EntitySpecializationIntentResolver) -> None:
@@ -341,6 +354,7 @@ def _validate_no_outside_class_points_at_an_axis(
 # at this head is invisible to the parser, so the code comparison reports it the same way. A
 # separate reachability rule never fired in any of the broken models the sweep builds, and a rule
 # that cannot fire is not a rule — it is a message nobody will ever read.
+
 
 def _validate_no_cycles(axes: list[EntitySpecializationIntentResolver]) -> None:
     """A head and its extensions must not form a cycle."""

@@ -112,11 +112,98 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from enum import Enum
-from typing import Any, ClassVar, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, overload
+
+from pydantic_core import core_schema
 
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
 
+if TYPE_CHECKING:
+    from aoa.action_machine.domain.enum_entity import BaseEnumEntity
+
 T = TypeVar("T")
+
+
+def _relation_target_of(source_type: Any) -> Any:
+    """Return the resolved type argument of a subscripted relation container."""
+    args = get_args(source_type)
+    return args[0] if args else None
+
+
+def _is_dictionary_type(target: Any) -> bool:
+    """True when ``target`` is a closed dictionary class."""
+    if not isinstance(target, type):
+        return False
+    # Late import: enum_entity imports entity, which imports this module.
+    # pylint: disable-next=import-outside-toplevel
+    from aoa.action_machine.domain.enum_entity import BaseEnumEntity
+
+    return issubclass(target, BaseEnumEntity)
+
+
+def _dictionary_association_schema(dictionary: type[BaseEnumEntity]) -> Any:
+    """Build the core schema for ``AssociationOne[D]`` where D is a closed dictionary."""
+
+    def validate_python(value: Any) -> Any:
+        """Resolve the wrapper's code to the canonical member; refuse foreign/mismatched members."""
+        if not isinstance(value, AssociationOne):
+            raise ValueError(
+                f"a dictionary association field requires an explicit AssociationOne[...] wrapper, "
+                f"got {type(value).__name__}."
+            )
+        code = value.id
+        if not isinstance(code, str) or not code.strip():
+            raise ValueError(f"a dictionary association id must be a non-empty string code, got {code!r}.")
+        try:
+            member = dictionary.by_code(code)
+        except KeyError:
+            raise ValueError(
+                f"'{code}' is not a declared value of {dictionary.__name__}. Declared: {dictionary.codes()}."
+            ) from None
+        supplied = value.entity
+        if supplied is not None and supplied is not member:
+            raise ValueError(
+                f"the supplied entity is not the declared value for code '{code}'; pass "
+                f"{dictionary.__name__}.by_code('{code}')."
+            )
+        return AssociationOne(id=code, entity=member)
+
+    def validate_json(value: Any) -> Any:
+        """Accept only the explicit ``{id: code}`` transport object."""
+        if not isinstance(value, dict) or set(value) != {"id"}:
+            raise ValueError("a dictionary association JSON input is an object with exactly one 'id' key.")
+        code = value["id"]
+        if not isinstance(code, str) or not code.strip():
+            raise ValueError("the 'id' of a dictionary association JSON input must be a non-empty string.")
+        try:
+            member = dictionary.by_code(code)
+        except KeyError:
+            raise ValueError(
+                f"'{code}' is not a declared value of {dictionary.__name__}. Declared: {dictionary.codes()}."
+            ) from None
+        return AssociationOne(id=code, entity=member)
+
+    def serialize(value: Any) -> Any:
+        """Emit the canonical member's existing reference representation."""
+        if value is None:
+            return None
+        entity = value.entity
+        if entity is None:
+            return None
+        return entity.to_reference()
+
+    return core_schema.json_or_python_schema(
+        json_schema=core_schema.no_info_after_validator_function(
+            validate_json,
+            core_schema.dict_schema(keys_schema=core_schema.str_schema(), values_schema=core_schema.any_schema()),
+        ),
+        python_schema=core_schema.no_info_after_validator_function(
+            validate_python,
+            core_schema.is_instance_schema(AssociationOne),
+        ),
+        serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used="json"),
+        metadata={"dictionary_association": dictionary},
+    )
 
 
 class RelationType(Enum):
@@ -160,6 +247,39 @@ class BaseRelationOne[T]:
 
     relation_type: ClassVar[RelationType]  # pylint: disable=declare-non-slot
 
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
+        """Give ``AssociationOne[D]`` a dictionary-specific schema; keep structural wrappers opaque."""
+        target = _relation_target_of(source_type)
+        if cls is AssociationOne and _is_dictionary_type(target):
+            return _dictionary_association_schema(target)
+        return core_schema.is_instance_schema(cls)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
+        """Publish the id-object input shape in validation mode and the reference in serialization mode."""
+        metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        dictionary = metadata.get("dictionary_association")
+        if dictionary is None:
+            return cast(dict[str, Any], handler(schema))
+        if handler.mode == "serialization":
+            return {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code", "display_name", "properties"],
+                "properties": {
+                    "code": {"type": "string", "minLength": 1},
+                    "display_name": {"type": "string", "minLength": 1},
+                    "properties": {"type": "object"},
+                },
+            }
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["id"],
+            "properties": {"id": {"type": "string", "minLength": 1}},
+        }
+
     def __init__(self, *, id: Any, entity: T | None = None) -> None:  # pylint: disable=redefined-builtin
         """
         Args:
@@ -171,8 +291,7 @@ class BaseRelationOne[T]:
         """
         if id is None:
             raise ValueError(
-                f"{self.__class__.__name__}: id cannot be None. "
-                f"A relation container must always store an identifier."
+                f"{self.__class__.__name__}: id cannot be None. A relation container must always store an identifier."
             )
         object.__setattr__(self, "_id", id)
         object.__setattr__(self, "_entity", entity)

@@ -1,5 +1,6 @@
-"""
-01_relations.py — Entity relations: ownership, Inverse, partial loading
+"""01_relations.py — Entity relations: ownership, Inverse, partial loading
+Run: .venv/bin/python examples/step_21_relations/01_relations.py
+
 
 An Entity rarely stands alone: an order has a customer and line items. AOA
 declares links with relation containers that carry both cardinality and
@@ -10,7 +11,7 @@ ownership meaning:
     AssociationOne / AssociationMany link without ownership
 
 `Inverse(Target, "field")` names the reverse side so the coordinator can verify
-mirroring (types, target, cardinality) when the graph is built — a broken
+reciprocal endpoint names when the graph is built — a broken
 relation model fails at startup, not half a year later in a report. `NoInverse()`
 marks a deliberately one-way link. Every declared edge carries `Field(description=)`.
 
@@ -18,10 +19,7 @@ Relations load partially like fields: the container always knows the id(s), but
 the target row may not be hydrated — reaching through it raises
 RelationNotLoadedError, never a silent None.
 
-Tutorial: ../../docs/tutorials/step-21-relations_draft.md  ·  topic: Entity relations
 
-Run:
-    uv run python examples/step_21_relations/01_relations.py
 """
 
 from __future__ import annotations
@@ -56,7 +54,7 @@ class CustomerCoreEntity(BaseCoreEntity):
 
     orders: Annotated[
         AssociationMany[OrderCoreEntity],
-        Inverse(OrderCoreEntity, "customer"),
+        Inverse(field_name="customer"),
     ] = Field(description="Orders placed by this customer")
 
 
@@ -74,7 +72,7 @@ class OrderCoreEntity(BaseCoreEntity):
     # composition — line items cannot exist without this order
     lines: Annotated[
         CompositeMany[OrderLineDetailEntity],
-        Inverse(OrderLineDetailEntity, "order"),
+        Inverse(field_name="order"),
     ] = Field(description="Line items of the order")
 
 
@@ -96,7 +94,7 @@ OrderLineDetailEntity.model_rebuild()
 
 def main() -> None:
     # 1) Startup check: building the machine builds the graph, which verifies
-    #    every Inverse mirrors (types, target, cardinality). A broken relation
+    #    every Inverse names a reciprocal endpoint. A broken relation
     #    model would raise here, not in production.
     ActionProductMachine()
     print("1) Machine built — relation model validated at startup (Inverse mirroring OK)")
@@ -112,13 +110,15 @@ def main() -> None:
     print(f"   order.customer.id  = {order.customer.id}   (is_loaded={order.customer.is_loaded})")
     print(f"   len(order.lines)   = {len(order.lines)}   (is_loaded={order.lines.is_loaded})")
     try:
-        _ = order.customer.name        # target row not hydrated
+        _ = order.customer.name  # target row not hydrated
     except RelationNotLoadedError as exc:
         print(f"   order.customer.name -> RelationNotLoadedError: {exc}")
     try:
-        _ = list(order.lines)          # many: iteration requires loaded entities
-    except RelationNotLoadedError:
-        print("   iterating order.lines -> RelationNotLoadedError (ids known, rows not loaded)")
+        _ = list(order.lines)  # many: iteration requires loaded entities
+    except RelationNotLoadedError as error:
+        print("   iterating order.lines -> RelationNotLoadedError:", error)
+    else:
+        raise AssertionError("Unloaded collection was iterable")
 
     # 3) Hydrated relation: pass the loaded target entity; attribute access proxies to it.
     customer = CustomerCoreEntity(
@@ -132,6 +132,8 @@ def main() -> None:
         customer=AssociationOne[CustomerCoreEntity](id="cust-1", entity=customer),
         lines=CompositeMany[OrderLineDetailEntity](entities=(), entities_loaded=True),
     )
+    assert order2.customer.name == "Alice"
+    assert order2.lines.is_loaded
     print("\n3) Hydrated relation:")
     print(f"   order2.customer.name = {order2.customer.name}   (proxied through the loaded entity)")
 

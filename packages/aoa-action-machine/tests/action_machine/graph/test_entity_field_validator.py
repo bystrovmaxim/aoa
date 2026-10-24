@@ -1,834 +1,929 @@
 # tests/action_machine/graph/test_entity_field_validator.py
 """
-Tests for ``validate_entity_fields`` — a structural-entity field must declare its form.
+Tests for ``validate_entity_fields`` — every entity field must declare a complete relationship.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A field whose resolved type is a structural entity is a relation by nature. Written as
-a bare type, a collection, a bare optional, or a state entity, it used to build and to
-produce a column that meant nothing. These tests pin the four refusals, the two legal
-forms, and the forms that stay untouched: a dictionary reference, a lifecycle, a schema
-type and an ordinary scalar.
+A Core, Assoc, Detail, Spec or Enum entity-valued field must declare its relationship
+completely: a supported container inside ``Annotated``, exactly one direction marker and a
+non-blank assignment-side ``Field(description=...)``. A dictionary field uses
+``AssociationOne[D] | None`` with ``NoInverse()``. These tests pin the complete forms and
+every incomplete shape across the five stereotypes, plus the retained State/scalar controls.
 
-Every refused fixture is ``@exclude_graph_model`` so the class exists for the explicit
-call and never joins the global model other tests build.
+Every intentionally invalid declaration is created and judged inside a **fresh
+interpreter** via ``tests.support.isolated_entity_models.run_isolated_model``. The
+completeness rule enumerates every loaded ``@entity`` class, so an invalid fixture left at
+module level would poison model assembly for every other test in the same session.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Annotated
+import textwrap
 
 import pytest
-from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import (
-    AggregateMany,
-    AggregateOne,
-    AssociationMany,
-    AssociationOne,
-    BaseAssocEntity,
     BaseCoreEntity,
-    BaseDetailEntity,
-    BaseDomain,
     BaseEnumEntity,
-    BaseSpecEntity,
-    CompositeMany,
-    CompositeOne,
-    Generalization,
-    Inverse,
-    NoGraphEdge,
-    NoInverse,
+    BaseStateEntity,
     NoRelation,
-    value,
 )
-from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
-from aoa.action_machine.graph.validators.entity_field_validator import _kind_of, validate_entity_fields
+from aoa.action_machine.graph.validators.entity_field_validator import _kind_of
 from aoa.action_machine.graph.validators.entity_specialization_validator import declared_entity_classes
-from aoa.action_machine.intents.entity import entity
-from aoa.action_machine.model.base_schema import BaseSchema
 
-from ...support.domain_model.entities import DraftLifecycle, DraftStateEntity
+from ...support.isolated_entity_models import run_isolated_model
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Subprocess preamble — every fixture script shares these imports and helpers.
+# ─────────────────────────────────────────────────────────────────────────────
 
-class FieldRulesDomain(BaseDomain):
-    """The domain every fixture in this module belongs to."""
+_IMPORTS = textwrap.dedent(
+    """
+    from collections.abc import Sequence
+    from typing import Annotated
 
-    name = "field-rules"
-    description = "Field declaration rules"
+    from pydantic import Field, ValidationError
 
-
-@exclude_graph_model
-@entity(description="Showcase", domain=FieldRulesDomain)
-class ShowcaseCoreEntity(BaseCoreEntity):
-    """The entity other fields point at."""
-
-    id: str = Field(description="Showcase identifier")
-
-
-@entity(description="Dictionary", domain=FieldRulesDomain)
-class CurrencyEnumEntity(BaseEnumEntity):
-    """A dictionary reference the rule accepts as the bare type."""
-
-    symbol: str = Field(description="Currency symbol")
-
-    EUR = value(code="eur", display_name="Euro", symbol="€")
-
-
-@exclude_graph_model
-@entity(description="Schema host", domain=FieldRulesDomain)
-class HostParams(BaseSchema):
-    """A schema type the rule leaves alone."""
-
-    order_id: str = Field(description="Order identifier")
-
-
-@exclude_graph_model
-@entity(description="Bare field", domain=FieldRulesDomain)
-class BareCoreEntity(BaseCoreEntity):
-    """Declare a structural entity as a scalar — the defect this rule refuses."""
-
-    showcase: ShowcaseCoreEntity = Field(description="Player showcase")
-
-
-@exclude_graph_model
-@entity(description="Optional bare field", domain=FieldRulesDomain)
-class OptionalBareCoreEntity(BaseCoreEntity):
-    """Declare a bare optional of a structural entity."""
-
-    showcase: ShowcaseCoreEntity | None = Field(default=None, description="Showcase")
-
-
-@exclude_graph_model
-@entity(description="List of entities", domain=FieldRulesDomain)
-class ListCoreEntity(BaseCoreEntity):
-    """Declare a collection of a structural entity."""
-
-    showcases: list[ShowcaseCoreEntity] = Field(default_factory=list, description="Showcases")
-
-
-@exclude_graph_model
-@entity(description="Mapping of entities", domain=FieldRulesDomain)
-class DictCoreEntity(BaseCoreEntity):
-    """Declare a mapping of a structural entity."""
-
-    showcases: dict[str, ShowcaseCoreEntity] = Field(default_factory=dict, description="Showcases")
-
-
-@exclude_graph_model
-@entity(description="Set of entities", domain=FieldRulesDomain)
-class SetCoreEntity(BaseCoreEntity):
-    """Declare a set of a structural entity."""
-
-    showcases: set[ShowcaseCoreEntity] = Field(default_factory=set, description="Showcases")
-
-
-@exclude_graph_model
-@entity(description="Tuple of entities", domain=FieldRulesDomain)
-class TupleCoreEntity(BaseCoreEntity):
-    """Declare a tuple of a structural entity."""
-
-    showcases: tuple[ShowcaseCoreEntity, ...] = Field(default=(), description="Showcases")
-
-
-@exclude_graph_model
-@entity(description="Gallery", domain=FieldRulesDomain)
-class GalleryCoreEntity(BaseCoreEntity):
-    """A second structural entity, for a union and a mixed collection."""
-
-    id: str = Field(description="Identifier")
-
-
-@exclude_graph_model
-@entity(description="Union of entities", domain=FieldRulesDomain)
-class UnionCoreEntity(BaseCoreEntity):
-    """Name two entities on one field."""
-
-    ref: ShowcaseCoreEntity | GalleryCoreEntity = Field(description="Union")
-
-
-@exclude_graph_model
-@entity(description="Mixed collection", domain=FieldRulesDomain)
-class MixedCollectionCoreEntity(BaseCoreEntity):
-    """Collect two different entities in one field."""
-
-    ref: tuple[ShowcaseCoreEntity, GalleryCoreEntity] = Field(description="Mixed")
-
-
-@exclude_graph_model
-@entity(description="State field", domain=FieldRulesDomain)
-class StateFieldCoreEntity(BaseCoreEntity):
-    """Declare a state entity as a field."""
-
-    stage: DraftStateEntity = Field(description="Stage")
-
-
-@exclude_graph_model
-@entity(description="State in a relation", domain=FieldRulesDomain)
-class StateRelationCoreEntity(BaseCoreEntity):
-    """Wrap a state entity in a relation container."""
-
-    stage: Annotated[AssociationOne[DraftStateEntity], NoInverse()] = Field(description="Stage")
-
-
-@exclude_graph_model
-@entity(description="State with the marker", domain=FieldRulesDomain)
-class StateMarkerCoreEntity(BaseCoreEntity):
-    """Mark a state entity as an embedded value — still refused."""
-
-    stage: Annotated[DraftStateEntity, NoRelation("embedded stage snapshot")] = Field(description="Stage")
-
-
-@exclude_graph_model
-@entity(description="Marker on a dictionary", domain=FieldRulesDomain)
-class MarkerOnEnumCoreEntity(BaseCoreEntity):
-    """Mark a dictionary reference, which no marker applies to."""
-
-    currency: Annotated[CurrencyEnumEntity, NoRelation("embedded currency")] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Marker with a relation", domain=FieldRulesDomain)
-class MarkerWithRelationCoreEntity(BaseCoreEntity):
-    """Combine the marker with a relation container — contradictory."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoRelation("embedded showcase")] = Field(
-        description="Showcase"
+    from aoa.action_machine.domain import (
+        AggregateMany,
+        AggregateOne,
+        AssociationMany,
+        AssociationOne,
+        BaseAssocEntity,
+        BaseCoreEntity,
+        BaseDetailEntity,
+        BaseDomain,
+        BaseEnumEntity,
+        BaseSpecEntity,
+        BaseStateEntity,
+        CompositeMany,
+        CompositeOne,
+        Generalization,
+        Inverse,
+        Lifecycle,
+        NoGraphEdge,
+        NoInverse,
+        NoRelation,
+        Specialization,
+        value,
     )
-
-
-@exclude_graph_model
-@entity(description="Dictionary references", domain=FieldRulesDomain)
-class DictionaryReferenceCoreEntity(BaseCoreEntity):
-    """Reference a dictionary as a required, optional, defaulted and factory value."""
-
-    id: str = Field(description="Identifier")
-    currency: CurrencyEnumEntity = Field(description="Required reference")
-    settlement: CurrencyEnumEntity | None = Field(default=None, description="Optional reference")
-    fallback: CurrencyEnumEntity = Field(default=CurrencyEnumEntity.EUR, description="Defaulted reference")
-    copied: CurrencyEnumEntity = Field(default_factory=lambda: CurrencyEnumEntity.EUR, description="Factory reference")
-    unguarded: CurrencyEnumEntity = Field(default=None, description="A default the relation rule would refuse")
-
-
-@exclude_graph_model
-@entity(description="Annotated dictionary reference", domain=FieldRulesDomain)
-class AnnotatedDictionaryCoreEntity(BaseCoreEntity):
-    """Declare the reference through the inner ``Field`` syntax."""
-
-    currency: Annotated[CurrencyEnumEntity, Field(description="Annotated reference")]
-
-
-@exclude_graph_model
-@entity(description="Dictionary tuple", domain=FieldRulesDomain)
-class DictionaryTupleCoreEntity(BaseCoreEntity):
-    """Store many dictionary values in a tuple."""
-
-    currencies: tuple[CurrencyEnumEntity, ...] = Field(default=(), description="Currencies")
-
-
-@exclude_graph_model
-@entity(description="Dictionary list", domain=FieldRulesDomain)
-class DictionaryListCoreEntity(BaseCoreEntity):
-    """Store many dictionary values in a list."""
-
-    currencies: list[CurrencyEnumEntity] = Field(default_factory=list, description="Currencies")
-
-
-@exclude_graph_model
-@entity(description="Dictionary sequence", domain=FieldRulesDomain)
-class DictionarySequenceCoreEntity(BaseCoreEntity):
-    """Store many dictionary values in a sequence."""
-
-    currencies: Sequence[CurrencyEnumEntity] = Field(default=(), description="Currencies")
-
-
-@exclude_graph_model
-@entity(description="Dictionary set", domain=FieldRulesDomain)
-class DictionarySetCoreEntity(BaseCoreEntity):
-    """Store many dictionary values in a frozen set."""
-
-    currencies: frozenset[CurrencyEnumEntity] = Field(default_factory=frozenset, description="Currencies")
-
-
-@exclude_graph_model
-@entity(description="Dictionary mapping", domain=FieldRulesDomain)
-class DictionaryMappingCoreEntity(BaseCoreEntity):
-    """Store many dictionary values in a mapping."""
-
-    currencies: dict[str, CurrencyEnumEntity] = Field(default_factory=dict, description="Currencies")
-
-
-@exclude_graph_model
-@entity(description="Second dictionary", domain=FieldRulesDomain)
-class CountryEnumEntity(BaseEnumEntity):
-    """Be the second dictionary a union can name."""
-
-    EU = value(code="eu", display_name="Europe")
-
-
-@exclude_graph_model
-@entity(description="Dictionary union", domain=FieldRulesDomain)
-class DictionaryUnionCoreEntity(BaseCoreEntity):
-    """Name two dictionaries on one field."""
-
-    currency: CurrencyEnumEntity | CountryEnumEntity = Field(description="Union")
-
-
-@exclude_graph_model
-@entity(description="Association one of a dictionary", domain=FieldRulesDomain)
-class AssociationOneDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a one association."""
-
-    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Association many of a dictionary", domain=FieldRulesDomain)
-class AssociationManyDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a many association."""
-
-    currency: Annotated[AssociationMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Composite one of a dictionary", domain=FieldRulesDomain)
-class CompositeOneDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a one composition."""
-
-    currency: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Composite many of a dictionary", domain=FieldRulesDomain)
-class CompositeManyDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a many composition."""
-
-    currency: Annotated[CompositeMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Aggregate one of a dictionary", domain=FieldRulesDomain)
-class AggregateOneDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a one aggregate."""
-
-    currency: Annotated[AggregateOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Aggregate many of a dictionary", domain=FieldRulesDomain)
-class AggregateManyDictionaryCoreEntity(BaseCoreEntity):
-    """Wrap a shared value in a many aggregate."""
-
-    currency: Annotated[AggregateMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Generalization of a dictionary", domain=FieldRulesDomain)
-class GeneralizationDictionaryCoreEntity(BaseCoreEntity):
-    """Declare a dictionary as a generalization head."""
-
-    currency: Annotated[Generalization[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
-
-
-@exclude_graph_model
-class EmptyEnumEntity(BaseEnumEntity):
-    """A dictionary with no values; ``@entity`` refuses one, so it stays undecorated."""
-
-
-@exclude_graph_model
-@entity(description="Empty catalogue", domain=FieldRulesDomain)
-class EmptyCatalogueCoreEntity(BaseCoreEntity):
-    """Reference a dictionary that declares nothing."""
-
-    currency: EmptyEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Hidden dictionary", domain=FieldRulesDomain)
-class HiddenEnumEntity(BaseEnumEntity):
-    """Be a dictionary marked outside the graph."""
-
-    USD = value(code="usd", display_name="US dollar")
-
-
-@exclude_graph_model
-@entity(description="Hidden dictionary reference", domain=FieldRulesDomain)
-class HiddenDictionaryCoreEntity(BaseCoreEntity):
-    """Reference a dictionary that has no graph node."""
-
-    currency: HiddenEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Spec host", domain=FieldRulesDomain)
-class SpecDictionarySpecEntity(BaseSpecEntity):
-    """Reference a dictionary from a Spec host."""
-
-    id: str = Field(description="Identifier")
-    currency: CurrencyEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Assoc host", domain=FieldRulesDomain)
-class AssocDictionaryAssocEntity(BaseAssocEntity):
-    """Reference a dictionary from an Assoc host."""
-
-    id: str = Field(description="Identifier")
-    currency: CurrencyEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Detail host", domain=FieldRulesDomain)
-class DetailDictionaryDetailEntity(BaseDetailEntity):
-    """Reference a dictionary from a Detail host."""
-
-    id: str = Field(description="Identifier")
-    currency: CurrencyEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Dictionary base", domain=FieldRulesDomain)
-class DictionaryBaseCoreEntity(BaseCoreEntity):
-    """Declare a reference on a base class."""
-
-    currency: CurrencyEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Dictionary child", domain=FieldRulesDomain)
-class InheritedDictionaryCoreEntity(DictionaryBaseCoreEntity):
-    """Inherit the reference."""
-
-    extra: str = Field(description="Extra")
-
-
-@exclude_graph_model
-@entity(description="Forward dictionary reference", domain=FieldRulesDomain)
-class ForwardDictionaryCoreEntity(BaseCoreEntity):
-    """Name its dictionary before that dictionary exists."""
-
-    currency: LaterHiddenEnumEntity = Field(description="Currency")
-
-
-@exclude_graph_model
-@entity(description="Forward hidden dictionary", domain=FieldRulesDomain)
-class LaterHiddenEnumEntity(BaseEnumEntity):
-    """Be the dictionary the forward reference names, and stay outside the graph."""
-
-    USD = value(code="usd", display_name="US dollar")
-
-
-@exclude_graph_model
-@entity(description="Forward reference", domain=FieldRulesDomain)
-class ForwardCoreEntity(BaseCoreEntity):
-    """Name its target before that target exists — a genuine forward reference."""
-
-    showcase: LaterCoreEntity = Field(description="Showcase")
-
-
-@exclude_graph_model
-@entity(description="Forward target", domain=FieldRulesDomain)
-class LaterCoreEntity(BaseCoreEntity):
-    """Be the class the forward reference names."""
-
-    id: str = Field(description="Identifier")
-
-
-@exclude_graph_model
-@entity(description="Relation form", domain=FieldRulesDomain)
-class RelationCoreEntity(BaseCoreEntity):
-    """Declare the field as a relation — the legal first form."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], Inverse(ShowcaseCoreEntity, "player")] = Field(
-        description="Player showcase"
-    )
-
-
-@exclude_graph_model
-@entity(description="Many relation form", domain=FieldRulesDomain)
-class ManyRelationCoreEntity(BaseCoreEntity):
-    """Declare a collection as a many relation — the legal many form."""
-
-    showcases: Annotated[AssociationMany[ShowcaseCoreEntity], NoInverse()] = Field(description="Showcases")
-
-
-@exclude_graph_model
-@entity(description="Embedded form", domain=FieldRulesDomain)
-class EmbeddedCoreEntity(BaseCoreEntity):
-    """Declare the field as an embedded value — the legal second form."""
-
-    showcase: Annotated[ShowcaseCoreEntity, NoRelation("embedded showcase snapshot")] = Field(
-        description="Showcase snapshot stored as a value"
-    )
-
-
-@exclude_graph_model
-@entity(description="Untouched forms", domain=FieldRulesDomain)
-class OrdinaryCoreEntity(BaseCoreEntity):
-    """Keep every form the rule leaves alone on one class."""
-
-    id: str = Field(description="Identifier")
-    age: int | None = Field(default=None, description="Age")
-    currency: CurrencyEnumEntity = Field(description="Currency")
-    lifecycle: DraftLifecycle = Field(description="Lifecycle")
-    params: HostParams = Field(description="Parameters")
-
-
-@exclude_graph_model
-@entity(description="Required relation", domain=FieldRulesDomain)
-class RequiredRelationCoreEntity(BaseCoreEntity):
-    """Declare a relation that must be supplied."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="Required showcase")
-
-
-@exclude_graph_model
-@entity(description="Nullable required relation", domain=FieldRulesDomain)
-class NullableRequiredCoreEntity(BaseCoreEntity):
-    """Declare a nullable relation that must still be supplied."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(description="Nullable showcase")
-
-
-@exclude_graph_model
-@entity(description="Omittable relation", domain=FieldRulesDomain)
-class OmittableCoreEntity(BaseCoreEntity):
-    """Declare a nullable relation that may be omitted."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
-        default=None, description="Omittable showcase"
-    )
-
-
-@exclude_graph_model
-@entity(description="Non-nullable default", domain=FieldRulesDomain)
-class NonNullableDefaultCoreEntity(BaseCoreEntity):
-    """Default ``None`` on a relation that does not allow it."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
-
-
-@exclude_graph_model
-@entity(description="Prebuilt default", domain=FieldRulesDomain)
-class PrebuiltDefaultCoreEntity(BaseCoreEntity):
-    """A prebuilt relation container as the default."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
-        default=AssociationOne(id="x"), description="Showcase"
-    )
-
-
-_FACTORY_CALLS: list[bool] = []
-
-
-def _factory() -> None:
-    """Record that the framework executed a factory it must not execute."""
-    _FACTORY_CALLS.append(True)
-    return None
-
-
-@exclude_graph_model
-@entity(description="Factory default", domain=FieldRulesDomain)
-class FactoryCoreEntity(BaseCoreEntity):
-    """A factory as the default, even one returning ``None``."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
-        default_factory=_factory, description="Showcase"
-    )
-
-
-@exclude_graph_model
-@entity(description="Blank description", domain=FieldRulesDomain)
-class BlankDescriptionCoreEntity(BaseCoreEntity):
-    """A relation whose description is whitespace only."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="   ")
-
-
-@exclude_graph_model
-@entity(description="Missing description", domain=FieldRulesDomain)
-class MissingDescriptionCoreEntity(BaseCoreEntity):
-    """A relation with no description at all."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field()
-
-
-@exclude_graph_model
-@entity(description="Hidden edge", domain=FieldRulesDomain)
-class HiddenEdgeCoreEntity(BaseCoreEntity):
-    """A relation whose edge is hidden, with no description."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), NoGraphEdge()] = Field()
-
-
-@exclude_graph_model
-@entity(description="Inner syntax", domain=FieldRulesDomain)
-class InnerSyntaxCoreEntity(BaseCoreEntity):
-    """A description supplied by the ``Field`` inside ``Annotated``."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field()
-
-
-@exclude_graph_model
-@entity(description="Both syntaxes", domain=FieldRulesDomain)
-class BothSyntaxesCoreEntity(BaseCoreEntity):
-    """A description supplied twice: the assignment wins."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field(
-        description="Outer showcase"
-    )
-
-
-@exclude_graph_model
-@entity(description="Relation base", domain=FieldRulesDomain)
-class RelationBaseCoreEntity(BaseCoreEntity):
-    """Declare a relation on a base class."""
-
-    showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
-
-
-@exclude_graph_model
-@entity(description="Inherited relation", domain=FieldRulesDomain)
-class InheritedRelationCoreEntity(RelationBaseCoreEntity):
-    """Inherit a relation the rule must still judge."""
-
-    id: str = Field(description="Identifier")
-
-
-def _refusal(entity_cls: type) -> EntityFieldDeclarationError:
-    """Return the refusal raised for one class."""
-    with pytest.raises(EntityFieldDeclarationError) as caught:
-        validate_entity_fields([entity_cls])
-    return caught.value
-
-
-def test_a_bare_entity_field_is_refused_naming_the_forms() -> None:
-    """The original defect: a structural entity written as a scalar."""
-    error = _refusal(BareCoreEntity)
-
-    assert error.entity_name == "BareCoreEntity"
-    assert error.field_name == "showcase"
-    assert "ShowcaseCoreEntity" in error.details
-    assert "AssociationOne" in error.details
-    assert "NoRelation" in error.details
-
-
-def test_a_bare_optional_entity_field_is_refused() -> None:
-    """`X | None` without a container is not a declaration either."""
-    error = _refusal(OptionalBareCoreEntity)
-
-    assert "showcase" in str(error)
-    assert "NoRelation" in error.details
-
-
-@pytest.mark.parametrize(
-    "entity_cls",
-    [ListCoreEntity, SetCoreEntity, TupleCoreEntity],
+    from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
+    from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+    from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+    from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+    from aoa.action_machine.intents.entity import entity
+    from aoa.action_machine.model.base_schema import BaseSchema
+
+
+    def probe(cls):
+        \"\"\"Judge one class and print a deterministic result block.\"\"\"
+        print("FIXTURE " + cls.__name__)
+        try:
+            validate_entity_fields([cls])
+            print("ACCEPT")
+        except EntityFieldDeclarationError as exc:
+            print("ENTITY " + exc.entity_name)
+            print("FIELD " + exc.field_name)
+            print("DETAILS " + exc.details)
+
+
+    def probe_named(name, cls):
+        \"\"\"Like ``probe`` but print a caller-chosen fixture name (for two-phase runs).\"\"\"
+        print("FIXTURE " + name)
+        try:
+            validate_entity_fields([cls])
+            print("ACCEPT")
+        except EntityFieldDeclarationError as exc:
+            print("ENTITY " + exc.entity_name)
+            print("FIELD " + exc.field_name)
+            print("DETAILS " + exc.details)
+
+
+    def extra(key, value):
+        \"\"\"Print an ``EXTRA key value`` line for construction/edge assertions.\"\"\"
+        print("EXTRA " + key + " " + str(value))
+    """
 )
-def test_a_collection_of_entities_is_refused(entity_cls: type) -> None:
-    """A container of an entity is not a relation; the many forms are named instead."""
-    error = _refusal(entity_cls)
 
-    assert error.field_name == "showcases"
-    assert "AssociationMany" in error.details
+# Common helper classes every fixture script declares in its own fresh process.
+_TARGETS = textwrap.dedent(
+    """
+    class FieldRulesDomain(BaseDomain):
+        name = "field-rules"
+        description = "Field declaration rules"
 
+    @exclude_graph_model
+    @entity(description="Showcase", domain=FieldRulesDomain)
+    class ShowcaseCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Showcase identifier")
 
-def test_a_union_of_entities_names_both_and_asks_for_two_fields() -> None:
-    """A union is not a collection, and it has no single container."""
-    error = _refusal(UnionCoreEntity)
+    @exclude_graph_model
+    @entity(description="Gallery", domain=FieldRulesDomain)
+    class GalleryCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
 
-    assert "union" in error.details
-    assert "ShowcaseCoreEntity" in error.details
-    assert "GalleryCoreEntity" in error.details
-    assert "collection" not in error.details
-    assert "AssociationMany" not in error.details
+    @entity(description="Dictionary", domain=FieldRulesDomain)
+    class CurrencyEnumEntity(BaseEnumEntity):
+        symbol: str = Field(description="Currency symbol")
+        EUR = value(code="eur", display_name="Euro", symbol="€")
 
+    @exclude_graph_model
+    @entity(description="Second dictionary", domain=FieldRulesDomain)
+    class CountryEnumEntity(BaseEnumEntity):
+        EU = value(code="eu", display_name="Europe")
 
-def test_a_heterogeneous_collection_names_every_entity() -> None:
-    """One many-relation cannot point at two entities."""
-    error = _refusal(MixedCollectionCoreEntity)
+    @exclude_graph_model
+    class EmptyEnumEntity(BaseEnumEntity):
+        pass
 
-    assert "collection of 2 entities" in error.details
-    assert "ShowcaseCoreEntity" in error.details
-    assert "GalleryCoreEntity" in error.details
-    assert "AssociationMany" not in error.details
+    @exclude_graph_model
+    @entity(description="Hidden dictionary", domain=FieldRulesDomain)
+    class HiddenEnumEntity(BaseEnumEntity):
+        USD = value(code="usd", display_name="US dollar")
 
+    class DraftStateEntity(BaseStateEntity):
+        DRAFT = value(code="draft", display_name="Draft")
 
-def test_a_mapping_is_described_as_a_mapping() -> None:
-    """A mapping is not a relation, and no many-relation fits it."""
-    error = _refusal(DictCoreEntity)
+    class DraftLifecycle(Lifecycle[DraftStateEntity]):
+        pass
 
-    assert "mapping" in error.details
-    assert "ShowcaseCoreEntity" in error.details
-    assert "AssociationMany" not in error.details
-
-
-def test_the_other_refusals_keep_their_message() -> None:
-    """Only the three shapes change: the bare, homogeneous and dictionary cases are as before."""
-    assert "AssociationOne" in _refusal(BareCoreEntity).details
-    assert "AssociationMany" in _refusal(ListCoreEntity).details
-    assert "no declared form" in _refusal(DictionaryTupleCoreEntity).details
-
-
-def test_a_state_entity_field_names_the_lifecycle_form() -> None:
-    """A state is neither a relation nor a plain field."""
-    error = _refusal(StateFieldCoreEntity)
-
-    assert error.field_name == "stage"
-    assert "Lifecycle[...]" in error.details
-
-
-def test_a_state_entity_inside_a_relation_container_is_refused() -> None:
-    """Wrapping a state in a relation container does not give it a field form."""
-    error = _refusal(StateRelationCoreEntity)
-
-    assert "Lifecycle[...]" in error.details
-
-
-def test_the_embedded_marker_does_not_apply_to_a_state() -> None:
-    """The marker is for Core, Assoc, Detail and Spec only."""
-    error = _refusal(StateMarkerCoreEntity)
-
-    assert "Lifecycle[...]" in error.details
-
-
-def test_the_embedded_marker_is_refused_on_a_dictionary() -> None:
-    """A dictionary reference is already a bare type; the marker would be meaningless."""
-    error = _refusal(MarkerOnEnumCoreEntity)
-
-    assert "NoRelation" in error.details
-    assert "CurrencyEnumEntity" in error.details
-    assert "already declares the reference" in error.details
-
-
-def test_a_bare_dictionary_reference_is_accepted() -> None:
-    """The dictionary type itself is the declaration, as #241 decided."""
-    validate_entity_fields([DictionaryReferenceCoreEntity, AnnotatedDictionaryCoreEntity])
-
-
-def test_a_dictionary_reference_acquires_no_relation_default_rule() -> None:
-    """The default contract binds relation containers; a reference keeps its own defaults (FR-032)."""
-    validate_entity_fields([DictionaryReferenceCoreEntity])
-
-    assert DictionaryReferenceCoreEntity.model_fields["fallback"].default is CurrencyEnumEntity.EUR
-    assert DictionaryReferenceCoreEntity.model_fields["copied"].default_factory is not None
-    assert DictionaryReferenceCoreEntity.model_fields["unguarded"].default is None
-
-
-@pytest.mark.parametrize(
-    "entity_cls",
-    [
-        DictionaryTupleCoreEntity,
-        DictionaryListCoreEntity,
-        DictionarySequenceCoreEntity,
-        DictionarySetCoreEntity,
-        DictionaryMappingCoreEntity,
-    ],
+    @exclude_graph_model
+    @entity(description="Schema host", domain=FieldRulesDomain)
+    class HostParams(BaseSchema):
+        order_id: str = Field(description="Order identifier")
+    """
 )
-def test_a_collection_of_dictionary_values_is_refused(entity_cls: type) -> None:
-    """A collection of dictionary values has no declared form."""
-    error = _refusal(entity_cls)
-
-    assert error.field_name == "currencies"
-    assert "no declared form" in error.details
-    assert "CurrencyEnumEntity" in error.details
-    assert "AssociationMany" not in error.details
 
 
-def test_a_union_of_two_dictionaries_is_refused() -> None:
-    """A field names one dictionary, not a choice between two."""
-    error = _refusal(DictionaryUnionCoreEntity)
+def _run(body: str) -> str:
+    """Run ``body`` in a fresh interpreter and return its stdout."""
+    result = run_isolated_model(_IMPORTS + "\n" + _TARGETS + "\n" + textwrap.dedent(body))
+    assert result.returncode == 0, result.stderr
+    return result.stdout
 
-    assert "more than one dictionary" in error.details
-    assert "AssociationMany" not in error.details
+
+def _blocks(out: str) -> dict[str, dict[str, str]]:
+    """Parse ``FIXTURE/ACCEPT|ENTITY/FIELD/DETAILS`` blocks into a per-fixture map."""
+    blocks: dict[str, dict[str, str]] = {}
+    current: str | None = None
+    for line in out.splitlines():
+        if line.startswith("FIXTURE "):
+            current = line[len("FIXTURE ") :]
+            blocks[current] = {}
+        elif line == "ACCEPT":
+            blocks[current]["accepted"] = "true"
+        elif line.startswith("ENTITY "):
+            blocks[current]["entity"] = line[len("ENTITY ") :]
+        elif line.startswith("FIELD "):
+            blocks[current]["field"] = line[len("FIELD ") :]
+        elif line.startswith("DETAILS "):
+            blocks[current]["details"] = line[len("DETAILS ") :]
+    return blocks
 
 
-@pytest.mark.parametrize(
-    "entity_cls",
-    [
-        AssociationOneDictionaryCoreEntity,
+def _extras(out: str) -> dict[str, str]:
+    """Parse ``EXTRA key value`` lines into a map."""
+    result: dict[str, str] = {}
+    for line in out.splitlines():
+        if line.startswith("EXTRA "):
+            _, key, value = line.split(" ", 2)
+            result[key] = value
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Script fixtures — each runs once per module.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_SHAPE_BODY = """
+    @exclude_graph_model
+    @entity(description="Bare field", domain=FieldRulesDomain)
+    class BareCoreEntity(BaseCoreEntity):
+        showcase: ShowcaseCoreEntity = Field(description="Player showcase")
+
+    @exclude_graph_model
+    @entity(description="Optional bare field", domain=FieldRulesDomain)
+    class OptionalBareCoreEntity(BaseCoreEntity):
+        showcase: ShowcaseCoreEntity | None = Field(default=None, description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Bare Annotated field", domain=FieldRulesDomain)
+    class BareAnnotatedCoreEntity(BaseCoreEntity):
+        showcase: Annotated[ShowcaseCoreEntity, NoInverse()] = Field(description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="List of entities", domain=FieldRulesDomain)
+    class ListCoreEntity(BaseCoreEntity):
+        showcases: list[ShowcaseCoreEntity] = Field(default_factory=list, description="Showcases")
+
+    @exclude_graph_model
+    @entity(description="Mapping of entities", domain=FieldRulesDomain)
+    class DictCoreEntity(BaseCoreEntity):
+        showcases: dict[str, ShowcaseCoreEntity] = Field(default_factory=dict, description="Showcases")
+
+    @exclude_graph_model
+    @entity(description="Set of entities", domain=FieldRulesDomain)
+    class SetCoreEntity(BaseCoreEntity):
+        showcases: set[ShowcaseCoreEntity] = Field(default_factory=set, description="Showcases")
+
+    @exclude_graph_model
+    @entity(description="Tuple of entities", domain=FieldRulesDomain)
+    class TupleCoreEntity(BaseCoreEntity):
+        showcases: tuple[ShowcaseCoreEntity, ...] = Field(default=(), description="Showcases")
+
+    @exclude_graph_model
+    @entity(description="Union of entities", domain=FieldRulesDomain)
+    class UnionCoreEntity(BaseCoreEntity):
+        ref: ShowcaseCoreEntity | GalleryCoreEntity = Field(description="Union")
+
+    @exclude_graph_model
+    @entity(description="Mixed collection", domain=FieldRulesDomain)
+    class MixedCollectionCoreEntity(BaseCoreEntity):
+        ref: tuple[ShowcaseCoreEntity, GalleryCoreEntity] = Field(description="Mixed")
+
+    @exclude_graph_model
+    @entity(description="Complete relation", domain=FieldRulesDomain)
+    class RelationCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+            description="Player showcase"
+        )
+
+    @exclude_graph_model
+    @entity(description="Complete many relation", domain=FieldRulesDomain)
+    class ManyRelationCoreEntity(BaseCoreEntity):
+        showcases: Annotated[AssociationMany[ShowcaseCoreEntity], NoInverse()] = Field(description="Showcases")
+
+    @exclude_graph_model
+    @entity(description="Missing direction marker", domain=FieldRulesDomain)
+    class MissingDirectionCoreEntity(BaseCoreEntity):
+        showcase: AssociationOne[ShowcaseCoreEntity] = Field(description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Duplicate direction markers", domain=FieldRulesDomain)
+    class DuplicateDirectionCoreEntity(BaseCoreEntity):
+        showcase: Annotated[
+            AssociationOne[ShowcaseCoreEntity],
+            Inverse(ShowcaseCoreEntity, "player"),
+            Inverse(ShowcaseCoreEntity, "player"),
+        ] = Field(description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Conflicting direction markers", domain=FieldRulesDomain)
+    class ConflictingDirectionCoreEntity(BaseCoreEntity):
+        showcase: Annotated[
+            AssociationOne[ShowcaseCoreEntity],
+            Inverse(ShowcaseCoreEntity, "player"),
+            NoInverse(),
+        ] = Field(description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Embedded form", domain=FieldRulesDomain)
+    class EmbeddedCoreEntity(BaseCoreEntity):
+        showcase: Annotated[ShowcaseCoreEntity, NoRelation("embedded showcase snapshot")] = Field(
+            description="Showcase snapshot stored as a value"
+        )
+
+    @exclude_graph_model
+    @entity(description="Marker with a relation", domain=FieldRulesDomain)
+    class MarkerWithRelationCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoRelation("embedded showcase")] = Field(
+            description="Showcase"
+        )
+
+    for cls in [
+        BareCoreEntity,
+        OptionalBareCoreEntity,
+        BareAnnotatedCoreEntity,
+        ListCoreEntity,
+        SetCoreEntity,
+        TupleCoreEntity,
+        DictCoreEntity,
+        UnionCoreEntity,
+        MixedCollectionCoreEntity,
+        RelationCoreEntity,
+        ManyRelationCoreEntity,
+        MissingDirectionCoreEntity,
+        DuplicateDirectionCoreEntity,
+        ConflictingDirectionCoreEntity,
+        EmbeddedCoreEntity,
+        MarkerWithRelationCoreEntity,
+    ]:
+        probe(cls)
+
+    relation_node = EntityGraphNode(RelationCoreEntity)
+    extra("rel_targets", ",".join(edge.target_node_id for edge in relation_node.relations))
+"""
+
+_STATE_BODY = """
+    @exclude_graph_model
+    @entity(description="State field", domain=FieldRulesDomain)
+    class StateFieldCoreEntity(BaseCoreEntity):
+        stage: DraftStateEntity = Field(description="Stage")
+
+    @exclude_graph_model
+    @entity(description="State in a relation", domain=FieldRulesDomain)
+    class StateRelationCoreEntity(BaseCoreEntity):
+        stage: Annotated[AssociationOne[DraftStateEntity], NoInverse()] = Field(description="Stage")
+
+    @exclude_graph_model
+    @entity(description="State with the marker", domain=FieldRulesDomain)
+    class StateMarkerCoreEntity(BaseCoreEntity):
+        stage: Annotated[DraftStateEntity, NoRelation("embedded stage snapshot")] = Field(description="Stage")
+
+    for cls in [StateFieldCoreEntity, StateRelationCoreEntity, StateMarkerCoreEntity]:
+        probe(cls)
+"""
+
+_DICTIONARY_BODY = """
+    @exclude_graph_model
+    @entity(description="Bare dictionary", domain=FieldRulesDomain)
+    class BareDictionaryCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
+        currency: CurrencyEnumEntity = Field(description="Required reference")
+
+    @exclude_graph_model
+    @entity(description="Optional bare dictionary", domain=FieldRulesDomain)
+    class OptionalBareDictionaryCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
+        currency: CurrencyEnumEntity | None = Field(default=None, description="Optional reference")
+
+    @exclude_graph_model
+    @entity(description="Dictionary collection", domain=FieldRulesDomain)
+    class DictionaryCollectionCoreEntity(BaseCoreEntity):
+        currencies: list[CurrencyEnumEntity] = Field(default_factory=list, description="Currencies")
+
+    @exclude_graph_model
+    @entity(description="Dictionary union", domain=FieldRulesDomain)
+    class DictionaryUnionCoreEntity(BaseCoreEntity):
+        currency: CurrencyEnumEntity | CountryEnumEntity = Field(description="Union")
+
+    @exclude_graph_model
+    @entity(description="Complete dictionary selection", domain=FieldRulesDomain)
+    class DictionarySelectionCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
+        currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Nullable dictionary selection", domain=FieldRulesDomain)
+    class NullableDictionarySelectionCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
+        currency: Annotated[AssociationOne[CurrencyEnumEntity] | None, NoInverse()] = Field(
+            default=None, description="Currency"
+        )
+
+    @exclude_graph_model
+    @entity(description="Dictionary selection with inverse", domain=FieldRulesDomain)
+    class InverseDictionarySelectionCoreEntity(BaseCoreEntity):
+        currency: Annotated[
+            AssociationOne[CurrencyEnumEntity],
+            Inverse(field_name="currency"),
+        ] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Many of a dictionary", domain=FieldRulesDomain)
+    class AssociationManyDictionaryCoreEntity(BaseCoreEntity):
+        currency: Annotated[AssociationMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Composite of a dictionary", domain=FieldRulesDomain)
+    class CompositeOneDictionaryCoreEntity(BaseCoreEntity):
+        currency: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Generalization of a dictionary", domain=FieldRulesDomain)
+    class GeneralizationDictionaryCoreEntity(BaseCoreEntity):
+        currency: Annotated[Generalization[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Empty catalogue", domain=FieldRulesDomain)
+    class EmptyCatalogueCoreEntity(BaseCoreEntity):
+        currency: Annotated[AssociationOne[EmptyEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Hidden dictionary reference", domain=FieldRulesDomain)
+    class HiddenDictionaryCoreEntity(BaseCoreEntity):
+        currency: Annotated[AssociationOne[HiddenEnumEntity], NoInverse()] = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Spec dictionary host", domain=FieldRulesDomain)
+    class SpecDictionarySpecEntity(BaseSpecEntity):
+        id: str = Field(description="Identifier")
+        currency: CurrencyEnumEntity = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Assoc dictionary host", domain=FieldRulesDomain)
+    class AssocDictionaryAssocEntity(BaseAssocEntity):
+        id: str = Field(description="Identifier")
+        currency: CurrencyEnumEntity = Field(description="Currency")
+
+    @exclude_graph_model
+    @entity(description="Detail dictionary host", domain=FieldRulesDomain)
+    class DetailDictionaryDetailEntity(BaseDetailEntity):
+        id: str = Field(description="Identifier")
+        currency: CurrencyEnumEntity = Field(description="Currency")
+
+    for cls in [
+        BareDictionaryCoreEntity,
+        OptionalBareDictionaryCoreEntity,
+        DictionaryCollectionCoreEntity,
+        DictionaryUnionCoreEntity,
+        DictionarySelectionCoreEntity,
+        NullableDictionarySelectionCoreEntity,
+        InverseDictionarySelectionCoreEntity,
         AssociationManyDictionaryCoreEntity,
         CompositeOneDictionaryCoreEntity,
-        CompositeManyDictionaryCoreEntity,
-        AggregateOneDictionaryCoreEntity,
-        AggregateManyDictionaryCoreEntity,
         GeneralizationDictionaryCoreEntity,
-    ],
-)
-def test_a_relation_container_around_a_dictionary_is_refused(entity_cls: type) -> None:
-    """A shared value is not an association target."""
-    error = _refusal(entity_cls)
+        EmptyCatalogueCoreEntity,
+        HiddenDictionaryCoreEntity,
+        SpecDictionarySpecEntity,
+        AssocDictionaryAssocEntity,
+        DetailDictionaryDetailEntity,
+    ]:
+        probe(cls)
+"""
 
-    assert error.field_name == "currency"
-    assert "shared reference" in error.details
-    assert "CurrencyEnumEntity" in error.details
+_METADATA_BODY = """
+    @exclude_graph_model
+    @entity(description="Required relation", domain=FieldRulesDomain)
+    class RequiredRelationCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="Required showcase")
+
+    @exclude_graph_model
+    @entity(description="Nullable required relation", domain=FieldRulesDomain)
+    class NullableRequiredCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(description="Nullable showcase")
+
+    @exclude_graph_model
+    @entity(description="Omittable relation", domain=FieldRulesDomain)
+    class OmittableCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
+            default=None, description="Omittable showcase"
+        )
+
+    @exclude_graph_model
+    @entity(description="Non-nullable default", domain=FieldRulesDomain)
+    class NonNullableDefaultCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Prebuilt default", domain=FieldRulesDomain)
+    class PrebuiltDefaultCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
+            default=AssociationOne(id="x"), description="Showcase"
+        )
+
+    _FACTORY_CALLS = []
+
+    def _factory():
+        _FACTORY_CALLS.append(True)
+        return None
+
+    @exclude_graph_model
+    @entity(description="Factory default", domain=FieldRulesDomain)
+    class FactoryCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
+            default_factory=_factory, description="Showcase"
+        )
+
+    @exclude_graph_model
+    @entity(description="Blank description", domain=FieldRulesDomain)
+    class BlankDescriptionCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="   ")
+
+    @exclude_graph_model
+    @entity(description="Missing description", domain=FieldRulesDomain)
+    class MissingDescriptionCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field()
+
+    @exclude_graph_model
+    @entity(description="Hidden edge", domain=FieldRulesDomain)
+    class HiddenEdgeCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), NoGraphEdge()] = Field()
+
+    @exclude_graph_model
+    @entity(description="Inner syntax", domain=FieldRulesDomain)
+    class InnerSyntaxCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field()
+
+    @exclude_graph_model
+    @entity(description="Both syntaxes", domain=FieldRulesDomain)
+    class BothSyntaxesCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field(
+            description="Outer showcase"
+        )
+
+    @exclude_graph_model
+    @entity(description="Relation base", domain=FieldRulesDomain)
+    class RelationBaseCoreEntity(BaseCoreEntity):
+        showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
+
+    @exclude_graph_model
+    @entity(description="Inherited relation", domain=FieldRulesDomain)
+    class InheritedRelationCoreEntity(RelationBaseCoreEntity):
+        id: str = Field(description="Identifier")
+
+    @exclude_graph_model
+    @entity(description="Untouched forms", domain=FieldRulesDomain)
+    class OrdinaryCoreEntity(BaseCoreEntity):
+        id: str = Field(description="Identifier")
+        age: int | None = Field(default=None, description="Age")
+        currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
+        lifecycle: DraftLifecycle = Field(description="Lifecycle")
+        params: HostParams = Field(description="Parameters")
+
+    for cls in [
+        RequiredRelationCoreEntity,
+        NullableRequiredCoreEntity,
+        OmittableCoreEntity,
+        NonNullableDefaultCoreEntity,
+        PrebuiltDefaultCoreEntity,
+        FactoryCoreEntity,
+        BlankDescriptionCoreEntity,
+        MissingDescriptionCoreEntity,
+        HiddenEdgeCoreEntity,
+        InnerSyntaxCoreEntity,
+        BothSyntaxesCoreEntity,
+        RelationBaseCoreEntity,
+        InheritedRelationCoreEntity,
+        OrdinaryCoreEntity,
+    ]:
+        probe(cls)
+
+    extra("factory_calls", str(len(_FACTORY_CALLS)))
+
+    try:
+        RequiredRelationCoreEntity()
+        extra("req_construct", "ok")
+    except ValidationError:
+        extra("req_construct", "ValidationError")
+    try:
+        RequiredRelationCoreEntity(showcase=None)
+        extra("req_none", "ok")
+    except ValidationError:
+        extra("req_none", "ValidationError")
+    try:
+        NullableRequiredCoreEntity()
+        extra("nullable_required_construct", "ok")
+    except ValidationError:
+        extra("nullable_required_construct", "ValidationError")
+    extra("nullable_required_none", str(NullableRequiredCoreEntity(showcase=None).showcase))
+    extra("omittable_none", str(OmittableCoreEntity().showcase))
+    extra("omittable_explicit_none", str(OmittableCoreEntity(showcase=None).showcase))
+
+    extra("inner_desc", InnerSyntaxCoreEntity.model_fields["showcase"].description)
+    extra("outer_desc", BothSyntaxesCoreEntity.model_fields["showcase"].description)
+"""
 
 
-def test_an_empty_dictionary_is_refused_at_the_declaration_boundary() -> None:
-    """A dictionary with no values could never fill the field, and the rule says so first."""
-    error = _refusal(EmptyCatalogueCoreEntity)
-
-    assert "declares no values" in error.details
-    assert "concrete dictionary" in error.details
+@pytest.fixture(scope="module")
+def shape_out() -> dict[str, dict[str, str]]:
+    """The structural-shape fixture blocks and edge extras."""
+    return _blocks(_run(_SHAPE_BODY))
 
 
-def test_a_dictionary_outside_the_graph_is_refused() -> None:
-    """A reference edge needs a node; an excluded dictionary has none."""
-    error = _refusal(HiddenDictionaryCoreEntity)
-
-    assert "no node in the graph" in error.details
-    assert "exclude_graph_model" in error.details
+@pytest.fixture(scope="module")
+def shape_extras() -> dict[str, str]:
+    """The edge extras produced alongside the shape fixtures."""
+    return _extras(_run(_SHAPE_BODY))
 
 
-def test_an_empty_dictionary_outside_the_graph_reports_the_catalogue_first() -> None:
-    """The cause the author can fix is named first (FR-006)."""
-    error = _refusal(EmptyCatalogueCoreEntity)
-
-    assert "declares no values" in error.details
-    assert "no node in the graph" not in error.details
+@pytest.fixture(scope="module")
+def state_out() -> dict[str, dict[str, str]]:
+    """The state-refusal fixture blocks."""
+    return _blocks(_run(_STATE_BODY))
 
 
-def test_the_kind_classifier_names_the_dictionary_kind() -> None:
-    """The dictionary is a kind of its own, next to the structural ones and the state."""
-    assert _kind_of(CurrencyEnumEntity) == "Enum"
-    assert _kind_of(ShowcaseCoreEntity) == "Core"
-    assert _kind_of(DraftStateEntity) == "State"
-    assert _kind_of(str) is None
+@pytest.fixture(scope="module")
+def dictionary_out() -> dict[str, dict[str, str]]:
+    """The dictionary fixture blocks."""
+    return _blocks(_run(_DICTIONARY_BODY))
+
+
+@pytest.fixture(scope="module")
+def metadata_out() -> dict[str, dict[str, str]]:
+    """The relation-metadata fixture blocks."""
+    return _blocks(_run(_METADATA_BODY))
+
+
+@pytest.fixture(scope="module")
+def metadata_extras() -> dict[str, str]:
+    """The relation-metadata construction extras."""
+    return _extras(_run(_METADATA_BODY))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Structural shape
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_a_bare_entity_field_is_refused_naming_the_form(shape_out: dict[str, dict[str, str]]) -> None:
+    """The original defect: a structural entity written as a scalar."""
+    block = shape_out["BareCoreEntity"]
+
+    assert block["entity"] == "BareCoreEntity"
+    assert block["field"] == "showcase"
+    assert "ShowcaseCoreEntity" in block["details"]
+    assert "AssociationOne" in block["details"]
+
+
+def test_a_bare_optional_entity_field_is_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """`X | None` without a container is not a declaration either."""
+    block = shape_out["OptionalBareCoreEntity"]
+
+    assert block["field"] == "showcase"
+    assert "AssociationOne" in block["details"]
+
+
+def test_a_bare_annotated_entity_without_container_is_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """A marker around a bare entity does not make it a relationship."""
+    block = shape_out["BareAnnotatedCoreEntity"]
+
+    assert block["field"] == "showcase"
+    assert "AssociationOne" in block["details"]
+
+
+@pytest.mark.parametrize("name", ["ListCoreEntity", "SetCoreEntity", "TupleCoreEntity"])
+def test_a_collection_of_entities_is_refused(name: str, shape_out: dict[str, dict[str, str]]) -> None:
+    """A container of an entity is not a relation; the many form is named instead."""
+    block = shape_out[name]
+
+    assert block["field"] == "showcases"
+    assert "AssociationMany" in block["details"]
+
+
+def test_a_union_of_entities_names_both_and_asks_for_two_fields(shape_out: dict[str, dict[str, str]]) -> None:
+    """A union is not a collection, and it has no single container."""
+    details = shape_out["UnionCoreEntity"]["details"]
+
+    assert "union" in details
+    assert "ShowcaseCoreEntity" in details
+    assert "GalleryCoreEntity" in details
+    assert "AssociationMany" not in details
+
+
+def test_a_heterogeneous_collection_names_every_entity(shape_out: dict[str, dict[str, str]]) -> None:
+    """One many-relation cannot point at two entities."""
+    details = shape_out["MixedCollectionCoreEntity"]["details"]
+
+    assert "collection of 2 entities" in details
+    assert "ShowcaseCoreEntity" in details
+    assert "GalleryCoreEntity" in details
+
+
+def test_a_mapping_is_described_as_a_mapping(shape_out: dict[str, dict[str, str]]) -> None:
+    """A mapping is not a relation, and no many-relation fits it."""
+    details = shape_out["DictCoreEntity"]["details"]
+
+    assert "mapping" in details
+    assert "ShowcaseCoreEntity" in details
+
+
+def test_the_complete_relation_form_builds_an_edge(
+    shape_out: dict[str, dict[str, str]], shape_extras: dict[str, str]
+) -> None:
+    """A complete relation — container, one direction marker, description — is accepted."""
+    assert shape_out["RelationCoreEntity"].get("accepted")
+    assert shape_out["ManyRelationCoreEntity"].get("accepted")
+
+    assert "ShowcaseCoreEntity" in shape_extras["rel_targets"]
+
+
+def test_a_relation_without_a_direction_marker_is_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """A container with no direction marker names neither an inverse nor a one-way edge."""
+    details = shape_out["MissingDirectionCoreEntity"]["details"]
+
+    assert "direction marker" in details
+
+
+def test_duplicate_direction_markers_are_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """Two direction markers are one too many."""
+    details = shape_out["DuplicateDirectionCoreEntity"]["details"]
+
+    assert "2 direction markers" in details
+
+
+def test_conflicting_direction_markers_are_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """Inverse and NoInverse together contradict each other."""
+    details = shape_out["ConflictingDirectionCoreEntity"]["details"]
+
+    assert "2 direction markers" in details
+
+
+def test_the_embedded_form_is_now_refused(shape_out: dict[str, dict[str, str]]) -> None:
+    """NoRelation no longer declares an embedded value."""
+    details = shape_out["EmbeddedCoreEntity"]["details"]
+
+    assert "NoRelation" in details
+
+
+def test_the_embedded_marker_cannot_accompany_a_relation(shape_out: dict[str, dict[str, str]]) -> None:
+    """A field either has a complete relation or it does not."""
+    details = shape_out["MarkerWithRelationCoreEntity"]["details"]
+
+    assert "NoRelation" in details
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# State
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_a_state_entity_field_names_the_lifecycle_form(state_out: dict[str, dict[str, str]]) -> None:
+    """A state is neither a relation nor a plain field."""
+    block = state_out["StateFieldCoreEntity"]
+
+    assert block["field"] == "stage"
+    assert "Lifecycle[...]" in block["details"]
+
+
+def test_a_state_entity_inside_a_relation_container_is_refused(state_out: dict[str, dict[str, str]]) -> None:
+    """Wrapping a state in a relation container does not give it a field form."""
+    assert "Lifecycle[...]" in state_out["StateRelationCoreEntity"]["details"]
+
+
+def test_the_embedded_marker_does_not_apply_to_a_state(state_out: dict[str, dict[str, str]]) -> None:
+    """The marker is for Core, Assoc, Detail and Spec only."""
+    assert "Lifecycle[...]" in state_out["StateMarkerCoreEntity"]["details"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dictionary
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_a_bare_dictionary_reference_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A bare dictionary field must become an explicit AssociationOne[D]."""
+    details = dictionary_out["BareDictionaryCoreEntity"]["details"]
+
+    assert "AssociationOne" in details
+    assert "NoInverse" in details
+
+
+def test_a_nullable_bare_dictionary_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """``D | None`` is still a bare dictionary, not a complete declaration."""
+    details = dictionary_out["OptionalBareDictionaryCoreEntity"]["details"]
+
+    assert "AssociationOne" in details
+
+
+def test_a_collection_of_dictionary_values_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A collection of dictionary values has no declared form."""
+    details = dictionary_out["DictionaryCollectionCoreEntity"]["details"]
+
+    assert "AssociationOne" in details
+    assert "CurrencyEnumEntity" in details
+
+
+def test_a_union_of_two_dictionaries_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A field names one dictionary, not a choice between two."""
+    details = dictionary_out["DictionaryUnionCoreEntity"]["details"]
+
+    assert "more than one dictionary" in details
+
+
+def test_the_complete_dictionary_selection_is_accepted(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """``AssociationOne[D]`` with ``NoInverse()`` is the complete Enum declaration."""
+    assert dictionary_out["DictionarySelectionCoreEntity"].get("accepted")
+    assert dictionary_out["NullableDictionarySelectionCoreEntity"].get("accepted")
+
+
+def test_an_inverse_on_a_dictionary_selection_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A dictionary selection is unpaired; it cannot declare an inverse."""
+    details = dictionary_out["InverseDictionarySelectionCoreEntity"]["details"]
+
+    assert "NoInverse" in details
 
 
 @pytest.mark.parametrize(
-    "entity_cls",
-    [SpecDictionarySpecEntity, AssocDictionaryAssocEntity, DetailDictionaryDetailEntity],
+    "name",
+    ["AssociationManyDictionaryCoreEntity", "CompositeOneDictionaryCoreEntity", "GeneralizationDictionaryCoreEntity"],
 )
-def test_a_dictionary_reference_is_judged_on_every_structural_host(entity_cls: type) -> None:
-    """The host's kind does not change the reference rule."""
-    validate_entity_fields([entity_cls])
+def test_a_non_association_container_around_a_dictionary_is_refused(
+    name: str, dictionary_out: dict[str, dict[str, str]]
+) -> None:
+    """Only AssociationOne is a legal dictionary relationship."""
+    details = dictionary_out[name]["details"]
+
+    assert "AssociationOne" in details
+    assert "CurrencyEnumEntity" in details
 
 
-def test_an_inherited_dictionary_reference_is_judged() -> None:
-    """An inherited field is judged on the class that reports it."""
-    validate_entity_fields([InheritedDictionaryCoreEntity])
+def test_an_empty_dictionary_is_refused_at_the_declaration_boundary(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A dictionary with no values could never fill the field, and the rule says so first."""
+    details = dictionary_out["EmptyCatalogueCoreEntity"]["details"]
+
+    assert "declares no values" in details
 
 
-def test_a_forward_referenced_dictionary_is_judged_after_resolution() -> None:
-    """An unresolved name is not evidence of a scalar, and the dictionary is judged once resolved."""
-    validate_entity_fields([ForwardDictionaryCoreEntity])
+def test_a_dictionary_outside_the_graph_is_refused(dictionary_out: dict[str, dict[str, str]]) -> None:
+    """A reference edge needs a node; an excluded dictionary has none."""
+    details = dictionary_out["HiddenDictionaryCoreEntity"]["details"]
 
-    ForwardDictionaryCoreEntity.model_rebuild()
-    error = _refusal(ForwardDictionaryCoreEntity)
-
-    assert "LaterHiddenEnumEntity" in error.details
+    assert "no node in the graph" in details
 
 
-def test_the_embedded_marker_cannot_accompany_a_relation() -> None:
-    """A field either has a relation or it does not."""
-    error = _refusal(MarkerWithRelationCoreEntity)
+@pytest.mark.parametrize(
+    "name",
+    ["SpecDictionarySpecEntity", "AssocDictionaryAssocEntity", "DetailDictionaryDetailEntity"],
+)
+def test_a_bare_dictionary_is_refused_on_every_structural_host(
+    name: str, dictionary_out: dict[str, dict[str, str]]
+) -> None:
+    """The host's kind does not change the dictionary rule."""
+    assert "AssociationOne" in dictionary_out[name]["details"]
 
-    assert "cannot be combined" in error.details
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Relation metadata discipline and untouched controls
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_untouched_forms_pass_unchanged(metadata_out: dict[str, dict[str, str]]) -> None:
+    """A complete dictionary selection, a lifecycle, a schema type and a scalar pass."""
+    assert metadata_out["OrdinaryCoreEntity"].get("accepted")
+
+
+def test_a_required_relation_must_be_supplied(
+    metadata_out: dict[str, dict[str, str]], metadata_extras: dict[str, str]
+) -> None:
+    """The default contract, row one: no default at all."""
+    assert metadata_out["RequiredRelationCoreEntity"].get("accepted")
+
+    assert metadata_extras["req_construct"] == "ValidationError"
+    assert metadata_extras["req_none"] == "ValidationError"
+
+
+def test_a_nullable_required_relation_still_must_be_supplied(
+    metadata_out: dict[str, dict[str, str]], metadata_extras: dict[str, str]
+) -> None:
+    """The default contract, row two: ``| None`` alone gives no default."""
+    assert metadata_out["NullableRequiredCoreEntity"].get("accepted")
+
+    assert metadata_extras["nullable_required_construct"] == "ValidationError"
+    assert metadata_extras["nullable_required_none"] == "None"
+
+
+def test_an_omittable_relation_yields_none(
+    metadata_out: dict[str, dict[str, str]], metadata_extras: dict[str, str]
+) -> None:
+    """The default contract, row three: a nullable relation with an explicit ``None``."""
+    assert metadata_out["OmittableCoreEntity"].get("accepted")
+
+    assert metadata_extras["omittable_none"] == "None"
+    assert metadata_extras["omittable_explicit_none"] == "None"
+
+
+def test_none_on_a_non_nullable_relation_is_refused_at_declaration(metadata_out: dict[str, dict[str, str]]) -> None:
+    """The default contract, row four: ``default=None`` needs a nullable annotation."""
+    block = metadata_out["NonNullableDefaultCoreEntity"]
+
+    assert block["field"] == "showcase"
+    assert "None" in block["details"]
+
+
+def test_a_prebuilt_relation_default_is_refused(metadata_out: dict[str, dict[str, str]]) -> None:
+    """A value in the default slot is not a default the framework can honour."""
+    assert metadata_out["PrebuiltDefaultCoreEntity"]["field"] == "showcase"
+
+
+def test_a_factory_is_refused_and_never_executed(
+    metadata_out: dict[str, dict[str, str]], metadata_extras: dict[str, str]
+) -> None:
+    """Refusing a factory must not run user code."""
+    assert metadata_out["FactoryCoreEntity"]["field"] == "showcase"
+    assert metadata_extras["factory_calls"] == "0"
+
+
+@pytest.mark.parametrize("name", ["BlankDescriptionCoreEntity", "MissingDescriptionCoreEntity", "HiddenEdgeCoreEntity"])
+def test_a_relation_without_a_description_is_refused(name: str, metadata_out: dict[str, dict[str, str]]) -> None:
+    """A missing, blank or whitespace-only description is refused, hidden edge or not."""
+    assert "description" in metadata_out[name]["details"]
+
+
+def test_both_field_syntaxes_feed_one_description(
+    metadata_out: dict[str, dict[str, str]], metadata_extras: dict[str, str]
+) -> None:
+    """The assignment wins over the inner ``Field``, and each alone is enough."""
+    assert metadata_out["InnerSyntaxCoreEntity"].get("accepted")
+    assert metadata_out["BothSyntaxesCoreEntity"].get("accepted")
+
+    assert metadata_extras["inner_desc"] == "Inner showcase"
+    assert metadata_extras["outer_desc"] == "Outer showcase"
+
+
+def test_an_inherited_relation_is_judged(metadata_out: dict[str, dict[str, str]]) -> None:
+    """A relation declared on a base class obeys the same rules on the class that inherits it."""
+    block = metadata_out["InheritedRelationCoreEntity"]
+
+    assert block["field"] == "showcase"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Parent-process checks — no invalid fixture is loaded here.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_a_blank_marker_reason_is_refused_at_construction() -> None:
@@ -837,44 +932,36 @@ def test_a_blank_marker_reason_is_refused_at_construction() -> None:
         NoRelation("   ")
 
 
-def test_a_forward_reference_is_judged_only_after_it_resolves() -> None:
-    """An unresolved name is not evidence of a scalar: the rule waits, then judges the class."""
-    validate_entity_fields([ForwardCoreEntity])
-
-    ForwardCoreEntity.model_rebuild()
-    error = _refusal(ForwardCoreEntity)
-
-    assert "LaterCoreEntity" in error.details
+@exclude_graph_model
+class _KindCoreEntity(BaseCoreEntity):
+    pass
 
 
-def test_the_relation_form_builds_an_edge() -> None:
-    """The first legal form: no refusal, and the graph gains the relation."""
-    validate_entity_fields([RelationCoreEntity, ManyRelationCoreEntity])
-
-    node = EntityGraphNode(RelationCoreEntity)
-    targets = [edge.target_node_id for edge in node.relations]
-    assert any("ShowcaseCoreEntity" in target for target in targets)
+@exclude_graph_model
+class _KindEnumEntity(BaseEnumEntity):
+    pass
 
 
-def test_the_embedded_form_stays_a_column() -> None:
-    """The second legal form: no refusal, and no relation edge."""
-    validate_entity_fields([EmbeddedCoreEntity])
-
-    node = EntityGraphNode(EmbeddedCoreEntity)
-    assert node.relations == []
-    assert "showcase" in {edge.target_node.label for edge in node.entity_field_edges}
+@exclude_graph_model
+class _KindStateEntity(BaseStateEntity):
+    pass
 
 
-def test_untouched_forms_pass_unchanged() -> None:
-    """A dictionary, a lifecycle, a schema type and an ordinary scalar are not the rule's business."""
-    validate_entity_fields([OrdinaryCoreEntity])
+def test_the_kind_classifier_names_the_dictionary_kind() -> None:
+    """The dictionary is a kind of its own, next to the structural ones and the state."""
+    assert _kind_of(_KindEnumEntity) == "Enum"
+    assert _kind_of(_KindCoreEntity) == "Core"
+    assert _kind_of(_KindStateEntity) == "State"
+    assert _kind_of(str) is None
 
 
-def test_a_class_outside_the_graph_is_not_judged() -> None:
-    """An excluded class cannot break a build it never joins."""
-    assert BareCoreEntity not in declared_entity_classes()
+def test_global_validation_is_not_poisoned_by_subprocess_isolated_invalid_declarations() -> None:
+    """The invalid fixtures live only in subprocesses, so the shared model stays clean."""
+    declared = {cls.__name__ for cls in declared_entity_classes()}
 
-    validate_entity_fields()
+    assert "BareCoreEntity" not in declared
+    assert "ListCoreEntity" not in declared
+    assert "BareDictionaryCoreEntity" not in declared
 
 
 def test_the_graph_build_runs_the_field_pass(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -888,80 +975,3 @@ def test_the_graph_build_runs_the_field_pass(monkeypatch: pytest.MonkeyPatch) ->
     NodeGraphCoordinator().build([])
 
     assert calls == [True]
-
-
-def test_a_required_relation_must_be_supplied() -> None:
-    """The default contract, row one: no default at all."""
-    validate_entity_fields([RequiredRelationCoreEntity])
-
-    with pytest.raises(ValidationError):
-        RequiredRelationCoreEntity()
-    with pytest.raises(ValidationError):
-        RequiredRelationCoreEntity(showcase=None)
-
-
-def test_a_nullable_required_relation_still_must_be_supplied() -> None:
-    """The default contract, row two: ``| None`` alone gives no default."""
-    validate_entity_fields([NullableRequiredCoreEntity])
-
-    with pytest.raises(ValidationError):
-        NullableRequiredCoreEntity()
-    assert NullableRequiredCoreEntity(showcase=None).showcase is None
-
-
-def test_an_omittable_relation_yields_none() -> None:
-    """The default contract, row three: a nullable relation with an explicit ``None``."""
-    validate_entity_fields([OmittableCoreEntity])
-
-    assert OmittableCoreEntity().showcase is None
-    assert OmittableCoreEntity(showcase=None).showcase is None
-
-
-def test_none_on_a_non_nullable_relation_is_refused_at_declaration() -> None:
-    """The default contract, row four: ``default=None`` needs a nullable annotation."""
-    error = _refusal(NonNullableDefaultCoreEntity)
-
-    assert "showcase" in str(error)
-    assert "None" in error.details
-
-
-def test_a_prebuilt_relation_default_is_refused() -> None:
-    """A value in the default slot is not a default the framework can honour."""
-    error = _refusal(PrebuiltDefaultCoreEntity)
-
-    assert "showcase" in str(error)
-
-
-def test_a_factory_is_refused_and_never_executed() -> None:
-    """Refusing a factory must not run user code."""
-    _FACTORY_CALLS.clear()
-
-    with pytest.raises(EntityFieldDeclarationError):
-        validate_entity_fields([FactoryCoreEntity])
-
-    assert _FACTORY_CALLS == []
-
-
-@pytest.mark.parametrize("entity_cls", [BlankDescriptionCoreEntity, MissingDescriptionCoreEntity, HiddenEdgeCoreEntity])
-def test_a_relation_without_a_description_is_refused(entity_cls: type) -> None:
-    """A missing, blank or whitespace-only description is refused, hidden edge or not."""
-    error = _refusal(entity_cls)
-
-    assert "description" in error.details
-
-
-def test_both_field_syntaxes_feed_one_description() -> None:
-    """The assignment wins over the inner ``Field``, and each alone is enough."""
-    validate_entity_fields([InnerSyntaxCoreEntity, BothSyntaxesCoreEntity])
-
-    inner = InnerSyntaxCoreEntity.model_fields["showcase"].description
-    outer = BothSyntaxesCoreEntity.model_fields["showcase"].description
-    assert inner == "Inner showcase"
-    assert outer == "Outer showcase"
-
-
-def test_an_inherited_relation_is_judged() -> None:
-    """A relation declared on a base class obeys the same rules on the class that inherits it."""
-    error = _refusal(InheritedRelationCoreEntity)
-
-    assert error.field_name == "showcase"
