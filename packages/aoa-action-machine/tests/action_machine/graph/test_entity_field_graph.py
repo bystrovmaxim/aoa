@@ -6,12 +6,20 @@ Entity field vertices and ``entity_field`` composition edges on ``EntityGraphNod
 from __future__ import annotations
 
 import json
+from typing import Annotated
 
 import pytest
 from jsonschema import Draft202012Validator
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
+from aoa.action_machine.domain import (
+    AssociationOne,
+    BaseCoreEntity,
+    BaseDomain,
+    BaseEnumEntity,
+    NoInverse,
+    value,
+)
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
@@ -105,7 +113,6 @@ class ReferenceShopDomain(BaseDomain):
     description = "Reference shop"
 
 
-@exclude_graph_model
 @entity(description="Currency reference value", domain=ReferenceShopDomain)
 class ReferenceCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary a field can reference."""
@@ -119,8 +126,10 @@ class ReferenceTagCoreEntity(BaseCoreEntity):
     """A row with a dictionary reference, an optional one, and a scalar."""
 
     id: str = Field(description="Tag id")
-    currency: ReferenceCurrencyEnumEntity = Field(description="Money unit")
-    settlement_currency: ReferenceCurrencyEnumEntity | None = Field(default=None, description="Optional unit")
+    currency: Annotated[AssociationOne[ReferenceCurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
+    settlement_currency: Annotated[AssociationOne[ReferenceCurrencyEnumEntity] | None, NoInverse()] = Field(
+        default=None, description="Optional unit"
+    )
     note: str = Field(description="Free note")
 
 

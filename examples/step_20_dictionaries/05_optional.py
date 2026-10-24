@@ -1,12 +1,15 @@
 """An absent reference is None.
+Run: .venv/bin/python examples/step_20_dictionaries/05_optional.py
+
 
 A quote may have no settlement currency yet.
-Run: uv run python examples/step_20_dictionaries/05_optional.py
 """
+
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,7 +37,7 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:
@@ -43,7 +46,9 @@ def main() -> None:
     class QuoteCoreEntity(BaseCoreEntity):
         """Allow an explicitly absent settlement currency."""
 
-        currency: CurrencyEnumEntity | None = Field(default=None, description="Settlement unit")
+        currency: Annotated[AssociationOne[CurrencyEnumEntity] | None, NoInverse()] = Field(
+            default=None, description="Settlement unit"
+        )
 
     quote = QuoteCoreEntity()
     print("Absent:", quote.currency is None)

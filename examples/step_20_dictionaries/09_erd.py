@@ -1,12 +1,15 @@
 """Read dictionary values in the ERD payload.
-Run: uv run python examples/step_20_dictionaries/09_erd.py
+Run: .venv/bin/python examples/step_20_dictionaries/09_erd.py
+
 
 Follow one dictionary through the actual Maxitor query.
 """
 
+from typing import Annotated
+
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,7 +37,7 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:
@@ -48,12 +51,28 @@ def main() -> None:
     machine = ActionProductMachine(loggers=[])
     domain = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "ShopDomain")
     store = DuckDBGraphResource.build_from_json(json.loads(machine.graph_coordinator.to_json()))
-    diagram = ListEntitiesAction._slice_payload(store, domain, include_neighbors=False)
+    import asyncio
+
+    from aoa.action_machine.model import BaseState
+    from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+
+    # This read-only summary uses the connection; it does not use a toolbox.
+    result = asyncio.run(
+        ListEntitiesAction().build_domain_payload_summary(
+            ListEntitiesAction.Params(domain_qualnames=[domain], include_one_hop_neighbors=False),
+            BaseState(),
+            None,
+            {DUCKDB_GRAPH_CONNECTION_KEY: store},
+        )
+    )
+    diagram = result.model_dump(mode="json")["domain_slices"][0]["list_entities"]
     currency = next(item for item in diagram["entities"] if item["label"] == "CurrencyEnumEntity")
     tag = next(item for item in diagram["entities"] if item["label"] == "PriceTagCoreEntity")
-    relation = next(item for item in diagram["relations"] if item["relationship_kind"] == "reference")
+    relation = next(item for item in diagram["relations"] if item["relationship_kind"] == "association")
+    assert relation["relationship_kind"] == "association"
     print(currency["values"][0])
     print(next(field["reference_qualname"] for field in tag["fields"] if field["name"] == "currency").split(".")[-1])
+    print("Currency field rows:", sum(field["name"] == "currency" for field in tag["fields"]))
     print("Relation:", relation["label"], "->", relation["target"].split(".")[-1])
 
 

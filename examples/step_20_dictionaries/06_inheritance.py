@@ -1,12 +1,15 @@
 """A subclass declares its own catalogue.
+Run: .venv/bin/python examples/step_20_dictionaries/06_inheritance.py
+
 
 A child dictionary reuses fields while declaring a different set of currencies.
-Run: uv run python examples/step_20_dictionaries/06_inheritance.py
 """
+
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,7 +37,7 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:

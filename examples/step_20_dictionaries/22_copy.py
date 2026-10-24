@@ -1,12 +1,15 @@
 """A constructed copy is refused.
+Run: .venv/bin/python examples/step_20_dictionaries/22_copy.py
+
 
 Construct a new object with the same fields as EUR, then try to use it as a reference.
-Run: uv run python examples/step_20_dictionaries/22_copy.py
 """
+
+from typing import Annotated
 
 from pydantic import Field, ValidationError
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,18 +37,24 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:
     """Run this one learning experiment."""
     try:
         PriceTagCoreEntity(
-            id="tag-1", amount=1.0, currency=CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")
+            id="tag-1",
+            amount=1.0,
+            currency=AssociationOne(id="eur", entity=CurrencyEnumEntity(code="eur", display_name="Euro", symbol="€")),
         )
     except ValidationError as error:
-        print("Field:", error.errors()[0]["loc"][0])
-        print(error.errors()[0]["msg"])
+        assert error.errors()[0]["loc"] == ("currency",)
+        assert (
+            error.errors()[0]["msg"]
+            == "Value error, the supplied entity is not the declared value for code 'eur'; pass CurrencyEnumEntity.by_code('eur')."
+        )
+        print(type(error).__name__ + ": " + str(error))
     else:
         raise AssertionError("The invalid reference was accepted")
 

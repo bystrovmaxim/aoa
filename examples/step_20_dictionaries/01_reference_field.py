@@ -1,12 +1,15 @@
 """A field holds the declared object.
+Run: .venv/bin/python examples/step_20_dictionaries/01_reference_field.py
+
 
 A price uses a currency value that other prices can share.
-Run: uv run python examples/step_20_dictionaries/01_reference_field.py
 """
+
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,15 +37,17 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:
     """Run this one learning experiment."""
-    tag = PriceTagCoreEntity(id="tag-1", amount=9.99, currency=CurrencyEnumEntity.EUR)
-    print("Shared value:", tag.currency is CurrencyEnumEntity.EUR)
+    tag = PriceTagCoreEntity(
+        id="tag-1", amount=9.99, currency=AssociationOne(id=CurrencyEnumEntity.EUR.code, entity=CurrencyEnumEntity.EUR)
+    )
+    print("Shared value:", tag.currency.entity is CurrencyEnumEntity.EUR)
     print("Symbol:", tag.currency.symbol)
-    assert tag.currency is CurrencyEnumEntity.EUR
+    assert tag.currency.entity is CurrencyEnumEntity.EUR
 
 
 if __name__ == "__main__":

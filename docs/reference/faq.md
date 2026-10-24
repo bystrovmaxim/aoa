@@ -127,7 +127,7 @@ The current closure check still requires every axis to include the classes that 
 
 ### Can I omit the reverse declaration?
 
-An alternative needs a reverse `Generalization` with a Classifier naming a declared dictionary value for the head's mapping to be valid. Use the paired `Inverse` declarations and descriptions shown in the tutorial. The current validator does not enforce every aspect of inverse-marker mirroring, so an accepted incomplete marker declaration is not evidence that the intended pairing was fully checked. `NoInverse` on an ownership relation is a different feature.
+An alternative needs a reverse `Generalization` with a Classifier naming a declared dictionary value for the head's mapping to be valid. Use the paired `Inverse` declarations and descriptions shown in the tutorial. Ordinary relationship pairs now require reciprocal markers on both endpoints. Specialization still has a [confirmed gap](../reports/complete-relationship-verification.md#specialization-directions): a generalization inverse can be accepted with a NoInverse head. Do not rely on that missing refusal. An intentional one-way ordinary link uses `NoInverse()`.
 
 ### Why does an invalid model sometimes raise KeyError?
 
@@ -161,11 +161,8 @@ objects. Import it from `aoa.action_machine.domain`. Member access and catalogue
 still return shared instances. The old constructor-looking class-name alias is removed;
 see the [declaration migration](../tutorials/step-20-dictionaries.md#migrate-an-existing-declaration).
 
-### Why can a dictionary input contain only code while its output contains more?
+### Why do dictionary selection input and output use different keys?
 
-The code identifies a value already known to the model. The response also carries its
-label and properties for consumers that do not have that model. Request
-`model_json_schema(mode="validation")` for input and `mode="serialization"` for output.
-Use `to_reference()` for JSON-compatible export; a Python-mode `model_dump()` can keep
-native date or Decimal objects. The schema describes structure; runtime validation still
-checks whether the code belongs to the dictionary.
+An entity selects a shared member through `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")`. Python input requires `AssociationOne(id="eur")`; JSON input is an id-only object. JSON output carries the canonical member's code, display_name and serialized properties. Convert an exported code to an input id explicitly; the output is not accepted unchanged as selection input.
+
+A standalone dictionary or plain Pydantic DTO still supports a code-based reference. That DTO declaration is not an entity relationship shorthand. Request `model_json_schema(mode="validation")` for input and `mode="serialization"` for output. Membership is checked at runtime. The association's output schema currently lacks typed custom-property definitions; the standalone dictionary output schema retains them. See the [selection guide](../how-to/dictionary-references.md), [transport script](../../examples/step_20_dictionaries/56_selection_transport.py) and [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb).

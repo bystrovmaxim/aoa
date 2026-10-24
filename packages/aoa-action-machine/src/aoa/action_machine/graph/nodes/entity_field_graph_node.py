@@ -50,10 +50,18 @@ def plain_annotation(annotation: Any) -> Any:
 
 
 def declared_dictionary(annotation: Any) -> type[BaseEnumEntity] | None:
-    """Return the dictionary a field is typed by, when it is one with values."""
+    """Return the dictionary a field selects, including ``AssociationOne[D]``, when it has values."""
     plain = plain_annotation(annotation)
     if isinstance(plain, type) and issubclass(plain, BaseEnumEntity) and plain.members:
         return plain
+    # A dictionary association wraps the dictionary inside a relation container; recurse into
+    # the container's type arguments to find the closed dictionary it selects.
+    origin = get_origin(plain)
+    if origin is not None:
+        for arg in get_args(plain):
+            found = declared_dictionary(arg)
+            if found is not None:
+                return found
     return None
 
 

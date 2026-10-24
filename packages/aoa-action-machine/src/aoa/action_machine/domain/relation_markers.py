@@ -91,9 +91,11 @@ class Inverse:
     """
     AI-CORE-BEGIN
         ROLE: Explicit inverse relation pointer.
-        CONTRACT: Bind current relation field to a concrete target entity field; on a
-            specialization head the target entity is omitted, because the alternatives
-            already name the entities.
+        CONTRACT: Bind the current relation field to the paired field on the target entity.
+            ``Inverse(Target, "field")`` names the target class and the field; the
+            field-only ``Inverse(field_name="field")`` resolves the target from the
+            relationship container's own type argument, on a specialization head and on any
+            otherwise supported container.
         INVARIANTS: At least one of target entity and field name must be given; field
             name must be a non-empty string; target entity, when given, must be a type.
         AI-CORE-END
@@ -121,14 +123,14 @@ class Inverse:
 
         if target_entity is not None and not isinstance(target_entity, type):
             raise TypeError(
-                f"Inverse: target_entity must be a type, " f"got {type(target_entity).__name__}: {target_entity!r}."
+                f"Inverse: target_entity must be a type, got {type(target_entity).__name__}: {target_entity!r}."
             )
 
         if field_name is None:
             raise TypeError("Inverse: field_name must be str, got NoneType: None.")
 
         if not isinstance(field_name, str):
-            raise TypeError(f"Inverse: field_name must be str, " f"got {type(field_name).__name__}: {field_name!r}.")
+            raise TypeError(f"Inverse: field_name must be str, got {type(field_name).__name__}: {field_name!r}.")
 
         if not field_name.strip():
             raise ValueError("Inverse: field_name cannot be empty or whitespace-only.")
