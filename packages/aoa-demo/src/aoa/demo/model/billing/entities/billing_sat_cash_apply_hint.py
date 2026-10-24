@@ -22,7 +22,7 @@ class CashApplicationHintCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     funding_window: Annotated[
         AssociationOne[FundingWindowHintCoreEntity],
         NoInverse(),

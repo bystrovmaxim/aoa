@@ -58,15 +58,20 @@ def test_the_drawing_axis_borrows_its_codes_and_has_no_classifier_field() -> Non
         assert "classifier_field" not in edge["properties"]
 
 
-def test_the_demo_graph_carries_the_reference_edges() -> None:
-    """Every reference is an edge, not only a column property."""
+def test_the_demo_graph_carries_the_dictionary_relation_edges() -> None:
+    """Every dictionary selection is an ordinary relation edge, not a reference edge."""
     graph = _graph()
-    references = [edge for edge in graph["edges"] if edge.get("type") == "entity_reference"]
+    relations = [
+        edge
+        for edge in graph["edges"]
+        if edge.get("type") == "entity_relation" and edge["target_id"].endswith("CurrencyEnumEntity")
+    ]
 
-    assert len(references) >= 26, f"expected the demo's currency references, got {len(references)}"
-    for edge in references:
-        assert edge["target_id"].endswith("CurrencyEnumEntity")
+    assert len(relations) >= 26, f"expected the demo's currency relations, got {len(relations)}"
+    for edge in relations:
+        assert edge["properties"]["relation_type"] == "association"
         assert edge["properties"]["cardinality"] == "one"
+        assert edge["properties"]["has_inverse"] is False
         assert edge["properties"]["field_name"]
 
 
@@ -77,27 +82,27 @@ def test_the_demo_graph_loads_into_the_viewer_with_the_new_edge() -> None:
     assert store is not None
 
 
-def test_the_demo_slice_carries_a_reference_relation() -> None:
+def test_the_demo_slice_carries_the_dictionary_association() -> None:
     """The ERD has an arrow from the host to the dictionary, labelled with the field name."""
     graph = _graph()
-    reference = next(
+    relation = next(
         edge
         for edge in graph["edges"]
-        if edge.get("type") == "entity_reference" and edge["target_id"].endswith("CurrencyEnumEntity")
+        if edge.get("type") == "entity_relation" and edge["target_id"].endswith("CurrencyEnumEntity")
     )
     domain = next(
         edge["target_id"]
         for edge in graph["edges"]
-        if edge.get("type") == "domain" and edge["source_id"] == reference["source_id"]
+        if edge.get("type") == "domain" and edge["source_id"] == relation["source_id"]
     )
     store = DuckDBGraphResource.build_from_json(graph)
     diagram = ListEntitiesAction._slice_payload(store, domain, include_neighbors=True)
 
-    assert reference["target_id"] in {entity["id"] for entity in diagram["entities"]}
+    assert relation["target_id"] in {entity["id"] for entity in diagram["entities"]}
     assert any(
-        relation["relationship_kind"] == "reference"
-        and relation["source"] == reference["source_id"]
-        and relation["target"] == reference["target_id"]
-        and relation["label"] == reference["properties"]["field_name"]
-        for relation in diagram["relations"]
+        row["relationship_kind"] == "association"
+        and row["source"] == relation["source_id"]
+        and row["target"] == relation["target_id"]
+        and row["label"].startswith(relation["properties"]["field_name"])
+        for row in diagram["relations"]
     )
