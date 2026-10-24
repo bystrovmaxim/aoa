@@ -70,12 +70,10 @@ class Offer51CoreEntity(BaseCoreEntity):
 
 def case_51() -> None:
     """Run this one learning experiment."""
-    try:
-        validate_entity_fields([Offer51CoreEntity])
-    except EntityFieldDeclarationError as error:
-        print(type(error).__name__ + ":", error)
-    else:
-        raise AssertionError("Expected declaration refusal")
+    validate_entity_fields([Offer51CoreEntity])
+    offer = Offer51CoreEntity(id="offer-1", region=AssociationOne(id="eu"))
+    assert offer.region.entity is Region51EnumEntity.EU
+    print("Complete dictionary association:", offer.region.code)
 
 
 class Shop52Domain(BaseDomain):

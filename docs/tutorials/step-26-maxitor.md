@@ -123,8 +123,10 @@ database constraints.
 A closed dictionary is one entity class with several declared values. Maxitor therefore
 shows one dictionary card, with its values listed beneath its fields. Each value row shows
 its display name, followed by descriptive properties such as a currency symbol. The code is available in the tooltip rather than printed in a separate cell. The inherited code and display-name fields no longer appear as ordinary field rows.
-The values are not separate cards or graph nodes. A field typed by a dictionary names the
-referenced dictionary beside its type, with an arrow marker.
+The values are not separate cards or graph nodes. A dictionary selection uses an explicit single association. Its retained field row names the
+referenced dictionary beside its type, with an arrow marker. The current payload also contains
+a synthesized FK row for the same field; this duplication is a confirmed limitation, not two
+separate domain fields.
 
 The [dictionary ERD script](../../examples/step_20_dictionaries/09_erd.py) and
 [notebook](../../examples/step_20_dictionaries/09_erd.ipynb) build a small currency/price
@@ -133,6 +135,8 @@ model and pass its actual graph through Maxitor's query. They print:
 ```text
 {'code': 'eur', 'display_name': 'Euro', 'properties': [{'name': 'symbol', 'value': '€'}]}
 CurrencyEnumEntity
+Currency field rows: 2
+Relation: currency (one) -> CurrencyEnumEntity
 ```
 
 ### Follow one property across the boundary
@@ -381,4 +385,8 @@ This makes the domain distinction available to consumers. It does not yet change
 
 ## Follow a dictionary reference
 
-Keep the bare dictionary type for a single selection. The graph now carries an `entity_reference` edge beside the field row, and the entity diagram draws the reference to the dictionary card. Rebuild older exports to obtain the edge. Multiple selections require a separate model rather than a collection of dictionary values. See [the reference guide and executed scenarios](../how-to/dictionary-references.md).
+Declare a catalogue selection as a complete `AssociationOne[D]` field with `NoInverse()`. Newly built graphs retain its field row and emit an ordinary `entity_relation` association with cardinality `one` and no inverse endpoint. Older graph imports may still contain special reference edges. Rebuild older exports after migrating the declaration.
+
+The current ERD query reads the ordinary association and displays the dictionary values. It does not yet merge the retained field row with its synthesized FK row. A single declared dictionary field therefore produces two payload rows. Consumers must not assume one row per field yet; see the [reproduction and required correction](../reports/complete-relationship-verification.md#dictionary-fields-in-maxitor). No client rendering or full application compatibility claim is made by this backend payload example.
+
+See [selection declarations and transport](../how-to/dictionary-references.md), the [ERD script](../../examples/step_20_dictionaries/09_erd.py) and [executed notebook](../../examples/step_20_dictionaries/09_erd.ipynb).

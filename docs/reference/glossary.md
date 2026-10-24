@@ -142,7 +142,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **State entity** (`BaseStateEntity`) — a shared description of a lifecycle state, identified by its code within that axis. Attribute reassignment is refused; nested mutable data is not recursively frozen. The lifecycle defines transitions; the state supplies its name and additional fields. It is excluded from ordinary Entity graph nodes.
 
-**Relations** — `Association` (equal), `Aggregation` (weak ownership), `Composition` (strong ownership); cardinality is set by the `One`/`Many` suffix. The reverse side is declared via `Inverse(...)` or explicitly absent via `NoInverse()`.
+**Relations** — `Association` (equal), `Aggregation` (weak ownership), `Composition` (strong ownership); cardinality is set by the `One`/`Many` suffix. Every ordinary link has exactly one direction marker in `Annotated` and an assignment-side `Field` description. Reciprocal endpoints each use `Inverse(...)`; an intentionally unpaired link uses `NoInverse()`.
 
 **Relation container** — an object holding a reference to another entity separately from that entity's loaded data. Ownership containers use `One` or `Many`; specialization uses `Specialization[T, Dictionary]` and its reverse `Generalization[T]`. Their loading interfaces differ, so consult the particular container's contract.
 
@@ -160,7 +160,7 @@ it records constructor arguments without pretending that the enclosing class alr
 exists. Dictionary references resolve to these shared objects. Their `to_reference()`
 returns JSON-compatible `{code, display_name, properties}` data, applying field serializers.
 
-**Reference field** — a field whose type is a closed dictionary, such as `currency_iso: CurrencyEnumEntity`. It accepts the declared value or its reference object, refuses a bare code, an undeclared code and a copy, and names the dictionary in the graph as `reference_qualname`.
+**Reference field / dictionary selection** — a complete `Annotated[AssociationOne[D], NoInverse()] = Field(description=...)` field selecting one canonical catalogue member. Python input is an explicit wrapper; JSON input is an id-only object. JSON export is the member reference containing code, display_name and properties. The graph retains reference_qualname on the field and emits an ordinary single association. See [selection forms and exact refusals](../how-to/dictionary-references.md).
 
 **Classifier marker** — the `Classifier(variant=VinylRecordKindEnumEntity.EARLY)` on an alternative's reverse link. It names the field that pairs the class with its head and the dictionary value the class is. A head carries no marker: it names the dictionary as the second type argument of its container.
 

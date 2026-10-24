@@ -1,12 +1,15 @@
 """Resolve a storage code explicitly.
+Run: .venv/bin/python examples/step_20_dictionaries/04_storage_mapping.py
+
 
 The database column is called money_unit; the domain field is called currency.
-Run: uv run python examples/step_20_dictionaries/04_storage_mapping.py
 """
+
+from typing import Annotated
 
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity, BaseEnumEntity, value
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 
@@ -34,7 +37,7 @@ class PriceTagCoreEntity(BaseCoreEntity):
 
     id: str = Field(description="Tag identifier")
     amount: float = Field(description="Price amount")
-    currency: CurrencyEnumEntity = Field(description="Money unit")
+    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
 def main() -> None:
@@ -49,11 +52,11 @@ def main() -> None:
         lambda fields, data: {
             fields.id: data["tag_key"],
             fields.amount: data["price"],
-            fields.currency: selected,
+            fields.currency: AssociationOne(id=selected.code, entity=selected),
         },
     )
     print(tag.id, tag.currency.code)
-    print("Shared value:", tag.currency is CurrencyEnumEntity.EUR)
+    print("Shared value:", tag.currency.entity is CurrencyEnumEntity.EUR)
 
 
 if __name__ == "__main__":

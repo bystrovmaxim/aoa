@@ -300,8 +300,41 @@ _GoodSecondSpecEntity.model_rebuild()
 
 
 def test_a_correct_declaration_passes() -> None:
-    validate_entity_specializations(
-        [GoodHeadCoreEntity, _GoodFirstSpecEntity, _GoodSecondSpecEntity, _KindEnumEntity]
+    validate_entity_specializations([GoodHeadCoreEntity, _GoodFirstSpecEntity, _GoodSecondSpecEntity, _KindEnumEntity])
+
+
+@exclude_graph_model
+@entity(description="No-inverse first", domain=AxisDomain)
+class _NoInverseFirstSpecEntity(BaseSpecEntity):
+    """Points back with a Classifier but no reciprocal Inverse."""
+
+    id: str = Field(description="id")
+    rec: Annotated[
+        Generalization[NoInverseHeadCoreEntity],
+        Classifier(variant=_KindEnumEntity.A),
+    ] = Field(description="back")
+
+
+@exclude_graph_model
+@entity(description="No-inverse head", domain=AxisDomain)
+class NoInverseHeadCoreEntity(BaseCoreEntity):
+    """Names the alternative's reverse field without that field naming the head back."""
+
+    id: str = Field(description="id")
+    pack: Annotated[
+        Specialization[_NoInverseFirstSpecEntity, _KindEnumEntity],
+        Inverse(field_name="rec"),
+    ] = Field(description="d")
+
+
+NoInverseHeadCoreEntity.model_rebuild()
+_NoInverseFirstSpecEntity.model_rebuild()
+
+
+def test_a_paired_head_without_a_reciprocal_inverse_on_the_alternative_is_refused() -> None:
+    _refuses(
+        [NoInverseHeadCoreEntity, _NoInverseFirstSpecEntity, _KindEnumEntity],
+        "declares no Inverse",
     )
 
 

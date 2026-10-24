@@ -1,0 +1,337 @@
+{
+  "meta": {
+    "purpose": "Pre-change evidence of the existing compatibility/classifier controls that FR-010 requires this feature to preserve. Consumed by T032 (US4) and T039 (C1).",
+    "baseline_commit": "617b05d9b409d9d7d5da80fca5a67e65a03a02c2",
+    "baseline_commit_subject": "Merge pull request #257 from bystrovmaxim/feature/issue-256-dictionary-reference",
+    "captured": "2026-10-24",
+    "python": "3.12.12",
+    "pydantic": "2.12.5",
+    "pytest": "8.4.2",
+    "duckdb": "1.5.2",
+    "command_prefix": ".venv/bin/python -m pytest --import-mode=importlib"
+  },
+  "partitions": [
+    {
+      "id": "six-file-baseline",
+      "command": "packages/aoa-action-machine/tests/action_machine/domain/test_relation_containers.py packages/aoa-action-machine/tests/action_machine/domain/test_relation_markers.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_reference_graph.py packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py -q",
+      "outcome": "107 passed",
+      "wall_time": "0.77s"
+    },
+    {
+      "id": "specialization-classifier-rules",
+      "command": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_sweep.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_graph.py packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_vocabulary.py packages/aoa-action-machine/tests/action_machine/graph/test_graph_json_schema_specialization.py -q",
+      "outcome": "65 passed",
+      "wall_time": "0.73s"
+    },
+    {
+      "id": "generalization-edge-coordinator",
+      "command": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py packages/aoa-action-machine/tests/action_machine/graph/test_node_graph_coordinator_generalization_integration.py packages/aoa-action-machine/tests/graph/test_generalization_graph_edge.py packages/aoa-action-machine/tests/graph/test_specialized_graph_edges.py packages/aoa-action-machine/tests/graph/test_node_graph_coordinator_generalization.py packages/aoa-action-machine/tests/action_machine/graph/test_graph_json_schema_generalization.py packages/aoa-action-machine/tests/action_machine/intents/entity/test_entity_specialization_resolver.py -q",
+      "outcome": "45 passed",
+      "wall_time": "0.13s"
+    }
+  ],
+  "checks": [
+    {
+      "id": "field-bare-structural-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_structural_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_bare_entity_field_is_refused_naming_the_forms",
+      "orientation": "owner-only"
+    },
+    {
+      "id": "field-bare-optional-structural-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_structural_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_bare_optional_entity_field_is_refused"
+    },
+    {
+      "id": "field-collection-of-structural-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_collection_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_collection_of_entities_is_refused"
+    },
+    {
+      "id": "field-mapping-of-structural-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_mapping_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_mapping_is_described_as_a_mapping"
+    },
+    {
+      "id": "field-union-of-entities-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_union_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_union_of_entities_names_both_and_asks_for_two_fields"
+    },
+    {
+      "id": "field-heterogeneous-collection-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_heterogeneous_collection_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_heterogeneous_collection_names_every_entity"
+    },
+    {
+      "id": "field-state-entity-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_state_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_state_entity_field_names_the_lifecycle_form"
+    },
+    {
+      "id": "field-state-in-container-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_check_relation -> _state_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_state_entity_inside_a_relation_container_is_refused"
+    },
+    {
+      "id": "field-state-with-NoRelation-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_check_marker -> _state_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_the_embedded_marker_does_not_apply_to_a_state"
+    },
+    {
+      "id": "field-NoRelation-on-dictionary-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_check_marker -> _dictionary_marker_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_the_embedded_marker_is_refused_on_a_dictionary"
+    },
+    {
+      "id": "field-NoRelation-with-container-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_check_relation",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_the_embedded_marker_cannot_accompany_a_relation"
+    },
+    {
+      "id": "field-dictionary-collection-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_dictionary_collection_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_collection_of_dictionary_values_is_refused"
+    },
+    {
+      "id": "field-dictionary-union-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_dictionary_union_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_union_of_two_dictionaries_is_refused"
+    },
+    {
+      "id": "field-dictionary-container-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_dictionary_container_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_relation_container_around_a_dictionary_is_refused",
+      "note": "This refusal changes in scope: AssociationOne[D] becomes legal in US3; AssociationMany[D], composition, aggregation and generalization on a dictionary stay refused."
+    },
+    {
+      "id": "field-dictionary-empty-catalogue-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_require_dictionary_node -> _empty_catalogue_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_an_empty_dictionary_is_refused_at_the_declaration_boundary"
+    },
+    {
+      "id": "field-dictionary-outside-graph-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_require_dictionary_node -> _dictionary_outside_graph_refusal",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_dictionary_outside_the_graph_is_refused"
+    },
+    {
+      "id": "field-relation-blank-description-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_require_relation_metadata",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_relation_without_a_description_is_refused"
+    },
+    {
+      "id": "field-relation-default-factory-refused",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_require_relation_metadata",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_case": "test_a_factory_is_refused_and_never_executed"
+    },
+    {
+      "id": "field-relation-default-discipline",
+      "category": "field-declaration",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py",
+      "source_function": "_require_relation_metadata",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_field_validator.py",
+      "evidence_cases": [
+        "test_a_required_relation_must_be_supplied",
+        "test_a_nullable_required_relation_still_must_be_supplied",
+        "test_an_omittable_relation_yields_none",
+        "test_none_on_a_non_nullable_relation_is_refused_at_declaration",
+        "test_a_prebuilt_relation_default_is_refused"
+      ]
+    },
+    {
+      "id": "spec-dictionary-not-closed",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_dictionary",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-alternative-not-entity",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_alternatives_are_entities",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-declared-variant-identity",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_declared_variants",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-head-field-no-classifier",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_head_field",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-declared-codes-exactly-one",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_declared_codes",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-codes-match-both-directions",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_codes_match",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-codes-unique",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_codes_unique",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_axis.py"
+    },
+    {
+      "id": "spec-one-head-per-class",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_one_head_per_class",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py"
+    },
+    {
+      "id": "spec-closure-no-outside-class",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_no_outside_class_points_at_an_axis",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py"
+    },
+    {
+      "id": "spec-no-cycles",
+      "category": "specialization-classifier",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py",
+      "source_function": "_validate_no_cycles",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/graph/test_entity_specialization_rules_global.py"
+    },
+    {
+      "id": "container-constructor-guards",
+      "category": "container-marker",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py",
+      "source_function": "BaseRelationOne.__init__ / BaseRelationMany.__init__",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/domain/test_relation_containers.py",
+      "evidence_cases": [
+        "id cannot be None",
+        "entities_loaded=False incompatible with non-empty entities"
+      ]
+    },
+    {
+      "id": "marker-constructor-guards",
+      "category": "container-marker",
+      "implemented": true,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py",
+      "source_function": "Inverse.__init__ / NoRelation.__init__",
+      "evidence_test": "packages/aoa-action-machine/tests/action_machine/domain/test_relation_markers.py",
+      "evidence_cases": [
+        "Inverse requires at least one argument",
+        "Inverse field_name must be a non-empty str",
+        "NoRelation reason must be a non-empty str"
+      ]
+    },
+    {
+      "id": "docstring-ownership-pair-matrix",
+      "category": "docstring-claim",
+      "implemented": false,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py",
+      "source_function": "module docstring (lines 85-87)",
+      "note": "Claims 'composite or aggregate on one side pairs with association on the other; composite<->composite, aggregate<->aggregate, composite<->aggregate are rejected' at coordinator build. No such matrix is implemented in the inspected resolver/graph path (research R2). This feature must NOT implement it (FR-010); the docstring must be corrected.",
+      "evidence": "grep of node_graph_coordinator.py / entity_graph_node.py / entity_graph_edge.py finds no compatibility-matrix check"
+    },
+    {
+      "id": "docstring-inverse-existence-proof",
+      "category": "docstring-claim",
+      "implemented": false,
+      "source": "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py",
+      "source_function": "module docstring (lines 40-41)",
+      "note": "Claims 'inspectors and NodeGraphCoordinator.build()' prove the inverse field exists, types match, ownership is compatible. Ordinary inverse reciprocity is not implemented today; W2 will implement the reciprocal check. This is a docstring claim, not an existing guarantee to preserve.",
+      "evidence": "grep of node_graph_coordinator.py / entity_graph_node.py finds no inverse-existence/reciprocity check"
+    }
+  ]
+}

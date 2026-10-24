@@ -78,7 +78,11 @@ from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.action_machine.graph.core.exceptions import DuplicateNodeError, InvalidGraphError
-from aoa.action_machine.graph.validators import entity_field_validator, entity_specialization_validator
+from aoa.action_machine.graph.validators import (
+    entity_field_validator,
+    entity_inverse_validator,
+    entity_specialization_validator,
+)
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
@@ -148,6 +152,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             msg = "NodeGraphCoordinator.build() was already called on this instance."
             raise RuntimeError(msg)
         entity_field_validator.validate_entity_fields()
+        entity_inverse_validator.validate_entity_inverses()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)

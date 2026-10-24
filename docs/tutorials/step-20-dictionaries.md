@@ -4,9 +4,9 @@ A dictionary declares the allowed reference values in its class body. Use the im
 
 ## Migrate an existing declaration
 
-Keep the dictionary's declared values and reference payloads. Custom validators must return values consistent with their annotations: completed members are now checked after validation, rather than relying only on the annotation. A tuple property cannot be replaced by a list. The exact refusal appears below.
+Keep the dictionary's declared values and exported reference payloads. Replace bare entity selection fields with `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")` and Python member arguments with `AssociationOne(id=member.code, entity=member)`. Custom validators must return values consistent with their annotations: completed members are now checked after validation, rather than relying only on the annotation. A tuple property cannot be replaced by a list. The exact refusal appears below.
 
-Serialization schemas now retain the definitions needed by enum properties. Regenerate output schemas with `mode="serialization"`. Every emitted nested property is required, including null-valued properties; excluded properties are absent. Validation schemas still accept a code-only reference.
+Serialization schemas now retain the definitions needed by enum properties. Regenerate output schemas with `mode="serialization"`. Every emitted nested property is required, including null-valued properties; excluded properties are absent. Standalone dictionary validation schemas still accept a code-only reference. Entity selections require an explicit association and an id-only JSON input.
 
 ## Declare the vocabulary
 
@@ -98,6 +98,10 @@ ValueError: LabelsEnumEntity: the property 'labels' of member 'ITEM' holds list 
 ```
 
 ## Validate the real exported reference
+
+The following `Holder(BaseModel)` is a plain DTO. Entity hosts use the complete association shown below; their serialization schema has a separate documented limitation.
+
+The following `Holder(BaseModel)` is a plain DTO. Entity hosts use the complete association shown below; their serialization schema has a separate documented limitation.
 
 Run this complete example in a fresh Python process.
 
@@ -224,4 +228,120 @@ See [validation and export](../how-to/dictionary-validation-and-export.md), [rel
 
 ## Follow a dictionary reference
 
-Keep the bare dictionary type for a single selection. The graph now carries an `entity_reference` edge beside the field row, and the entity diagram draws the reference to the dictionary card. Rebuild older exports to obtain the edge. Multiple selections require a separate model rather than a collection of dictionary values. See [the reference guide and executed scenarios](../how-to/dictionary-references.md).
+An entity selection is a complete association. Use an explicit wrapper in Python, or an id-only object in JSON. The canonical member is resolved from its code. Export remains a code/display_name/properties reference; the input and output formats differ.
+
+[Script](../../examples/step_20_dictionaries/56_selection_transport.py) · [Executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb)
+
+```python
+"""Select canonical dictionary values in Python and JSON, then export references.
+Run: .venv/bin/python examples/step_20_dictionaries/56_selection_transport.py
+"""
+
+from typing import Annotated
+
+from pydantic import Field, ValidationError
+
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entity import entity
+
+
+class SelectionDomain(BaseDomain):
+    """Group the selection declarations."""
+
+    name = "selection"
+    description = "Dictionary selection transport"
+
+
+@entity(description="Currency", domain=SelectionDomain)
+class CurrencyEnumEntity(BaseEnumEntity):
+    """Declare the shared currency values."""
+
+    symbol: str = Field(description="Currency symbol")
+    EUR = value(code="eur", display_name="Euro", symbol="€")
+
+
+@entity(description="Price selection", domain=SelectionDomain)
+class PriceCoreEntity(BaseCoreEntity):
+    """Require a selection while permitting explicit absence."""
+
+    currency: Annotated[AssociationOne[CurrencyEnumEntity] | None, NoInverse()] = Field(description="Currency")
+
+
+def python_selection() -> None:
+    """Resolve a wrapper to the canonical shared member."""
+    original = AssociationOne(id="eur")
+    price = PriceCoreEntity(currency=original)
+    assert price.currency is not original
+    assert price.currency.entity is CurrencyEnumEntity.EUR
+    assert price.currency.is_loaded and original.entity is None
+    print("Python selection:", price.currency.id, price.currency.symbol)
+    try:
+        PriceCoreEntity(currency=CurrencyEnumEntity.EUR)
+    except ValidationError as error:
+        assert error.errors()[0]["type"] == "is_instance_of"
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("A raw member was accepted")
+
+
+def json_selection() -> None:
+    """Use the JSON input shape and explicit nullability."""
+    price = PriceCoreEntity.model_validate_json('{"currency":{"id":"eur"}}')
+    assert price.currency.entity is CurrencyEnumEntity.EUR
+    assert PriceCoreEntity.model_validate_json('{"currency":null}').currency is None
+    payload = price.model_dump(mode="json")
+    assert payload == {"currency": {"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}}
+    print("JSON export:", payload)
+    try:
+        PriceCoreEntity.model_validate_json(price.model_dump_json())
+    except ValidationError as error:
+        assert (
+            error.errors()[0]["msg"]
+            == "Value error, a dictionary association JSON input is an object with exactly one 'id' key."
+        )
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("Exported reference was accepted as selection input")
+
+
+def schema_modes() -> None:
+    """Compare the transport schemas without claiming typed export properties."""
+    validation = PriceCoreEntity.model_json_schema(mode="validation")["properties"]["currency"]["anyOf"][0]
+    serialization = PriceCoreEntity.model_json_schema(mode="serialization")["properties"]["currency"]["anyOf"][0]
+    assert validation["required"] == ["id"]
+    assert validation["additionalProperties"] is False
+    assert serialization["required"] == ["code", "display_name", "properties"]
+    print("Input keys:", validation["required"])
+    print("Output keys:", serialization["required"])
+
+
+def main() -> None:
+    """Run Python selection, JSON transport and schema modes."""
+    python_selection()
+    json_selection()
+    schema_modes()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Actual output:
+
+```text
+Python selection: eur €
+ValidationError: 1 validation error for PriceCoreEntity
+currency
+  Input should be an instance of AssociationOne [type=is_instance_of, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]
+    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
+JSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}
+ValidationError: 1 validation error for PriceCoreEntity
+currency
+  Value error, a dictionary association JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+Input keys: ['id']
+Output keys: ['code', 'display_name', 'properties']
+```
+
+The graph carries an ordinary single association and retains the field row and dictionary hint. Nullable selections have the same graph cardinality. Collections of dictionary values need a separate link model. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_20_dictionaries/08_graph.py) and [notebook](../../examples/step_20_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.

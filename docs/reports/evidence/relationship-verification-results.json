@@ -1,0 +1,374 @@
+{
+  "date": "2026-10-24",
+  "base_commit": "617b05d9b409d9d7d5da80fca5a67e65a03a02c2",
+  "scripts_and_notebooks": {
+    "examples/step_20_dictionaries/01_reference_field.py": {
+      "passed": true,
+      "code_cells": 5,
+      "stdout_matches": true,
+      "stdout": "Shared value: True\nSymbol: €\n"
+    },
+    "examples/step_20_dictionaries/02_reference_payload.py": {
+      "passed": true,
+      "code_cells": 5,
+      "stdout_matches": true,
+      "stdout": "Shared value: True\nEuro €\n"
+    },
+    "examples/step_20_dictionaries/03_serialization.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "{'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}\n"
+    },
+    "examples/step_20_dictionaries/04_storage_mapping.py": {
+      "passed": true,
+      "code_cells": 7,
+      "stdout_matches": true,
+      "stdout": "tag-1 eur\nShared value: True\n"
+    },
+    "examples/step_20_dictionaries/05_optional.py": {
+      "passed": true,
+      "code_cells": 5,
+      "stdout_matches": true,
+      "stdout": "Absent: True\n"
+    },
+    "examples/step_20_dictionaries/06_inheritance.py": {
+      "passed": true,
+      "code_cells": 5,
+      "stdout_matches": true,
+      "stdout": "Parent: ['eur', 'usd']\nChild: ['gbp']\n"
+    },
+    "examples/step_20_dictionaries/07_frozen.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "frozen_instance\nEuro\n"
+    },
+    "examples/step_20_dictionaries/08_graph.py": {
+      "passed": true,
+      "code_cells": 14,
+      "stdout_matches": true,
+      "stdout": "Kind: enum\nValues: ['eur', 'usd']\nReference: CurrencyEnumEntity\nEdge: entity_relation -> CurrencyEnumEntity\n"
+    },
+    "examples/step_20_dictionaries/09_erd.py": {
+      "passed": true,
+      "code_cells": 21,
+      "stdout_matches": true,
+      "stdout": "{'code': 'eur', 'display_name': 'Euro', 'properties': [{'name': 'symbol', 'value': '€'}]}\nCurrencyEnumEntity\nCurrency field rows: 2\nRelation: currency (one) -> CurrencyEnumEntity\n"
+    },
+    "examples/step_20_dictionaries/20_bare_code.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Input should be an instance of AssociationOne [type=is_instance_of, input_value='eur', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\n"
+    },
+    "examples/step_20_dictionaries/21_unknown_code.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, 'unknown' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=AssociationOne(id='unknown', id_only), input_type=AssociationOne]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n"
+    },
+    "examples/step_20_dictionaries/22_copy.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, the supplied entity is not the declared value for code 'eur'; pass CurrencyEnumEntity.by_code('eur'). [type=value_error, input_value=AssociationOne(id='eur', loaded), input_type=AssociationOne]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n"
+    },
+    "examples/step_20_dictionaries/23_missing_code.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary association JSON input is an object with exactly one 'id' key. [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n"
+    },
+    "examples/step_20_dictionaries/24_blank_reference.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary association id must be a non-empty string code, got ' '. [type=value_error, input_value=AssociationOne(id=' ', id_only), input_type=AssociationOne]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n"
+    },
+    "examples/step_20_dictionaries/25_flat_fields.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Input should be an instance of AssociationOne [type=is_instance_of, input_value={'code': 'bootleg', 'disp...Unknown', 'symbol': '?'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\n"
+    },
+    "examples/step_20_dictionaries/26_duplicate_code.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "DuplicateEnumEntity: duplicate value code(s) in ['same'].\n"
+    },
+    "examples/step_20_dictionaries/27_blank_code.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "code\nValue error, An enum entity's 'code' and 'display_name' cannot be empty or whitespace-only.\n"
+    },
+    "examples/step_20_dictionaries/28_blank_label.py": {
+      "passed": true,
+      "code_cells": 2,
+      "stdout_matches": true,
+      "stdout": "display_name\nValue error, An enum entity's 'code' and 'display_name' cannot be empty or whitespace-only.\n"
+    },
+    "examples/step_20_dictionaries/29_empty_dictionary.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "Intermediate members: ()\nEmptyEnumEntity declares no values; a closed dictionary states its values.\n"
+    },
+    "examples/step_20_dictionaries/53_dictionary_catalogues.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'region' on entity 'Offer53CoreEntity' is invalid: EmptyEnumEntity declares no values; type the field with a concrete dictionary.\nEntityFieldDeclarationError: Field 'region' on entity 'Offer54CoreEntity' is invalid: HiddenRegion54EnumEntity has no node in the graph: it is not a declared @entity class, or it is marked exclude_graph_model, so the reference could not be drawn. Keep the dictionary in the graph.\n"
+    },
+    "examples/step_21_relations/01_relations.py": {
+      "passed": true,
+      "code_cells": 15,
+      "stdout_matches": true,
+      "stdout": "1) Machine built — relation model validated at startup (Inverse mirroring OK)\n\n2) Id-only relations:\n   order.customer.id  = cust-1   (is_loaded=False)\n   len(order.lines)   = 2   (is_loaded=False)\n   order.customer.name -> RelationNotLoadedError: Related object in AssociationOne is not loaded (id='cust-1'). Cannot access 'name' — only the identifier is present. Load the related entity through your persistence / manager layer.\n   iterating order.lines -> RelationNotLoadedError: Related object in CompositeMany is not loaded (id=('line-1', 'line-2')). Cannot access '__iter__' — only the identifier is present. Load the related entity through your persistence / manager layer.\n\n3) Hydrated relation:\n   order2.customer.name = Alice   (proxied through the loaded entity)\n"
+    },
+    "examples/step_21_relations/37_error_cycle.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "SpecializationDeclarationError: Specialization 'detail' on entity 'ASpecEntity' is invalid: the head and its alternatives form a cycle: ASpecEntity -> BSpecEntity -> ASpecEntity\n"
+    },
+    "examples/step_21_relations/54_embedded_entity.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (TargetCoreEntity). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).\n"
+    },
+    "examples/step_21_relations/55_bare_entity_refused.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: the field's type is an entity (TargetCoreEntity), so the field cannot be a scalar. Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).\n"
+    },
+    "examples/step_21_relations/58_relation_null_default.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: default=None needs a nullable annotation; write Annotated[aoa.action_machine.domain.relation_containers.AssociationOne[__main__.TargetCoreEntity] | None, ...] = Field(default=None, description=...).\n"
+    },
+    "examples/step_21_relations/60_entity_collection.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: the field's type is a collection of an entity (list[__main__.TargetCoreEntity]); a collection is not a relation. Declare the many relationship (Annotated[AssociationMany[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).\n"
+    },
+    "examples/step_21_relations/61_marker_on_relation.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (aoa.action_machine.domain.relation_containers.AssociationOne[__main__.TargetCoreEntity]). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).\n"
+    },
+    "examples/step_21_relations/62_marker_on_scalar.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation marks an embedded value, which no longer exists; this field's type is str, not an entity. Declare the field as an ordinary scalar.\n"
+    },
+    "examples/step_21_relations/63_conflicting_markers.py": {
+      "passed": true,
+      "code_cells": 3,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (TargetCoreEntity). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).\n"
+    },
+    "examples/step_20_dictionaries/56_selection_transport.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "Python selection: eur €\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Input should be an instance of AssociationOne [type=is_instance_of, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\nJSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Value error, a dictionary association JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nInput keys: ['id']\nOutput keys: ['code', 'display_name', 'properties']\n"
+    },
+    "examples/step_21_relations/65_reciprocal_directions.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "Reciprocal pair: accepted\nNoInverse link: accepted\nEntityFieldDeclarationError: Field 'offer' on entity 'OldRegionCoreEntity' is invalid: the reverse field 'regions' on OldOfferCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.\n"
+    },
+    "examples/step_21_relations/66_complete_stereotypes.py": {
+      "passed": true,
+      "code_cells": 11,
+      "stdout_matches": true,
+      "stdout": "Core: eu; Assoc: offer-1; Detail: offer-1; Spec: nullable detail\n"
+    },
+    "examples/step_21_relations/67_cross_module_inverse.py": {
+      "passed": true,
+      "code_cells": 9,
+      "stdout_matches": true,
+      "stdout": "Cross-module reciprocal pair: accepted\n"
+    },
+    "examples/step_20_dictionaries/50_dictionary_declarations.py": {
+      "passed": true,
+      "code_cells": 4,
+      "stdout_matches": true,
+      "stdout": "EntityFieldDeclarationError: Field 'regions' on entity 'Offer50CoreEntity' is invalid: a collection of dictionary values has no declared form (tuple[__main__.Region50EnumEntity, ...]); a dictionary selection is one value. Write Annotated[AssociationOne[Region50EnumEntity], NoInverse()] = Field(description=...).\nComplete dictionary association: eu\nEntityFieldDeclarationError: Field 'region' on entity 'Offer52CoreEntity' is invalid: the field's type is NoRelation around a dictionary (Region52EnumEntity); only Annotated[AssociationOne[Region52EnumEntity] | None, NoInverse()] is a legal dictionary relationship.\n"
+    }
+  },
+  "documentation_blocks": [
+    {
+      "page": "docs/how-to/explicit-entity-fields.md",
+      "block": 0,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-references.md",
+      "block": 0,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 0,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 1,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 2,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 3,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 4,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 5,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 6,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 7,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/how-to/dictionary-validation-and-export.md",
+      "block": 8,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 0,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 1,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 2,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-20-dictionaries.md",
+      "block": 3,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 0,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 1,
+      "returncode": 0,
+      "output_matches": true
+    },
+    {
+      "page": "docs/tutorials/step-21-relations.md",
+      "block": 2,
+      "returncode": 0,
+      "output_matches": true
+    }
+  ],
+  "scoped_pytest": {
+    "focused_action_machine": "100 passed",
+    "additional_action_machine": "1 failed, 30 passed",
+    "maxitor_payload_and_sql": "18 passed"
+  },
+  "adversarial": {
+    "current": {
+      "returncode": 0,
+      "summary": "6 passed in 0.11s"
+    },
+    "bare": {
+      "returncode": 1,
+      "summary": "1 failed, 5 passed in 0.15s"
+    },
+    "embedded": {
+      "returncode": 1,
+      "summary": "1 failed, 5 passed in 0.15s"
+    },
+    "inverse": {
+      "returncode": 1,
+      "summary": "1 failed, 5 passed in 0.14s"
+    },
+    "dictionary": {
+      "returncode": 1,
+      "summary": "1 failed, 5 passed in 0.14s"
+    },
+    "graph": {
+      "returncode": 1,
+      "summary": "1 failed, 5 passed in 0.15s"
+    }
+  },
+  "notebook_execution": "Direct Python cells; fresh process per notebook; no Jupyter kernel",
+  "source_hashes_before_documentation": {
+    "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py": "e18d62a3db1450df13c245c9d99c6751c9050804a1480d81a59edbf5ce94dd86",
+    "packages/aoa-action-machine/src/aoa/action_machine/domain/relation_markers.py": "6fb46f1b83902ba17a527d66b05841dac8b31194b4ca2b141068b00e9be1a24f",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/core/node_graph_coordinator.py": "3cf90528ed4ad9a4030295a36ef603a876e535c986fcaedc3380d09dd98b52ec",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_field_graph_edge.py": "d2facbaad6e2492ceded23a6482574d24e9f606b2f1e9a0460b7c2c00bbf0168",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/edges/entity_reference_graph_edge.py": "ca7a1b2c47f55e35d0f81f68f5325f949d14c7ad68e14eaed91b1f53f0949a83",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_field_graph_node.py": "d329bcfa5e687926e224a175a6b39079e8f50ffece0dc80a8fc456861902e061",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py": "ce6a02170c8693defe51e519a85d8b0c98ce5ea2602716a385e0a7b95f420e99",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_field_validator.py": "2d20236f48cf9eeb1f3c84aa49c6df357f3573040868af3015e98dfce27242a1",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_specialization_validator.py": "b0ae859b3f1c3944187adb2354fbdde411315e51003f64beb3e0e191ace64ecc",
+    "packages/aoa-action-machine/src/aoa/action_machine/intents/entity/entity_relation_intent_resolver.py": "6bea08e0209c3a98d1f5d9226417291c1785a72d0de07ccb6f1954e78b604d18",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/validators/entity_inverse_validator.py": "bce228f0eddbcf1f8604aea9de24c952067b73bda48799c57f143a5562b8510a",
+    "packages/aoa-action-machine/src/aoa/action_machine/intents/entity/resolved_entity_fields.py": "bc18dd54376078292473833a01ba8781fcb7a78ee4a3796a43b51eb0385fb737"
+  },
+  "checks_not_run": [
+    "aggregate repository check",
+    "full package test suites",
+    "mypy",
+    "pylint",
+    "packaging builds",
+    "client build/rendering"
+  ]
+}
