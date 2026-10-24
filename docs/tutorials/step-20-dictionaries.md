@@ -4,7 +4,7 @@ A dictionary declares the allowed reference values in its class body. Use the im
 
 ## Migrate an existing declaration
 
-Keep the dictionary's declared values and exported reference payloads. Replace bare entity selection fields with `Annotated[AssociationOne[D], NoInverse()] = Field(description="...")` and Python member arguments with `AssociationOne(id=member.code, entity=member)`. Custom validators must return values consistent with their annotations: completed members are now checked after validation, rather than relying only on the annotation. A tuple property cannot be replaced by a list. The exact refusal appears below.
+Keep the dictionary's declared values and exported reference payloads. Replace bare entity fields with a complete relationship declaration. All six ordinary containers support dictionary targets. Use id/entity for One and ids/entities for Many; use NoInverse for an intentionally unpaired link. Custom validators must return values consistent with their annotations: completed members are now checked after validation, rather than relying only on the annotation. A tuple property cannot be replaced by a list. The exact refusal appears below.
 
 Serialization schemas now retain the definitions needed by enum properties. Regenerate output schemas with `mode="serialization"`. Every emitted nested property is required, including null-valued properties; excluded properties are absent. Standalone dictionary validation schemas still accept a code-only reference. Entity selections require an explicit association and an id-only JSON input.
 
@@ -228,7 +228,7 @@ See [validation and export](../how-to/dictionary-validation-and-export.md), [rel
 
 ## Follow a dictionary reference
 
-An entity selection is a complete association. Use an explicit wrapper in Python, or an id-only object in JSON. The canonical member is resolved from its code. Export remains a code/display_name/properties reference; the input and output formats differ.
+An entity selection is a complete relationship in a supported ordinary container. Use an explicit wrapper in Python, an id-only object for One JSON input, or an array of id objects for Many JSON input. The canonical member is resolved from its code. Export remains a code/display_name/properties reference; the input and output formats differ.
 
 [Script](../../examples/step_20_dictionaries/56_selection_transport.py) · [Executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb)
 
@@ -298,7 +298,7 @@ def json_selection() -> None:
     except ValidationError as error:
         assert (
             error.errors()[0]["msg"]
-            == "Value error, a dictionary association JSON input is an object with exactly one 'id' key."
+            == "Value error, a dictionary relation JSON input is an object with exactly one 'id' key."
         )
         print(type(error).__name__ + ": " + str(error))
     else:
@@ -338,10 +338,12 @@ currency
 JSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}
 ValidationError: 1 validation error for PriceCoreEntity
 currency
-  Value error, a dictionary association JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]
+  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.12/v/value_error
 Input keys: ['id']
 Output keys: ['code', 'display_name', 'properties']
 ```
 
-The graph carries an ordinary single association and retains the field row and dictionary hint. Nullable selections have the same graph cardinality. Collections of dictionary values need a separate link model. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_20_dictionaries/08_graph.py) and [notebook](../../examples/step_20_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.
+The graph retains the declared relationship family and One/Many cardinality, the field row and dictionary hint. Nullability does not change graph cardinality. Raw collections need a complete Many container, rather than a separate link model solely to choose several values. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_20_dictionaries/08_graph.py) and [notebook](../../examples/step_20_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.
+
+For multiple values and ownership containers, run [all six dictionary roles](../../examples/step_21_relations/72_role_dictionary.py) and its [executed notebook](../../examples/step_21_relations/72_role_dictionary.ipynb). They show canonical identity, input order, repeated codes, empty/absent values, actual refusals, serializers, schema modes and graph metadata. See [current selection forms and limits](../how-to/dictionary-references.md).

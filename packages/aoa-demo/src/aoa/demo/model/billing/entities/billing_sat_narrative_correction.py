@@ -19,7 +19,7 @@ class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactCoreEntity],
         NoInverse(),

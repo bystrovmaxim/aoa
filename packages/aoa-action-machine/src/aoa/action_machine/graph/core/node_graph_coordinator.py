@@ -81,6 +81,7 @@ from aoa.action_machine.graph.core.exceptions import DuplicateNodeError, Invalid
 from aoa.action_machine.graph.validators import (
     entity_field_validator,
     entity_inverse_validator,
+    entity_role_compatibility_validator,
     entity_specialization_validator,
 )
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
@@ -142,6 +143,9 @@ class NodeGraphCoordinator(BaseCoordinator):
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
             InvalidGraphError: missing ``target_node_id`` or a cycle among ``is_dag`` edges.
+            RoleCompatibilityError: two endpoints of one relationship declare roles the
+                role-pair matrix refuses (an ownership/ownership pair, or a
+                specialization/generalization endpoint paired with an ordinary role).
             SpecializationDeclarationError: an entity declares a field pointing at one of N
                 extensions in a way the framework cannot honour. A model that declares no such
                 field takes no new path: the pass finds no axis and returns.
@@ -153,6 +157,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             raise RuntimeError(msg)
         entity_field_validator.validate_entity_fields()
         entity_inverse_validator.validate_entity_inverses()
+        entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)

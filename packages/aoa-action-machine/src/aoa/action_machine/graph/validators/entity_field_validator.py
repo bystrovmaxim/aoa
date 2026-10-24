@@ -9,10 +9,11 @@ PURPOSE
 Every entity-valued field on Core, Assoc, Detail, Spec and Enum must declare its
 relationship completely: a supported relationship container inside ``Annotated``,
 exactly one direction marker (``Inverse(...)`` or ``NoInverse()``) and a non-blank
-assignment-side ``Field(description=...)``. A dictionary field declares that relationship
-as ``AssociationOne[D] | None`` with ``NoInverse()``. ``NoRelation``, a bare or nullable
-bare entity, a raw collection and a bare dictionary no longer satisfy the rule. State
-alone keeps its separate Lifecycle contract.
+assignment-side ``Field(description=...)``. A dictionary field uses the same six ordinary
+containers and either direction marker as any other target; a reciprocal endpoint follows
+the general matrix and inverse rules. ``NoRelation``, a bare or nullable bare entity, a raw
+collection and a bare dictionary no longer satisfy the rule. State alone keeps its separate
+Lifecycle contract.
 
 This module refuses incomplete declarations before the graph is published and names the
 complete correction in the message.
@@ -24,7 +25,8 @@ RULES
 - A Core, Assoc, Detail or Spec entity-valued field MUST carry a relation container or a
   specialization/generalization container, exactly one direction marker and a non-blank
   description.
-- A dictionary field MUST be ``Annotated[AssociationOne[D] | None, NoInverse()]``.
+- A dictionary field MAY use any of the six ordinary containers and either direction marker;
+  it still needs a declared graph node and the same complete declaration as any target.
 - ``NoRelation`` is refused on every entity-valued field.
 - A state-entity field has no form at all: a state is described by a ``Lifecycle[...]``
   subclass, never by the entity type itself.
@@ -62,7 +64,6 @@ from aoa.action_machine.domain.detail_entity import BaseDetailEntity
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
-from aoa.action_machine.domain.relation_containers import AssociationOne
 from aoa.action_machine.domain.relation_markers import Inverse, NoInverse, NoRelation
 from aoa.action_machine.domain.spec_entity import BaseSpecEntity
 from aoa.action_machine.domain.specialization_containers import Generalization
@@ -253,8 +254,9 @@ def _bare_dictionary_refusal(dictionary: Any, annotation: Any) -> str:
     optional = " | None" in str(annotation)
     shape = f"{name} | None" if optional else name
     return (
-        f"the field's type is a dictionary ({shape}), which must be an explicit single association; "
-        f"write Annotated[AssociationOne[{name}] | None, NoInverse()] = Field(description=...)."
+        f"the field's type is a dictionary ({shape}), which must be an explicit relation; "
+        f"write Annotated[AssociationOne[{name}], Inverse(...) or NoInverse()] = Field(description=...), "
+        f"or wrap it in any supported relation container."
     )
 
 
@@ -262,9 +264,9 @@ def _dictionary_collection_refusal(target: Any, annotation: Any) -> str:
     """Return the message for a collection of dictionary values."""
     name = _describe(target)
     return (
-        f"a collection of dictionary values has no declared form ({_describe(annotation)}); a "
-        f"dictionary selection is one value. Write Annotated[AssociationOne[{name}], NoInverse()] "
-        f"= Field(description=...)."
+        f"a collection of dictionary values has no declared form ({_describe(annotation)}); wrap it "
+        f"in a supported relation container, e.g. Annotated[AssociationMany[{name}], Inverse(...) or "
+        f"NoInverse()] = Field(description=...)."
     )
 
 
@@ -273,26 +275,8 @@ def _dictionary_union_refusal(target: Any, annotation: Any) -> str:
     name = _describe(target)
     return (
         f"the field's type names more than one dictionary ({_describe(annotation)}), and a "
-        f"dictionary selection is one value. Write Annotated[AssociationOne[{name}], NoInverse()] "
-        f"= Field(description=...)."
-    )
-
-
-def _dictionary_container_refusal(target: Any, container: Any) -> str:
-    """Return the message for a non-AssociationOne container around a dictionary."""
-    name = _describe(target)
-    return (
-        f"the field's type is {_describe(container)} around a dictionary ({name}); only "
-        f"Annotated[AssociationOne[{name}] | None, NoInverse()] is a legal dictionary relationship."
-    )
-
-
-def _dictionary_inverse_refusal(target: Any) -> str:
-    """Return the message for ``Inverse`` on a dictionary selection."""
-    name = _describe(target)
-    return (
-        f"a dictionary selection has no reciprocal field on the closed catalogue ({name}); write "
-        f"NoInverse(), not Inverse(...)."
+        f"dictionary relation names exactly one dictionary. Write Annotated[AssociationOne[{name}], "
+        f"Inverse(...) or NoInverse()] = Field(description=...)."
     )
 
 
@@ -400,10 +384,6 @@ def _check_relation_target(entity_cls: type[BaseEntity], field_name: str, resolv
         _refuse(entity_cls, field_name, _state_refusal(target))
     if kind == "Enum":
         _require_dictionary_node(entity_cls, field_name, target)
-        if resolved.container is not AssociationOne:
-            _refuse(entity_cls, field_name, _dictionary_container_refusal(target, resolved.container))
-        if resolved.has_inverse:
-            _refuse(entity_cls, field_name, _dictionary_inverse_refusal(target))
 
 
 def _check_complete_relation(
@@ -417,6 +397,15 @@ def _check_complete_relation(
         _refuse(entity_cls, field_name, _no_relation_refusal(target, annotation))
     resolved = resolve_entity_field(entity_cls, field_name, field_info)
     _require_direction_marker(entity_cls, field_name, resolved)
+    if (resolved.is_specialization or resolved.is_generalization) and any(
+        isinstance(marker, NoInverse) for marker in field_info.metadata
+    ):
+        _refuse(
+            entity_cls,
+            field_name,
+            "a specialization/generalization field requires Inverse, never NoInverse; "
+            "declare a reciprocal Inverse(field_name=...) on both endpoints.",
+        )
     if (resolved.is_relation or resolved.is_generalization) and resolved.targets:
         _check_relation_target(entity_cls, field_name, resolved)
     _require_relation_metadata(entity_cls, field_name, field_info, annotation)
@@ -458,7 +447,12 @@ def _check_no_relation(entity_cls: type[BaseEntity], field_name: str, field_info
     if _kind_of(target) == "State":
         _refuse(entity_cls, field_name, _state_refusal(target))
     if _kind_of(target) == "Enum":
-        _refuse(entity_cls, field_name, _dictionary_container_refusal(target, NoRelation))
+        _refuse(
+            entity_cls,
+            field_name,
+            f"NoRelation is not a dictionary declaration; wrap {_describe(target)} in a supported "
+            f"relation container with Inverse(...) or NoInverse().",
+        )
     _refuse(entity_cls, field_name, _no_relation_refusal(target, annotation))
     return True
 

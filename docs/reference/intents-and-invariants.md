@@ -366,12 +366,50 @@ Relations between entities are declared with fields of a container type and mark
 | Assoc | The same complete declaration on each endpoint; no shorthand for technical links |
 | Detail | The same complete declaration for its owner and other links |
 | Spec | The same complete ordinary links; a classified head link uses `Generalization`, `Classifier(variant=...)` and reciprocal `Inverse` |
-| Enum | A selection targeting the catalogue uses `AssociationOne[D]` and `NoInverse`; catalogue properties retain their immutable-type restrictions |
+| Enum | A dictionary target supports all six ordinary containers and the general direction rules; declaring a reciprocal catalogue field is currently blocked by the property restriction ([gap](../reports/endpoint-role-verification.md#dictionary-reverse-endpoints)) |
 | State | A separate lifecycle contract; a bare status type is not a relationship field |
 
 Bare entities, optional bare entities, raw entity collections/mappings, mixed entity unions and `NoRelation` entity embedding are refused at model build. Nullable relationships contain exactly one non-null container type. `NoGraphEdge` and `exclude_graph_model` do not bypass declaration validation.
 
-Composition, aggregation and association still describe ownership intent. There is no newly enforced container-pair compatibility matrix, automatic ownership deletion or database constraint generation. The former matrix on this page overstated the runtime checks; do not use it as a validation guarantee.
+Composition, aggregation and association still describe ownership intent, and the framework now enforces the symmetric role-pair matrix below at model build. It still does not implement automatic ownership deletion or database constraint generation.
+
+### Endpoint role compatibility
+
+Every explicitly paired relationship declares two endpoint roles, one per field. The role is the container on the field: `AssociationOne`, `AssociationMany`, `AggregateOne`, `AggregateMany`, `CompositeOne`, `CompositeMany`, `Specialization` or `Generalization`. A pair passes only when the symmetric matrix permits it; cardinality never changes the verdict.
+
+| Role | AssociationOne | AssociationMany | AggregateOne | AggregateMany | CompositeOne | CompositeMany | Specialization | Generalization |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| AssociationOne | Allowed | Allowed | Allowed | Allowed | Allowed | Allowed | Refused | Refused |
+| AssociationMany | Allowed | Allowed | Allowed | Allowed | Allowed | Allowed | Refused | Refused |
+| AggregateOne | Allowed | Allowed | Refused | Refused | Refused | Refused | Refused | Refused |
+| AggregateMany | Allowed | Allowed | Refused | Refused | Refused | Refused | Refused | Refused |
+| CompositeOne | Allowed | Allowed | Refused | Refused | Refused | Refused | Refused | Refused |
+| CompositeMany | Allowed | Allowed | Refused | Refused | Refused | Refused | Refused | Refused |
+| Specialization | Refused | Refused | Refused | Refused | Refused | Refused | Refused | Allowed |
+| Generalization | Refused | Refused | Refused | Refused | Refused | Refused | Allowed | Refused |
+
+Twelve unordered combinations are permitted and twenty-four are refused; the directed 8×8 table has 22 permitted and 42 refused cells. Three rules produce it:
+
+1. **Specialization/generalization.** A paired inheritance relationship has exactly one `Specialization` and one `Generalization`; they pair only with each other, and neither pairs with an ordinary role.
+2. **Ownership/ownership.** For the six ordinary roles, at most one endpoint may be an ownership role (`Aggregate*` or `Composite*`); if one is ownership, the other must be `AssociationOne` or `AssociationMany`; if neither is ownership, both are association. Aggregate/aggregate, composite/composite and aggregate/composite are refused.
+3. **Cardinality.** One and Many describe cardinality only; compatibility is symmetric, so swapping the endpoints preserves the verdict.
+
+A refused pair raises `RoleCompatibilityError` naming both owner classes and fields, both resolved roles, the violated rule and the permitted correction. When an earlier declaration check fires first (a missing marker, an unresolved type, an absent reverse endpoint), that check reports its own boundary.
+
+`NoInverse` is permitted on each of the six ordinary containers and refused on `Specialization` and `Generalization`. Two opposite-direction `NoInverse` fields are two independent relationships, never a reciprocal pair; an `Inverse` may not target a `NoInverse` field. See [Step 21](../tutorials/step-21-relations.md) for the runnable scenarios and executed notebooks.
+
+#### The twelve permitted unordered role pairs
+
+| Pair family | Permitted pairs |
+| --- | --- |
+| Association / association | AssociationOne ↔ AssociationOne; AssociationOne ↔ AssociationMany; AssociationMany ↔ AssociationMany |
+| Association / aggregation | AssociationOne ↔ AggregateOne; AssociationOne ↔ AggregateMany; AssociationMany ↔ AggregateOne; AssociationMany ↔ AggregateMany |
+| Association / composition | AssociationOne ↔ CompositeOne; AssociationOne ↔ CompositeMany; AssociationMany ↔ CompositeOne; AssociationMany ↔ CompositeMany |
+| Classified axis | Specialization ↔ Generalization |
+
+All other unordered pairs are refused. In particular, ownership/ownership is refused even when both fields have valid descriptions and reciprocal markers. A permitted matrix cell does not waive completeness, reciprocity or classifier rules. The [compatibility guide](../how-to/relationship-role-compatibility.md) shows corrections and exact diagnostic text with executable scripts and notebooks.
+
+The role matrix is verified for the eight supplied roles. Custom container subclasses currently have a [confirmed validation gap](../reports/endpoint-role-verification.md#custom-container-subclasses): an unknown subclass may bypass role comparison. Do not treat this as an additional permitted pairing.
 
 ### Mandatory Inverse or NoInverse
 
@@ -421,24 +459,24 @@ inherit its parent's catalogue instead.
 | Boundary | Contract |
 | --- | --- |
 | Dictionary property declaration | Supported scalar/date/time/UUID types, Enum, Literal, unions and tuples; list/dict/set/frozenset/Any/nested models are refused, including inside unions or tuples |
-| Entity selection declaration | Complete `Annotated[AssociationOne[D], NoInverse()]` with an assignment-side `Field`; D must be a nonempty decorated catalogue included in the graph |
-| Entity selection Python input | An explicit `AssociationOne(id=code, entity=optional_canonical_member)`; validation creates a new wrapper with the canonical member, without mutating the caller's wrapper |
-| Entity selection JSON input | Exactly an id-only object, or null when the field is nullable; raw members, strings and Python mappings are not selection inputs |
+| Entity selection declaration | Any of the six ordinary containers around D with exactly one direction marker and an assignment-side `Field`; D must be a nonempty decorated catalogue included in the graph |
+| Entity selection Python input | An explicit container of the declared class: `AssociationOne(id=code)` for to-one, `AssociationMany(ids=(code, ...))` for to-many; validation creates a new wrapper with the canonical members, without mutating the caller's wrapper |
+| Entity selection JSON input | A to-one field accepts an id-only object (or null when nullable); a to-many field accepts an array of id-only objects. Raw members, strings and Python mappings are not selection inputs |
 | Standalone dictionary/DTO reference | A declared instance or mapping with code; copied or foreign instances, unknown/missing/blank codes, bare strings and unknown top-level keys are refused |
 | Reference descriptions | Standalone reference descriptions do not change the declared value; selection JSON accepts no descriptive keys |
-| Optional reference | None only when the containing field permits it; an unknown code never becomes absence |
-| Export | to_reference() equals model_dump(mode="json"); field serializers run and extra fields appear under properties |
-| Input schema | Standalone reference requires code and permits label/properties; an entity association requires only id; runtime still checks membership and whitespace-only codes |
-| Output schema | Standalone dictionary schema describes emitted custom property types and retains definitions; association output requires code/display_name/properties but currently describes nested properties only as an object ([limitation](../reports/complete-relationship-verification.md#association-serialization-schema)) |
+| Optional reference | None only when the containing field permits it; a loaded empty Many exports an empty array; an unknown code never becomes absence |
+| Export | A selected member exports its to_reference() result; Many exports an array of those references. Property serializers run, and extra fields appear under properties |
+| Input schema | Standalone reference requires code and permits label/properties; a to-one entity relationship requires id and a to-many relationship requires an array of id objects; runtime still checks membership and whitespace-only codes |
+| Output schema | Standalone dictionary schema describes emitted custom property types and retains definitions; relationship output requires code/display_name/properties but currently describes nested properties only as an object ([limitation](../reports/endpoint-role-verification.md#typed-custom-property-schemas)) |
 | Completed values | Checked after user validators; Literal choices match by type and value; a leaf matches the exact declared type, so bool is not int, int is not float and datetime is not date |
 | Nullability | A union accepts None only when included; Literal may list None explicitly; a property annotated only None is refused |
 | Tuple properties | Each item follows its annotation; a refusal identifies the item index |
-| Graph | The dictionary node carries properties.values; a selection retains its EntityField/reference_qualname and emits one ordinary entity_relation (association, cardinality one, has_inverse false), without a new entity_reference edge; values are not separate nodes |
+| Graph | The dictionary node carries properties.values; a selection retains its EntityField/reference_qualname and emits one ordinary entity_relation carrying the declared role family and cardinality (`association`/one for `AssociationOne`, `association`/many for `AssociationMany`, `composition`/one for `CompositeOne`, …), with no new entity_reference edge; values are not separate nodes |
 
 The property check inspects the annotation when the class is created and the completed member
 after custom validators run: a result outside the declared types, outside a `Literal`'s
-choices, or null where the union excludes it is refused. Serialization schemas retain the
-definitions used by Enum properties. A state's property types remain unrestricted by the
+choices, or null where the union excludes it is refused. Standalone dictionary serialization schemas retain the
+definitions used by Enum properties. Relationship wrapper schemas currently expose only a broad nested properties object. A state's property types remain unrestricted by the
 dictionary rule, and frozen models do not recursively freeze mutable state properties. The
 [dictionary guide](../tutorials/step-20-dictionaries.md) demonstrates the supported paths
 and documents these limits.
@@ -499,9 +537,7 @@ alternatives, while the
 [subset example](../../examples/step_21_relations/38_error_axis_subset.py) is refused.
 Independent disjoint alternative sets on one head are not supported by this check.
 
-Use the paired `Inverse` declarations shown in the tutorial. The specialization check still does not enforce every reverse `Inverse` target/field check
-performed for ordinary relationships. In particular, a `Generalization` inverse paired with a
-`NoInverse` specialization head is currently accepted: this is a [confirmed defect](../reports/complete-relationship-verification.md#specialization-directions), not a supported declaration alternative. A bare `Generalization` to a head without an axis
+Use the paired `Inverse` declarations shown in the tutorial. Specialization and Generalization now require reciprocal Inverse markers; NoInverse on either field is refused during declaration validation. Role compatibility supplements the existing classifier/coverage checks. It does not establish a database relationship or perform storage validation. A bare `Generalization` to a head without an axis
 does not establish a validated specialization.
 
 #### Runtime values and diagnostics
@@ -614,4 +650,4 @@ Maxitor draws lifecycles as FSM diagrams straight from the entity code. The anal
   <td align="right"></td>
 </tr></table>
 
-Dictionary selection fields require a complete single association and NoInverse. Bare dictionary annotations, many/ownership containers, inverse or embedded markers, empty catalogues and targets outside the graph are refused at model build. See [dictionary reference declarations](../how-to/dictionary-references.md).
+Dictionary selection fields require a complete declaration in one of the six ordinary containers. Bare annotations, raw collections, embedded markers, empty catalogues and targets outside the graph are refused. Reciprocal markers follow the general rules, with the current catalogue reverse-field gap documented separately. See [dictionary reference declarations](../how-to/dictionary-references.md).

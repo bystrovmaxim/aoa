@@ -19,7 +19,7 @@ class FxResidualTagCoreEntity(BaseCoreEntity):
     lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: CurrencyEnumEntity = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
     narrative: Annotated[
         AssociationOne[NarrativeCorrectionCoreEntity],
         NoInverse(),
@@ -27,7 +27,7 @@ class FxResidualTagCoreEntity(BaseCoreEntity):
         description="Upstream narrative correction"
     )
 
-    quote_currency_iso: CurrencyEnumEntity = Field(description="Currency used for hedge quote")
+    quote_currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency used for hedge quote")
     base_amount_minor: int = Field(description="Amount in transactional currency minors", ge=0)
     residual_amount_minor: int = Field(description="Post-conversion rounding residual", ge=0)
     fx_feed_provider: str = Field(description="Rate feed supplier code")
