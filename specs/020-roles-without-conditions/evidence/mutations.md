@@ -82,3 +82,33 @@ The scratch files `archive/mutations/m1_reintroduce_grant.py` and
 `archive/mutations/m2_remove_check_roles.py` are the record; nothing in the user's working tree was
 mutated, so there is nothing to restore.
 
+## Recorded outcomes — Procedure 5 (T021)
+
+M3 and M4 were run as scratch scripts under `archive/mutations/` against the installed package.
+
+### M3 — a `SILENCED` role is still refused
+
+```text
+silenced caller -> CHECK_ROLES
+M3 PASS: a silenced role grants nothing
+```
+
+Targeted check: `test_roles.py::test_only_silenced_roles_fail_admin` (green).
+Neighbouring control: `test_roles.py::test_silenced_roles_dropped_before_match` (green).
+
+### M4 — a `GuestRole` operation open, then refusing
+
+```text
+GuestRole, no rule -> Allowed
+GuestRole + rule -> Refused ACCESS_DECIDE
+M4 PASS: the object rule turns the same open operation into a refusal
+```
+
+Targeted check: `test_cascade_decide.py::test_an_open_operation_admits_anyone` and
+`test_access_decide_context.py::TestRolesInTheView` (green).
+Neighbouring control: `test_roles.py::test_guest_beside_role_allows_anonymous_caller` (green).
+
+The scratch files `archive/mutations/m3_silenced_role.py` and `archive/mutations/m4_guest_rule.py`
+are the record; the user's working tree was never mutated.
+
+

@@ -43,9 +43,9 @@ def _verdict(gate: Gate = Gate.ACCESS_DECIDE) -> Undecided:
 
 class TestTheVerdictIsTheException:
     def test_the_answer_names_the_step_that_could_not_tell(self) -> None:
-        undecided = AccessUndecided(_verdict(Gate.GUARD))
+        undecided = AccessUndecided(_verdict(Gate.CHECK_ROLES))
 
-        assert undecided.verdict.gate is Gate.GUARD
+        assert undecided.verdict.gate is Gate.CHECK_ROLES
         assert undecided.verdict.kind == "undecided"
 
     def test_every_published_word_survives(self) -> None:
@@ -75,9 +75,9 @@ class TestTheFailureIsTheCause:
 
     def test_the_traceback_names_the_step_and_the_failure(self) -> None:
         with pytest.raises(AccessUndecided) as raised:
-            raise AccessUndecided(_verdict(Gate.WHEN)) from _FAILURE
+            raise AccessUndecided(_verdict(Gate.CHECK_ROLES)) from _FAILURE
 
-        assert str(raised.value) == "Access could not be decided by WHEN."
+        assert str(raised.value) == "Access could not be decided by CHECK_ROLES."
 
 
 class TestNoFailureText:
@@ -91,4 +91,4 @@ class TestNoFailureText:
         assert "refused the connection" not in str(answer.model_dump())
 
     def test_the_message_of_a_refusal_carries_no_failure_text_either(self) -> None:
-        assert "postgres" not in str(AccessDenied(Refused(gate=Gate.WHEN, reason="ONLY_SALES_AGENTS")))
+        assert "postgres" not in str(AccessDenied(Refused(gate=Gate.ACCESS_DECIDE, reason="ONLY_SALES_AGENTS")))

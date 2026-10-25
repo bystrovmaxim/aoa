@@ -9,23 +9,19 @@ PURPOSE
 
 An operator watching a service needs to see a decision being made and a gate failing,
 and must never see what the caller was not told. This module pins that, cell by cell:
-four points the decision can stop at, three situations at each, two modes of being asked.
+the role step and the object step, two modes of being asked, and one gate that can fail.
 
 The rules the matrix comes from:
 
 - the run is announced only once the early gates have let the call through, so a refusal
-  there leaves nothing behind, while a call stopped at the object step keeps its
-  ``GlobalStart`` without a ``GlobalFinish``;
+  at the role step leaves nothing behind, while a call stopped at the object step keeps
+  its ``GlobalStart`` without a ``GlobalFinish``;
 - asking in advance runs nothing, so it publishes no lifecycle and no failure;
 - the object check announces itself when it is declared: a ``before`` whenever it starts,
   an ``after`` whenever it finishes;
 - a gate that could not tell publishes one failed-gate event naming itself, and only while
   a call executes;
 - the failure's kind travels, its text never does.
-
-The cells where a gate could not tell are red until the machine raises ``AccessUndecided``
-instead of re-raising the failure (T044). They are written this way on purpose: this task
-states the contract, and the implementation tasks make it true.
 
 ═══════════════════════════════════════════════════════════════════════════════
 STRUCTURE
@@ -54,7 +50,7 @@ from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_action import BaseAction
@@ -105,26 +101,6 @@ _OBJECT_CELLS = {
 """Which way the object check answers, per matrix cell."""
 
 
-def _fail_when(user: Any) -> bool:
-    """A role condition that cannot complete."""
-    raise ConnectionError(_SECRET)
-
-
-def _fail_guard(user: Any, params: Any) -> bool:
-    """A shared condition that cannot complete."""
-    raise ConnectionError(_SECRET)
-
-
-def _allow_guard(user: Any, params: Any) -> bool:
-    """A shared condition that lets everyone through."""
-    return True
-
-
-def _refuse_guard(user: Any, params: Any) -> bool:
-    """A shared condition that refuses everyone."""
-    return False
-
-
 @meta(description="events: a bare role requirement", domain=SystemDomain)
 @check_roles(AdminRole)
 class RolesOnlyAction(BaseAction["RolesOnlyAction.Params", "RolesOnlyAction.Result"]):
@@ -142,61 +118,6 @@ class RolesOnlyAction(BaseAction["RolesOnlyAction.Params", "RolesOnlyAction.Resu
     ) -> RolesOnlyAction.Result:
         """Produce the operation's result."""
         return RolesOnlyAction.Result()
-
-
-@meta(description="events: a role condition that cannot complete", domain=SystemDomain)
-@check_roles(grant(AdminRole, when=_fail_when, reason="CONDITION_FAILED"))
-class ConditionFailsAction(BaseAction["ConditionFailsAction.Params", "ConditionFailsAction.Result"]):
-    """An operation whose matching role's condition cannot be evaluated."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-
-@meta(description="events: a shared condition that allows", domain=SystemDomain)
-@check_roles(AdminRole, guard=_allow_guard, guard_reason="GUARD_ALLOWS")
-class GuardAllowsAction(BaseAction["GuardAllowsAction.Params", "GuardAllowsAction.Result"]):
-    """An operation whose shared condition lets everyone through."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-    @summary_aspect("S")
-    async def guard_summary(
-        self, params: GuardAllowsAction.Params, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> GuardAllowsAction.Result:
-        """Produce the operation's result."""
-        return GuardAllowsAction.Result()
-
-
-@meta(description="events: a shared condition that refuses", domain=SystemDomain)
-@check_roles(AdminRole, guard=_refuse_guard, guard_reason="SHOP_CLOSED")
-class GuardRefusesAction(BaseAction["GuardRefusesAction.Params", "GuardRefusesAction.Result"]):
-    """An operation whose shared condition refuses everyone."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-
-@meta(description="events: a shared condition that cannot complete", domain=SystemDomain)
-@check_roles(AdminRole, guard=_fail_guard, guard_reason="GUARD_FAILED")
-class GuardFailsAction(BaseAction["GuardFailsAction.Params", "GuardFailsAction.Result"]):
-    """An operation whose shared condition cannot be evaluated."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
 
 
 @meta(description="events: an object check that answers three ways", domain=SystemDomain)
@@ -301,12 +222,6 @@ def _set_object_behaviour(behaviour: str) -> None:
     _OBJECT_BEHAVIOUR = behaviour
 
 
-def _aim_object_check(situation: str) -> None:
-    """Aim the object check when the cell is an object cell, and leave the others alone."""
-    if situation in _OBJECT_CELLS:
-        _set_object_behaviour(_OBJECT_CELLS[situation])
-
-
 def _admin(trace_id: str | None = None) -> Context:
     """A caller holding the role every probe lists, optionally with a request identity."""
     return Context(user=UserInfo(user_id="u-1", roles=(AdminRole,)), request=RequestInfo(trace_id=trace_id))
@@ -317,28 +232,15 @@ def _stranger() -> Context:
     return Context(user=UserInfo(user_id="u-2", roles=()))
 
 
-def _early_probe(situation: str) -> tuple[type[BaseAction[Any, Any]], Context]:
-    """Return the operation and caller that put an early gate in the named situation."""
+def _case(situation: str) -> tuple[type[BaseAction[Any, Any]], Context]:
+    """Return the operation and caller for one cell."""
+    if situation in _OBJECT_CELLS:
+        return ObjectCheckedAction, _admin()
     if situation == "roles allowed":
         return RolesOnlyAction, _admin()
     if situation == "roles refused":
         return RolesOnlyAction, _stranger()
-    if situation == "roles could not tell":
-        return ConditionFailsAction, _admin()
-    if situation == "guard allowed":
-        return GuardAllowsAction, _admin()
-    if situation == "guard refused":
-        return GuardRefusesAction, _admin()
-    if situation == "guard could not tell":
-        return GuardFailsAction, _admin()
     raise AssertionError(f"unknown situation: {situation}")
-
-
-def _case(situation: str) -> tuple[type[BaseAction[Any, Any]], Context]:
-    """Return the operation and caller for one cell, object cells included."""
-    if situation in _OBJECT_CELLS:
-        return ObjectCheckedAction, _admin()
-    return _early_probe(situation)
 
 
 async def _execute(
@@ -359,10 +261,6 @@ async def _execute(
 _EXECUTE_CASES = [
     pytest.param("roles allowed", [_RUN_START, _RUN_FINISH], id="roles allowed"),
     pytest.param("roles refused", [], id="roles refused"),
-    pytest.param("roles could not tell", [_FAILED], id="roles could not tell"),
-    pytest.param("guard allowed", [_RUN_START, _RUN_FINISH], id="guard allowed"),
-    pytest.param("guard refused", [], id="guard refused"),
-    pytest.param("guard could not tell", [_FAILED], id="guard could not tell"),
     pytest.param("object allowed", [_RUN_START, _BEFORE, _AFTER, _RUN_FINISH], id="object allowed"),
     pytest.param("object refused", [_RUN_START, _BEFORE, _AFTER], id="object refused"),
     pytest.param("object could not tell", [_RUN_START, _BEFORE, _FAILED], id="object could not tell"),
@@ -371,10 +269,6 @@ _EXECUTE_CASES = [
 _ASK_CASES = [
     pytest.param("roles allowed", [], id="roles allowed"),
     pytest.param("roles refused", [], id="roles refused"),
-    pytest.param("roles could not tell", [], id="roles could not tell"),
-    pytest.param("guard allowed", [], id="guard allowed"),
-    pytest.param("guard refused", [], id="guard refused"),
-    pytest.param("guard could not tell", [], id="guard could not tell"),
     pytest.param("object allowed", [_BEFORE, _AFTER], id="object allowed"),
     pytest.param("object refused", [_BEFORE, _AFTER], id="object refused"),
     pytest.param("object could not tell", [_BEFORE], id="object could not tell"),
@@ -386,7 +280,7 @@ class TestTheDecisionMatrix:
     async def test_executing_publishes_exactly_this(
         self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str, expected: list[str]
     ) -> None:
-        _aim_object_check(situation)
+        _set_object_behaviour(_OBJECT_CELLS.get(situation, "allowed"))
         action, caller = _case(situation)
 
         await _execute(machine, action, caller, stops=_RUN_FINISH not in expected)
@@ -397,7 +291,7 @@ class TestTheDecisionMatrix:
     async def test_asking_in_advance_publishes_exactly_this(
         self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str, expected: list[str]
     ) -> None:
-        _aim_object_check(situation)
+        _set_object_behaviour(_OBJECT_CELLS.get(situation, "allowed"))
         action, caller = _case(situation)
 
         await machine.check_access_decide(caller, action, action.Params())
@@ -418,46 +312,36 @@ class TestTheDecisionMatrix:
 
 
 class TestOneFailedGateEvent:
-    @pytest.mark.parametrize("situation", ["roles could not tell", "guard could not tell", "object could not tell"])
     async def test_exactly_one_while_executing(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str
+        self, machine: ActionProductMachine, exporter: InMemoryExporter
     ) -> None:
-        _aim_object_check(situation)
-        action, caller = _case(situation)
+        _set_object_behaviour("failed")
+        action, caller = _case("object could not tell")
 
         await _execute(machine, action, caller, stops=True)
 
         assert exporter.decision_events().count(_FAILED) == 1
 
-    @pytest.mark.parametrize("situation", ["roles could not tell", "guard could not tell", "object could not tell"])
     async def test_none_while_asking(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str
+        self, machine: ActionProductMachine, exporter: InMemoryExporter
     ) -> None:
-        _aim_object_check(situation)
-        action, caller = _case(situation)
+        _set_object_behaviour("failed")
+        action, caller = _case("object could not tell")
 
         await machine.check_access_decide(caller, action, action.Params())
 
         assert _FAILED not in exporter.decision_events()
 
-    @pytest.mark.parametrize(
-        ("situation", "gate"),
-        [
-            ("roles could not tell", "CHECK_ROLES"),
-            ("guard could not tell", "GUARD"),
-            ("object could not tell", "ACCESS_DECIDE"),
-        ],
-    )
     async def test_it_names_the_step_and_the_kind_of_failure(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str, gate: str
+        self, machine: ActionProductMachine, exporter: InMemoryExporter
     ) -> None:
-        _aim_object_check(situation)
-        action, caller = _case(situation)
+        _set_object_behaviour("failed")
+        action, caller = _case("object could not tell")
 
         await _execute(machine, action, caller, stops=True)
 
         (record,) = [one for one in exporter.records if one.name == _FAILED]
-        assert record.payload["gate"] == gate
+        assert record.payload["gate"] == "ACCESS_DECIDE"
         assert record.payload["exception_type"] == "ConnectionError"
 
 
@@ -465,7 +349,8 @@ class TestTheRequestIdentity:
     async def test_it_is_carried_when_the_context_has_one(
         self, machine: ActionProductMachine, exporter: InMemoryExporter
     ) -> None:
-        await _execute(machine, ConditionFailsAction, _admin(trace_id="trace-1"), stops=True)
+        _set_object_behaviour("failed")
+        await _execute(machine, ObjectCheckedAction, _admin(trace_id="trace-1"), stops=True)
 
         assert exporter.records
         assert {record.trace_id for record in exporter.records} == {"trace-1"}
@@ -473,7 +358,8 @@ class TestTheRequestIdentity:
     async def test_it_is_absent_when_the_context_has_none(
         self, machine: ActionProductMachine, exporter: InMemoryExporter
     ) -> None:
-        await _execute(machine, ConditionFailsAction, _admin(), stops=True)
+        _set_object_behaviour("failed")
+        await _execute(machine, ObjectCheckedAction, _admin(), stops=True)
 
         assert exporter.records
         assert {record.trace_id for record in exporter.records} == {None}
@@ -500,17 +386,9 @@ class TestNoFailureText:
             assert _SECRET not in record.text
             assert _SECRET not in str(record.payload)
 
-    async def test_the_failure_of_an_early_gate_stays_out_too(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
-    ) -> None:
-        await _execute(machine, ConditionFailsAction, _admin(), stops=True)
-
-        assert exporter.records
-        for record in exporter.records:
-            assert _SECRET not in record.text
-            assert _SECRET not in str(record.payload)
-
     async def test_the_answer_carries_it_nowhere_either(self, machine: ActionProductMachine) -> None:
-        verdict = await machine.check_access_decide(_admin(), GuardFailsAction, GuardFailsAction.Params())
+        _set_object_behaviour("failed")
+
+        verdict = await machine.check_access_decide(_admin(), ObjectCheckedAction, ObjectCheckedAction.Params())
 
         assert _SECRET not in str(verdict.model_dump())
