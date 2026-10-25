@@ -33,6 +33,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from cryptography.hazmat.primitives import serialization
@@ -173,7 +174,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
-            "sid": "session-A",
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iss": _ISSUER,
             "iat": now,
             "exp": now + _TOKEN_TTL,

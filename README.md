@@ -138,7 +138,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.plugins.otel import OpenTelemetryPlugin
 from aoa.action_machine.loggers.console import ConsoleLogger
-from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.action_machine.auth.jwt_auth import JwtAuthCoordinator
 from aoa.adapters.fastapi import FastApiAdapter
 
 # 1. Machine
@@ -150,12 +150,13 @@ machine = ActionProductMachine(
 
 # 2. Authentication
 # The coordinator receives a FastAPI request object, extracts the Bearer token
-# from the Authorization header, verifies the signature and builds a Context with roles.
+# from the Authorization header, verifies the signature and builds a Context
+# with the caller, the login session and the roles.
 auth = JwtAuthCoordinator(
-    secret=os.environ["JWT_SECRET"],
+    secret_key=os.environ["JWT_SECRET"],
     algorithm="HS256",
-    role_claim="roles",
-    extract=lambda request: request.headers.get("Authorization", "").removeprefix("Bearer "),
+    role_registry={"manager": ManagerRole},
+    session_id_claim="sid",
 )
 
 # 3. Transport
@@ -236,8 +237,9 @@ At startup, a complete graph is built: all `Action` operations, their dependenci
 Receives the request object from the transport and builds a `Context` — a transport-independent representation of the runtime environment of the call: who is invoking the operation, with what roles, and what service fields.
 
 ```python
-# JWT, OAuth2, API-key — expected in the next release:
-# auth = JwtAuthCoordinator(secret=SECRET_KEY, role_claim="roles")
+# JWT — ready: docs/extensions/jwt.md
+# auth = JwtAuthCoordinator(secret_key=SECRET_KEY, role_registry={"manager": ManagerRole}, session_id_claim="sid")
+# OAuth2, API-key — expected in the next release:
 # auth = OAuth2Coordinator(introspect_url=INTROSPECT_URL)
 # auth = ApiKeyCoordinator(header="X-Api-Key", resolver=lookup_key)
 ```

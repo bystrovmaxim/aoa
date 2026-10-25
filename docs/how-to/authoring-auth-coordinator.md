@@ -51,7 +51,7 @@ class ApiKeyExtractor(CredentialExtractor):
         return {"api_key": key} if key else {}
 ```
 
-**Step 2. The authenticator** — verifies the data and returns a `UserInfo` (with roles) or `None`. Invalid data is `None`, **not an exception**:
+**Step 2. The authenticator** — verifies the data and returns a `UserInfo` (with roles) or `None`. Credentials that fail verification are `None`, **not an exception**. Raise only for a broken configuration, a programming error or a violated contract — the exception aborts the request, and the shipped adapters answer it as a server error (HTTP 500 / MCP `INTERNAL_ERROR`):
 
 ```python
 from aoa.action_machine.auth import Authenticator
