@@ -93,7 +93,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] Add a test under `packages/aoa-action-machine/tests/action_machine/intents/access_decide/` where `@access_decide` declares `@context_requires(Ctx.User.session_id)` and returns a session-dependent verdict, and a second assertion that an Action without a session-dependent policy yields unchanged built-in verdicts when only the session changes.
+- [x] T013 [US4] Add a test under `packages/aoa-action-machine/tests/action_machine/intents/access_decide/` where `@access_decide` declares `@context_requires(Ctx.User.session_id)` and returns a session-dependent verdict, and a second assertion that an Action without a session-dependent policy yields unchanged built-in verdicts when only the session changes.
 
 **Checkpoint**: session-based access is possible and the boundary is pinned.
 
