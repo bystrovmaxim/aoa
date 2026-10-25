@@ -6,7 +6,7 @@
 
 ## Summary
 
-Maxitor's one shared graph slot becomes a **graph store keyed by source**. Every graph read names its source as a `source` query parameter; a middleware turns that parameter into the request's graph before the adapter runs — building it on a cold read, once per source however many readers arrive — and refuses a missing or unbuildable source with a named reason. `DuckDBGraphHolder` stays one ready resource and resolves the request's graph instead of the application's. `POST /api/load` becomes "rebuild this source". Graphs unread for 5 minutes are removed, at most 50 are held, and nothing is ever re-checked on a timer. The client sends its source with every read, opens deep links without reloading, and gains a "Reload from service" button.
+Maxitor's one shared graph slot becomes a **graph store keyed by source**. Every graph read names its source as a `source` query parameter; a middleware turns that parameter into the request's graph before the adapter runs — building it on a cold read, once per source however many readers arrive — and refuses a missing or unbuildable source with a named reason. `DuckDBGraphHolder` stays one ready resource and resolves the request's graph instead of the application's. `POST /api/load` becomes "rebuild this source". Graphs unread for an hour are removed, at most 50 are held, and nothing is ever re-checked on a timer. The client sends its source with every read, opens deep links without reloading, and gains a "Reload from service" button.
 
 ## Technical Context
 
@@ -120,7 +120,7 @@ Every commit leaves the application working. That is why the client starts sendi
 
 ## Risks recorded
 
-- **Memory**: 50 graphs ≈ 2.4 GiB worst case (research). The maintainer kept the default of 50 because memory is taken per built graph, not reserved up front. A dropped graph's memory is not returned to the system on macOS, only reused, so the process size is the high-water mark of graphs held at once. Reducing the indexes behind 38 MiB of each graph, and measuring the behaviour on Linux, is #268.
+- **Memory**: 50 graphs ≈ 2.4 GiB worst case (research). The maintainer kept the default of 50 because memory is taken per built graph, not reserved up front. A dropped graph's memory is not returned to the system on macOS, only reused, so the process size is the high-water mark of graphs held at once. Reducing the indexes behind 38 MiB of each graph, and measuring the behaviour on Linux, is #268. The idle timeout is an hour, longer than a burst lasts, so on the stand the cap of 50 — not idling — is what bounds memory.
 - **Eviction by many sources**: without an allowlist (out of scope) anyone can name 50 sources and push out everyone else's graphs; it costs readers one rebuild each and the process its memory, never a wrong graph. Builds are bounded at 4 at a time, so at most 4 graphs are being built on top of the up to 50 held.
 - **Slots held by unreachable sources**: a download may take its full 15-second timeout, so four bad addresses can hold every build slot for 15 s and make cold reads of all sources wait. A failed source is remembered for 10 s and a read waiting 30 s for a slot gets a 503, so the stand answers instead of hanging; many distinct bad addresses can still fill the slots. Accepted consciously; the allowlist is the fix and is out of scope.
 - **Open tabs during the deploy**: a tab loaded before phase 4 is deployed keeps its old code until reloaded; from phase 2 on, that code already sends `source`, so only tabs older than phase 2's deploy see the 400.

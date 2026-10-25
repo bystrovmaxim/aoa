@@ -54,7 +54,7 @@ No other source is touched in either case.
 | Variable | Default | Meaning |
 |---|---|---|
 | `MAXITOR_MAX_GRAPHS` | `50` | most graphs one process holds; beyond it the least recently read one is removed |
-| `MAXITOR_GRAPH_IDLE_SECONDS` | `300` | a graph unread this long is removed |
+| `MAXITOR_GRAPH_IDLE_SECONDS` | `3600` | a graph unread this long is removed |
 | `MAXITOR_MAX_CONCURRENT_BUILDS` | `4` | builds running at once across all sources; the rest wait for a slot, up to 30 s |
 
 ## Browser behaviour (the client's side of the contract)

@@ -41,7 +41,7 @@ Consequence for FR-004: the clarified default of **50 graphs is about 2.4 GiB** 
 
 - **Decision**: an in-process `GraphStore` owned by the application: `source → entry(graph, sidebar, last_read)`.
   - **Single flight**: one in-flight build per source (an `asyncio` future); concurrent acquirers await it, so a burst costs one download and one build (FR-003, FR-013). A failed build fails every waiter with the same reason and stores nothing (FR-011).
-  - **Idle removal**: an entry unread for `idle_seconds` (default 300) is removed. The sweep runs on every store access, so no background task exists; an idle process keeps its last graphs until the next request, which is acceptable because nothing competes for that memory meanwhile.
+  - **Idle removal**: an entry unread for `idle_seconds` (default 3600) is removed. The sweep runs on every store access, so no background task exists; an idle process keeps its last graphs until the next request, which is acceptable because nothing competes for that memory meanwhile.
   - **Capacity**: at most `max_graphs` (default 50); inserting beyond it removes the least recently read entry.
   - **Configuration**: environment variables `MAXITOR_MAX_GRAPHS` and `MAXITOR_GRAPH_IDLE_SECONDS`, read where the app is built, as `MAXITOR_API_HOST` / `MAXITOR_API_PORT` already are.
   - **Clock**: injected (`time.monotonic` by default) so tests can move time without sleeping.

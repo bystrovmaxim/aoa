@@ -114,7 +114,7 @@ Graphs that nobody reads go away on their own, and the process never holds more 
 
 **Acceptance Scenarios**:
 
-1. **Given** X has not been read for the idle timeout (5 minutes by default), **When** the store is next checked, **Then** X is removed.
+1. **Given** X has not been read for the idle timeout (1 hour by default), **When** the store is next checked, **Then** X is removed.
 2. **Given** a browser tab with X open for longer than the idle timeout, **When** the user refreshes it or clicks a diagram, **Then** X's graph is shown again with no error and no prompt; only that first answer is slower.
 3. **Given** the store holds its maximum number of graphs, **When** a new source is built, **Then** the graph read least recently is removed.
 4. **Given** a read is in progress on X, **When** X is removed or replaced, **Then** that read finishes on the graph it started with.
@@ -147,7 +147,7 @@ Graphs that nobody reads go away on their own, and the process never holds more 
 - **FR-002**: A built graph MUST be kept together with the sidebar data built from it, so the two always come from the same source and the same build.
 - **FR-003**: The system MUST build a source at most once at a time: concurrent requests for a source that is being built wait for that build instead of starting another.
 - **FR-004**: The system MUST hold at most a configured number of graphs; when a new one would exceed it, the graph read least recently is removed. The maximum MUST be configurable and default to 50.
-- **FR-005**: The system MUST remove a graph that has not been read for the idle timeout; the idle timeout MUST be configurable and default to 5 minutes.
+- **FR-005**: The system MUST remove a graph that has not been read for the idle timeout; the idle timeout MUST be configurable and default to 1 hour.
 - **FR-006**: Removing or replacing a graph MUST NOT interrupt a read that is using it; that read finishes on the graph it started with.
 - **FR-007**: A single read MUST use one graph for all its queries, even if the same source is replaced while the read runs.
 
