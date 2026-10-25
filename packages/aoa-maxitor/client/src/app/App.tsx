@@ -6,7 +6,7 @@ import { LeftSidebar } from "@/components/navigation/LeftSidebar";
 import { useSidebarPayload } from "@/components/navigation/LeftSidebar/hooks/useSidebarPayload";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
-import { setActiveSource } from "@/api/client";
+import { GraphReadError, onGraphBusy, setActiveSource } from "@/api/client";
 import { loadGraph } from "@/api/load";
 import { pushServiceUrl } from "@/lib/serviceUrlHistory";
 import { firstSelectionOfKind } from "@/lib/sidebarNavigation";
@@ -22,6 +22,10 @@ import {
 export function App() {
   const [diagram, setDiagram] = useState<DiagramSelection | null>(null);
   const [serviceUrl, setServiceUrl] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [workspaceKey, setWorkspaceKey] = useState(0);
   const { sidebar, reload, reset } = useSidebarPayload();
   const pendingKind = useRef<ReturnType<typeof deepLinkNeedsSidebarDefault>>(null);
 
@@ -32,10 +36,26 @@ export function App() {
   const initialLinkRef = useRef<UrlDeepLink | undefined>(undefined);
   if (!initialLinkRef.current) {
     initialLinkRef.current = readUrlDeepLink();
-    // The source must be known before the page's first read. `useSidebarPayload`'s mount effect is
-    // declared above and runs before App's effects, so a source set in an effect would arrive too
-    // late and the sidebar read would leave without it.
+    // The source must be known before the page's first read: the read below goes out with it.
     setActiveSource(initialLinkRef.current.source ?? null);
+  }
+
+  // A busy server means "retrying", not "your source is wrong": the page says so and waits.
+  useEffect(() => onGraphBusy(() => setBusy(true)), []);
+
+  /** Read the sidebar of ``source``; a refused source falls back to the manual prompt. */
+  async function readSidebar(source: string) {
+    try {
+      await reload();
+      pushServiceUrl(source);
+      setBusy(false);
+    } catch (e) {
+      if (e instanceof GraphReadError && e.status === 422) {
+        setActiveSource(null);
+        setServiceUrl(null);
+        reset();
+      }
+    }
   }
 
   /** Applies a service+view combination read from the URL — initial load or a popstate. */
@@ -55,23 +75,16 @@ export function App() {
       const source = link.source;
       setActiveSource(source);
       setServiceUrl(source);
-      void loadGraph(source)
-        .then(() => {
-          pushServiceUrl(source);
-          return reload();
-        })
-        .catch(() => {
-          // Bad/unreachable ?source= — fall back to the manual "AOA Service URL" prompt.
-          setActiveSource(null);
-          setServiceUrl(null);
-        });
+      // A deep link only reads: the source is built by the read itself, not by POST /api/load.
+      void readSidebar(source);
     } else if (!link.source) {
       setActiveSource(null);
       setServiceUrl(null);
+      reset();
     }
   }
 
-  // Honor a deep link on first load: ?source=<service-url>&view=<slug>[&domain=|&node=&host=].
+  // Honor a deep link on first load: ?source=<service-url>&view=<slug>[&domain=|&node=|&host=].
   useEffect(() => {
     applyDeepLink(initialLinkRef.current!, null, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,6 +105,7 @@ export function App() {
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceUrl, sidebar]);
 
   // Keep the URL accurate as state resolves — replaceState, so it never adds a history entry on its own.
@@ -108,7 +122,9 @@ export function App() {
     pushUrlState(url, null);
     setActiveSource(url);
     setServiceUrl(url);
-    void reload();
+    setReloadError(null);
+    // The typed source already sent its one POST /api/load; this only reads its sidebar.
+    void reload().catch(() => undefined);
   }
 
   function handleReset() {
@@ -116,7 +132,25 @@ export function App() {
     setActiveSource(null);
     setServiceUrl(null);
     setDiagram(null);
+    setReloadError(null);
+    setBusy(false);
     reset();
+  }
+
+  /** Rebuild the open source from its service, then read its sidebar and the current diagram again. */
+  async function handleReloadFromService() {
+    if (!serviceUrl || reloading) return;
+    setReloading(true);
+    setReloadError(null);
+    try {
+      await loadGraph(serviceUrl);
+      await reload();
+      setWorkspaceKey((count) => count + 1);
+    } catch (e) {
+      setReloadError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReloading(false);
+    }
   }
 
   return (
@@ -128,10 +162,15 @@ export function App() {
           sidebar={sidebar}
           onLoaded={handleLoaded}
           onReset={handleReset}
+          source={serviceUrl}
+          onReloadFromService={() => void handleReloadFromService()}
+          reloading={reloading}
+          reloadError={reloadError}
+          busy={busy}
         />
       }
     >
-      <DiagramWorkspacePage diagram={diagram} />
+      <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
     </MainLayout>
   );
 }
