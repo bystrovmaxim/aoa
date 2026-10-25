@@ -76,9 +76,9 @@ Two boundary notes:
 **Goal**: the graph carries no condition data, one edge per distinct role, and the `AccessDecide` node as its only statement about an object rule.
 **Independent acceptance**: an exported graph has no `when`/`when_reason`/`guard`/`guard_reason` anywhere, one edge per distinct role, and an `AccessDecide` node exactly when a rule is declared.
 
-- [ ] T022 [P] [US4] Extend `packages/aoa-action-machine/tests/action_machine/graph/edges/test_role_graph_edge.py`: one edge per distinct role in declaration order, duplicates collapsed, exported `properties == {}`, no callable reachable on the edge.
-- [ ] T023 [P] [US4] Extend `packages/aoa-action-machine/tests/action_machine/graph/nodes/test_action_graph_node.py`: the action node carries no `guard`/`guard_reason`, the `AccessDecide` node appears exactly when the operation declares one, and its required-context companions name the declared keys.
-- [ ] T024 [US4] Run `uv run --extra dev pytest packages/aoa-maxitor/tests/test_duckdb_access_decide_type.py packages/aoa-maxitor/tests/test_full_graph_payload_metrics.py -q` unchanged and record in `specs/020-roles-without-conditions/evidence/maxitor.md` that the payload still validates and the `AccessDecide` node still reaches DuckDB; no Maxitor source is edited.
+- [x] T022 [P] [US4] Extend `packages/aoa-action-machine/tests/action_machine/graph/edges/test_role_graph_edge.py`: one edge per distinct role in declaration order, duplicates collapsed, exported `properties == {}`, no callable reachable on the edge.
+- [x] T023 [P] [US4] Extend `packages/aoa-action-machine/tests/action_machine/graph/nodes/test_action_graph_node.py`: the action node carries no `guard`/`guard_reason`, the `AccessDecide` node appears exactly when the operation declares one, and its required-context companions name the declared keys.
+- [x] T024 [US4] Run `uv run --extra dev pytest packages/aoa-maxitor/tests/test_duckdb_access_decide_type.py packages/aoa-maxitor/tests/test_full_graph_payload_metrics.py -q` unchanged and record in `specs/020-roles-without-conditions/evidence/maxitor.md` that the payload still validates and the `AccessDecide` node still reaches DuckDB; no Maxitor source is edited.
 
 ## Procedure 7 — US5: the repository's own declarations (P2)
 
