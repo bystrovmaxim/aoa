@@ -16,6 +16,7 @@ Requires:
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from fastapi.testclient import TestClient
@@ -112,13 +113,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign a JWT carrying sub (user_id) and roles; return it as a bearer token.")
+    @summary_aspect("Sign a JWT carrying sub (user_id), sid (session id) and roles; return it as a bearer token.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }

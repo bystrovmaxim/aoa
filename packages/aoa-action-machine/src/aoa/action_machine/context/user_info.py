@@ -7,7 +7,8 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``UserInfo`` is a ``Context`` component that carries caller identity:
-``user_id`` and a tuple of role classes (``BaseRole`` subclasses).
+``user_id``, an optional ``session_id`` and a tuple of role classes
+(``BaseRole`` subclasses).
 
 It is consumed by role guards (for example, ``@check_roles``) and by aspects
 via ``@context_requires``/``ContextView`` for audit and telemetry scenarios.
@@ -19,7 +20,7 @@ ARCHITECTURE / DATA FLOW
     AuthCoordinator / NoAuthCoordinator
                    |
                    v
-    UserInfo(user_id, roles[BaseRole subclasses])
+    UserInfo(user_id, session_id, roles[BaseRole subclasses])
                    |
                    v
     Context(user=UserInfo)
@@ -35,7 +36,8 @@ ARCHITECTURE / DATA FLOW
 ANONYMOUS USER
 ═══════════════════════════════════════════════════════════════════════════════
 
-``UserInfo()`` creates an anonymous principal: ``user_id=None`` and ``roles=()``.
+``UserInfo()`` creates an anonymous principal: ``user_id=None``,
+``session_id=None`` and ``roles=()``.
 This shape is typically used by ``NoAuthCoordinator`` for public endpoints.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -79,14 +81,15 @@ class UserInfo(BaseSchema):
     """
     AI-CORE-BEGIN
         ROLE: Principal metadata contract for authorization and audit.
-        CONTRACT: Store ``user_id`` and a normalized tuple of role classes.
-        INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses.
+        CONTRACT: Store ``user_id``, an optional ``session_id`` and a normalized tuple of role classes.
+        INVARIANTS: Frozen model, forbid-extra fields, roles are BaseRole subclasses; ``session_id`` is optional and, when present, a string.
         AI-CORE-END
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     user_id: str | None = None
+    session_id: str | None = None
     roles: tuple[type[BaseRole], ...] = Field(default_factory=tuple)
 
     @field_validator("roles", mode="before")

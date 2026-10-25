@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-25] — A JWT request carries its login session
+
+An authenticated JWT request now identifies two things: who is calling and which login session the call belongs to. The context gains a session id next to the user id, so audit records and access rules can tell two logins of the same user apart. An aspect or an `@access_decide` rule reads it like any other context field, without decoding the token again.
+
+The session claim is required. Every `JwtAuthCoordinator` and `JwtAuthenticator` names it with `session_id_claim` — there is no default and no way to switch it off — and every token issuer must put that claim into its tokens, server-to-server tokens included. One login gets one session id, and a refreshed token keeps it. AOA only carries the value: it stores no sessions and has no logout, so ending a session is a rule the application writes.
+
+The user id and the session id follow one strict rule. A token that fails verification — bad signature, expired, wrong audience or issuer — is still an ordinary refusal. A verified token whose user id or session id is missing, empty, blank or not a string now raises `AuthenticationContractError`, which names the claim and the reason but never its value; over FastAPI the caller gets a server error rather than a 403. Some tokens that used to be refused quietly now raise as well: a missing or numeric `sub` is one of them. A blank `sub` is no longer accepted, and a number in a custom user-id claim is no longer turned into text.
+
+To migrate, add `session_id_claim="sid"` (or your issuer's claim name) to every constructor, make the issuer emit that claim, and emit `sub` as a string. The JWT guide walks through the new rules with runnable examples. ([#263](https://github.com/bystrovmaxim/aoa/issues/263))
+
 ## [2026-10-25] — A dictionary is an ordinary card, and its values stay in the graph
 
 A dictionary used to be drawn as a table of everything it accepts: one line per value, with the value's

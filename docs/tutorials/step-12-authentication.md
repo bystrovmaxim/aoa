@@ -75,13 +75,13 @@ class AuthCoordinator:
 Each component is an extension point (an abstract class):
 
 - **`CredentialExtractor.extract(request)` → `dict`** — pulls credentials out of the request (a Bearer token from a header, a key from the query, a login/password). Empty — entry is aborted.
-- **`Authenticator.authenticate(credentials)` → `UserInfo | None`** — verifies them and returns a user with roles; invalid data → `None` (not an exception).
+- **`Authenticator.authenticate(credentials)` → `UserInfo | None`** — verifies them and returns a user with roles; credentials that fail verification → `None` (not an exception). An exception is reserved for a broken configuration, a programming error or a violated contract — for example, the built-in JWT authenticator raises `AuthenticationContractError` when a verified token lacks the user id or the session id ([details](../extensions/jwt.md#required-claims-refusal-or-contract-failure)).
 - **`ContextAssembler.assemble(request)` → `dict`** — extracts request metadata (`trace_id`, path, IP, …) for `RequestInfo`.
 
 `Authenticator` is the place where the concrete entry method lives. For example:
 
 ```python
-class JwtAuthenticator(Authenticator):
+class MyTokenAuthenticator(Authenticator):
     async def authenticate(self, credentials) -> UserInfo | None:
         claims = verify_jwt(credentials["token"])           # your signature verification
         if claims is None:
@@ -89,11 +89,11 @@ class JwtAuthenticator(Authenticator):
         return UserInfo(user_id=claims["sub"], roles=(ManagerRole,))
 ```
 
-`UserInfo.roles` is a tuple of **role classes** (not strings), which `@check_roles` will then check.
+`UserInfo.roles` is a tuple of **role classes** (not strings), which `@check_roles` will then check. `UserInfo.session_id` is optional: the built-in [JWT coordinator](../extensions/jwt.md#the-session-id) always fills it with the login session id, while your own authenticator sets it only if it has one.
 
 ## NoAuthCoordinator
 
-The only coordinator ready out of the box today is `NoAuthCoordinator`. It does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
+Two coordinators ship out of the box: `NoAuthCoordinator` for open access and [`JwtAuthCoordinator`](../extensions/jwt.md) for Bearer/JWT (`extra [jwt]`). `NoAuthCoordinator` does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
 
 ```python
 context = await NoAuthCoordinator(context=Context()).process(None)
@@ -107,7 +107,7 @@ Only `CredentialExtractor` is protocol-dependent — it knows where to take cred
 
 ## Four ready methods
 
-For now you implement `Authenticator` for your own method yourself — except for one that already ships. Out-of-the-box implementations for four common schemes are planned:
+Out of four common schemes, one already ships (JWT); for the other three you implement `Authenticator` yourself until their ready implementations arrive:
 
 - **HTTP Basic Auth** — [issue #104](https://github.com/bystrovmaxim/aoa/issues/104),
 - **[Bearer Token (JWT)](../extensions/jwt.md)** — ready (`extra [jwt]`); works with FastAPI, does not yet work with MCP (see the article — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113)),
@@ -139,13 +139,13 @@ app = (
 )
 ```
 
-`BaseAdapter.effective_auth_coordinator(record)` resolves the coordinator for a given call: if the route has its own `auth_coordinator`, that one is used, otherwise — the adapter default. This way a strict coordinator (JWT, say) stays strict for every route except the explicitly listed exceptions — like a login endpoint, which has no token to present. Details — in [«Your own adapter»](../how-to/authoring-adapter.md#what-the-base-guarantees).
+`BaseAdapter.effective_auth_coordinator(record)` resolves the coordinator for a given call: if the route has its own `auth_coordinator`, that one is used, otherwise — the adapter default. This way a strict coordinator (JWT, say) stays strict for every route except the explicitly listed exceptions — like a login endpoint, which has no token to present. Details — in [«Your own adapter»](../how-to/authoring-adapter.md#the-handler-owns-one-call).
 
 ## Invariants
 
 - **`Context` is built by the transport, not the machine.** The machine receives a ready `Context` in `run(context, ...)`.
 - **A pipeline of three components.** `extract → authenticate → assemble → Context`; empty credentials or an invalid user → `None`.
-- **Invalid is `None`, not an exception.** `Authenticator` returns `None` rather than raising.
+- **Invalid is `None`, not an exception.** `Authenticator` returns `None` for credentials that fail verification. It raises only for a broken configuration, a programming error or a violated contract, and such an exception aborts the request.
 - **Anonymity is declared.** Open access is `NoAuthCoordinator`, not the absence of a check.
 - **Authentication ≠ authorization.** The first puts roles into `Context`; the second (`@check_roles`) checks them in the machine.
 - **Only the extractor is protocol-dependent.** Verification and `Context` assembly are reused across transports.
@@ -155,7 +155,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Authentication is a separate layer at the transport boundary: `AuthCoordinator` extracts credentials, verifies them, and assembles `Context`, which the machine receives ready. The concrete entry method lives in `Authenticator`; only the extractor is protocol-dependent, so one logic serves any transport. Today `NoAuthCoordinator` (anonymous access) is available out of the box, while four typical methods — Basic, JWT, API key, OAuth2 — are planned. Authentication establishes who is calling; what they are allowed is checked by [`@check_roles`](step-03-authorization-and-roles.md).
+Authentication is a separate layer at the transport boundary: `AuthCoordinator` extracts credentials, verifies them, and assembles `Context`, which the machine receives ready. The concrete entry method lives in `Authenticator`; only the extractor is protocol-dependent, so one logic serves any transport. Out of the box there are `NoAuthCoordinator` (anonymous access) and `JwtAuthCoordinator` (Bearer/JWT); Basic, API key and OAuth2 are planned. Authentication establishes who is calling; what they are allowed is checked by [`@check_roles`](step-03-authorization-and-roles.md).
 
 Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP, now that `Context` can be built at the transport boundary.
 
@@ -166,10 +166,10 @@ Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP
 1. How does authentication differ from authorization? What links these two layers?
 2. Who builds `Context` and at what moment relative to `machine.run`? Why not the machine?
 3. Of which three components does `AuthCoordinator.process` consist, and what does each do?
-4. Why does `Authenticator` return `None` on invalid data rather than raising an exception?
+4. Why does `Authenticator` return `None` on invalid credentials rather than raising an exception? When does it raise instead?
 5. What is `NoAuthCoordinator`, and for which operations is it appropriate?
 6. Which of the three components is protocol-dependent, and which are reused across transports? Why does this give "one mechanism for any transport"?
-7. Which four authentication methods are planned, and what do you have to do until they arrive?
+7. Which of the four common authentication methods already ships, which are planned, and what do you have to do until they arrive?
 8. How can a route override the adapter's default `auth_coordinator`? What happens if it doesn't?
 
 > **Exercise.** Sketch an `Authenticator` for an API key: `extract` pulls the key from the `X-Api-Key` header, `authenticate` matches it against a "key → (user_id, roles)" dictionary and returns `UserInfo(user_id=..., roles=(...))` or `None`. Run through mentally what `process` returns if the key is missing, if the key is wrong, and if it is correct — and which `Context` the machine receives in each case.

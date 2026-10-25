@@ -51,7 +51,7 @@ class ApiKeyExtractor(CredentialExtractor):
         return {"api_key": key} if key else {}
 ```
 
-**Step 2. The authenticator** — verifies the data and returns a `UserInfo` (with roles) or `None`. Invalid data is `None`, **not an exception**:
+**Step 2. The authenticator** — verifies the data and returns a `UserInfo` (with roles) or `None`. Credentials that fail verification are `None`, **not an exception**. Raise only for a broken configuration, a programming error or a violated contract — the exception aborts the request, and the shipped adapters answer it as a server error (HTTP 500 / MCP `INTERNAL_ERROR`):
 
 ```python
 from aoa.action_machine.auth import Authenticator
@@ -110,7 +110,7 @@ class SsoCoordinator:
 
 - **`None` is already a reject at the boundary.** The adapter raises `AuthorizationError("Authentication required")` (HTTP 403 / MCP `PERMISSION_DENIED`) — the request never reaches the machine or `@check_roles`. Need a more precise reason for the reject (an expired token, distinguished from a missing one, say) — **raise `AuthorizationError` with the message you want directly from `process`**, instead of relying on the generic default message.
 - **Invalid data is `None`, not an exception** (the `Authenticator` contract): "wrong key" is a regular path, not a failure.
-- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly. A single route can override it: `.post(path, Action, auth_coordinator=...)` — see [«What the base guarantees»](authoring-adapter.md#what-the-base-guarantees).
+- **Where it is wired:** the coordinator is passed to the constructor of any adapter — `FastApiAdapter(machine, auth_coordinator=...)`, `McpAdapter(...)`, [your own adapter](authoring-adapter.md). The argument is mandatory (it cannot be forgotten), so for a public API you put `NoAuthCoordinator(context=Context())` explicitly. A single route can override it: `.post(path, Action, auth_coordinator=...)` — see [«The handler owns one call»](authoring-adapter.md#the-handler-owns-one-call).
 - **One mechanism — any transport:** the same coordinator serves HTTP, MCP, and your transport; `request_data` is what the specific adapter passes (a FastAPI request object, `None` for MCP).
 
 ## Verification

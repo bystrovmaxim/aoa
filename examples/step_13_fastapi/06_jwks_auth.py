@@ -8,7 +8,7 @@ holds the RSA private key and publishes only the public half at
 token's `kid` header (RFC 7517). To keep the example self-contained and
 offline, `LoginAction` here plays the role of that external IdP -- in a real
 deployment it would not exist in this service at all, see
-docs/extensions/jwt_draft.md#внешний-idp-rs256-и-jwks.
+docs/extensions/jwt.md#external-idp-rs256-and-jwks.
 
 What this demonstrates, beyond 04_bearer_auth.py:
   - An RSA keypair generated fresh on each run, and a local, loopback-only
@@ -33,6 +33,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from cryptography.hazmat.primitives import serialization
@@ -166,13 +167,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign an RS256 JWT carrying sub (user_id), roles, and iss -- with this IdP's kid header.")
+    @summary_aspect("Sign an RS256 JWT carrying sub (user_id), sid (session id), roles, and iss -- with this IdP's kid header.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iss": _ISSUER,
             "iat": now,
             "exp": now + _TOKEN_TTL,
@@ -207,6 +209,7 @@ def build_app():
         algorithm=_ALGORITHM,
         issuer=_ISSUER,
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
     )
 
     return (
@@ -247,6 +250,7 @@ def main() -> None:
     foreign_payload = {
         "sub": "alice",
         "roles": ["admin"],
+        "sid": "session-A",
         "iss": "https://a-different-issuer.example.com",
         "iat": now,
         "exp": now + _TOKEN_TTL,

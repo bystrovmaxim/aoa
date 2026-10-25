@@ -44,7 +44,7 @@ class Authenticator(ABC):
     AI-CORE-BEGIN
         ROLE: Extension point for credential verification implementations.
         CONTRACT: Implement async ``authenticate(credentials) -> UserInfo | None``.
-        INVARIANTS: Return ``None`` for invalid credentials instead of exceptions.
+        INVARIANTS: Return ``None`` for invalid credentials; raise for configuration errors, programming errors and internal contract violations.
         AI-CORE-END
     """
 
