@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1a6] – 2026-10-26
+
 ### Breaking changes
 
 - **The JWT authenticator requires a session claim.** `JwtAuthenticator` and `JwtAuthCoordinator` take a required keyword-only `session_id_claim`, with no default and no disabled mode. Leaving it out raises `TypeError` at construction; `None`, an empty string or a non-string raises `ValueError`. Add `session_id_claim="sid"` (or your issuer's claim name) to every call site and make every issuer, including server-to-server ones, emit that claim. ([#263](https://github.com/bystrovmaxim/aoa/issues/263))

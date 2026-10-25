@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] – 2026-10-26
+
+### Changed
+
+- **License and NOTICE travel inside every artifact**, and the tests follow the current entity model. ([#200](https://github.com/bystrovmaxim/aoa/issues/200))
+
 ## [1.0.1] – 2026-10-17
 
 ### Changed

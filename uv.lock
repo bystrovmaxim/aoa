@@ -98,7 +98,7 @@ dev = [
 
 [[package]]
 name = "aoa-demo"
-version = "2.0.0"
+version = "3.0.0"
 source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -142,7 +142,7 @@ dev = [
 
 [[package]]
 name = "aoa-fastapi-adapter"
-version = "1.2.0"
+version = "1.2.1"
 source = { editable = "packages/aoa-fastapi-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -173,7 +173,7 @@ dev = [
 
 [[package]]
 name = "aoa-langgraph"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "packages/aoa-langgraph" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -200,7 +200,7 @@ dev = [
 
 [[package]]
 name = "aoa-maxitor"
-version = "1.3.0"
+version = "2.0.0"
 source = { editable = "packages/aoa-maxitor" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -233,7 +233,7 @@ dev = [
 
 [[package]]
 name = "aoa-mcp-adapter"
-version = "1.2.0"
+version = "1.2.1"
 source = { editable = "packages/aoa-mcp-adapter" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -260,7 +260,7 @@ dev = [
 
 [[package]]
 name = "aoa-ocel"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "packages/aoa-ocel" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -289,7 +289,7 @@ dev = [
 
 [[package]]
 name = "aoa-otel"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "packages/aoa-otel" }
 dependencies = [
     { name = "aoa-action-machine" },

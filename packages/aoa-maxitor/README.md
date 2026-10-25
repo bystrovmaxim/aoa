@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/tests-193-brightgreen" alt="193 tests">
   <a href="client/README.md"><img src="https://img.shields.io/badge/SPA-React%2019%20·%20Vite-61dafb?logo=react&logoColor=white" alt="Maxitor client"></a>
   <img src="https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white" alt="Node 22">
-  <img src="https://img.shields.io/badge/version-1.3.0-informational" alt="1.3.0">
+  <img src="https://img.shields.io/badge/version-2.0.0-informational" alt="2.0.0">
 </p>
 
 # aoa-maxitor: A System You Can See

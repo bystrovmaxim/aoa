@@ -12,7 +12,7 @@
 
 The core of AOA — a framework where a business operation is described as an **executable contract**. Every operation is an `Action` class with a typed input, output, and a straight chain of steps; the machine reads this description and executes it literally.
 
-This README is a quick start: from installation to an operation published over HTTP and as an AI-agent tool. It deliberately does not cover everything — the full picture is in the **[tutorial](../../docs/index.md)**, with links to individual topics placed along the way.
+This README is a quick start: from installation to an operation published over HTTP and as an AI-agent tool. Release notes for every version are in the [CHANGELOG](CHANGELOG.md). It deliberately does not cover everything — the full picture is in the **[tutorial](../../docs/index.md)**, with links to individual topics placed along the way.
 
 ---
 

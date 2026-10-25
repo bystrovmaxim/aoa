@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] – 2026-10-26
+
+### Breaking changes
+
+- **Every graph read names its source.** `GET /api/v1/*` and `GET /api/sidebar` require `?source=<graph-json URL>`; a read without it answers `400` naming the missing parameter, and the sidebar no longer answers an empty payload when nothing is loaded. `POST /api/load` now rebuilds the source it names instead of loading one graph for the whole process, and `GET /api/health` also reports `graphs_held`, `builds_running` and `builds_queued`. ([#214](https://github.com/bystrovmaxim/aoa/issues/214))
+
+### Added
+
+- **One graph per source.** The process keeps one built graph per AOA service: a cold read builds it once, repeat reads cost nothing, an unread graph is removed after an hour, at most 50 are held and at most 4 builds run at once. Deep links still open the graph they name in one step, a new "Reload from service" button rebuilds only the open source, and a busy server is retried by the page instead of being reported as a broken service. ([#214](https://github.com/bystrovmaxim/aoa/issues/214))
+
 ### Changed
 
 - **Dictionary cards show their fields, not their values.** An entity diagram no longer draws a row for every value a dictionary declares: the card is the dictionary's name and its own fields, with the arrows that reach it and nothing in place of the values. A region catalogue of ninety-three entries stops deciding how tall a domain's drawing is. The graph export and the entity endpoint keep every value with its code, label and descriptive properties, and a saved graph renders without a rebuild. ([#265](https://github.com/bystrovmaxim/aoa/issues/265))
