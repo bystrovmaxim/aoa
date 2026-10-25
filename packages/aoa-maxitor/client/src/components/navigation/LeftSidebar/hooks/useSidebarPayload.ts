@@ -1,41 +1,31 @@
 // src/components/navigation/LeftSidebar/hooks/useSidebarPayload.ts
 import { getSidebar } from "@/api/sidebar";
 import type { SidebarPayload } from "@/model/sidebar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
+/** The sidebar of the open source; the page reads it after it knows which source it shows. */
 export function useSidebarPayload() {
   const [sidebar, setSidebar] = useState<SidebarPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetch_ = useCallback(async () => {
+  /** Read the sidebar for the active source; throws so the caller can fall back to the prompt. */
+  const reload = useCallback(async () => {
     try {
       const json = await getSidebar();
       const hasData = json.level1_nodes.length > 0;
       setSidebar(hasData ? json : null);
       setError(null);
+      return json;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      throw e;
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const json = await getSidebar();
-        if (cancelled) return;
-        const hasData = json.level1_nodes.length > 0;
-        setSidebar(hasData ? json : null);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const reset = useCallback(() => {
+    setSidebar(null);
+    setError(null);
   }, []);
 
-  const reset = useCallback(() => setSidebar(null), []);
-
-  return { sidebar, error, reload: fetch_, reset };
+  return { sidebar, error, reload, reset };
 }

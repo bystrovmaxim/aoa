@@ -121,7 +121,7 @@ async def test_parse_extracts_host_and_normalizes_id() -> None:
 
 async def test_validate_raises_when_node_absent(connections: dict[str, DuckDBGraphResource]) -> None:
     state = _state(lifecycle_graph_node_id="ghost:lifecycle:status", host_entity_type_qualname="ghost")
-    with pytest.raises(ValueError, match="not found in the loaded graph"):
+    with pytest.raises(ValueError, match="not found in the graph of this read's source"):
         await _ACTION.validate_lifecycle_node_aspect(None, state, None, connections)  # type: ignore[arg-type]
 
 

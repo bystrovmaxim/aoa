@@ -21,6 +21,7 @@ import { prefetchErdGraphviz } from "@/lib/prefetch/erdGraphviz";
 import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/lib/sidebarNavigation";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
+import { ReloadServiceButton } from "./ReloadServiceButton";
 import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
@@ -100,6 +101,13 @@ type LeftSidebarProps = {
   sidebar: SidebarPayload | null;
   onLoaded: (serviceUrl: string) => void;
   onReset: () => void;
+  /** The source currently open, shown so it can be reloaded; null on the start page. */
+  source: string | null;
+  onReloadFromService: () => void;
+  reloading: boolean;
+  reloadError: string | null;
+  /** True while the page waits for a busy server before retrying its reads. */
+  busy: boolean;
 };
 
 function selectionKey(sel: DiagramSelection): string {
@@ -131,7 +139,18 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
   return rowLabel;
 }
 
-export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onReset }: LeftSidebarProps) {
+export function LeftSidebar({
+  diagram,
+  onSelectDiagram,
+  sidebar,
+  onLoaded,
+  onReset,
+  source,
+  onReloadFromService,
+  reloading,
+  reloadError,
+  busy,
+}: LeftSidebarProps) {
   const { collapsed, toggleCollapsed, setCollapsed } = useSidebarCollapse();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -230,7 +249,7 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
             }}
           />
         </IconButton>
-        {sidebar && (
+        {source && (
           <Tooltip title="Load a different service" placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
             <IconButton
               type="button"
@@ -268,6 +287,7 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
             </IconButton>
           </Tooltip>
         )}
+        {source && <ReloadServiceButton onReload={onReloadFromService} reloading={reloading} />}
       </Box>
 
       <Box
@@ -287,9 +307,7 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
           ...(collapsed ? { display: "none" } : {}),
         }}
       >
-        {!sidebar && (
-          <ServiceUrlInput onLoaded={onLoaded} />
-        )}
+        {!source && <ServiceUrlInput onLoaded={onLoaded} />}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {sidebar &&
           group &&
@@ -550,7 +568,22 @@ export function LeftSidebar({ diagram, onSelectDiagram, sidebar, onLoaded, onRes
           bgcolor: SIDEBAR_SURFACE,
           display: collapsed ? "none" : "block",
         }}
-      />
+      >
+        {busy && (
+          <Typography role="status" variant="body2" sx={{ fontSize: 11.5, color: SB.textSecondary, lineHeight: 1.4 }}>
+            Maxitor is busy; retrying…
+          </Typography>
+        )}
+        {reloadError && (
+          <Typography
+            role="alert"
+            variant="body2"
+            sx={{ fontSize: 11.5, color: "error.main", lineHeight: 1.4, mt: busy ? 0.5 : 0 }}
+          >
+            Reload failed: {reloadError}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }
