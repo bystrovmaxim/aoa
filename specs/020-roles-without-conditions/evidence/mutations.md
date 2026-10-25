@@ -53,3 +53,32 @@ For M1–M4, run the owning test module with the mutation applied and with it re
 temporary copy, and record both outcomes. For M5, record the search command and its hits in
 `evidence/role-check-search.md` and note that no automated check yet exists. Restore the copy after
 each mutation; the user's working tree is never the place a mutation is applied.
+
+## Recorded outcomes — Procedure 3 (T014)
+
+M1 and M2 were run as scratch scripts under `archive/mutations/` (git-ignored, outside the working
+tree) against the installed package.
+
+### M1 — reintroduced `grant` refuses
+
+```text
+1) import of `grant`: ImportError: cannot import name 'grant' from 'aoa.action_machine.intents.check_roles'
+2) declaration @check_roles(grant(Role)): NameError: name 'grant' is not defined
+```
+
+Targeted check: `test_check_roles_removed_mechanism.py::test_grant_import_fails` (green).
+Neighbouring control: `test_check_roles_class_roles.py` accepted forms (green).
+
+### M2 — an operation with no `@check_roles` is refused
+
+```text
+MissingCheckRolesError: NoRolesAction has no @check_roles declaration; `_role_info['spec']` is required.
+```
+
+Targeted check: `test_roles.py::test_check_raises_when_the_action_declares_no_roles` (green).
+Neighbouring control: `test_roles.py::test_admin_allowed_with_matching_role` (green).
+
+The scratch files `archive/mutations/m1_reintroduce_grant.py` and
+`archive/mutations/m2_remove_check_roles.py` are the record; nothing in the user's working tree was
+mutated, so there is nothing to restore.
+
