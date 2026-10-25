@@ -42,10 +42,6 @@ from aoa.demo.model.interchange_demo_coordinator import (
     import_sample_registration_modules,
 )
 
-_WHEN_REASON = "shape: WHEN refuses although the role matched"
-_GUARD_REASON = "shape: GUARD refuses every caller alike"
-
-
 def _coordinator() -> object:
     import_sample_registration_modules()
     return build_registered_interchange_coordinator()
@@ -72,39 +68,46 @@ def _check_roles_edges(coordinator: object, action_id: str) -> list[tuple[str, s
 
 
 def test_us1_role_check_alone_shape() -> None:
-    """The role-check operation carries one role edge and no condition, guard or object rule."""
+    """The role-check operation carries one role edge with no condition data and no object rule."""
     coordinator = _coordinator()
     action_id = _action_node_id(coordinator, "RoleCheckAloneShapeAction")
     edges = _check_roles_edges(coordinator, action_id)
     assert len(edges) == 1
     assert edges[0][1].endswith("CascadeOfficerRole")
-    assert edges[0][2].properties["when"] is None
-    assert edges[0][2].properties["when_reason"] is None
+    assert edges[0][2].properties == {}
     node = coordinator.get_node_by_id(action_id)
-    assert node.properties["guard"] is None
-    assert node.properties["guard_reason"] is None
+    assert "guard" not in node.properties
+    assert "guard_reason" not in node.properties
 
 
-def test_us1_when_refusal_shape() -> None:
-    """The when-operation carries a grant whose condition refuses although the role matched."""
+def test_us1_object_rule_refusal_shape() -> None:
+    """The object-rule-refusal operation carries one role edge and one object-rule edge."""
     coordinator = _coordinator()
-    action_id = _action_node_id(coordinator, "WhenRefusalShapeAction")
+    action_id = _action_node_id(coordinator, "ObjectRuleRefusalShapeAction")
     edges = _check_roles_edges(coordinator, action_id)
     assert len(edges) == 1
-    assert edges[0][2].properties["when"] is not None
-    assert edges[0][2].properties["when_reason"] == _WHEN_REASON
+    assert edges[0][2].properties == {}
+    access_edges = [
+        (source_id, target_id)
+        for source_id, target_id, _edge in coordinator.get_edges_by_type("@access_decide")
+        if source_id == action_id
+    ]
+    assert len(access_edges) == 1
 
 
-def test_us1_guard_refusal_shape() -> None:
-    """The guard-operation carries a shared guard that refuses for everyone alike."""
+def test_us1_forbidden_object_shape() -> None:
+    """The forbidden-object operation carries one role edge and one object-rule edge."""
     coordinator = _coordinator()
-    action_id = _action_node_id(coordinator, "GuardRefusalShapeAction")
+    action_id = _action_node_id(coordinator, "ForbiddenObjectShapeAction")
     edges = _check_roles_edges(coordinator, action_id)
     assert len(edges) == 1
-    assert edges[0][2].properties["when"] is None
-    node = coordinator.get_node_by_id(action_id)
-    assert node.properties["guard"] is not None
-    assert node.properties["guard_reason"] == _GUARD_REASON
+    assert edges[0][2].properties == {}
+    access_edges = [
+        (source_id, target_id)
+        for source_id, target_id, _edge in coordinator.get_edges_by_type("@access_decide")
+        if source_id == action_id
+    ]
+    assert len(access_edges) == 1
 
 
 def test_us1_access_decide_shape() -> None:
