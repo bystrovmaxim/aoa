@@ -123,7 +123,7 @@
 
 ## Phase 8: Closing check run (commit 8)
 
-- [ ] T039 Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); prepare commit 8 with whatever the run changed: `chore: take the check run to zero (#214)`.
+- [x] T039 Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); prepare commit 8 with whatever the run changed: `chore: take the check run to zero (#214)`.
 
 ---
 
