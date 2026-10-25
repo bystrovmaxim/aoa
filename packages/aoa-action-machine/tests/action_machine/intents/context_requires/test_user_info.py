@@ -401,3 +401,17 @@ class TestUserInfoSerialization:
         dumped_json = user.model_dump_json()
 
         assert '"roles":["manager"]' in dumped_json
+
+    def test_session_id_serializes_in_json_mode(self) -> None:
+        user = UserInfo(user_id="u1", session_id="session-A", roles=(AdminRole,))
+
+        dumped = user.model_dump(mode="json")
+
+        assert dumped["session_id"] == "session-A"
+
+    def test_session_id_defaults_to_none_in_json_mode(self) -> None:
+        user = UserInfo(user_id="u1")
+
+        dumped = user.model_dump(mode="json")
+
+        assert dumped["session_id"] is None

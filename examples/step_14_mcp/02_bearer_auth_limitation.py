@@ -20,7 +20,7 @@ Why, precisely (not just "MCP can't"):
     McpAdapter never wires up regardless of transport.
 
 Tracked as https://github.com/bystrovmaxim/aoa/issues/113. See also
-docs/extensions/jwt_draft.md and 04_bearer_auth.py (the FastAPI adapter,
+docs/extensions/jwt.md and 04_bearer_auth.py (the FastAPI adapter,
 where this DOES work end to end).
 
 Run from repository root:
@@ -33,6 +33,7 @@ Requires:
 import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from pydantic import Field
@@ -113,13 +114,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign a JWT carrying sub (user_id) and roles; return it as a bearer token.")
+    @summary_aspect("Sign a JWT carrying sub (user_id), sid (session id) and roles; return it as a bearer token.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }
@@ -155,7 +157,7 @@ async def main() -> None:
     # 2. Now wire JwtAuthCoordinator the way 04_bearer_auth.py does for
     #    FastAPI, and reproduce exactly what McpAdapter calls on every single
     #    tool invocation: auth_coordinator.process(None).
-    strict = JwtAuthCoordinator(secret_key=_SECRET_KEY, role_registry={})
+    strict = JwtAuthCoordinator(secret_key=_SECRET_KEY, role_registry={}, session_id_claim="sid")
     print("\nauth_coordinator.process(None) -- what McpAdapter actually calls on every tool call:")
     try:
         await strict.process(None)

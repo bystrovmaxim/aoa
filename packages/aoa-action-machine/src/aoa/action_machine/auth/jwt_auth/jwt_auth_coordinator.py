@@ -20,7 +20,7 @@ subsequent request.
 
     from aoa.action_machine.auth.jwt_auth import JwtAuthCoordinator
 
-    auth = JwtAuthCoordinator(secret_key="...", role_registry={"admin": AdminRole})
+    auth = JwtAuthCoordinator(secret_key="...", role_registry={"admin": AdminRole}, session_id_claim="sid")
     FastApiAdapter(machine=machine, auth_coordinator=auth).post("/orders", CreateOrderAction).build()
 
     # Same-site cookie transport instead of the "Authorization: Bearer" header --
@@ -30,6 +30,7 @@ subsequent request.
     auth = JwtAuthCoordinator(
         secret_key="...",
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
         credential_extractor=CookieCredentialExtractor(cookie_name="session"),
     )
 
@@ -41,6 +42,7 @@ subsequent request.
         algorithm="RS256",
         issuer="https://sso.example.com",
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
     )
 """
 
@@ -59,7 +61,7 @@ class JwtAuthCoordinator(AuthCoordinator):
     """
     AI-CORE-BEGIN
     ROLE: Ready-made AuthCoordinator for JWT authentication over a pluggable credential transport and key source.
-    CONTRACT: Construction assembles a CredentialExtractor (BearerCredentialExtractor by default, or the caller-supplied credential_extractor) + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged. secret_key/jwks_url are forwarded to JwtAuthenticator as-is -- exactly one of the two must be set, or construction raises ValueError.
+    CONTRACT: Construction assembles a CredentialExtractor (BearerCredentialExtractor by default, or the caller-supplied credential_extractor) + JwtAuthenticator + an HTTP ContextAssembler; process() is inherited from AuthCoordinator unchanged. secret_key/jwks_url and the required session_id_claim are forwarded to JwtAuthenticator as-is -- exactly one of the two key sources must be set, or construction raises ValueError.
     AI-CORE-END
     """
 
@@ -74,6 +76,7 @@ class JwtAuthCoordinator(AuthCoordinator):
         role_registry: Mapping[str, type[BaseRole]],
         user_id_claim: str = "sub",
         roles_claim: str = "roles",
+        session_id_claim: str,
         credential_extractor: CredentialExtractor | None = None,
         context_assembler: ContextAssembler | None = None,
     ) -> None:
@@ -88,6 +91,7 @@ class JwtAuthCoordinator(AuthCoordinator):
                 role_registry=role_registry,
                 user_id_claim=user_id_claim,
                 roles_claim=roles_claim,
+                session_id_claim=session_id_claim,
             ),
             assembler=context_assembler or HttpContextAssembler(),
         )

@@ -35,7 +35,7 @@ AOA does not make the context an ambient environment you can reach into from any
 
 `Context` is assembled once per call — by the authentication coordinator (about this — in the [Service](../index.md#iv-service) part) — and consists of three parts:
 
-- **UserInfo** — who is calling: `user_id`, roles;
+- **UserInfo** — who is calling: `user_id`, `session_id` (the login session, when the authentication provides one), roles;
 - **RequestInfo** — request data: `trace_id`, path, method, `client_ip`, `user_agent`, …;
 - **RuntimeInfo** — the environment: `hostname`, `service_name`, service version, …
 

@@ -7,7 +7,7 @@ route sets a `Set-Cookie: ...; HttpOnly` response, `CookieCredentialExtractor` r
 it back on later requests. The protected route below is never sent an Authorization
 header at all -- the client (here, FastAPI's TestClient, which stores cookies exactly
 like a browser) authenticates purely through the cookie the login route set. See
-docs/extensions/jwt_draft.md#транспорт-заголовок-или-cookie for when cookie beats
+docs/extensions/jwt.md#transport-header-or-cookie for when cookie beats
 header and vice versa.
 
 The only thing this example does differently from 04_bearer_auth.py: /auth/login is
@@ -29,6 +29,7 @@ Requires:
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from fastapi import Response
@@ -123,13 +124,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign a JWT carrying sub (user_id) and roles.")
+    @summary_aspect("Sign a JWT carrying sub (user_id), sid (session id) and roles.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }
@@ -163,6 +165,7 @@ def build_app():
         secret_key=_SECRET_KEY,
         algorithm=_ALGORITHM,
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
         credential_extractor=CookieCredentialExtractor(cookie_name=_COOKIE_NAME),
     )
 

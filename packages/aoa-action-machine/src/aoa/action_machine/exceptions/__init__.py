@@ -13,6 +13,7 @@ from aoa.action_machine.exceptions.aspect_declaration_error import AspectDeclara
 from aoa.action_machine.exceptions.aspect_pipeline_error import AspectPipelineError
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 from aoa.action_machine.exceptions.async_required_error import AsyncRequiredError
+from aoa.action_machine.exceptions.authentication_contract_error import AuthenticationContractError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.checker_declaration_error import CheckerDeclarationError
@@ -70,6 +71,7 @@ __all__ = [
     "AspectPipelineError",
     "AspectSignatureError",
     "AsyncRequiredError",
+    "AuthenticationContractError",
     "AuthorizationError",
     "AuthorizationError",
     "CacheContractError",
