@@ -137,7 +137,7 @@
 
 ## Phase 10: Changelog (commit 10)
 
-- [ ] T043 Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs (deep links unchanged, the reload button, removal after an hour unread, the 50-graph limit, the limit of four builds at once, and their settings), without technical detail; prepare commit 10: `docs(changelog): one graph per source (#214)`.
+- [x] T043 Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs (deep links unchanged, the reload button, removal after an hour unread, the 50-graph limit, the limit of four builds at once, and their settings), without technical detail; prepare commit 10: `docs(changelog): one graph per source (#214)`.
 
 ---
 
