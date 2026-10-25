@@ -21,7 +21,7 @@ silently degrading to "no credentials". This is exactly what happens if this
 extractor (via ``JwtAuthCoordinator``) is wired into ``aoa-mcp-adapter``:
 ``McpAdapter`` always calls ``auth_coordinator.process(None)`` regardless of
 transport — there is no request object to read a header from. See
-``docs/extensions/jwt_draft.md`` and
+``docs/extensions/jwt.md`` and
 https://github.com/bystrovmaxim/aoa/issues/113.
 """
 
@@ -50,7 +50,7 @@ class BearerCredentialExtractor(CredentialExtractor):
                 f"mapping (e.g. a Starlette/FastAPI Request); got {request_data!r}. "
                 "This coordinator cannot be used with an adapter that never forwards "
                 "request data — e.g. aoa-mcp-adapter always calls process(None), "
-                "regardless of transport (see docs/extensions/jwt_draft.md)."
+                "regardless of transport (see docs/extensions/jwt.md)."
             )
         header = headers.get("authorization")
         if not header:

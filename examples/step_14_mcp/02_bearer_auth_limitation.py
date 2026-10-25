@@ -20,7 +20,7 @@ Why, precisely (not just "MCP can't"):
     McpAdapter never wires up regardless of transport.
 
 Tracked as https://github.com/bystrovmaxim/aoa/issues/113. See also
-docs/extensions/jwt_draft.md and 04_bearer_auth.py (the FastAPI adapter,
+docs/extensions/jwt.md and 04_bearer_auth.py (the FastAPI adapter,
 where this DOES work end to end).
 
 Run from repository root:

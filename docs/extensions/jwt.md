@@ -344,7 +344,7 @@ Code that treated "no user id" as an ordinary refusal now sees an exception inst
 TypeError: BearerCredentialExtractor requires request_data exposing a `.headers` mapping
 (e.g. a Starlette/FastAPI Request); got None. This coordinator cannot be used with an
 adapter that never forwards request data — e.g. aoa-mcp-adapter always calls
-process(None), regardless of transport.
+process(None), regardless of transport (see docs/extensions/jwt.md).
 ```
 
 There isn't one reason — there are three, and they're of very different scope:

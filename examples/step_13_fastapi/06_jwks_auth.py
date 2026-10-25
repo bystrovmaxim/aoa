@@ -8,7 +8,7 @@ holds the RSA private key and publishes only the public half at
 token's `kid` header (RFC 7517). To keep the example self-contained and
 offline, `LoginAction` here plays the role of that external IdP -- in a real
 deployment it would not exist in this service at all, see
-docs/extensions/jwt_draft.md#внешний-idp-rs256-и-jwks.
+docs/extensions/jwt.md#external-idp-rs256-and-jwks.
 
 What this demonstrates, beyond 04_bearer_auth.py:
   - An RSA keypair generated fresh on each run, and a local, loopback-only

@@ -7,7 +7,7 @@ route sets a `Set-Cookie: ...; HttpOnly` response, `CookieCredentialExtractor` r
 it back on later requests. The protected route below is never sent an Authorization
 header at all -- the client (here, FastAPI's TestClient, which stores cookies exactly
 like a browser) authenticates purely through the cookie the login route set. See
-docs/extensions/jwt_draft.md#транспорт-заголовок-или-cookie for when cookie beats
+docs/extensions/jwt.md#transport-header-or-cookie for when cookie beats
 header and vice versa.
 
 The only thing this example does differently from 04_bearer_auth.py: /auth/login is
