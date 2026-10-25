@@ -1,4 +1,5 @@
 // src/components/navigation/LeftSidebar/hooks/useSidebarPayload.ts
+import { getActiveSource } from "@/api/client";
 import { getSidebar } from "@/api/sidebar";
 import type { SidebarPayload } from "@/model/sidebar";
 import { useCallback, useEffect, useState } from "react";
@@ -19,6 +20,8 @@ export function useSidebarPayload() {
   }, []);
 
   useEffect(() => {
+    // The start page has no source, so it asks the server for nothing graph-related.
+    if (getActiveSource() === null) return;
     let cancelled = false;
     void (async () => {
       try {
