@@ -7,8 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``Authenticator`` implementation that verifies a JWT's signature, expiry, and
-(optionally) audience/issuer via PyJWT, then extracts ``user_id`` and ``roles``
-from configured claims. Role names inside the token are plain strings;
+(optionally) audience/issuer via PyJWT, then extracts ``user_id``,
+``session_id`` and ``roles`` from configured claims. Role names inside the token
+are plain strings;
 ``role_registry`` maps each known name to the ``BaseRole`` subclass
 ``UserInfo.roles`` expects. Unmapped names are dropped, not rejected — a token
 may legitimately carry role names that mean nothing to this particular service.
@@ -32,7 +33,9 @@ Any verification failure (expired, bad signature, wrong audience, wrong
 issuer, malformed token, missing ``exp`` claim, missing/empty user id claim,
 unresolvable JWKS key, JWKS endpoint unreachable, malformed JWKS document)
 returns ``None`` — per the ``Authenticator`` contract, invalid credentials are
-``None``, never an exception. JWKS resolution and token verification both
+``None``, never an exception. A verified token whose ``session_id_claim`` value
+is missing, empty, whitespace-only or not a string raises
+``AuthenticationContractError`` instead. JWKS resolution and token verification both
 catch broadly (not just ``PyJWTError``): the JWKS response is untrusted
 external input, and its failure modes span network errors, JSON parsing, and
 third-party key parsing — not a fixed, enumerable exception set.
@@ -52,6 +55,7 @@ from jwt.algorithms import requires_cryptography
 
 from aoa.action_machine.auth.authenticator import Authenticator
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.exceptions.authentication_contract_error import AuthenticationContractError
 
 if TYPE_CHECKING:
     from aoa.action_machine.context.user_info import UserInfo
@@ -61,7 +65,7 @@ class JwtAuthenticator(Authenticator):
     """
     AI-CORE-BEGIN
     ROLE: Verify a JWT (signature, expiry, optional audience/issuer) against a static key or a JWKS endpoint, and build UserInfo from its claims.
-    CONTRACT: Exactly one of secret_key/jwks_url must be given -- both or neither raises ValueError at construction; jwks_url with a symmetric algorithm also raises ValueError. Any verification, key-resolution, or shape failure returns None; never raises. A token with no ``exp`` claim at all is rejected -- expiry is mandatory, not merely checked when present.
+    CONTRACT: Exactly one of secret_key/jwks_url must be given -- both or neither raises ValueError at construction; jwks_url with a symmetric algorithm also raises ValueError. ``session_id_claim`` is a required keyword-only argument; a missing/empty/non-string claim name raises ValueError at construction. Any verification or key-resolution failure returns None; a verified token whose session claim is missing, empty, whitespace-only or non-string raises AuthenticationContractError. A token with no ``exp`` claim at all is rejected -- expiry is mandatory, not merely checked when present.
     INVARIANTS: algorithms allowlist passed to jwt.decode is exactly one algorithm -- the one this authenticator was configured with, never the token's own alg header.
     AI-CORE-END
     """
@@ -77,6 +81,7 @@ class JwtAuthenticator(Authenticator):
         role_registry: Mapping[str, type[BaseRole]],
         user_id_claim: str = "sub",
         roles_claim: str = "roles",
+        session_id_claim: str,
     ) -> None:
         if (secret_key is None) == (jwks_url is None):
             raise ValueError(
@@ -89,6 +94,8 @@ class JwtAuthenticator(Authenticator):
                 "JWKS publishes public keys -- pairing it with a symmetric algorithm (HS256/HS384/HS512) is "
                 "not a meaningful configuration."
             )
+        if not isinstance(session_id_claim, str) or not session_id_claim:
+            raise ValueError(f"session_id_claim must be a non-empty string; got {session_id_claim!r}.")
         self._secret_key = secret_key
         self._jwks_client = jwt.PyJWKClient(jwks_url, cache_jwk_set=True) if jwks_url is not None else None
         self._algorithm = algorithm
@@ -97,6 +104,20 @@ class JwtAuthenticator(Authenticator):
         self._role_registry = role_registry
         self._user_id_claim = user_id_claim
         self._roles_claim = roles_claim
+        self._session_id_claim = session_id_claim
+
+    def _require_non_blank_string(self, payload: Mapping[str, Any], claim: str) -> str:
+        """Return the claim's non-blank string value or raise ``AuthenticationContractError``."""
+        value = payload.get(claim)
+        if value is None:
+            raise AuthenticationContractError(claim, "missing")
+        if not isinstance(value, str):
+            raise AuthenticationContractError(claim, "not a string")
+        if not value:
+            raise AuthenticationContractError(claim, "empty")
+        if value.isspace():
+            raise AuthenticationContractError(claim, "whitespace-only")
+        return value
 
     async def authenticate(self, credentials: Any) -> UserInfo | None:
         from aoa.action_machine.context.user_info import UserInfo  # pylint: disable=import-outside-toplevel
@@ -138,6 +159,8 @@ class JwtAuthenticator(Authenticator):
         if not user_id:
             return None
 
+        session_id = self._require_non_blank_string(payload, self._session_id_claim)
+
         raw_roles = payload.get(self._roles_claim)
         roles = (
             tuple(self._role_registry[name] for name in raw_roles if name in self._role_registry)
@@ -145,4 +168,4 @@ class JwtAuthenticator(Authenticator):
             else ()
         )
 
-        return UserInfo(user_id=str(user_id), roles=roles)
+        return UserInfo(user_id=str(user_id), session_id=session_id, roles=roles)

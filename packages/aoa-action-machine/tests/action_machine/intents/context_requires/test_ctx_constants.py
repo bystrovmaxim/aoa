@@ -66,10 +66,16 @@ class TestUserFields:
         # Act / Assert — matches Context dot-path navigation
         assert Ctx.User.roles == "user.roles"
 
+    def test_session_id_path(self) -> None:
+        """Ctx.User.session_id → "user.session_id" (UserInfo.session_id)."""
+        # Arrange — Ctx.User.session_id
+        # Act / Assert — matches Context dot-path navigation
+        assert Ctx.User.session_id == "user.session_id"
+
     def test_all_are_strings(self) -> None:
         """All Ctx.User constants are str."""
         # Arrange — all Ctx.User constants
-        fields = [Ctx.User.user_id, Ctx.User.roles]
+        fields = [Ctx.User.user_id, Ctx.User.session_id, Ctx.User.roles]
 
         # Act / Assert — each is str
         for field in fields:
@@ -78,7 +84,7 @@ class TestUserFields:
     def test_all_start_with_user_prefix(self) -> None:
         """All Ctx.User constants start with "user."."""
         # Arrange
-        fields = [Ctx.User.user_id, Ctx.User.roles]
+        fields = [Ctx.User.user_id, Ctx.User.session_id, Ctx.User.roles]
 
         # Act / Assert
         for field in fields:

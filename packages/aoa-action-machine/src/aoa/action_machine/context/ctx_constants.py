@@ -17,7 +17,7 @@ and ``RuntimeInfo``.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    Ctx.User      -> UserInfo fields (user_id, roles)
+    Ctx.User      -> UserInfo fields (user_id, session_id, roles)
     Ctx.Request   -> RequestInfo fields (trace_id, request_timestamp, request_path,
                     request_method, full_url, client_ip, protocol, user_agent)
     Ctx.Runtime   -> RuntimeInfo fields (hostname, service_name, service_version,
@@ -25,6 +25,7 @@ ARCHITECTURE / DATA FLOW
 
 Every constant is a ``"component.field"`` string, for example:
     Ctx.User.user_id    == "user.user_id"
+    Ctx.User.session_id == "user.session_id"
     Ctx.Request.trace_id == "request.trace_id"
     Ctx.Runtime.hostname == "runtime.hostname"
 
@@ -58,6 +59,9 @@ class _UserFields:
 
     user_id: str = "user.user_id"
     """User identifier. ``UserInfo`` type: ``str | None``."""
+
+    session_id: str = "user.session_id"
+    """Session identifier. ``UserInfo`` type: ``str | None``."""
 
     roles: str = "user.roles"
     """Assigned role classes. ``UserInfo`` type: role tuple."""

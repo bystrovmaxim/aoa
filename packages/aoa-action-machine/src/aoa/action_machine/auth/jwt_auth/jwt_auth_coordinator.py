@@ -74,6 +74,7 @@ class JwtAuthCoordinator(AuthCoordinator):
         role_registry: Mapping[str, type[BaseRole]],
         user_id_claim: str = "sub",
         roles_claim: str = "roles",
+        session_id_claim: str,
         credential_extractor: CredentialExtractor | None = None,
         context_assembler: ContextAssembler | None = None,
     ) -> None:
@@ -88,6 +89,7 @@ class JwtAuthCoordinator(AuthCoordinator):
                 role_registry=role_registry,
                 user_id_claim=user_id_claim,
                 roles_claim=roles_claim,
+                session_id_claim=session_id_claim,
             ),
             assembler=context_assembler or HttpContextAssembler(),
         )
