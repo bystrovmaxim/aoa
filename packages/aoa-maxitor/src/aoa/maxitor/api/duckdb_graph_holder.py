@@ -1,21 +1,22 @@
 # packages/aoa-maxitor/src/aoa/maxitor/api/duckdb_graph_holder.py
 """
-DuckDBGraphHolder — the loaded coordinator graph as one application-scoped resource.
+DuckDBGraphHolder — the graph read bound to the current request, as one ready resource.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Maxitor's six diagram routes all read one in-process DuckDB snapshot of the coordinator
-graph. That snapshot is built by ``POST /api/load`` and kept in
-``FastAPI.state.duckdb_graph``; it is one shared object, not one per request. The holder
-below declares it the way it actually is — a ready ``BaseResource``, mode 1 — in place of
-a per-call factory that handed back the same shared slot while claiming to create a fresh
-resource on every call.
+Maxitor's six diagram routes all query an in-process DuckDB snapshot. Since #214 that
+snapshot is not one slot shared by every caller: each read names its source
+(``?source=<graph-json URL>``), ``GraphSourceMiddleware`` asks the ``GraphStore`` for that
+source's entry, and binds it to the request. The holder below is the ``BaseResource`` the
+adapters hand to the diagram actions: a ready resource, mode 1, that resolves the entry
+bound to the request it is serving.
 
-The holder is built once, while the application is built, and resolves whatever is loaded
-at the moment it is read. It never keeps a graph of its own: a graph stored at build time
-would answer from a snapshot a later reload had already replaced.
+It keeps nothing of its own. One holder is built per application, but the graph it answers
+from belongs to the request: a holder that remembered a graph would answer the next reader
+with the previous reader's service, which is exactly the defect #214 removed. Outside a
+bound request it refuses by naming the missing binding, not ``POST /api/load``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,20 +24,29 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    POST /api/load ──► FastAPI.state.duckdb_graph ──► DuckDBGraphHolder._resolve()
-                                                              │
-                                    ┌─────────────────────────┴─────────────────────────┐
-                                    ▼                                                   ▼
-                              .service                                    .execute_fetch_dicts()
-                                    │                                                   │
-                                    ▼                                                   ▼
-                      DuckDBGraphResource.service                 DuckDBGraphResource.execute_fetch_dicts()
+    GET /api/v1/…?source=… ──► GraphSourceMiddleware ──► GraphStore.acquire(source)
+                                        │                        │
+                                        │  binds one entry       │ builds on a cold read
+                                        ▼                        ▼
+                             ContextVar (this request) ──► GraphEntry
+                                                                 │
+                                                                 ▼
+                                                     DuckDBGraphHolder._resolve()
+                                                                 │
+                                    ┌────────────────────────────┴────────────────────────────┐
+                                    ▼                                                         ▼
+                              .service                                            .execute_fetch_dicts()
+                                    │                                                         │
+                                    ▼                                                         ▼
+                      DuckDBGraphResource.service                   DuckDBGraphResource.execute_fetch_dicts()
 
 Only the two operations the diagram routes actually use are delegated, and they are
 delegated explicitly: nothing is forwarded to the resolved graph, so the holder cannot
-quietly grow a surface the routes never asked for. The holder owns no lifecycle — there
-is no connection of its own to open or close — so ``get_wrapper_class`` answers ``None``
-and the machine passes the same object through to nested actions, unwrapped.
+quietly grow a surface the routes never asked for. The holder owns no lifecycle — there is
+no connection of its own to open or close — so ``get_wrapper_class`` answers ``None`` and
+the machine passes the same object through to nested actions, unwrapped. Removing or
+replacing an entry in the store never closes the graph its request is still reading: the
+entry lives as long as the request's binding holds a reference to it.
 """
 
 from __future__ import annotations
@@ -44,31 +54,28 @@ from __future__ import annotations
 from typing import Any
 
 import duckdb
-from fastapi import FastAPI
 
 from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.maxitor.api.graph_source_middleware import current_graph_entry
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 @meta(
-    description="Application-scoped holder for the loaded coordinator graph",
+    description="Request-scoped holder for the graph the current read named",
     domain=DiagramsDomain,
 )
 class DuckDBGraphHolder(BaseResource):
     """
     AI-CORE-BEGIN
-    ROLE: The one shared resource standing for the coordinator graph the application has loaded.
-    CONTRACT: ``service`` and ``execute_fetch_dicts`` resolve the graph loaded at the moment of the read.
-    INVARIANTS: One per application; holds the application, never a graph; owns no lifecycle.
+    ROLE: The ready resource standing for the graph the current request named with ``?source=``.
+    CONTRACT: ``service`` and ``execute_fetch_dicts`` resolve the graph bound to the read they serve.
+    INVARIANTS: One per application; holds no graph of its own; resolves the request's entry, and
+    refuses by name when the request was never bound.
     AI-CORE-END
     """
-
-    def __init__(self, app: FastAPI) -> None:
-        """Keep the application whose loaded graph this holder stands for."""
-        self._app = app
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
         """Return ``None``: there is no lifecycle to protect, so nested actions see this object itself."""
@@ -80,7 +87,7 @@ class DuckDBGraphHolder(BaseResource):
 
     @property
     def service(self) -> duckdb.DuckDBPyConnection:
-        """Return the loaded graph's DuckDB connection, read at the moment of the call."""
+        """Return the request's graph connection, read at the moment of the call."""
         return self._resolve().service
 
     def execute_fetch_dicts(
@@ -88,12 +95,15 @@ class DuckDBGraphHolder(BaseResource):
         sql: str,
         parameters: list[Any] | tuple[Any, ...] | None = None,
     ) -> list[dict[str, Any]]:
-        """Run ``sql`` against the loaded graph and return every row as a column-name to value dictionary."""
+        """Run ``sql`` against the request's graph and return every row as a column-name to value dictionary."""
         return self._resolve().execute_fetch_dicts(sql, parameters)
 
     def _resolve(self) -> DuckDBGraphResource:
-        """Return the graph loaded in this holder's own application, or refuse when nothing is loaded."""
-        graph: DuckDBGraphResource | None = getattr(self._app.state, "duckdb_graph", None)
-        if graph is None:
-            raise HandleError("Graph is not loaded: call POST /api/load first.")
-        return graph
+        """Return the graph bound to this request, or refuse by naming the missing binding."""
+        entry = current_graph_entry()
+        if entry is None:
+            raise HandleError(
+                "No graph is bound to this request: a diagram read must name its source "
+                "in the 'source' query parameter.",
+            )
+        return entry.graph
