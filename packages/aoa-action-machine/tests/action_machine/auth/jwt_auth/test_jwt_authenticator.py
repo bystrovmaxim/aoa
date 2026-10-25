@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.jwt_auth.jwt_authenticator import JwtAuthenticator
+from aoa.action_machine.exceptions.authentication_contract_error import AuthenticationContractError
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 
 _SECRET = "unit-test-secret-key-not-for-production-use"
@@ -402,13 +403,79 @@ async def test_jwks_wrong_shaped_json_response_returns_none() -> None:
     assert await authenticator.authenticate({"token": "irrelevant-placeholder-token"}) is None
 
 
-async def test_missing_user_id_claim_returns_none() -> None:
+async def test_missing_user_id_claim_raises_contract_error() -> None:
     authenticator = _make_authenticator()
     payload = _valid_payload()
     del payload["sub"]
     token = _sign(payload)
 
-    assert await authenticator.authenticate({"token": token}) is None
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sub"
+
+
+async def test_empty_user_id_claim_raises_contract_error() -> None:
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sub=""))
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sub"
+
+
+async def test_whitespace_user_id_claim_raises_contract_error() -> None:
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sub="   "))
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sub"
+
+
+async def test_missing_session_claim_raises_contract_error() -> None:
+    authenticator = _make_authenticator()
+    payload = _valid_payload()
+    del payload["sid"]
+    token = _sign(payload)
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sid"
+
+
+async def test_whitespace_session_claim_raises_contract_error() -> None:
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sid="   "))
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sid"
+
+
+async def test_non_string_custom_user_id_claim_raises_contract_error() -> None:
+    authenticator = _make_authenticator(user_id_claim="uid")
+    now = datetime.now(UTC)
+    token = _sign({"uid": 12345, "roles": ["admin"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=5)})
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "uid"
+
+
+async def test_session_id_with_padding_is_preserved_verbatim() -> None:
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sid=" Session-A "))
+
+    result = await authenticator.authenticate({"token": token})
+
+    assert result is not None
+    assert result.session_id == " Session-A "
 
 
 async def test_missing_exp_claim_returns_none() -> None:
@@ -424,3 +491,87 @@ async def test_missing_exp_claim_returns_none() -> None:
 async def test_malformed_token_returns_none() -> None:
     authenticator = _make_authenticator()
     assert await authenticator.authenticate({"token": "not-a-jwt-at-all"}) is None
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PyJWT exception classification and verification precedence
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+async def test_numeric_sub_raises_contract_error() -> None:
+    """PyJWT rejects a non-string sub with InvalidSubjectError before extraction."""
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sub=12345))
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sub"
+
+
+async def test_numeric_sub_with_invalid_signature_returns_none() -> None:
+    """Signature verification precedes subject validation -- a bad signature stays a refusal."""
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload(sub=12345), secret="a-completely-different-unit-test-secret-key")
+
+    assert await authenticator.authenticate({"token": token}) is None
+
+
+async def test_numeric_sub_with_expired_token_returns_none() -> None:
+    """Expiry precedes subject validation."""
+    authenticator = _make_authenticator()
+    past = datetime.now(UTC) - timedelta(minutes=5)
+    token = _sign(_valid_payload(sub=12345, iat=past - timedelta(minutes=30), exp=past))
+
+    assert await authenticator.authenticate({"token": token}) is None
+
+
+async def test_numeric_sub_with_wrong_audience_returns_none() -> None:
+    """Audience precedes subject validation."""
+    authenticator = _make_authenticator(audience="my-api")
+    token = _sign(_valid_payload(sub=12345, aud="a-different-api"))
+
+    assert await authenticator.authenticate({"token": token}) is None
+
+
+async def test_numeric_sub_with_wrong_issuer_returns_none() -> None:
+    """Issuer precedes subject validation."""
+    authenticator = _make_authenticator(issuer="https://issuer.example.com")
+    token = _sign(_valid_payload(sub=12345, iss="https://a-different-issuer.example.com"))
+
+    assert await authenticator.authenticate({"token": token}) is None
+
+
+async def test_custom_claim_with_malformed_registered_sub_raises_naming_sub() -> None:
+    """A malformed registered sub still rejects the token, naming sub -- not the custom field."""
+    authenticator = _make_authenticator(user_id_claim="uid")
+    now = datetime.now(UTC)
+    token = _sign({"uid": "alice", "sub": 12345, "roles": ["admin"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=30)})
+
+    with pytest.raises(AuthenticationContractError) as exc_info:
+        await authenticator.authenticate({"token": token})
+
+    assert exc_info.value.claim == "sub"
+
+
+async def test_unexpected_exception_in_decode_propagates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An unexpected implementation exception in jwt.decode is not swallowed."""
+    authenticator = _make_authenticator()
+    token = _sign(_valid_payload())
+
+    def _boom(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(jwt, "decode", _boom)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await authenticator.authenticate({"token": token})
+
+
+async def test_unexpected_exception_in_jwks_resolution_propagates() -> None:
+    """An unexpected exception in JWKS resolution is not swallowed as a refusal."""
+    authenticator = _make_jwks_authenticator()
+    _stub_resolved_signing_key(authenticator, error=RuntimeError("boom"))
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await authenticator.authenticate({"token": "irrelevant-placeholder-token"})
