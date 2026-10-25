@@ -101,9 +101,9 @@
 
 **Independent Test**: the burst test alone.
 
-- [ ] T031 [US3] Create `packages/aoa-maxitor/tests/test_api_graph_burst.py`: `httpx.AsyncClient` over `ASGITransport` on `create_app()`, `app.state.graph_store` replaced by a store over a counting stub builder that sleeps briefly so the requests overlap; fire 300 concurrent `GET /api/sidebar?source=X` and 300 `GET /api/v1/full-graph?source=X`; assert 600 successes, 0 errors, one build (SC-008, SC-003). Then, with the store's clock moved one hour ahead and `idle_seconds` set above that, one more read → 0 further builds (SC-002, FR-012).
-- [ ] T032 Adversarial check: disable single flight → the build count exceeds 1 and the test fails; add a re-download after any time → the SC-002 assertion fails. Restore.
-- [ ] T033 Prepare commit 6: `test(maxitor): a burst on one link builds its graph once (#214)`.
+- [x] T031 [US3] Create `packages/aoa-maxitor/tests/test_api_graph_burst.py`: `httpx.AsyncClient` over `ASGITransport` on `create_app()`, `app.state.graph_store` replaced by a store over a counting stub builder that sleeps briefly so the requests overlap; fire 300 concurrent `GET /api/sidebar?source=X` and 300 `GET /api/v1/full-graph?source=X`; assert 600 successes, 0 errors, one build (SC-008, SC-003). Then, with the store's clock moved one hour ahead and `idle_seconds` set above that, one more read → 0 further builds (SC-002, FR-012).
+- [x] T032 Adversarial check: disable single flight → the build count exceeds 1 and the test fails; add a re-download after any time → the SC-002 assertion fails. Restore.
+- [x] T033 Prepare commit 6: `test(maxitor): a burst on one link builds its graph once (#214)`.
 
 ---
 
