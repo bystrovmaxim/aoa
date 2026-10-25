@@ -40,7 +40,7 @@ def test_removed_keywords_refuse_with_a_migration_message(kwargs: dict) -> None:
     with pytest.raises(RoleSpecTypeError) as excinfo:
 
         @check_roles(AdminRole, **kwargs)
-        class _Action:  # noqa: F811
+        class _Action:
             pass
 
     assert "@access_decide" in str(excinfo.value)

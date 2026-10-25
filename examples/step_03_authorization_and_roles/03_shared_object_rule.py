@@ -1,4 +1,6 @@
-"""A shared condition becomes the object rule itself."""
+"""A shared condition becomes the object rule itself.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/03_shared_object_rule.py
+"""
 
 from __future__ import annotations
 
@@ -74,7 +76,9 @@ class CancelOrderAction(BaseAction[CancellationParams, OrderResult]):
         return Refused("AMOUNT_LIMIT")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -90,10 +94,12 @@ async def main() -> None:
     answer = await machine.check_access_decide(
         caller, CancelOrderAction, CancellationParams(order_id="ord-001", amount=50)
     )
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
     print("amount 50:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(
         caller, CancelOrderAction, CancellationParams(order_id="ord-001", amount=150)
     )
+    assert answer.model_dump(mode="json") == {"kind": "refused", "gate": "ACCESS_DECIDE", "reason": "AMOUNT_LIMIT"}
     print("amount 150:", answer.model_dump(mode="json"))
 
 

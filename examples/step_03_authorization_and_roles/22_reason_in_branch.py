@@ -1,4 +1,6 @@
-"""A branch declares the reason it refuses with."""
+"""A branch declares the reason it refuses with.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/22_reason_in_branch.py
+"""
 
 from __future__ import annotations
 
@@ -68,7 +70,9 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Allowed()
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -82,8 +86,14 @@ async def main() -> None:
     caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
     answer = await machine.check_access_decide(caller, CancelOrderAction, OrderParams(order_id="CLOSED-9"))
+    assert answer.model_dump(mode="json") == {
+        "kind": "refused",
+        "gate": "ACCESS_DECIDE",
+        "reason": "ORDER_ALREADY_CLOSED",
+    }
     print("closed order:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(caller, CancelOrderAction, OrderParams(order_id="ord-1"))
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
     print("open order:", answer.model_dump(mode="json"))
 
 

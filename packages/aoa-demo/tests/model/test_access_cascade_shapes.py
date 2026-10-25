@@ -42,6 +42,7 @@ from aoa.demo.model.interchange_demo_coordinator import (
     import_sample_registration_modules,
 )
 
+
 def _coordinator() -> object:
     import_sample_registration_modules()
     return build_registered_interchange_coordinator()

@@ -1,4 +1,6 @@
-"""A condition on one role becomes a branch of the object rule."""
+"""A condition on one role becomes a branch of the object rule.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/02_object_rule.py
+"""
 
 from __future__ import annotations
 
@@ -72,7 +74,9 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Refused("EU_TEAM_ONLY")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -87,8 +91,10 @@ async def main() -> None:
     us = Context(user=UserInfo(user_id="us-m1", roles=(ManagerRole,)))
 
     answer = await machine.check_access_decide(eu, CancelOrderAction, OrderParams(order_id="ord-001"))
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
     print("EU manager:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(us, CancelOrderAction, OrderParams(order_id="ord-001"))
+    assert answer.model_dump(mode="json") == {"kind": "refused", "gate": "ACCESS_DECIDE", "reason": "EU_TEAM_ONLY"}
     print("US manager:", answer.model_dump(mode="json"))
 
 

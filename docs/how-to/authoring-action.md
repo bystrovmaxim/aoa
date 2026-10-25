@@ -63,7 +63,7 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
         return GreetResult(message=f"Hello, {params.name}!")
 ```
 
-Three annotations on the class are mandatory: `@meta`, `@check_roles`, `BaseAction[P, R]`.
+Three declarations on the class are mandatory: `@meta`, `@check_roles`, `BaseAction[P, R]`. `@check_roles` accepts roles only. Put caller, input and object conditions in the optional `@access_decide` method; see [roles and object rules](roles-and-object-rules.md) for a complete program and migration failures.
 
 ## Params and Result — Pydantic at the boundary
 
