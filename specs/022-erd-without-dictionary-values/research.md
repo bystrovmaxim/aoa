@@ -11,7 +11,16 @@
 | Size of the drawing for one domain | The rendered Graphviz SVG's `viewBox` | players `1698 × 6800`, events `1815 × 1593` |
 | Where the rows come from | Reading the renderer | one `<TR>` per value plus one per property, built by `valueRows` and interpolated into the card's label |
 
-The second number is the calibration for the success criterion: a domain that only has small dictionaries is 1593 px tall, so a domain whose largest dictionary declares 93 values must land in the same range, not at 6800.
+The second number was the original calibration for the success criterion: a domain that only has
+small dictionaries is 1593 px tall, so a domain whose largest dictionary declares 93 values was
+expected to land in the same range, not at 6800.
+
+**That prediction was wrong, and the first implementation measured it.** With the value rows gone,
+the players domain is 2075 px tall, not ~1600: it carries more entities than the events domain, and
+those entities — not the dictionary — set its height. The other three domains measure 1423, 1242 and
+1667 px. The causal criterion is unaffected and is what actually matters: with 0, 1, 3, 26 or 93
+values the dictionary's card is byte-identical (SC-006). The success criterion was corrected to the
+measured numbers rather than the drawing being re-laid out to hit an invented target.
 
 ## D1 — The removal lives in the renderer, not in the data
 

@@ -19,7 +19,10 @@ export type ErdEntity = {
   color?: string;
   /** `enum` marks a closed dictionary; every other kind is an ordinary entity. */
   entity_kind?: string;
-  /** The values a closed dictionary declares, in declaration order. */
+  /**
+   * The values a closed dictionary declares, in declaration order — carried by the payload
+   * and by the graph for every consumer; the card does not draw them.
+   */
   values?: ErdValue[];
   /** Interchange domain qualname (for legend / filter when 1-hop adds neighbors). */
   domain_qualname?: string;
@@ -141,22 +144,6 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
   const nodeSource = (nd: ErdEntity): string => {
     const color = nd.color || "#3b82f6";
-    const valueRows = (nd.values || [])
-      .map(
-        (value) =>
-          "<TR>" +
-          `<TD BGCOLOR="#ecfdf5" WIDTH="28"></TD>` +
-          // The label identifies the value; the code is storage identity, so it stays on the
-          // row as a tooltip and never becomes printed text of its own.
-          `<TD BGCOLOR="#ecfdf5" COLSPAN="2" ALIGN="LEFT" TOOLTIP="code: ${escHtml(value.code)}">` +
-          `<FONT COLOR="#047857"><I>${escHtml(value.display_name)}</I></FONT>` +
-          (value.properties || [])
-            .map((item) => `<BR ALIGN="LEFT"/>${escHtml(item.name)}: ${escHtml(item.value)}`)
-            .join("") +
-          "</TD>" +
-          "</TR>",
-      )
-      .join("\n      ");
 
     const rows = (nd.fields || [])
       .map((f) => {
@@ -193,7 +180,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
       `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER">` +
       `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT>` +
-      `</TD></TR>${rows}${valueRows}</TABLE>>]`
+      `</TD></TR>${rows}</TABLE>>]`
     );
   };
 
