@@ -14,7 +14,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
+
+from aoa.action_machine.exceptions import HandleError
+from aoa.maxitor.api.graph_source_middleware import current_graph_entry
 
 router = APIRouter(prefix="/api", tags=["sidebar"])
 
@@ -49,18 +52,10 @@ def sidebar_payload(sidebar_result: Any) -> dict[str, Any]:
     }
 
 
-_EMPTY_PAYLOAD: dict[str, Any] = {
-    "level1_nodes": [],
-    "level2_diagrams": [],
-    "level2_nodes": [],
-    "level3_diagrams": [],
-}
-
-
 @router.get("/sidebar")
-async def get_sidebar(request: Request) -> dict[str, Any]:
-    """Return sidebar navigation data for the React SPA, or empty payload when no graph is loaded."""
-    sidebar_data = request.app.state.sidebar_data
-    if sidebar_data is None:
-        return _EMPTY_PAYLOAD
-    return sidebar_payload(sidebar_data)
+async def get_sidebar() -> dict[str, Any]:
+    """Return sidebar navigation data for the graph the current read named."""
+    entry = current_graph_entry()
+    if entry is None:
+        raise HandleError("No graph is bound to this sidebar read: name the source in the query.")
+    return sidebar_payload(entry.sidebar)

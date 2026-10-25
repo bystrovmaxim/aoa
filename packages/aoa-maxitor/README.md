@@ -146,14 +146,14 @@ AOA code (domains, Actions, entities)
         ↓
 NodeGraphCoordinator — walks all elements
         ↓
-DuckDB snapshot — graph in memory
+GraphStore — one DuckDB snapshot per source (?source=)
         ↓
-FastAPI Actions → JSON endpoints
+GraphSourceMiddleware → FastAPI Actions → JSON endpoints
         ↓
 React SPA (G6 + Graphviz WASM)
 ```
 
-On backend startup, `NodeGraphCoordinator` scans all registered AOA code and builds the graph. DuckDB stores it as `nodes` / `edges` tables. Each HTTP request for a diagram queries DuckDB and returns JSON for the client.
+On backend startup, `NodeGraphCoordinator` scans all registered AOA code and builds the process graph. A diagram read names the AOA service it wants as `?source=<graph-json URL>`; the graph store builds that service's DuckDB snapshot on the first read and keeps it, so a repeat open costs nothing and two users of two services never see each other's graph. At most 50 graphs are held, at most 4 builds run at once, and a graph unread for an hour is removed.
 
 **Important**: the React SPA is fully separate from the backend. Two independent processes. In production you can build static SPA assets and serve them from a CDN, with the API hosted separately.
 
@@ -163,21 +163,36 @@ On backend startup, `NodeGraphCoordinator` scans all registered AOA code and bui
 
 All diagram endpoints are AOA Actions exposed via `FastApiAdapter`:
 
-```
-GET /api/health                          — health check
-GET /api/sidebar                         — navigation: domains, entities
+Every diagram read names the source it is for:
 
-GET /api/v1/full-graph                   — full graph (G6 payload)
-GET /api/v1/list-domains                 — domain list with colors
-GET /api/v1/list-entities                — ERD slice by domain
-GET /api/v1/list-node-types              — graph node types
-GET /api/v1/domain-use-case-diagram      — use case by domain and roles
-GET /api/v1/lifecycle-finite-automaton   — entity state machine
+```
+GET /api/health                          — health check, plus the store's load
+
+GET /api/sidebar?source=<url>            — navigation: domains, entities
+
+GET /api/v1/full-graph?source=<url>      — full graph (G6 payload)
+GET /api/v1/list-domains?source=<url>    — domain list with colors
+GET /api/v1/list-entities?source=<url>   — ERD slice by domain
+GET /api/v1/list-node-types?source=<url> — graph node types
+GET /api/v1/domain-use-case-diagram?source=<url>&domain_id=…
+GET /api/v1/lifecycle-finite-automaton?source=<url>&lifecycle_graph_node_id=…
+
+POST /api/load  {"service_url": "<url>"} — rebuild that one source
+```
+
+`source` is the AOA service's `graph-json` URL, URL-encoded. A read that names no source answers `400` and says which parameter is missing; a source that cannot be built answers `422` with the reason; a server with no free build slot answers `503` with `Retry-After` and the client retries. A read whose source is not built yet builds it on the spot — it never answers "not loaded".
+
+`POST /api/load` is not "load into the slot" any more: it rebuilds the source it names and leaves every other source alone. In the SPA the same action is the **"Reload from service"** button next to the open source; a deep link only reads and never reloads.
+
+`GET /api/health` reports the store, so an operator can watch it without a debugger:
+
+```json
+{"status": "ok", "graphs_held": 3, "builds_running": 4, "builds_queued": 2}
 ```
 
 Swagger UI: `http://127.0.0.1:8000/docs`
 
-JSON from endpoints can be embedded in your portal, CI pipeline, or documentation tooling.
+JSON from endpoints can be embedded in your portal, CI pipeline, or documentation tooling. A runnable tour of every case — two sources side by side, `400`, `422`, `503`, reload, eviction, a burst — is [examples/step_26_maxitor/02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
 
 ---
 
@@ -189,7 +204,15 @@ JSON from endpoints can be embedded in your portal, CI pipeline, or documentatio
 uv run task maxitor-api
 ```
 
-Starts FastAPI at `http://127.0.0.1:8000`. Environment: `MAXITOR_API_HOST` (default `127.0.0.1`), `MAXITOR_API_PORT` (default `8000`).
+Starts FastAPI at `http://127.0.0.1:8000`. Environment:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MAXITOR_API_HOST` | `127.0.0.1` | where uvicorn listens |
+| `MAXITOR_API_PORT` | `8000` | port |
+| `MAXITOR_MAX_GRAPHS` | `50` | most graphs one process holds; the least recently read is evicted |
+| `MAXITOR_GRAPH_IDLE_SECONDS` | `3600` | a graph unread this long is removed (one hour) |
+| `MAXITOR_MAX_CONCURRENT_BUILDS` | `4` | builds running at once; further reads wait, then get `503` |
 
 ### Frontend (dev)
 

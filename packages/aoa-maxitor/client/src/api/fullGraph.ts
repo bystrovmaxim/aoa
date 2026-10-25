@@ -1,5 +1,5 @@
 // src/api/fullGraph.ts
-import { apiUrl } from "@/api/client";
+import { graphFetch } from "@/api/client";
 import type {
   InterchangeGraphEdgeData,
   InterchangeGraphG6Payload,
@@ -126,7 +126,7 @@ function buildDomainBubblePlugins(
 
 /** Matches ``GET /api/v1/full-graph`` / ``FullGraphAction`` (plus client-side bubble plugins). */
 export async function fullGraph(): Promise<InterchangeGraphG6Payload> {
-  const response = await fetch(apiUrl("/api/v1/full-graph"));
+  const response = await graphFetch("/api/v1/full-graph");
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(`Full graph request failed (${response.status}): ${text || response.statusText}`);

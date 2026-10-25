@@ -337,7 +337,11 @@ uv run task maxitor-api
 cd packages/aoa-maxitor/client && npm install && npm run dev
 ```
 
-The package dependencies are `aoa-action-machine`, `fastapi`, `uvicorn`, `duckdb`. Details — in the [`aoa-maxitor` package README](../../packages/aoa-maxitor/README.md).
+Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs, builds at most four at once, and removes a graph unread for an hour — all three are settings, listed in the [`aoa-maxitor` package README](../../packages/aoa-maxitor/README.md).
+
+A runnable tour of the whole request contract — two sources side by side, a cold read, `400`, `422`, `503`, an explicit reload, a failed reload, idle removal, eviction and a burst — is [02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
+
+The package dependencies are `aoa-action-machine`, `fastapi`, `uvicorn`, `duckdb`.
 
 ## Invariants
 

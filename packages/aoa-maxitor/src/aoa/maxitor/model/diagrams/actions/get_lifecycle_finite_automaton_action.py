@@ -139,8 +139,8 @@ class GetLifecycleFiniteAutomatonAction(
         rows = graph.execute_fetch_dicts("SELECT field_name FROM lifecycle WHERE id = ?", [node_id])
         if not rows:
             msg = (
-                f"Lifecycle node {node_id!r} not found in the loaded graph. "
-                "Ensure the AOA service graph is loaded via POST /api/load."
+                f"Lifecycle node {node_id!r} not found in the graph of this read's source. "
+                "Check the AOA service URL this page was opened with (?source=)."
             )
             raise ValueError(msg)
         return {

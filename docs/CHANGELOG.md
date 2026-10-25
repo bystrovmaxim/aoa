@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-10-26] — One graph per source, and every request names it
+
+Maxitor used to keep a single graph per process. Whoever opened a service last owned it, so the next diagram drawn for anybody else silently showed that other service's graph; and because there was only one place to keep a graph, every open downloaded and rebuilt the whole thing again.
+
+Each open now names the service it belongs to, and the process keeps one graph per service. Two people on two services no longer overwrite each other, and a service that is already built opens without downloading anything. A deep link works exactly as before — same address, same view, one step — and if the service is not built yet it is built by that first open. Opening a link never forces a rebuild, so a shared link stays cheap for everyone who follows it.
+
+Getting a fresh graph on purpose is now a button: **"Reload from service"**, next to the open source, rebuilds only that service and keeps the diagram and the address where they are. Leaving the source and entering its address again still works as it always did, and a failed reload keeps the diagram already on screen and says what went wrong.
+
+The process keeps its memory bounded without asking anyone to manage it. A graph that nobody has read for an hour is removed, and the next click rebuilds it in one slower step, with no error and no prompt; at most fifty graphs are held and at most four are built at once; the hour and both limits are settings. When the server is busy, the page says so and tries again by itself — being busy is never reported as a broken service.
+
+Saved links, the address format and the way a service is opened are unchanged. ([#214](https://github.com/bystrovmaxim/aoa/issues/214))
+
 ## [2026-10-25] — A JWT request carries its login session
 
 An authenticated JWT request now identifies two things: who is calling and which login session the call belongs to. The context gains a session id next to the user id, so audit records and access rules can tell two logins of the same user apart. An aspect or an `@access_decide` rule reads it like any other context field, without decoding the token again.

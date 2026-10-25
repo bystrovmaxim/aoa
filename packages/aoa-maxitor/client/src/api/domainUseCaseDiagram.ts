@@ -1,11 +1,11 @@
 // src/api/domainUseCaseDiagram.ts
-import { apiUrl } from "@/api/client";
+import { graphFetch } from "@/api/client";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 /** ``GET /api/v1/domain-use-case-diagram`` — UML use-case slice for one Domain interchange id. */
 export async function fetchDomainUseCaseDiagram(domainId: string): Promise<DomainUseCaseDiagramPayload> {
   const q = new URLSearchParams({ domain_id: domainId });
-  const response = await fetch(`${apiUrl("/api/v1/domain-use-case-diagram")}?${q.toString()}`);
+  const response = await graphFetch("/api/v1/domain-use-case-diagram", q);
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(`Use-case diagram request failed (${response.status}): ${text || response.statusText}`);
