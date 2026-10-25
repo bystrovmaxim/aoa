@@ -4,7 +4,7 @@
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/tests-63-brightgreen" alt="63 tests">
-  <img src="https://img.shields.io/badge/version-1.0.1-informational" alt="1.0.1">
+  <img src="https://img.shields.io/badge/version-1.0.2-informational" alt="1.0.2">
 </p>
 
 # aoa-otel: OpenTelemetry Plugin for AOA

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-langgraph"
-version = "1.0.0"
+version = "1.0.1"
 description = "LangGraph controller and actions for AOA."
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]

@@ -119,7 +119,7 @@ _FINISH_PAYLOAD: dict[str, Any] = {}
 
 def _own_fields(cls: type) -> list[str]:
     """The fields a class declares itself, in declaration order (inherited ones excluded)."""
-    return list(cls.__dict__.get("__annotations__", {}).keys())
+    return list(inspect.get_annotations(cls).keys())
 
 
 def _all_events() -> dict[str, type]:
