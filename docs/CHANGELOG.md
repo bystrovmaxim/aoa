@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-10-25] — A dictionary is an ordinary card, and its values stay in the graph
+
+A dictionary used to be drawn as a table of everything it accepts: one line per value, with the value's
+descriptive fields under it. That reads well for three currencies and badly for a world map — a region
+catalogue of ninety-three entries turned one domain's diagram into a column seven screens tall, with the
+entities it belongs to pushed out of sight. The dictionary is now an ordinary card: its name, the fields
+it declares, and the arrows that point at it. Nothing stands in for the values — no count, no badge, no
+hint that the card is a dictionary.
+
+The values did not go anywhere. A graph export still carries every one of them with its code, its label
+and its descriptive fields, and the entity endpoint still answers the same typed list it answered before.
+Anything that needs to know what a dictionary accepts reads it there; only the picture stopped repeating
+it, and a saved graph needs no rebuild to look right.
+
+The rule behind the card is worth knowing when you meet one: two dictionaries that differ only in size
+now draw the same card, so a diagram's height says something about its entities and nothing about how
+many values its catalogues hold. ([#265](https://github.com/bystrovmaxim/aoa/issues/265))
+
 ## [2026-10-25] — Role requirements and object rules have separate jobs
 
 A role declaration now says only who may call an operation. Keep bare roles in `@check_roles`: one role, several alternatives, a guest requirement or an active-role requirement. Replace unconditional `grant(Role)` wrappers with `Role`; the old grant imports and condition keywords are no longer supported.
