@@ -86,11 +86,11 @@ Kind metadata does not yet hide technical associations on its own. Rebuild graph
 
 ### A closed dictionary, and a field that references one
 
-A dictionary is an Entity node whose `entity_kind` is `enum`; it carries `properties.values`, the values it declares, each one its reference object `{code, display_name, properties}`. The ERD card draws those values as rows under the fields, with no key marker, so a reader sees what the dictionary can hold without opening it.
+A dictionary is an Entity node whose `entity_kind` is `enum`; it carries `properties.values`, the values it declares, each one its reference object `{code, display_name, properties}`. The ERD card does not draw them: it is an ordinary card of the dictionary's own fields, with no value rows, no codes and nothing standing in their place. The values stay in the graph and in the ERD response for every consumer that reads them, so a catalogue with ninety-three entries no longer sets the height of the diagram.
 
 A field typed by a dictionary carries `reference_qualname`, the dictionary's interchange id. The card shows the dictionary's short name after the type, prefixed with an arrow. The axis container's label names the dictionary that classifies it.
 
-The ERD payload carries each value's `code`, `display_name` and descriptive `properties` as name/value text rows. The card renders these properties below the label; the full graph retains their original object form. The renderer escapes property text and does not know any domain-specific names. Ordinary entities have an empty value list.
+The ERD payload still carries each value's `code`, `display_name` and descriptive `properties` as name/value text items, in declaration order and in the strict response shape; the full graph retains their original object form. The card draws none of it. The renderer names no domain-specific field, and an ordinary entity has an empty value list.
 
 Dictionary references arrive from the graph in JSON form, including any declared field
 serializer's output. The server converts properties to `{name, value}` text items for
@@ -103,7 +103,7 @@ is no longer a member of the ERD group response; it remains model metadata on th
 edge. The [group-label example](../../examples/step_21_relations/51_group_label.py) and
 [notebook](../../examples/step_21_relations/51_group_label.ipynb) print the actual response.
 
-See the [dictionary example](../../examples/step_20_dictionaries/09_erd.py) and [Maxitor tutorial](../../docs/tutorials/step-26-maxitor.md#dictionaries-values-inside-the-entity-card) for the actual output.
+See the [dictionary example](../../examples/step_20_dictionaries/09_erd.py) and [Maxitor tutorial](../../docs/tutorials/step-26-maxitor.md#dictionaries-in-the-entity-diagram) for the actual output.
 
 ---
 
