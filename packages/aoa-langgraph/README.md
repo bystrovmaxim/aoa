@@ -4,7 +4,7 @@
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/tests-87-brightgreen" alt="87 tests">
-  <img src="https://img.shields.io/badge/version-1.0.0-informational" alt="1.0.0">
+  <img src="https://img.shields.io/badge/version-1.0.1-informational" alt="1.0.1">
 </p>
 
 # aoa-langgraph: Use AOA Actions as LangGraph Nodes

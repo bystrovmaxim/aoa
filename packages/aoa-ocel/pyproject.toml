@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-ocel"
-version = "1.0.1"
+version = "1.0.2"
 description = "OCEL 2.0 export plugin for AOA — expose action runs as object-centric event logs for process mining."
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
