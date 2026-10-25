@@ -1,9 +1,9 @@
 """The order of the steps: what the early ones need, and what a refusal does not wait for.
 
-The first steps decide who is calling and what they may do, and they decide it
-before the call's parameters are looked at — which is why a caller without the
-role receives a refusal even when there are no usable parameters at all, and why
-a refusal is never a parameter error.
+The first steps decide who is calling and which roles they hold, and they decide it
+before the call's parameters are looked at — which is why a caller without the role
+receives a refusal even when there are no usable parameters at all, and why a refusal
+is never a parameter error.
 """
 
 from __future__ import annotations
@@ -17,7 +17,15 @@ from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AccessDenied
-from aoa.action_machine.intents.access_control import Allowed, Gate, Refused
+from aoa.action_machine.intents.access_control import (
+    GATES,
+    GATES_AT_OBJECT,
+    GATES_BEFORE_RUN,
+    Allowed,
+    Gate,
+    Refused,
+    cascade,
+)
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -33,12 +41,12 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from ....support.domain_model.domains import SystemDomain
 from ....support.domain_model.roles import AdminRole, UserRole
 
-_SEEN: dict[str, list[Any]] = {"guard": [], "object": []}
+_SEEN: dict[str, list[Any]] = {"object": []}
 
 
 @pytest.fixture(autouse=True)
 def _reset_seen() -> None:
-    """Forget what the later steps were handed in the previous test."""
+    """Forget what the later step was handed in the previous test."""
     for key in _SEEN:
         _SEEN[key].clear()
 
@@ -49,19 +57,13 @@ def machine() -> ActionProductMachine:
     return ActionProductMachine(cache_coordinator=None)
 
 
-def _guard_records(user: Any, params: Any) -> bool:
-    """Record the parameters the shared condition was handed, and allow."""
-    _SEEN["guard"].append(params)
-    return True
-
-
-@meta(description="order: role-gated with a guard and an object step", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_records, guard_reason="RECORDS_ONLY")
-class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
-    """An operation whose later steps may read the parameters."""
+@meta(description="order: role-gated with an object step", domain=SystemDomain)
+@check_roles(AdminRole)
+class ObjectGatedAction(BaseAction["ObjectGatedAction.Params", "ObjectGatedAction.Result"]):
+    """An operation whose object step may read the parameters."""
 
     class Params(BaseParams):
-        """One input the later steps could read."""
+        """One input the later step could read."""
 
         order_id: str = "ORD-1"
 
@@ -69,9 +71,9 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
         """No outputs."""
 
     @access_decide("Allow every caller the role requirement admitted")
-    async def guarded_access_decide(
+    async def object_gated_access_decide(
         self,
-        params: GuardedAction.Params,
+        params: ObjectGatedAction.Params,
         box: ToolsBox,
         connections: Connections,
     ) -> Allowed:
@@ -81,10 +83,10 @@ class GuardedAction(BaseAction["GuardedAction.Params", "GuardedAction.Result"]):
 
     @summary_aspect("S")
     async def probe_summary(
-        self, params: GuardedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> GuardedAction.Result:
+        self, params: ObjectGatedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> ObjectGatedAction.Result:
         """Produce the operation's result."""
-        return GuardedAction.Result()
+        return ObjectGatedAction.Result()
 
 
 @meta(description="order: open to guests", domain=SystemDomain)
@@ -140,9 +142,22 @@ def _caller_without_roles() -> Context:
     return Context(user=UserInfo(user_id="u-3", roles=()))
 
 
-def _malformed_params() -> GuardedAction.Params:
+def _malformed_params() -> ObjectGatedAction.Params:
     """Parameters that never passed validation: a field of the wrong type."""
-    return GuardedAction.Params.model_construct(order_id=12345)
+    return ObjectGatedAction.Params.model_construct(order_id=12345)
+
+
+def test_the_pre_run_phase_is_the_two_early_steps() -> None:
+    """The run exists only between the phases; the early phase is two steps, the later one."""
+    assert GATES_BEFORE_RUN == (Gate.AUTH_COORDINATOR, Gate.CHECK_ROLES)
+    assert GATES_AT_OBJECT == (Gate.ACCESS_DECIDE,)
+    assert GATES == GATES_BEFORE_RUN + GATES_AT_OBJECT
+
+
+def test_the_condition_steps_are_gone() -> None:
+    """The shared condition and its helper left with the mechanism."""
+    assert not hasattr(cascade, "guard_gate")
+    assert not hasattr(cascade, "guard_answer")
 
 
 @pytest.mark.parametrize("params", [None, "malformed"], ids=["no parameters", "malformed parameters"])
@@ -152,47 +167,40 @@ async def test_an_early_refusal_does_not_wait_for_the_parameters(
     """A caller without the role is refused whether the parameters exist, are usable, or are not."""
     handed = None if params is None else _malformed_params()
     with pytest.raises(AccessDenied) as excinfo:
-        await machine.run(_user_without_the_role(), GuardedAction(), handed)
+        await machine.run(_user_without_the_role(), ObjectGatedAction(), handed)
     assert excinfo.value.verdict.gate is Gate.CHECK_ROLES
-    assert _SEEN == {"guard": [], "object": []}
+    assert _SEEN == {"object": []}
 
 
 async def test_a_refusal_is_never_a_parameter_error(machine: ActionProductMachine) -> None:
     """Malformed parameters do not turn a refusal into a validation failure."""
     with pytest.raises(AccessDenied):
-        await machine.run(_user_without_the_role(), GuardedAction(), _malformed_params())
-    assert _SEEN == {"guard": [], "object": []}
+        await machine.run(_user_without_the_role(), ObjectGatedAction(), _malformed_params())
+    assert _SEEN == {"object": []}
 
 
 async def test_the_question_path_decides_without_parameters_too(machine: ActionProductMachine) -> None:
     """Asking in advance needs no parameters to answer about the early steps."""
-    verdict = await machine.check_access_decide(_user_without_the_role(), GuardedAction, None)
+    verdict = await machine.check_access_decide(_user_without_the_role(), ObjectGatedAction, None)
     assert isinstance(verdict, Refused)
     assert verdict.gate is Gate.CHECK_ROLES
-    assert _SEEN == {"guard": [], "object": []}
-
-
-def test_the_later_steps_are_handed_exactly_the_parameters_of_the_call() -> None:
-    """A condition and an object step read the call's own parameters, not a copy of them."""
-    assert GuardedAction.Params(order_id="ORD-7").order_id == "ORD-7"
-    assert _malformed_params().order_id == 12345
+    assert _SEEN == {"object": []}
 
 
 @pytest.mark.parametrize("params", ["proper", "malformed"], ids=["proper parameters", "malformed parameters"])
-async def test_the_later_steps_receive_the_parameters_once_the_early_ones_pass(
+async def test_the_object_step_receives_the_parameters_once_the_early_steps_pass(
     machine: ActionProductMachine, params: str
 ) -> None:
-    """When the early steps pass, the condition and the object step are handed the call's parameters."""
-    handed = GuardedAction.Params(order_id="ORD-7") if params == "proper" else _malformed_params()
-    await machine.run(_admin(), GuardedAction(), handed)
-    assert _SEEN["guard"] == [handed]
+    """When the role step passes, the object step is handed the call's parameters."""
+    handed = ObjectGatedAction.Params(order_id="ORD-7") if params == "proper" else _malformed_params()
+    await machine.run(_admin(), ObjectGatedAction(), handed)
     assert _SEEN["object"] == [handed]
 
 
 async def test_an_operation_open_to_guests_admits_a_caller_without_credentials(
     machine: ActionProductMachine,
 ) -> None:
-    """A guest declaration means an anonymous caller may pass; rejected credentials land with T018."""
+    """A guest declaration means an anonymous caller may pass."""
     await machine.run(Context(), GuestAction(), GuestAction.Params())
 
 
