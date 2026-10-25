@@ -7,10 +7,10 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 One of the three answers a decision can end in, and the only one that stops the
-call. It names the step that refused with one of the five published words, and
-it carries the reason a developer declared beside the condition they wrote —
-nothing else. The framework itself writes no reason text: a caller branches on
-the word, and a reason, when it is there, is the developer's own.
+call. It names the step that refused with one of the three published words, and
+it carries the reason a developer declared in their object rule — nothing else.
+The framework itself writes no reason text: a caller branches on the word, and a
+reason, when it is there, is the developer's own.
 
 This module also holds ``FORBIDDEN_OBJECT``, the one refusal an object-scoped
 check returns: "there is no such object" and "it is not yours" are deliberately
@@ -57,8 +57,8 @@ class Refused(Verdict):
     """
     AI-CORE-BEGIN
         ROLE: The answer that stops a call, naming what refused and the developer's reason.
-        CONTRACT: Pins ``kind`` to the published word ``refused``; ``gate`` defaults to ``ACCESS_DECIDE``, the only step a developer writes; ``reason`` is the developer's declared text — non-empty and never whitespace-only when present, and absent only where no condition decided the refusal, since a declared condition must carry one (FR-010). Buildable positionally: ``Refused("NOT_YOURS")``.
-        INVARIANTS: Frozen and extra-forbidding, inherited from ``Verdict``; a refusal without a reason is valid (no condition decided it), a refusal with an empty one is not.
+        CONTRACT: Pins ``kind`` to the published word ``refused``; ``gate`` defaults to ``ACCESS_DECIDE``, the only step a developer writes; ``reason`` is the developer's declared text — non-empty and never whitespace-only when present, and absent where no rule declared one. Buildable positionally: ``Refused("NOT_YOURS")``.
+        INVARIANTS: Frozen and extra-forbidding, inherited from ``Verdict``; a refusal without a reason is valid, a refusal with an empty one is not.
     AI-CORE-END
     """
 

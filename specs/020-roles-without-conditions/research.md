@@ -196,6 +196,12 @@ nothing. Package-level `CHANGELOG.md` files are history and are not rewritten; o
 **Alternatives rejected**: keeping all file names (leaves four names that teach a removed word);
 deleting the pages (contracts the maintainer's decision to keep the numbers).
 
+**Note after #262 landed**: `docs/reference/glossary.md` and `docs/reference/intents-and-invariants.md`
+were extended by #261 with the endpoint-role compatibility matrix, dictionary transport and NoInverse
+sections before this feature's rewrite. The rewrite preserves those additions verbatim and changes
+only the authorization text; the relationship "endpoint role" is not the authorization "role" this
+feature is about.
+
 ## R13 — Test migration shape
 
 **Decision**: seventeen test modules name the removed mechanism — fifteen in `aoa-action-machine`,
