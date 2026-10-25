@@ -155,3 +155,51 @@ The events domain shows the three dictionaries as ordinary cards — `id` and `i
 ## 7. Environment note
 
 The headless binary used for the measurements is `chromium_headless_shell` from the local Playwright cache; any Chromium build works — what matters is the `viewBox` of the Graphviz SVG inside the rendered page.
+
+## 7. User Story 2 — the graph export still carries every value
+
+### 7.1 The test, run unchanged (T008)
+
+```
+$ .venv/bin/python -m pytest packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py -q
+...                                                                      [100%]
+3 passed in 0.01s
+```
+
+The file was not edited. Its three cases are the graph-side proof:
+
+| Case | What it asserts |
+| --- | --- |
+| `test_the_graph_document_carries_the_serializer_text` | a value's property travels as the model's serializer text, not as a Python object |
+| `test_the_graph_document_survives_json_dumps` | the published values survive a JSON round-trip |
+| `test_the_published_reference_keeps_its_three_members` | every value keeps exactly `{code, display_name, properties}` |
+
+**The markup case.** US2's third scenario asks that `<`, `>` and `&` travel verbatim. It is asserted one
+layer down, by `test_list_entities_payload_dictionary.py`'s `"<safe> & readable"` fixture, and it holds
+at the graph layer by construction: the same graph test is what runs `json.dumps` over the values, and a
+markup string is an ordinary JSON leaf on that path. No dedicated graph-layer fixture exists, and none
+was invented — the specification says so in `contracts/erd-card.md` §1 rather than implying a proof that
+is not there.
+
+### 7.2 The adversarial break (T009)
+
+The assignment at `packages/aoa-action-machine/src/aoa/action_machine/graph/nodes/entity_graph_node.py:93`
+was replaced by a comment and `_ = declared`, so `properties` never gains the `values` key and `to_dict`
+(line 122) has nothing to re-carry. The graph test then failed in all three cases:
+
+```
+E   KeyError: 'values'
+3 failed in 0.05s
+```
+
+In the same state the card check stayed green:
+
+```
+$ node scripts/check-erd-dictionary-values.ts
+Dictionary card: no value row, its own fields and the reference intact
+exit 0
+```
+
+The file was restored (`git diff` on the package is empty) and both proofs were re-run: `3 passed` and
+the card check green. The pair behaves as the contract requires — the graph proof fails only when the
+graph loses the values, and the card proof does not notice, because the card no longer reads them.
