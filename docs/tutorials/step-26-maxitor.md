@@ -15,7 +15,7 @@
 - [The full graph](#the-full-graph)
 - [ERD, use case, and lifecycle](#erd-use-case-and-lifecycle)
 - [It's the same graph the machine builds](#its-the-same-graph-the-machine-builds)
-- [Dictionaries: values inside the entity card](#dictionaries-values-inside-the-entity-card)
+- [Dictionaries in the entity diagram](#dictionaries-in-the-entity-diagram)
 - [Specialization: the variants in one frame](#specialization-the-variants-in-one-frame)
 - [Maxitor as an AOA application](#maxitor-as-an-aoa-application)
 - [How to run it](#how-to-run-it)
@@ -113,16 +113,22 @@ No diagram was drawn by hand — this is the running system's own graph.
 
 You can see how each declared intent became a node or an edge: the domain and the role, the `@depends` resource, both aspects and the checker, two entities with five fields and a relation, the order automaton with states and transitions. This is exactly what Maxitor unfolds into four projections.
 
-## Dictionaries: values inside the entity card
+## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.
 Each table-shaped card represents an entity class; its rows describe fields. The shape
 does not prove that a database table exists. `PK` and `FK` are diagram hints, not generated
 database constraints.
 
-A closed dictionary is one entity class with several declared values. Maxitor therefore
-shows one dictionary card, with its values listed beneath its fields. Each value row shows
-its display name, followed by descriptive properties such as a currency symbol. The code is available in the tooltip rather than printed in a separate cell. The inherited code and display-name fields no longer appear as ordinary field rows.
+A closed dictionary is one entity class with several declared values. In the diagram it is an
+ordinary entity card: its header and its own field rows — an identifier, an obsolescence flag,
+whatever the dictionary declares — and nothing more. The values it accepts are **not drawn**: no
+row per value, no descriptive properties, no codes, and nothing standing in for them such as a
+count. A dictionary of three values and one of ninety-three therefore look the same, which is what
+keeps a real catalogue — a list of regions, say — from setting the height of the whole diagram.
+The values are still in the graph and in the ERD response for anything that needs them, and the
+[next section](#follow-one-property-across-the-boundary) follows a value's properties across that
+boundary.
 The values are not separate cards or graph nodes. A dictionary selection uses an explicit ordinary relationship, including One/Many and ownership containers. Its retained field row names the
 referenced dictionary beside its type, with an arrow marker. The current payload also contains
 a synthesized FK row for the same field; this duplication is a confirmed limitation, not two

@@ -144,9 +144,10 @@ values) never depended on the prediction. Recorded in full in `research.md`.
 
 ### 6.5 Visual record
 
-Screenshots were taken at 1800 × 1100, 100 % zoom, one per domain. They are working artefacts under
-`.tmp-shot/` (`after-events.png`, `after-players.png`) and are not part of the repository: the
-numbers above and the DOM searches are the evidence, the images are for a human to look at.
+Screenshots were taken at 1800 × 1100, 100 % zoom, one per domain, looked at, and then thrown away:
+they were scratch files, not evidence, and nothing in this repository points at them. The numbers above
+and the DOM searches are the evidence; the images existed only for a human to glance at while the work
+was in progress.
 
 The events domain shows the three dictionaries as ordinary cards — `id` and `is_obsolete`, a
 `PK` marker, no green block. The players domain shows `RegionEnumEntity`, `GenderEnumEntity` and

@@ -163,6 +163,8 @@ A model author writes `Classifier(variant=…)` on a specialization's reverse fi
 
 A reader of the ERD sees a dictionary card made of labels: no `code` field row, no `display_name` field row, and no code cell beside each value. The label identifies the value, the value's own properties appear underneath, and the code is available on hover and in the payload — never printed.
 
+**Amended 2026-10-25 by [#265](https://github.com/bystrovmaxim/aoa/issues/265):** the value row itself retired. The card draws no row for a value and puts nothing in its place, so acceptance scenarios 1 and 3 below describe a card that no longer exists, and the tooltip has no row to attach to. The field-row rule (FR-037) stands, and the graph and the payload still carry every value. The current behaviour is specified in `specs/022-erd-without-dictionary-values/spec.md` (FR-001 to FR-012).
+
 **Why this priority**: It is a display defect with a bounded blast radius, and it deliberately changes the card contract introduced by #244, so it ships after the model-side blocks settle.
 
 **Independent Test**: Produce the server payload for a dictionary, validate it against the payload schema, render the DOT source and the SVG, and check the printed text, the tooltip and the payload separately. Confirm the graph JSON still carries the code and the label.
@@ -260,7 +262,7 @@ A reader of the ERD sees a dictionary card made of labels: no `code` field row, 
 **A dictionary card shows labels**
 
 - **FR-037**: For the enum kind, the card payload MUST omit `code` and `display_name` from its field list; the graph document and its schema MUST keep both.
-- **FR-038**: The value row MUST print the label and the value's own properties, MUST NOT print the code, and MUST expose the code as a tooltip on the row; the code MUST remain in the payload's `properties.values`.
+- **FR-038**: The value row MUST print the label and the value's own properties, MUST NOT print the code, and MUST expose the code as a tooltip on the row; the code MUST remain in the payload's `properties.values`. *Superseded in part on 2026-10-25 by [#265](https://github.com/bystrovmaxim/aoa/issues/265): the value row is no longer drawn, so nothing is printed for a value and no tooltip exists. Its rule that a storage code is never printed holds by construction, and the code stays in `properties.values` and in the graph document.*
 - **FR-039**: Rendering MUST remain domain-agnostic — no dictionary name, kind name or fixed field list in the renderer — and escaping MUST be preserved.
 - **FR-040**: A non-dictionary entity's rows MUST be unchanged, and a graph saved before the change MUST render without a rebuild.
 - **FR-041**: The card's payload check, the payload test and the dictionary-card contract MUST be updated to the final behaviour, and the contract introduced by #244 MUST be reconciled rather than contradicted.
