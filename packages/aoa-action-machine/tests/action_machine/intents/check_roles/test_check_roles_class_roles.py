@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.any_role import AnyRole
+from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import MissingCheckRolesError

@@ -1,4 +1,6 @@
-"""The branch order inside one object rule."""
+"""The branch order inside one object rule.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/17_branch_order.py
+"""
 
 from __future__ import annotations
 
@@ -41,7 +43,7 @@ class ManagerRole(ApplicationRole):
 
 
 class AdminRole(ManagerRole):
-    """Include manager permissions and bypass the team restriction."""
+    """Include manager permissions through role inheritance."""
 
     name = "admin"
     description = "Global administrator"
@@ -64,8 +66,8 @@ class OrderResult(BaseResult):
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
-    @access_decide("An admin is always admitted; a manager must be in the EU team")
-    @context_requires("user.user_id", "user.roles")
+    @access_decide("A service account bypasses the team restriction; other managers need the EU team")
+    @context_requires("user.user_id")
     async def cancel_order_access_decide(
         self,
         params: OrderParams,
@@ -73,15 +75,17 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
-        """The earlier branch admits an admin; the later one admits an EU manager."""
-        if any(role.__name__ == "AdminRole" for role in ctx.get("user.roles")):
+        """Admit service accounts first, then managers in the EU team."""
+        if ctx.get("user.user_id").startswith("service-"):
             return Allowed()
         if ctx.get("user.user_id").startswith("eu-"):
             return Allowed()
         return Refused("EU_TEAM_ONLY")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -93,13 +97,15 @@ async def main() -> None:
     """The branch order inside one object rule."""
     machine = ActionProductMachine(cache_coordinator=None)
     manager = Context(user=UserInfo(user_id="us-m1", roles=(ManagerRole,)))
-    admin = Context(user=UserInfo(user_id="us-a1", roles=(AdminRole,)))
+    admin = Context(user=UserInfo(user_id="service-a1", roles=(AdminRole,)))
     params = OrderParams(order_id="ord-001")
 
     answer = await machine.check_access_decide(manager, CancelOrderAction, params)
+    assert answer.model_dump(mode="json") == {"kind": "refused", "gate": "ACCESS_DECIDE", "reason": "EU_TEAM_ONLY"}
     print("US manager:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(admin, CancelOrderAction, params)
-    print("US admin:", answer.model_dump(mode="json"))
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
+    print("service account:", answer.model_dump(mode="json"))
 
 
 if __name__ == "__main__":

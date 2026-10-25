@@ -1,4 +1,6 @@
-"""A refusal stops the remaining checks."""
+"""A refusal stops the remaining checks.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/13_cascade.py
+"""
 
 from __future__ import annotations
 
@@ -16,8 +18,11 @@ from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.events import BeforeAccessDecideAspectEvent, BeforeSummaryAspectEvent
+from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -51,7 +56,29 @@ class OrderResult(BaseResult):
     order_id: str = Field(description="Cancelled order identifier")
 
 
-TRACE = []
+class AccessTrace(Plugin):
+    """Record reached steps without action globals."""
+
+    plugin_name = "access_trace"
+    plugin_version = "1"
+
+    def __init__(self) -> None:
+        """Start with an empty observation list."""
+        self.called: list[str] = []
+
+    async def get_initial_state(self):
+        """Use no persistent plugin state."""
+        return None
+
+    @on(BeforeAccessDecideAspectEvent)
+    async def on_object(self, state, event, log):
+        """Record entry to the object rule."""
+        self.called.append("object")
+
+    @on(BeforeSummaryAspectEvent)
+    async def on_summary(self, state, event, log):
+        """Record entry to the summary."""
+        self.called.append("summary")
 
 
 @meta(description="Cancel an order", domain=StoreDomain)
@@ -67,13 +94,13 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         connections: Connections,
     ) -> Verdict:
         """Refuse, recording that the object step was reached."""
-        TRACE.append("object")
         return Refused("CANCELLATIONS_PAUSED")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
-        TRACE.append("summary")
         return OrderResult(order_id=params.order_id)
 
 
@@ -82,23 +109,34 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 async def main() -> None:
     """A refusal stops the remaining checks."""
-    machine = ActionProductMachine(cache_coordinator=None)
+    trace = AccessTrace()
+    machine = ActionProductMachine(cache_coordinator=None, plugins=[trace])
     manager = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
     stranger = Context(user=UserInfo(user_id="x-1", roles=()))
 
-    TRACE.clear()
+    trace.called.clear()
     try:
         await machine.run(manager, CancelOrderAction(), OrderParams(order_id="ord-001"))
     except AccessDenied as exc:
+        assert exc.verdict.gate.value == "ACCESS_DECIDE"
+        assert str(exc) == "Access denied by ACCESS_DECIDE: CANCELLATIONS_PAUSED"
         print("manager refused at:", exc.verdict.gate.value)
-    print("manager called:", TRACE)
+    else:
+        raise AssertionError("The object rule must refuse.")
+    assert trace.called == ["object"]
+    print("manager called:", trace.called)
 
-    TRACE.clear()
+    trace.called.clear()
     try:
         await machine.run(stranger, CancelOrderAction(), OrderParams(order_id="ord-001"))
     except AccessDenied as exc:
+        assert exc.verdict.gate.value == "CHECK_ROLES"
+        assert str(exc) == "Access denied by CHECK_ROLES."
         print("stranger refused at:", exc.verdict.gate.value)
-    print("stranger called:", TRACE)
+    else:
+        raise AssertionError("The role requirement must refuse.")
+    assert trace.called == []
+    print("stranger called:", trace.called)
 
 
 if __name__ == "__main__":

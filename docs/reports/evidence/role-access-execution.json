@@ -1,0 +1,210 @@
+{
+  "01_roles": {
+    "script": "examples/step_03_authorization_and_roles/01_roles.py",
+    "notebook": "examples/step_03_authorization_and_roles/01_roles.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "manager: {'order_id': 'ord-001'}\nadmin: {'order_id': 'ord-001'}\n",
+    "script_stderr": ""
+  },
+  "02_object_rule": {
+    "script": "examples/step_03_authorization_and_roles/02_object_rule.py",
+    "notebook": "examples/step_03_authorization_and_roles/02_object_rule.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "EU manager: {'kind': 'allowed'}\nUS manager: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'EU_TEAM_ONLY'}\n",
+    "script_stderr": ""
+  },
+  "03_shared_object_rule": {
+    "script": "examples/step_03_authorization_and_roles/03_shared_object_rule.py",
+    "notebook": "examples/step_03_authorization_and_roles/03_shared_object_rule.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "amount 50: {'kind': 'allowed'}\namount 150: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'AMOUNT_LIMIT'}\n",
+    "script_stderr": ""
+  },
+  "04_access_decide": {
+    "script": "examples/step_03_authorization_and_roles/04_access_decide.py",
+    "notebook": "examples/step_03_authorization_and_roles/04_access_decide.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "own order: {'order_id': 'ord-001'}\nord-002: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': None}\nmissing: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': None}\n",
+    "script_stderr": ""
+  },
+  "05_machine_check": {
+    "script": "examples/step_03_authorization_and_roles/05_machine_check.py",
+    "notebook": "examples/step_03_authorization_and_roles/05_machine_check.ipynb",
+    "code_cells": 4,
+    "outputs_match": true,
+    "stdout": "check: {'kind': 'allowed'}\ncancelled after check: []\ncancelled after run: ['ord-001']\n",
+    "script_stderr": ""
+  },
+  "06_the_declaration": {
+    "script": "examples/step_03_authorization_and_roles/06_the_declaration.py",
+    "notebook": "examples/step_03_authorization_and_roles/06_the_declaration.ipynb",
+    "code_cells": 2,
+    "outputs_match": true,
+    "stdout": "DuplicateAccessDecideError\n",
+    "script_stderr": ""
+  },
+  "07_three_answers": {
+    "script": "examples/step_03_authorization_and_roles/07_three_answers.py",
+    "notebook": "examples/step_03_authorization_and_roles/07_three_answers.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "check: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'CANCELLATIONS_PAUSED'}\nrun raises: AccessDenied Access denied by ACCESS_DECIDE: CANCELLATIONS_PAUSED\nrun verdict: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'CANCELLATIONS_PAUSED'}\n",
+    "script_stderr": ""
+  },
+  "08_refusal_is_not_a_failure": {
+    "script": "examples/step_03_authorization_and_roles/08_refusal_is_not_a_failure.py",
+    "notebook": "examples/step_03_authorization_and_roles/08_refusal_is_not_a_failure.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "check: {'kind': 'undecided', 'gate': 'ACCESS_DECIDE'}\nrun raises: AccessUndecided\nrun verdict: {'kind': 'undecided', 'gate': 'ACCESS_DECIDE'}\nserver cause: RuntimeError\n",
+    "script_stderr": ""
+  },
+  "09_reasons": {
+    "script": "examples/step_03_authorization_and_roles/09_reasons.py",
+    "notebook": "examples/step_03_authorization_and_roles/09_reasons.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "{'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'ORDER_ALREADY_SHIPPED'}\n",
+    "script_stderr": ""
+  },
+  "10_context_in_the_check": {
+    "script": "examples/step_03_authorization_and_roles/10_context_in_the_check.py",
+    "notebook": "examples/step_03_authorization_and_roles/10_context_in_the_check.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "declared user: m-1\nanswer: {'kind': 'undecided', 'gate': 'ACCESS_DECIDE'}\nserver cause: ContextAccessError\n",
+    "script_stderr": ""
+  },
+  "11_events": {
+    "script": "examples/step_03_authorization_and_roles/11_events.py",
+    "notebook": "examples/step_03_authorization_and_roles/11_events.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "before: cancel_access_decide\nafter: cancel_access_decide\nanswer: {'kind': 'allowed'}\n",
+    "script_stderr": ""
+  },
+  "12_authentication": {
+    "script": "examples/step_03_authorization_and_roles/12_authentication.py",
+    "notebook": "examples/step_03_authorization_and_roles/12_authentication.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "user: m-1\nroles: ['ManagerRole']\ninvalid token: None\n",
+    "script_stderr": ""
+  },
+  "13_cascade": {
+    "script": "examples/step_03_authorization_and_roles/13_cascade.py",
+    "notebook": "examples/step_03_authorization_and_roles/13_cascade.ipynb",
+    "code_cells": 4,
+    "outputs_match": true,
+    "stdout": "manager refused at: ACCESS_DECIDE\nmanager called: ['object']\nstranger refused at: CHECK_ROLES\nstranger called: []\n",
+    "script_stderr": ""
+  },
+  "14_guest_and_any": {
+    "script": "examples/step_03_authorization_and_roles/14_guest_and_any.py",
+    "notebook": "examples/step_03_authorization_and_roles/14_guest_and_any.ipynb",
+    "code_cells": 6,
+    "outputs_match": true,
+    "stdout": "guest, anonymous: {'kind': 'allowed'}\nany, anonymous: {'kind': 'refused', 'gate': 'CHECK_ROLES', 'reason': None}\nany, manager: {'kind': 'allowed'}\nguest run: {'order_id': 'ord-001'}\nguest with object rule: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'ORDER_CLOSED'}\nAccessDenied: Access denied by ACCESS_DECIDE: ORDER_CLOSED\nguest beside manager: {'kind': 'allowed'}\nany beside manager, auditor: {'kind': 'allowed'}\nany, identified without roles: {'kind': 'refused', 'gate': 'CHECK_ROLES', 'reason': None}\nany, silenced only: {'kind': 'refused', 'gate': 'CHECK_ROLES', 'reason': None}\n",
+    "script_stderr": ""
+  },
+  "15_alternative_roles": {
+    "script": "examples/step_03_authorization_and_roles/15_alternative_roles.py",
+    "notebook": "examples/step_03_authorization_and_roles/15_alternative_roles.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "manager: allowed\nauditor: allowed\nanonymous: {'kind': 'refused', 'gate': 'CHECK_ROLES', 'reason': None}\n",
+    "script_stderr": ""
+  },
+  "16_silenced_role": {
+    "script": "examples/step_03_authorization_and_roles/16_silenced_role.py",
+    "notebook": "examples/step_03_authorization_and_roles/16_silenced_role.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "active: {'kind': 'allowed'}\nsilenced: {'kind': 'refused', 'gate': 'CHECK_ROLES', 'reason': None}\n",
+    "script_stderr": ""
+  },
+  "17_a_wrong_role_mode": {
+    "script": "examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py",
+    "notebook": "examples/step_03_authorization_and_roles/17_a_wrong_role_mode.ipynb",
+    "code_cells": 5,
+    "outputs_match": true,
+    "stdout": "declared: {'mode': <RoleMode.ALIVE: 'alive'>}\nRoleModeDeclarationError: @role_mode(MistypedRole): expected a RoleMode member, got 'alive'. Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.\nRoleModeDeclarationError: @role_mode: expected a RoleMode member, got the class ParenthesislessRole itself \u2014 the parentheses are missing. Write @role_mode(RoleMode.ALIVE). Allowed: ALIVE, DEPRECATED, SILENCED, UNUSED.\ndeclared: {'mode': <RoleMode.UNUSED: 'unused'>}\nRoleSpecTypeError: @check_roles cannot require role 'RetiredRole': it is marked RoleMode.UNUSED.\n",
+    "script_stderr": ""
+  },
+  "17_branch_order": {
+    "script": "examples/step_03_authorization_and_roles/17_branch_order.py",
+    "notebook": "examples/step_03_authorization_and_roles/17_branch_order.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "US manager: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'EU_TEAM_ONLY'}\nservice account: {'kind': 'allowed'}\n",
+    "script_stderr": ""
+  },
+  "18_empty_description": {
+    "script": "examples/step_03_authorization_and_roles/18_empty_description.py",
+    "notebook": "examples/step_03_authorization_and_roles/18_empty_description.ipynb",
+    "code_cells": 2,
+    "outputs_match": true,
+    "stdout": "DescriptionContractError: @access_decide: description cannot be empty or whitespace. Say what the check decides.\n",
+    "script_stderr": ""
+  },
+  "19_wrong_signature": {
+    "script": "examples/step_03_authorization_and_roles/19_wrong_signature.py",
+    "notebook": "examples/step_03_authorization_and_roles/19_wrong_signature.ipynb",
+    "code_cells": 2,
+    "outputs_match": true,
+    "stdout": "DeclarationStructureError: @access_decide: method 'order_access_decide' must declare its parameters as (self, params, box, connections), got (self, params, state, box, connections). The object step hands over (self, params, box, connections) in that order, and Python binds by position, so a renamed or reordered parameter would receive something other than it says.\n",
+    "script_stderr": ""
+  },
+  "20_missing_return_type": {
+    "script": "examples/step_03_authorization_and_roles/20_missing_return_type.py",
+    "notebook": "examples/step_03_authorization_and_roles/20_missing_return_type.ipynb",
+    "code_cells": 2,
+    "outputs_match": true,
+    "stdout": "DeclarationStructureError: @access_decide: method 'order_access_decide' must annotate what it returns (-> Verdict, or one of Allowed / Refused / Undecided).\n",
+    "script_stderr": ""
+  },
+  "21_failure_event": {
+    "script": "examples/step_03_authorization_and_roles/21_failure_event.py",
+    "notebook": "examples/step_03_authorization_and_roles/21_failure_event.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "failed gate: ACCESS_DECIDE\nexception type: RuntimeError\ncaller: {'kind': 'undecided', 'gate': 'ACCESS_DECIDE'}\n",
+    "script_stderr": ""
+  },
+  "22_reason_in_branch": {
+    "script": "examples/step_03_authorization_and_roles/22_reason_in_branch.py",
+    "notebook": "examples/step_03_authorization_and_roles/22_reason_in_branch.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "closed order: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': 'ORDER_ALREADY_CLOSED'}\nopen order: {'kind': 'allowed'}\n",
+    "script_stderr": ""
+  },
+  "23_invalid_answer": {
+    "script": "examples/step_03_authorization_and_roles/23_invalid_answer.py",
+    "notebook": "examples/step_03_authorization_and_roles/23_invalid_answer.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "answer: {'kind': 'undecided', 'gate': 'ACCESS_DECIDE'}\nserver cause: DeclarationStructureError\n",
+    "script_stderr": ""
+  },
+  "24_role_declarations_and_migration": {
+    "script": "examples/step_03_authorization_and_roles/24_role_declarations_and_migration.py",
+    "notebook": "examples/step_03_authorization_and_roles/24_role_declarations_and_migration.ipynb",
+    "code_cells": 7,
+    "outputs_match": true,
+    "stdout": "accepted: one role, positional roles, tuple, list, duplicates, guest alternative\nRoleSpecTypeError: @check_roles declares roles only; 'guard' belonged to the removed condition layer. Move the condition into the operation's @access_decide method and return Refused(\"REASON\") or FORBIDDEN_OBJECT for the branch that used to refuse.\nRoleSpecTypeError: @check_roles declares roles only; 'guard_reason' belonged to the removed condition layer. Move the condition into the operation's @access_decide method and return Refused(\"REASON\") or FORBIDDEN_OBJECT for the branch that used to refuse.\nRoleSpecTypeError: @check_roles declares roles only; 'when' belonged to the removed condition layer. Move the condition into the operation's @access_decide method and return Refused(\"REASON\") or FORBIDDEN_OBJECT for the branch that used to refuse.\nImportError: cannot import name 'grant' from 'aoa.action_machine.intents.check_roles' (/Users/bystrovmaxim/PythonDev/aoa/packages/aoa-action-machine/src/aoa/action_machine/intents/check_roles/__init__.py)\nImportError: cannot import name 'Grant' from 'aoa.action_machine.intents.check_roles' (/Users/bystrovmaxim/PythonDev/aoa/packages/aoa-action-machine/src/aoa/action_machine/intents/check_roles/__init__.py)\ngates: ['AUTH_COORDINATOR', 'CHECK_ROLES', 'ACCESS_DECIDE']\nAttributeError: type object 'Gate' has no attribute 'WHEN'\nValueError: 'WHEN' is not a valid Gate\nValidationError: 1 validation error for Refused\ngate\n  Input should be 'AUTH_COORDINATOR', 'CHECK_ROLES' or 'ACCESS_DECIDE' [type=enum, input_value='WHEN', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/enum\nAttributeError: type object 'Gate' has no attribute 'GUARD'\nValueError: 'GUARD' is not a valid Gate\nValidationError: 1 validation error for Refused\ngate\n  Input should be 'AUTH_COORDINATOR', 'CHECK_ROLES' or 'ACCESS_DECIDE' [type=enum, input_value='GUARD', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/enum\ndefault refusal: {'kind': 'refused', 'gate': 'ACCESS_DECIDE', 'reason': None}\n",
+    "script_stderr": ""
+  },
+  "25_access_graph": {
+    "script": "examples/step_03_authorization_and_roles/25_access_graph.py",
+    "notebook": "examples/step_03_authorization_and_roles/25_access_graph.ipynb",
+    "code_cells": 3,
+    "outputs_match": true,
+    "stdout": "action: {'description': 'Cancel an order'}\nrole: @check_roles {}\nobject rule: AccessDecide Refuse a manager whose account is not in the EU team\nrequired context: ['user.user_id']\n",
+    "script_stderr": ""
+  }
+}

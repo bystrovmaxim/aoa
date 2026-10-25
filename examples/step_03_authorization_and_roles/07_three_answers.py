@@ -1,4 +1,6 @@
-"""Check and run carry the same refusal."""
+"""Check and run carry the same refusal.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/07_three_answers.py
+"""
 
 from __future__ import annotations
 
@@ -67,7 +69,9 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return Refused("CANCELLATIONS_PAUSED")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -81,12 +85,21 @@ async def main() -> None:
     caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
     answer = await machine.check_access_decide(caller, CancelOrderAction, OrderParams(order_id="ord-001"))
+    assert answer.model_dump(mode="json") == {
+        "kind": "refused",
+        "gate": "ACCESS_DECIDE",
+        "reason": "CANCELLATIONS_PAUSED",
+    }
     print("check:", answer.model_dump(mode="json"))
     try:
         await machine.run(caller, CancelOrderAction(), OrderParams(order_id="ord-001"))
     except AccessDenied as exc:
-        print("run raises:", type(exc).__name__)
+        assert exc.verdict == answer
+        assert str(exc) == "Access denied by ACCESS_DECIDE: CANCELLATIONS_PAUSED"
+        print("run raises:", type(exc).__name__, str(exc))
         print("run verdict:", exc.verdict.model_dump(mode="json"))
+    else:
+        raise AssertionError("The refused execution must raise AccessDenied.")
 
 
 if __name__ == "__main__":

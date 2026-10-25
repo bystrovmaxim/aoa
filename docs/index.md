@@ -48,6 +48,8 @@ The guide moves from a practical entry point to the complete project architectur
 - **[Action and the pipeline](tutorials/step-01-action-and-pipeline.md)** — Action, aspects, params, result, box, state, inheritance
 - **[State: the operation's x-ray](tutorials/step-02-state-as-x-ray.md)** — state contracts, checkers, observability through OpenTelemetry
 - **[Authorization and roles](tutorials/step-03-authorization-and-roles.md)** — the whole access cascade: `@check_roles` and role classes, conditional authorization, the declared object check (`@access_decide`), the three answers, and the question path
+- **[Roles and object rules](how-to/roles-and-object-rules.md)** — migrate conditional role declarations, handle exact refusals and understand when object rules run
+- **[Access-control reference](reference/access-control.md)** — role choices, sentinels, gate values, verdicts and graph exports
 - **[Saga and compensations](tutorials/step-04-saga-and-compensations.md)** — rolling back steps on failure, distributed transactions without try/finally
 - **[Explicit error handling](tutorials/step-05-error-handling.md)** — @on_error: business logic, rollback, and errors as three independent layers
 - **[Dependencies](tutorials/step-06-dependencies.md)** — @depends and @connection: an explicit contract on everything external, right in the header
