@@ -134,17 +134,21 @@ Launching a service is three sequential steps: create the machine, connect authe
 
 ```python
 # app.py
+import os
+
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.plugins.otel import OpenTelemetryPlugin
-from aoa.action_machine.loggers.console import ConsoleLogger
+from aoa.action_machine.logging import ConsoleLogger
 from aoa.action_machine.auth.jwt_auth import JwtAuthCoordinator
-from aoa.adapters.fastapi import FastApiAdapter
+from aoa.otel import OpenTelemetryPlugin
+from aoa.fastapi import FastApiAdapter
+from opentelemetry.sdk.trace import TracerProvider
+# CreateOrderAction, GetOrderAction and ManagerRole are your own code.
 
 # 1. Machine
 machine = ActionProductMachine(
     graph_coordinator=create_node_graph_coordinator(),
-    plugins=[OpenTelemetryPlugin()],
+    plugins=[OpenTelemetryPlugin(tracer_provider=TracerProvider())],
     loggers=[ConsoleLogger()],
 )
 
@@ -177,7 +181,9 @@ app = (
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.auth import NoAuthCoordinator
-from aoa.adapters.mcp import McpAdapter
+from aoa.action_machine.context import Context
+from aoa.mcp import McpAdapter
+# CreateOrderAction and GetOrderAction are your own code.
 
 # 1. Machine (same configuration, separate process)
 machine = ActionProductMachine(
@@ -185,15 +191,11 @@ machine = ActionProductMachine(
 )
 
 # 2. Authentication
-# MCP Streamable HTTP passes a Bearer token in a standard HTTP header —
-# the client (Claude Desktop, AI agent) obtains it via OAuth 2.0 flow
-# and attaches it to every request.
-auth = JwtAuthCoordinator(
-    secret=os.environ["JWT_SECRET"],
-    algorithm="HS256",
-    role_claim="roles",
-    extract=lambda request: request.headers.get("Authorization", "").removeprefix("Bearer "),
-)
+# McpAdapter does not forward request data to the coordinator yet, so a
+# Bearer/JWT coordinator cannot work here (docs/extensions/jwt.md, the MCP
+# section). The context is declared explicitly; @check_roles decides what an
+# anonymous caller may do.
+auth = NoAuthCoordinator(context=Context())
 
 # 3. Transport
 server = (
@@ -203,7 +205,7 @@ server = (
     .build()
 )
 
-# run: python mcp_server.py
+server.run()  # serves over stdio; run: python mcp_server.py
 ```
 
 Let's break down each step in detail.

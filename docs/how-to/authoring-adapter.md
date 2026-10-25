@@ -22,7 +22,10 @@ resource factory.
 ## The handler owns one call
 
 The handler validates input, obtains the effective authentication coordinator, and
-produces a context. A missing authenticated context must be rejected before
+produces a context. `self.effective_auth_coordinator(record)` returns the route's own
+`auth_coordinator` when the route set one, and the adapter's default otherwise. The
+default cannot be left out: `BaseAdapter` raises `TypeError` when `auth_coordinator`
+is `None`. A missing authenticated context must be rejected before
 resources are created. It then enters `connection_scope(record.connections)` and
 awaits machine.run inside it. Leaving that scope runs the finalizers. Only then does
 the handler convert and serialize the response.

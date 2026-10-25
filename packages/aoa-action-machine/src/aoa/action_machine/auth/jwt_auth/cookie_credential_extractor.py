@@ -29,7 +29,7 @@ silently degrading to "no credentials" — the same contract
 happens if this extractor (via ``JwtAuthCoordinator``) is wired into
 ``aoa-mcp-adapter``: ``McpAdapter`` always calls
 ``auth_coordinator.process(None)`` regardless of transport — there is no
-request object to read a cookie from. See ``docs/extensions/jwt_draft.md``
+request object to read a cookie from. See ``docs/extensions/jwt.md``
 and https://github.com/bystrovmaxim/aoa/issues/113.
 """
 
@@ -59,7 +59,7 @@ class CookieCredentialExtractor(CredentialExtractor):
                 f"mapping (e.g. a Starlette/FastAPI Request); got {request_data!r}. "
                 "This coordinator cannot be used with an adapter that never forwards "
                 "request data — e.g. aoa-mcp-adapter always calls process(None), "
-                "regardless of transport (see docs/extensions/jwt_draft.md)."
+                "regardless of transport (see docs/extensions/jwt.md)."
             )
         value = cookies.get(self._cookie_name)
         if not value:

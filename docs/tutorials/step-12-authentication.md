@@ -93,7 +93,7 @@ class MyTokenAuthenticator(Authenticator):
 
 ## NoAuthCoordinator
 
-The only coordinator ready out of the box today is `NoAuthCoordinator`. It does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
+Two coordinators ship out of the box: `NoAuthCoordinator` for open access and [`JwtAuthCoordinator`](../extensions/jwt.md) for Bearer/JWT (`extra [jwt]`). `NoAuthCoordinator` does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
 
 ```python
 context = await NoAuthCoordinator(context=Context()).process(None)
@@ -107,7 +107,7 @@ Only `CredentialExtractor` is protocol-dependent — it knows where to take cred
 
 ## Four ready methods
 
-For now you implement `Authenticator` for your own method yourself — except for one that already ships. Out-of-the-box implementations for four common schemes are planned:
+Out of four common schemes, one already ships (JWT); for the other three you implement `Authenticator` yourself until their ready implementations arrive:
 
 - **HTTP Basic Auth** — [issue #104](https://github.com/bystrovmaxim/aoa/issues/104),
 - **[Bearer Token (JWT)](../extensions/jwt.md)** — ready (`extra [jwt]`); works with FastAPI, does not yet work with MCP (see the article — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113)),
@@ -139,7 +139,7 @@ app = (
 )
 ```
 
-`BaseAdapter.effective_auth_coordinator(record)` resolves the coordinator for a given call: if the route has its own `auth_coordinator`, that one is used, otherwise — the adapter default. This way a strict coordinator (JWT, say) stays strict for every route except the explicitly listed exceptions — like a login endpoint, which has no token to present. Details — in [«Your own adapter»](../how-to/authoring-adapter.md#what-the-base-guarantees).
+`BaseAdapter.effective_auth_coordinator(record)` resolves the coordinator for a given call: if the route has its own `auth_coordinator`, that one is used, otherwise — the adapter default. This way a strict coordinator (JWT, say) stays strict for every route except the explicitly listed exceptions — like a login endpoint, which has no token to present. Details — in [«Your own adapter»](../how-to/authoring-adapter.md#the-handler-owns-one-call).
 
 ## Invariants
 
@@ -155,7 +155,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 ## Summary
 
-Authentication is a separate layer at the transport boundary: `AuthCoordinator` extracts credentials, verifies them, and assembles `Context`, which the machine receives ready. The concrete entry method lives in `Authenticator`; only the extractor is protocol-dependent, so one logic serves any transport. Today `NoAuthCoordinator` (anonymous access) is available out of the box, while four typical methods — Basic, JWT, API key, OAuth2 — are planned. Authentication establishes who is calling; what they are allowed is checked by [`@check_roles`](step-03-authorization-and-roles.md).
+Authentication is a separate layer at the transport boundary: `AuthCoordinator` extracts credentials, verifies them, and assembles `Context`, which the machine receives ready. The concrete entry method lives in `Authenticator`; only the extractor is protocol-dependent, so one logic serves any transport. Out of the box there are `NoAuthCoordinator` (anonymous access) and `JwtAuthCoordinator` (Bearer/JWT); Basic, API key and OAuth2 are planned. Authentication establishes who is calling; what they are allowed is checked by [`@check_roles`](step-03-authorization-and-roles.md).
 
 Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP, now that `Context` can be built at the transport boundary.
 
@@ -169,7 +169,7 @@ Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP
 4. Why does `Authenticator` return `None` on invalid credentials rather than raising an exception? When does it raise instead?
 5. What is `NoAuthCoordinator`, and for which operations is it appropriate?
 6. Which of the three components is protocol-dependent, and which are reused across transports? Why does this give "one mechanism for any transport"?
-7. Which four authentication methods are planned, and what do you have to do until they arrive?
+7. Which of the four common authentication methods already ships, which are planned, and what do you have to do until they arrive?
 8. How can a route override the adapter's default `auth_coordinator`? What happens if it doesn't?
 
 > **Exercise.** Sketch an `Authenticator` for an API key: `extract` pulls the key from the `X-Api-Key` header, `authenticate` matches it against a "key → (user_id, roles)" dictionary and returns `UserInfo(user_id=..., roles=(...))` or `None`. Run through mentally what `process` returns if the key is missing, if the key is wrong, and if it is correct — and which `Context` the machine receives in each case.
