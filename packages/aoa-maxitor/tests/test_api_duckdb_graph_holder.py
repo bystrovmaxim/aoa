@@ -1,8 +1,9 @@
-# tests/maxitor/test_api_duckdb_graph_holder.py
-"""Tests for DuckDBGraphHolder: the application-scoped diagram graph as one ready resource."""
+# packages/aoa-maxitor/tests/test_api_duckdb_graph_holder.py
+"""Tests for DuckDBGraphHolder: the holder answers from the graph bound to the request it serves."""
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -13,6 +14,8 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.maxitor.api import app as app_module
 from aoa.maxitor.api.app import create_app
 from aoa.maxitor.api.duckdb_graph_holder import DuckDBGraphHolder
+from aoa.maxitor.api.graph_source_middleware import bound_graph_entry
+from aoa.maxitor.api.graph_store import GraphEntry
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -39,15 +42,12 @@ def _graph(domain_id: str) -> DuckDBGraphResource:
     return DuckDBGraphResource.build_from_json(_payload(domain_id))
 
 
-def _application_with(domain_id: str) -> tuple[FastAPI, DuckDBGraphResource]:
-    """Return an application whose slot already holds a graph for ``domain_id``."""
-    app = FastAPI()
-    graph = _graph(domain_id)
-    app.state.duckdb_graph = graph
-    return app, graph
+def _entry(source: str, graph: DuckDBGraphResource) -> GraphEntry:
+    """Return the entry a request for ``source`` would be bound to."""
+    return GraphEntry(source=source, graph=graph, sidebar=None, last_read=0.0)
 
 
-# ─── C-1: identity and construction ──────────────────────────────────────────
+# ─── C-1: construction ───────────────────────────────────────────────────────
 
 
 def test_create_app_builds_exactly_one_holder(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,8 +55,8 @@ def test_create_app_builds_exactly_one_holder(monkeypatch: pytest.MonkeyPatch) -
     built: list[DuckDBGraphHolder] = []
     real_holder = app_module.DuckDBGraphHolder
 
-    def _recording_holder(app: FastAPI) -> DuckDBGraphHolder:
-        holder = real_holder(app)
+    def _recording_holder() -> DuckDBGraphHolder:
+        holder = real_holder()
         built.append(holder)
         return holder
 
@@ -68,12 +68,12 @@ def test_create_app_builds_exactly_one_holder(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_two_applications_build_two_different_holders(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Each application gets its own holder, bound to itself and not to a module global."""
+    """Each application gets its own holder, and no holder keeps a graph of its own."""
     built: list[DuckDBGraphHolder] = []
     real_holder = app_module.DuckDBGraphHolder
 
-    def _recording_holder(app: FastAPI) -> DuckDBGraphHolder:
-        holder = real_holder(app)
+    def _recording_holder() -> DuckDBGraphHolder:
+        holder = real_holder()
         built.append(holder)
         return holder
 
@@ -85,73 +85,111 @@ def test_two_applications_build_two_different_holders(monkeypatch: pytest.Monkey
     assert built[0] is not built[1]
 
 
-def test_a_holder_reads_only_its_own_application_slot() -> None:
-    """The holder resolves the slot of the application it was built with, and no other."""
-    first_app, _ = _application_with("d.first.Dom")
-    second_app, _ = _application_with("d.second.Dom")
-
-    first_rows = DuckDBGraphHolder(first_app).execute_fetch_dicts("SELECT id FROM domain")
-    second_rows = DuckDBGraphHolder(second_app).execute_fetch_dicts("SELECT id FROM domain")
-
-    assert first_rows == [{"id": "d.first.Dom"}]
-    assert second_rows == [{"id": "d.second.Dom"}]
+# ─── C-2: the request's graph ────────────────────────────────────────────────
 
 
-def test_a_holder_does_not_read_a_second_application() -> None:
-    """Each holder answers from its own application, even when the other one is empty."""
-    loaded_app, _ = _application_with("d.loaded.Dom")
-    empty_app = FastAPI()
+def test_a_bound_holder_resolves_that_entry() -> None:
+    """Inside a binding the holder answers from the entry bound to it."""
+    graph = _graph("d.first.Dom")
+    holder = DuckDBGraphHolder()
 
-    assert DuckDBGraphHolder(loaded_app).execute_fetch_dicts("SELECT id FROM domain") == [
-        {"id": "d.loaded.Dom"},
-    ]
-    assert not hasattr(empty_app.state, "duckdb_graph")
-
-
-# ─── C-2: the operations ─────────────────────────────────────────────────────
+    with bound_graph_entry(_entry("https://a.test/graph-json", graph)):
+        assert holder.service is graph.service
+        assert holder.execute_fetch_dicts("SELECT id FROM domain") == [{"id": "d.first.Dom"}]
 
 
-def test_holder_resolves_the_slot_on_every_read() -> None:
-    """Repeated reads return the same graph, and a replacement is what the next read sees."""
-    app, first = _application_with("d.first.Dom")
-    holder = DuckDBGraphHolder(app)
-
-    assert holder.service is first.service
-    assert holder.service is first.service
-
+def test_two_bindings_in_sequence_give_two_graphs() -> None:
+    """The holder keeps nothing between requests: the next binding is what the next read sees."""
+    first = _graph("d.first.Dom")
     second = _graph("d.second.Dom")
-    app.state.duckdb_graph = second
+    holder = DuckDBGraphHolder()
 
-    assert holder.service is second.service
-    assert holder.service is not first.service
+    with bound_graph_entry(_entry("https://a.test/graph-json", first)):
+        assert holder.execute_fetch_dicts("SELECT id FROM domain") == [{"id": "d.first.Dom"}]
+
+    with bound_graph_entry(_entry("https://b.test/graph-json", second)):
+        assert holder.execute_fetch_dicts("SELECT id FROM domain") == [{"id": "d.second.Dom"}]
 
 
-def test_execute_fetch_dicts_delegates_to_the_loaded_graph() -> None:
-    """The query operation returns what the loaded graph returns, unchanged."""
-    app, graph = _application_with("d.x.Dom")
-    holder = DuckDBGraphHolder(app)
+async def test_bindings_do_not_leak_between_tasks() -> None:
+    """Two concurrent reads, each bound to its own graph, never see each other's entry."""
+    holder = DuckDBGraphHolder()
+    first = _graph("d.first.Dom")
+    second = _graph("d.second.Dom")
 
-    sql = "SELECT id, label FROM domain"
-    assert holder.execute_fetch_dicts(sql) == graph.execute_fetch_dicts(sql)
+    async def read(graph: DuckDBGraphResource) -> list[dict[str, Any]]:
+        with bound_graph_entry(_entry("https://x.test/graph-json", graph)):
+            await asyncio.sleep(0)
+            return holder.execute_fetch_dicts("SELECT id FROM domain")
+
+    assert await asyncio.gather(read(first), read(second)) == [[{"id": "d.first.Dom"}], [{"id": "d.second.Dom"}]]
+
+
+def test_a_holder_does_not_read_application_state() -> None:
+    """A graph in the application's store is irrelevant: only the binding the request carries counts."""
+    app = FastAPI()
+    app.state.graph_store = object()
+    bound = _graph("d.bound.Dom")
+
+    with bound_graph_entry(_entry("https://a.test/graph-json", bound)):
+        assert DuckDBGraphHolder().execute_fetch_dicts("SELECT id FROM domain") == [{"id": "d.bound.Dom"}]
+
+
+# ─── C-3: the unbound answer ────────────────────────────────────────────────
+
+
+def test_reading_outside_a_binding_names_the_missing_binding() -> None:
+    """The refusal says the request named no source; it does not send the caller to POST /api/load."""
+    with pytest.raises(HandleError) as failure:
+        _ = DuckDBGraphHolder().service
+
+    message = str(failure.value)
+    assert "bound" in message.lower()
+    assert "source" in message.lower()
+    assert "/api/load" not in message
+
+
+def test_the_binding_is_reset_after_its_block() -> None:
+    """After the block the holder refuses again: the binding belonged to that request only."""
+    graph = _graph("d.x.Dom")
+    holder = DuckDBGraphHolder()
+
+    with bound_graph_entry(_entry("https://a.test/graph-json", graph)):
+        assert holder.service is graph.service
+
+    with pytest.raises(HandleError):
+        _ = holder.service
+
+
+# ─── C-4: the surface and the lifecycle ─────────────────────────────────────
+
+
+def test_execute_fetch_dicts_delegates_to_the_bound_graph() -> None:
+    """The query operation returns what the bound graph returns, unchanged."""
+    graph = _graph("d.x.Dom")
+    holder = DuckDBGraphHolder()
+
+    with bound_graph_entry(_entry("https://a.test/graph-json", graph)):
+        sql = "SELECT id, label FROM domain"
+        assert holder.execute_fetch_dicts(sql) == graph.execute_fetch_dicts(sql)
 
 
 def test_holder_exposes_only_the_two_operations_the_routes_use() -> None:
     """Nothing is forwarded: an attribute of the graph the routes never call is unreachable here."""
-    app, graph = _application_with("d.x.Dom")
-    holder = DuckDBGraphHolder(app)
+    graph = _graph("d.x.Dom")
+    holder = DuckDBGraphHolder()
 
-    assert holder.execute_fetch_dicts("SELECT 1 AS one") == [{"one": 1}]
+    with bound_graph_entry(_entry("https://a.test/graph-json", graph)):
+        assert holder.execute_fetch_dicts("SELECT 1 AS one") == [{"one": 1}]
+
     assert hasattr(graph, "build_from_json")
     assert not hasattr(holder, "build_from_json")
     assert not hasattr(holder, "_install_database")
 
 
-# ─── C-4: lifecycle ──────────────────────────────────────────────────────────
-
-
 def test_holder_has_no_lifecycle_members() -> None:
     """No open, no close, no transaction members — and no wrapper class to hand a nested action."""
-    holder = DuckDBGraphHolder(FastAPI())
+    holder = DuckDBGraphHolder()
 
     for member in ("open", "close", "begin", "commit", "rollback"):
         assert not hasattr(holder, member), member
@@ -161,57 +199,4 @@ def test_holder_has_no_lifecycle_members() -> None:
 
 async def test_holder_reports_no_rollup_support() -> None:
     """An in-memory, read-only graph answers the rollup question with ``False``, not an error."""
-    assert await DuckDBGraphHolder(FastAPI()).check_rollup_support() is False
-
-
-# ─── C-3: the unloaded answer ────────────────────────────────────────────────
-
-
-def test_reading_before_a_load_names_the_situation() -> None:
-    """The refusal says what is wrong and what to do, not what some factory returned."""
-    app = FastAPI()
-    app.state.duckdb_graph = None
-
-    with pytest.raises(HandleError) as failure:
-        _ = DuckDBGraphHolder(app).service
-
-    message = str(failure.value)
-    assert "not loaded" in message.lower()
-    assert "/api/load" in message
-
-
-def test_absent_slot_and_empty_slot_answer_alike() -> None:
-    """A read before the lifespan has run fails exactly as a read of an empty slot does."""
-    started = FastAPI()
-    started.state.duckdb_graph = None
-    never_started = FastAPI()
-    assert not hasattr(never_started.state, "duckdb_graph")
-
-    messages: list[str] = []
-    for app in (started, never_started):
-        with pytest.raises(HandleError) as failure:
-            DuckDBGraphHolder(app).execute_fetch_dicts("SELECT 1 AS one")
-        messages.append(str(failure.value))
-
-    assert messages[0] == messages[1]
-
-
-def test_the_unloaded_failure_is_not_a_type_error_about_a_factory() -> None:
-    """The failure is about the situation, never about the shape of a connection value."""
-    app = FastAPI()
-    app.state.duckdb_graph = None
-
-    with pytest.raises(HandleError) as failure:
-        _ = DuckDBGraphHolder(app).service
-
-    assert not isinstance(failure.value, TypeError)
-    assert "must return BaseResource" not in str(failure.value)
-
-
-def test_reading_after_a_load_raises_nothing() -> None:
-    """Once a graph is loaded the same read answers, with no failure at all."""
-    app, graph = _application_with("d.x.Dom")
-    holder = DuckDBGraphHolder(app)
-
-    assert holder.service is graph.service
-    assert holder.execute_fetch_dicts("SELECT 1 AS one") == [{"one": 1}]
+    assert await DuckDBGraphHolder().check_rollup_support() is False
