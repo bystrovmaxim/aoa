@@ -49,19 +49,23 @@ The dictionary node keeps `properties.values` as an array of references, and a r
 
 ## 3. The rendered card
 
-Amended by #249: the card shows labels, and the code is no longer printed anywhere. The
-final behaviour is specified in `specs/017-explicit-entity-relations/spec.md` (US6, FR-037 to
-FR-040) and in `specs/017-explicit-entity-relations/data-model.md`; the rules below are it.
+Amended by #249: the card printed labels instead of codes. Amended again by #265: the card draws
+no row for a value at all, and nothing takes its place. The rules below are the current behaviour;
+the earlier version is not kept as an alternative. The requirement that replaced the second
+amendment lives in `specs/022-erd-without-dictionary-values/spec.md` (FR-001 to FR-012), and the
+field-row rule of #249 (FR-037) still holds.
 
 | Rule | Statement |
 | --- | --- |
-| Placement | property rows inside the dictionary's value row — never nodes, never a second card |
-| Printed text | the label and the value's own properties; the code is never printed, and the two field rows the kind supplies (`code`, `display_name`) are not part of the dictionary card at all |
-| Code | stays in the graph document, in `properties.values` and in the payload; the renderer carries it as a `TOOLTIP` on the value row, which Graphviz emits as an `xlink:title` in the SVG |
-| Escaping | name, value and the tooltip text are HTML-escaped once; `<`, `>`, `&` display literally and the SVG stays valid |
+| Placement | no row is drawn for a value — not under the fields, not as a node, not as a second card |
+| Printed text | the dictionary's own field rows, its header and the arrows that reach it; no value label, no value property and no code |
+| Code | stays in the graph document, in `properties.values` and in the ERD payload; the card neither prints it nor attaches a tooltip, because there is no row to attach one to |
+| Replacement | nothing is put in a value's place — no badge, no count, no tint, no marker |
+| Independence | the card's DOT is identical for 0, 1, 3, 26 or 93 declared values |
+| Escaping | applies to the field text the card still draws; nothing of a value reaches the SVG, so there is nothing to escape there |
 | Vocabulary | no dictionary name, kind or field is named by the renderer; `symbol` and `note` are examples only |
-| Degradation | a value with no properties shows its label and no empty row; a model with no dictionaries renders as today |
-| Old payload | a payload produced before the change that still carries the kind's rows renders, because the action drops them before the card sees them; the renderer gains no field list of its own |
+| Degradation | a dictionary that arrives with no `values` renders its fields, without an error and without an empty row |
+| Old payload | a payload that still carries `values` renders as it is: the card ignores the field, and no rebuild is needed |
 | Rendering | the check runs the real layout (`@hpcc-js/wasm-graphviz`), not a string comparison of DOT alone |
 
 ## 4. The specialization group label
@@ -90,8 +94,8 @@ FR-040) and in `specs/017-explicit-entity-relations/data-model.md`; the rules be
 | --- | --- |
 | `packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py` | the payload shape, the text forms, the schema validation |
 | `packages/aoa-maxitor/tests/test_list_entities_specialization_contract.py` | the group's key set after `dictionary_label` leaves, and the label text |
-| `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` | the printed label, the absent code cell, the escaped tooltip, the rendered SVG |
+| `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` | no value text and no code tooltip in the DOT or the SVG; an identical DOT for 0, 1, 3, 26 and 93 values; a non-dictionary card matching its recorded golden |
 | `packages/aoa-maxitor/client/scripts/check-erd-group-label.ts` (new) | the server payload driven through the client renderer, dictionary named once |
 | `packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_reference_json.py` (new) | the actual graph document, JSON-parsed, carrying the serializer's text |
 
-The adversarial case for this contract is a property dropped between the graph and the card: the payload test must fail when the conversion skips a member, and the client check must fail when the renderer skips a row.
+The adversarial case for this contract is a value returning to the card through any path: restoring a value row must fail the drawn-SVG assertion while the payload and graph tests stay green, and dropping `values` from either data layer must fail that layer's test while the card check stays green.
