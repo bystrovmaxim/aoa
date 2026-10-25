@@ -166,13 +166,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign an RS256 JWT carrying sub (user_id), roles, and iss -- with this IdP's kid header.")
+    @summary_aspect("Sign an RS256 JWT carrying sub (user_id), sid (session id), roles, and iss -- with this IdP's kid header.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": "session-A",
             "iss": _ISSUER,
             "iat": now,
             "exp": now + _TOKEN_TTL,
@@ -207,6 +208,7 @@ def build_app():
         algorithm=_ALGORITHM,
         issuer=_ISSUER,
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
     )
 
     return (
@@ -247,6 +249,7 @@ def main() -> None:
     foreign_payload = {
         "sub": "alice",
         "roles": ["admin"],
+        "sid": "session-A",
         "iss": "https://a-different-issuer.example.com",
         "iat": now,
         "exp": now + _TOKEN_TTL,

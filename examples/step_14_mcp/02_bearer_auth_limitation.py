@@ -113,13 +113,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign a JWT carrying sub (user_id) and roles; return it as a bearer token.")
+    @summary_aspect("Sign a JWT carrying sub (user_id), sid (session id) and roles; return it as a bearer token.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": "session-A",
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }
@@ -155,7 +156,7 @@ async def main() -> None:
     # 2. Now wire JwtAuthCoordinator the way 04_bearer_auth.py does for
     #    FastAPI, and reproduce exactly what McpAdapter calls on every single
     #    tool invocation: auth_coordinator.process(None).
-    strict = JwtAuthCoordinator(secret_key=_SECRET_KEY, role_registry={})
+    strict = JwtAuthCoordinator(secret_key=_SECRET_KEY, role_registry={}, session_id_claim="sid")
     print("\nauth_coordinator.process(None) -- what McpAdapter actually calls on every tool call:")
     try:
         await strict.process(None)
