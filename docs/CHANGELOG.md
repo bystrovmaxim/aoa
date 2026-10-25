@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-25] — Role requirements and object rules have separate jobs
+
+A role declaration now says only who may call an operation. Keep bare roles in `@check_roles`: one role, several alternatives, a guest requirement or an active-role requirement. Replace unconditional `grant(Role)` wrappers with `Role`; the old grant imports and condition keywords are no longer supported.
+
+Move caller, input and object conditions into the operation's optional `@access_decide` method. Related conditions form branches of one rule, and each refusing branch can keep its own reason. Declare the context fields the rule needs. Review role-specific alternatives when combining them so that one caller's condition does not accidentally admit another caller.
+
+Refusals now name one of three steps: authentication, roles or the object rule. The old `WHEN` and `GUARD` values are removed; handle migrated conditions as `ACCESS_DECIDE` and use their reasons to distinguish policies. A guest alternative beside other roles opens the role requirement, while an any-role alternative accepts any active role. Remove such an alternative if that wider admission is not intended.
+
+A migrated condition runs after connection preparation, inside execution. It can stop business work, but cannot prevent that preparation from starting. Guest operations remain open without an object rule; adding one can still refuse the same caller. The updated guide and executed lessons show both outcomes and the migration failures. ([#248](https://github.com/bystrovmaxim/aoa/issues/248))
+
 ## [2026-10-25] — Compatible endpoint roles and dictionary collections
 
 A reciprocal relationship now checks what each endpoint means. Two associations may pair; an aggregation or composition needs an association on the opposite side. Specialization and generalization pair only with each other. One/Many changes cardinality, not compatibility. Previously accepted ownership/ownership pairs must migrate: keep ownership on the appropriate side and declare its reverse as an association. Refusals identify both fields, their roles and the correction before the model's graph is published.

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 class RoleSpecTypeError(TypeError):
     """
-    A role specification is not a ``BaseRole`` subclass or ``grant(...)``. Role names as strings
+    A role specification is not a ``BaseRole`` subclass. Role names as strings
     are refused on purpose: a string cannot be checked against the role hierarchy.
     """
 

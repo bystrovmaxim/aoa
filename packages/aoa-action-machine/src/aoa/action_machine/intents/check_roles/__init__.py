@@ -88,7 +88,6 @@ from aoa.action_machine.auth.base_role import BaseRole
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
 from aoa.action_machine.intents.check_roles.check_roles_intent import CheckRolesIntent
-from aoa.action_machine.intents.check_roles.grant import Grant, grant
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.intents.role_mode.role_mode_intent import RoleModeIntent
 
@@ -96,11 +95,9 @@ __all__ = [
     "AnyRole",
     "BaseRole",
     "CheckRolesIntent",
-    "Grant",
     "GuestRole",
     "RoleMode",
     "RoleModeIntent",
     "check_roles",
-    "grant",
     "role_mode",
 ]

@@ -1,10 +1,9 @@
 """The decision matrix: which caller, which step, which path — and what comes back.
 
-Written against the machine's paths (T011) and now driving the cascade itself: every
-row asks the same question of both paths and reads the answer the way a caller does —
-``Allowed``, or ``Refused`` naming the step that refused. On the execution path the
-answer still arrives as the historical exception, whose text names the same word; that
-shape goes away when the exceptions carry the verdict.
+Written against the machine's paths and now driving the cascade itself: every row asks
+the same question of both paths and reads the answer the way a caller does — ``Allowed``,
+or ``Refused`` naming the step that refused. On the execution path the answer still
+arrives as the historical exception, whose text names the same word.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ from aoa.action_machine.exceptions import AccessDenied, AccessUndecided
 from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Gate, Refused, Undecided
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
@@ -32,9 +31,9 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
-from ....support.domain_model.roles import AdminRole, ManagerRole, UserRole
+from ....support.domain_model.roles import AdminRole, UserRole
 
-_CALLS: dict[str, int] = {"when": 0, "guard": 0, "access_decide": 0, "summary": 0}
+_CALLS: dict[str, int] = {"access_decide": 0, "summary": 0}
 
 
 @pytest.fixture(autouse=True)
@@ -42,18 +41,6 @@ def _reset_calls() -> None:
     """Count every step call from zero for each test."""
     for key in _CALLS:
         _CALLS[key] = 0
-
-
-def _when_never(user: Any) -> bool:
-    """A declared condition that always refuses — and records that it was asked."""
-    _CALLS["when"] += 1
-    return False
-
-
-def _guard_never(user: Any, params: Any) -> bool:
-    """A shared condition that always refuses — and records that it was asked."""
-    _CALLS["guard"] += 1
-    return False
 
 
 def _anonymous() -> Context:
@@ -69,11 +56,6 @@ def _user_without_the_role() -> Context:
 def _admin() -> Context:
     """A caller holding the role the operations below list."""
     return Context(user=UserInfo(user_id="u-1", roles=(AdminRole,)))
-
-
-def _manager() -> Context:
-    """A caller holding the role whose declared condition refuses."""
-    return Context(user=UserInfo(user_id="u-3", roles=(ManagerRole,)))
 
 
 @meta(description="matrix: role held, object allowed", domain=SystemDomain)
@@ -136,68 +118,6 @@ class RoleOnlyAction(BaseAction["RoleOnlyAction.Params", "RoleOnlyAction.Result"
         """Record that the operation itself was reached."""
         _CALLS["summary"] += 1
         return RoleOnlyAction.Result()
-
-
-@meta(description="matrix: a role matched, its condition refused", domain=SystemDomain)
-@check_roles(grant(ManagerRole, when=_when_never, reason="WHEN_NEVER"))
-class WhenAction(BaseAction["WhenAction.Params", "WhenAction.Result"]):
-    """An operation whose grant carries a condition that refuses."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-    @access_decide("Allow every caller the role requirement admitted")
-    async def when_access_decide(
-        self,
-        params: WhenAction.Params,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> Allowed:
-        """Allow the object if this step is ever reached."""
-        _CALLS["access_decide"] += 1
-        return Allowed()
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self, params: WhenAction.Params, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> WhenAction.Result:
-        """Record that the operation itself was reached."""
-        _CALLS["summary"] += 1
-        return WhenAction.Result()
-
-
-@meta(description="matrix: the shared condition refused", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_never, guard_reason="GUARD_NEVER")
-class GuardAction(BaseAction["GuardAction.Params", "GuardAction.Result"]):
-    """An operation whose shared condition refuses."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-    @access_decide("Allow every caller the role requirement admitted")
-    async def guard_access_decide(
-        self,
-        params: GuardAction.Params,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> Allowed:
-        """Allow the object if this step is ever reached."""
-        _CALLS["access_decide"] += 1
-        return Allowed()
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self, params: GuardAction.Params, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> GuardAction.Result:
-        """Record that the operation itself was reached."""
-        _CALLS["summary"] += 1
-        return GuardAction.Result()
 
 
 @meta(description="matrix: the object step refused", domain=SystemDomain)
@@ -275,8 +195,6 @@ class Row:
 ROWS = (
     Row("role held, object allowed", PlainAction, _admin, "allowed"),
     Row("no listed role is held", RoleOnlyAction, _user_without_the_role, "CHECK_ROLES"),
-    Row("role held, its condition refused", WhenAction, _manager, "WHEN"),
-    Row("the shared condition refused", GuardAction, _admin, "GUARD"),
     Row("the object step refused", ObjectDeniedAction, _admin, "ACCESS_DECIDE"),
 )
 """The steps the machine runs; the identity step answers nobody yet."""
@@ -329,7 +247,7 @@ async def test_both_paths_agree(machine: ActionProductMachine, row: Row) -> None
 
 def test_the_matrix_names_the_word_every_row_will_publish() -> None:
     """Each row already knows the word the cascade will answer with."""
-    assert {row.word for row in ROWS} == {"allowed", "CHECK_ROLES", "WHEN", "GUARD", "ACCESS_DECIDE"}
+    assert {row.word for row in ROWS} == {"allowed", "CHECK_ROLES", "ACCESS_DECIDE"}
 
 
 async def test_a_step_that_refuses_stops_the_steps_after_it(machine: ActionProductMachine) -> None:
@@ -340,12 +258,9 @@ async def test_a_step_that_refuses_stops_the_steps_after_it(machine: ActionProdu
     assert _CALLS["summary"] == 0
 
     with pytest.raises(AccessDenied):
-        await machine.run(_manager(), WhenAction(), WhenAction.Params())
-    assert _CALLS["access_decide"] == 0
-
-    with pytest.raises(AccessDenied):
-        await machine.run(_admin(), GuardAction(), GuardAction.Params())
-    assert _CALLS["access_decide"] == 0
+        await machine.run(_admin(), ObjectDeniedAction(), ObjectDeniedAction.Params())
+    assert _CALLS["access_decide"] == 1
+    assert _CALLS["summary"] == 0
 
 
 async def test_an_allowed_call_reaches_every_step(machine: ActionProductMachine) -> None:

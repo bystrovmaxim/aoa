@@ -1,4 +1,6 @@
-"""A refusal stops the remaining checks."""
+"""A refusal stops the remaining checks.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/13_cascade.py
+"""
 
 from __future__ import annotations
 
@@ -11,13 +13,16 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import AccessDenied
-from aoa.action_machine.intents.access_control import Allowed, Verdict
+from aoa.action_machine.intents.access_control import Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.events import BeforeAccessDecideAspectEvent, BeforeSummaryAspectEvent
+from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -51,45 +56,51 @@ class OrderResult(BaseResult):
     order_id: str = Field(description="Cancelled order identifier")
 
 
-TRACE = []
+class AccessTrace(Plugin):
+    """Record reached steps without action globals."""
 
+    plugin_name = "access_trace"
+    plugin_version = "1"
 
-def in_team(user):
-    """Record the role condition being evaluated."""
-    TRACE.append("when")
-    return True
+    def __init__(self) -> None:
+        """Start with an empty observation list."""
+        self.called: list[str] = []
 
+    async def get_initial_state(self):
+        """Use no persistent plugin state."""
+        return None
 
-def cancellations_open(user, params):
-    """Record the shared condition refusing."""
-    TRACE.append("guard")
-    return False
+    @on(BeforeAccessDecideAspectEvent)
+    async def on_object(self, state, event, log):
+        """Record entry to the object rule."""
+        self.called.append("object")
+
+    @on(BeforeSummaryAspectEvent)
+    async def on_summary(self, state, event, log):
+        """Record entry to the summary."""
+        self.called.append("summary")
 
 
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(
-    grant(ManagerRole, when=in_team, reason="TEAM_REQUIRED"),
-    guard=cancellations_open,
-    guard_reason="CANCELLATIONS_PAUSED",
-)
+@check_roles(ManagerRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
-    @access_decide("Check whether the order can be cancelled")
+    @access_decide("Refuse every cancellation while the service is paused")
     async def cancel_access_decide(
         self,
         params: OrderParams,
         box: ToolsBox,
         connections: Connections,
     ) -> Verdict:
-        """Decide access before cancelling the order."""
-        TRACE.append("object")
-        return Allowed()
+        """Refuse, recording that the object step was reached."""
+        return Refused("CANCELLATIONS_PAUSED")
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
-        TRACE.append("summary")
         return OrderResult(order_id=params.order_id)
 
 
@@ -98,14 +109,34 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 async def main() -> None:
     """A refusal stops the remaining checks."""
-    machine = ActionProductMachine(cache_coordinator=None)
-    caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
+    trace = AccessTrace()
+    machine = ActionProductMachine(cache_coordinator=None, plugins=[trace])
+    manager = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
+    stranger = Context(user=UserInfo(user_id="x-1", roles=()))
 
+    trace.called.clear()
     try:
-        await machine.run(caller, CancelOrderAction(), OrderParams(order_id="ord-001"))
+        await machine.run(manager, CancelOrderAction(), OrderParams(order_id="ord-001"))
     except AccessDenied as exc:
-        print("refused at:", exc.verdict.gate.value)
-    print("called:", TRACE)
+        assert exc.verdict.gate.value == "ACCESS_DECIDE"
+        assert str(exc) == "Access denied by ACCESS_DECIDE: CANCELLATIONS_PAUSED"
+        print("manager refused at:", exc.verdict.gate.value)
+    else:
+        raise AssertionError("The object rule must refuse.")
+    assert trace.called == ["object"]
+    print("manager called:", trace.called)
+
+    trace.called.clear()
+    try:
+        await machine.run(stranger, CancelOrderAction(), OrderParams(order_id="ord-001"))
+    except AccessDenied as exc:
+        assert exc.verdict.gate.value == "CHECK_ROLES"
+        assert str(exc) == "Access denied by CHECK_ROLES."
+        print("stranger refused at:", exc.verdict.gate.value)
+    else:
+        raise AssertionError("The role requirement must refuse.")
+    assert trace.called == []
+    print("stranger called:", trace.called)
 
 
 if __name__ == "__main__":

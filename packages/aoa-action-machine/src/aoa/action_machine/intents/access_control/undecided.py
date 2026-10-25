@@ -56,7 +56,7 @@ class Undecided(Verdict):
     """
     AI-CORE-BEGIN
         ROLE: The answer for "nobody could tell", naming the step that could not decide.
-        CONTRACT: Pins ``kind`` to the published word ``undecided``; ``gate`` names the step that could not tell; ``cause`` is a private attribute, reachable in memory for logging and absent from ``model_dump()`` and every wire form. Buildable as ``Undecided(Gate.GUARD, cause=exc)``. Two of these answers compare by what a caller sees (``model_dump()``), not by their causes: ``==`` includes the private cause, and two steps that failed differently still answered the same thing.
+        CONTRACT: Pins ``kind`` to the published word ``undecided``; ``gate`` names the step that could not tell; ``cause`` is a private attribute, reachable in memory for logging and absent from ``model_dump()`` and every wire form. Buildable as ``Undecided(Gate.ACCESS_DECIDE, cause=exc)``. Two of these answers compare by what a caller sees (``model_dump()``), not by their causes: ``==`` includes the private cause, and two steps that failed differently still answered the same thing.
         INVARIANTS: Frozen and extra-forbidding; the cause never leaves the process, and this answer never reads as a refusal.
     AI-CORE-END
     """

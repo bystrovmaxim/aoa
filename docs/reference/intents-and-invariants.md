@@ -160,16 +160,19 @@ class ViewerRole(ApplicationRole): ...
 
 [`examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py`](../../examples/step_03_authorization_and_roles/17_a_wrong_role_mode.py) runs both refusals, and the `UNUSED` refusal that follows from `@check_roles`.
 
-Access is one cascade, and it is checked in two moments: identity, roles and both conditions **before the run exists**, and the declared object rule **inside the run**, on a real object. Five words are published, and each of them can end a call — `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN` (a role matched but its own condition refused), `GUARD` (the shared condition refused) and `ACCESS_DECIDE`. Each step carries its own invariants:
+Access is one cascade, and it is checked in two moments: identity and roles **before the run exists**, and the declared object rule **inside the run**, on a real object. Three words are published, and each of them can end a call — `AUTH_COORDINATOR`, `CHECK_ROLES` and `ACCESS_DECIDE`. Each step carries its own invariants:
 
-- **A condition declares the reason it refuses with.** `grant(..., when=..., reason=...)` and `@check_roles(guard=..., guard_reason=...)` are declared together: one without the other is refused where it is written. The declared sentence travels into `Refused.reason`, and the framework invents no reason of its own.
-- **`when=`/`guard=` are synchronous functions returning strictly `bool`.** Checked at class definition, not at runtime: an `async def` in either raises `AccessConditionAsyncError` immediately — an un-awaited coroutine is always truthy, and an async condition would silently wave every check through.
+- **A branch of the object rule declares the reason it refuses with.** `Refused("REASON")` carries the developer's own sentence; the shared `FORBIDDEN_OBJECT` is the one answer the framework supplies. The reason travels into `Refused.reason`, and the framework invents no reason of its own.
+- **`@check_roles` declares roles only.** One role, a tuple of roles, or a sentinel — a condition now lives in the object rule. A sentinel written beside ordinary roles keeps the meaning it has alone: `GuestRole` opens the declaration, `AnyRole` requires at least one role that is not silenced.
+- **Role alternatives have one matching contract.** Several positional roles, one tuple and one list are OR choices. Repeated roles collapse in first-declaration order. The role gate performs hierarchy matching and ignores silenced caller roles; object rules do not replace it.
 - **There are three answers and only three.** `Allowed`; `Refused`, naming the step that refused and, when the developer declared one, the reason; `Undecided`, naming the step that could not tell — never the failure's text, which stays on the server. A refusal is not a failure and a failure is not a refusal.
 - **The object check is a declaration.** One per operation, never inherited, named `..._access_decide`, with a non-empty description, `async` and a fixed signature (see below). An operation without one has no object-level rule — there is no default that "allows everything" to override.
-- **The question is one call, one answer.** `machine.check_access_decide` asks about a single operation and a single set of parameters and returns one of the three words without running anything; there is no list form and no cap on one.
+- **The question is one call, one answer.** `machine.check_access_decide` asks about one operation and one input and returns a verdict without running business aspects. It may prepare dependencies and connections and execute the declared object rule; there is no batch form.
 - **A refusal flies past `@on_error` and the saga.** The early steps run before `_execute_pipeline_aspects`: no aspect has run yet, so there is nothing to roll back. `@on_error` is a recovery mechanism for business-logic failures inside the pipeline, not a place for authorization decisions.
 
 ---
+
+See the [access-control reference](access-control.md) for the declaration table, exact migration refusals and exported graph contract, and the [migration guide](../how-to/roles-and-object-rules.md) for complete runnable programs. Role checks precede the execution lifecycle. Migrated object conditions run after connection validation, before business aspects; they cannot prevent resource preparation.
 
 ## Mandatory domain
 

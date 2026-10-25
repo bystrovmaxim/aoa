@@ -63,13 +63,22 @@ class TestRefused:
 
     def test_step_can_be_named(self) -> None:
         """A refusal says which step refused."""
-        assert Refused("X", gate=Gate.WHEN).gate is Gate.WHEN
+        assert Refused("X", gate=Gate.CHECK_ROLES).gate is Gate.CHECK_ROLES
 
     def test_step_outside_the_enum_fails(self) -> None:
         """A word that is not a step is rejected."""
         with pytest.raises(ValidationError) as excinfo:
             Refused.model_validate({"kind": "refused", "gate": "NOPE"})
         assert excinfo.value.errors()[0]["type"] == "enum"
+
+    @pytest.mark.parametrize("word", ["WHEN", "GUARD"])
+    def test_a_removed_word_is_rejected(self, word: str) -> None:
+        """The removed condition words are not valid steps, on the wire or in the constructor."""
+        with pytest.raises(ValidationError) as excinfo:
+            Refused.model_validate({"kind": "refused", "gate": word})
+        assert excinfo.value.errors()[0]["type"] == "enum"
+        with pytest.raises(ValidationError):
+            Refused(gate=word)  # type: ignore[arg-type]
 
     def test_empty_reason_fails(self) -> None:
         """An empty reason is not a reason."""
@@ -97,7 +106,14 @@ class TestUndecided:
 
     def test_names_the_step_that_could_not_tell(self) -> None:
         """The step is the whole information the answer carries."""
-        assert Undecided(Gate.GUARD).model_dump() == {"kind": "undecided", "gate": Gate.GUARD}
+        assert Undecided(Gate.CHECK_ROLES).model_dump() == {"kind": "undecided", "gate": Gate.CHECK_ROLES}
+
+    def test_a_removed_word_is_rejected(self) -> None:
+        """The removed condition words cannot name a step that could not tell."""
+        with pytest.raises(ValidationError):
+            Undecided.model_validate({"kind": "undecided", "gate": "WHEN"})
+        with pytest.raises(ValidationError):
+            Undecided(gate="GUARD")  # type: ignore[arg-type]
 
     def test_default_step_is_access_decide(self) -> None:
         """Without a step, the answer points at the step a developer writes."""
@@ -118,8 +134,8 @@ class TestUndecided:
 
     def test_answers_are_compared_by_what_a_caller_sees(self) -> None:
         """``==`` includes the private cause, so the answer is compared through the dump."""
-        one = Undecided(Gate.GUARD, cause=RuntimeError("one"))
-        two = Undecided(Gate.GUARD, cause=RuntimeError("two"))
+        one = Undecided(Gate.CHECK_ROLES, cause=RuntimeError("one"))
+        two = Undecided(Gate.CHECK_ROLES, cause=RuntimeError("two"))
         assert one != two
         assert one.model_dump() == two.model_dump()
 
@@ -141,12 +157,11 @@ class TestAnswerInvariants:
             type(answer).model_validate({**answer.model_dump(), "extra": 1})
         assert excinfo.value.errors()[0]["type"] == "extra_forbidden"
 
-    def test_the_vocabulary_is_exactly_five_words(self) -> None:
-        """What the framework publishes is the steps, and there are five of them."""
+    def test_the_vocabulary_is_exactly_three_words(self) -> None:
+        """What the framework publishes is the steps, and there are three of them."""
         assert [gate.value for gate in Gate] == [
             "AUTH_COORDINATOR",
             "CHECK_ROLES",
-            "WHEN",
-            "GUARD",
             "ACCESS_DECIDE",
         ]
+        assert len(Gate) == 3

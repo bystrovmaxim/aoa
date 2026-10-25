@@ -1,4 +1,6 @@
-"""A shared condition checks the call parameters."""
+"""A shared condition becomes the object rule itself.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/03_shared_object_rule.py
+"""
 
 from __future__ import annotations
 
@@ -10,6 +12,8 @@ from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.access_control import Allowed, Refused, Verdict
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -55,12 +59,26 @@ class CancellationParams(OrderParams):
 
 
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(ManagerRole, guard=lambda user, params: params.amount <= 100, guard_reason="AMOUNT_LIMIT")
+@check_roles(ManagerRole)
 class CancelOrderAction(BaseAction[CancellationParams, OrderResult]):
     """Cancel an order after checking access."""
 
+    @access_decide("Refuse a cancellation above the amount limit")
+    async def cancel_order_access_decide(
+        self,
+        params: CancellationParams,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> Verdict:
+        """The shared limit on every caller is now a branch of the object rule."""
+        if params.amount <= 100:
+            return Allowed()
+        return Refused("AMOUNT_LIMIT")
+
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: CancellationParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -69,17 +87,19 @@ class CancelOrderAction(BaseAction[CancellationParams, OrderResult]):
 
 
 async def main() -> None:
-    """A shared condition checks the call parameters."""
+    """A shared condition becomes the object rule itself."""
     machine = ActionProductMachine(cache_coordinator=None)
     caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
     answer = await machine.check_access_decide(
         caller, CancelOrderAction, CancellationParams(order_id="ord-001", amount=50)
     )
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
     print("amount 50:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(
         caller, CancelOrderAction, CancellationParams(order_id="ord-001", amount=150)
     )
+    assert answer.model_dump(mode="json") == {"kind": "refused", "gate": "ACCESS_DECIDE", "reason": "AMOUNT_LIMIT"}
     print("amount 150:", answer.model_dump(mode="json"))
 
 

@@ -1,20 +1,15 @@
-"""RoleGraphEdge.get_role_edges — one edge per grant, carrying when= (access-control-cascade step 4)."""
+"""RoleGraphEdge.get_role_edges — one edge per distinct role, with no condition data."""
 
 from __future__ import annotations
 
 from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.graph.edges.role_graph_edge import RoleGraphEdge
 from aoa.action_machine.intents.check_roles.check_roles_decorator import check_roles
-from aoa.action_machine.intents.check_roles.grant import grant
 
 from ....support.domain_model.roles import AdminRole, ManagerRole
 
 
-def _sales_only(user: object) -> bool:
-    return True
-
-
-def test_bare_role_edge_has_no_when() -> None:
+def test_a_bare_role_yields_one_edge_with_empty_properties() -> None:
     @check_roles(AdminRole)
     class _Action:
         pass
@@ -22,37 +17,41 @@ def test_bare_role_edge_has_no_when() -> None:
     edges = RoleGraphEdge.get_role_edges(_Action)
     assert len(edges) == 1
     assert edges[0].target_node_id.endswith("AdminRole")
-    assert edges[0].properties["when"] is None
+    assert edges[0].properties == {}
 
 
-def test_one_edge_per_grant_carries_its_own_when() -> None:
-    @check_roles(grant(AdminRole), grant(ManagerRole, when=_sales_only, reason="SALES_ONLY"))
+def test_several_positional_roles_yield_one_edge_each_in_order() -> None:
+    @check_roles(AdminRole, ManagerRole)
     class _Action:
         pass
 
     edges = RoleGraphEdge.get_role_edges(_Action)
-    assert len(edges) == 2
-    assert edges[0].properties["when"] is None
-    assert edges[1].properties["when"] is _sales_only
+    assert [edge.target_node_id.split(".")[-1] for edge in edges] == ["AdminRole", "ManagerRole"]
 
 
-def test_sentinel_role_still_gets_exactly_one_edge() -> None:
-    """Regression guard: RoleChecker treats an empty ``action_node.roles`` as
-    "no @check_roles decorator at all" — GuestRole/AnyRole must still produce one edge."""
+def test_a_role_named_twice_yields_one_edge() -> None:
+    @check_roles(AdminRole, AdminRole)
+    class _Action:
+        pass
 
+    edges = RoleGraphEdge.get_role_edges(_Action)
+    assert len(edges) == 1
+    assert edges[0].target_node_id.endswith("AdminRole")
+
+
+def test_a_sentinel_still_gets_exactly_one_edge() -> None:
     @check_roles(GuestRole)
     class _Action:
         pass
 
     edges = RoleGraphEdge.get_role_edges(_Action)
     assert len(edges) == 1
-    assert edges[0].properties["when"] is None
+    assert edges[0].target_node_id.endswith("GuestRole")
+    assert edges[0].properties == {}
 
 
-def test_to_dict_never_exports_when() -> None:
-    """``when`` is runtime-only, like ``DependsGraphEdge``'s ``factory`` — never serialized."""
-
-    @check_roles(grant(AdminRole, when=_sales_only, reason="SALES_ONLY"))
+def test_to_dict_exports_an_empty_properties_map() -> None:
+    @check_roles(AdminRole)
     class _Action:
         pass
 

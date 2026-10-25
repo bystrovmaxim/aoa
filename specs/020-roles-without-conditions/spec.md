@@ -148,7 +148,7 @@ The repository's own declarations move: the demo's three actions and two test mo
 
 ### Key Entities
 
-- **Role declaration**: The single fact `@check_roles` carries — one role, or a choice between alternatives any of which may be a role or a sentinel — read by the role step and by the graph.
+- **Role declaration**: The single fact `@check_roles` carries — one role, or a choice between alternatives any of which may be a role or a sentinel — read by the role step and by the graph. Throughout this specification "role" means this authorization role (`BaseRole` subclasses in `UserInfo.roles`); the relationship "endpoint role" introduced by issue #261 is a different axis and the two never share a check or a type.
 - **Object rule**: The optional `@access_decide` method of an operation: its description, the context keys it declares, the order of its branches, and the verdict each branch returns.
 - **Verdict**: `Allowed`, `Refused` with a gate and an optional reason, or `Undecided` with a gate and a private cause. The gate is one of the three published words.
 - **Published word**: `AUTH_COORDINATOR`, `CHECK_ROLES`, `ACCESS_DECIDE` — the value a consumer branches on, and the whole vocabulary after this change.
@@ -158,7 +158,7 @@ The repository's own declarations move: the demo's three actions and two test mo
 
 ### Measurable Outcomes
 
-- **SC-001**: A search of the source, tests, examples and documentation finds zero occurrences of `grant(`, `Grant`, `guard=`, `guard_reason=`, `Gate.WHEN`, `Gate.GUARD`, and of the words `WHEN`/`GUARD` as gate values. The only pages allowed to name them are the migration material — the tutorial's migration section and `docs/CHANGELOG.md` — where each appears once as the removed form, and the search result is recorded rather than asserted.
+- **SC-001**: A search of the source, tests, examples and documentation finds zero occurrences of `grant(`, `Grant`, `guard=`, `guard_reason=`, `Gate.WHEN`, `Gate.GUARD`, and of the words `WHEN`/`GUARD` as gate values. The only places allowed to name them are the migration material — the `@check_roles` refusal message in `check_roles_decorator.py`, the tutorial's migration section and `docs/CHANGELOG.md` — where each appears as the removed form, and the search result is recorded rather than asserted.
 - **SC-002**: Every accepted declaration form has a passing case and every refused form has a failing case with a message naming the replacement; the count of refused forms matches the number the spec enumerates.
 - **SC-003**: Every role test that existed before this change keeps its outcome, with two named exceptions: the tests whose subject is the removed words, replaced by tests of the object rule and of the migration message, and any test that pinned a sentinel declared among ordinary roles as unsatisfiable, replaced by the open and at-least-one-role outcomes of FR-013.
 - **SC-004**: No decision produced anywhere in the repository or its examples carries a gate outside the three published words; a stored answer naming a removed word is refused in every case tried.

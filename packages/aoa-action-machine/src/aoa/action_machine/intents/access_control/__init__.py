@@ -9,12 +9,12 @@ PURPOSE
 One decision mechanism serves both the execution path and the question path, and
 it ends in exactly one of three answers: ``Allowed``, ``Refused`` or
 ``Undecided``. Each answer carries the published word a caller branches on, and a
-refusal or an undecided answer also names the step it came from — one of the five
+refusal or an undecided answer also names the step it came from — one of the three
 words of ``Gate``.
 
 The framework publishes those words and invents no reason text: a ``reason``
-belongs to the developer who declared a condition, and ``FORBIDDEN_OBJECT`` is
-the one shared refusal an object-scoped check returns.
+belongs to the developer who declared it in their object rule, and
+``FORBIDDEN_OBJECT`` is the one shared refusal an object-scoped check returns.
 
 The package no longer carries the old batch answer, the answer the question path returns
 while the change is in progress; it is replaced once the machine answers with the
@@ -32,8 +32,6 @@ ARCHITECTURE / DATA FLOW
     Gate
       ├── AUTH_COORDINATOR   the credentials were rejected
       ├── CHECK_ROLES        no listed role is held
-      ├── WHEN               a role is held, but the condition its grant declared refused
-      ├── GUARD              the operation's shared condition refused
       └── ACCESS_DECIDE      the object may not be touched
 
     decide() ──▶ an answer ──▶ decision event ──▶ whoever reads it
