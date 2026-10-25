@@ -30,8 +30,8 @@ DEMO_KEY = "local-tutorial-key-not-for-production-123456"
 
 async def main() -> None:
     """A verified token becomes a user with role classes."""
-    auth = JwtAuthCoordinator(secret_key=DEMO_KEY, role_registry={"manager": ManagerRole})
-    token = jwt.encode({"sub": "m-1", "roles": ["manager"], "exp": int(time.time()) + 60}, DEMO_KEY, algorithm="HS256")
+    auth = JwtAuthCoordinator(secret_key=DEMO_KEY, role_registry={"manager": ManagerRole}, session_id_claim="sid")
+    token = jwt.encode({"sub": "m-1", "roles": ["manager"], "sid": "session-A", "exp": int(time.time()) + 60}, DEMO_KEY, algorithm="HS256")
     request = Request(
         {
             "type": "http",

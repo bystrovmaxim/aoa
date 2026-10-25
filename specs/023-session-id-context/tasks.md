@@ -107,7 +107,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T014 [US5] Add `session_id_claim="sid"` to every `JwtAuthCoordinator`/`JwtAuthenticator` construction and add `sid` to every signed token: `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/test_jwt_authenticator.py`, `.../test_jwt_auth_coordinator.py`, `examples/step_03_authorization_and_roles/12_authentication.py`, `examples/step_13_fastapi/03_login_action.py`, `.../04_bearer_auth.py`, `.../05_cookie_auth.py`, `.../06_jwks_auth.py`, `examples/step_14_mcp/02_bearer_auth_limitation.py`, and each corresponding `.ipynb`.
+- [x] T014 [US5] Add `session_id_claim="sid"` to every `JwtAuthCoordinator`/`JwtAuthenticator` construction and add `sid` to every signed token: `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/test_jwt_authenticator.py`, `.../test_jwt_auth_coordinator.py`, `examples/step_03_authorization_and_roles/12_authentication.py`, `examples/step_13_fastapi/03_login_action.py`, `.../04_bearer_auth.py`, `.../05_cookie_auth.py`, `.../06_jwks_auth.py`, `examples/step_14_mcp/02_bearer_auth_limitation.py`, and each corresponding `.ipynb`.
 
 **Checkpoint**: the migration compiles and runs; the documented token contract matches.
 

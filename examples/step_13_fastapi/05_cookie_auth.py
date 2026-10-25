@@ -123,13 +123,14 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         _password, role_names = record
         return {"user_id": params.username, "role_names": role_names}
 
-    @summary_aspect("Sign a JWT carrying sub (user_id) and roles.")
+    @summary_aspect("Sign a JWT carrying sub (user_id), sid (session id) and roles.")
     async def issue_token_summary(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> LoginResult:
         _ = (params, box, connections)
         now = datetime.now(UTC)
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
+            "sid": "session-A",
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }
@@ -163,6 +164,7 @@ def build_app():
         secret_key=_SECRET_KEY,
         algorithm=_ALGORITHM,
         role_registry={"admin": AdminRole},
+        session_id_claim="sid",
         credential_extractor=CookieCredentialExtractor(cookie_name=_COOKIE_NAME),
     )
 
