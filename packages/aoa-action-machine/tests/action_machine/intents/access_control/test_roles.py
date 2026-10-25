@@ -1,11 +1,12 @@
 # tests/action_machine/intents/access_control/test_roles.py
 """Unit tests for ``RoleChecker`` — it answers, and the cascade asks it.
 
-The checker no longer raises for a decision: it returns ``Refused`` naming
-``CHECK_ROLES`` or ``WHEN``, and ``None`` when the caller may continue. It reads the
-declaration (the grants ``@check_roles`` wrote) rather than the assembled graph, so
-these tests hand it an action class. The shared ``guard=`` moved to the cascade's own
-step, so it is exercised through ``guard_answer`` here.
+The checker never raises for a decision: it returns ``Refused`` naming
+``CHECK_ROLES``, and ``None`` when the caller may continue. It reads the single
+``spec`` ``@check_roles`` wrote rather than the assembled graph, so these tests
+hand it an action class. A sentinel keeps the meaning it has alone: ``GuestRole``
+among the alternatives opens the declaration, ``AnyRole`` among them requires at
+least one role that is not silenced.
 """
 
 from __future__ import annotations
@@ -20,10 +21,9 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import MissingCheckRolesError
 from aoa.action_machine.intents.access_control import Gate, Refused
-from aoa.action_machine.intents.access_control.cascade import guard_answer
 from aoa.action_machine.intents.access_control.roles import RoleChecker
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.model.base_action import BaseAction
@@ -37,7 +37,7 @@ from ....action_machine.scenarios.intents_with_runtime.test_role_checker_pr2 imp
 from ....support.domain_model.admin_action import AdminAction
 from ....support.domain_model.domains import SystemDomain
 from ....support.domain_model.ping_action import PingAction
-from ....support.domain_model.roles import AdminRole, EditorRole, ManagerRole, SpyRole, UserRole
+from ....support.domain_model.roles import AdminRole, EditorRole, SpyRole, UserRole
 
 
 def test_ping_none_role_allows_anonymous_context() -> None:
@@ -183,160 +183,66 @@ def test_check_raises_when_the_action_declares_no_roles() -> None:
         RoleChecker().check(Context(), UndeclaredProbe)  # type: ignore[arg-type]
 
 
-class _BrokenRoleChecker(RoleChecker):
-    """Forces the defensive fallback on a spec the checker cannot make sense of."""
-
-    @staticmethod
-    def _spec_from_grants(grants: list[object]) -> object:
-        _ = grants
-        return object()
+# --- the matching contract of FR-013: a sentinel beside ordinary roles keeps its meaning ---
 
 
-def test_check_invalid_reconstructed_spec_type_error() -> None:
-    ctx = Context(user=UserInfo(user_id="u", roles=(AdminRole,)))
-    with pytest.raises(TypeError, match="Invalid reconstructed"):
-        _BrokenRoleChecker().check(ctx, PingAction)
+@check_roles(GuestRole, AdminRole)
+class GuestBesideRoleProbe:
+    pass
 
 
-def _is_sales_agent(user) -> bool:
-    return user.user_id == "sales_agent"
+def test_guest_beside_role_allows_anonymous_caller() -> None:
+    assert RoleChecker().check(Context(), GuestBesideRoleProbe) is None
 
 
-def _order_not_archived(user, params) -> bool:
-    return not params.order_id.startswith("ARCHIVED-")
+def test_guest_beside_role_allows_registered_caller() -> None:
+    ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
+    assert RoleChecker().check(ctx, GuestBesideRoleProbe) is None
 
 
-@meta(description="grant()/guard= probe for RoleChecker level 2", domain=SystemDomain)
-@check_roles(
-    grant(AdminRole),
-    grant(ManagerRole, when=_is_sales_agent, reason="SALES_AGENT_ONLY"),
-    guard=_order_not_archived,
-    guard_reason="ORDER_NOT_ARCHIVED",
-)
-class GrantGuardProbeAction(BaseAction["GrantGuardProbeAction.Params", "GrantGuardProbeAction.Result"]):
-    class Params(BaseParams):
-        order_id: str = Field(default="ORD-1")
-
-    class Result(BaseResult):
-        ok: bool = Field(description="ok")
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self,
-        params: GrantGuardProbeAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> GrantGuardProbeAction.Result:
-        return GrantGuardProbeAction.Result(ok=True)
+@check_roles(AnyRole, AdminRole)
+class AnyBesideRoleProbe:
+    pass
 
 
-def test_denied_without_any_role_match_answers_check_roles() -> None:
-    checker = RoleChecker()
-    ctx = Context(user=UserInfo(user_id="u1", roles=(UserRole,)))
-    answer = checker.check(ctx, GrantGuardProbeAction, GrantGuardProbeAction.Params())
+def test_any_beside_role_requires_an_active_role() -> None:
+    answer = RoleChecker().check(Context(), AnyBesideRoleProbe)
     assert isinstance(answer, Refused)
     assert answer.gate is Gate.CHECK_ROLES
 
 
-def test_bare_grant_matches_unconditionally() -> None:
-    checker = RoleChecker()
-    ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
-    assert checker.check(ctx, GrantGuardProbeAction, GrantGuardProbeAction.Params()) is None
+def test_any_beside_role_allows_an_active_role() -> None:
+    ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
+    assert RoleChecker().check(ctx, AnyBesideRoleProbe) is None
 
 
-def test_grant_when_false_answers_when() -> None:
-    """ManagerRole matches structurally, but when= rejects (wrong user_id); no other
-    grant matches a ManagerRole-only user, so the word is WHEN, not CHECK_ROLES."""
-    checker = RoleChecker()
-    ctx = Context(user=UserInfo(user_id="not_sales", roles=(ManagerRole,)))
-    answer = checker.check(ctx, GrantGuardProbeAction, GrantGuardProbeAction.Params())
-    assert isinstance(answer, Refused)
-    assert answer.gate is Gate.WHEN
+@check_roles(AdminRole, AdminRole)
+class DuplicateRoleProbe:
+    pass
 
 
-def test_grant_when_true_allows_a_later_grant_to_win() -> None:
-    """The first grant (AdminRole, unconditional) does not match this user — the second
-    grant (ManagerRole + when=) is tried next and wins. Proves any()/declaration order."""
-    checker = RoleChecker()
-    ctx = Context(user=UserInfo(user_id="sales_agent", roles=(ManagerRole,)))
-    assert checker.check(ctx, GrantGuardProbeAction, GrantGuardProbeAction.Params()) is None
+def test_duplicate_role_collapses_to_a_single_spec() -> None:
+    assert DuplicateRoleProbe._role_info["spec"] is AdminRole
 
 
-def test_the_guard_answers_guard_when_it_refuses() -> None:
-    """The shared condition is a step of its own, so its refusal is its own word."""
-    ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
-    answer = guard_answer(ctx, GrantGuardProbeAction(), GrantGuardProbeAction.Params(order_id="ARCHIVED-1"))
-    assert isinstance(answer, Refused)
-    assert answer.gate is Gate.GUARD
+def test_duplicate_role_still_matches() -> None:
+    ctx = Context(user=UserInfo(user_id="a", roles=(AdminRole,)))
+    assert RoleChecker().check(ctx, DuplicateRoleProbe) is None
 
 
-def test_check_without_params_still_works() -> None:
-    """Roles alone need no parameters: the shared condition is a different step."""
+@check_roles(EditorRole, SpyRole)
+class PositionalRolesProbe:
+    pass
+
+
+def test_several_positional_roles_is_a_choice() -> None:
+    assert PositionalRolesProbe._role_info["spec"] == (EditorRole, SpyRole)
+    ctx = Context(user=UserInfo(user_id="s", roles=(SpyRole,)))
+    assert RoleChecker().check(ctx, PositionalRolesProbe) is None
+
+
+def test_role_matching_needs_no_parameters() -> None:
+    """Roles alone decide the role step; the object rule is a different step."""
     checker = RoleChecker()
     ctx = Context(user=UserInfo(user_id="a1", roles=(AdminRole,)))
     assert checker.check(ctx, AdminAction) is None
-
-
-def _always_false(user) -> bool:
-    return False
-
-
-@meta(description="GuestRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(GuestRole, when=_always_false, reason="GUEST_NEVER"))
-class GuestWhenProbeAction(BaseAction["GuestWhenProbeAction.Params", "GuestWhenProbeAction.Result"]):
-    class Params(BaseParams):
-        pass
-
-    class Result(BaseResult):
-        ok: bool = Field(description="ok")
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self,
-        params: GuestWhenProbeAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> GuestWhenProbeAction.Result:
-        return GuestWhenProbeAction.Result(ok=True)
-
-
-def test_guest_role_grant_when_false_answers_when() -> None:
-    """Regression: `grant(GuestRole, when=...)` is a valid declaration (GuestRole is an
-    ordinary BaseRole subclass as far as grant() is concerned) — its when= must not be
-    silently ignored just because GuestRole normally bypasses role matching entirely."""
-    checker = RoleChecker()
-    answer = checker.check(Context(), GuestWhenProbeAction)
-    assert isinstance(answer, Refused)
-    assert answer.gate is Gate.WHEN
-
-
-@meta(description="AnyRole grant with its own when= probe", domain=SystemDomain)
-@check_roles(grant(AnyRole, when=_always_false, reason="ANY_NEVER"))
-class AnyWhenProbeAction(BaseAction["AnyWhenProbeAction.Params", "AnyWhenProbeAction.Result"]):
-    class Params(BaseParams):
-        pass
-
-    class Result(BaseResult):
-        ok: bool = Field(description="ok")
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self,
-        params: AnyWhenProbeAction.Params,
-        state: BaseState,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> AnyWhenProbeAction.Result:
-        return AnyWhenProbeAction.Result(ok=True)
-
-
-def test_any_role_grant_when_false_answers_when() -> None:
-    """Same regression as above, for AnyRole: at least one active role is present
-    (AnyRole's own gate passes), but the grant's own when= must still be honored."""
-    checker = RoleChecker()
-    ctx = Context(user=UserInfo(user_id="u", roles=(UserRole,)))
-    answer = checker.check(ctx, AnyWhenProbeAction)
-    assert isinstance(answer, Refused)
-    assert answer.gate is Gate.WHEN

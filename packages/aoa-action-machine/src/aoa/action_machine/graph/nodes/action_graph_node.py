@@ -25,16 +25,9 @@ ARCHITECTURE / DATA FLOW
 
     ActionGraphNode ``__init__`` / helpers  →  frozen ``BaseGraphNode``
 
-``properties["guard"]`` holds the ``@check_roles(..., guard=..., guard_reason=...)`` condition — one
-per action, shared by every declared grant. It lives here, on the per-action node,
-rather than on :class:`~aoa.action_machine.graph.edges.role_graph_edge.RoleGraphEdge`
-(which carries each grant's own ``when``), because ``guard`` is the same value for
-every grant of one action: storing it on each edge too would just duplicate that
-value across every grant instead of keeping it in the one place that actually
-matches its scope. It does **not** live on
-:class:`~aoa.action_machine.graph.nodes.role_graph_node.RoleGraphNode` either —
-that node is shared/deduplicated across every action referencing the same role, so
-a per-action fact cannot live there without conflicting across actions.
+``properties`` carries the declared description and no condition data. Roles live on
+the ``@check_roles`` edges, the object rule on the ``AccessDecideGraphEdge``; an
+action node holds neither, because ``@check_roles`` no longer declares a condition.
 """
 
 from __future__ import annotations
@@ -47,7 +40,6 @@ from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSu
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
-from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
@@ -80,8 +72,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseAction`` host class.
     CONTRACT: Materializes action metadata and every outgoing edge into explicit fields; ``get_all_edges`` returns the composed edge list.
-    PROPERTIES: ``description``; optional ``guard`` callable from ``@check_roles`` (runtime-only, like ``RoleGraphEdge``'s ``when``; never exported by :meth:`to_dict`).
-    FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` propagates from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~aoa.action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``/``['grants']``/``['guard']``. :meth:`get_summary_aspect_graph_node` raises :exc:`~aoa.action_machine.exceptions.MissingSummaryAspectError` when ``summary_aspect`` is empty.
+    PROPERTIES: ``description`` only — no condition data; roles are on ``RoleGraphEdge``, the object rule on ``AccessDecideGraphEdge``.
+    FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` propagates from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description` or :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type` (via ``DomainGraphEdge``) when ``@meta`` data is unusable. :exc:`~aoa.action_machine.exceptions.MissingCheckRolesError` when ``@check_roles`` did not set ``_role_info['spec']``. :meth:`get_summary_aspect_graph_node` raises :exc:`~aoa.action_machine.exceptions.MissingSummaryAspectError` when ``summary_aspect`` is empty.
     AI-CORE-END
     """
 
@@ -108,8 +100,6 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             properties=dict(
                 {
                     "description": MetaIntentResolver.resolve_description(action_cls),
-                    "guard": CheckRolesIntentResolver.resolve_guard(action_cls),
-                    "guard_reason": CheckRolesIntentResolver.resolve_guard_reason(action_cls),
                 }
             ),
             node_obj=action_cls,

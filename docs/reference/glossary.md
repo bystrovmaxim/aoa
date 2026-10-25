@@ -83,19 +83,15 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`@context_requires`** — the declaration of the context fields an aspect needs. Makes the consumption of the environment explicit.
 
-**`@check_roles`** — the mandatory declaration of access. The machine checks roles before the first aspect; the absence of the decorator is an error.
+**`@check_roles`** — the mandatory declaration of access. The machine checks roles before the first aspect; the absence of the decorator is an error. It declares roles only: positional roles, a tuple or a list are OR alternatives, and repeated roles collapse. A condition belongs in the object rule. See the [role declaration table](access-control.md#role-declarations).
 
 **GuestRole / AnyRole / BaseRole** — `GuestRole` — open to everyone (explicitly); `AnyRole` — any authenticated; `BaseRole` — the root of domain roles, supports inheritance.
 
 **AuthCoordinator** — builds `Context` from a transport request (credential extraction, verification, assembling the environment).
 
-**`grant(role, when=..., reason=...)`** — a role paired with an optional condition on the caller, inside `@check_roles`. Grants are tried in declaration order, `any()` semantics: a role matches and `when=` (if given) returns `True` — the role-level check passes. A condition **must declare the reason it refuses with** (`reason=`, and `guard_reason=` for the shared condition): the sentence travels into `Refused.reason`, and a refusal caused this way names the step `WHEN`, not `CHECK_ROLES`. A bare role is equivalent to `grant(role)` with no condition.
-
-**`guard=`** — a shared condition on `@check_roles`, one for every grant on the operation; checked once, after some grant has already won. Unlike `grant.when=(user)`, it also sees the call's parameters: `guard=(user, params)`.
-
 **`@access_decide`** — the declaration of an operation's object-level rule, beside `@check_roles` in the header: a method named `..._access_decide`, `async`, with a required non-empty description, at most one per operation and never inherited. Its signature is fixed — `(self, params, box, connections)`, plus the trailing `ctx: ContextView` that `@context_requires` adds — and it answers with a **verdict**. The description and the declared context keys travel into the assembled graph, where the check is a node of its own type.
 **`Verdict`, `Allowed`, `Refused`, `Undecided`** — the answers to "may I?", and there are exactly three. `Refused` and `Undecided` name the step that answered, through `gate`; only `Refused` may carry a `reason`, and only when the developer declared one. `Undecided` carries the step alone — never the failure's text.
-**The five words** — `AUTH_COORDINATOR`, `CHECK_ROLES`, `WHEN`, `GUARD`, `ACCESS_DECIDE`: the steps of the cascade, and the value of `gate` on a refusal. `WHEN` is a role's own condition refusing while the role matched; `GUARD` is the operation's shared condition.
+**The three words** — `AUTH_COORDINATOR`, `CHECK_ROLES`, `ACCESS_DECIDE`: the steps of the cascade, and the value of `gate` on a refusal. The former `WHEN` and `GUARD` values are absent and fail verdict validation. A migrated condition answers `ACCESS_DECIDE` after connection validation, inside execution. See the [gate and verdict formats](access-control.md#gate-and-verdict-formats).
 **`AccessDenied`, `AccessUndecided`** — what the executing path raises instead of returning: `AccessDenied(verdict)` carries the refusal, `AccessUndecided(verdict)` is raised `from` the original failure and says only which step could not decide. A refusal is an answer; a failure is not.
 **`FORBIDDEN_OBJECT`** — the framework's refusal for an object-scoped check: "there is no such object, or it is not yours" in one answer, so the error channel cannot be used to enumerate what exists.
 **`machine.check_access_decide`** — ask "would this be allowed?" without running the operation: the same cascade as `machine.run`, without the pipeline, the cache or the lifecycle events. One call, one answer, always one of the three words — a refusal here is an answer, not an exception.

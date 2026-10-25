@@ -41,16 +41,9 @@ _regular_calls = {"n": 0}
 _summary_calls = {"n": 0}
 _access_decide_calls = {"n": 0}
 _access_decide_result = {"value": True}
-_guard_result = {"value": True}
 _raise_for_keys: set[str] = set()
-_guard_deny_keys: set[str] = set()
 _access_decide_deny_keys: set[str] = set()
-
-
-def _guard(user: object, params: object) -> bool:
-    if params.key in _guard_deny_keys:  # type: ignore[attr-defined]
-        return False
-    return _guard_result["value"]
+_access_decide_reason_deny_keys: set[str] = set()
 
 
 def _reset() -> None:
@@ -58,10 +51,9 @@ def _reset() -> None:
     _summary_calls["n"] = 0
     _access_decide_calls["n"] = 0
     _access_decide_result["value"] = True
-    _guard_result["value"] = True
     _raise_for_keys.clear()
-    _guard_deny_keys.clear()
     _access_decide_deny_keys.clear()
+    _access_decide_reason_deny_keys.clear()
 
 
 @pytest.fixture(scope="module")
@@ -74,7 +66,7 @@ def _admin_context() -> Context:
 
 
 @meta(description="machine.check_access_decide probe", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard, guard_reason="CHECK_PROBE_GUARD")
+@check_roles(AdminRole)
 class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.Result"]):
     class Params(BaseParams):
         key: str = Field(default="")
@@ -95,6 +87,8 @@ class CheckProbeAction(BaseAction["CheckProbeAction.Params", "CheckProbeAction.R
             raise RuntimeError(f"boom for key={params.key!r}")
         if params.key in _access_decide_deny_keys:
             return FORBIDDEN_OBJECT
+        if params.key in _access_decide_reason_deny_keys:
+            return Refused("CHECK_PROBE_REASON")
         return Allowed() if _access_decide_result["value"] else FORBIDDEN_OBJECT
 
     @regular_aspect("noop")
@@ -140,16 +134,6 @@ async def test_check_roles_when_the_role_does_not_match(machine: ActionProductMa
     assert _summary_calls["n"] == 0
 
 
-async def test_guard_when_the_condition_rejects(machine: ActionProductMachine) -> None:
-    _reset()
-    _guard_result["value"] = False
-    verdict = await machine.check_access_decide(_admin_context(), CheckProbeAction, CheckProbeAction.Params())
-    assert isinstance(verdict, Refused)
-    assert verdict.gate is Gate.GUARD
-    assert _regular_calls["n"] == 0
-    assert _summary_calls["n"] == 0
-
-
 async def test_access_decide_when_the_object_check_rejects(machine: ActionProductMachine) -> None:
     _reset()
     _access_decide_result["value"] = False
@@ -158,6 +142,17 @@ async def test_access_decide_when_the_object_check_rejects(machine: ActionProduc
     assert verdict.gate is Gate.ACCESS_DECIDE
     assert _regular_calls["n"] == 0
     assert _summary_calls["n"] == 0
+
+
+async def test_access_decide_reason_travels_with_the_refusal(machine: ActionProductMachine) -> None:
+    _reset()
+    _access_decide_reason_deny_keys.add("deny-with-reason")
+    verdict = await machine.check_access_decide(
+        _admin_context(), CheckProbeAction, CheckProbeAction.Params(key="deny-with-reason")
+    )
+    assert isinstance(verdict, Refused)
+    assert verdict.gate is Gate.ACCESS_DECIDE
+    assert verdict.reason == "CHECK_PROBE_REASON"
 
 
 async def test_check_never_runs_the_pipeline_even_when_allowed(machine: ActionProductMachine) -> None:

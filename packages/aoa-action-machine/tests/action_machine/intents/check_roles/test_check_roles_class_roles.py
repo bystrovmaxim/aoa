@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import pytest
 
+from aoa.action_machine.auth.any_role import AnyRole
 from aoa.action_machine.auth.base_role import BaseRole
+from aoa.action_machine.auth.guest_role import GuestRole
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import MissingCheckRolesError
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
@@ -81,7 +83,7 @@ class TestCheckRolesNormalization:
             check_roles("admin")
 
     def test_list_of_strings_raises(self) -> None:
-        with pytest.raises(TypeError, match="does not accept list\\[str\\]"):
+        with pytest.raises(TypeError, match="does not accept str"):
             check_roles(["manager", "editor"])
 
     def test_single_role_type_stored(self) -> None:
@@ -122,7 +124,7 @@ class TestCheckRolesNormalization:
         assert spec[1] is _ViewerRole
 
     def test_mixed_list_raises(self) -> None:
-        with pytest.raises(TypeError, match="list\\[str\\]"):
+        with pytest.raises(TypeError, match="does not accept str"):
             check_roles(["admin", _ViewerRole])  # type: ignore[list-item]
 
     def test_non_base_role_type_raises(self) -> None:
@@ -131,6 +133,43 @@ class TestCheckRolesNormalization:
 
         with pytest.raises(TypeError, match="BaseRole"):
             check_roles(NotRole)  # type: ignore[arg-type]
+
+
+class TestCheckRolesAcceptedForms:
+    def test_several_positional_roles_become_a_tuple(self) -> None:
+        @check_roles(_EditorRole, _ViewerRole)
+        class _Action:
+            pass
+
+        assert _Action._role_info["spec"] == (_EditorRole, _ViewerRole)
+
+    def test_tuple_form_is_the_same_choice(self) -> None:
+        @check_roles((_EditorRole, _ViewerRole))
+        class _Action:
+            pass
+
+        assert _Action._role_info["spec"] == (_EditorRole, _ViewerRole)
+
+    def test_guest_role_beside_a_role_keeps_its_place(self) -> None:
+        @check_roles(GuestRole, _ViewerRole)
+        class _Action:
+            pass
+
+        assert _Action._role_info["spec"] == (GuestRole, _ViewerRole)
+
+    def test_any_role_beside_a_role_keeps_its_place(self) -> None:
+        @check_roles(AnyRole, _ViewerRole)
+        class _Action:
+            pass
+
+        assert _Action._role_info["spec"] == (AnyRole, _ViewerRole)
+
+    def test_duplicate_role_collapses_to_the_single_role(self) -> None:
+        @check_roles(_ViewerRole, _ViewerRole)
+        class _Action:
+            pass
+
+        assert _Action._role_info["spec"] is _ViewerRole
 
 
 class TestCheckRolesIntentResolver:

@@ -8,7 +8,10 @@ published word, and the order the words are decided in.
 
 ## Role declaration
 
-The one fact `@check_roles` carries on an action class.
+The one fact `@check_roles` carries on an action class. "Role" here is the authorization role
+(a `BaseRole` subclass held in `UserInfo.roles`); the relationship "endpoint role" that #261
+introduced — the container on a field, checked by `entity_role_compatibility_validator` — is a
+different axis, shares no type and is never checked by the role step.
 
 | Field | Type | Rules |
 | --- | --- | --- |

@@ -144,6 +144,11 @@ enters the public surface, and no module changes its role.
 - Out of scope: role checks inside `@access_decide`, a `has_role` helper, removing `@check_roles`,
   new `RoleMode` semantics, a new authorization declaration, runtime sandboxing, rewriting
   `packages/*/CHANGELOG.md` history.
+- The documentation rewrite (C2/T030) lands on top of #261's additions to
+  `docs/reference/glossary.md` and `docs/reference/intents-and-invariants.md` — the endpoint-role
+  compatibility matrix, dictionary transport and NoInverse sections. Those additions are preserved
+  verbatim; only the authorization sections are rewritten. The relationship "endpoint role" and the
+  authorization "role" of this feature are two unrelated axes and neither is renamed by the other.
 
 ## Design and implementation work packages
 

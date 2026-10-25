@@ -1,4 +1,6 @@
-"""A silenced role grants no access."""
+"""A silenced role grants no access.
+Run: .venv/bin/python examples/step_03_authorization_and_roles/16_silenced_role.py
+"""
 
 from __future__ import annotations
 
@@ -63,7 +65,9 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
     @summary_aspect("Cancel the order")
-    async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
+    async def cancel_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
         """Return the cancellation result."""
         return OrderResult(order_id=params.order_id)
 
@@ -79,8 +83,10 @@ async def main() -> None:
     params = OrderParams(order_id="ord-001")
 
     answer = await machine.check_access_decide(active, CancelOrderAction, params)
+    assert answer.model_dump(mode="json") == {"kind": "allowed"}
     print("active:", answer.model_dump(mode="json"))
     answer = await machine.check_access_decide(suspended, CancelOrderAction, params)
+    assert answer.model_dump(mode="json") == {"kind": "refused", "gate": "CHECK_ROLES", "reason": None}
     print("silenced:", answer.model_dump(mode="json"))
 
 

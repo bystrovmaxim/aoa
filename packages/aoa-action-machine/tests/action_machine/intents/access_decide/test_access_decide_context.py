@@ -38,7 +38,7 @@ from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import ContextAccessError
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
-from aoa.action_machine.intents.access_control import Allowed, Verdict
+from aoa.action_machine.intents.access_control import Allowed, Gate, Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -53,6 +53,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ....support.domain_model.domains import SystemDomain
+from ....support.domain_model.roles import AdminRole
 
 _SEEN: dict[str, Any] = {}
 """What the probes below saw, so a test can read it after the call."""
@@ -131,6 +132,45 @@ class PlainCheckAction(BaseAction["PlainCheckAction.Params", "PlainCheckAction.R
     ) -> PlainCheckAction.Result:
         """Produce the operation's result."""
         return PlainCheckAction.Result()
+
+
+@meta(description="context: a check that declares the caller's roles", domain=SystemDomain)
+@check_roles(GuestRole)
+class RolesAwareAction(BaseAction["RolesAwareAction.Params", "RolesAwareAction.Result"]):
+    """An object check that reads a role fact the declaration cannot express."""
+
+    class Params(BaseParams):
+        """No inputs."""
+
+    class Result(BaseResult):
+        """No outputs."""
+
+    @access_decide("Allow only a caller whose roles name the team")
+    @context_requires("user.user_id", "user.roles")
+    async def roles_aware_access_decide(
+        self,
+        params: RolesAwareAction.Params,
+        box: ToolsBox,
+        connections: Connections,
+        ctx: ContextView,
+    ) -> Verdict:
+        """Read both declared keys and refuse a caller without the marker role."""
+        _SEEN["roles"] = ctx.get("user.roles")
+        _SEEN["user_id"] = ctx.get("user.user_id")
+        if AdminRole not in ctx.get("user.roles"):
+            return Refused("NOT_ADMIN_TEAM")
+        return Allowed()
+
+    @summary_aspect("Answer")
+    async def roles_aware_summary(
+        self,
+        params: RolesAwareAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> RolesAwareAction.Result:
+        """Produce the operation's result."""
+        return RolesAwareAction.Result()
 
 
 @pytest.fixture(autouse=True)
@@ -429,3 +469,22 @@ class TestTheMistakeIsExplained:
                 ) -> Verdict:
                     return Allowed()
 
+
+
+class TestRolesInTheView:
+    """The object rule may read the caller's roles through a declared key — and only then."""
+
+    async def test_the_declared_roles_key_arrives_with_the_caller(self, machine: ActionProductMachine) -> None:
+        caller = Context(user=UserInfo(user_id="u-1", roles=(AdminRole,)))
+        await machine.run(caller, RolesAwareAction(), RolesAwareAction.Params())
+
+        assert AdminRole in _SEEN["roles"]
+        assert _SEEN["user_id"] == "u-1"
+
+    async def test_a_role_fact_the_declaration_cannot_say_refuses(self, machine: ActionProductMachine) -> None:
+        caller = Context(user=UserInfo(user_id="u-1", roles=(GuestRole,)))
+        verdict = await machine.check_access_decide(caller, RolesAwareAction, RolesAwareAction.Params())
+
+        assert isinstance(verdict, Refused)
+        assert verdict.gate is Gate.ACCESS_DECIDE
+        assert verdict.reason == "NOT_ADMIN_TEAM"

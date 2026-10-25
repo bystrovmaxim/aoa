@@ -1,5 +1,5 @@
 # packages/aoa-demo/tests/fastapi_mcp_services/test_cancel_order.py
-"""``CancelOrderAction`` — role, guard, and access_decide together (own vs. foreign order)."""
+"""``CancelOrderAction`` — role and access_decide together (own, locked, foreign order)."""
 
 from __future__ import annotations
 
@@ -37,11 +37,11 @@ async def test_a_foreign_order_is_refused_by_the_object_step(machine: ActionProd
     assert exc_info.value.verdict.gate is Gate.ACCESS_DECIDE
 
 
-async def test_a_locked_order_is_refused_by_the_guard(machine: ActionProductMachine) -> None:
+async def test_a_locked_order_is_refused_by_the_object_step(machine: ActionProductMachine) -> None:
     params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
     with pytest.raises(AccessDenied) as exc_info:
         await machine.run(_customer_context("alice"), CancelOrderAction(), params)
-    assert exc_info.value.verdict.gate is Gate.GUARD
+    assert exc_info.value.verdict.gate is Gate.ACCESS_DECIDE
     assert exc_info.value.verdict.reason == "ORDER_LOCKED"
 
 
@@ -63,7 +63,7 @@ async def test_check_access_decide_matches_run_semantics(machine: ActionProductM
     locked_params = CancelOrderAction.Params(order_id="LOCKED-1", owner_user_id="alice")
     locked = await machine.check_access_decide(_customer_context("alice"), CancelOrderAction, locked_params)
     assert isinstance(locked, Refused)
-    assert locked.gate is Gate.GUARD  # the shared guard=, not a grant's own condition
+    assert locked.gate is Gate.ACCESS_DECIDE  # the object rule's own refusal, not a condition
 
     anonymous = await machine.check_access_decide(Context(), CancelOrderAction, _own_order_params())
     assert isinstance(anonymous, Refused)

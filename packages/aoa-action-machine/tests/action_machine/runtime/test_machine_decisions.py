@@ -31,7 +31,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import SystemDomain
-from ...support.domain_model.roles import AdminRole, ManagerRole, UserRole
+from ...support.domain_model.roles import AdminRole, UserRole
 
 _SEEN: list[str] = []
 
@@ -72,16 +72,6 @@ def _user_without_the_role() -> Context:
     return Context(user=UserInfo(user_id="u-2", roles=(UserRole,)))
 
 
-def _manager() -> Context:
-    """A caller holding the role whose declared condition refuses."""
-    return Context(user=UserInfo(user_id="u-3", roles=(ManagerRole,)))
-
-
-def _guard_never(user: Any, params: Any) -> bool:
-    """A shared condition that always refuses."""
-    return False
-
-
 @meta(description="lifecycle: role missing", domain=SystemDomain)
 @check_roles(AdminRole)
 class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Result"]):
@@ -109,35 +99,6 @@ class RoleGatedAction(BaseAction["RoleGatedAction.Params", "RoleGatedAction.Resu
     ) -> RoleGatedAction.Result:
         """Produce the operation's result."""
         return RoleGatedAction.Result()
-
-
-@meta(description="lifecycle: the shared condition refused", domain=SystemDomain)
-@check_roles(AdminRole, guard=_guard_never, guard_reason="GUARD_NEVER")
-class GuardRefusedAction(BaseAction["GuardRefusedAction.Params", "GuardRefusedAction.Result"]):
-    """An operation whose shared condition refuses."""
-
-    class Params(BaseParams):
-        """No inputs."""
-
-    class Result(BaseResult):
-        """No outputs."""
-
-    @access_decide("Allow every caller the role requirement admitted")
-    async def guard_refused_access_decide(
-        self,
-        params: GuardRefusedAction.Params,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> Allowed:
-        """Allow the object if this step is ever reached."""
-        return Allowed()
-
-    @summary_aspect("S")
-    async def probe_summary(
-        self, params: GuardRefusedAction.Params, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> GuardRefusedAction.Result:
-        """Produce the operation's result."""
-        return GuardRefusedAction.Result()
 
 
 @meta(description="lifecycle: the object check answers something else", domain=SystemDomain)
@@ -263,13 +224,6 @@ async def test_a_step_before_the_run_refuses_without_announcing_anything(machine
     assert _SEEN == []
 
 
-async def test_a_condition_that_refuses_before_the_run_announces_nothing(machine: ActionProductMachine) -> None:
-    """The same holds for the shared condition: it decides before the run is announced."""
-    with pytest.raises(AccessDenied):
-        await machine.run(_admin(), GuardRefusedAction(), GuardRefusedAction.Params())
-    assert _SEEN == []
-
-
 async def test_the_object_step_refuses_after_the_run_was_announced(machine: ActionProductMachine) -> None:
     """The object step runs after the run has started, so its refusal leaves a start — and
     the check announces itself, finishing with a refusal it decided."""
@@ -289,7 +243,6 @@ async def test_an_allowed_call_runs_from_start_to_finish(machine: ActionProductM
     ("action", "caller", "expected"),
     [
         pytest.param(RoleGatedAction, _user_without_the_role, [], id="roles refused"),
-        pytest.param(GuardRefusedAction, _admin, [], id="condition refused"),
         pytest.param(
             ObjectDeniedAction,
             _admin,

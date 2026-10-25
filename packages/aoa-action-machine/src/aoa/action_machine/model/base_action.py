@@ -176,7 +176,7 @@ class BaseAction[P: BaseParams, R: BaseResult](
     CONTRACT: Everything external via ``@depends``/``@connection``.
     INVARIANTS: Knows nothing about transport, coordinators, or storage.
     CACHE: Optional ``cache_key`` / ``read_cache`` / ``on_cache_write`` / ``on_cache_invalidate``; defaults disable caching. ``cache_key`` returns ``str | None``; ``on_cache_write`` returns ``list[CacheTag] | None`` (None = skip write); ``on_cache_invalidate`` returns ``list[CacheTag] | None`` and is called after every clean pipeline regardless of ``cache_key``.
-    ACCESS: Optional object check, declared with ``@access_decide`` on a method whose name carries the ``_access_decide`` suffix — run after ``@check_roles``/``guard=`` pass, at most one per operation and never inherited. An operation that declares none has no object check.
+    ACCESS: Optional object check, declared with ``@access_decide`` on a method whose name carries the ``_access_decide`` suffix — run after ``@check_roles`` passes, at most one per operation and never inherited. An operation that declares none has no object check.
     AI-CORE-END
     """
 

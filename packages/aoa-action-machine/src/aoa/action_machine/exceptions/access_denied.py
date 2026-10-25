@@ -1,5 +1,20 @@
 # packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py
-"""AccessDenied."""
+"""
+AccessDenied — carry a refused execution decision to the caller.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Expose the refusal's gate and optional developer-supplied reason when execution
+cannot proceed. A preliminary access query returns the verdict directly.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+    Refused → machine.run → AccessDenied.verdict → caller
+"""
 
 from __future__ import annotations
 
@@ -11,12 +26,13 @@ if TYPE_CHECKING:
 
 class AccessDenied(Exception):
     """
-    Raised when a call must not proceed, carrying the decision that stopped it.
+    Carry the verdict that refused execution.
 
-    The verdict is the exception: ``gate`` names the step that refused — one of the five
-    published words — and ``reason`` carries the developer's text when they declared one
-    beside the condition that refused. There is nothing else: no level vocabulary beside
-    the words, and no text the framework wrote of its own.
+    AI-CORE-BEGIN
+    ROLE: Execution exception exposing the refused decision through ``verdict``.
+    CONTRACT: ``gate`` is one of ``AUTH_COORDINATOR``, ``CHECK_ROLES``, ``ACCESS_DECIDE``; an optional ``reason`` carries the developer's text.
+    INVARIANTS: The message names the gate and includes the reason only when present; no numeric authorization level is added.
+    AI-CORE-END
     """
 
     def __init__(self, verdict: Refused) -> None:
