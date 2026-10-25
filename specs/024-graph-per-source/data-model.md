@@ -27,7 +27,7 @@ Invariants: `graph` and `sidebar` come from the same build (FR-002); an entry is
 | `in_flight` | `source → future` of the one build running for it, from `acquire` or `reload` |
 | `failures` | `source → (reason, time)` of the last failed build, kept 10 s |
 | `max_graphs` | capacity, default 50 (`MAXITOR_MAX_GRAPHS`); a positive integer, otherwise the app refuses to start naming the variable |
-| `idle_seconds` | idle timeout, default 300 (`MAXITOR_GRAPH_IDLE_SECONDS`); a positive number, otherwise the app refuses to start naming the variable |
+| `idle_seconds` | idle timeout, default 3600 (`MAXITOR_GRAPH_IDLE_SECONDS`); a positive number, otherwise the app refuses to start naming the variable |
 | `max_concurrent_builds` | builds running at once across all sources, default 4 (`MAXITOR_MAX_CONCURRENT_BUILDS`); a positive integer, otherwise the app refuses to start naming the variable |
 | `clock` | monotonic clock, injected for tests |
 | `builder` | `async (source) → GraphEntry`, runs the two load actions (research R5) |
