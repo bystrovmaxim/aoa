@@ -1,6 +1,6 @@
 # packages/aoa-action-machine/src/aoa/action_machine/intents/access_control/cascade.py
 """
-The access cascade — one decision, four ordered steps, three answers.
+The access cascade — one decision, three ordered steps, three answers.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -18,25 +18,20 @@ ARCHITECTURE / DATA FLOW
     decide(context, action, params, box, connections)
         │
         ├─ auth_gate     who is calling          → AUTH_COORDINATOR
-        ├─ roles_gate    the roles they hold,
-        │                with each grant's own
-        │                declared condition      → CHECK_ROLES, or WHEN when a matched
-        │                                          role's condition is what refused
-        ├─ guard_gate    the operation's shared
-        │                declared condition      → GUARD
+        ├─ roles_gate    the roles they hold     → CHECK_ROLES
         └─ object_gate   the object of the call  → ACCESS_DECIDE
                 │
                 └─ first step that answers ends the decision; all passing answers Allowed
 
     A step that raises is turned into ``Undecided`` naming the gate it belongs to,
-    with the failure kept as its cause. ``WHEN`` is answered *by* the roles step, so
-    a failure of that step names ``CHECK_ROLES``: the word says which step could not
-    tell, and the steps are four while the words are five.
+    with the failure kept as its cause. The steps are three and the words are three:
+    a condition is no longer a step, it is a branch of the object rule and answers
+    ``ACCESS_DECIDE``.
 
-    The cascade reads the same declarations the assembled graph carries — roles,
-    conditions and the object check come from their intent resolvers, never from an
-    inherited method — so it needs no access to the graph itself, and the graph stays
-    the observable form of exactly these facts.
+    The cascade reads the same declarations the assembled graph carries — roles and
+    the object rule come from their intent resolvers, never from an inherited
+    method — so it needs no access to the graph itself, and the graph stays the
+    observable form of exactly these facts.
 
     Nothing is published here: the cascade decides, the machine publishes (FR-013,
     FR-014). Keeping the decision free of plugins is what makes it testable on its
@@ -68,7 +63,6 @@ from aoa.action_machine.intents.access_control.roles import RoleChecker
 from aoa.action_machine.intents.access_control.undecided import Undecided
 from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.access_decide.access_decide_intent_resolver import AccessDecideIntentResolver
-from aoa.action_machine.intents.check_roles.check_roles_intent_resolver import CheckRolesIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.resources import Connections
@@ -83,7 +77,7 @@ Step = Callable[
 ]
 """One ordered step of the decision: it answers, or it passes."""
 
-GATES_BEFORE_RUN: tuple[Gate, ...] = (Gate.AUTH_COORDINATOR, Gate.CHECK_ROLES, Gate.GUARD)
+GATES_BEFORE_RUN: tuple[Gate, ...] = (Gate.AUTH_COORDINATOR, Gate.CHECK_ROLES)
 """The steps that decide whether a run exists at all — nothing is announced while they answer."""
 
 GATES_AT_OBJECT: tuple[Gate, ...] = (Gate.ACCESS_DECIDE,)
@@ -120,33 +114,9 @@ async def roles_gate(
     box: ToolsBox,
     connections: Connections,
 ) -> StepAnswer:
-    """Answer for the roles the caller holds; this step owns ``CHECK_ROLES`` and ``WHEN``."""
-    _ = (box, connections)
-    return _ROLE_CHECKER.check(context, type(action), params)
-
-
-def guard_answer(context: Context, action: BaseAction[Any, Any], params: BaseParams | None) -> Refused | None:
-    """Answer for the operation's shared condition — the rule ``guard_gate`` carries.
-
-    The reason is always there: a condition cannot be declared without one (FR-010), so a
-    refusal by this step never leaves the caller guessing.
-    """
-    guard = CheckRolesIntentResolver.resolve_guard(type(action))
-    if guard is None or guard(context.user, params):
-        return None
-    return Refused(gate=Gate.GUARD, reason=CheckRolesIntentResolver.resolve_guard_reason(type(action)))
-
-
-async def guard_gate(
-    context: Context,
-    action: BaseAction[Any, Any],
-    params: BaseParams | None,
-    box: ToolsBox,
-    connections: Connections,
-) -> StepAnswer:
-    """Answer for the operation's shared condition; this step owns ``GUARD``."""
-    _ = (box, connections)
-    return guard_answer(context, action, params)
+    """Answer for the roles the caller holds; this step owns ``CHECK_ROLES``."""
+    _ = (params, box, connections)
+    return _ROLE_CHECKER.check(context, type(action))
 
 
 async def _call_declared(
@@ -205,10 +175,9 @@ _ROLE_CHECKER = RoleChecker()
 _STEPS: dict[Gate, Step] = {
     Gate.AUTH_COORDINATOR: auth_gate,
     Gate.CHECK_ROLES: roles_gate,
-    Gate.GUARD: guard_gate,
     Gate.ACCESS_DECIDE: object_gate,
 }
-"""The step that owns each word. A failing step names its own word, so ``WHEN`` has none."""
+"""The step that owns each word. A failing step names its own word."""
 
 
 async def decide(
@@ -249,8 +218,6 @@ __all__ = [
     "StepAnswer",
     "auth_gate",
     "decide",
-    "guard_answer",
-    "guard_gate",
     "object_gate",
     "roles_gate",
 ]
