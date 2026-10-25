@@ -32,7 +32,7 @@ The full example: [07_extend_context.py](../../examples/how_to/07_extend_context
 
 `Context` (frozen, `extra="forbid"`) consists of three parts, and **each** of them is extended:
 
-- `user: UserInfo` — identity and roles;
+- `user: UserInfo` — identity (`user_id`, `session_id`) and roles;
 - `request: RequestInfo` — request metadata (trace, path, IP, protocol);
 - `runtime: RuntimeInfo` — environment metadata (host, service, version, pod).
 

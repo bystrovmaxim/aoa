@@ -29,6 +29,7 @@ Requires:
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from fastapi import Response
@@ -130,7 +131,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
         payload = {
             "sub": state["user_id"],
             "roles": state["role_names"],
-            "sid": "session-A",
+            "sid": uuid4().hex,  # a new login session gets a new identifier
             "iat": now,
             "exp": now + _TOKEN_TTL,
         }

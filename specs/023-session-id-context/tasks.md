@@ -117,9 +117,9 @@
 
 **Purpose**: the three reserved tail steps, in this order (constitution VI).
 
-- [ ] T015 Run `bash scripts/run_checks_with_log.sh` from the repository root and take every remark to zero. The two accepted remarks — the Vite chunk-size advisory and the LangGraph pending-deprecation warning — stay and are not acted on; any ruff `--fix` edit the run makes is reviewed as part of the change.
-- [ ] T016 Write the documentation: `docs/extensions/jwt.md` and its `jwt.ru_draft.md` companion state the mandatory `session_id_claim`, the `session_id` field, both failure modes (ordinary refusal vs `AuthenticationContractError`), the numeric-`sub` migration (`{"sub": 12345}` → contract error, `{"sub": "12345"}` → accepted), session semantics, and aspect/`@access_decide` access. Add the runnable script + notebook pair for the session-aspect and the numeric-`sub` migration under `examples/`, and execute every example with the repository's own environment (a future `exp` generated at run time). Amend `docs/tutorials/step-12-authentication.md` where it names the constructor.
-- [ ] T017 Write the changelog as one article in `docs/CHANGELOG.md`, add the `Unreleased` entry in `packages/aoa-action-machine/CHANGELOG.md`, and bump the version `1.0.1a5` → `1.0.1a6` in `packages/aoa-action-machine/pyproject.toml`.
+- [x] T015 Run `bash scripts/run_checks_with_log.sh` from the repository root and take every remark to zero. The two accepted remarks — the Vite chunk-size advisory and the LangGraph pending-deprecation warning — stay and are not acted on; any ruff `--fix` edit the run makes is reviewed as part of the change.
+- [x] T016 Write the documentation: `docs/extensions/jwt.md` and its `jwt.ru_draft.md` companion state the mandatory `session_id_claim`, the `session_id` field, both failure modes (ordinary refusal vs `AuthenticationContractError`), the numeric-`sub` migration (`{"sub": 12345}` → contract error, `{"sub": "12345"}` → accepted), session semantics, and aspect/`@access_decide` access. Add the runnable script + notebook pair for the session-aspect and the numeric-`sub` migration under `examples/`, and execute every example with the repository's own environment (a future `exp` generated at run time). Amend `docs/tutorials/step-12-authentication.md` where it names the constructor.
+- [x] T017 Write the changelog as one article in `docs/CHANGELOG.md`, add the `Unreleased` entry in `packages/aoa-action-machine/CHANGELOG.md`, and bump the version `1.0.1a5` → `1.0.1a6` in `packages/aoa-action-machine/pyproject.toml`.
 
 ---
 

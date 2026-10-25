@@ -77,7 +77,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Context** — the call environment: user, request, runtime. Assembled before the operation runs; not visible to aspects whole.
 
-**UserInfo / RequestInfo / RuntimeInfo** — parts of the context: user data (`user_id`, roles), request data (`trace_id`, path, method, IP), environment (`hostname`, `service_name`, runtime).
+**UserInfo / RequestInfo / RuntimeInfo** — parts of the context: user data (`user_id`, `session_id`, roles), request data (`trace_id`, path, method, IP), environment (`hostname`, `service_name`, runtime).
 
 **ContextView** — the context slice an aspect receives via `@context_requires`. You cannot read an undeclared field through it.
 
