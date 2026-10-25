@@ -83,8 +83,8 @@ This is a library monorepo, so paths are package-relative: `packages/aoa-maxitor
 
 **Independent Test**: run the payload test unchanged, then break the payload in isolation and watch it fail while the card check still passes.
 
-- [ ] T010 [US3] Run `.venv/bin/pytest packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py -q` without editing it; confirm the item shape, the text forms, the empty-property case and the schema still pass, and record the run (FR-004; SC-004)
-- [ ] T011 [US3] Adversarial: replace the `entity["values"] = [...]` comprehension at `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py:370` with `entity["values"] = []` (the line the payload test reads), confirm `.venv/bin/pytest …test_list_entities_payload_dictionary.py` fails while the card check still passes, then restore the file and re-run both (FR-004)
+- [x] T010 [US3] Run `.venv/bin/pytest packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py -q` without editing it; confirm the item shape, the text forms, the empty-property case and the schema still pass, and record the run (FR-004; SC-004)
+- [x] T011 [US3] Adversarial: replace the `entity["values"] = [...]` comprehension at `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py:370` with `entity["values"] = []` (the line the payload test reads), confirm `.venv/bin/pytest …test_list_entities_payload_dictionary.py` fails while the card check still passes, then restore the file and re-run both (FR-004)
 
 **Checkpoint**: US3 holds — the payload is untouched by the change and the proof is a test that was never edited.
 

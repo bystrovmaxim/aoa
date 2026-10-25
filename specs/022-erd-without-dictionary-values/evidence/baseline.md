@@ -203,3 +203,54 @@ exit 0
 The file was restored (`git diff` on the package is empty) and both proofs were re-run: `3 passed` and
 the card check green. The pair behaves as the contract requires — the graph proof fails only when the
 graph loses the values, and the card proof does not notice, because the card no longer reads them.
+
+## 8. User Story 3 — the ERD payload still carries every value
+
+### 8.1 The test, run unchanged (T010)
+
+```
+$ .venv/bin/python -m pytest packages/aoa-maxitor/tests/test_list_entities_payload_dictionary.py -q
+...............                                                          [100%]
+15 passed in 0.59s
+```
+
+The file was not edited. It covers the item shape, the text forms (a string stays text, an array is
+JSON, a blank and a null keep their meaning), the empty-property case, the schema and the code that
+stays in the payload.
+
+### 8.2 The adversarial break (T011)
+
+The values comprehension at
+`packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py:370` was
+replaced by `entity["values"] = []`. Five of the fifteen cases then failed:
+
+```
+FAILED …::test_the_dictionary_row_carries_its_values
+FAILED …::test_every_property_shape_reaches_the_payload
+FAILED …::test_the_payload_keeps_one_item_per_graph_property
+FAILED …::test_a_lossy_conversion_is_caught_by_the_invariant
+FAILED …::test_a_dictionary_value_keeps_its_code_in_the_payload
+5 failed, 10 passed in 0.55s
+```
+
+In the same state the card check stayed green:
+
+```
+$ node scripts/check-erd-dictionary-values.ts
+Dictionary card: no value row, its own fields and the reference intact
+exit 0
+```
+
+The file was restored (`git diff` on the package source is empty) and both proofs were re-run:
+`15 passed` and the card check green.
+
+### 8.3 The two proofs together
+
+| Layer | Test | Fails when | Stays green when |
+| --- | --- | --- | --- |
+| graph export | `test_dictionary_reference_json.py` | the node stops publishing `values` | the card stops drawing them |
+| ERD payload | `test_list_entities_payload_dictionary.py` | the action stops building `values` | the card stops drawing them |
+| the card | `check-erd-dictionary-values.ts` | a value reaches the DOT or the SVG | either data layer is intact |
+
+No layer's proof was edited by this feature. That is the point: the two data guarantees are held by
+tests written before it, and the rendering change is held by a test written for it.
