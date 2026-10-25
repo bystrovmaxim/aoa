@@ -4,8 +4,8 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <img src="https://img.shields.io/badge/pip-aoa--action--machine-blue?logo=pypi&logoColor=white" alt="aoa-action-machine">
-  <img src="https://img.shields.io/badge/tests-3045-brightgreen" alt="3045 tests">
-  <img src="https://img.shields.io/badge/version-1.0.1a5-informational" alt="1.0.1a5">
+  <img src="https://img.shields.io/badge/tests-3015-brightgreen" alt="3015 tests">
+  <img src="https://img.shields.io/badge/version-1.0.1a6-informational" alt="1.0.1a6">
 </p>
 
 # aoa-action-machine
