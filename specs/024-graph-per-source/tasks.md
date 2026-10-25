@@ -88,10 +88,10 @@
 
 **Independent Test**: reload Y while a client reads X; X is unchanged, Y is rebuilt; a failing reload of Y keeps Y's previous graph.
 
-- [ ] T027 [US4] Rewrite `packages/aoa-maxitor/src/aoa/maxitor/api/routes/load.py`: `POST /api/load` calls `request.app.state.graph_store.reload(body.service_url)`; success → 200 `{"status": "ok"}`; `GraphBuildError` → 422 `{"detail": reason}`; `GraphStoreBusyError` → 503 with `Retry-After: 5` and the busy detail, the source's entry left as it was; request and response shapes unchanged. Update the module docstring.
-- [ ] T028 [US4] Create `packages/aoa-maxitor/tests/test_api_load_route.py`: reload of Y does not change a reader of X; reload replaces the held Y with a fresh build (builder called again); a failing reload keeps the previous Y and answers 422; the existing unreachable-service tests in `packages/aoa-maxitor/tests/test_api_diagram_routes.py` still pass; an address containing `&`, `+`, `%2F` and a space, read through `?source=` (URL-encoded) and reloaded through `POST /api/load`, is one key: the store holds one entry and the reload replaces it (FR-027).
-- [ ] T029 Adversarial check: make `reload` clear the whole store → the "X unchanged" test fails; make a failed reload drop the held entry → the "keeps previous Y" test fails. Restore.
-- [ ] T030 Prepare commit 5: `feat(maxitor): POST /api/load rebuilds only the source it names (#214)`.
+- [x] T027 [US4] Rewrite `packages/aoa-maxitor/src/aoa/maxitor/api/routes/load.py`: `POST /api/load` calls `request.app.state.graph_store.reload(body.service_url)`; success → 200 `{"status": "ok"}`; `GraphBuildError` → 422 `{"detail": reason}`; `GraphStoreBusyError` → 503 with `Retry-After: 5` and the busy detail, the source's entry left as it was; request and response shapes unchanged. Update the module docstring.
+- [x] T028 [US4] Create `packages/aoa-maxitor/tests/test_api_load_route.py`: reload of Y does not change a reader of X; reload replaces the held Y with a fresh build (builder called again); a failing reload keeps the previous Y and answers 422; the existing unreachable-service tests in `packages/aoa-maxitor/tests/test_api_diagram_routes.py` still pass; an address containing `&`, `+`, `%2F` and a space, read through `?source=` (URL-encoded) and reloaded through `POST /api/load`, is one key: the store holds one entry and the reload replaces it (FR-027).
+- [x] T029 Adversarial check: make `reload` clear the whole store → the "X unchanged" test fails; make a failed reload drop the held entry → the "keeps previous Y" test fails. Restore.
+- [x] T030 Prepare commit 5: `feat(maxitor): POST /api/load rebuilds only the source it names (#214)`.
 
 ---
 
