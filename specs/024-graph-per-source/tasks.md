@@ -129,9 +129,9 @@
 
 ## Phase 9: Documentation (commit 9)
 
-- [ ] T040 Replace `examples/step_26_maxitor/02_api_shared_graph.py` and `.ipynb` with `examples/step_26_maxitor/02_api_graph_per_source.py` and `.ipynb`, showing every case of the contract with the real printed output: two sources side by side, a cold read, 400 without a source, 422 for an unbuildable source, 503 when no build slot frees within the wait limit, an explicit reload, a failed reload keeping the old graph, idle removal and rebuild, capacity eviction, one build for a burst, a reader leaving during a build. Run both while writing them.
-- [ ] T041 Update `docs/tutorials/step-26-maxitor.md` and `packages/aoa-maxitor/README.md` (the API list with `source`, the loading section, the three configuration variables, the health counters, the "Reload from service" button, the link to the new example) and their `.ru_draft.md` counterparts; replace every remaining reference to `02_api_shared_graph` outside `specs/`.
-- [ ] T042 Prepare commit 9: `docs(maxitor): document one graph per source with runnable examples (#214)`.
+- [x] T040 Replace `examples/step_26_maxitor/02_api_shared_graph.py` and `.ipynb` with `examples/step_26_maxitor/02_api_graph_per_source.py` and `.ipynb`, showing every case of the contract with the real printed output: two sources side by side, a cold read, 400 without a source, 422 for an unbuildable source, 503 when no build slot frees within the wait limit, an explicit reload, a failed reload keeping the old graph, idle removal and rebuild, capacity eviction, one build for a burst, a reader leaving during a build. Run both while writing them.
+- [x] T041 Update `docs/tutorials/step-26-maxitor.md` and `packages/aoa-maxitor/README.md` (the API list with `source`, the loading section, the three configuration variables, the health counters, the "Reload from service" button, the link to the new example) and their `.ru_draft.md` counterparts; replace every remaining reference to `02_api_shared_graph` outside `specs/`.
+- [x] T042 Prepare commit 9: `docs(maxitor): document one graph per source with runnable examples (#214)`.
 
 ---
 
