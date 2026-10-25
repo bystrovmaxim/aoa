@@ -4,15 +4,15 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <img src="https://img.shields.io/badge/pip-aoa--action--machine-blue?logo=pypi&logoColor=white" alt="aoa-action-machine">
-  <img src="https://img.shields.io/badge/tests-3045-brightgreen" alt="3045 tests">
-  <img src="https://img.shields.io/badge/version-1.0.1a5-informational" alt="1.0.1a5">
+  <img src="https://img.shields.io/badge/tests-3015-brightgreen" alt="3015 tests">
+  <img src="https://img.shields.io/badge/version-1.0.1a6-informational" alt="1.0.1a6">
 </p>
 
 # aoa-action-machine
 
 The core of AOA — a framework where a business operation is described as an **executable contract**. Every operation is an `Action` class with a typed input, output, and a straight chain of steps; the machine reads this description and executes it literally.
 
-This README is a quick start: from installation to an operation published over HTTP and as an AI-agent tool. It deliberately does not cover everything — the full picture is in the **[tutorial](../../docs/index.md)**, with links to individual topics placed along the way.
+This README is a quick start: from installation to an operation published over HTTP and as an AI-agent tool. Release notes for every version are in the [CHANGELOG](CHANGELOG.md). It deliberately does not cover everything — the full picture is in the **[tutorial](../../docs/index.md)**, with links to individual topics placed along the way.
 
 ---
 

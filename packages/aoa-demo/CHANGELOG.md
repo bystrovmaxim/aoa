@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] – 2026-10-26
+
 ### Breaking changes
 
 - **The demo speaks in dictionaries.** `CurrencyEnumEntity` declares `usd`, `eur` and `rub`; 25 currency fields reference it instead of holding a string, and the drawing axis borrows `GeneralizationShapesKindEnumEntity`. The demo graph reports two `enum` nodes and 26 reference fields. ([#241](https://github.com/bystrovmaxim/aoa/issues/241))

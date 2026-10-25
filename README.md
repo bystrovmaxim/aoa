@@ -4,8 +4,8 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-3745-brightgreen" alt="3745 tests">
-  <img src="https://img.shields.io/badge/version-1.0.1a5-blue" alt="version 1.0.1a5">
+  <img src="https://img.shields.io/badge/tests-3754-brightgreen" alt="3754 tests">
+  <img src="https://img.shields.io/badge/version-1.0.1a6-blue" alt="version 1.0.1a6">
 </p>
 
 # AOA — Action-Oriented Architecture
@@ -119,10 +119,16 @@ Hello, World!
 
 ## Packages
 
-| Package                                                     | Contents                                                            |
-| ----------------------------------------------------------- | ------------------------------------------------------------------- |
-| [aoa-action-machine](packages/aoa-action-machine/README.md) | Core: Actions, pipeline, sagas, cache, plugins, entities, testing   |
-| [aoa-maxitor](packages/aoa-maxitor/README.md)               | Visualizer: interactive graph, ERD, use cases, lifecycle from code  |
+| Package | Version | Contents |
+| ----------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| [aoa-action-machine](packages/aoa-action-machine/README.md) | 1.0.1a6 | Core engine: Actions, pipeline, sagas, cache, plugins, entities, testing |
+| [aoa-fastapi-adapter](packages/aoa-fastapi-adapter/README.md) | 1.2.1 | HTTP/REST transport for the machine |
+| [aoa-mcp-adapter](packages/aoa-mcp-adapter/README.md) | 1.2.1 | Tools for AI agents |
+| [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
+| [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
+| [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
+| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.0.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
+| [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
 
 ---
 

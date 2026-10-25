@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-mcp-adapter"
-version = "1.2.0"
+version = "1.2.1"
 description = "MCP adapter for AOA — expose Actions as MCP tools for AI agents."
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
