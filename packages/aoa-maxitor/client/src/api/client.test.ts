@@ -1,6 +1,6 @@
 // src/api/client.test.ts
-import { afterEach, describe, expect, it } from "vitest";
-import { graphApiUrl, setActiveSource } from "@/api/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { graphApiUrl, graphFetch, setActiveSource } from "@/api/client";
 import { readUrlDeepLink } from "@/lib/urlState";
 
 const SOURCE = "https://service.test/graph-json";
@@ -10,7 +10,31 @@ function search(url: string): URLSearchParams {
   return new URLSearchParams(url.slice(url.indexOf("?") + 1));
 }
 
-afterEach(() => setActiveSource(null));
+afterEach(() => {
+  setActiveSource(null);
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+function busy(retryAfterSeconds: number): Response {
+  return {
+    ok: false,
+    status: 503,
+    headers: new Headers({ "Retry-After": String(retryAfterSeconds) }),
+    json: async () => ({ detail: "busy" }),
+    text: async () => "busy",
+  } as unknown as Response;
+}
+
+function answer(body: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  } as unknown as Response;
+}
 
 describe("graphApiUrl", () => {
   it("appends the active source", () => {
@@ -46,5 +70,57 @@ describe("deep link", () => {
     const link = readUrlDeepLink();
     expect(link.source).toBe(SOURCE);
     expect(link.view).toBe("full-graph");
+  });
+});
+
+describe("a busy server", () => {
+  it("waits Retry-After, doubles after each further 503, and never waits more than 30 s", async () => {
+    vi.useFakeTimers();
+    setActiveSource(SOURCE);
+    const responses: Response[] = [busy(5), busy(5), busy(5), busy(5), answer({})];
+    const fetchMock = vi.fn(async () => responses.shift()!);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const read = graphFetch("/api/sidebar");
+
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect((await read).status).toBe(200);
+  });
+
+  it("keeps one retry loop for the whole page, not one per read", async () => {
+    vi.useFakeTimers();
+    setActiveSource(SOURCE);
+    let attempts = 0;
+    const fetchMock = vi.fn(async () => {
+      attempts += 1;
+      return attempts <= 2 ? busy(5) : answer({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = graphFetch("/api/sidebar");
+    const second = graphFetch("/api/v1/full-graph");
+
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(4);  // both reads retried on the same pause
+
+    await Promise.all([first, second]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });

@@ -1,11 +1,11 @@
 // src/api/lifecycleFiniteAutomaton.ts
-import { graphApiUrl } from "@/api/client";
+import { graphFetch } from "@/api/client";
 import type { LifecycleFiniteAutomatonPayload } from "@/model/lifecycleFiniteAutomaton";
 
 /** ``GET /api/v1/lifecycle-finite-automaton`` — template FSM for one interchange Lifecycle vertex id. */
 export async function fetchLifecycleFiniteAutomaton(lifecycleGraphNodeId: string): Promise<LifecycleFiniteAutomatonPayload> {
   const q = new URLSearchParams({ lifecycle_graph_node_id: lifecycleGraphNodeId });
-  const response = await fetch(graphApiUrl("/api/v1/lifecycle-finite-automaton", q));
+  const response = await graphFetch("/api/v1/lifecycle-finite-automaton", q);
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(`Lifecycle FSM request failed (${response.status}): ${text || response.statusText}`);
