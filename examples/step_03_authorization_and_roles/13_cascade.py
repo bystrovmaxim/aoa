@@ -11,10 +11,10 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import AccessDenied
-from aoa.action_machine.intents.access_control import Allowed, Verdict
+from aoa.action_machine.intents.access_control import Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -54,37 +54,21 @@ class OrderResult(BaseResult):
 TRACE = []
 
 
-def in_team(user):
-    """Record the role condition being evaluated."""
-    TRACE.append("when")
-    return True
-
-
-def cancellations_open(user, params):
-    """Record the shared condition refusing."""
-    TRACE.append("guard")
-    return False
-
-
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(
-    grant(ManagerRole, when=in_team, reason="TEAM_REQUIRED"),
-    guard=cancellations_open,
-    guard_reason="CANCELLATIONS_PAUSED",
-)
+@check_roles(ManagerRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
 
-    @access_decide("Check whether the order can be cancelled")
+    @access_decide("Refuse every cancellation while the service is paused")
     async def cancel_access_decide(
         self,
         params: OrderParams,
         box: ToolsBox,
         connections: Connections,
     ) -> Verdict:
-        """Decide access before cancelling the order."""
+        """Refuse, recording that the object step was reached."""
         TRACE.append("object")
-        return Allowed()
+        return Refused("CANCELLATIONS_PAUSED")
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
@@ -99,13 +83,22 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 async def main() -> None:
     """A refusal stops the remaining checks."""
     machine = ActionProductMachine(cache_coordinator=None)
-    caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
+    manager = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
+    stranger = Context(user=UserInfo(user_id="x-1", roles=()))
 
+    TRACE.clear()
     try:
-        await machine.run(caller, CancelOrderAction(), OrderParams(order_id="ord-001"))
+        await machine.run(manager, CancelOrderAction(), OrderParams(order_id="ord-001"))
     except AccessDenied as exc:
-        print("refused at:", exc.verdict.gate.value)
-    print("called:", TRACE)
+        print("manager refused at:", exc.verdict.gate.value)
+    print("manager called:", TRACE)
+
+    TRACE.clear()
+    try:
+        await machine.run(stranger, CancelOrderAction(), OrderParams(order_id="ord-001"))
+    except AccessDenied as exc:
+        print("stranger refused at:", exc.verdict.gate.value)
+    print("stranger called:", TRACE)
 
 
 if __name__ == "__main__":

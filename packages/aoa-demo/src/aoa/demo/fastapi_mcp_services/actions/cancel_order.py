@@ -1,19 +1,18 @@
 # packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/actions/cancel_order.py
 """
-CancelOrderAction — the full three-level access cascade (role, guard, access_decide).
+CancelOrderAction — a role gate and an object rule together.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Unlike ``CreateOrderAction``/``GetOrderAction`` (open to ``GuestRole``), cancelling
-an order needs all three levels of the access-control cascade:
+an order needs a role and an object rule:
 
-    1. Role     — ``grant(CustomerRole)``: caller must be a customer.
-    2. Guard    — a locked order (``order_id`` starting with ``"LOCKED-"``)
-                  cannot be cancelled by anyone, regardless of role.
-    3. Fact     — ``access_decide``: a customer may only cancel their *own*
-                  order (``params.owner_user_id == context.user.user_id``).
+    1. Role   — ``@check_roles(CustomerRole)``: the caller must be a customer.
+    2. Rule   — ``@access_decide``: a locked order (``order_id`` starting with
+                ``"LOCKED-"``) cannot be cancelled by anyone, and a customer may
+                cancel only their *own* order.
 
 A real service would look the order's owner up via a connection
 (``connections["orders_db"].get(params.order_id)``); this demo takes it
@@ -27,13 +26,13 @@ ARCHITECTURE / DATA FLOW
     POST /api/v1/orders/{order_id}/cancel
       |
       v
-  RoleChecker.check   -> CustomerRole? guard passes (order not locked)?
+  RoleChecker.check   -> CustomerRole?
       |
       v
-  access_decide        -> params.owner_user_id == context.user.user_id ?
+  access_decide       -> locked? owner_user_id == user.user_id?
       |
       v
-  cancel_summary       -> Result(order_id, status="cancelled")
+  cancel_summary      -> Result(order_id, status="cancelled")
 
 """
 
@@ -41,10 +40,10 @@ from pydantic import Field
 
 from aoa.action_machine.auth import ApplicationRole
 from aoa.action_machine.context.context_view import ContextView
-from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Verdict
+from aoa.action_machine.intents.access_control import FORBIDDEN_OBJECT, Allowed, Refused, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles, grant
+from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
@@ -62,11 +61,7 @@ class CustomerRole(ApplicationRole):
 
 
 @meta(description="Cancel an order", domain=OrdersDomain)
-@check_roles(
-    grant(CustomerRole),
-    guard=lambda user, params: not params.order_id.startswith("LOCKED-"),
-    guard_reason="ORDER_LOCKED",
-)
+@check_roles(CustomerRole)
 class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderAction.Result"]):
 
     class Params(BaseParams):
@@ -89,7 +84,7 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         order_id: str = Field(description="Order identifier", examples=["ORD-user_123-001"])
         status: str = Field(description="Order status after cancellation", examples=["cancelled"])
 
-    @access_decide("Refuse an order that is not the caller's, or one that is locked")
+    @access_decide("Refuse a locked order, or one that is not the caller's")
     @context_requires("user.user_id")
     async def cancel_order_access_decide(
         self,
@@ -98,7 +93,9 @@ class CancelOrderAction(BaseAction["CancelOrderAction.Params", "CancelOrderActio
         connections: Connections,
         ctx: ContextView,
     ) -> Verdict:
-        """The order must belong to the caller; anyone else is refused, with no reason."""
+        """A locked order is refused for everyone; anyone else's order is refused, too."""
+        if params.order_id.startswith("LOCKED-"):
+            return Refused("ORDER_LOCKED")
         if params.owner_user_id == ctx.get("user.user_id"):
             return Allowed()
         return FORBIDDEN_OBJECT

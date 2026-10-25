@@ -11,6 +11,8 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import AccessDenied
+from aoa.action_machine.intents.access_control import Refused, Verdict
+from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
@@ -50,9 +52,19 @@ class OrderResult(BaseResult):
 
 
 @meta(description="Cancel an order", domain=StoreDomain)
-@check_roles(ManagerRole, guard=lambda user, params: False, guard_reason="CANCELLATIONS_PAUSED")
+@check_roles(ManagerRole)
 class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
     """Cancel an order after checking access."""
+
+    @access_decide("Refuse every cancellation while the service is paused")
+    async def cancel_order_access_decide(
+        self,
+        params: OrderParams,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> Verdict:
+        """The object rule always refuses, with a reason."""
+        return Refused("CANCELLATIONS_PAUSED")
 
     @summary_aspect("Cancel the order")
     async def cancel_summary(self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrderResult:
