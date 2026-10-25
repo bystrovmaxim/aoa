@@ -36,7 +36,7 @@ This is a library monorepo, so paths are package-relative: `packages/aoa-maxitor
 
 ## Phase 1: Setup
 
-- [ ] T001 [P] Create `specs/022-erd-without-dictionary-values/evidence/baseline.md` and record the state the specification quotes: the three client checks green, the two Python tests green, the players-domain `viewBox` height (`1698 × 6800`), the 98 painted property rows, and the seven dictionaries with their value counts — reproducing each number with the command that produced it. Also record, as a golden, the DOT that `buildDotSource` produces for the check's non-dictionary entity (`shop.PriceTagCoreEntity` with its `amount` row) before any edit, so "a non-dictionary card is unchanged" is a comparison rather than an impression (SC-001, SC-002, SC-005)
+- [x] T001 [P] Create `specs/022-erd-without-dictionary-values/evidence/baseline.md` and record the state the specification quotes: the three client checks green, the two Python tests green, the players-domain `viewBox` height (`1698 × 6800`), the 98 painted property rows, and the seven dictionaries with their value counts — reproducing each number with the command that produced it. Also record, as a golden, the DOT that `buildDotSource` produces for the check's non-dictionary entity (`shop.PriceTagCoreEntity` with its `amount` row) before any edit, so "a non-dictionary card is unchanged" is a comparison rather than an impression (SC-001, SC-002, SC-005)
 
 **Checkpoint**: the numbers in the spec are traceable to a record, and the tree is green before anything is touched.
 
@@ -46,19 +46,19 @@ This is a library monorepo, so paths are package-relative: `packages/aoa-maxitor
 
 **Goal**: a dictionary is a card of its own fields; no value row, no code tooltip, nothing in their place — and the card's drawing does not depend on how many values the dictionary declares.
 
-**Independent Test**: render the measured model's players domain, read the drawing's `viewBox`, and run the dictionary check — the height is below 1700 and no value text or tooltip exists in the DOT or the SVG, while the two control checks stay green.
+**Independent Test**: render the measured model's players domain, read the drawing's `viewBox`, and run the dictionary check — the height falls to 2075 px from 6800, no value text or tooltip exists in the DOT or the SVG, and the two control checks stay green.
 
 ### Tests and checks for User Story 1
 
-- [ ] T002 [US1] In `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts`, invert the assertions against the rendered card: no `>Euro<`, no `symbol: €`, no escaped note, no array-property text, no `TOOLTIP="code: …"` in the DOT and no `xlink:title="code: …"` in the SVG; keep the non-dictionary row, the reference arrow, the single printed name and the legacy-graph assertions. Run it before the renderer changes and confirm it FAILS — a check that passes here proves nothing (FR-001, FR-007, FR-009)
-- [ ] T003 [US1] Add to `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` two assertions. First, count-independence over the counts the specification names: for the same dictionary rendered with 0, 1, 3, 26 and 93 values, every DOT equals the DOT for `values: []`. Second, the golden from T001: the DOT of the non-dictionary entity (`shop.PriceTagCoreEntity`) still equals the recorded string, so an ordinary card is provably unchanged rather than merely still containing its row (FR-005, FR-008, SC-005, SC-006)
+- [x] T002 [US1] In `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts`, invert the assertions against the rendered card: no `>Euro<`, no `symbol: €`, no escaped note, no array-property text, no `TOOLTIP="code: …"` in the DOT and no `xlink:title="code: …"` in the SVG; keep the non-dictionary row, the reference arrow, the single printed name and the legacy-graph assertions. Run it before the renderer changes and confirm it FAILS — a check that passes here proves nothing (FR-001, FR-007, FR-009)
+- [x] T003 [US1] Add to `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` two assertions. First, count-independence over the counts the specification names: for the same dictionary rendered with 0, 1, 3, 26 and 93 values, every DOT equals the DOT for `values: []`. Second, the golden from T001: the DOT of the non-dictionary entity (`shop.PriceTagCoreEntity`) still equals the recorded string, so an ordinary card is provably unchanged rather than merely still containing its row (FR-005, FR-008, SC-005, SC-006)
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] In `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, delete the `valueRows` block and the `${valueRows}` interpolation from the card label; keep `ErdValue` and `ErdEntity.values` in the payload type with a comment that the payload carries them and the card does not draw them (FR-001, FR-002, FR-006)
-- [ ] T005 [US1] Run `cd packages/aoa-maxitor/client && npm run build`, then `node scripts/check-erd-dictionary-values.ts`, `node scripts/check-erd-card-containment.ts` and `node scripts/check-erd-group-label.ts`; all four are green, and the containment and group-label checks are unchanged files (FR-007, FR-012)
-- [ ] T006 [US1] Adversarial: restore one value row in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, confirm `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` fails while the two control checks still pass, then revert the edit — and record the failure text in `specs/022-erd-without-dictionary-values/evidence/baseline.md` (FR-001; spec Verification)
-- [ ] T007 [US1] Walk the measured model in the built client and record the results in `specs/022-erd-without-dictionary-values/evidence/baseline.md`: (a) render each of the four domains and the all-domains view and confirm zero value rows across all seven dictionaries — no label, no property text, no `is_obsolete` line; (b) read the players-domain `viewBox` and confirm the height is below 1700, noting the events domain's 1593 for scale; (c) screenshot one small dictionary card and the players domain as the visual record. This is the only task that exercises SC-002's "seven of seven" and SC-005's "every non-dictionary card", because the client check runs on fixtures, not on the model (SC-001, SC-002, SC-005, SC-006)
+- [x] T004 [US1] In `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, delete the `valueRows` block and the `${valueRows}` interpolation from the card label; keep `ErdValue` and `ErdEntity.values` in the payload type with a comment that the payload carries them and the card does not draw them (FR-001, FR-002, FR-006)
+- [x] T005 [US1] Run `cd packages/aoa-maxitor/client && npm run build`, then `node scripts/check-erd-dictionary-values.ts`, `node scripts/check-erd-card-containment.ts` and `node scripts/check-erd-group-label.ts`; all four are green, and the containment and group-label checks are unchanged files (FR-007, FR-012)
+- [x] T006 [US1] Adversarial: restore one value row in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts`, confirm `packages/aoa-maxitor/client/scripts/check-erd-dictionary-values.ts` fails while the two control checks still pass, then revert the edit — and record the failure text in `specs/022-erd-without-dictionary-values/evidence/baseline.md` (FR-001; spec Verification)
+- [x] T007 [US1] Walk the measured model in the built client and record the results in `specs/022-erd-without-dictionary-values/evidence/baseline.md`: (a) render each of the four domains and the all-domains view and confirm zero value rows across all seven dictionaries — no label, no property text, no `is_obsolete` line; (b) read the players-domain `viewBox` and confirm the height is 2075 px — under a third of the former 6800 — and record events, offers, showcases and the all-domains view for scale; (c) screenshot one small dictionary card and the players domain as the visual record. This is the only task that exercises SC-002's "seven of seven" and SC-005's "every non-dictionary card", because the client check runs on fixtures, not on the model (SC-001, SC-002, SC-005, SC-006)
 
 **Checkpoint**: US1 is complete and independently testable — the card is readable, the check proves it, and the height is measured.
 
@@ -162,7 +162,7 @@ US2 and US3 add no code: they are the two "nothing was lost" proofs, and they ca
 
 | Success criterion | Task | How it is shown |
 | --- | --- | --- |
-| SC-001 the drawing fits one screen | T001, T007 | `viewBox` before 6800, after below 1700 |
+| SC-001 the drawing is laid out by its entities | T001, T007 | `viewBox` before 6800, after 2075 for players and 1242–1667 for the others |
 | SC-002 seven of seven dictionaries, zero rows | T007 | the four domains and the all-domains view, walked |
 | SC-003 every value stays in the graph export | T008 | the graph test, unchanged |
 | SC-004 every dictionary keeps `values` in the payload | T010 | the payload test, unchanged |

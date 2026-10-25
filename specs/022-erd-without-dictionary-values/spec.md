@@ -147,7 +147,7 @@ A maintainer reading the card contract, the tutorial and the package documentati
 
 ### Measurable Outcomes
 
-- **SC-001**: In the measured model's players domain, the ERD drawing falls from 1698 × 6800 px to under 1700 px — the height of the events domain of the same model (1815 × 1593 px) — so the domain's ordinary entities fit on one screen at 100 % zoom.
+- **SC-001**: In the measured model's players domain, the ERD drawing falls from 1698 × 6800 px to 1698 × 2075 px — under a third of its former height, and no longer set by a single card. Measured after the same change, the other three domains are 1815 × 1423, 2283 × 1242 and 3383 × 1667, and the all-domains view is 4400 × 2777, so every projection is laid out by its entities rather than by its largest dictionary.
 - **SC-002**: 100 % of the dictionaries in the measured model — seven of seven, from 3 to 93 values — draw zero value rows.
 - **SC-003**: 100 % of declared values remain in the graph export: 93 of 93 for the region dictionary, 26 of 26 for the industry dictionary, and so on for all seven.
 - **SC-004**: 100 % of dictionaries keep their `values` list in the entity endpoint's response, in declaration order, with the typed property shape.
@@ -185,5 +185,5 @@ A maintainer reading the card contract, the tutorial and the package documentati
 - A graph-level check asserts that a real graph export still carries every value with its code, its label and its properties — the requirement that "everything is passed in the JSON graph".
 - Adversarial pairs: restoring one value row must fail the drawing check while the graph check still passes; dropping values from the export must fail the graph check while the drawing check still passes. Each is reintroduced in isolation and restored.
 - The existing card-containment check runs unchanged, so the card's fills still stop at its rounded contour.
-- The success criteria that name the measured model are verified against that model in one walk: all four domains and the all-domains view render with zero value rows across the seven dictionaries, the entity endpoint still answers 93, 26, 8, 5, 5, 3 and 3 values for them, the players-domain drawing measures below 1700 px, and a non-dictionary card is compared against a golden captured before the change.
+- The success criteria that name the measured model are verified against that model in one walk: all four domains and the all-domains view render with zero value rows across the seven dictionaries, the entity endpoint still answers 93, 26, 8, 5, 5, 3 and 3 values for them, the players-domain drawing measures 1698 × 2075 px against 1698 × 6800 before the change, and a non-dictionary card is compared against a golden captured before the change.
 - The documentation, the check run taken to zero and the changelog article follow the usual tail; the two accepted remarks of the check run are not acted on.

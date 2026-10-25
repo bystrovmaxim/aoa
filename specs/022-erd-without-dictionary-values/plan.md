@@ -30,7 +30,7 @@ The change is deliberately small and has one shape:
 
 **Project Type**: library monorepo with a viewer package; this is a viewer-rendering change plus documentation.
 
-**Performance Goals**: the drawing shrinks by one table row per declared value — 93 rows for the measured region dictionary, taking the players domain from 6800 px to under 1700 px. No new computation is introduced; the renderer does strictly less work.
+**Performance Goals**: the drawing shrinks by one table row per declared value — 93 rows for the measured region dictionary, taking the players domain from 6800 px to 2075 px, and the other three domains to 1423, 1242 and 1667 px. No new computation is introduced; the renderer does strictly less work.
 
 **Constraints**: the payload and the graph must keep every value (FR-003, FR-004); nothing may be added in place of the rows (FR-002); no threshold, name or kind may enter the renderer (FR-006); no compatibility flag or migration (FR-012); English throughout (Principle II); nothing committed without instruction (Principle I).
 

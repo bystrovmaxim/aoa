@@ -88,7 +88,7 @@ Against a running Maxitor on `127.0.0.1:8000` with the model loaded from `https:
 | Model state | Expected `viewBox` height |
 | --- | --- |
 | before the change (measured 2026-10-25) | `6800` |
-| after the change | below `1700`, in the range of the events domain (`1593`) |
+| after the change (measured 2026-10-25) | `2075` for the players domain; `1423`, `1242` and `1667` for events, offers and showcases; `2777` for the all-domains view |
 | any dictionary card | no green value block; the card is its header and its field rows |
 
 The headless binary may be any Chromium build; what matters is the `viewBox` of the Graphviz SVG. Repeat the render for the other three domains (`EventsDomain`, `OffersDomain`, `ShowcasesDomain`) and once without `domain=` for the all-domains view; in each of them the seven dictionaries must contribute no value row at all — that walk is what SC-002 counts.
