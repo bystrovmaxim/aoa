@@ -6,6 +6,7 @@ import { LeftSidebar } from "@/components/navigation/LeftSidebar";
 import { useSidebarPayload } from "@/components/navigation/LeftSidebar/hooks/useSidebarPayload";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
+import { setActiveSource } from "@/api/client";
 import { loadGraph } from "@/api/load";
 import { pushServiceUrl } from "@/lib/serviceUrlHistory";
 import { firstSelectionOfKind } from "@/lib/sidebarNavigation";
@@ -29,7 +30,13 @@ export function App() {
   // as it runs, so a second read (e.g. React StrictMode's dev-only double-invoke of mount
   // effects) would see an already-rewritten URL and silently drop the deep link.
   const initialLinkRef = useRef<UrlDeepLink | undefined>(undefined);
-  if (!initialLinkRef.current) initialLinkRef.current = readUrlDeepLink();
+  if (!initialLinkRef.current) {
+    initialLinkRef.current = readUrlDeepLink();
+    // The source must be known before the page's first read. `useSidebarPayload`'s mount effect is
+    // declared above and runs before App's effects, so a source set in an effect would arrive too
+    // late and the sidebar read would leave without it.
+    setActiveSource(initialLinkRef.current.source ?? null);
+  }
 
   /** Applies a service+view combination read from the URL — initial load or a popstate. */
   function applyDeepLink(link: UrlDeepLink, activeServiceUrl: string | null, activeSidebar: SidebarPayload | null) {
@@ -46,6 +53,7 @@ export function App() {
 
     if (link.source && link.source !== activeServiceUrl) {
       const source = link.source;
+      setActiveSource(source);
       setServiceUrl(source);
       void loadGraph(source)
         .then(() => {
@@ -54,9 +62,11 @@ export function App() {
         })
         .catch(() => {
           // Bad/unreachable ?source= — fall back to the manual "AOA Service URL" prompt.
+          setActiveSource(null);
           setServiceUrl(null);
         });
     } else if (!link.source) {
+      setActiveSource(null);
       setServiceUrl(null);
     }
   }
@@ -96,12 +106,14 @@ export function App() {
 
   function handleLoaded(url: string) {
     pushUrlState(url, null);
+    setActiveSource(url);
     setServiceUrl(url);
     void reload();
   }
 
   function handleReset() {
     pushUrlState(null, null);
+    setActiveSource(null);
     setServiceUrl(null);
     setDiagram(null);
     reset();

@@ -1,10 +1,10 @@
 // src/api/erd.ts
-import { apiUrl } from "@/api/client";
+import { graphApiUrl } from "@/api/client";
 import type { DomainQualnamesPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "@/model/erd";
 
 /** Matches ``GET /api/v1/list-domains`` / ``ListDomainsAction``. */
 export async function listDomains(): Promise<DomainQualnamesPayload> {
-  const res = await fetch(apiUrl("/api/v1/list-domains"));
+  const res = await fetch(graphApiUrl("/api/v1/list-domains"));
   if (!res.ok) throw new Error(`list-domains ${res.status}`);
   return (await res.json()) as DomainQualnamesPayload;
 }
@@ -19,7 +19,7 @@ export async function listEntities(
   for (const q of domainQualnames) {
     params.append("domain_qualnames", q);
   }
-  const res = await fetch(apiUrl(`/api/v1/list-entities?${params.toString()}`));
+  const res = await fetch(graphApiUrl("/api/v1/list-entities", params));
   if (!res.ok) throw new Error(`list-entities ${res.status}`);
   return (await res.json()) as ErdDomainsBatchPayload;
 }
