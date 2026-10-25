@@ -65,13 +65,13 @@ class _FakeRequest:
 
 def _sign(**overrides: Any) -> str:
     now = datetime.now(UTC)
-    payload: dict[str, Any] = {"sub": "alice", "roles": ["admin"], "iat": now, "exp": now + timedelta(minutes=30)}
+    payload: dict[str, Any] = {"sub": "alice", "roles": ["admin"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=30)}
     payload.update(overrides)
     return jwt.encode(payload, _SECRET, algorithm="HS256")
 
 
 def _make_coordinator(**overrides: Any) -> JwtAuthCoordinator:
-    kwargs: dict[str, Any] = {"secret_key": _SECRET, "role_registry": {"admin": AdminRole}}
+    kwargs: dict[str, Any] = {"secret_key": _SECRET, "role_registry": {"admin": AdminRole}, "session_id_claim": "sid"}
     kwargs.update(overrides)
     return JwtAuthCoordinator(**kwargs)
 
@@ -179,12 +179,12 @@ async def test_cookie_credential_extractor_produces_populated_context() -> None:
 def test_both_secret_key_and_jwks_url_raises_value_error_through_coordinator() -> None:
     """JwtAuthCoordinator forwards secret_key/jwks_url as-is -- the XOR check fires through the wrapper too."""
     with pytest.raises(ValueError, match="exactly one"):
-        JwtAuthCoordinator(secret_key=_SECRET, jwks_url=_JWKS_URL, role_registry={"admin": AdminRole})
+        JwtAuthCoordinator(secret_key=_SECRET, jwks_url=_JWKS_URL, role_registry={"admin": AdminRole}, session_id_claim="sid")
 
 
 def test_neither_secret_key_nor_jwks_url_raises_value_error_through_coordinator() -> None:
     with pytest.raises(ValueError, match="exactly one"):
-        JwtAuthCoordinator(role_registry={"admin": AdminRole})
+        JwtAuthCoordinator(role_registry={"admin": AdminRole}, session_id_claim="sid")
 
 
 async def test_jwks_url_produces_populated_context_through_coordinator() -> None:
@@ -201,7 +201,7 @@ async def test_jwks_url_produces_populated_context_through_coordinator() -> None
     )
     now = datetime.now(UTC)
     token = jwt.encode(
-        {"sub": "alice", "roles": ["admin"], "iat": now, "exp": now + timedelta(minutes=30)},
+        {"sub": "alice", "roles": ["admin"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=30)},
         private_pem,
         algorithm="RS256",
         headers={"kid": "test-kid-1"},

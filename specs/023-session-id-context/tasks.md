@@ -20,7 +20,7 @@
 
 **Purpose**: confirm the working branch and a green baseline; no new package or dependency is introduced.
 
-- [ ] T001 Confirm the feature branch `feature/issue-263-session-id` is checked out and run the existing JWT auth suite as a green baseline: `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/` and `packages/aoa-action-machine/tests/action_machine/intents/context_requires/`.
+- [x] T001 Confirm the feature branch `feature/issue-263-session-id` is checked out and run the existing JWT auth suite as a green baseline: `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/` and `packages/aoa-action-machine/tests/action_machine/intents/context_requires/`.
 
 ---
 
@@ -30,10 +30,10 @@
 
 **⚠️ CRITICAL**: these four tasks touch four different files and carry no dependency on one another.
 
-- [ ] T002 [P] Add `session_id: str | None = None` to `UserInfo` (keep `model_config = ConfigDict(frozen=True, extra="forbid")`) and update the module docstring and the AI-CORE `CONTRACT`/`INVARIANTS` to name the field, in `packages/aoa-action-machine/src/aoa/action_machine/context/user_info.py`.
-- [ ] T003 [P] Add `session_id: str = "user.session_id"` to `_UserFields` with its one-line docstring, and update the `Ctx.User` prose, in `packages/aoa-action-machine/src/aoa/action_machine/context/ctx_constants.py`.
-- [ ] T004 [P] Create `AuthenticationContractError` (one-line docstring; constructor carries the claim name and reason, never the token or the claim value) in `packages/aoa-action-machine/src/aoa/action_machine/exceptions/authentication_contract_error.py`, and export it from `packages/aoa-action-machine/src/aoa/action_machine/exceptions/__init__.py`.
-- [ ] T005 [P] Amend `Authenticator`'s AI-CORE `INVARIANTS` from "Return `None` for invalid credentials instead of exceptions" to the refusal-vs-contract split, in `packages/aoa-action-machine/src/aoa/action_machine/auth/authenticator.py`.
+- [x] T002 [P] Add `session_id: str | None = None` to `UserInfo` (keep `model_config = ConfigDict(frozen=True, extra="forbid")`) and update the module docstring and the AI-CORE `CONTRACT`/`INVARIANTS` to name the field, in `packages/aoa-action-machine/src/aoa/action_machine/context/user_info.py`.
+- [x] T003 [P] Add `session_id: str = "user.session_id"` to `_UserFields` with its one-line docstring, and update the `Ctx.User` prose, in `packages/aoa-action-machine/src/aoa/action_machine/context/ctx_constants.py`.
+- [x] T004 [P] Create `AuthenticationContractError` (one-line docstring; constructor carries the claim name and reason, never the token or the claim value) in `packages/aoa-action-machine/src/aoa/action_machine/exceptions/authentication_contract_error.py`, and export it from `packages/aoa-action-machine/src/aoa/action_machine/exceptions/__init__.py`.
+- [x] T005 [P] Amend `Authenticator`'s AI-CORE `INVARIANTS` from "Return `None` for invalid credentials instead of exceptions" to the refusal-vs-contract split, in `packages/aoa-action-machine/src/aoa/action_machine/auth/authenticator.py`.
 
 **Checkpoint**: the field, the path constant, the exception and the base invariant exist; user stories can start.
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/auth/jwt_auth/jwt_authenticator.py`, add the required keyword-only `session_id_claim: str` (no default), validate the claim name at construction (`ValueError` for `None`/empty/non-string), and after `jwt.decode` populate `UserInfo(session_id=...)` from the claim's non-blank string value.
-- [ ] T007 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/auth/jwt_auth/jwt_auth_coordinator.py`, declare the same required `session_id_claim: str` and forward it to `JwtAuthenticator` with no validation of its own.
-- [ ] T008 [US1] Add tests: `UserInfo` serialisation contains `session_id` (in `packages/aoa-action-machine/tests/action_machine/intents/context_requires/test_user_info.py`), `Ctx.User.session_id` resolves (in `.../test_ctx_constants.py` / `.../test_context_view.py`), and an integration test where an aspect reads the exact session id (new `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/test_session_id_in_aspect.py`). Two logins of one user must produce distinct values; refresh within one session must preserve it.
+- [x] T006 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/auth/jwt_auth/jwt_authenticator.py`, add the required keyword-only `session_id_claim: str` (no default), validate the claim name at construction (`ValueError` for `None`/empty/non-string), and after `jwt.decode` populate `UserInfo(session_id=...)` from the claim's non-blank string value.
+- [x] T007 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/auth/jwt_auth/jwt_auth_coordinator.py`, declare the same required `session_id_claim: str` and forward it to `JwtAuthenticator` with no validation of its own.
+- [x] T008 [US1] Add tests: `UserInfo` serialisation contains `session_id` (in `packages/aoa-action-machine/tests/action_machine/intents/context_requires/test_user_info.py`), `Ctx.User.session_id` resolves (in `.../test_ctx_constants.py` / `.../test_context_view.py`), and an integration test where an aspect reads the exact session id (new `packages/aoa-action-machine/tests/action_machine/auth/jwt_auth/test_session_id_in_aspect.py`). Two logins of one user must produce distinct values; refresh within one session must preserve it.
 
 **Checkpoint**: the session id flows end to end; MVP value delivered.
 

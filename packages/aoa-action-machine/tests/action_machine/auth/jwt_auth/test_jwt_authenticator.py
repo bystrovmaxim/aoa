@@ -50,6 +50,7 @@ def _valid_payload(**overrides: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "sub": "alice",
         "roles": ["admin"],
+        "sid": "session-A",
         "iat": now,
         "exp": now + timedelta(minutes=30),
     }
@@ -62,6 +63,7 @@ def _make_authenticator(**overrides: Any) -> JwtAuthenticator:
         "secret_key": _SECRET,
         "algorithm": _ALGORITHM,
         "role_registry": {"admin": AdminRole, "viewer": ViewerRole},
+        "session_id_claim": "sid",
     }
     kwargs.update(overrides)
     return JwtAuthenticator(**kwargs)
@@ -72,6 +74,7 @@ def _make_jwks_authenticator(**overrides: Any) -> JwtAuthenticator:
         "jwks_url": _JWKS_URL,
         "algorithm": "RS256",
         "role_registry": {"admin": AdminRole, "viewer": ViewerRole},
+        "session_id_claim": "sid",
     }
     kwargs.update(overrides)
     return JwtAuthenticator(**kwargs)
@@ -143,26 +146,26 @@ def _unreachable_url() -> str:
 
 def test_both_secret_key_and_jwks_url_set_raises_value_error() -> None:
     with pytest.raises(ValueError, match="exactly one"):
-        JwtAuthenticator(secret_key=_SECRET, jwks_url=_JWKS_URL, role_registry={})
+        JwtAuthenticator(secret_key=_SECRET, jwks_url=_JWKS_URL, role_registry={}, session_id_claim="sid")
 
 
 def test_neither_secret_key_nor_jwks_url_set_raises_value_error() -> None:
     with pytest.raises(ValueError, match="exactly one"):
-        JwtAuthenticator(role_registry={})
+        JwtAuthenticator(role_registry={}, session_id_claim="sid")
 
 
 def test_secret_key_only_constructs_successfully() -> None:
-    JwtAuthenticator(secret_key=_SECRET, role_registry={})
+    JwtAuthenticator(secret_key=_SECRET, role_registry={}, session_id_claim="sid")
 
 
 def test_jwks_url_only_constructs_successfully() -> None:
-    JwtAuthenticator(jwks_url=_JWKS_URL, algorithm="RS256", role_registry={})
+    JwtAuthenticator(jwks_url=_JWKS_URL, algorithm="RS256", role_registry={}, session_id_claim="sid")
 
 
 def test_jwks_url_with_symmetric_algorithm_raises_value_error() -> None:
     """JWKS publishes public keys -- pairing it with HS256 is a real misconfiguration, not a usable setup."""
     with pytest.raises(ValueError, match="asymmetric algorithm"):
-        JwtAuthenticator(jwks_url=_JWKS_URL, algorithm="HS256", role_registry={})
+        JwtAuthenticator(jwks_url=_JWKS_URL, algorithm="HS256", role_registry={}, session_id_claim="sid")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -226,7 +229,7 @@ async def test_missing_roles_claim_yields_empty_roles() -> None:
 async def test_custom_claim_names() -> None:
     authenticator = _make_authenticator(user_id_claim="user_id", roles_claim="perms")
     now = datetime.now(UTC)
-    token = _sign({"user_id": "bob", "perms": ["viewer"], "iat": now, "exp": now + timedelta(minutes=5)})
+    token = _sign({"user_id": "bob", "perms": ["viewer"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=5)})
 
     result = await authenticator.authenticate({"token": token})
 
@@ -279,7 +282,7 @@ async def test_jwks_valid_rs256_token_verifies_to_user_info() -> None:
     _stub_resolved_signing_key(authenticator, key=public_key)
     now = datetime.now(UTC)
     token = jwt.encode(
-        {"sub": "alice", "roles": ["admin"], "iat": now, "exp": now + timedelta(minutes=30)},
+        {"sub": "alice", "roles": ["admin"], "sid": "session-A", "iat": now, "exp": now + timedelta(minutes=30)},
         private_pem,
         algorithm="RS256",
         headers={"kid": "test-kid-1"},
