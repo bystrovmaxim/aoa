@@ -1,0 +1,240 @@
+{
+  "tool": "measure-full-graph/1",
+  "commit": "da062321",
+  "maxitor": "http://127.0.0.1:8102",
+  "source": "http://127.0.0.1:8765/graph-json",
+  "viewport": [
+    1600,
+    900
+  ],
+  "canvasSize": [
+    0,
+    0
+  ],
+  "conditions": {
+    "cpu1x": {
+      "first": {
+        "totalBytes": 1556878,
+        "longestTaskMs": 0,
+        "firstGraphPixelMs": null,
+        "mainScriptingMs": 85.76599999999999,
+        "workers": [],
+        "longTasks": [],
+        "resources": [
+          {
+            "url": "http://127.0.0.1:8102/assets/index-Bc79Uius.js",
+            "type": "Script",
+            "encodedBytes": 1321082,
+            "decodedBytes": 1320738,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/api/v1/list-entities?include_one_hop_neighbors=true&domain_qualnames=datamodel.events.events_domain.EventsDomain&domain_qualnames=datamodel.offers.offers_domain.OffersDomain&domain_qualnames=datamodel.players.players_domain.PlayersDomain&domain_qualnames=datamodel.showcases.showcases_domain.ShowcasesDomain&source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 159940,
+            "decodedBytes": 159797,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/api/sidebar?source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 74271,
+            "decodedBytes": 74129,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/?view=domain-erd&source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Document",
+            "encodedBytes": 650,
+            "decodedBytes": 392,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/api/v1/list-domains?source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 574,
+            "decodedBytes": 434,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/assets/index-wUWjggHM.css",
+            "type": "Stylesheet",
+            "encodedBytes": 361,
+            "decodedBytes": 29,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%233b82f6%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%238b5cf6%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%2310b981%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%23f59e0b%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          }
+        ]
+      },
+      "repeat": {
+        "totalBytes": 234785,
+        "longestTaskMs": 0,
+        "firstGraphPixelMs": null,
+        "mainScriptingMs": 88.212,
+        "workers": [],
+        "longTasks": [],
+        "resources": [
+          {
+            "url": "http://127.0.0.1:8102/api/v1/list-entities?include_one_hop_neighbors=true&domain_qualnames=datamodel.events.events_domain.EventsDomain&domain_qualnames=datamodel.offers.offers_domain.OffersDomain&domain_qualnames=datamodel.players.players_domain.PlayersDomain&domain_qualnames=datamodel.showcases.showcases_domain.ShowcasesDomain&source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 159940,
+            "decodedBytes": 159797,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/api/sidebar?source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 74271,
+            "decodedBytes": 74129,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/api/v1/list-domains?source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Fetch",
+            "encodedBytes": 574,
+            "decodedBytes": 434,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "http://127.0.0.1:8102/?view=domain-erd&source=http%3A%2F%2F127.0.0.1%3A8765%2Fgraph-json",
+            "type": "Document",
+            "encodedBytes": 0,
+            "decodedBytes": 0,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": true
+          },
+          {
+            "url": "http://127.0.0.1:8102/assets/index-wUWjggHM.css",
+            "type": "Stylesheet",
+            "encodedBytes": 0,
+            "decodedBytes": 0,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": true
+          },
+          {
+            "url": "http://127.0.0.1:8102/assets/index-Bc79Uius.js",
+            "type": "Script",
+            "encodedBytes": 0,
+            "decodedBytes": 0,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": true
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%233b82f6%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%238b5cf6%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%2310b981%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          },
+          {
+            "url": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2211%22%20fill%3D%22%23f59e0b%22%2F%3E%3Cg%20transform%3D%22translate(12%2C12)%20scale(0.58)%20translate(-12%2C-12)%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.4483%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016Z%22%20%2F%3E%20%3Cpath%20d%3D%22m3.3%207%208.7%205%208.7-5%22%20%2F%3E%20%3Cpath%20d%3D%22M12%2022V12%22%20%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+            "type": "Image",
+            "encodedBytes": 0,
+            "decodedBytes": 464,
+            "contentEncoding": null,
+            "cacheControl": null,
+            "status": 200,
+            "fromCache": false
+          }
+        ]
+      }
+    }
+  },
+  "consoleFailures": [],
+  "canvas": null
+}
