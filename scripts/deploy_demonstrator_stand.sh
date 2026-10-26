@@ -24,9 +24,23 @@ COMPOSE_FILE="$REPO_ROOT/deploy/stand/docker-compose.yml"
 # it is refused below rather than silently deploying containers the front end
 # cannot resolve.
 COMPOSE_HOST_FILE="${COMPOSE_FILE%.yml}.host.yml"
+COMPOSE_LOCAL_FILE="${COMPOSE_FILE%.yml}.local.yml"
+
+LOCAL_MODE=0
+if [[ "${1:-}" == "--local" ]]; then
+    LOCAL_MODE=1
+fi
+
+# A host run joins the front end's network through the host overlay; a local run
+# never can (that network exists only on the host) and uses the local overlay
+# instead, which gives the containers the alias the demo is reached by.
 COMPOSE_ARGS=(-f "$COMPOSE_FILE")
-if [[ -f "$COMPOSE_HOST_FILE" ]]; then
+if [[ $LOCAL_MODE -eq 0 && -f "$COMPOSE_HOST_FILE" ]]; then
     COMPOSE_ARGS+=(-f "$COMPOSE_HOST_FILE")
+fi
+if [[ $LOCAL_MODE -eq 1 ]]; then
+    [[ -f "$COMPOSE_LOCAL_FILE" ]] || { printf 'FAIL: %s is missing — the local run cannot reach the demo without it\n' "$COMPOSE_LOCAL_FILE"; exit 1; }
+    COMPOSE_ARGS+=(-f "$COMPOSE_LOCAL_FILE")
 fi
 
 # Configuration and secrets live on the host, outside the repository.
@@ -41,11 +55,6 @@ DEMO_DOMAIN="${DEMO_DOMAIN:-dev.demo.aoa.run}"
 MAXITOR_DOMAIN="${MAXITOR_DOMAIN:-dev.maxitor.aoa.run}"
 DEMO_PORT="${DEMO_PORT:-8100}"
 MAXITOR_PORT="${MAXITOR_PORT:-8101}"
-
-LOCAL_MODE=0
-if [[ "${1:-}" == "--local" ]]; then
-    LOCAL_MODE=1
-fi
 
 say() { printf '%s\n' "$*"; }
 fail() { say "FAIL: $*"; exit 1; }
