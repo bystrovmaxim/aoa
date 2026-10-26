@@ -140,7 +140,7 @@
 
 ## Phase 10: Changelog (commit 10)
 
-- [ ] T046 (FR-027, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: the full graph opens several times faster and the page no longer freezes while it is drawn; a second visit downloads almost nothing and shows a known graph at once, while a new release still arrives; nodes no longer move when dragged; the picture is otherwise the same. No technical detail. Prepare commit 10: `docs(changelog): a full graph that opens fast and never freezes (#245)`. Tick issue phase 7.
+- [x] T046 (FR-027, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: the full graph opens several times faster and the page no longer freezes while it is drawn; a second visit downloads almost nothing and shows a known graph at once, while a new release still arrives; nodes no longer move when dragged; the picture is otherwise the same. No technical detail. Prepare commit 10: `docs(changelog): a full graph that opens fast and never freezes (#245)`. Tick issue phase 7. Written and prepared; the commit and the issue tick wait for the maintainer's instruction.
 
 ---
 
