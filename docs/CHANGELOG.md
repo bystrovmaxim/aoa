@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-10-26] — A full graph that opens several times faster
+
+The full-graph page used to send everything it had on every visit — 3.06 MB of code, styles and graph data — and kept nothing. It now sends 1.23 MB on the first visit and about 22 KB on the next. On a slow mobile network the first picture appears in about 7.4 seconds instead of 16.5, and the code and the styles are downloaded once and then come from the browser's own cache.
+
+A new release still reaches a returning reader on their next visit. The page itself is always revalidated, so a changed release arrives whole and points at the new files, while the files whose names carry a content hash stay in the cache for a year.
+
+The page also remembers where it put every node of a graph. Opening the same graph again draws it from those positions without working out an arrangement at all; a changed graph, changed layout settings, a private window or a full cache simply means the graph is arranged afresh. At most twenty graphs are remembered, the least recently used dropped first.
+
+One thing that worked no longer does: a node cannot be dragged. Everything else about the picture is unchanged — the same nodes and edges, colours, glyphs, hover cards and domain hulls, the same panning and zooming — but a drag that starts on a node leaves the picture where it was.
+
+The tab still freezes while the graph is drawn. Moving the arrangement off the main thread was built and measured: it did not shorten the freeze at all, and it made the first picture about a third of a second later, so it was not shipped. What is left of that work is the small piece that replays a remembered arrangement. ([#245](https://github.com/bystrovmaxim/aoa/issues/245))
+
 ## [2026-10-26] — A graph takes a fraction of the memory
 
 Maxitor used to spend four fifths of a built graph's memory on lookup structures: every node table carried a primary key and every edge table two indexes. The diagram queries never read through them — every plan was already a full scan — so the graph paid tens of megabytes for nothing. The build now creates neither.
