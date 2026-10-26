@@ -32,9 +32,9 @@ def _lifecycle(node_id: str) -> dict[str, Any]:
     return {"id": node_id, "label": node_id, "type": "Lifecycle", "properties": {"field_name": "status"}}
 
 
-def _payload(*nodes: dict[str, Any]) -> dict[str, Any]:
-    """Return a coordinator payload with the given nodes and no edges."""
-    return {"schema_version": "1.0", "nodes": list(nodes), "edges": []}
+def _payload(*nodes: dict[str, Any], edges: tuple[dict[str, Any], ...] = ()) -> dict[str, Any]:
+    """Return a coordinator payload with the given nodes and edges."""
+    return {"schema_version": "1.0", "nodes": list(nodes), "edges": list(edges)}
 
 
 def test_one_node_twice_in_one_table_is_refused_with_its_id() -> None:
@@ -74,6 +74,47 @@ def test_a_graph_without_duplicates_builds() -> None:
     resource = DuckDBGraphResource.build_from_json(_payload(_domain("d.one.Dom"), _action("a.one.Act")))
 
     assert len(resource.execute_fetch_dicts("SELECT id FROM nodes")) == 2
+
+
+def test_the_smallest_duplicated_id_in_one_table_is_named() -> None:
+    """Two duplicated ids in one table report the one first in table, then id order."""
+    payload = _payload(_domain("z.dup.Dom"), _domain("z.dup.Dom"), _domain("a.dup.Dom"), _domain("a.dup.Dom"))
+
+    with pytest.raises(ValueError) as error:
+        DuckDBGraphResource.build_from_json(payload)
+
+    assert str(error.value) == 'Graph has a duplicate node id "a.dup.Dom" in table "domain".'
+
+
+def test_an_empty_graph_builds() -> None:
+    """A graph with no nodes and no edges builds and answers with empty views."""
+    resource = DuckDBGraphResource.build_from_json({"schema_version": "1.0", "nodes": [], "edges": []})
+
+    assert resource.execute_fetch_dicts("SELECT id FROM nodes") == []
+
+
+def test_a_duplicated_edge_is_not_refused() -> None:
+    """The check covers nodes only: the same edge twice builds, as it did before."""
+    lifecycle_id = "e.x.Entity:lifecycle:status"
+    state = {
+        "id": f"{lifecycle_id}:draft",
+        "label": "draft",
+        "type": "StateInitial",
+        "properties": {"lifecycle_class_id": "x.Status", "state_key": "draft"},
+    }
+    edge = {
+        "source_id": lifecycle_id,
+        "target_id": state["id"],
+        "type": "lifecycle_contains_state",
+        "relationship": "COMPOSITION",
+        "is_dag": False,
+        "properties": {"state_key": "draft"},
+    }
+    resource = DuckDBGraphResource.build_from_json(
+        _payload(_lifecycle(lifecycle_id), state, edges=(edge, edge)),
+    )
+
+    assert resource.execute_fetch_dicts("SELECT count(*) AS n FROM lifecycle_contains_state_edges") == [{"n": 2}]
 
 
 def test_the_refusal_reaches_the_application_and_stores_nothing() -> None:
