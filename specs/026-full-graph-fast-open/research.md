@@ -80,8 +80,48 @@ Every finding below was checked on 2026-10-26 against the locked versions in `pa
 - long tasks from a `PerformanceObserver({type: "longtask", buffered: true})` injected with `addInitScript`;
 - the first graph pixel by sampling the G6 canvas once per animation frame, cheaply: `drawImage` of the canvas into a 16×16 offscreen canvas created with `willReadFrequently: true`, then `getImageData` of those 256 pixels, looking for alpha > 0 (the dot grid is CSS on the container, the canvas itself is transparent). Sampling stops at the first hit. A threshold above zero would not make this steadier: G6 paints the whole graph — 440 nodes and their edges — in one frame, so the first frame with any drawn pixel is the same frame at any threshold, while a higher threshold could only delay it. The tool can turn the sampler off (`--no-pixel-probe`); then the long-task window ends at the `load` event plus 3 s, and the sampler's cost is checked by comparing only the tasks that start before the end of the sampled run's window;
 - worker CPU time by auto-attaching to worker targets (`Target.setAutoAttach`) and profiling them, and the main thread's scripting time from the page's profile;
-- console messages: the run fails on `fallback to main thread` (FR-003) or on the viewer's own fallback warning.
+- console messages: the run fails on `fallback to main thread` (FR-003) or on the viewer's own fallback warning;
+- the canvas that carries the drawing: G6 paints several canvas layers, so the sampler checks every layer for the first pixel and the screenshots come from the layer with pixels;
+- a run's bytes, read only after every request the open started has finished (half a second with nothing in flight), so a late `/api/load` answer cannot change the total;
+- the picture probe, which hovers the densest opaque 5×5 patch — a node, not a hull or an edge — until `.graph-hover-label` appears, then drags 80 px, moves the pointer out of the canvas, and compares the settled canvas with the one taken before.
 
 CPU throttling with `Emulation.setCPUThrottlingRate(4)`; Slow 4G with `Network.emulateNetworkConditions` (150 ms latency, 1.6 Mbit/s down, 750 kbit/s up).
 
 **Rationale**: everything is read from what a browser exposes to any page, so production code gains no hooks. Playwright is a dev dependency, and the check run does not run it (it has no browser), as FR-001 requires.
+
+## R10 — Baseline on main
+
+**Decision**: every later figure is compared with this one. Measured on 2026-10-26 from the client at `da062321`, built into `packages/aoa-maxitor/src/aoa/maxitor/static/` and served by `maxitor-api` on `127.0.0.1:8102`, over the frozen reference graph on `127.0.0.1:8765` (the 440-node, 545-edge graph of #268). Three runs per condition; times are the median; bytes were equal across runs. Report: `data/baseline-main.json`. Canvas: `data/canvas-main.png`, 1345×900 CSS pixels.
+
+| Condition | Open | Bytes | Longest task | First graph pixel | Main scripting |
+|---|---|---|---|---|---|
+| `cpu1x` | first | 3 056 128 | 596 ms | 750 ms | 691 ms |
+| `cpu1x` | repeat | 311 515 | 597 ms | 727 ms | 893 ms |
+| `cpu4x` | first | 3 056 128 | 2 759 ms | 3 340 ms | 1 402 ms |
+| `cpu4x` | repeat | 311 515 | 2 651 ms | 3 152 ms | 1 362 ms |
+| `slow4g` | first | 3 056 128 | 609 ms | 16 537 ms | 973 ms |
+| `slow4g` | repeat | 311 515 | 631 ms | 2 437 ms | 916 ms |
+
+The resources of `cpu1x/first`, largest first:
+
+| Resource | Encoded | Decoded | `Content-Encoding` | `Cache-Control` | Status |
+|---|---|---|---|---|---|
+| `assets/index-CDX_0f6p.js` | 1 422 520 | 1 422 176 | — | — | 200 |
+| `assets/index-Bc79Uius.js` | 1 321 082 | 1 320 738 | — | — | 200 |
+| `GET /api/v1/full-graph` | 237 244 | 237 101 | — | — | 200 |
+| `GET /api/sidebar` | 74 271 | 74 129 | — | — | 200 |
+| `GET /` (`index.html`) | 650 | 392 | — | — | 200 |
+| `assets/index-wUWjggHM.css` | 361 | 29 | — | — | 200 |
+
+The 38 `data:image/svg+xml` glyph URLs carry no transferred bytes and are left out of the table.
+
+**What the baseline says**
+- Every gap the spec targets is open: SC-001 3 056 128 against 1 300 000; SC-002 311 515 against 50 000; SC-003 16 537 ms against 6 000; SC-004 596 ms against 150; SC-005 2 759 ms against 600; SC-006 727 ms against 500.
+- No answer carries `Content-Encoding` or `Cache-Control`; the page has its `etag` but no lifetime, and the repeat open still transfers the graph (237 244) and the sidebar (74 271).
+- The JavaScript is almost the whole first open: 2 743 602 of 3 056 128 bytes, 89.8 %.
+- The picture is stable across invocations: a second full run gave identical bytes in every condition and passed `--compare-canvas data/canvas-main.png`.
+- `workers[]` is empty and no console failure appears, as today.
+- The sampler costs nothing measurable: the same long task is 593 ms with it and 605 ms without, measured on the tasks that start inside the shorter window (T005).
+- The ERD baseline, the reference for SC-008, is `data/baseline-main-erd.json`: 1 556 878 bytes on the first open, 234 785 on the repeat, the app chunk `index-Bc79Uius.js` at 1 320 738 decoded bytes, and no G6 chunk.
+
+**One race, found and fixed in the tool.** A first three-run attempt under slow4g gave 312 084, 312 084, 311 515: the 569-byte `/api/load` answer sometimes landed after the measurement window. The tool now waits until every request the open started has finished before it reads the bytes, and three runs give 311 515 every time.

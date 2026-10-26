@@ -12,14 +12,14 @@ cd /Users/bystrovmaxim/PythonDev/aoa/packages/aoa-maxitor/client && node scripts
 |---|---|---|
 | `--maxitor` | required | base URL of a Maxitor serving its built client |
 | `--source` | required | the graph-json URL put into `?source=` |
-| `--view` | `full-graph` | another value measures another view (used for SC-008) |
+| `--view` | `full-graph` | another value measures another view (used for SC-008); the first graph pixel is sampled on the full graph only, and another view's window ends at `load` + 3 s |
 | `--conditions` | `cpu1x,cpu4x,slow4g` | which conditions to run |
 | `--runs` | 3 | runs per condition; times are reported as the median, bytes must be equal across runs |
 | `--out` | stdout | where the JSON report goes |
 | `--canvas` | none | where to save the canvas PNG of `cpu1x/first` |
 | `--compare-canvas` | none | a reference PNG; the run fails if any pixel of the settled frame differs |
 | `--no-pixel-probe` | off | turns the first-pixel sampler off (`firstGraphPixelMs` is then `null`, and the long-task window ends at `load` + 3 s); used only to check what the sampler costs |
-| `--interaction-probe` | off | moves the pointer across non-transparent canvas pixels until a `.graph-hover-label` appears (a node is under it), fails if no card appears; then drags 80 px from that point and fails if the canvas changed (FR-023, FR-024) |
+| `--interaction-probe` | off | moves the pointer across non-transparent canvas pixels until a `.graph-hover-label` appears (a node is under it), fails if no card appears; then drags 80 px from that point, moves the pointer out of the canvas, and fails if the settled canvas changed (FR-023, FR-024) |
 | `--no-worker` | off | deletes `window.Worker` before the page loads; the run then **expects** the viewer's fallback warning and fails without it, and still requires a drawn graph (FR-012) |
 | `--no-storage` | off | deletes `window.indexedDB` before the page loads; the repeat open must then lay out again (a layout worker appears) and show no error (FR-017) |
 
@@ -27,9 +27,11 @@ Exit code `0` when the run succeeded; `1` when a console failure was seen, bytes
 
 **The window**: long tasks are counted from navigation start until 3 s after the first graph pixel (spec FR-001). Without the sampler there is no first pixel, so the window ends at the `load` event plus 3 s; runs with different windows are compared only on the tasks that start before the shorter window ends.
 
+**The bytes**: a run's bytes are read only after every request the open started has finished — half a second with nothing in flight, at most 30 s — so a late answer cannot change the total. A body's decoded size is read from the response body when it did not come from the cache.
+
 **The first pixel**: once per animation frame, the G6 canvas is drawn into a 16×16 offscreen canvas created with `willReadFrequently: true` and those 256 pixels are read; the first frame with any alpha > 0 is the first graph pixel, and sampling stops there. The full canvas is never read on the page's main thread. A higher threshold would not help: G6 paints the whole graph in one frame (research R9).
 
-**The settled frame**: `--canvas` and `--compare-canvas` use a screenshot of the canvas element taken with the pointer outside it. After the first graph pixel, the tool waits for two animation frames inside the page, takes a screenshot, and repeats every 200 ms; the frame is settled when five consecutive screenshots are identical (nothing changed for at least 800 ms). The run fails if the canvas has not settled within 10 s.
+**The settled frame**: `--canvas` and `--compare-canvas` use a screenshot of the canvas element taken with the pointer outside it, from the canvas layer that carries the drawing (G6 paints several canvases and the empty ones are ignored). After the first graph pixel, the tool waits for two animation frames inside the page, takes a screenshot, and repeats every 200 ms; the frame is settled when five consecutive screenshots are identical (nothing changed for at least 800 ms). The run fails if the canvas has not settled within 10 s.
 
 ## Report
 
