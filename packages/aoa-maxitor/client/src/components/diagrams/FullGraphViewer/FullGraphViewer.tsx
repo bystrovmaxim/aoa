@@ -1,18 +1,24 @@
 // src/components/diagrams/FullGraphViewer/FullGraphViewer.tsx
 import Box from "@mui/material/Box";
 import type { EdgeData, Graph as G6Graph, GraphData, NodeData } from "@antv/g6";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { fullGraph } from "@/api/fullGraph";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
+import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
+import { g6LayoutOptions } from "./layoutSettings";
+import { PrecomputedLayout } from "./precomputedLayout";
 
 /** Slim edge ``data`` plus optional ``isForbiddenDagCycle`` if the server adds it later. */
 type InterchangeGraphEdgeStyleData = InterchangeGraphEdgeData & { isForbiddenDagCycle?: boolean };
 
 const NODE_BASE_RING_LINE_WIDTH = 0.75;
+
+/** The pre-computed layout is registered once, with the G6 module the viewer loads. */
+let precomputedRegistered = false;
 
 const GRAPH_HOVER_LABEL_SX = {
   "& .graph-hover-label": {
@@ -127,6 +133,7 @@ function buildGraph(
   container: HTMLElement,
   payload: InterchangeGraphG6Payload,
   graphData: GraphData,
+  layoutOption?: Record<string, unknown>,
 ): G6Graph {
   const px = payload.constants.node_visual_px;
   const dagColor = payload.constants.dag_cycle_violation_color;
@@ -146,6 +153,7 @@ function buildGraph(
     autoResize: true,
     animation: false,
     data: graphData,
+    ...(layoutOption ? { layout: layoutOption as never } : {}),
     node: {
       type: "circle",
       style: (data: NodeData) => {
@@ -168,7 +176,7 @@ function buildGraph(
           stroke: "rgba(15, 23, 42, 0.14)",
           lineWidth: NODE_BASE_RING_LINE_WIDTH,
           opacity: 1,
-          cursor: "grab",
+          cursor: "default",
           halo: false,
           shadowBlur: 0,
         };
@@ -243,7 +251,6 @@ function buildGraph(
     },
     behaviors: [
       { type: "zoom-canvas", key: "zoom-canvas", enable: true },
-      { type: "drag-element", key: "drag-element", dropEffect: "move" },
       "drag-canvas",
     ],
     plugins,
@@ -278,19 +285,70 @@ export function FullGraphViewer() {
 
   const [zoomPct, setZoomPct] = useState(100);
   const [graphError, setGraphError] = useState<string | null>(null);
+  /** The background layout's answer: positions, or a fallback that has already logged why. */
+  /**
+   * Where the arrangement comes from: the browser's store, or — when nothing is remembered —
+   * G6's own layout on the main thread, which the render chain then stores (FR-014, FR-016).
+   */
+  const [layout, setLayout] = useState<{
+    positions: Record<string, [number, number]> | null;
+    fallback: boolean;
+    fingerprint: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!payload) return undefined;
+    setLayout(null);
+    const nodeIds = payload.nodes.map((node) => String(node.id));
+    let cancelled = false;
+
+    // The arrangement belongs to the whole graph: hiding nodes (#246) changes visibility only,
+    // so neither this read nor the write after the layout may be repeated for that reason.
+    const run = async () => {
+      if (nodeIds.length === 0) {
+        setLayout({ positions: {}, fallback: false, fingerprint: null });
+        return;
+      }
+      const fingerprint = await fingerprintGraph(payload);
+      if (cancelled) return;
+      if (fingerprint) {
+        const remembered = await readArrangement(fingerprint, nodeIds);
+        if (cancelled) return;
+        if (remembered) {
+          setLayout({ positions: remembered, fallback: false, fingerprint });
+          return;
+        }
+      }
+      setLayout({ positions: null, fallback: true, fingerprint });
+    };
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payload]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const hoverLayer = hoverOverlayRef.current;
     const mod = graphModule;
-    if (!canvas || !hoverLayer || !payload || !mod) return undefined;
+    if (!canvas || !hoverLayer || !payload || !mod || !layout) return undefined;
 
     setGraphError(null);
 
     const { graphData, adjIndex, nodeById } = buildGraphDataAndAdjacency(payload);
 
-    const graph = buildGraph(mod.Graph, canvas, payload, graphData);
+    if (!precomputedRegistered) {
+      mod.register("layout", "precomputed", PrecomputedLayout as never);
+      precomputedRegistered = true;
+    }
+    const layoutOption = layout.fallback
+      ? g6LayoutOptions(payload.constants.node_visual_px)
+      : { type: "precomputed", positions: layout.positions };
+
+    const graph = buildGraph(mod.Graph, canvas, payload, graphData, layoutOption);
     graphRef.current = graph;
+    let cancelled = false;
 
     const syncZoom = () => {
       try {
@@ -601,7 +659,6 @@ export function FullGraphViewer() {
     graph.on("canvas:click", onCanvasClick);
     graph.on("canvas:pointerleave", onCanvasLeave);
     graph.on("aftertransform", onAfterTransform);
-    graph.on("node:dragend", scheduleHoverOverlaySync);
     canvas.addEventListener("wheel", onWheel, { passive: true });
 
     const ro = new ResizeObserver(() => {
@@ -619,12 +676,26 @@ export function FullGraphViewer() {
         await graph.fitView();
         syncZoom();
         scheduleHoverOverlaySync();
+        if (layout.fallback && layout.fingerprint) {
+          const positions: Record<string, [number, number]> = {};
+          for (const node of payload.nodes) {
+            const id = String(node.id);
+            const position = graph.getElementPosition(id);
+            if (Array.isArray(position) && Number.isFinite(position[0]) && Number.isFinite(position[1])) {
+              positions[id] = [position[0], position[1]];
+            }
+          }
+          if (!cancelled && Object.keys(positions).length === payload.nodes.length) {
+            void writeArrangement(layout.fingerprint, positions);
+          }
+        }
       })
       .catch((err: unknown) => {
         setGraphError(err instanceof Error ? err.message : String(err));
       });
 
     return () => {
+      cancelled = true;
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
       graph.off("node:pointerenter", onNodeOver);
@@ -634,14 +705,13 @@ export function FullGraphViewer() {
       graph.off("canvas:click", onCanvasClick);
       graph.off("canvas:pointerleave", onCanvasLeave);
       graph.off("aftertransform", onAfterTransform);
-      graph.off("node:dragend", scheduleHoverOverlaySync);
       if (glowClearTimer) clearTimeout(glowClearTimer);
       clearViewportQuietTimer();
       hoverLayer.innerHTML = "";
       graph.destroy();
       graphRef.current = null;
     };
-  }, [payload, graphModule]);
+  }, [payload, graphModule, layout]);
 
   const doZoom = async (factor: number) => {
     const g = graphRef.current;
@@ -669,7 +739,7 @@ export function FullGraphViewer() {
   };
 
   return (
-    <DiagramShell loading={loading} error={error ?? graphError}>
+    <DiagramShell loading={loading || (payload != null && layout == null)} error={error ?? graphError}>
       {payload && graphModule && !graphError && (
         <Box
           ref={rootRef}

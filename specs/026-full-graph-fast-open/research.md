@@ -178,17 +178,44 @@ Under the inverted condition of T018 the engine is requested at 81 ms and 4 364 
 
 **The decision this leaves to the maintainer**: the phase delivers FR-009 and improves nothing measurable — at most about 40 ms on a 7.4 s figure. FR-025 says a phase whose change improves nothing is not kept. Keep the four lines for FR-009's sake, or drop them and record that FR-009 is not worth its bytes; either way SC-003 stays missed until the bytes shrink.
 
-## R13 — Worker layout
+## R13 — Worker layout: built, measured, not kept
 
-**Decision**: the settings live in `layoutSettings.ts`, the layout in `forceLayout.ts`, it runs in `forceLayout.worker.ts`, and the unit test proves it equals today's G6 configuration. **The viewer is not wired to it**: this is what the attempt found.
+**Decision**: the layout was built as a worker (`layoutSettings.ts`, `forceLayout.ts`, `forceLayout.worker.ts`, committed as `4394a02d`) and **is not wired into the viewer**: on this graph and this machine it costs more than it saves. What did pay is the G6 adapter below, and the remembered arrangement uses it (R14).
 
-**What works**
-- `computeForceLayout` equals G6's configuration for all 440 nodes to 1e-9 (vitest, `forceLayout.test.ts`); the same test proves that a shallow merge losing `center.strength` moves nodes by more than a pixel, so the test can see the error it guards.
-- Run in the page, the worker's positions are identical to G6's: the largest difference over 440 nodes is 0.0 px (`getElementPosition` read on both paths at 1345×900).
-- The worker chunk is 49 106 bytes and is requested only on the full-graph page; the app chunk grows by 1 810 bytes to 1 322 621 decoded and never carries `@antv/layout` (markers `forceInABox` and `Layout in worker failed` are absent from it, present in the G6 chunk).
+**What was proven**
+- `computeForceLayout` equals today's G6 configuration for all 440 nodes to 1e-9 (vitest), and in the page the worker's positions equal G6's: the largest difference over 440 nodes is 0.0 px.
+- A registered G6 layout (`precomputedLayout.ts`) makes G6 draw given positions through its own pre-layout, so the camera and the element styles match today's picture: `--compare-canvas data/canvas-main.png` passes. The naive path did not — with positions in the node data, G6 wrote canvas coordinates into the element style and fitted 26 % instead of 27 %.
+- The worker chunk is 49 106 bytes; with the worker wired the app chunk stayed at 1 322 621 and carried no `@antv/layout`.
 
-**What blocks the phase**
-Setting those positions on the nodes before the first draw changes G6's camera: the graph is drawn at 26 % instead of 27 %, so the settled canvas is not pixel-identical to `data/canvas-main.png` (172 481 differing pixels). The cause is visible in the model: after the fit, a node's `x` is 1000.40 while its `style.x` is 1148.61 — G6 writes canvas coordinates into the element style when the data carries positions at construction.
-The only variant that reproduces the baseline canvas updates the node data **after** the first draw and draws again: it passes `--compare-canvas`, but the second draw costs about 1.7 s of main-thread work (longest task 2 305 ms against 596 ms at 1× CPU, first pixel 2 878 ms against 779 ms) — worse than the freeze the phase exists to remove. That variant is not kept.
+**Why it is not kept**
 
-**Where the phase stands**: the settings, the worker and the equivalence test are in place and green (17 client tests); the viewer is unchanged, so G6 still lays the graph out on the main thread. The next attempt should apply the positions through G6's own pre-layout instead of through its data — a registered layout whose result is the worker's mapping would draw once and fit correctly. That is a design task of its own, not a patch.
+| | G6 lays out (fallback) | Worker |
+|---|---|---|
+| longest task, 1× | 621 ms | 616 ms |
+| longest task, 4× | 2 545 ms | 2 561 ms |
+| first pixel, 1× | 814 ms | 1 186 ms |
+| first pixel, 4× | 3 171 ms | 3 668 ms |
+
+The layout is a small part of the render task here: taking it off the main thread changes the longest task by nothing measurable, while the worker's start-up, its chunk and the round trip add 350–450 ms to the first pixel. FR-025 says a phase whose change improves nothing is not kept, so the viewer does not use the worker; the module and its test stay as the record, unused.
+
+**What stayed**: `precomputedLayout.ts`, the adapter that draws given positions through G6, because the remembered arrangement needs exactly it.
+
+## R14 — Remembered arrangement
+
+**Decision**: after G6 lays the graph out, the viewer computes the graph's fingerprint and stores the positions; on the next open of the same graph it reads them and gives them to G6 through the precomputed layout, so no layout runs. Node dragging is gone (FR-024).
+
+**Measured** (cpu1x, one run, the same graph and build as R11):
+
+| | First open | Repeat open |
+|---|---|---|
+| first pixel | 784 ms | 753 ms |
+| longest task | 599 ms | 600 ms |
+| layout run | yes (G6) | no (replayed) |
+| canvas against `canvas-main.png` | identical | — |
+
+The first open writes one entry of 440 positions (checked in the page), and the repeat open draws without a layout. The saving is about 30 ms because here the drawing, not the layout, is the 600 ms task; on a slower machine or a larger graph the layout's share grows.
+
+**What does not hold yet**
+- SC-006 (a repeat open under 500 ms) is missed: 753 ms.
+- `--no-storage` no longer checks what the contract describes: it expects a layout worker on the repeat open, and there is no worker any more. The option and the contract need rewording.
+- The interaction probe still reports a moved picture — not because the node moves (the positions do not change) but because the hover card stays after a drag; a click on empty canvas clears it.

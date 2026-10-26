@@ -317,8 +317,14 @@ class WorkerProfiler {
       let cpuMs = 0;
       try {
         const stopped = await this.send(worker.sessionId, "Profiler.stop", {});
-        const profile = (stopped as { profile?: { nodes?: { hitCount?: number }[] } })?.profile;
-        const samples = (profile?.nodes ?? []).reduce((sum, node) => sum + (node.hitCount ?? 0), 0);
+        const profile = (
+          stopped as { profile?: { nodes?: { hitCount?: number; callFrame?: { functionName?: string } }[] } }
+        )?.profile;
+        // Samples on the idle node are the worker waiting for a message, not working.
+        const samples = (profile?.nodes ?? []).reduce(
+          (sum, node) => (node.callFrame?.functionName === "(idle)" ? sum : sum + (node.hitCount ?? 0)),
+          0,
+        );
         cpuMs = samples;
       } catch {
         cpuMs = worker.cpuMs ?? 0;
