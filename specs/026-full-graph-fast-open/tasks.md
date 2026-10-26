@@ -125,7 +125,7 @@
 
 ## Phase 8: Closing check run (commit 8)
 
-- [ ] T041 (FR-027, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); the run includes the client's `npm test`, so the new vitest files are part of it. Prepare commit 8 with whatever the run changed: `chore: take the check run to zero (#245)`. If the run changed nothing, say so and skip the commit.
+- [x] T041 (FR-027, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); the run includes the client's `npm test`, so the new vitest files are part of it. Prepare commit 8 with whatever the run changed: `chore: take the check run to zero (#245)`. If the run changed nothing, say so and skip the commit. Clean on 2026-10-26: `bash scripts/run_checks_with_log.sh` exits 0 with 34 steps OK, the tree unchanged, and only the two accepted remarks plus a node `--localstorage-file` notice from the test environment in the log.
 
 ---
 
