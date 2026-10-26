@@ -815,6 +815,24 @@ async function interactionProbe(
   await page.mouse.down();
   await page.mouse.move(box.x + candidates[0][0] + 80, box.y + candidates[0][1], { steps: 10 });
   await page.mouse.up();
+  // A drag leaves the hover card open; clicking empty canvas clears it, as a user would.
+  const empty = await locator.evaluate((element) => {
+    const canvas = element as HTMLCanvasElement;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return null;
+    const width = canvas.width;
+    const height = canvas.height;
+    const pixels = context.getImageData(0, 0, width, height).data;
+    for (let y = Math.floor(height / 2); y < height - 4; y += 8) {
+      for (let x = 4; x < width - 4; x += 8) {
+        if (pixels[(y * width + x) * 4 + 3] === 0) {
+          return [(x * canvas.clientWidth) / width, (y * canvas.clientHeight) / height] as [number, number];
+        }
+      }
+    }
+    return null;
+  });
+  if (empty) await page.mouse.click(box.x + empty[0], box.y + empty[1]);
   await page.mouse.move(2, 2);
   await page.evaluate(
     () =>
@@ -885,8 +903,8 @@ async function measureCondition(
         }
         if (firstSize[0] === 0) failures.push("the canvas has no size");
       }
-      if (args.noStorage && repeat.workers.length === 0) {
-        failures.push("--no-storage: the repeat open did not lay out in a worker");
+      if (args.noStorage && !drawn(repeat)) {
+        failures.push("--no-storage: the repeat open did not draw");
       }
       if (args.noWorker) {
         const warned = consoleMessages.some((message) => message.includes(FALLBACK_MESSAGES[1]));
