@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] – 2026-10-27
+
+### Added
+
+- **Entity kinds come from the graph, and the ERD filters by them.** A graph names the kinds it holds and the name of each, and Maxitor keeps no list of its own: it shows whatever the graph says, calls an unnamed kind by its word with a capital letter, and lists an entity with no kind as unknown, so older graphs still open. `GET /api/v1/list-entity-kinds` returns the kinds of the loaded source. The ERD's one filter panel folds Domains and Kinds, one section open at a time, and each row hides or shows its tables; each table's header carries its kind's icon. ([#239](https://github.com/bystrovmaxim/aoa/issues/239))
+
+- **Every line between two tables on screen is drawn, and every association is one line.** A line no longer goes missing when its two ends are neighbours or come from two domains shown together. A relation and its declared inverse are one line with `source_field` and `target_field`, drawn with a bar for one end, a crow's foot for many, and the field name at each side. `list-entities` also returns the request-wide relations list, and hovering a line marks the fields at both ends while clicking a table or field name copies it. ([#239](https://github.com/bystrovmaxim/aoa/issues/239))
+
+### Changed
+
+- **A relation field's type is the target table's name.** The `FK -> ` prefix is gone, and a dictionary field's type no longer repeats the dictionary's name after an arrow: the line says it. The eighth domain colour is orange instead of grey, which is left to entity kinds. ([#239](https://github.com/bystrovmaxim/aoa/issues/239))
+
 ## [2.0.0] – 2026-10-26
 
 ### Breaking changes
