@@ -340,7 +340,7 @@ So, two independent layers of protection. The `_` block guards against accidenta
 
 Every application entity chooses one kind base. Core describes an independent domain object; Assoc a technical connection without business data; Detail an identifiable part of an owner; Spec variant-specific data sharing the head's identity; Enum a shared reference value; State a lifecycle state description. These meanings are explained with separate runnable examples in [Step 20](../tutorials/step-20-entity.md).
 
-The hierarchy performs structural checks when Python creates a class, before decorators run. `BaseEntity` owns the common hierarchy checks; each kind base owns its suffix check. The framework recognises a kind base by direct inheritance from `BaseEntity` and its own `__init_subclass__` hook. The six supplied bases define the supported domain kinds; an application selects one of them. `@entity` supplies model metadata rather than performing these hierarchy checks.
+The hierarchy performs structural checks when Python creates a class, before decorators run. `BaseEntity` owns the common hierarchy checks; each kind base owns its suffix check. The framework recognises a kind base by direct inheritance from `BaseEntity` and its own `__init_subclass__` hook. The six supplied bases define AOA's domain kinds, and an application normally selects one of them; a base the model declares by the same rule is a kind of its own. Every kind base names its kind for readers in its own body as `KIND_LABEL`. `@entity` supplies model metadata rather than performing these hierarchy checks.
 
 | Case | Behaviour |
 | --- | --- |
@@ -350,10 +350,11 @@ The hierarchy performs structural checks when Python creates a class, before dec
 | Intermediate or undecorated descendant | Same hierarchy and suffix checks; no exemption |
 | One kind plus an ordinary Python mixin | Accepted |
 | Construction of one of the six kind bases | `TypeError` at the attempted construction |
-| Exported Entity node | Required `properties.entity_kind`; the Maxitor store preserves the value |
+| Kind base without its own non-empty `KIND_LABEL` string | `DeclarationStructureError` when the class is created; an inherited value does not count |
+| Exported Entity node | Required `properties.entity_kind` (any word matching `^[a-z][a-z0-9_]*$`) and the kind base's name as `properties.entity_kind_label`; the Maxitor store preserves both |
 | `BaseStateEntity` descendant | Requires the `StateEntity` suffix; excluded from ordinary Entity nodes |
 
-The six wire values are `core`, `assoc`, `detail`, `spec`, `enum` and `state`. Normal Entity export does not emit `state`: lifecycle states have their own graph representation. All six kind bases are excluded from discovery. An application-specific intermediate class that should not be discovered uses `@exclude_graph_model`; a `Base` name prefix alone is insufficient.
+AOA's six kinds export as `core`, `assoc`, `detail`, `spec`, `enum` and `state`, named Core, Association, Detail, Specialization, Enumeration and State. The schema does not fix the list, so a graph from another producer may state other words, with or without a name; Maxitor names a word that comes without one by capitalising its first letter, and lists a row that states no kind as `unknown`. Normal Entity export does not emit `state`: lifecycle states have their own graph representation. All six kind bases are excluded from discovery. An application-specific intermediate class that should not be discovered uses `@exclude_graph_model`; a `Base` name prefix alone is insufficient.
 
 The semantic contracts are not a new set of automatic database checks. The marker does not inspect fields to identify business data, enforce a composite primary key, compare a specialization's key with its head's, or perform ownership deletion. `get_primary_key()` continues to use `id` by convention. Relation and lifecycle validation remain separate. Maxitor carries the classification but does not yet hide associative nodes based on it.
 

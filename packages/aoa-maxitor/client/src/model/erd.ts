@@ -11,6 +11,17 @@ export type DomainQualnamesPayload = {
   list_domains: DomainInfoRow[];
 };
 
+/** One entity kind present in the loaded graph: its word and the name a reader sees. */
+export type EntityKindRow = {
+  entity_kind: string;
+  label: string;
+};
+
+/** Matches ``ListEntityKindsAction.Result``. */
+export type EntityKindsPayload = {
+  list_entity_kinds: EntityKindRow[];
+};
+
 export type ErdDomainPayload = {
   domain_label: string;
   domain_qualname: string;
@@ -23,4 +34,6 @@ export type ErdDomainPayload = {
 /** Batch response from ``GET /api/v1/list-entities`` (one graph scan, multiple slices). */
 export type ErdDomainsBatchPayload = {
   domain_slices: ErdDomainPayload[];
+  /** Every line between two tables of the whole request (absent from older servers). */
+  relations?: Array<Record<string, unknown>>;
 };

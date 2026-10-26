@@ -294,15 +294,14 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 },
                 "entity_kind": {
                   "type": "string",
-                  "enum": [
-                    "core",
-                    "assoc",
-                    "detail",
-                    "spec",
-                    "enum",
-                    "state"
-                  ],
-                  "description": "Kind of the kind base class the entity inherits; 'state' is admitted for completeness, though status types never become entity rows."
+                  "minLength": 1,
+                  "pattern": "^[a-z][a-z0-9_]*$",
+                  "description": "The kind word of the kind base class the entity inherits, taken from that class's name: BaseCoreEntity -> core. AOA's own model declares six; the value is open so that a graph from any producer can state a kind this engine does not know. AOA checks the declaration of a kind at class creation, not here."
+                },
+                "entity_kind_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The display name the kind base class declares for its kind: BaseAssocEntity -> Association. Optional on the wire, so that a producer with no names stays valid; AOA always writes it."
                 },
                 "values": {
                   "type": "array",

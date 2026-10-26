@@ -162,6 +162,8 @@ def test_a_reference_field_is_a_relation_entry(diagram: dict[str, Any]) -> None:
             "relationship_kind": "reference",
             "source_cardinality": "one",
             "target_cardinality": "zero_many",
+            "source_field": "currency",
+            "target_field": None,
         },
     ]
 
@@ -402,3 +404,54 @@ def test_the_same_slice_without_neighbours_leaves_the_dictionary_out(cross_domai
 
     assert _CURRENCY not in {entity["id"] for entity in diagram["entities"]}
     assert [relation for relation in diagram["relations"] if relation["relationship_kind"] == "reference"] == []
+
+
+def _card_fields(entity_kind: str, *, declares_values: bool) -> list[str]:
+    """Field names on the card of one entity with ``code`` and ``display_name`` rows, under ``entity_kind``."""
+    identifier = "shop.LookupEntity"
+    properties: dict[str, Any] = {"description": "Lookup", "entity_kind": entity_kind}
+    if declares_values:
+        properties["values"] = [{"code": "a", "display_name": "A", "properties": {}}]
+    graph = {
+        "schema_version": "1.0",
+        "nodes": [
+            {"id": _DOMAIN, "type": "Domain", "label": "ShopDomain", "properties": {"name": "shop", "description": "Shop"}},
+            {"id": identifier, "type": "Entity", "label": "LookupEntity", "properties": properties},
+            *(
+                {
+                    "id": f"{identifier}:{name}",
+                    "type": "EntityField",
+                    "label": name,
+                    "properties": {"field_type": "str", "primary_key_hint": False},
+                }
+                for name in ("code", "display_name", "note")
+            ),
+        ],
+        "edges": [
+            {"source_id": identifier, "target_id": _DOMAIN, "type": "domain", "relationship": "Composition", "is_dag": False},
+            *(
+                {
+                    "source_id": identifier,
+                    "target_id": f"{identifier}:{name}",
+                    "type": "entity_field",
+                    "relationship": "Composition",
+                    "is_dag": False,
+                    "properties": {"ordinal": ordinal, "field_name": name},
+                }
+                for ordinal, name in enumerate(("code", "display_name", "note"))
+            ),
+        ],
+    }
+    payload = ListEntitiesAction._slice_payload(DuckDBGraphResource.build_from_json(graph), _DOMAIN, include_neighbors=False)
+    return [field["name"] for field in payload["entities"][0]["fields"]]
+
+
+def test_a_dictionary_card_is_known_by_its_values_not_by_its_kind_word() -> None:
+    """A foreign producer's ``lookup`` table that declares values is a dictionary card too."""
+    assert _card_fields("lookup", declares_values=True) == ["note"]
+    assert _card_fields("enum", declares_values=True) == ["note"]
+
+
+def test_a_table_without_values_keeps_a_field_named_code() -> None:
+    """Without declared values the two rows are ordinary columns, whatever the kind is called."""
+    assert _card_fields("core", declares_values=False) == ["code", "display_name", "note"]

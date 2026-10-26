@@ -64,7 +64,7 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -80,10 +80,12 @@ class BaseStateEntity(_DeclaredValues, BaseEntity, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Marker of the state kind — a status type that declares its own statuses and carries their catalogue.
-        CONTRACT: ``code`` is the identity of the status inside ``Lifecycle``; ``display_name`` is the human label carried into the interchange graph; after class creation every declared status is an instance and ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; every descendant is kept out of the model graph.
+        CONTRACT: ``code`` is the identity of the status inside ``Lifecycle``; ``display_name`` is the human label carried into the interchange graph; after class creation every declared status is an instance and ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; every descendant is kept out of the model graph. Its display name in the graph is ``KIND_LABEL`` = "State".
         INVARIANTS: Immutable; ``code`` and ``display_name`` are non-empty after strip; statuses share the declaring type; codes are unique; a subclass with no statuses inherits the parent's catalogue; a placeholder is never a model field.
     AI-CORE-END
     """
+
+    KIND_LABEL: ClassVar[str] = "State"
 
     model_config = ConfigDict(**BaseEntity.model_config, ignored_types=(ValueSpec,))
 

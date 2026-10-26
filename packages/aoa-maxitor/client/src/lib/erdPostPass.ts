@@ -1,0 +1,231 @@
+// src/lib/erdPostPass.ts
+/**
+ * ERD post-pass on Graphviz's SVG: what the DOT source reserves, this draws.
+ *
+ * ``buildDotSource`` gives every table's header a kind slot — a cell with an ``ID`` and a ``TOOLTIP``,
+ * filled with the header colour so Graphviz emits its box as ``<g id="a_ks<table>">`` — beside the name
+ * cell. Graphviz stretches the name cell to the header and centres the name in it, so the slot stays at
+ * the edge; but the name cell is the header minus the slot, so drawing the glyph right before the name
+ * puts icon and name, together, in the middle of the header. The slot reserves the room and gives the
+ * height; the glyph is drawn white inside the slot's link element, so its tooltip (the kind's name)
+ * still covers it.
+ *
+ * Like ``containNodeFills`` it works on the markup, not on the DOM, and imports no value, so the
+ * drawing check runs this very function in plain Node; the glyph drawing is passed in.
+ */
+
+import type { ErdEntity } from "@/lib/buildDotSource";
+
+/** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
+export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
+
+/** Stroke width of a header glyph, in the glyph's own 24-unit box. */
+const HEADER_GLYPH_STROKE = 2.4;
+/** Space between the glyph and the name, in points (the spacer cell of the header). */
+const HEADER_GLYPH_GAP = 4;
+
+/**
+ * The box of a cell's ``points`` polygon inside its ``<g id="a_<id>">``, or ``null``. A cell that holds a
+ * nested table (the header) is closed by its last ``</a>`` before the next cell's group, hence ``outer``.
+ */
+function cellBox(
+  markup: string,
+  cellId: string,
+  outer = false,
+): { x: number; y: number; right: number; size: number; end: number } | null {
+  const start = markup.indexOf(`<g id="a_${cellId}">`);
+  if (start < 0) return null;
+  const close = markup.indexOf("</a>", start);
+  const match = /points="([^"]+)"/.exec(markup.slice(start, outer ? markup.indexOf("</g>", start) : close));
+  if (!match) return null;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const pair of match[1]!.trim().split(/\s+/)) {
+    const [x, y] = pair.split(",").map(Number);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      xs.push(x!);
+      ys.push(y!);
+    }
+  }
+  if (!xs.length) return null;
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const size = Math.min(Math.max(...xs) - x, Math.max(...ys) - y);
+  return { x, y, right: Math.max(...xs), size, end: close };
+}
+
+/** The text start ``x`` of the first ``<text>`` inside ``<g id="a_<id>">``, and where that attribute sits. */
+function textStart(markup: string, cellId: string): { x: number; at: number; length: number } | null {
+  const start = markup.indexOf(`<g id="a_${cellId}">`);
+  if (start < 0) return null;
+  const match = /<text[^>]* x="([-\d.]+)"/.exec(markup.slice(start));
+  if (!match) return null;
+  const attr = ` x="${match[1]}"`;
+  return { x: Number(match[1]), at: start + match.index + match[0].lastIndexOf(attr), length: attr.length };
+}
+
+/**
+ * Draw each table's kind glyph right before its name and centre the two together in the header.
+ * ``entities`` is the list the DOT was built from (its order gives the cell ids).
+ */
+export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer): string {
+  const edits: Array<{ at: number; remove: number; text: string }> = [];
+  entities.forEach((entity, table) => {
+    const slot = cellBox(markup, `ks${table}`);
+    const header = cellBox(markup, `hd${table}`, true);
+    const nameCell = cellBox(markup, `hn${table}`, true);
+    const name = textStart(markup, `hn${table}`);
+    if (!slot || slot.size <= 0 || !header || !nameCell || !name) return;
+    // Graphviz centres the name in its cell: its width is what is left on both sides, removed.
+    const nameWidth = nameCell.x + nameCell.right - 2 * name.x;
+    const groupWidth = slot.size + HEADER_GLYPH_GAP + nameWidth;
+    const iconX = (header.x + header.right) / 2 - groupWidth / 2;
+    const textX = iconX + slot.size + HEADER_GLYPH_GAP;
+    const kind = entity.entity_kind?.trim() || "unknown";
+    edits.push({ at: name.at, remove: name.length, text: ` x="${textX.toFixed(2)}"` });
+    edits.push({
+      at: slot.end,
+      remove: 0,
+      text:
+        `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${slot.y}) ` +
+        `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, "#ffffff", HEADER_GLYPH_STROKE)}</g>`,
+    });
+  });
+  let out = markup;
+  for (const { at, remove, text } of edits.sort((a, b) => b.at - a.at)) {
+    out = out.slice(0, at) + text + out.slice(at + remove);
+  }
+  return out;
+}
+
+// ── Line hover ──────────────────────────────────────────────────────────────
+// The rest of this module works on the live SVG once it is on the page: a wide invisible stroke so a
+// 1 px line is easy to catch, the hovered look as a class (styled by the canvas), and the rows a line
+// stands for marked by their text only — never their fill, border or size.
+
+/** What the post-pass needs of a relation: its ends and the fields at them (``ErdRelation`` fits). */
+export type ErdLineInfo = {
+  source: string;
+  target: string;
+  relationship_kind?: string;
+  source_field?: string | null;
+  target_field?: string | null;
+};
+
+/** The class the hovered look hangs on. */
+export const EDGE_HOVER_CLASS = "is-hovered";
+const MARK_NAME_FILL = "#0f172a";
+const MARK_TYPE_FILL = "#334155";
+
+/** Give every edge an invisible stroke about 10 px wide along its path, so the pointer catches it. */
+export function addEdgeHitAreas(root: ParentNode): void {
+  root.querySelectorAll("g.edge").forEach((edge) => {
+    if (edge.querySelector("path.erd-hit")) return;
+    const path = edge.querySelector("path");
+    if (!path) return;
+    const hit = path.cloneNode(false) as Element;
+    hit.setAttribute("class", "erd-hit");
+    hit.setAttribute("fill", "none");
+    hit.setAttribute("stroke", "transparent");
+    hit.setAttribute("stroke-width", "10");
+    hit.setAttribute("pointer-events", "stroke");
+    path.parentNode!.insertBefore(hit, path);
+  });
+}
+
+/** Cell ids of the rows a relation stands for, at both ends. */
+function rowsOf(line: ErdLineInfo, tables: Map<string, { index: number; fields: ErdEntity["fields"] }>): string[] {
+  const cells: string[] = [];
+  const add = (tableId: string, match: (field: NonNullable<ErdEntity["fields"]>[number]) => boolean) => {
+    const table = tables.get(tableId);
+    (table?.fields ?? []).forEach((field, row) => {
+      if (match(field)) cells.push(`fn${table!.index}_${row}`, `ft${table!.index}_${row}`);
+    });
+  };
+  if (!line.source_field) return cells;
+  add(line.source, (f) => f.name === line.source_field);
+  // Without an inverse, the far end is the key the field points at.
+  if (line.target_field) add(line.target, (f) => f.name === line.target_field);
+  else add(line.target, (f) => Boolean(f.primary_key));
+  return cells;
+}
+
+/** Attributes a mark changes, saved on the text so leaving restores them exactly. */
+const MARKED_ATTRIBUTES = ["font-weight", "fill", "text-anchor", "x"] as const;
+
+/** Mark (or restore) the text of the given cells: bold and darker, the cell itself untouched. */
+export function markRows(root: ParentNode, cells: readonly string[], on: boolean): void {
+  for (const id of cells) {
+    root.querySelectorAll(`g[id="a_${id}"] text`).forEach((text) => {
+      if (on) {
+        if (!text.hasAttribute("data-erd-mark")) {
+          text.setAttribute("data-erd-mark", JSON.stringify(MARKED_ATTRIBUTES.map((name) => text.getAttribute(name))));
+          // A type sits on the right edge; bold text is wider, so it grows leftwards from that edge
+          // instead of running out of the table.
+          const measure = (text as SVGTextContentElement).getComputedTextLength;
+          if (id.startsWith("ft") && typeof measure === "function") {
+            const right = Number(text.getAttribute("x")) + measure.call(text);
+            text.setAttribute("text-anchor", "end");
+            text.setAttribute("x", right.toFixed(2));
+          }
+        }
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", id.startsWith("fn") ? MARK_NAME_FILL : MARK_TYPE_FILL);
+        return;
+      }
+      const saved = text.getAttribute("data-erd-mark");
+      if (saved === null) return;
+      const values = JSON.parse(saved) as Array<string | null>;
+      MARKED_ATTRIBUTES.forEach((name, i) => {
+        const value = values[i];
+        if (value === null || value === undefined) text.removeAttribute(name);
+        else text.setAttribute(name, value);
+      });
+      text.removeAttribute("data-erd-mark");
+    });
+  }
+}
+
+/**
+ * Line hover in both directions. Hovering a line gives it the hovered look, raises it above the lines it
+ * crosses and marks the rows of its fields in both tables; hovering a row whose field has lines does the
+ * same for every one of them. ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
+ */
+export function bindLineHover(
+  root: ParentNode,
+  relations: readonly ErdLineInfo[],
+  entities: readonly ErdEntity[],
+  signal: AbortSignal,
+): void {
+  const tables = new Map(entities.map((e, index) => [e.id, { index, fields: e.fields }]));
+  const edgeRows = relations.map((line) => rowsOf(line, tables));
+  const show = (edges: Element[], on: boolean) => {
+    for (const edge of edges) {
+      const k = Number(edge.id.slice(2));
+      edge.classList.toggle(EDGE_HOVER_CLASS, on);
+      if (on && edge.parentNode && edge.parentNode.lastElementChild !== edge) edge.parentNode.appendChild(edge);
+      markRows(root, edgeRows[k] ?? [], on);
+    }
+  };
+  const edgesById = (ids: number[]) => ids.map((k) => root.querySelector(`g[id="re${k}"]`)).filter((e): e is Element => e !== null);
+
+  root.querySelectorAll('g.edge[id^="re"]').forEach((edge) => {
+    edge.addEventListener("mouseenter", () => show([edge], true), { signal });
+    edge.addEventListener("mouseleave", () => show([edge], false), { signal });
+  });
+
+  // A row's lines: every line one of whose ends is this row.
+  const rowLines = new Map<string, number[]>();
+  edgeRows.forEach((cells, k) => {
+    for (const cell of cells) {
+      const row = cell.slice(2);
+      rowLines.set(row, [...(rowLines.get(row) ?? []), k]);
+    }
+  });
+  root.querySelectorAll('g[id^="a_fn"], g[id^="a_ft"]').forEach((cell) => {
+    const lines = rowLines.get(cell.id.slice(4)) ?? [];
+    if (!lines.length) return;
+    cell.addEventListener("mouseenter", () => show(edgesById(lines), true), { signal });
+    cell.addEventListener("mouseleave", () => show(edgesById(lines), false), { signal });
+  });
+}

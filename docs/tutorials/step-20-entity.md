@@ -242,7 +242,7 @@ A plain mixin may supply methods alongside one kind base. `OrderCoreEntity(Label
 
 [Script](../../examples/step_20_entity/11_graph_kind.py) · [Notebook](../../examples/step_20_entity/11_graph_kind.ipynb)
 
-Every exported Entity row includes `properties.entity_kind`. The value comes from the kind base in the inheritance chain, rather than a separately maintained field on each model. The six wire values are `core`, `assoc`, `detail`, `spec`, `enum` and `state`; state types are excluded from Entity rows, so normal graph export does not produce `state` there.
+Every exported Entity row includes `properties.entity_kind`. The value comes from the kind base in the inheritance chain, rather than a separately maintained field on each model. AOA's six kinds export as `core`, `assoc`, `detail`, `spec`, `enum` and `state`; state types are excluded from Entity rows, so normal graph export does not produce `state` there. The interchange schema does not fix the list: any lowercase word (`^[a-z][a-z0-9_]*$`) is a valid kind, so a model or another producer may add its own.
 
 The example builds a graph, loads it into Maxitor's DuckDB store, and reads the same value from both:
 
@@ -254,6 +254,38 @@ Maxitor store: core
 The kind is a required graph property, not an optional hint. [The missing-property case](../../examples/step_20_entity/26_graph_requires_kind.py) ([notebook](../../examples/step_20_entity/26_graph_requires_kind.ipynb)) removes it and prints `Entity row without entity_kind: rejected`. Rebuild graph exports produced before this property was required. Concrete class renames also change graph labels and identifiers containing qualified class names; check consumers that store those identifiers.
 
 Maxitor preserves the kind, but this branch does not make its renderer automatically collapse associative entities. See [Step 26](step-26-maxitor.md) for graph and diagram usage.
+
+## Name a kind for readers of the graph
+
+[Script](../../examples/step_20_entity/27_kind_label.py) · [Notebook](../../examples/step_20_entity/27_kind_label.ipynb)
+
+The kind word is for programs; people read a name. Each kind base declares that name in its own body as `KIND_LABEL`, and the export writes it beside the word as `properties.entity_kind_label`. AOA's bases name their kinds Core, Association, Detail, Specialization, Enumeration and State:
+
+```text
+BaseCoreEntity     KIND_LABEL = 'Core'
+BaseAssocEntity    KIND_LABEL = 'Association'
+BaseDetailEntity   KIND_LABEL = 'Detail'
+BaseSpecEntity     KIND_LABEL = 'Specialization'
+BaseEnumEntity     KIND_LABEL = 'Enumeration'
+BaseStateEntity    KIND_LABEL = 'State'
+```
+
+A model may declare a kind of its own: a base that inherits `BaseEntity` directly, defines its own `__init_subclass__` and names its kind. Its entities then carry both values:
+
+```python
+class BaseAggregateEntity(BaseEntity, ABC):
+    KIND_LABEL: ClassVar[str] = "Aggregate"
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        super()._require_kind_suffix("AggregateEntity")
+```
+
+```text
+graph row: {'entity_kind': 'aggregate', 'entity_kind_label': 'Aggregate'}
+```
+
+The name must be written in the kind base itself, as a non-empty string; inheriting it from another base does not count. A kind base without one is refused when the class is created, with `DeclarationStructureError` (see the table below). Concrete entities never declare `KIND_LABEL`: they take the name of their kind. Maxitor's ERD shows this name in its Kinds filter and on each table's kind icon ([Step 26](step-26-maxitor.md)).
 
 ## Understand declaration failures
 
@@ -271,6 +303,7 @@ uv run python examples/step_20_entity/22_kind_suffix.py
 | `OrderDetailEntity(BaseCoreEntity)` | Name and inherited kind disagree | `NamingSuffixError` | [Script](../../examples/step_20_entity/23_wrong_kind_suffix.py) · [Notebook](../../examples/step_20_entity/23_wrong_kind_suffix.ipynb) |
 | `BaseDocumentEntity(BaseCoreEntity, ABC)` | Intermediate classes also need the kind suffix | `NamingSuffixError` | [Script](../../examples/step_20_entity/24_intermediate_suffix.py) · [Notebook](../../examples/step_20_entity/24_intermediate_suffix.ipynb) |
 | `BaseCoreEntity()` | A kind base is not an application object | `TypeError` | [Script](../../examples/step_20_entity/25_marker_instance.py) · [Notebook](../../examples/step_20_entity/25_marker_instance.ipynb) |
+| `BaseEventEntity(BaseEntity, ABC)` with its own `__init_subclass__` and no `KIND_LABEL` | A kind base must name its kind in its own body | `DeclarationStructureError` | [Script](../../examples/step_20_entity/27_kind_label.py) · [Notebook](../../examples/step_20_entity/27_kind_label.ipynb) (case 3) |
 
 The naming example prints the actual diagnostic:
 

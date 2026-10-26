@@ -8,3 +8,4 @@ export {
   svgDataUriForGraphNodeIcon,
   svgDataUriForInterchangeDomainLegend,
 } from "./graph_node_disk_icons";
+export { KIND_DISK_FILL, kindGlyphSvg, kindLegendDiskUri } from "./entity_kind_glyphs";

@@ -1,13 +1,14 @@
 // src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx
 import type { Engine } from "@hpcc-js/wasm-graphviz";
 import Box from "@mui/material/Box";
+import Snackbar from "@mui/material/Snackbar";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { DomainLegend } from "@/components/ui/DomainLegend";
+import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { loadGraphvizWasm } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
@@ -22,8 +23,13 @@ import {
 } from "@/lib/buildDotSource";
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
+import { filterGraphByKinds, pruneGraphToEntities } from "@/lib/erdKindFilter";
+import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
+import { bindNameCopy } from "@/lib/erdCopy";
+import { addEdgeHitAreas, bindLineHover, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
+import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 import {
   LayoutGlyphCirco,
@@ -74,13 +80,17 @@ function getMergedFromDomains(enriched: Record<string, unknown>, enabled: Set<st
     const slice = domains[on[0]!]!;
     return { entities: slice.entities ?? [], relations: slice.relations ?? [], groups: slice.groups ?? [] };
   }
-  return mergeDomainPayloads(
+  const merged = mergeDomainPayloads(
     on.map((k) => ({
       entities: domains[k]!.entities ?? [],
       relations: domains[k]!.relations ?? [],
       groups: domains[k]!.groups ?? [],
     })),
   );
+  // A line whose ends came from two slices is only in the request-wide list.
+  const requestRelations = Array.isArray(enriched.relations) ? (enriched.relations as ErdRelation[]) : undefined;
+  const onScreen = new Set((merged.entities ?? []).map((e) => e.id));
+  return { ...merged, relations: mergeRelationsOnScreen(requestRelations, merged.relations ?? [], onScreen) };
 }
 
 function readEntityQual(e: ErdEntity): string | null {
@@ -104,23 +114,10 @@ function filterGraphByEntityQuals(
   enabled: Set<string>,
   fallbackQual: string | null,
 ): ErdGraphPayload {
-  const entities = (data.entities ?? []).filter((e) => {
+  return pruneGraphToEntities(data, (e) => {
     const q = readEntityQual(e) ?? fallbackQual;
     return q != null && q !== "" && enabled.has(q);
   });
-  const ids = new Set(entities.map((e) => e.id));
-  // A group survives only with the members that survived, and a container around one remaining
-  // table would claim a choice that is not on screen.
-  const groups = (data.groups ?? [])
-    .map((g) => ({ ...g, members: g.members.filter((m) => ids.has(m)) }))
-    .filter((g) => g.members.length > 1);
-  const keptGroups = new Set(groups.map((g) => g.group_id));
-  const relations = (data.relations ?? []).filter((r) => {
-    // A line into a container is kept while the container is, and points at no entity of its own.
-    if (r.relationship_kind === "specialization") return keptGroups.has(r.target) && ids.has(r.source);
-    return ids.has(r.source) && ids.has(r.target);
-  });
-  return { entities, relations, groups };
 }
 
 export type ErdGraphvizCanvasProps = {
@@ -148,6 +145,9 @@ const layoutByDiagramKey = new Map<string, ErdGraphvizLayout>();
 const enabledDomainsByDiagramKey = new Map<string, string[]>();
 /** Single-slice ERD: persisted ``domain_qualname`` toggles (1-hop neighbors). */
 const enabledEntityQualsByDiagramKey = new Map<string, string[]>();
+/** Entity kinds switched off, per diagram; a kind the graph gains later starts on. */
+const disabledKindsByDiagramKey = new Map<string, string[]>();
+
 
 export function ErdGraphvizCanvas({
   bundle,
@@ -163,6 +163,7 @@ export function ErdGraphvizCanvas({
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [gvBusy, setGvBusy] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const enriched = useMemo(
     () => enrichErdDataForViewer(bundle as unknown as Record<string, unknown>),
@@ -197,6 +198,9 @@ export function ErdGraphvizCanvas({
   });
 
   const [enabledEntityQualifiers, setEnabledEntityQualifiers] = useState<Set<string>>(() => new Set());
+  const [disabledKinds, setDisabledKinds] = useState<Set<string>>(
+    () => new Set(disabledKindsByDiagramKey.get(diagramResetKey) ?? []),
+  );
 
   const prevDiagramKeyRef = useRef<string | null>(null);
 
@@ -210,6 +214,18 @@ export function ErdGraphvizCanvas({
   useEffect(() => {
     enabledDomainsByDiagramKey.set(diagramResetKey, [...enabledDomains].sort());
   }, [diagramResetKey, enabledDomains]);
+
+  useEffect(() => {
+    disabledKindsByDiagramKey.set(diagramResetKey, [...disabledKinds].sort());
+  }, [diagramResetKey, disabledKinds]);
+
+  // Another diagram brings its own remembered kinds (or all on).
+  const prevKindsDiagramKeyRef = useRef(diagramResetKey);
+  useLayoutEffect(() => {
+    if (prevKindsDiagramKeyRef.current === diagramResetKey) return;
+    prevKindsDiagramKeyRef.current = diagramResetKey;
+    setDisabledKinds(new Set(disabledKindsByDiagramKey.get(diagramResetKey) ?? []));
+  }, [diagramResetKey]);
 
   useEffect(() => {
     if (multiTab) return;
@@ -302,10 +318,11 @@ export function ErdGraphvizCanvas({
   }, [multiTab, diagramResetKey, entityQualListKey]);
 
   const mergedData = useMemo(() => {
-    if (multiTab) return mergedByTabs;
+    // A table is on screen only when its domain (or qualifier) and its kind are both on.
+    if (multiTab) return filterGraphByKinds(mergedByTabs, disabledKinds);
     if (enabledEntityQualifiers.size === 0) return { entities: [], relations: [] };
-    return filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual);
-  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual]);
+    return filterGraphByKinds(filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual), disabledKinds);
+  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual, disabledKinds]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -316,7 +333,16 @@ export function ErdGraphvizCanvas({
       </Typography>
     ) : null;
 
-  const dot = useMemo(() => buildDotSource(mergedData, layout), [mergedData, layout]);
+  // Each table carries its kind's display name for the header icon's tooltip.
+  const drawnData = useMemo(() => {
+    const labels = new Map((bundle.entity_kinds ?? []).map((row) => [row.entity_kind, row.label]));
+    return {
+      ...mergedData,
+      entities: mergedData.entities.map((e) => ({ ...e, entity_kind_label: labels.get(e.entity_kind?.trim() || "unknown") })),
+    };
+  }, [mergedData, bundle.entity_kinds]);
+
+  const dot = useMemo(() => buildDotSource(drawnData, layout), [drawnData, layout]);
 
   // Reset fit flag whenever the DOT source changes (new diagram, layout mode, or 1-hop toggle)
   // so the next SVG insertion always re-fits
@@ -340,7 +366,7 @@ export function ErdGraphvizCanvas({
         if (cancelled) return;
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(containNodeFills(svg));
+        setSvgMarkup(placeKindIcons(containNodeFills(svg), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
@@ -352,12 +378,16 @@ export function ErdGraphvizCanvas({
     return () => {
       cancelled = true;
     };
-  }, [dot, layout, bundleVersion, resetFitFlag]);
+  }, [dot, drawnData, layout, bundleVersion, resetFitFlag]);
 
   useLayoutEffect(() => {
     if (!svgMarkup) return;
     const panner = pannerRef.current;
     if (!panner) return;
+    // The markup is placed here, not through ``dangerouslySetInnerHTML``: React re-applied that prop on
+    // every render of the canvas (a zoom click is enough) and replaced the SVG, so the size, the table
+    // hover and every listener bound below were lost on the drawing the user actually sees.
+    panner.innerHTML = svgMarkup;
 
     const ac = new AbortController();
     const svg = panner.querySelector("svg");
@@ -375,7 +405,10 @@ export function ErdGraphvizCanvas({
       }
 
       postProcessGraphvizSvgDom(svg);
+      addEdgeHitAreas(svg);
+      bindLineHover(svg, drawnData.relations, drawnData.entities, ac.signal);
     }
+    bindNameCopy(panner, setCopyMessage, ac.signal);
 
     const onEnter = (evt: Event) => {
       const el = evt.currentTarget as Element;
@@ -433,7 +466,7 @@ export function ErdGraphvizCanvas({
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
     };
-  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
+  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, drawnData]);
 
   const tabAccents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
 
@@ -441,7 +474,8 @@ export function ErdGraphvizCanvas({
     const out: Record<string, string> = {};
     const palette = bundle.domain_qualifier_colors;
     for (const q of entityQualList) {
-      out[q] = palette[q] ?? "#64748b";
+      // A domain the palette does not list takes the first domain hue, never grey (grey is the kinds').
+      out[q] = palette[q] ?? "#3b82f6";
     }
     return out;
   }, [entityQualList, bundle.domain_qualifier_colors]);
@@ -464,6 +498,36 @@ export function ErdGraphvizCanvas({
       return next;
     });
   };
+
+  const toggleKind = (kind: string) => {
+    setDisabledKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+  };
+
+  const domainRows: ErdFilterRow[] = multiTab
+    ? domainKeyList.map((key) => ({
+        key,
+        label: bundle.domain_tab_labels?.[key] ?? key,
+        iconSrc: svgDataUriForInterchangeDomainLegend(tabAccents[key] || "#3b82f6"),
+        on: enabledDomains.has(key),
+      }))
+    : entityQualList.map((qual) => ({
+        key: qual,
+        label: qualRowLabels?.[qual] ?? qual,
+        iconSrc: svgDataUriForInterchangeDomainLegend(qualAccents[qual] || "#3b82f6"),
+        on: enabledEntityQualifiers.has(qual),
+      }));
+
+  const kindRows: ErdFilterRow[] = (bundle.entity_kinds ?? []).map((row) => ({
+    key: row.entity_kind,
+    label: row.label,
+    iconSrc: kindLegendDiskUri(row.entity_kind),
+    on: !disabledKinds.has(row.entity_kind),
+  }));
 
   const toggleEntityQual = (qual: string) => {
     setEnabledEntityQualifiers((prev) => {
@@ -491,26 +555,23 @@ export function ErdGraphvizCanvas({
           backgroundSize: "20px 20px",
         }}
       >
-        {multiTab ? (
-          <DomainLegend
-            domainKeys={domainKeyList}
-            enabledDomains={enabledDomains}
-            accents={tabAccents}
-            rowLabels={bundle.domain_tab_labels}
-            showWhenSingle
-            onToggle={toggleDomain}
-          />
-        ) : (
-          <DomainLegend
-            domainKeys={entityQualList}
-            enabledDomains={enabledEntityQualifiers}
-            accents={qualAccents}
-            rowLabels={qualRowLabels}
-            showWhenSingle
-            onToggle={toggleEntityQual}
+        {domainRows.length > 0 && (
+          <ErdFilterPanel
+            domainRows={domainRows}
+            kindRows={kindRows}
+            onToggleDomain={multiTab ? toggleDomain : toggleEntityQual}
+            onToggleKind={toggleKind}
           />
         )}
         {erdEmptyOverlay}
+        <Snackbar
+          open={copyMessage !== null}
+          message={copyMessage ?? ""}
+          autoHideDuration={1500}
+          onClose={() => setCopyMessage(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          sx={{ position: "absolute", bottom: "64px !important" }}
+        />
 
         <Box
           ref={viewportRef}
@@ -540,6 +601,15 @@ export function ErdGraphvizCanvas({
               top: 0,
               transformOrigin: "0 0",
               display: "block",
+              // A hovered line (or every line of a hovered row): thicker, darker, ends and roles following.
+              "& g.edge path": { transition: "stroke-width 100ms ease, stroke 100ms ease" },
+              "& g.edge.is-hovered path:not(.erd-hit)": { stroke: "#475569", strokeWidth: 2.4 },
+              "& g.edge.is-hovered polygon": { stroke: "#475569" },
+              "& g.edge.is-hovered polygon:not([fill='none'])": { fill: "#475569" },
+              "& g.edge.is-hovered text": { fill: "#334155", fontWeight: 700 },
+              "@media (prefers-reduced-motion: reduce)": { "& g.edge path": { transition: "none" } },
+              // Names copy on click.
+              "& g[id^='a_hn'] text, & g[id^='a_fn'] text": { cursor: "copy" },
               "& svg": {
                 display: "block",
                 maxWidth: "none",
@@ -549,7 +619,6 @@ export function ErdGraphvizCanvas({
                 transformOrigin: "0 0",
               },
             }}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         </Box>
 

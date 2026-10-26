@@ -76,11 +76,12 @@ On the diagram you see:
 
 - Which entities belong to the domain
 - Their fields and types
-- How entities are linked (`AssociationOne/Many`, `AggregateOne/Many`, `CompositeOne/Many`)
-- Bold lines — relation direction
-- Header color — domain membership
+- How entities are linked (`AssociationOne/Many`, `AggregateOne/Many`, `CompositeOne/Many`): one line per association, every line whose two tables are on screen, each end with its cardinality (a bar for one, a crow's foot for many) and its role — the field on that side
+- Header color — domain membership; the white icon beside the name — the entity's kind
 
-The ERD is built from classes inheriting an entity kind base and their relation fields. Each exported Entity node carries `properties.entity_kind`; Maxitor preserves it in the `entity` table. This distinguishes independent objects, technical associations, owned parts, specializations and reference values. State types are excluded from ordinary Entity nodes and belong to lifecycle diagrams instead.
+One filter panel, with **Domains** and **Kinds** folding like an accordion, hides or shows tables by domain and by kind; Kinds comes from `GET /api/v1/list-entity-kinds` and is shown when the graph has more than one kind. Hovering a line marks the fields at both its ends; hovering a field marks its lines; clicking a table or field name copies it. The whole walk-through is [Step 26 — Read and filter the ERD](../../docs/tutorials/step-26-maxitor.md#read-and-filter-the-erd).
+
+The ERD is built from classes inheriting an entity kind base and their relation fields. Each exported Entity node carries `properties.entity_kind` and the kind's name, `properties.entity_kind_label`; Maxitor preserves both in the `entity` table and keeps no list of kinds of its own, so a graph from another producer shows its own kinds. A row with no kind loads as `unknown`; a kind word without a name is named by the word capitalised ([example](../../examples/step_26_maxitor/06_entity_kinds.py), [notebook](../../examples/step_26_maxitor/06_entity_kinds.ipynb)). This distinguishes independent objects, technical associations, owned parts, specializations and reference values. State types are excluded from ordinary Entity nodes and belong to lifecycle diagrams instead.
 
 Kind metadata does not yet hide technical associations on its own. Rebuild graph exports created before the required property was introduced. The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) demonstrates the value arriving unchanged in Maxitor.
 
@@ -88,7 +89,7 @@ Kind metadata does not yet hide technical associations on its own. Rebuild graph
 
 A dictionary is an Entity node whose `entity_kind` is `enum`; it carries `properties.values`, the values it declares, each one its reference object `{code, display_name, properties}`. The ERD card does not draw them: it is an ordinary card of the dictionary's own fields, with no value rows, no codes and nothing standing in their place. The values stay in the graph and in the ERD response for every consumer that reads them, so a catalogue with ninety-three entries no longer sets the height of the diagram.
 
-A field typed by a dictionary carries `reference_qualname`, the dictionary's interchange id. The card shows the dictionary's short name after the type, prefixed with an arrow. The axis container's label names the dictionary that classifies it.
+A field typed by a dictionary carries `reference_qualname`, the dictionary's interchange id. The card shows the field's type; the line from that row to the dictionary's table says what it references. The axis container's label names the dictionary that classifies it.
 
 The ERD payload still carries each value's `code`, `display_name` and descriptive `properties` as name/value text items, in declaration order and in the strict response shape; the full graph retains their original object form. The card draws none of it. The renderer names no domain-specific field, and an ordinary entity has an empty value list.
 
@@ -173,6 +174,7 @@ GET /api/sidebar?source=<url>            — navigation: domains, entities
 GET /api/v1/full-graph?source=<url>      — full graph (G6 payload)
 GET /api/v1/list-domains?source=<url>    — domain list with colors
 GET /api/v1/list-entities?source=<url>   — ERD slice by domain
+GET /api/v1/list-entity-kinds?source=<url> — the graph's entity kinds and their names
 GET /api/v1/list-node-types?source=<url> — graph node types
 GET /api/v1/domain-use-case-diagram?source=<url>&domain_id=…
 GET /api/v1/lifecycle-finite-automaton?source=<url>&lifecycle_graph_node_id=…
