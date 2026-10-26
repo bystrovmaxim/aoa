@@ -125,3 +125,35 @@ The 38 `data:image/svg+xml` glyph URLs carry no transferred bytes and are left o
 - The ERD baseline, the reference for SC-008, is `data/baseline-main-erd.json`: 1 556 878 bytes on the first open, 234 785 on the repeat, the app chunk `index-Bc79Uius.js` at 1 320 738 decoded bytes, and no G6 chunk.
 
 **One race, found and fixed in the tool.** A first three-run attempt under slow4g gave 312 084, 312 084, 311 515: the 569-byte `/api/load` answer sometimes landed after the measurement window. The tool now waits until every request the open started has finished before it reads the bytes, and three runs give 311 515 every time.
+
+## R11 — After compression
+
+**Decision**: gzip and the cache lifetimes are in (commit 3). Measured on 2026-10-26 with the same tool, the same build, the same frozen graph and the same conditions as R10.
+
+| Condition | Open | Bytes | Longest task | First graph pixel | Main scripting |
+|---|---|---|---|---|---|
+| `cpu1x` | first | 1 228 314 | 596 ms | 779 ms | 855 ms |
+| `cpu1x` | repeat | 22 120 | 584 ms | 720 ms | 889 ms |
+| `cpu4x` | first | 1 228 314 | 2 409 ms | 2 934 ms | 1 098 ms |
+| `cpu4x` | repeat | 22 120 | 2 466 ms | 2 926 ms | 1 137 ms |
+| `slow4g` | first | 1 228 314 | 606 ms | 7 387 ms | 944 ms |
+| `slow4g` | repeat | 22 120 | 611 ms | 1 132 ms | 910 ms |
+
+The resources of `cpu1x/first` (transferred bytes include the response headers):
+
+| Resource | Transferred | Decoded | `Content-Encoding` | `Cache-Control` |
+|---|---|---|---|---|
+| `assets/index-Bc79Uius.js` | 793 547 | 1 320 738 | gzip | `public, max-age=31536000, immutable` |
+| `assets/index-CDX_0f6p.js` | 411 723 | 1 422 176 | gzip | `public, max-age=31536000, immutable` |
+| `GET /api/v1/full-graph` | 16 131 | 237 101 | gzip | — |
+| `GET /api/sidebar` | 5 825 | 74 129 | gzip | — |
+| `GET /` (`index.html`) | 675 | 392 | — | `no-cache` |
+| `assets/index-wUWjggHM.css` | 413 | 29 | — | `public, max-age=31536000, immutable` |
+
+**What R11 says**
+- **SC-001 is met**: 1 228 314 against 1 300 000, 71 686 bytes to spare (5.5 %). The JavaScript is still almost everything: 1 205 270 of 1 228 314 bytes, 98.1 %.
+- **SC-002 is met**: 22 120 against 50 000. The repeat open downloads the graph (16 131) and the sidebar (5 825); the assets come from the cache and the page is a 304 answered with 164 bytes of headers.
+- **SC-003 is still missed**: 7 387 ms against 6 000 (it was 16 537). The download is 1.23 MB, about 6.1 s at 1.6 Mbit/s, so the network is the floor now; phase 4's early G6 download is the next lever.
+- **The freeze has not moved**, as expected: 596 ms at 1× and 2 409 ms at 4× — phases 4 and 5 are the ones that move it.
+- **gzip at level 6 costs almost nothing**: the two big scripts answer their first byte in 2.5–3 ms and complete in about 30 ms (792 935 and 411 102 gzip bytes on the wire).
+- **A stale file is revalidated, not re-downloaded.** With `max-age=0` in place of `immutable` (T014b) the repeat open still transfers 22 867 bytes, because each asset comes back as a 304; only `no-store` would force the download the task expected.
