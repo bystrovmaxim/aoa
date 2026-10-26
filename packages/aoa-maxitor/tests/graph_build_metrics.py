@@ -152,6 +152,43 @@ def rss_per_graph(payload: dict[str, Any], count: int = _DEFAULT_RSS_COUNT) -> d
     }
 
 
+def _apply_setting(resource: DuckDBGraphResource, setting: str) -> None:
+    """Apply one ``name=value`` DuckDB setting to a built graph's connection."""
+    name, _, value = setting.partition("=")
+    if not name.strip() or not value.strip():
+        raise ValueError(f"Expected name=value, got {setting!r}")
+    resource.service.execute(f"SET {name.strip()} = {value.strip()}")
+
+
+def rss_sequence(payload: dict[str, Any], setting: str | None = None) -> list[dict[str, Any]]:
+    """Return the process size at each step of the issue's held-and-dropped sequence."""
+    gc.collect()
+    steps: list[dict[str, Any]] = []
+
+    def record(label: str) -> None:
+        _, rss = _rss_mib()
+        steps.append({"step": label, "rss": round(rss, 1)})
+
+    held: list[DuckDBGraphResource] = []
+    record("0 held")
+    for target in (1, 5, 10):
+        while len(held) < target:
+            resource = DuckDBGraphResource.build_from_json(payload)
+            if setting:
+                _apply_setting(resource, setting)
+            held.append(resource)
+        record(f"{target} held")
+    held.clear()
+    gc.collect()
+    record("all dropped")
+    again = [DuckDBGraphResource.build_from_json(payload) for _ in range(3)]
+    for resource in again:
+        if setting:
+            _apply_setting(resource, setting)
+    record("3 built again")
+    return steps
+
+
 def build_time_ms(payload: dict[str, Any], runs: int = _DEFAULT_BUILD_RUNS) -> float:
     """Return the median time of building the graph from the payload, in milliseconds."""
     samples: list[float] = []
@@ -371,10 +408,14 @@ def measure(
     runs: int = _DEFAULT_RUNS,
     rss_count: int = _DEFAULT_RSS_COUNT,
     explain: bool = False,
+    sequence: bool = False,
+    setting: str | None = None,
 ) -> dict[str, Any]:
     """Return one measurement report for the graph at ``ref``."""
     raw = _read_ref(ref)
     payload = _decode(raw)
+    if sequence:
+        sequence_steps = rss_sequence(payload, setting)
     rss = rss_per_graph(payload, rss_count)
     resource = DuckDBGraphResource.build_from_json(payload)
     report: dict[str, Any] = {
@@ -393,6 +434,8 @@ def measure(
     }
     if explain:
         report["index_usage"] = index_usage(resource)
+    if sequence:
+        report["rss_mib"] = sequence_steps
     return report
 
 
@@ -403,8 +446,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runs", type=int, default=_DEFAULT_RUNS, help="timed runs per query")
     parser.add_argument("--rss-count", type=int, default=_DEFAULT_RSS_COUNT, help="graphs held for the RSS figure")
     parser.add_argument("--explain", action="store_true", help="add the index usage table")
+    parser.add_argument("--rss-sequence", action="store_true", help="add the issue's held-and-dropped RSS sequence")
+    parser.add_argument("--setting", metavar="NAME=VALUE", help="DuckDB setting applied to every built connection")
     args = parser.parse_args(argv)
-    report = measure(args.ref, args.runs, args.rss_count, args.explain)
+    report = measure(args.ref, args.runs, args.rss_count, args.explain, args.rss_sequence, args.setting)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0
 

@@ -61,7 +61,7 @@ cd /Users/bystrovmaxim/PythonDev/aoa && docker build -f packages/aoa-maxitor/Doc
 cd /Users/bystrovmaxim/PythonDev/aoa && docker run --rm -v "$PWD/specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz:/ref.json.gz:ro" -v "$PWD/packages/aoa-maxitor/tests:/repo/packages/aoa-maxitor/tests:ro" -w /repo/packages/aoa-maxitor maxitor-268 python -m tests.graph_build_metrics /ref.json.gz --rss-sequence
 ```
 
-Expected: an `rss_mib` list for the issue's sequence. Its last two steps answer whether memory comes back after graphs are dropped.
+Expected: an `rss_mib` list for the issue's sequence. Its last two steps answer whether memory comes back after graphs are dropped: on Linux it does — 309.0 MiB with ten graphs, 192.5 MiB after all are dropped (R10). To try one allocator setting, add `--setting "allocator_bulk_deallocation_flush_threshold='0B'"`.
 
 ## 6. Check run
 

@@ -161,3 +161,29 @@ The target is met on both graphs: 13.38 is 30.8 % of 43.51 (target 14.50), and 2
 **The process figure's method.** The baseline was read with the `getrusage` peak fallback (53.4 MiB); the after figure is current RSS through `psutil`, because `ps` is not permitted in the sandbox (the helper prefers `/proc/self/status`, then `ps`, then `psutil`, then the peak). R1's `ps` figure for the same "nothing" variant was 22.0 MiB, so the two methods agree within their noise. On the stand's Linux image the helper reads `VmRSS`.
 
 **The guard.** `tests/test_duckdb_graph_memory.py` asserts an empty `duckdb_indexes()` and no `PRIMARY KEY` in `duckdb_constraints()`, and a total at or under 1.75 MiB on the tiny graph (the build takes 1.24). The adversarial breaks were each seen and reverted: one index back fails the shape assertion, the 21 primary keys back fail both, a 300 000-row table that is not an index fails the memory assertion only, and removing `_refuse_duplicate_node_ids` fails three duplicate tests.
+
+## R10. Linux: the stand's image
+
+**Measured.** The image was built from `packages/aoa-maxitor/Dockerfile` (production code at `5ec17614`) and the sequence ran inside it:
+
+```
+docker run --rm -v .../ref-graph-2026-10-26.json.gz:/ref.json.gz:ro \
+  -v .../packages/aoa-maxitor/tests:/repo/packages/aoa-maxitor/tests:ro \
+  -w /repo/packages/aoa-maxitor maxitor-268 \
+  python -m tests.graph_build_metrics /ref.json.gz --rss-sequence
+```
+
+The process size is `VmRSS` from `/proc/self/status`. The sequence runs before any other build in the process, so `0 held` is a clean baseline. One built graph of the reference source takes 13.38 MiB in the database and the process gains 16.7 MiB per held graph on Linux (24.5 on macOS).
+
+| Step | Default | `allocator_bulk_deallocation_flush_threshold='0B'` | `allocator_flush_threshold='16MiB'` | `allocator_background_threads=true` |
+|---|---|---|---|---|
+| 0 held | 93.8 MiB | 92.5 MiB | 91.7 MiB | 94.8 MiB |
+| 1 held | 165.3 MiB | 120.3 MiB | 125.8 MiB | 144.9 MiB |
+| 5 held | 228.9 MiB | 192.5 MiB | 201.3 MiB | 210.6 MiB |
+| 10 held | 309.0 MiB | 275.1 MiB | 280.7 MiB | 292.5 MiB |
+| all dropped + `gc.collect()` | **192.5 MiB** | **170.5 MiB** | **168.9 MiB** | **179.7 MiB** |
+| 3 built again | 198.2 MiB | 173.4 MiB | 171.2 MiB | 182.2 MiB |
+
+**Answer.** On Linux, memory **is** returned to the system when graphs are dropped: the process falls from 309.0 to 192.5 MiB, about 116 MiB back, and three rebuilt graphs add only about 6 MiB over that. Unlike macOS (R6), the stand's process does not stay at the high-water mark of the graphs it once held. Nothing in the store's documentation needs to warn about a peak that never returns on Linux; it can say the opposite.
+
+**Settings.** The three allocator settings that exist in DuckDB 1.5.6 all lower the 10-graph peak by 16–34 MiB and the post-drop figure by 12–24 MiB, but none changes the answer: the memory already comes back. `allocator_bulk_deallocation_flush_threshold='0B'` gives the lowest peak (275.1 MiB). A setting was applied to each connection after `build_from_json` returned and before the graph was held or dropped: the helper has no hook inside the build, and for allocator flush behaviour that point is enough.
