@@ -5,7 +5,45 @@ list_entities_action_schema — JSON Schema for ``ListEntitiesAction.Result.doma
 
 from __future__ import annotations
 
+from typing import Any
+
 from aoa.action_machine.model import JsonSchemaValue
+
+# One line of the ERD between two tables: a relation, a dictionary reference, a generalization or a container link.
+_RELATION_ROW: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "source": {"type": "string"},
+        "target": {"type": "string"},
+        "label": {"type": "string"},
+        "relationship_kind": {"type": "string"},
+        "source_field": {
+            "type": ["string", "null"],
+            "description": "The field on the source table that points at the target; written at the target's end.",
+        },
+        "target_field": {
+            "type": ["string", "null"],
+            "description": "Its declared inverse on the target table, or null; written at the source's end.",
+        },
+        "source_cardinality": {
+            "type": "string",
+            "enum": ["one", "zero_one", "one_many", "zero_many"],
+        },
+        "target_cardinality": {
+            "type": "string",
+            "enum": ["one", "zero_one", "one_many", "zero_many"],
+        },
+    },
+    "required": [
+        "source",
+        "target",
+        "label",
+        "relationship_kind",
+        "source_cardinality",
+        "target_cardinality",
+    ],
+    "additionalProperties": False,
+}
 
 # One slice per requested domain: label, qualname, and ``list_entities`` (entities + relations).
 ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
@@ -112,32 +150,7 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                         },
                         "relations": {
                             "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "source": {"type": "string"},
-                                    "target": {"type": "string"},
-                                    "label": {"type": "string"},
-                                    "relationship_kind": {"type": "string"},
-                                    "source_cardinality": {
-                                        "type": "string",
-                                        "enum": ["one", "zero_one", "one_many", "zero_many"],
-                                    },
-                                    "target_cardinality": {
-                                        "type": "string",
-                                        "enum": ["one", "zero_one", "one_many", "zero_many"],
-                                    },
-                                },
-                                "required": [
-                                    "source",
-                                    "target",
-                                    "label",
-                                    "relationship_kind",
-                                    "source_cardinality",
-                                    "target_cardinality",
-                                ],
-                                "additionalProperties": False,
-                            },
+                            "items": _RELATION_ROW,
                         },
                         "groups": {
                             "type": "array",
@@ -192,4 +205,10 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
             "additionalProperties": False,
         },
     },
+)
+
+# Every line between two tables of the request, over all its slices at once (the merged ERD draws these).
+ListEntitiesRelationsJson = JsonSchemaValue.define(
+    name="ListEntitiesRelationsJson",
+    schema={"type": "array", "items": _RELATION_ROW},
 )

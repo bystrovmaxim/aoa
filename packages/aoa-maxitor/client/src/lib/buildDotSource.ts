@@ -17,8 +17,10 @@ export type ErdEntity = {
   id: string;
   label?: string;
   color?: string;
-  /** `enum` marks a closed dictionary; every other kind is an ordinary entity. */
+  /** The kind word the graph states for this table (``unknown`` when it states none). */
   entity_kind?: string;
+  /** The kind's display name, from ``list-entity-kinds``; the header icon's tooltip. */
+  entity_kind_label?: string;
   /**
    * The values a closed dictionary declares, in declaration order — carried by the payload
    * and by the graph for every consumer; the card does not draw them.
@@ -42,7 +44,23 @@ export type ErdRelation = {
   label?: string;
   /** `specialization` marks the line into an axis container; `generalization` marks an extension's inheritance line into its head; anything else is an ordinary link. */
   relationship_kind?: string;
+  /** Cardinality of the source end (`one` or `zero_many`), drawn as a bar or a crow's foot there. */
+  source_cardinality?: string;
+  /** Cardinality of the target end. */
+  target_cardinality?: string;
+  /** The field on the source table that points at the target: the role written at the target's end. */
+  source_field?: string | null;
+  /** Its declared inverse on the target table, or null: the role written at the source's end. */
+  target_field?: string | null;
 };
+
+/** Id Graphviz writes on the ``k``-th relation's edge group, so the post-pass finds its fields. */
+export const erdEdgeId = (k: number) => `re${k}`;
+
+/** The crow's-foot end for a cardinality: a bar for one, a crow's foot for many. */
+function erdEnd(cardinality: string | undefined): string {
+  return cardinality === "one" || cardinality === "zero_one" ? "tee" : "crow";
+}
 
 /**
  * One specialization axis, drawn as a Graphviz cluster around its alternatives.
@@ -62,6 +80,28 @@ export type ErdGraphPayload = {
   entities: ErdEntity[];
   relations: ErdRelation[];
   groups?: ErdGroup[];
+};
+
+/**
+ * Minimum width of a table's header cell, in points: a short table is as wide as the mockup's card
+ * (168 px at a 9 px field font ≈ 205–212 pt at 11 pt fields and a 12 pt header), not a stub.
+ */
+export const ERD_TABLE_MIN_WIDTH_PT = 210;
+
+/** Side of the square slot the header's kind icon is drawn into, in points. */
+export const ERD_KIND_SLOT_PT = 13;
+
+/**
+ * Ids of the cells the SVG post-pass looks up. Graphviz writes a cell's ``ID`` into the SVG only with a
+ * ``TOOLTIP`` (or ``HREF``), as ``<g id="a_<ID>">`` around the cell's fill and text — the node name is
+ * not part of it — so every id carries the table's index and is unique across the drawing.
+ */
+export const erdCellId = {
+  header: (table: number) => `hd${table}`,
+  kindSlot: (table: number) => `ks${table}`,
+  headerName: (table: number) => `hn${table}`,
+  fieldName: (table: number, row: number) => `fn${table}_${row}`,
+  fieldType: (table: number, row: number) => `ft${table}_${row}`,
 };
 
 /** Layout presets matching the old ``activeLayout`` Graphviz branch. */
@@ -141,22 +181,24 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     for (const member of group.members) grouped.add(member);
   }
   const entityById = new Map((entities ?? []).map((e) => [e.id, e]));
+  const tableIndex = new Map((entities ?? []).map((e, i) => [e.id, i]));
 
   const nodeSource = (nd: ErdEntity): string => {
     const color = nd.color || "#3b82f6";
+    const table = tableIndex.get(nd.id) ?? 0;
+    const kind = nd.entity_kind?.trim() || "unknown";
+    const kindLabel = nd.entity_kind_label || kind.charAt(0).toUpperCase() + kind.slice(1);
 
     const rows = (nd.fields || [])
-      .map((f) => {
+      .map((f, row) => {
         const bg = f.primary_key ? "#fef9c3" : f.foreign_key ? "#dbeafe" : "#ffffff";
         const icon = f.primary_key ? "PK" : f.foreign_key ? "FK" : "";
         const iconTd = icon
           ? `<TD BGCOLOR="${bg}" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>${icon}</B></FONT></TD>`
           : `<TD BGCOLOR="${bg}" WIDTH="28"></TD>`;
         // A specialization axis row collapses its alternatives into "Specialization N+"
-        // and carries the full list as the cell's hover tooltip.
-        const reference = f.reference_qualname
-          ? ` <FONT COLOR="#0f766e">→ ${escHtml(String(f.reference_qualname).split(".").pop() || "")}</FONT>`
-          : "";
+        // and carries the full list as the cell's hover tooltip. The line already says what a field
+        // references, so the type cell carries no "→ target" of its own.
         const specialization = parseSpecializationType(f.type || "");
         const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : f.type || "";
         const tooltipAttr =
@@ -165,12 +207,12 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
                 .map((alt) => `${alt.code} → ${resolveTableLabel(alt.name, entities ?? [])}`)
                 .map(escHtml)
                 .join("&#10;")}"`
-            : "";
+            : ` TOOLTIP="${escHtml(typeText)}"`;
         return (
           "<TR>" +
           iconTd +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT">${escHtml(f.name)}</TD>` +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT>${reference}</TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="Click to copy">${escHtml(f.name)}</TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT></TD>` +
           "</TR>"
         );
       })
@@ -178,9 +220,18 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
     return (
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
-      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER">` +
-      `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT>` +
-      `</TD></TR>${rows}</TABLE>>]`
+      // One header cell with the domain fill (the card's rounding trims it); inside, the kind icon slot
+      // and the name, each filled with the same colour so Graphviz emits their boxes. Graphviz spreads
+      // the header's extra width over these cells, so the post-pass centres icon and name together.
+      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER" WIDTH="${ERD_TABLE_MIN_WIDTH_PT}" ` +
+      `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(nd.label || nd.id)}">` +
+      `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>` +
+      `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
+      `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
+      `<TD WIDTH="4"></TD>` +
+      `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="Click to copy" BGCOLOR="${color}">` +
+      `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT></TD>` +
+      `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
     );
   };
 
@@ -192,7 +243,10 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     lines.push(
       `  subgraph "cluster_${group.group_id}" {`,
       `    label="${escHtml(group.label)}";`,
-      '    style="rounded,dashed";',
+      // See-through but half a tone darker than the canvas, with an outline one point wider than before.
+      '    style="rounded,dashed,filled";',
+      '    fillcolor="#0f172a0d";',
+      '    penwidth=2;',
       '    color="#94a3b8";',
       '    fontsize=10;',
       '    margin=12;',
@@ -207,15 +261,26 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
   }
 
   lines.push("");
-  for (const ed of relations ?? []) {
+  (relations ?? []).forEach((ed, k) => {
     // The axis relation is already carried by the head's field row ("details (by variant_code)")
     // and by the container that holds the alternatives — no edge is drawn for it.
-    if (ed.relationship_kind === "specialization") continue;
-    const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-    const arrow = ed.relationship_kind === "generalization" ? "arrowhead=empty " : "";
-    const attrs = `${label}${arrow}`.trim();
-    lines.push(`  "${ed.source}" -> "${ed.target}"${attrs ? ` [${attrs}]` : ""}`);
-  }
+    if (ed.relationship_kind === "specialization") return;
+    const id = `id="${erdEdgeId(k)}" `;
+    if (ed.relationship_kind === "generalization" || !ed.source_field) {
+      // A generalization keeps its hollow triangle; a row from an older server keeps its middle label.
+      const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
+      const arrow = ed.relationship_kind === "generalization" ? "arrowhead=empty " : "";
+      lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${arrow}`.trim()}]`);
+      return;
+    }
+    // One association, read the ERD way: each end shows how many of the table it touches, and the
+    // role that table plays is written next to it; nothing in the middle.
+    const tail = ed.target_field ? ` taillabel="${escHtml(ed.target_field)}"` : "";
+    lines.push(
+      `  "${ed.source}" -> "${ed.target}" [${id}dir=both arrowtail=${erdEnd(ed.source_cardinality)} ` +
+        `arrowhead=${erdEnd(ed.target_cardinality)} headlabel="${escHtml(ed.source_field)}"${tail} labelfontsize=9]`,
+    );
+  });
   lines.push("}");
   return lines.join("\n");
 }

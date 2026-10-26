@@ -1,5 +1,6 @@
 // src/lib/loadErdDomainsBundle.ts
-import { listDomains, listEntities } from "@/api/erd";
+import { listDomains, listEntities, listEntityKinds } from "@/api/erd";
+import type { EntityKindRow } from "@/model/erd";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import { allocateDomainTabKey } from "@/lib/domainTabKeys";
 
@@ -15,6 +16,10 @@ export type ErdDomainsBundle = {
   domain_tab_labels?: Record<string, string>;
   /** First domain row label for the diagram title (optional). */
   first_domain_label?: string;
+  /** Every line between two tables of the whole request; the merged ERD draws these, pruned to the screen. */
+  relations?: unknown[];
+  /** Entity kinds of the loaded graph with their display names (``list-entity-kinds``). */
+  entity_kinds?: EntityKindRow[];
 };
 
 export type ErdDomainSliceRequest = {
@@ -49,7 +54,10 @@ export async function loadErdDomainsBundle(
   const domain_qualifiers: Record<string, string> = {};
   const domain_tab_labels: Record<string, string> = {};
 
-  const { domain_slices: payloads } = await listEntities(quals, includeOneHopNeighbors);
+  const [{ domain_slices: payloads, relations }, kinds] = await Promise.all([
+    listEntities(quals, includeOneHopNeighbors),
+    listEntityKinds(),
+  ]);
   let first_domain_label: string | undefined;
   for (const p of payloads) {
     const key = allocateDomainTabKey(used, p.domain_label);
@@ -59,7 +67,16 @@ export async function loadErdDomainsBundle(
     if (first_domain_label === undefined) first_domain_label = p.domain_label;
   }
 
-  return { domains, domain_qualifiers, domain_qualifier_colors, domain_qualifier_labels, domain_tab_labels, first_domain_label };
+  return {
+    domains,
+    domain_qualifiers,
+    domain_qualifier_colors,
+    domain_qualifier_labels,
+    domain_tab_labels,
+    first_domain_label,
+    relations,
+    entity_kinds: kinds.list_entity_kinds,
+  };
 }
 
 export async function loadErdDomainSlicesBundle(

@@ -129,8 +129,8 @@ keeps a real catalogue — a list of regions, say — from setting the height of
 The values are still in the graph and in the ERD response for anything that needs them, and the
 [next section](#follow-one-property-across-the-boundary) follows a value's properties across that
 boundary.
-The values are not separate cards or graph nodes. A dictionary selection uses an explicit ordinary relationship, including One/Many and ownership containers. Its retained field row names the
-referenced dictionary beside its type, with an arrow marker. The current payload also contains
+The values are not separate cards or graph nodes. A dictionary selection uses an explicit ordinary relationship, including One/Many and ownership containers. Its retained field row shows the
+field's type; the line drawn from that row to the dictionary's table says what it references. The current payload also contains
 a synthesized FK row for the same field; this duplication is a confirmed limitation, not two
 separate domain fields.
 
@@ -397,11 +397,60 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 
 ## Entity kinds in the graph and store
 
-Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base: `core`, `assoc`, `detail`, `spec` or `enum`. The graph schema also admits `state`, but state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads the kind into its `entity` table and preserves it in the reconstructed node payload.
+Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base, and `properties.entity_kind_label`, the name that base declares as `KIND_LABEL` ([Step 20](step-20-entity.md#name-a-kind-for-readers-of-the-graph)). AOA's graphs state `core`, `assoc`, `detail`, `spec` and `enum`; state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads both values into its `entity` table and preserves them in the reconstructed node payload.
 
-The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) prints `graph: core` and `Maxitor store: core` for the same order. A graph produced before this required property was added must be regenerated. Class renames also change labels and identifiers containing qualified Python names.
+The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) prints `graph: core` and `Maxitor store: core` for the same order. A graph produced before the kind was required must be regenerated. Class renames also change labels and identifiers containing qualified Python names.
 
-This makes the domain distinction available to consumers. It does not yet change the renderer: associative entities are not automatically hidden or replaced by direct edges. Such a presentation can safely rely on `assoc` only because that kind means a technical link without business data; a supplier offer with price and terms is a core object and must retain its own representation.
+Maxitor keeps no list of kinds of its own: it shows what the graph states. `GET /api/v1/list-entity-kinds?source=<url>` answers the kinds of the loaded graph, ordered by word, each with the name the graph gives it. [The kinds example](../../examples/step_26_maxitor/06_entity_kinds.py) ([notebook](../../examples/step_26_maxitor/06_entity_kinds.ipynb)) shows the four cases:
+
+```text
+1. An AOA graph
+   {'entity_kind': 'core', 'label': 'Core'}
+   {'entity_kind': 'enum', 'label': 'Enumeration'}
+   …
+2. Another producer's graph
+   {'entity_kind': 'aggregate', 'label': 'Aggregate root'}
+   {'entity_kind': 'event', 'label': 'Event'}
+   {'entity_kind': 'link', 'label': 'Link'}
+3. A graph that states no kind
+   {'entity_kind': 'unknown', 'label': 'Unknown'}
+4. A kind that is not a string
+   GET /api/v1/list-entity-kinds -> 422 Entity node 'shop.BrokenEntity' …
+```
+
+A kind the graph names nowhere is named by its word with the first letter capitalised (`event` → `Event`). A row with no kind still loads and is listed as `unknown`, so an old or foreign graph opens instead of failing. A kind or name that is not a string is the producer's error: the load is refused with `422`, and the message names the row.
+
+The kind distinction does not change what is drawn on its own: associative entities are not automatically hidden or replaced by direct edges. Such a presentation can safely rely on `assoc` only because that kind means a technical link without business data; a supplier offer with price and terms is a core object and must retain its own representation.
+
+## Read and filter the ERD
+
+**The filter panel.** The ERD has one panel at its top left with two sections, **Domains** and **Kinds**. They fold like an accordion: one is open at a time, Domains when the diagram opens. A row is a coloured disk with a name; clicking it hides or shows those tables, and a switched-off row is dimmed. Kinds lists the answer of `list-entity-kinds` and appears only when the graph has more than one kind; its disks are grey with the kind's icon, because colour on this diagram means the domain. The panel is 148 px wide and never widens: a name that does not fit ends with an ellipsis and shows in full on hover. On a narrow screen the panel starts as a **Filter** pill.
+
+**The table.** A table's header shows its kind's white icon beside its name, in the domain colour: a small table for Core, a chain link for Association, a branch off its owner for Detail, layers for Specialization, a list for Enumeration, a target for State, a question mark for a row that states no kind, and the word's first two letters for a kind Maxitor does not know. A table is at least as wide as a short card, so a two-field table is not a stub. Types sit at the right edge of the row. A relation field's type is the name of the table it points to — the old `FK -> ` prefix and the `→` after a dictionary type are gone, because the line already says it.
+
+**The lines.** A line is drawn whenever both of its tables are on screen, whatever brought each there: the domain itself, a 1-hop neighbour, or another domain shown in the same view. A relation field and its declared inverse are one association, so they are one line, not two. Each end shows its cardinality the ERD way — a bar for one, a crow's foot for many — and the name of the field on that side, which is that end's role. A relation without an inverse is a line with one role. A specialization head has a line to the dictionary its axis is classified by, and an extension keeps its generalization line to its head. The specialization container is a little darker than the canvas, with a border 1 px thicker, so it reads as a frame.
+
+[The lines example](../../examples/step_26_maxitor/07_erd_lines.py) ([notebook](../../examples/step_26_maxitor/07_erd_lines.ipynb)) reads these lines from `GET /api/v1/list-entities`:
+
+```text
+1. Events with 1-hop: the neighbours Player and Showcase are joined
+   Player [zero_many] players —— showcase [one] Showcase
+2. A relation without an inverse
+   Offer [zero_many] —— player [one] Player
+3. The specialization head and its axis dictionary
+   UserEvent [zero_many] —— kind [one] EventKind
+4. A generalization
+   LoginSpec —generalization→ UserEvent
+5. Players + Showcases: the cross-slice line
+   in the Players slice: False, in the Showcases slice: False, in the request list: True
+   Offer [zero_many] —— industry [one] Industry
+```
+
+Case 5 is why the response has a top-level `relations` list beside its per-domain slices: when two domains are shown together, a line whose tables come from two different slices belongs to neither slice, but it belongs on the screen. A row of that list names the field on each side as `source_field` and `target_field`.
+
+**Following a line.** Hovering a line thickens and darkens it, raises it above the others, and marks in bold the field it starts from and the field it ends at, on both tables. Hovering a field marks every line that field belongs to, and the fields at their other ends. Nothing changes colour or background: the marking is in the weight of the text.
+
+**Copying a name.** Clicking a table's name or a field's name copies it, and a note such as `Copied player_id` appears at the bottom for a moment. Dragging the canvas never copies: a press that moves more than a few pixels is a pan.
 
 ## Follow a dictionary reference
 

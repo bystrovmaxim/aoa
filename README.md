@@ -127,7 +127,7 @@ Hello, World!
 | [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
 | [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
-| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.0.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
+| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.2.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
 
 ---

@@ -24,7 +24,7 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -37,10 +37,12 @@ class BaseAssocEntity(BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A degenerate association with no domain data of its own — it records only that two or more objects are connected.
-        CONTRACT: Participant references and service fields (``id``, ``created_at``, ``updated_at``) are allowed; the link is not an owned part and is not an independent object.
+        CONTRACT: Participant references and service fields (``id``, ``created_at``, ``updated_at``) are allowed; the link is not an owned part and is not an independent object. Its display name in the graph is ``KIND_LABEL`` = "Association".
         INVARIANTS: No Lifecycle, no Specialization head, no Generalization, never a Composite target. Price, quantity, terms or responsibilities mean the class is a core entity instead.
     AI-CORE-END
     """
+
+    KIND_LABEL: ClassVar[str] = "Association"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
