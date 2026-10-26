@@ -170,7 +170,7 @@ The operator of the stand knows what to expect from the process size on Linux: w
 ## Assumptions
 
 - The reference source is the one the issue names; its size has changed since the issue was written. "Before" and "after" are measured on the copy saved on 2026-10-26, kept in this feature's folder as `data/ref-graph-2026-10-26.json.gz` (SHA-256 of the uncompressed bytes `a9d73e90b8c486fc18a3304b3eacf024a229a9642b71709af8bb919ebf0f84cf`), so the comparison stays reproducible if the source changes again.
-- The largest graph in the tests is the demo's graph (`aoa-demo`, 3 264 nodes and 4 907 edges, about seven times the reference source). It stands in for a larger service; no larger graph is generated for this work.
+- The largest graph in the tests is the demo's graph (`aoa-demo`, 3 213 nodes and 4 841 edges, about seven times the reference source). It stands in for a larger service; no larger graph is generated for this work.
 - Byte-for-byte equality of answers is proven by the existing payload tests plus a direct before/after comparison of every answer on the reference source and on the demo's graph.
 - The database stays DuckDB; what an index costs and how memory is released are measured on the version the repository locks.
 - The stand's container image is the one built from `packages/aoa-maxitor/Dockerfile`.

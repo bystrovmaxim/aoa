@@ -61,7 +61,7 @@ Nothing filters `state` by `kind` or by `lifecycle_class_id`, so `ix_state_kind`
 
 ## R4. The largest graph in the tests
 
-**Found.** The demo's graph (`aoa-demo`, `build_registered_interchange_coordinator()`, used in `packages/aoa-demo/tests/test_demo_dictionary_graph.py`): **3 264 nodes and 4 907 edges**, about seven times the reference source. It stands in for a larger service (edge case "an index that matters only on a larger graph").
+**Found.** The demo's graph (`aoa-demo`, `build_registered_interchange_coordinator()`, used in `packages/aoa-demo/tests/test_demo_dictionary_graph.py`): **3 213 nodes and 4 841 edges** (measured with the helper on 2026-10-26), about seven times the reference source. An earlier note said 3 264 and 4 907; that figure no longer matches the code. It stands in for a larger service (edge case "an index that matters only on a larger graph").
 
 **Constraint.** `aoa-maxitor` does not depend on `aoa-demo`, and `scripts/check_package_boundaries.py` keeps it that way. The measurement therefore reads a graph from a URL or a JSON file, and the demo's graph is written to a file with a one-line command run from the workspace environment (see quickstart). Maxitor's tests never import the demo.
 
@@ -104,3 +104,30 @@ Memory per fresh build is deterministic, also inside one process: two graphs bui
 **Where it runs.** CI (`.github/workflows/ci.yml`) builds the client and checks that Git is clean; it does not run pytest. The guard therefore runs only in the local check run (`scripts/run_checks_with_log.sh`). Its ceiling is in absolute MiB, measured on macOS with the locked DuckDB, and another platform may report slightly different figures. The test's docstring says both things, so whoever sees it fail elsewhere knows where the number came from (FR-013).
 
 **Why the tiny graph.** It builds in milliseconds and is already written in the test suite. An index costs far less there than on the reference graph: about 0.04 MiB, against about 1 MiB measured for one index on top of the "nothing" variant (R1). That is why the shape layer, not the memory layer, is what catches a single index.
+
+## R8. Baseline, measured through the helper
+
+**Method.** `python -m tests.graph_build_metrics <graph>` from `packages/aoa-maxitor`: 21 timed runs per query after 3 warm-ups, with the slowest parameter reported per family; the process figure from ten graphs held in one process; the build time as the median of seven builds. Two full runs gave identical `memory_mib` and `fingerprints` (15 keys on the reference, 243 on the demo). Full reports: `data/baseline-ref.json` and `data/baseline-demo.json`.
+
+| Figure | Reference | Demo |
+|---|---|---|
+| Source | `data/ref-graph-2026-10-26.json.gz`, SHA-256 `a9d73e90…f84cf`, 326 063 bytes, 440 nodes, 550 edges | `build_registered_interchange_coordinator()` at `fd10ed4b`, SHA-256 `54a5e91c…d488a4`, 2 708 885 bytes, 3 213 nodes, 4 841 edges |
+| `ART_INDEX` | 38.00 MiB | 57.50 MiB |
+| `IN_MEMORY_TABLE` | 5.26 MiB | 7.93 MiB |
+| `OVERFLOW_STRINGS` | 0.25 MiB | — |
+| **total** | **43.51 MiB** | **65.43 MiB** |
+| Process size gained per graph | 53.4 MiB | 77.6 MiB |
+| Build time, median of 7 | 125.3 ms | 850.8 ms |
+| `list-domains` | 1.23 ms | 1.39 ms |
+| `list-node-types` | 2.38 ms | 2.42 ms |
+| `full-graph` | 5.86 ms | 19.83 ms |
+| `sidebar` | 4.30 ms | 20.10 ms |
+| `list-entities` (slowest domain) | 25.56 ms | 31.65 ms |
+| `domain-use-case-diagram` (slowest domain) | 6.40 ms | 7.36 ms |
+| `lifecycle-finite-automaton` (slowest lifecycle) | 4.42 ms | 6.57 ms |
+
+The demo's figures are for the graph as it is at commit `fd10ed4b`; the SHA-256 makes it regenerable. It has 3 213 nodes and 4 841 edges, not the 3 264 and 4 907 that R4 used to say.
+
+**The process figure's method.** The helper reads `VmRSS` on Linux and `ps -o rss=` elsewhere. The sandbox in which this baseline was taken does not permit `ps`, so the helper used its `getrusage` peak fallback; the method is named in the JSON as `getrusage-peak`. R1's `ps` figure for the same graph and schema was 54.3 MiB per graph, against 53.4 here, so the two agree.
+
+**Timings are noisier than memory.** Two full runs of the demo differed by up to 30 % on `domain-use-case-diagram` (7.36 against 9.48 ms), while three isolated repeats of that family agreed at 7.1–7.2 ms. The table keeps the faster full run, and phase 5 compares the faster of three runs per graph, so a transient slow session cannot fake a regression. `memory_mib` and `fingerprints` did not move between runs.
