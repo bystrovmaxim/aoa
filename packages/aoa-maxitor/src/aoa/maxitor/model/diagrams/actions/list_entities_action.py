@@ -9,7 +9,7 @@ PURPOSE
 Return ``ERD_DATA``-shaped slices per requested ``BaseDomain`` interchange id from
 ``connections["DuckDBGraph"]``. Scalar columns come from ``entity_field`` /
 ``entity_field_edges`` (interchange ``EntityField`` vertices + ``entity_field`` composition
-edges); relation slots appear as ``FK -> …`` rows. The wire ``domain_slices`` field uses
+edges); relation slots appear as FK rows whose type is the target table's label. The wire ``domain_slices`` field uses
 ``ListEntitiesDomainSlicesJson`` from
 :mod:`~aoa.maxitor.model.diagrams.actions.list_entities_action_schema` (a
 :class:`~aoa.action_machine.model.json_schema_value.JsonSchemaValue` alias).
@@ -31,7 +31,10 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi.query_field_before import QUERY_STR_LIST_BEFORE
-from aoa.maxitor.model.diagrams.actions.list_entities_action_schema import ListEntitiesDomainSlicesJson
+from aoa.maxitor.model.diagrams.actions.list_entities_action_schema import (
+    ListEntitiesDomainSlicesJson,
+    ListEntitiesRelationsJson,
+)
 from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
@@ -117,7 +120,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         #             {"name": "currency_iso", "type": "str", "primary_key": false, "foreign_key": false},
         #             {
         #               "name": "chargeback_ingest_correlate",
-        #               "type": "FK -> BillingChargebackIngestCorrelateCoreEntity",
+        #               "type": "BillingChargebackIngestCorrelateCoreEntity",
         #               "primary_key": false,
         #               "foreign_key": true,
         #             },
@@ -146,6 +149,13 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         domain_slices: ListEntitiesDomainSlicesJson = Field(
             description="One entry per requested domain: domain_label, domain_qualname, list_entities.",
         )
+        relations: ListEntitiesRelationsJson = Field(
+            default_factory=list,
+            description=(
+                "Every line between two tables of the whole request (the union of its slices); the merged "
+                "multi-domain ERD draws these, pruned to the tables on screen."
+            ),
+        )
 
     @staticmethod
     def _domain_label(duck: DuckDBGraphResource, qual: str) -> str:
@@ -155,6 +165,123 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             [qual],
         ).fetchone()
         return str(row[0]) if row else qual
+
+    @staticmethod
+    def _selection_cte(domain_count: int, include_neighbors: bool) -> str:
+        """``domain_entity`` and ``selected_entity`` CTEs for ``domain_count`` domain ids bound as parameters."""
+        placeholders = ", ".join("?" for _ in range(domain_count))
+        neighbor_clause = (
+            """
+          UNION
+          SELECT er.target_id FROM entity_relation_edges er JOIN domain_entity de ON er.source_id = de.id
+          UNION
+          SELECT er.source_id FROM entity_relation_edges er JOIN domain_entity de ON er.target_id = de.id
+          UNION
+          SELECT rr.target_id FROM entity_reference_edges rr JOIN domain_entity de ON rr.source_id = de.id
+          UNION
+          SELECT rr.source_id FROM entity_reference_edges rr JOIN domain_entity de ON rr.target_id = de.id
+            """
+            if include_neighbors
+            else ""
+        )
+        return f"""
+        WITH domain_entity AS (
+          SELECT source_id AS id FROM domain_edges WHERE target_id IN ({placeholders})
+        ), selected_entity AS (
+          SELECT id FROM domain_entity
+          {neighbor_clause}
+        )"""
+
+    @staticmethod
+    def _association_rows(duck: DuckDBGraphResource, quals: list[str], include_neighbors: bool) -> list[dict[str, Any]]:
+        """Relations, dictionary references and axis dictionaries whose two ends are both among the selected entities.
+
+        Why a table is on screen — its own domain or a 1-hop neighbour — never decides whether its lines are drawn.
+        A relation field and its declared inverse are one association and give one row: ``source_field`` is the
+        canonical field (the side with cardinality ``one``; on a tie the smaller table id, then the smaller field
+        name), ``target_field`` its inverse; a relation without an inverse is its own row with ``target_field`` null.
+        """
+        sql = ListEntitiesAction._selection_cte(len(quals), include_neighbors) + """
+        , rel AS (
+          SELECT er.*
+          FROM entity_relation_edges er
+          JOIN selected_entity src ON src.id = er.source_id
+          JOIN selected_entity tgt ON tgt.id = er.target_id
+        )
+        SELECT * FROM (
+          SELECT r.source_id AS source, r.target_id AS target,
+                 CASE WHEN r.cardinality = '' THEN r.field_name ELSE r.field_name || ' (' || r.cardinality || ')' END AS label,
+                 COALESCE(NULLIF(r.relation_type, ''), 'association') AS relationship_kind,
+                 CASE
+                   WHEN i.field_name IS NULL THEN CASE WHEN r.cardinality = 'one' THEN 'zero_many' ELSE 'one' END
+                   WHEN i.cardinality = 'one' THEN 'one'
+                   ELSE 'zero_many'
+                 END AS source_cardinality,
+                 CASE WHEN r.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality,
+                 r.field_name AS source_field,
+                 i.field_name AS target_field
+          FROM rel r
+          LEFT JOIN rel i
+            ON COALESCE(r.inverse_field, '') <> ''
+           AND i.source_id = r.target_id
+           AND i.target_id = r.source_id
+           AND i.field_name = r.inverse_field
+          WHERE i.field_name IS NULL
+             OR (r.cardinality = 'one' AND i.cardinality <> 'one')
+             OR ((r.cardinality = 'one') = (i.cardinality = 'one')
+                 AND (r.source_id < i.source_id OR (r.source_id = i.source_id AND r.field_name < i.field_name)))
+          UNION ALL
+          SELECT rr.source_id AS source, rr.target_id AS target, rr.field_name AS label,
+                 'reference' AS relationship_kind,
+                 'one' AS source_cardinality,
+                 'zero_many' AS target_cardinality,
+                 rr.field_name AS source_field,
+                 CAST(NULL AS VARCHAR) AS target_field
+          FROM entity_reference_edges rr
+          JOIN selected_entity src ON src.id = rr.source_id
+          JOIN selected_entity tgt ON tgt.id = rr.target_id
+          UNION ALL
+          -- A specialization head draws a line to the dictionary its axis is classified by.
+          SELECT DISTINCT ese.source_id AS source, ese.dictionary_qualname AS target, ese.field_name AS label,
+                 'reference' AS relationship_kind,
+                 'zero_many' AS source_cardinality,
+                 'one' AS target_cardinality,
+                 ese.field_name AS source_field,
+                 CAST(NULL AS VARCHAR) AS target_field
+          FROM entity_specialization_edges ese
+          JOIN selected_entity src ON src.id = ese.source_id
+          JOIN selected_entity tgt ON tgt.id = ese.dictionary_qualname
+        ) rows
+        ORDER BY source, target, label
+        """
+        return duck.execute_fetch_dicts(sql, quals)
+
+    @staticmethod
+    def _generalization_rows(
+        duck: DuckDBGraphResource, quals: list[str], include_neighbors: bool
+    ) -> list[dict[str, Any]]:
+        """Extension → head lines whose two ends are both among the selected entities."""
+        sql = ListEntitiesAction._selection_cte(len(quals), include_neighbors) + """
+        SELECT pe.source_id AS source, pe.target_id AS target,
+               CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
+               'generalization' AS relationship_kind,
+               'zero_many' AS source_cardinality,
+               'one' AS target_cardinality
+        FROM parent_entity_edges pe
+        JOIN selected_entity src ON src.id = pe.source_id
+        JOIN selected_entity tgt ON tgt.id = pe.target_id
+        ORDER BY pe.source_id, pe.target_id
+        """
+        return duck.execute_fetch_dicts(sql, quals)
+
+    @staticmethod
+    def request_relations(duck: DuckDBGraphResource, quals: list[str], include_neighbors: bool) -> list[dict[str, Any]]:
+        """Every line between two tables of the whole request, so a line whose ends come from two slices exists."""
+        if not quals:
+            return []
+        rows = ListEntitiesAction._association_rows(duck, quals, include_neighbors)
+        rows.extend(ListEntitiesAction._generalization_rows(duck, quals, include_neighbors))
+        return rows
 
     @staticmethod
     def _slice_payload(duck: DuckDBGraphResource, qual: str, include_neighbors: bool) -> dict[str, Any]:
@@ -180,7 +307,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT id FROM domain_entity
           {neighbor_clause}
         ), fk AS (
-          SELECT er.source_id AS entity_id, er.field_name AS name, 'FK -> ' || target.label AS type, TRUE AS foreign_key
+          SELECT er.source_id AS entity_id, er.field_name AS name, target.label AS type, TRUE AS foreign_key
           FROM entity_relation_edges er
           JOIN selected_entity src ON src.id = er.source_id
           JOIN selected_entity tgt ON tgt.id = er.target_id
@@ -250,7 +377,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           FROM field_rows fr
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
-               e.entity_kind AS entity_kind, e.values_json AS values_json,
+               e.entity_kind AS entity_kind, e.values_json AS values_json, e.declares_values AS declares_values,
                COALESCE(
                  list(struct_pack(
                    field_id := fr.field_node_id,
@@ -273,7 +400,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         JOIN entity e ON e.id = se.id
         LEFT JOIN domain_edges de ON de.source_id = e.id
         LEFT JOIN ordered_field_rows fr ON fr.entity_id = e.id
-        GROUP BY e.id, e.label, e.entity_kind, e.values_json
+        GROUP BY e.id, e.label, e.entity_kind, e.values_json, e.declares_values
         ORDER BY e.id
     """
         group_sql = f"""
@@ -294,38 +421,7 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         HAVING COUNT(DISTINCT ese.target_id) > 1
         ORDER BY ese.source_id, ese.field_name
         """
-        relation_sql = f"""
-        WITH domain_entity AS (
-          SELECT source_id AS id FROM domain_edges WHERE target_id = ?
-        ), selected_entity AS (
-          SELECT id FROM domain_entity
-          {neighbor_clause}
-        )
-        SELECT * FROM (
-          SELECT er.source_id AS source, er.target_id AS target,
-                 CASE WHEN er.cardinality = '' THEN er.field_name ELSE er.field_name || ' (' || er.cardinality || ')' END AS label,
-                 COALESCE(NULLIF(er.relation_type, ''), 'association') AS relationship_kind,
-                 CASE WHEN er.cardinality = 'one' THEN 'zero_many' ELSE 'one' END AS source_cardinality,
-                 CASE WHEN er.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality
-          FROM entity_relation_edges er
-          JOIN selected_entity src ON src.id = er.source_id
-          JOIN selected_entity tgt ON tgt.id = er.target_id
-          WHERE er.source_id IN (SELECT id FROM domain_entity)
-             OR er.target_id IN (SELECT id FROM domain_entity)
-          UNION ALL
-          SELECT rr.source_id AS source, rr.target_id AS target, rr.field_name AS label,
-                 'reference' AS relationship_kind,
-                 'one' AS source_cardinality,
-                 'zero_many' AS target_cardinality
-          FROM entity_reference_edges rr
-          JOIN selected_entity src ON src.id = rr.source_id
-          JOIN selected_entity tgt ON tgt.id = rr.target_id
-          WHERE rr.source_id IN (SELECT id FROM domain_entity)
-             OR rr.target_id IN (SELECT id FROM domain_entity)
-        ) rows
-        ORDER BY source, target, label
-    """
-        relations = duck.execute_fetch_dicts(relation_sql, [qual])
+        relations = ListEntitiesAction._association_rows(duck, [qual], include_neighbors)
         groups = duck.execute_fetch_dicts(group_sql, [qual])
         relations.extend(
             {
@@ -343,24 +439,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         for group in groups:
             group.pop("dictionary_label", None)
         # The generalization half of the axis: each extension points at its head.
-        parent_entity_sql = """
-        WITH domain_entity AS (
-          SELECT source_id AS id FROM domain_edges WHERE target_id = ?
-        )
-        SELECT pe.source_id AS source, pe.target_id AS target,
-               CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
-               'generalization' AS relationship_kind,
-               'zero_many' AS source_cardinality,
-               'one' AS target_cardinality
-        FROM parent_entity_edges pe
-        WHERE pe.source_id IN (SELECT id FROM domain_entity)
-          AND pe.target_id IN (SELECT id FROM domain_entity)
-        ORDER BY pe.source_id, pe.target_id
-        """
-        relations.extend(duck.execute_fetch_dicts(parent_entity_sql, [qual]))
+        relations.extend(ListEntitiesAction._generalization_rows(duck, [qual], include_neighbors))
         entities = duck.execute_fetch_dicts(entity_sql, [qual])
         for entity in entities:
-            if entity.get("entity_kind") == "enum":
+            # A table that declares values is a dictionary card, whatever its kind word is called.
+            if entity.pop("declares_values"):
                 # The card shows labels: the two rows the dictionary kind supplies are storage
                 # identity, and the code stays in ``values`` for every consumer that needs it.
                 entity["fields"] = [
@@ -404,4 +487,5 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             }
             for qual in params.domain_qualnames
         ]
-        return ListEntitiesAction.Result(domain_slices=slices)
+        relations = self.request_relations(duck, list(dict.fromkeys(params.domain_qualnames)), params.include_one_hop_neighbors)
+        return ListEntitiesAction.Result(domain_slices=slices, relations=relations)

@@ -53,13 +53,31 @@ TEntity = TypeVar("TEntity", bound=BaseEntity)
 
 def entity_kind_of(entity_cls: type) -> str:
     """The word a class's kind base class declares through its own name."""
+    return _kind_base_of(entity_cls).__name__.removeprefix("Base").removesuffix("Entity").lower()
+
+
+def _kind_base_of(entity_cls: type) -> type:
+    """The class in ``entity_cls``'s MRO that inherits ``BaseEntity`` directly."""
     for base in entity_cls.__mro__:
         if BaseEntity in base.__bases__:
-            return base.__name__.removeprefix("Base").removesuffix("Entity").lower()
+            return base
     raise TypeError(
         f"{entity_cls.__name__} carries no kind base class, so its row cannot state a kind; "
         f"inherit one of the six base classes instead of BaseEntity itself."
     )
+
+
+def entity_kind_label_of(entity_cls: type) -> str:
+    """
+    The display name a class's kind base declares for its kind.
+
+    AI-CORE-BEGIN
+        ROLE: Reads the human name of an entity's kind for the interchange graph: ``BaseAssocEntity`` -> "Association".
+        CONTRACT: Returns ``KIND_LABEL`` from the body of the same kind base ``entity_kind_of`` finds; the label is declared there and checked at class creation.
+        FAILURES: ``TypeError`` when the class carries no kind base class.
+    AI-CORE-END
+    """
+    return str(_kind_base_of(entity_cls).__dict__["KIND_LABEL"])
 
 
 @dataclass(init=False, frozen=True)
@@ -87,7 +105,11 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         description = EntityIntentResolver.resolve_description(entity_cls)
         field_edges = EntityFieldGraphEdge.get_entity_field_edges(entity_cls)
         kind = entity_kind_of(entity_cls)
-        properties: dict[str, Any] = {"description": description, "entity_kind": kind}
+        properties: dict[str, Any] = {
+            "description": description,
+            "entity_kind": kind,
+            "entity_kind_label": entity_kind_label_of(entity_cls),
+        }
         if kind == "enum":
             declared = cast(Any, entity_cls).members
             properties["values"] = [member.to_reference() for member in declared]
@@ -118,6 +140,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         properties: dict[str, Any] = {
             "description": str(self.properties["description"]),
             "entity_kind": str(self.properties["entity_kind"]),
+            "entity_kind_label": str(self.properties["entity_kind_label"]),
         }
         if "values" in self.properties:
             properties["values"] = self.properties["values"]

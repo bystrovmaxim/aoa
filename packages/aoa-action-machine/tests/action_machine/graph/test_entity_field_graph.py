@@ -33,7 +33,7 @@ from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
 def test_entity_node_json_omits_nested_fields() -> None:
     node = EntityGraphNode(SampleCoreEntity)
     row = node.to_dict()
-    assert row["properties"].keys() == {"description", "entity_kind"}
+    assert row["properties"].keys() == {"description", "entity_kind", "entity_kind_label"}
     assert "fields" not in row["properties"]
     assert "field_order" not in row["properties"]
 

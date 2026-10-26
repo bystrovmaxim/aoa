@@ -88,16 +88,18 @@ assert.ok(dot.includes(">bool<"), "The dictionary field lost its type");
 assert.ok(dot.includes(">amount<"), "A plain entity lost its field row");
 
 // The reference is one arrow to the dictionary, labelled with the field, and the row
-// keeps the dictionary name as its type — the same text is never printed twice.
+// keeps the dictionary name as its type — with no "→ name" after it (spec 027, FR-031):
+// the line already says what the field references.
 assert.ok(
   dot.includes('"shop.OfferCoreEntity" -> "shop.RichEnumEntity"'),
   "The reference edge is not drawn",
 );
 assert.ok(dot.includes('label="region"'), "The reference edge lost its field label");
+assert.ok(!dot.includes("→"), "A type cell repeats the line with a → suffix");
 assert.equal(
-  (dot.match(/→ RichEnumEntity/g) || []).length,
+  (dot.match(/<I>RichEnumEntity<\/I>/g) || []).length,
   1,
-  "The reference name is printed more than once",
+  "The row does not name the dictionary exactly once as its type",
 );
 
 // A graph saved before the change carries only reference_qualname: it still renders, and
@@ -126,7 +128,8 @@ const legacyDot = buildDotSource({
   ],
   relations: [],
 }, "gv-dot-lr");
-assert.ok(legacyDot.includes("→ RichEnumEntity"), "A legacy graph lost its reference text");
+assert.ok(legacyDot.includes("<I>RichEnumEntity</I>"), "A legacy graph's row no longer names its dictionary");
+assert.ok(!legacyDot.includes("→"), "A legacy graph's type cell carries a → suffix");
 assert.ok(
   !legacyDot.includes('"shop.LegacyOfferCoreEntity" ->'),
   "A legacy graph invented an edge it does not carry",
@@ -166,15 +169,17 @@ for (const count of [0, 1, 3, 26, 93]) {
   );
 }
 
-// The golden captured before this change: an ordinary card must be byte-identical, not
-// merely still present. Recorded in specs/022-erd-without-dictionary-values/evidence/baseline.md.
+// The golden of an ordinary card: it must be byte-identical, not merely still present. First
+// recorded in specs/022-erd-without-dictionary-values/evidence/baseline.md; re-recorded for
+// specs/027-erd-kinds-and-lines, which changes every card on purpose — the 210 pt minimum width,
+// the kind icon slot before the name, addressable cells, and types on the right edge.
 const PRICE_TAG_GOLDEN: string = [
   "digraph ERD {",
   '  graph [rankdir=LR fontname="Helvetica" bgcolor=transparent pad="0.5" nodesep="0.8" ranksep="1.2"]',
   '  node  [shape=none fontname="Helvetica" fontsize=11 margin="0"]',
   '  edge  [fontname="Helvetica" fontsize=9 color="#94a3b8" arrowsize=0.7]',
   "",
-  '  "shop.PriceTagCoreEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>PriceTagCoreEntity</B></FONT></TD></TR><TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT">amount</TD><TD BGCOLOR="#ffffff" ALIGN="LEFT"><FONT COLOR="#64748b"><I>float</I></FONT></TD></TR></TABLE>>]',
+  '  "shop.PriceTagCoreEntity" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="#3b82f6"><TR><TD COLSPAN="3" BGCOLOR="#3b82f6" ALIGN="CENTER" WIDTH="210" ID="hd0" TOOLTIP="PriceTagCoreEntity"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD ID="ks0" TOOLTIP="Unknown" BGCOLOR="#3b82f6" WIDTH="13" HEIGHT="13" FIXEDSIZE="TRUE"></TD><TD WIDTH="4"></TD><TD ID="hn0" TOOLTIP="Click to copy" BGCOLOR="#3b82f6"><FONT COLOR="white" POINT-SIZE="12"><B>PriceTagCoreEntity</B></FONT></TD></TR></TABLE></TD></TR><TR><TD BGCOLOR="#ffffff" WIDTH="28"></TD><TD BGCOLOR="#ffffff" ALIGN="LEFT" ID="fn0_0" TOOLTIP="Click to copy">amount</TD><TD BGCOLOR="#ffffff" ALIGN="RIGHT" ID="ft0_0" TOOLTIP="float"><FONT COLOR="#64748b"><I>float</I></FONT></TD></TR></TABLE>>]',
   "",
   "}",
 ].join("\n");

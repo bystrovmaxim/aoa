@@ -1,12 +1,19 @@
 // src/api/erd.ts
 import { graphFetch } from "@/api/client";
-import type { DomainQualnamesPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "@/model/erd";
+import type { DomainQualnamesPayload, EntityKindsPayload, ErdDomainPayload, ErdDomainsBatchPayload } from "@/model/erd";
 
 /** Matches ``GET /api/v1/list-domains`` / ``ListDomainsAction``. */
 export async function listDomains(): Promise<DomainQualnamesPayload> {
   const res = await graphFetch("/api/v1/list-domains");
   if (!res.ok) throw new Error(`list-domains ${res.status}`);
   return (await res.json()) as DomainQualnamesPayload;
+}
+
+/** Matches ``GET /api/v1/list-entity-kinds`` / ``ListEntityKindsAction``. */
+export async function listEntityKinds(): Promise<EntityKindsPayload> {
+  const res = await graphFetch("/api/v1/list-entity-kinds");
+  if (!res.ok) throw new Error(`list-entity-kinds ${res.status}`);
+  return (await res.json()) as EntityKindsPayload;
 }
 
 /** Matches ``GET /api/v1/list-entities`` / ``ListEntitiesAction``. */

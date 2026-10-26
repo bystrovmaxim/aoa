@@ -124,7 +124,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and domain. State descriptions are declared through a lifecycle instead. See [Step 20](../tutorials/step-20-entity.md).
 
-**Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`.
+**Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`, together with the name its kind base declares as `KIND_LABEL` (`entity_kind_label`: Core, Association, Detail, Specialization, Enumeration, State).
 
 **Core entity** (`BaseCoreEntity`) — an independent domain object with its own identity: an order, customer or supplier offer. References to other objects do not remove its independent meaning.
 

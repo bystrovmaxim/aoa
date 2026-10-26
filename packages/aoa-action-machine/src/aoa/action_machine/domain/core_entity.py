@@ -23,7 +23,7 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -36,10 +36,12 @@ class BaseCoreEntity(BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: An object the domain treats as a thing in its own right — an order, a customer, a product, a contract, a supplier offer.
-        CONTRACT: Its identity persists when attributes, relationships or state change. It may carry a Lifecycle and head a Specialization.
+        CONTRACT: Its identity persists when attributes, relationships or state change. It may carry a Lifecycle and head a Specialization. Its display name in the graph is ``KIND_LABEL`` = "Core".
         INVARIANTS: Must not declare a Generalization; must not be a technical link, an owner's part or variant data of another object.
     AI-CORE-END
     """
+
+    KIND_LABEL: ClassVar[str] = "Core"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""
