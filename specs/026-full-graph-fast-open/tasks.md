@@ -26,8 +26,8 @@
 
 **Purpose**: a green baseline and the design documents.
 
-- [ ] T001 Confirm `feature/issue-245-compressed-graph-transfer` is checked out, run `uv run pytest packages/aoa-maxitor/tests -q` and, in `packages/aoa-maxitor/client`, `npm ci && npm test && npm run build`; record the pass counts here as the green baseline.
-- [ ] T002 Prepare commit 1 with `specs/026-full-graph-fast-open/` (spec, checklist, plan, research, data model, contracts, quickstart, tasks): `docs(spec): specify a full graph that opens fast and never freezes the tab (#245)`. `.specify/feature.json` stays out: `.specify/.gitignore` ignores it.
+- [x] T001 Confirm `feature/issue-245-compressed-graph-transfer` is checked out, run `uv run pytest packages/aoa-maxitor/tests -q` and, in `packages/aoa-maxitor/client`, `npm ci && npm test && npm run build`; record the pass counts here as the green baseline. Baseline 2026-10-26: **201 passed, 1 skipped** (pytest, 5.2 s); **14 passed** in 2 files (vitest, 1.1 s); `vite build` succeeded, and its only remark is the accepted chunk-size advisory.
+- [x] T002 Prepare commit 1 with `specs/026-full-graph-fast-open/` (spec, checklist, plan, research, data model, contracts, quickstart, tasks): `docs(spec): specify a full graph that opens fast and never freezes the tab (#245)`. `.specify/feature.json` stays out: `.specify/.gitignore` ignores it. Committed as `1bb5587b`.
 
 ---
 
