@@ -14,6 +14,10 @@ Nginx proxies ``/maxitor/`` to this process; the SPA is built with ``--base=/max
 
 ERD data and the interchange graph payload are exposed as JSON via :class:`aoa.action_machine.adapters.fastapi.FastApiAdapter`
 routes mounted under ``/api/v1``. The React SPA renders both viewers in the browser.
+
+Static answers are cached by name — a content-hashed asset for a year, ``index.html`` revalidated
+on every open — and every answer above 500 bytes is gzipped when the client accepts gzip.
+
 Each diagram route reads the in-process DuckDB graph of the source it names in
 ``?source=<graph-json URL>``: ``GraphSourceMiddleware`` takes that source's entry from the
 process-wide :class:`~aoa.maxitor.api.graph_store.GraphStore`, building it on the first read.
@@ -33,13 +37,14 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
+from aoa.maxitor.api.cached_static_files import CachedStaticFiles
 from aoa.maxitor.api.duckdb_graph_holder import DuckDBGraphHolder
 from aoa.maxitor.api.graph_source_middleware import GraphSourceMiddleware
 from aoa.maxitor.api.graph_store import GraphStore, build_graph_entry
@@ -125,6 +130,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         expose_headers=["Retry-After"],
     )
+    # Added last, so gzip is the outermost middleware and sees every answer, the refusals
+    # of GraphSourceMiddleware included (research R1). Level 6 rather than 9: the bundle is
+    # compressed once per new visitor and then cached, so a few per cent of bytes is not
+    # worth the extra CPU per first open.
+    fastapi_app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
     fastapi_app.include_router(sidebar_router)
     fastapi_app.include_router(load_router)
 
@@ -185,7 +195,7 @@ def create_app() -> FastAPI:
         }
 
     if _STATIC_DIR.exists():
-        fastapi_app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")
+        fastapi_app.mount("/", CachedStaticFiles(directory=_STATIC_DIR, html=True), name="static")
 
     return fastapi_app
 

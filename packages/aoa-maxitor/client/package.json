@@ -8,10 +8,12 @@
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "measure": "node scripts/measure-full-graph.ts"
   },
   "dependencies": {
     "@antv/g6": "^5.0.50",
+    "@antv/layout": "2.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hpcc-js/wasm-graphviz": "^1.21.5",
@@ -26,6 +28,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^29.1.1",
+    "playwright": "^1.64.1",
     "typescript": "~5.7.3",
     "vite": "^6.2.5",
     "vitest": "^4.1.12"
