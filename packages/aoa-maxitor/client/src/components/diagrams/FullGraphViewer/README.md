@@ -19,3 +19,8 @@
 | File | Responsibility |
 |------|----------------|
 | `FullGraphViewer.tsx` | G6 mount lifecycle and viewport UX. |
+| `layoutSettings.ts` | The d3-force settings that are in effect today, in one object; the fallback's G6 options and the fingerprint both read it. |
+| `forceLayout.ts` | The layout run the way G6 runs it (`execute`, `stop`, `tick`); imported by the worker and the tests only, never by the viewer. |
+| `forceLayout.worker.ts` | Module worker: one request in, one answer out, no state kept. |
+| `precomputedLayout.ts` | A G6 layout that returns given positions, so G6 draws them through its own pre-layout. |
+| `arrangementStore.ts` | The fingerprint and the IndexedDB store of remembered arrangements, bounded to twenty. |
