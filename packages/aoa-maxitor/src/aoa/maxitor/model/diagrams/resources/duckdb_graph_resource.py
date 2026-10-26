@@ -11,9 +11,12 @@ is the in-memory ``duckdb.DuckDBPyConnection``. The Maxitor FastAPI lifespan bui
 coordinator JSON as the sidebar via :meth:`DuckDBGraphResource.build_from_json`; :meth:`create_from_http`
 fetches an envelope from a separate ``graph-json`` URL (helpers only). Tests typically call
 :meth:`build_from_json` directly.
-:meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` / ``CREATE INDEX`` / ``CREATE VIEW``
-(physical tables plus ``CREATE VIEW nodes`` / ``edges``, then ``nodes_type_counts`` / ``edge_type_counts`` over those views; aligned with
-:data:`~aoa.action_machine.graph.graph_json_schema.GRAPH_JSON_SCHEMA`). Scalar entity attributes are
+:meth:`DuckDBGraphResource._install_database` runs explicit ``CREATE TABLE`` for the physical node and edge
+tables; :meth:`DuckDBGraphResource._install_post_load_objects` adds ``CREATE VIEW nodes`` / ``edges``, then
+``nodes_type_counts`` / ``edge_type_counts`` over those views, after the rows are loaded (aligned with
+:data:`~aoa.action_machine.graph.graph_json_schema.GRAPH_JSON_SCHEMA`). The build creates no index and no
+primary key: the diagram queries read through neither (``specs/025-graph-index-memory/index-usage.md``), and
+:func:`_refuse_duplicate_node_ids` keeps a node id unique within its table. Scalar entity attributes are
 ``EntityField`` vertices and ``entity_field`` edges; list-entities reads scalar columns from
 ``entity_field`` + ``entity_field_edges`` (no denormalized field table).
 ``depends_edges`` stores optional ``mode`` (``include`` / ``extend`` from wire ``properties``) as a nullable
@@ -56,6 +59,7 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
     ROLE: Load coordinator graph JSON into DuckDB; :attr:`.service` is the DuckDB connection.
     CONTRACT: The bundled Maxitor API loads from :meth:`build_from_json` in the lifespan (same graph as
     the sidebar). :meth:`create_from_http` is for tools that fetch from a remote ``graph-json`` envelope.
+    INVARIANTS: A node id is unique within its node table; the build refuses a duplicate.
     AI-CORE-END
     """
 
@@ -92,6 +96,7 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         con = duckdb.connect(database=":memory:")
         instance._install_database(con)
         _fill_database(con, cast(dict[str, Any], json_data))
+        _refuse_duplicate_node_ids(con)
         instance._install_post_load_objects(con)
         ExternalServiceResource.__init__(instance, con)
         return instance
@@ -109,55 +114,55 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         return DuckDBGraphResource._coordinator_from_envelope(cast(Mapping[str, Any], envelope))
 
     def _install_database(self, con: duckdb.DuckDBPyConnection) -> None:
-        """Create DuckDB tables, indexes, and ``nodes`` / ``edges`` views (DDL only; no row inserts)."""
+        """Create the DuckDB tables (DDL only; no row inserts, no views)."""
         parts: list[str] = [
             # --- node tables (one table per graph-node oneOf branch in GRAPH_JSON_SCHEMA) ---
             """CREATE TABLE action (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE application (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       name VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE domain (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       name VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE entity (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL,
       entity_kind VARCHAR NOT NULL,
       values_json VARCHAR NOT NULL
     );""",
             """CREATE TABLE entity_field (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       field_type VARCHAR NOT NULL,
       primary_key_hint BOOLEAN NOT NULL,
       reference_qualname VARCHAR
     );""",
             """CREATE TABLE resource (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE params (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL
     );""",
             """CREATE TABLE result (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL
     );""",
             """CREATE TABLE field (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       prop_required BOOLEAN NOT NULL,
       description VARCHAR NOT NULL,
@@ -167,56 +172,56 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       json_schema JSON
     );""",
             """CREATE TABLE property_field (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       prop_required BOOLEAN NOT NULL,
       entity_schema BOOLEAN NOT NULL
     );""",
             """CREATE TABLE regular_aspect (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE summary_aspect (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL
     );""",
             """CREATE TABLE access_decide (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR
     );""",
             """CREATE TABLE compensator (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR,
       target_aspect_name VARCHAR
     );""",
             """CREATE TABLE error_handler (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       description VARCHAR,
       exception_types JSON
     );""",
             """CREATE TABLE checker (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       type_checker VARCHAR NOT NULL,
       checker_required BOOLEAN NOT NULL
     );""",
             """CREATE TABLE required_context (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       ctx_key VARCHAR NOT NULL
     );""",
             """CREATE TABLE lifecycle (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       field_name VARCHAR NOT NULL
     );""",
             """CREATE TABLE state (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       kind VARCHAR NOT NULL,
       lifecycle_class_id VARCHAR NOT NULL,
@@ -224,12 +229,12 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       attributes JSON
     );""",
             """CREATE TABLE sensitive (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       properties JSON NOT NULL
     );""",
             """CREATE TABLE role (
-      id VARCHAR NOT NULL PRIMARY KEY,
+      id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       role_mode VARCHAR NOT NULL
     );""",
@@ -465,16 +470,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
         con.execute("".join(parts))
 
     def _install_post_load_objects(self, con: duckdb.DuckDBPyConnection) -> None:
-        """Create indexes and graph views after rows are loaded."""
+        """Create the graph views after rows are loaded."""
         parts: list[str] = []
-        parts.extend(f"CREATE INDEX ix_{t}_source ON {t} (source_id);" for t in _EDGE_TABLE_NAMES)
-        parts.extend(f"CREATE INDEX ix_{t}_target ON {t} (target_id);" for t in _EDGE_TABLE_NAMES)
-        parts.extend(
-            [
-                "CREATE INDEX ix_state_lifecycle ON state (lifecycle_class_id, state_key);",
-                "CREATE INDEX ix_state_kind ON state (kind);",
-            ],
-        )
         parts.extend(_graph_union_view_ddls())
         parts.extend(_type_count_view_ddls())
         con.execute("".join(parts))
@@ -525,6 +522,31 @@ def _qt(ident: str) -> str:
     return '"' + ident.replace('"', '""') + '"'
 
 
+_NODE_TABLE_NAMES: tuple[str, ...] = (
+    "action",
+    "application",
+    "domain",
+    "entity",
+    "entity_field",
+    "resource",
+    "params",
+    "result",
+    "field",
+    "property_field",
+    "regular_aspect",
+    "summary_aspect",
+    "access_decide",
+    "compensator",
+    "error_handler",
+    "checker",
+    "required_context",
+    "lifecycle",
+    "state",
+    "sensitive",
+    "role",
+)
+
+
 _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "application_edges",
     "domain_edges",
@@ -558,6 +580,16 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "sensitive_edges",
     "state_edges",
 )
+
+
+def _refuse_duplicate_node_ids(con: duckdb.DuckDBPyConnection) -> None:
+    """Raise ``ValueError`` naming the first node id that occurs twice in one node table."""
+    for table in sorted(_NODE_TABLE_NAMES):
+        row = con.execute(
+            f"SELECT id FROM {_qt(table)} GROUP BY id HAVING count(*) > 1 ORDER BY id LIMIT 1",
+        ).fetchone()
+        if row is not None:
+            raise ValueError(f'Graph has a duplicate node id "{row[0]}" in table "{table}".')
 
 
 def _graph_union_view_ddls() -> list[str]:

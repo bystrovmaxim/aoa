@@ -127,8 +127,12 @@ def _rss_mib() -> tuple[str, float]:
     try:
         output = subprocess.check_output(["ps", "-o", "rss=", "-p", str(os.getpid())], text=True)
     except OSError:
-        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        return "getrusage-peak", peak / (_MIB if sys.platform == "darwin" else 1024)
+        try:
+            import psutil
+        except ImportError:
+            peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            return "getrusage-peak", peak / (_MIB if sys.platform == "darwin" else 1024)
+        return "psutil", psutil.Process().memory_info().rss / _MIB
     return "ps", float(output.strip()) / 1024
 
 
