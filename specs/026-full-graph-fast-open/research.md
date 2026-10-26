@@ -157,3 +157,23 @@ The resources of `cpu1x/first` (transferred bytes include the response headers):
 - **The freeze has not moved**, as expected: 596 ms at 1× and 2 409 ms at 4× — phases 4 and 5 are the ones that move it.
 - **gzip at level 6 costs almost nothing**: the two big scripts answer their first byte in 2.5–3 ms and complete in about 30 ms (792 935 and 411 102 gzip bytes on the wire).
 - **A stale file is revalidated, not re-downloaded.** With `max-age=0` in place of `immutable` (T014b) the repeat open still transfers 22 867 bytes, because each asset comes back as a 304; only `no-store` would force the download the task expected.
+
+## R12 — Early G6
+
+**Decision**: `main.tsx` starts `import("@antv/g6")` when the deep link names the full graph, before React mounts (FR-009); the sidebar's hover prefetch stays. Measured on 2026-10-26 with the tool, on the same build, graph and conditions as R11.
+
+| Condition | First graph pixel, R11 | With the change | Engine requested at | Entry requested at |
+|---|---|---|---|---|
+| `cpu1x` | 779 ms | 795 ms | 70 ms | 10 ms |
+| `cpu4x` | 2 934 ms | 3 023 ms | 114 ms | 12 ms |
+| `slow4g` | 7 387 ms | 7 372 ms | 4 328 ms | 161 ms |
+
+Under the inverted condition of T018 the engine is requested at 81 ms and 4 364 ms, because the viewer then starts the import when it mounts.
+
+**What R12 says**
+- The change does what FR-009 asks: the engine's request begins about 40 ms before the viewer would start it (70 against ~110 ms on the fast machine, 4 328 against 4 364 ms on Slow 4G).
+- It moves no figure: the first pixel is 795 against 779 ms, 3 023 against 2 934 ms and 7 372 against 7 387 ms — inside run-to-run noise. The reason is arithmetic: on Slow 4G the entry chunk alone takes 4.3 s, the browser cannot request the engine before that chunk has executed, and 1.23 MB at 1.6 Mbit/s is 6.1 s of transfer whatever starts first. Starting the engine earlier cannot lower the network floor.
+- SC-008 still holds: the ERD view requests no engine chunk and transfers 813 212 bytes (the pre-change baseline is 1 556 878), and its app chunk is 1 320 811 decoded bytes — 73 bytes above the baseline's 1 320 738, inside the 5 000-byte guard.
+- The break proves the comparison sees the difference: with `!==` the ERD view downloads the engine (1 224 934 bytes in total, the engine requested at 55 ms).
+
+**The decision this leaves to the maintainer**: the phase delivers FR-009 and improves nothing measurable — at most about 40 ms on a 7.4 s figure. FR-025 says a phase whose change improves nothing is not kept. Keep the four lines for FR-009's sake, or drop them and record that FR-009 is not worth its bytes; either way SC-003 stays missed until the bytes shrink.
