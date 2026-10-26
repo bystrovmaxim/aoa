@@ -166,6 +166,9 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
     # Typing hook; `@entity` sets this on concrete classes.
     _entity_info: ClassVar[dict[str, Any]]
 
+    # Display name of a kind; each kind base declares it in its own body (checked below).
+    KIND_LABEL: ClassVar[str]
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
         Enforce the ``*Entity`` naming invariant, and keep a kind base class abstract and out of the graph.
@@ -180,8 +183,13 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
         Args:
             **kwargs: Forwarded to `type.__init_subclass__`.
 
+        A kind base class also names its kind for readers of the graph: it
+        declares ``KIND_LABEL`` in its own body (``"Association"``); a label
+        inherited from a parent or a mixin does not count.
+
         Raises:
             NamingSuffixError: If ``cls.__name__`` does not end with ``Entity``.
+            DeclarationStructureError: If a kind base declares no non-empty ``KIND_LABEL``.
         """
         super().__init_subclass__(**kwargs)
 
@@ -198,6 +206,12 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
                     f"Class '{cls.__name__}' inherits BaseEntity directly. "
                     f"An entity inherits one of the six kind base classes instead: BaseCoreEntity, "
                     f"BaseAssocEntity, BaseDetailEntity, BaseSpecEntity, BaseEnumEntity or BaseStateEntity."
+                )
+            label = cls.__dict__.get("KIND_LABEL")
+            if not isinstance(label, str) or not label.strip():
+                raise DeclarationStructureError(
+                    f"Class '{cls.__name__}' is a kind base and must declare its display name "
+                    f'in its own body: KIND_LABEL = "…".'
                 )
             cls.__new__ = staticmethod(_refuse_kind_base_instantiation)  # type: ignore[method-assign]
             return

@@ -27,7 +27,7 @@ USAGE
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
@@ -40,10 +40,12 @@ class BaseDetailEntity(BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A part of one owner — an order line, a recipe step — identified by the owner plus a discriminator within that owner.
-        CONTRACT: It may carry domain data of its own, a Lifecycle, nested details and specializations; a separate database id does not make it independent.
+        CONTRACT: It may carry domain data of its own, a Lifecycle, nested details and specializations; a separate database id does not make it independent. Its display name in the graph is ``KIND_LABEL`` = "Detail".
         INVARIANTS: Does not exist after its owner ceases to exist; does not declare a Generalization; a specialization of it reuses its complete identity and adds no identity component.
     AI-CORE-END
     """
+
+    KIND_LABEL: ClassVar[str] = "Detail"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hold every descendant to the kind's name suffix."""

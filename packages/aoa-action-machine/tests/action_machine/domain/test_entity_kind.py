@@ -179,3 +179,62 @@ def test_exactly_six_classes_inherit_the_entity_base_and_override_the_hook() -> 
         "BaseSpecEntity",
         "BaseStateEntity",
     ], sorted(declared)
+
+
+KIND_LABELS = (
+    (BaseCoreEntity, "Core"),
+    (BaseAssocEntity, "Association"),
+    (BaseDetailEntity, "Detail"),
+    (BaseSpecEntity, "Specialization"),
+    (BaseEnumEntity, "Enumeration"),
+    (BaseStateEntity, "State"),
+)
+
+
+def _kind_base(body: dict, bases: tuple[type, ...] = (BaseEntity,)) -> type:
+    """Declare a user kind base dynamically, so the source scan above never counts it as a seventh.
+
+    Like the six, an accepted kind base is kept out of the model graph, so other suites never see it.
+    """
+    return exclude_graph_model(type(
+        "BaseAggregateEntity",
+        bases,
+        {"__init_subclass__": classmethod(lambda cls, **kwargs: None), "__module__": __name__, **body},
+    ))
+
+
+@pytest.mark.parametrize(("base", "label"), KIND_LABELS)
+def test_each_base_class_declares_its_display_name_in_its_own_body(base: type, label: str) -> None:
+    """The name a reader sees for the kind lives on the class that declares the kind."""
+    assert base.__dict__["KIND_LABEL"] == label
+
+
+def test_a_kind_base_without_a_display_name_is_refused() -> None:
+    """A kind the graph cannot name is refused when its class is created."""
+    with pytest.raises(DeclarationStructureError, match=r"BaseAggregateEntity.*KIND_LABEL"):
+        _kind_base({})
+
+
+@pytest.mark.parametrize("label", ["", "  "])
+def test_a_blank_display_name_is_refused(label: str) -> None:
+    """An empty or whitespace-only name names nothing."""
+    with pytest.raises(DeclarationStructureError, match=r"BaseAggregateEntity.*KIND_LABEL"):
+        _kind_base({"KIND_LABEL": label})
+
+
+def test_a_display_name_inherited_from_a_mixin_is_refused() -> None:
+    """Each kind states its own name; borrowing one from a mixin does not count."""
+
+    class NamedMixin:
+        """A mixin that happens to carry a label."""
+
+        KIND_LABEL = "Aggregate"
+
+    with pytest.raises(DeclarationStructureError, match=r"BaseAggregateEntity.*KIND_LABEL"):
+        _kind_base({}, (NamedMixin, BaseEntity))
+
+
+def test_a_kind_base_with_a_display_name_is_accepted() -> None:
+    """A user model may declare its own kind, as long as it names it."""
+    aggregate = _kind_base({"KIND_LABEL": "Aggregate"})
+    assert aggregate.__dict__["KIND_LABEL"] == "Aggregate"

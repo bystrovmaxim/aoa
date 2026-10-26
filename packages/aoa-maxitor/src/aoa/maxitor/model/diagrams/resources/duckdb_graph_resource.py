@@ -139,7 +139,9 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       label VARCHAR NOT NULL,
       description VARCHAR NOT NULL,
       entity_kind VARCHAR NOT NULL,
-      values_json VARCHAR NOT NULL
+      entity_kind_label VARCHAR,
+      values_json VARCHAR NOT NULL,
+      declares_values BOOLEAN NOT NULL
     );""",
             """CREATE TABLE entity_field (
       id VARCHAR NOT NULL,
@@ -602,7 +604,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('action' AS VARCHAR) AS type, json_object('description', description) AS payload FROM action",
         "SELECT id, label, CAST('application' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM application",
         "SELECT id, label, CAST('domain' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM domain",
-        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'entity_kind', entity_kind, 'values', from_json(values_json, '[\"json\"]')) AS payload FROM entity",
+        "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'entity_kind', entity_kind, 'entity_kind_label', entity_kind_label, 'values', from_json(values_json, '[\"json\"]')) AS payload FROM entity",
         "SELECT id, label, CAST('entity_field' AS VARCHAR) AS type, json_object('field_type', field_type, 'primary_key_hint', primary_key_hint) AS payload FROM entity_field",
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
@@ -702,13 +704,34 @@ def _fill_table_domain(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]
         )
 
 
+_UNKNOWN_ENTITY_KIND = "unknown"
+"""The kind stored for an ``Entity`` row whose producer states none: visible and filterable, never guessed."""
+
+
+def _entity_row(node: dict[str, Any]) -> list[Any]:
+    """One ``entity`` row; a missing or blank kind loads as ``unknown`` instead of failing the graph."""
+    p = _get_properties(node)
+    kind = p.get("entity_kind")
+    label = p.get("entity_kind_label")
+    for name, raw in (("entity_kind", kind), ("entity_kind_label", label)):
+        if raw is not None and not isinstance(raw, str):
+            raise ValueError(
+                f"Entity node {node['id']!r}: properties.{name} must be a string, got {type(raw).__name__}."
+            )
+    return [
+        node["id"],
+        node["label"],
+        p["description"],
+        kind if kind and kind.strip() else _UNKNOWN_ENTITY_KIND,
+        label.strip() if label and label.strip() else None,
+        json.dumps(p.get("values") or []),
+        "values" in p,
+    ]
+
+
 def _fill_table_entity(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO entity VALUES (?, ?, ?, ?, ?)",
-            [node["id"], node["label"], p["description"], p["entity_kind"], json.dumps(p.get("values") or [])],
-        )
+        con.execute("INSERT INTO entity VALUES (?, ?, ?, ?, ?, ?, ?)", _entity_row(node))
 
 
 def _fill_table_entity_field_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
@@ -1203,17 +1226,8 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO entity VALUES (?, ?, ?, ?, ?)",
-        [
-            [
-                n["id"],
-                n["label"],
-                _get_properties(n)["description"],
-                _get_properties(n)["entity_kind"],
-                json.dumps(_get_properties(n).get("values") or []),
-            ]
-            for n in nodes_by_type.get("Entity", [])
-        ],
+        "INSERT INTO entity VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [_entity_row(n) for n in nodes_by_type.get("Entity", [])],
     )
     entity_field_nodes = nodes_by_type.get("EntityField", [])
     _executemany(

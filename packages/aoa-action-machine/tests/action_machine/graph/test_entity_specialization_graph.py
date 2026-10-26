@@ -335,4 +335,4 @@ def test_a_model_without_specialization_keeps_its_columns() -> None:
     columns = [edge.target_node.label for edge in node.entity_field_edges if edge.target_node is not None]
 
     assert columns == ["id", "title"]
-    assert node.properties == {"description": "No specialization", "entity_kind": "core"}
+    assert node.properties == {"description": "No specialization", "entity_kind": "core", "entity_kind_label": "Core"}

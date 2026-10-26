@@ -65,10 +65,12 @@ class BaseSpecEntity(BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: What is specific to one kind of a more general object — organisation data on a counterparty head, the head holding the common data and the identity.
-        CONTRACT: Exactly one Generalization points to that head, and the classifier code matches the variant the head declares. It may carry a Lifecycle for its own data.
+        CONTRACT: Exactly one Generalization points to that head, and the classifier code matches the variant the head declares. It may carry a Lifecycle for its own data. Its display name in the graph is ``KIND_LABEL`` = "Specialization".
         INVARIANTS: No identity of its own beyond the head's; a head has at most one instance of a given specialization; cannot head another Specialization and cannot be a Composite target.
     AI-CORE-END
     """
+
+    KIND_LABEL: ClassVar[str] = "Specialization"
 
     declared_variant: ClassVar[Any] = _DeclaredVariant()
 

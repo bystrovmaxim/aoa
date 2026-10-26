@@ -55,6 +55,7 @@ from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
 from aoa.maxitor.model.diagrams.actions.list_domains_action import ListDomainsAction
 from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from aoa.maxitor.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
 
@@ -152,6 +153,11 @@ def create_app() -> FastAPI:
         .get(
             "/list-domains",
             ListDomainsAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+        )
+        .get(
+            "/list-entity-kinds",
+            ListEntityKindsAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(

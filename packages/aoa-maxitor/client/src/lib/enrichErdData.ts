@@ -13,7 +13,7 @@ const ENTITY_COLORS = [
   "#ef4444",
   "#06b6d4",
   "#ec4899",
-  "#64748b",
+  "#f97316",
 ] as const;
 
 export function enrichErdDataForViewer(erdData: Record<string, unknown>): Record<string, unknown> {

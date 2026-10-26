@@ -42,6 +42,7 @@ from aoa.maxitor.model.diagrams.diagrams_domain import DiagramsDomain
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 # Ordered palette: React ERD disk hues first, then extra saturated tones; longer domain lists cycle.
+# No grey: grey belongs to entity kinds in the ERD, so a domain is never drawn in it.
 _EXTRA_LIST_DOMAIN_COLORS: tuple[str, ...] = (
     "#3b82f6",
     "#8b5cf6",
@@ -50,7 +51,7 @@ _EXTRA_LIST_DOMAIN_COLORS: tuple[str, ...] = (
     "#ef4444",
     "#06b6d4",
     "#ec4899",
-    "#64748b",
+    "#f97316",
     "#2563eb",
     "#dc2626",
     "#16a34a",

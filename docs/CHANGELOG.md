@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-10-27] — Entity kinds travel with the graph, and the ERD shows every line
+
+A graph now says what kinds of entity it holds and what each kind is called. Every kind base names its kind for people — AOA's six are Core, Association, Detail, Specialization, Enumeration and State — and the export writes that name next to the kind word on every entity. A model may add a kind of its own, and a graph from another tool may bring words AOA has never heard of: Maxitor keeps no list of its own and shows whatever the graph says. A kind that arrives without a name is called by its word with a capital letter; an entity that states no kind at all still opens, listed as unknown, so an older graph does not break.
+
+One thing is now required. A kind base of your own must declare its name in its own body as `KIND_LABEL`, a non-empty string; without it the class is refused the moment Python creates it. Ordinary entities declare nothing new — they take the name of their kind.
+
+The ERD has one filter panel instead of the domain legend. Its two sections, Domains and Kinds, fold like an accordion, one open at a time, and each row hides or shows its tables. Kinds appears when a graph has more than one kind; its disks are grey, because colour on this diagram still means the domain. The panel keeps the width the legend had, and a name that does not fit is cut with an ellipsis and shown whole on hover. Each table's header now carries its kind's white icon beside the name, and short tables are no longer drawn as narrow stubs.
+
+Every line between two tables on screen is now drawn, whatever brought each table there — its own domain, a one-hop neighbour, or a second domain shown in the same view. Before, a line could go missing when its two ends were neighbours, or came from two different domains. A relation and its declared inverse are one line, not two, and each end is drawn the way an ERD reader expects: a bar for one, a crow's foot for many, and the name of the field on that side. A specialization head is joined to the dictionary its variants are chosen by, and the specialization frame is a shade darker, with a slightly thicker border.
+
+Reading the diagram is easier too. Hovering a line thickens it and marks in bold the fields at both its ends; hovering a field marks every line it belongs to. Clicking a table or field name copies it, with a short note to say so; dragging the canvas never copies. Hovering a table now works on the live page as well; there it never did before.
+
+Two things look different to anyone who reads the cards closely. A relation field's type is now just the name of the table it points to, without the `FK -> ` in front, and a dictionary field no longer has an arrow and the dictionary's name after its type — the line says it. And the eighth domain colour, which was grey, is now orange: grey is left to entity kinds, so no domain is drawn in it. ([#239](https://github.com/bystrovmaxim/aoa/issues/239))
+
 ## [2026-10-26] — A full graph that opens several times faster
 
 The full-graph page used to send everything it had on every visit — 3.06 MB of code, styles and graph data — and kept nothing. It now sends 1.23 MB on the first visit and about 22 KB on the next. On a slow mobile network the first picture appears in about 7.4 seconds instead of 16.5, and the code and the styles are downloaded once and then come from the browser's own cache.
