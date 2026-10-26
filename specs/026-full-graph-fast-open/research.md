@@ -177,3 +177,18 @@ Under the inverted condition of T018 the engine is requested at 81 ms and 4 364 
 - The break proves the comparison sees the difference: with `!==` the ERD view downloads the engine (1 224 934 bytes in total, the engine requested at 55 ms).
 
 **The decision this leaves to the maintainer**: the phase delivers FR-009 and improves nothing measurable — at most about 40 ms on a 7.4 s figure. FR-025 says a phase whose change improves nothing is not kept. Keep the four lines for FR-009's sake, or drop them and record that FR-009 is not worth its bytes; either way SC-003 stays missed until the bytes shrink.
+
+## R13 — Worker layout
+
+**Decision**: the settings live in `layoutSettings.ts`, the layout in `forceLayout.ts`, it runs in `forceLayout.worker.ts`, and the unit test proves it equals today's G6 configuration. **The viewer is not wired to it**: this is what the attempt found.
+
+**What works**
+- `computeForceLayout` equals G6's configuration for all 440 nodes to 1e-9 (vitest, `forceLayout.test.ts`); the same test proves that a shallow merge losing `center.strength` moves nodes by more than a pixel, so the test can see the error it guards.
+- Run in the page, the worker's positions are identical to G6's: the largest difference over 440 nodes is 0.0 px (`getElementPosition` read on both paths at 1345×900).
+- The worker chunk is 49 106 bytes and is requested only on the full-graph page; the app chunk grows by 1 810 bytes to 1 322 621 decoded and never carries `@antv/layout` (markers `forceInABox` and `Layout in worker failed` are absent from it, present in the G6 chunk).
+
+**What blocks the phase**
+Setting those positions on the nodes before the first draw changes G6's camera: the graph is drawn at 26 % instead of 27 %, so the settled canvas is not pixel-identical to `data/canvas-main.png` (172 481 differing pixels). The cause is visible in the model: after the fit, a node's `x` is 1000.40 while its `style.x` is 1148.61 — G6 writes canvas coordinates into the element style when the data carries positions at construction.
+The only variant that reproduces the baseline canvas updates the node data **after** the first draw and draws again: it passes `--compare-canvas`, but the second draw costs about 1.7 s of main-thread work (longest task 2 305 ms against 596 ms at 1× CPU, first pixel 2 878 ms against 779 ms) — worse than the freeze the phase exists to remove. That variant is not kept.
+
+**Where the phase stands**: the settings, the worker and the equivalence test are in place and green (17 client tests); the viewer is unchanged, so G6 still lays the graph out on the main thread. The next attempt should apply the positions through G6's own pre-layout instead of through its data — a registered layout whose result is the worker's mapping would draw once and fit correctly. That is a design task of its own, not a patch.
