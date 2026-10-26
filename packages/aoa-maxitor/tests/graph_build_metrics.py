@@ -246,13 +246,134 @@ def fingerprints(resource: DuckDBGraphResource) -> dict[str, str]:
     return result
 
 
-def measure(ref: str, runs: int = _DEFAULT_RUNS, rss_count: int = _DEFAULT_RSS_COUNT) -> dict[str, Any]:
+class _RecordingConnection:
+    """DuckDB connection proxy that records the SELECT statements the actions run."""
+
+    def __init__(self, inner: Any, log: list[tuple[str, tuple[Any, ...]]]) -> None:
+        self._inner = inner
+        self._log = log
+
+    def execute(self, sql: Any, parameters: Any = None) -> Any:
+        """Record a SELECT or WITH statement, then run it on the wrapped connection."""
+        if isinstance(sql, str) and sql.lstrip().upper().startswith(("SELECT", "WITH")):
+            self._log.append((sql, tuple(parameters or ())))
+        return self._inner.execute(sql, parameters)
+
+    def __getattr__(self, name: str) -> Any:
+        """Forward every other attribute to the wrapped connection."""
+        return getattr(self._inner, name)
+
+
+def _sql_literal(value: Any) -> str:
+    """Return a DuckDB SQL literal for one query parameter."""
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def _inline_parameters(sql: str, parameters: tuple[Any, ...]) -> str:
+    """Return ``sql`` with every ``?`` replaced by its literal parameter value."""
+    if not parameters:
+        return sql
+    parts = sql.split("?")
+    if len(parts) != len(parameters) + 1:
+        raise ValueError(f"Statement has {len(parts) - 1} placeholders but {len(parameters)} parameters")
+    chunks = [parts[0]]
+    for value, tail in zip(parameters, parts[1:], strict=True):
+        chunks.extend((_sql_literal(value), tail))
+    return "".join(chunks)
+
+
+def _recorded_statements(resource: DuckDBGraphResource) -> list[tuple[str, str, tuple[Any, ...]]]:
+    """Return ``(query family, SQL, parameters)`` for every statement the seven actions run."""
+    machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
+    inner = resource._service
+    statements: list[tuple[str, str, tuple[Any, ...]]] = []
+    for key, action_cls, params in _query_cases(resource):
+        log: list[tuple[str, tuple[Any, ...]]] = []
+        resource._service = _RecordingConnection(inner, log)  # type: ignore[assignment]
+        try:
+            _run_action(machine, resource, action_cls, params)
+        finally:
+            resource._service = inner  # type: ignore[assignment]
+        family = key.split(":", 1)[0]
+        statements.extend((family, sql, values) for sql, values in log)
+    return statements
+
+
+def _operator_names(plan: Any) -> list[str]:
+    """Return every physical operator name in an EXPLAIN plan."""
+    if isinstance(plan, dict):
+        own = [str(plan["name"])] if "name" in plan else []
+        return own + [name for child in plan.get("children", []) for name in _operator_names(child)]
+    if isinstance(plan, list):
+        return [name for child in plan for name in _operator_names(child)]
+    return []
+
+
+def _structures_in_plan(plan: Any, names: set[str]) -> set[str]:
+    """Return every catalogue structure whose name appears anywhere in the plan."""
+    found: set[str] = set()
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+        elif isinstance(value, str):
+            found.update(name for name in names if name in value)
+
+    walk(plan)
+    return found
+
+
+def _explain_plan(resource: DuckDBGraphResource, sql: str, parameters: tuple[Any, ...]) -> Any:
+    """Return the JSON physical plan of ``sql`` executed with its parameter values."""
+    rows = resource.execute_fetch_dicts("EXPLAIN (FORMAT JSON) " + _inline_parameters(sql, parameters))
+    return json.loads(rows[0]["explain_value"])
+
+
+def index_usage(resource: DuckDBGraphResource) -> dict[str, list[str]]:
+    """Return, for every index and primary key, the query families whose plan reads through it."""
+    indexes = resource.execute_fetch_dicts("SELECT index_name FROM duckdb_indexes() ORDER BY index_name")
+    keys = resource.execute_fetch_dicts(
+        "SELECT constraint_name FROM duckdb_constraints() WHERE constraint_type = 'PRIMARY KEY' "
+        "ORDER BY constraint_name",
+    )
+    names = {str(row["index_name"]) for row in indexes} | {str(row["constraint_name"]) for row in keys}
+    usage: dict[str, set[str]] = {name: set() for name in names}
+    by_signature: dict[tuple[str, tuple[Any, ...]], set[str]] = {}
+    for family, sql, parameters in _recorded_statements(resource):
+        by_signature.setdefault((sql, parameters), set()).add(family)
+    for (sql, parameters), families in by_signature.items():
+        plan = _explain_plan(resource, sql, parameters)
+        matched = _structures_in_plan(plan, names)
+        operators = _operator_names(plan)
+        if any("INDEX" in operator for operator in operators) and not matched:
+            raise RuntimeError(f"An index scan names no known structure: {operators}")
+        for name in matched:
+            usage[name].update(families)
+    return {name: sorted(families) for name, families in sorted(usage.items())}
+
+
+def measure(
+    ref: str,
+    runs: int = _DEFAULT_RUNS,
+    rss_count: int = _DEFAULT_RSS_COUNT,
+    explain: bool = False,
+) -> dict[str, Any]:
     """Return one measurement report for the graph at ``ref``."""
     raw = _read_ref(ref)
     payload = _decode(raw)
     rss = rss_per_graph(payload, rss_count)
     resource = DuckDBGraphResource.build_from_json(payload)
-    return {
+    report: dict[str, Any] = {
         "source": {
             "ref": ref,
             "sha256": hashlib.sha256(raw).hexdigest(),
@@ -266,6 +387,9 @@ def measure(ref: str, runs: int = _DEFAULT_RUNS, rss_count: int = _DEFAULT_RSS_C
         "query_ms": query_medians(resource, runs),
         "fingerprints": fingerprints(resource),
     }
+    if explain:
+        report["index_usage"] = index_usage(resource)
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -274,8 +398,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("ref", help="graph-json URL, .json file or .json.gz file")
     parser.add_argument("--runs", type=int, default=_DEFAULT_RUNS, help="timed runs per query")
     parser.add_argument("--rss-count", type=int, default=_DEFAULT_RSS_COUNT, help="graphs held for the RSS figure")
+    parser.add_argument("--explain", action="store_true", help="add the index usage table")
     args = parser.parse_args(argv)
-    print(json.dumps(measure(args.ref, args.runs, args.rss_count), indent=2, ensure_ascii=False))
+    report = measure(args.ref, args.runs, args.rss_count, args.explain)
+    print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0
 
 

@@ -49,7 +49,9 @@ So the database's figure falls 3.3 times, and the process's only 2.5 times. Each
 
 Nothing filters `state` by `kind` or by `lifecycle_class_id`, so `ix_state_kind` and `ix_state_lifecycle` look unused.
 
-**Decision.** This table is a list of candidates, not the answer: plan phase 3 runs every query under `EXPLAIN` and records what the planner actually chooses (FR-003). The expectation to check is that at most two primary keys and two edge indexes are ever used, and only on tables of tens to hundreds of rows, where a full scan takes microseconds. The sidebar build and the joins of every query are checked the same way.
+**Measured later, and it went further (R2a, 2026-10-26).** Phase 3 read every statement of the seven actions under `EXPLAIN (FORMAT JSON)`: 96 statements (72 distinct plans) on the reference and 941 (823) on the demo. **No plan named any of the 21 primary keys or 64 indexes.** A synthetic probe confirmed it is not the small tables: equality, `IN` and `BETWEEN` filters on an indexed column, and a join with a dynamic filter, planned `SEQ_SCAN` on 200 000 and 2 000 000 rows, in memory and in a file database, with `index_scan_max_count` and `index_scan_percentage` raised. The full table is in `index-usage.md`; it is empty.
+
+**Decision.** Phase 3 ran every query under `EXPLAIN` and recorded what the planner actually chooses (FR-003): nothing reads through an index. Phase 5 therefore removes all 21 primary keys and all 64 indexes; the expectation that up to two primary keys and two edge indexes might be used did not hold.
 
 ## R3. How fast the queries are, and what "slower" means
 
