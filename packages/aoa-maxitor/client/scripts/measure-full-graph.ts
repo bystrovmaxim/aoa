@@ -45,6 +45,7 @@ type Args = {
 type Resource = {
   url: string;
   type: string;
+  startMs: number;
   encodedBytes: number;
   decodedBytes: number;
   contentEncoding: string | null;
@@ -80,6 +81,7 @@ type Report = {
 type NetworkRecord = {
   url: string;
   type: string;
+  startMs: number;
   status: number;
   contentEncoding: string | null;
   cacheControl: string | null;
@@ -459,6 +461,7 @@ async function openPage(
   const network = new Map<string, NetworkRecord>();
   const requests = new Map<string, string>();
   const pending = new Set<string>();
+  const startedAt = new Map<string, number>();
 
   page.on("console", (message) => {
     const text = message.text();
@@ -479,10 +482,14 @@ async function openPage(
     });
   }
 
+  let navigationStartedAt: number | null = null;
   cdp.on("Network.requestWillBeSent", (event: Record<string, unknown>) => {
     const requestId = String(event.requestId);
     requests.set(requestId, String((event.request as { url?: string })?.url ?? ""));
     pending.add(requestId);
+    const timestamp = Number(event.timestamp ?? 0);
+    if (navigationStartedAt === null) navigationStartedAt = timestamp;
+    startedAt.set(requestId, Math.max(0, Math.round((timestamp - navigationStartedAt) * 1000)));
   });
   cdp.on("Network.responseReceived", (event: Record<string, unknown>) => {
     const response = (event.response ?? {}) as Record<string, unknown>;
@@ -492,6 +499,7 @@ async function openPage(
     network.set(requestId, {
       url: String(response.url ?? requests.get(requestId) ?? ""),
       type: String(event.type ?? "Other"),
+      startMs: startedAt.get(requestId) ?? 0,
       status: Number(response.status ?? 0),
       contentEncoding: headers["content-encoding"] ?? headers["Content-Encoding"] ?? null,
       cacheControl: headers["cache-control"] ?? headers["Cache-Control"] ?? null,
@@ -676,6 +684,7 @@ async function readResources(
     resources.push({
       url: record.url,
       type: record.type,
+      startMs: record.startMs,
       encodedBytes: record.encodedBytes,
       decodedBytes,
       contentEncoding: record.contentEncoding,

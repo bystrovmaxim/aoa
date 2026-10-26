@@ -53,7 +53,7 @@ Exit code `0` when the run succeeded; `1` when a console failure was seen, bytes
         "workers": [{ "url": "…", "cpuMs": 0 }],
         "longTasks": [{ "startMs": 0, "durationMs": 0 }],
         "resources": [
-          { "url": "…", "type": "script", "encodedBytes": 0, "decodedBytes": 0,
+          { "url": "…", "type": "script", "startMs": 0, "encodedBytes": 0, "decodedBytes": 0,
             "contentEncoding": "gzip", "cacheControl": "public, max-age=31536000, immutable",
             "status": 200, "fromCache": false }
         ]
@@ -67,5 +67,7 @@ Exit code `0` when the run succeeded; `1` when a console failure was seen, bytes
   "canvas": "data/canvas-run.png"
 }
 ```
+
+`startMs` is when the request began, in milliseconds from navigation start — it is how the early G6 download is compared with the entry script's.
 
 The acceptance table of the spec maps to: SC-001 `cpu1x.first.totalBytes`; SC-002 `cpu1x.repeat.totalBytes`; SC-003 `slow4g.first.firstGraphPixelMs`; SC-004 `cpu1x.first.longestTaskMs`; SC-005 `cpu4x.first.longestTaskMs`; SC-006 `cpu1x.repeat.firstGraphPixelMs`; SC-008 a run with `--view` of another view, compared with the same view's baseline `data/baseline-main-erd.json`: its `totalBytes` is not higher, its `resources` hold no G6 chunk, and the `decodedBytes` of the run's largest `/assets/index-*.js` — the app chunk every view loads — is at most 5 000 above its baseline — the guard that catches layout code landing there (`D3ForceLayout` alone is 47 422 bytes minified).
