@@ -82,8 +82,9 @@
   - the same `id` as a `Domain` and as a `Lifecycle` → builds (clarified scope);
   - no duplicate → builds;
   - through the application, a graph read for a source whose builder returns the duplicate payload → 422, its `detail` contains the `id`, and the store holds nothing for that source (FR-011). Use a `GraphStore` over a stub builder, as `test_api_diagram_routes.py` does.
-- [x] T014 Adversarial check: locally remove ` PRIMARY KEY` from the node tables **and** the call to `_refuse_duplicate_node_ids`. The duplicate tests fail and no other test does. Restore the call only: they pass on the check alone. Restore the primary keys. Observed: with the call removed and the keys already gone, three duplicate tests fail; with the call restored, all five pass. Putting the keys back makes DuckDB refuse first, as before, so the check alone is what protects the final schema.
-- [ ] T015 Prepare commit 4: `feat(maxitor): refuse a graph with a duplicate node id by name (#268)`.
+  - the contract's other inputs: an empty graph builds, a duplicated edge is accepted, and the smallest duplicated id in one table is the one named.
+- [x] T014 Adversarial check: locally remove ` PRIMARY KEY` from the node tables **and** the call to `_refuse_duplicate_node_ids`. The duplicate tests fail and no other test does. Restore the call only: they pass on the check alone. Restore the primary keys. Observed: with the call removed and the keys already gone, three duplicate tests fail; with the call restored, all eight pass. Putting the keys back makes DuckDB refuse first, as before, so the check alone is what protects the final schema.
+- [x] T015 Prepare commit 4: `feat(maxitor): refuse a graph with a duplicate node id by name (#268)`. Landed together with phase 3 as `5ec17614`: a separate commit with the primary keys gone and no check would be red, and one with the keys still there makes the duplicate test see DuckDB's exception instead of `ValueError`.
 
 ---
 
@@ -119,7 +120,7 @@
   - put only the 2 `state` indexes back → the shape assertion fails;
   - add one index under a new name → the shape assertion fails;
   - add a heavy structure that is not an index (for example a copy of the largest edge table) → the memory assertion fails. Observed with one index under a new name, the 21 primary keys, and a 300 000-row table instead of the edge indexes: the first failed the shape assertion only, the keys failed both, the heavy table failed the memory assertion only. No other test failed; all were restored.
-- [ ] T021 Prepare commit 5: `perf(maxitor): build graphs without the indexes no query needs (#268)`, or, if T018 left the schema unchanged, `docs(spec): measurements show the graph indexes are needed (#268)`.
+- [x] T021 Prepare commit 5: `perf(maxitor): build graphs without the indexes no query needs (#268)`, or, if T018 left the schema unchanged, `docs(spec): measurements show the graph indexes are needed (#268)`. Landed together with phase 4 as `5ec17614`, because the two cannot be green apart.
 
 ---
 
