@@ -486,7 +486,6 @@ async function openPage(
   cdp.on("Network.requestWillBeSent", (event: Record<string, unknown>) => {
     const requestId = String(event.requestId);
     requests.set(requestId, String((event.request as { url?: string })?.url ?? ""));
-    pending.add(requestId);
     const timestamp = Number(event.timestamp ?? 0);
     if (navigationStartedAt === null) navigationStartedAt = timestamp;
     startedAt.set(requestId, Math.max(0, Math.round((timestamp - navigationStartedAt) * 1000)));
@@ -495,6 +494,7 @@ async function openPage(
     const response = (event.response ?? {}) as Record<string, unknown>;
     const headers = (response.headers ?? {}) as Record<string, string>;
     const requestId = String(event.requestId);
+    pending.add(requestId);
     const previous = network.get(requestId);
     network.set(requestId, {
       url: String(response.url ?? requests.get(requestId) ?? ""),
@@ -649,7 +649,7 @@ async function waitForWindow(page: Page, probePixels: boolean): Promise<number> 
 async function drainNetwork(pending: Set<string>): Promise<void> {
   const started = Date.now();
   let quietSince: number | null = null;
-  while (Date.now() - started < 30_000) {
+  while (Date.now() - started < 5_000) {
     if (pending.size === 0) {
       quietSince ??= Date.now();
       if (Date.now() - quietSince >= 500) return;
@@ -954,7 +954,15 @@ async function main(): Promise<void> {
       viewport: [VIEWPORT.width, VIEWPORT.height],
       canvasSize: measuredCanvasSize,
       conditions,
-      consoleFailures: [...new Set([...consoleMessages, ...failures])],
+      // With --no-worker the viewer's fallback warning is the point of the run, not a failure.
+      consoleFailures: [
+        ...new Set([
+          ...consoleMessages.filter(
+            (message) => !(args.noWorker && message.includes(FALLBACK_MESSAGES[1])),
+          ),
+          ...failures,
+        ]),
+      ],
       canvas: args.canvas ? resolve(args.canvas) : null,
     };
   } finally {

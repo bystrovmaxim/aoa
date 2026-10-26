@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@antv/g6": "^5.0.50",
+    "@antv/layout": "2.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hpcc-js/wasm-graphviz": "^1.21.5",
