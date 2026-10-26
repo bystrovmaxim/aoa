@@ -327,6 +327,16 @@ React SPA (G6 + Graphviz WASM)
 
 The diagram endpoints (`GET /api/v1/full-graph`, `…/list-entities`, `…/domain-use-case-diagram`, `…/lifecycle-finite-automaton`) are ordinary AOA operations. Their JSON can be embedded into your own portal, CI pipeline, or documentation generator. The React SPA is a separate process, and in production the static assets can be served from a CDN while the API stays next to the service.
 
+## What a built graph costs
+
+A built graph lives in DuckDB. Until #268 most of its memory was not data: the build created 21 primary keys and 64 indexes, and on the reference service they took 38 of 43.5 MiB — 87 %. Yet they were never read: every plan of all six diagram queries and the sidebar build is a sequential scan ([the index usage table](../../specs/025-graph-index-memory/index-usage.md)).
+
+The build now creates neither. The reference graph takes 13.4 MiB instead of 43.5, and the demo's graph 20.4 instead of 65.4. Per held graph the process gains 24.5 MiB instead of 53.4 on macOS, and 16.7 MiB on Linux, so at the store's limit of fifty graphs the process holds about 1.1 GiB instead of 2.7. The build is also faster (109 ms instead of 125 ms on the reference), and every diagram answer stays byte for byte the same.
+
+One protection moved rather than disappeared. A primary key used to refuse a graph that lists the same node id twice in one table; the build now checks for that after loading and names the id and the table. A repeated id in two *different* tables is still accepted, as it always was.
+
+[03_graph_memory.py](../../examples/step_26_maxitor/03_graph_memory.py) and its [notebook](../../examples/step_26_maxitor/03_graph_memory.ipynb) show the cost by memory tag, the refusal, the cross-table case and an empty graph, with the output they print. On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`aoa-maxitor` README](../../packages/aoa-maxitor/README.md#backend) says what that means for the fifty-graph limit.
+
 ## How to run it
 
 ```bash

@@ -1,0 +1,48 @@
+{
+  "source": {
+    "ref": "../../specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz",
+    "sha256": "a9d73e90b8c486fc18a3304b3eacf024a229a9642b71709af8bb919ebf0f84cf",
+    "bytes": 326063,
+    "nodes": 440,
+    "edges": 550
+  },
+  "memory_mib": {
+    "ART_INDEX": 38.0,
+    "OVERFLOW_STRINGS": 0.25,
+    "IN_MEMORY_TABLE": 5.26,
+    "total": 43.51
+  },
+  "rss_per_graph_mib": {
+    "method": "getrusage-peak",
+    "before": 81.5,
+    "after_10": 615.8,
+    "per_graph": 53.4
+  },
+  "build_ms": 125.3,
+  "query_ms": {
+    "list-domains": 1.23,
+    "list-node-types": 2.38,
+    "full-graph": 5.86,
+    "sidebar": 4.3,
+    "list-entities": 25.56,
+    "domain-use-case-diagram": 6.4,
+    "lifecycle-finite-automaton": 4.42
+  },
+  "fingerprints": {
+    "list-domains": "da72d524a2f5232c2d22d6ad3efa4330c71ffb53882fe66e38498361a2e3a732",
+    "list-node-types": "d35261255bffcf3223058030864cea2614caf9abbaaa06977b8596471d292dfa",
+    "full-graph": "e941d1d48a0530ca65ac1ffcb463219e6f614df9da35e845faa0679ddb976770",
+    "sidebar": "d7a574f31e8345ed469e72167b8662015d785fdbef8758d0aa3e44b51bea2773",
+    "list-entities:datamodel.events.events_domain.EventsDomain": "fcd534c6b04b5c845c1cc3fd35e7426d727bf64020706792ca748bc506ec76b6",
+    "list-entities:datamodel.offers.offers_domain.OffersDomain": "e7e977072d431a34ba4b96d1db6c1b5ebe46678efc793168a4a0fafb03fd04cd",
+    "list-entities:datamodel.players.players_domain.PlayersDomain": "04582610f9247c4882dcabaebbc23324d7b59605f0acd6024881b08c4354adda",
+    "list-entities:datamodel.showcases.showcases_domain.ShowcasesDomain": "f82536d7e4c5e2e3a1844025514b858c0dc4070b07b49e61d38e0e0d16a81971",
+    "domain-use-case-diagram:datamodel.events.events_domain.EventsDomain": "67f8953134746888ba332e2c9deb52d2b64ffad4387323936f420dfe986040b9",
+    "domain-use-case-diagram:datamodel.offers.offers_domain.OffersDomain": "73e27672ee090fa9797e66b9ab6c7bd179370802c9e56c32365c9fb8486061b4",
+    "domain-use-case-diagram:datamodel.players.players_domain.PlayersDomain": "85c192095a55c9e25f8df18fac750eb0d7080b258f26a47068ebc38c819a5e5d",
+    "domain-use-case-diagram:datamodel.showcases.showcases_domain.ShowcasesDomain": "876294d8f6d168c985a1fcc7cc9954cb7b3cb80e89df558f0e6938d45836f96b",
+    "lifecycle-finite-automaton:datamodel.offers.offer_core_entity.OfferCoreEntity:lifecycle:lifecycle": "b9ddbbce819fb55c7cdf198cf3ffcbf87233ae0eded3e987856b7421d81d7e76",
+    "lifecycle-finite-automaton:datamodel.offers.offer_request_core_entity.OfferRequestCoreEntity:lifecycle:lifecycle": "cceac0763aafd90375129189a8fa1bee08b828dfa76cbddc961cba7b50820cfe",
+    "lifecycle-finite-automaton:datamodel.players.player_core_entity.PlayerCoreEntity:lifecycle:lifecycle": "dc591c248d9f1706cd1de1beb255c862e839c54dc067255d87a70e5c216e46a6"
+  }
+}

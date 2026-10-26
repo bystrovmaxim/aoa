@@ -107,19 +107,6 @@ class TestTheTypeIsKnown:
 
         assert "access_decide" in types
 
-    def test_its_indexes_exist_like_every_other_edge_table(self) -> None:
-        """The edge tables are indexed through one list; a missing entry would slow the viewer."""
-        duck = DuckDBGraphResource.build_from_json(_graph())
-
-        indexes = {
-            r[0]
-            for r in duck.service.execute(
-                "SELECT index_name FROM duckdb_indexes() WHERE table_name = 'access_decide_edges'"
-            ).fetchall()
-        }
-
-        assert indexes == {"ix_access_decide_edges_source", "ix_access_decide_edges_target"}
-
 
 class TestItReachesTheClient:
     def test_the_slug_has_an_interchange_type(self) -> None:
