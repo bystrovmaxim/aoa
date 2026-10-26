@@ -219,3 +219,29 @@ The first open writes one entry of 440 positions (checked in the page), and the 
 - SC-006 (a repeat open under 500 ms) is missed: 753 ms.
 - `--no-storage` no longer checks what the contract describes: it expects a layout worker on the repeat open, and there is no worker any more. The option and the contract need rewording.
 - The interaction probe still reports a moved picture — not because the node moves (the positions do not change) but because the hover card stays after a drag; a click on empty canvas clears it.
+
+## R15 — Result
+
+**Decision**: the acceptance table, measured on 2026-10-26 with the tool, on the same graph and conditions as R10 and R11; every figure is the median of three runs. Report: `data/final.json`.
+
+| Criterion | Baseline (R10) | Final | Target | Verdict |
+|---|---|---|---|---|
+| SC-001 first open bytes | 3 056 128 | 1 229 863 | ≤ 1 300 000 | met, 70 137 to spare |
+| SC-002 repeat bytes | 311 515 | 22 120 | ≤ 50 000 | met |
+| SC-003 slow 4G first pixel | 16 537 ms | 7 368 ms | < 6 000 | missed by 1 368 |
+| SC-004 longest task, 1× | 596 ms | 592 ms | < 150 | missed by 442 |
+| SC-005 longest task, 4× | 2 759 ms | 2 505 ms | < 600 | missed by 1 905 |
+| SC-006 repeat first pixel, 1× | 727 ms | 739 ms | < 500 | missed by 239 |
+| SC-007 the same picture | — | canvas identical | — | met |
+| SC-008 another view | 1 556 878 B | 814 798 B | no more than today | met; app chunk 1 324 762 decoded, +4 024 of the 5 000 guard |
+
+**What improved and ships**: gzip and the cache lifetimes (SC-001, SC-002), the page's own code untouched by the layout engine (SC-008), the remembered arrangement — a repeat open draws without running a layout — and the removal of node dragging (FR-024).
+
+**What was measured and not kept**: the worker (no freeze gain, 350–450 ms more to the first pixel — R13), the hulls drawn after the first frame (about 40 ms better first pixel, but they then painted above the nodes, so the canvas changed), the glyph cache (784 and 601 ms against 784 and 599 — no gain). The WebGL comparison was not attempted: a different rasterizer cannot keep the canvas pixel-identical, which is the condition for keeping it.
+
+**Why the rest is missed**
+- SC-003: 1.23 MB at 1.6 Mbit/s is 6.1 s of transfer. The page cannot beat that floor without fewer bytes, and the JavaScript is 1.20 MB of the 1.23.
+- SC-004 and SC-005: the freeze is the drawing — G6 creating 440 nodes, 545 edges and their glyphs in one task — not the layout, which is tens of milliseconds here.
+- SC-006: a repeat open skips the layout but still draws; the drawing is the 600 ms task, so the first pixel stays around 740 ms.
+
+FR-025 applies: everything that improves ships, and for each missed criterion the figure, the target and what stood in the way are stated above.
