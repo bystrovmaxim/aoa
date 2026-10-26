@@ -214,6 +214,10 @@ Starts FastAPI at `http://127.0.0.1:8000`. Environment:
 | `MAXITOR_GRAPH_IDLE_SECONDS` | `3600` | a graph unread this long is removed (one hour) |
 | `MAXITOR_MAX_CONCURRENT_BUILDS` | `4` | builds running at once; further reads wait, then get `503` |
 
+A held graph is much smaller than it used to be. The build keeps no index and no primary key, because no diagram query reads through one: the reference service's graph takes about 13 MiB of database memory (43.5 before #268), and the process gains about 24.5 MiB per graph on macOS and 16.7 MiB on Linux. At the default limit of fifty graphs that is roughly 1.1 GiB of process instead of 2.7. The diagrams and their timings are unchanged, and the build is slightly faster. A graph that lists the same node id twice in one table is still refused, now with a message that names the id and the table.
+
+Memory after a graph is dropped depends on the system. On Linux the process returns it: with ten reference graphs held the process was about 309 MiB, and about 192 MiB after all were dropped. On macOS the process keeps its peak and reuses it, so there the process size is set by the most graphs held at once. DuckDB's `allocator_bulk_deallocation_flush_threshold` and `allocator_flush_threshold` lower the Linux peak by 10–35 MiB but do not change the answer; the measurement is in `specs/025-graph-index-memory/research.md` (R10).
+
 ### Frontend (dev)
 
 ```bash
