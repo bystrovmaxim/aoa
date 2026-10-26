@@ -132,19 +132,19 @@
 
 - [x] T022 [US4] Add `--rss-sequence` to `packages/aoa-maxitor/tests/graph_build_metrics.py`, reading the process size the same way as `rss_per_graph` (T003). Run the issue's steps: 0, 1, 5, 10 held; all dropped plus `gc.collect()`; 3 built again. A repeatable `--setting name=value` applies a DuckDB setting to each connection before building. Implemented so the sequence runs first in the process, before any other build; the setting is applied to each connection right after `build_from_json` returns and before the graph is held or dropped (the build offers no hook).
 - [x] T023 [US4] Build the image and run the sequence per `specs/025-graph-index-memory/quickstart.md` §5, first with defaults. Then list `SELECT name FROM duckdb_settings() WHERE name LIKE 'allocator%'` inside the image and repeat the sequence once per allocator setting that exists. Append "R10. Linux" to `specs/025-graph-index-memory/research.md` (and `research.ru_draft.md`): the tables, and a plain answer to "does memory come back after graphs are dropped". If the image cannot be built or run, record that and what was measured instead (spec edge case). Result: the image built (Docker 29.2.1, linux/aarch64); memory comes back on Linux (309.0 → 192.5 MiB after dropping all ten); all three allocator settings exist and only lower the figures.
-- [ ] T024 Prepare commit 6: `test(maxitor): measure process memory of held graphs on the stand's Linux image (#268)`.
+- [x] T024 Prepare commit 6: `test(maxitor): measure process memory of held graphs on the stand's Linux image (#268)`.
 
 ---
 
 ## Phase 7: Closing check run (commit 7)
 
-- [ ] T025 (FR-016, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); prepare commit 7 with whatever the run changed: `chore: take the check run to zero (#268)`.
+- [x] T025 (FR-016, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); prepare commit 7 with whatever the run changed: `chore: take the check run to zero (#268)`.
 
 ---
 
 ## Phase 8: Documentation (commit 8)
 
-- [ ] T026 [P] (FR-016, step 2) Create `examples/step_26_maxitor/03_graph_memory.py` and `.ipynb`, showing every case with the real printed output (constitution VI.4):
+- [x] T026 [P] (FR-016, step 2) Create `examples/step_26_maxitor/03_graph_memory.py` and `.ipynb`, showing every case with the real printed output (constitution VI.4):
   - what a built graph costs, by category (`duckdb_memory()` through `execute_fetch_dicts`);
   - a payload with a duplicate node refused at build with its `id`;
   - the same payload opened through the application: a 422 whose `detail` names the `id`, and nothing stored for that source (the real FastAPI app with a `GraphStore` over a fixture builder, as `02_api_graph_per_source.py` does);
@@ -152,14 +152,14 @@
   - an empty graph, which builds.
 
   If T018 left the schema unchanged, the example shows only the memory case and the duplicate refusal as they are today. Run both files while writing them.
-- [ ] T027 [P] (FR-016, step 2) Add a section to `docs/tutorials/step-26-maxitor.md` on what a built graph costs and why it has no indexes, linking the new example. Add a note to `packages/aoa-maxitor/README.md` next to `MAXITOR_MAX_GRAPHS`: memory per graph and for 50 graphs. Per FR-015, from R10: whether the process size stays at the peak of graphs held at once on Linux, and whether a setting changes that. Update both `.ru_draft.md` counterparts.
-- [ ] T028 Prepare commit 8: `docs(maxitor): what a built graph costs, with runnable examples (#268)`.
+- [x] T027 [P] (FR-016, step 2) Add a section to `docs/tutorials/step-26-maxitor.md` on what a built graph costs and why it has no indexes, linking the new example. Add a note to `packages/aoa-maxitor/README.md` next to `MAXITOR_MAX_GRAPHS`: memory per graph and for 50 graphs. Per FR-015, from R10: whether the process size stays at the peak of graphs held at once on Linux, and whether a setting changes that. Update both `.ru_draft.md` counterparts.
+- [x] T028 Prepare commit 8: `docs(maxitor): what a built graph costs, with runnable examples (#268)`.
 
 ---
 
 ## Phase 9: Changelog (commit 9)
 
-- [ ] T029 (FR-016, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: how much less memory a held graph takes, in the process figure an operator sees, so the 50-graph store fits in far less; diagrams are unchanged; a service whose graph repeats a node is refused by name; what happens to process memory on the stand. No technical detail. If T018 left the schema unchanged, the article says what was measured and why nothing changed. Prepare commit 9: `docs(changelog): graphs without unneeded indexes (#268)`.
+- [x] T029 (FR-016, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: how much less memory a held graph takes, in the process figure an operator sees, so the 50-graph store fits in far less; diagrams are unchanged; a service whose graph repeats a node is refused by name; what happens to process memory on the stand. No technical detail. If T018 left the schema unchanged, the article says what was measured and why nothing changed. Prepare commit 9: `docs(changelog): graphs without unneeded indexes (#268)`.
 
 ---
 
