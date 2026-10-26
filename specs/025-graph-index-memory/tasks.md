@@ -1,0 +1,182 @@
+# Tasks: A Built Graph Without the Indexes It Does Not Need
+
+**Input**: Design documents from `specs/025-graph-index-memory/`
+
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/graph-build.md, quickstart.md
+
+**Tests**: Required. The spec asks for a duplicate-id test (FR-012) and a guard on the schema's shape and memory (FR-013), and the constitution's adversarial rule needs a test that fails when the behaviour is broken.
+
+**Organization**: one phase = one commit, in the order of plan.md "Phases". Phases are labelled with the user stories they deliver (US1–US4 from spec.md). The duplicate check (Phase 4) lands before the primary keys go (Phase 5), so no commit ever accepts a duplicate node. The three tail tasks (check run, documentation, changelog) are reserved and come in that order, per constitution VI. Every commit is **prepared and shown**, never made without the maintainer's instruction (constitution I). Every commit message references `(#268)`.
+
+**Issue checkboxes**: issue #268 lists its phases as checkboxes, each ticked when its commit lands (`gh issue edit 268`). Mapping: commit 2 ticks issue phase 1 (measurement); commit 3 ticks phase 2 (index usage); commit 5 ticks phase 3 (remove); commit 4 ticks phase 4 (duplicate check; if the phase is skipped, it is ticked with commit 5 and a note that the primary keys stay); commit 6 ticks phase 5 (Linux); commit 9 ticks phase 6 (tail). Commit 1 has no box.
+
+**Test doubles**: none in production. The helper builds graphs through `DuckDBGraphResource.build_from_json` and times the actions through `ActionProductMachine`, as `packages/aoa-maxitor/tests/test_api_diagram_routes.py` does.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel (different files, no shared dependency)
+- **[Story]**: maps the task to a user story (US1–US4)
+- Every description carries an exact file path.
+
+---
+
+## Phase 1: Setup: specification artifacts (commit 1)
+
+**Purpose**: a green baseline and the design documents.
+
+- [x] T001 Confirm `feature/issue-268-graph-memory-indexes` is checked out and run `uv run pytest packages/aoa-maxitor/tests -q` as the green baseline; record the pass count here. Baseline 2026-10-26: **193 passed, 1 skipped**.
+- [x] T002 Prepare commit 1 with `specs/025-graph-index-memory/` (spec, checklist, plan, research, data model, contract, quickstart, tasks, and `data/ref-graph-2026-10-26.json.gz`, the reference graph R1 was measured on), message `docs(spec): specify a built graph without the indexes it does not need (#268)`. `.specify/feature.json` stays out: `.specify/.gitignore` ignores it. Committed as `fd10ed4b`.
+
+---
+
+## Phase 2: Measurement (commit 2) · US1
+
+**Goal**: the numbers every later decision is taken from (FR-001, FR-002, FR-004).
+
+**Independent Test**: `uv run python -m tests.graph_build_metrics ../../specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz`, run from `packages/aoa-maxitor`, prints the JSON of `contracts/graph-build.md` §3, and two runs give identical `memory_mib` and `fingerprints`.
+
+- [x] T003 [US1] Create `packages/aoa-maxitor/tests/graph_build_metrics.py` with a module header (constitution III) and one-line docstrings:
+  - `load_payload(ref)`: a URL (httpx, 30 s) or a file path (`.json` or `.json.gz`); accepts a `graph-json` envelope (via `DuckDBGraphResource._coordinator_from_envelope`) or a bare coordinator payload.
+  - `memory_by_tag(resource)`: MiB per `duckdb_memory()` tag with a non-zero size, plus `total`.
+  - `rss_per_graph(payload, count=10)`: the process size before and after building and holding `count` graphs in this process, and the gain per graph (FR-004). It reads `VmRSS` from `/proc/self/status` on Linux and `ps -o rss=` elsewhere, and names the method in the output.
+  - `build_time_ms(payload, runs)`: the median.
+  - `query_medians(resource, runs)`: the six diagram actions and `GetLeftMenuSidebarDataAction`, run through `ActionProductMachine` with the resource as the `DuckDBGraph` connection. 3 warm-up runs, then the median of `runs` (default 21). Queries with a parameter run for **every** domain (`list-entities`, `domain-use-case-diagram`) or lifecycle (`lifecycle-finite-automaton`) in the graph, and the slowest one is reported.
+  - `fingerprints(resource)`: SHA-256 of `payload_wire_metrics.interchange_json_bytes` of each answer, keyed `<query>` or `<query>:<parameter>`.
+  - A `__main__` CLI as in `contracts/graph-build.md` §3, printing one JSON object.
+
+  The module imports nothing that `uv sync --no-dev` leaves out (no pytest), so it runs inside the stand's image in Phase 6.
+- [x] T004 [US1] The reference graph is the committed copy `specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz`. Confirm that the SHA-256 of its uncompressed bytes is `a9d73e90b8c486fc18a3304b3eacf024a229a9642b71709af8bb919ebf0f84cf`. Write the demo's graph as in `quickstart.md` §1, and record its SHA-256 and the commit it was generated at, so it can be regenerated byte for byte. Run the helper twice on each graph and confirm that `memory_mib` and `fingerprints` are identical between runs. Append the baseline for both graphs to `specs/025-graph-index-memory/research.md` as "R8. Baseline": the file and its SHA-256, size, node and edge counts, memory by tag, process size per graph, build time, and every query median. Mirror it in `research.ru_draft.md`. Save both JSON outputs as `specs/025-graph-index-memory/data/baseline-ref.json` and `data/baseline-demo.json`, so Phase 5 compares against files in the repository, not in `/tmp`.
+- [x] T005 [US1] Adversarial check: make `fingerprints` hash a constant, then make `query_medians` skip one domain. In each case, confirm the helper's output visibly changes: the fingerprints collapse, and one key goes missing. Restore. Observed: 15 fingerprints collapsed to 1, and the skipped `list-entities` domain removed its key (14 against 15); both restored, and the restored output matched the baseline.
+- [x] T006 Prepare commit 2 with the helper, R8 and `data/baseline-ref.json` / `data/baseline-demo.json`: `test(maxitor): measure what a built graph costs and how fast it answers (#268)`. Committed as `70c98d53`.
+
+---
+
+## Phase 3: Which index does which query use (commit 3) · US1
+
+**Goal**: for every primary key and index, the queries that read through it (FR-003). Research R1 has nearly settled the outcome: the primary keys go, and at most one small index fits under a third; research R2a then found that no plan reads through any index at all. This phase proves and records that.
+
+**Independent Test**: `python -m tests.graph_build_metrics ../../specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz --explain` lists all 21 primary keys and 64 indexes, each with its queries or an empty list.
+
+- [x] T007 [US1] Add `index_usage(resource)` and the `--explain` flag to `packages/aoa-maxitor/tests/graph_build_metrics.py`. Capture every SQL statement the seven actions run through a recording proxy of that one resource's connection, set inside the helper; production code is not touched. The proxy must see both paths into the database: `execute_fetch_dicts`, and the direct `duck.service.execute(…)` in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py:153`. Run each statement under `EXPLAIN` with the parameters it was called with, and map index scans in the plan to the index or primary key they name. Confirm the recorded statements include that direct query. Observed: 96 statements (72 distinct plans) on the reference and 941 (823) on the demo, including the direct query eight times on the reference.
+- [x] T008 [US1] Run `--explain` on the reference graph and on the demo's graph. Write `specs/025-graph-index-memory/index-usage.md`: one row per primary key and index, with the queries using it on each graph. Add research R1's finding that removing the indexes alone makes a graph larger (43.5 → 50.7 MiB), and the decision this table implies: which structures Phase 5 removes, and whether Phase 4 is needed. Write `index-usage.ru_draft.md` beside it. Result: all 85 structures are unused on both graphs, so Phase 5 removes all of them and Phase 4 stays required.
+- [x] T009 [US1] **Only after the maintainer says so in the conversation** (constitution I: this writes to GitHub), post the table of `index-usage.md` as a comment on issue #268 with `gh issue comment 268 --body-file specs/025-graph-index-memory/index-usage.md`, as the issue's own phase 2 asks. Posted as https://github.com/bystrovmaxim/aoa/issues/268#issuecomment-6413816242.
+- [x] T010 Adversarial check: temporarily add `CREATE INDEX ix_tmp ON domain (label)` to the build and a query filtered by `label = ?`. Confirm `--explain` reports `ix_tmp` as used by that query. Restore. Adapted: DuckDB 1.5.6 never chooses an index scan for the probe, so the positive control was a synthetic `INDEX_SCAN` plan naming `ix_tmp` (the detector reports it) plus a guard that raises on an unnamed index operator; the negative control (real index and query) is recorded in `index-usage.md` §5.
+- [x] T011 Prepare commit 3: `docs(spec): record which index each diagram query uses (#268)`. Committed as `1b8f6b17`.
+
+---
+
+## Phase 4: Keep the duplicate-id check (commit 4) · US3
+
+**Goal**: a duplicate node `id` in one node table is refused with its `id`, whether or not primary keys remain (FR-010 to FR-012). **Skip this phase** if T008 decided that the primary keys stay.
+
+**Independent Test**: `uv run pytest packages/aoa-maxitor/tests/test_duckdb_duplicate_node_id.py -q`.
+
+- [x] T012 [US3] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`:
+  - Add a node-table name tuple next to `_EDGE_TABLE_NAMES`, covering the 21 node tables.
+  - Add `_refuse_duplicate_node_ids(con)`. It returns the first `(table, id)` occurring more than once **in its table**, ordered by table name, then id, and raises `ValueError(f'Graph has a duplicate node id "{id}" in table "{table}".')`. Implemented as one small `GROUP BY` per table, stopping at the first duplicate: a single `UNION ALL` query retained about 6 MiB per held connection, this loop about 2.6 MiB (R9).
+  - Call it in `build_from_json` after `_fill_database` and before `_install_post_load_objects`.
+  - Add `INVARIANTS: a node id is unique within its node table; the build refuses a duplicate.` to the class's AI-CORE block.
+- [x] T013 [US3] Create `packages/aoa-maxitor/tests/test_duckdb_duplicate_node_id.py` (module header; a payload built in the file, like `_payload` in `test_api_diagram_routes.py`):
+  - one node listed twice → `build_from_json` raises, and the message contains that `id`;
+  - two duplicates in two tables → the message names the one first in table, then id, order;
+  - the same `id` as a `Domain` and as a `Lifecycle` → builds (clarified scope);
+  - no duplicate → builds;
+  - through the application, a graph read for a source whose builder returns the duplicate payload → 422, its `detail` contains the `id`, and the store holds nothing for that source (FR-011). Use a `GraphStore` over a stub builder, as `test_api_diagram_routes.py` does.
+  - the contract's other inputs: an empty graph builds, a duplicated edge is accepted, and the smallest duplicated id in one table is the one named.
+- [x] T014 Adversarial check: locally remove ` PRIMARY KEY` from the node tables **and** the call to `_refuse_duplicate_node_ids`. The duplicate tests fail and no other test does. Restore the call only: they pass on the check alone. Restore the primary keys. Observed: with the call removed and the keys already gone, three duplicate tests fail; with the call restored, all eight pass. Putting the keys back makes DuckDB refuse first, as before, so the check alone is what protects the final schema.
+- [x] T015 Prepare commit 4: `feat(maxitor): refuse a graph with a duplicate node id by name (#268)`. Landed together with phase 3 as `5ec17614`: a separate commit with the primary keys gone and no check would be red, and one with the keys still there makes the duplicate test see DuckDB's exception instead of `ValueError`.
+
+---
+
+## Phase 5: Remove what is not needed (commit 5) · US2
+
+**Goal**: the smallest built graph that keeps every answer and the timing bound, a third of the baseline memory as the target, and the process size per graph at least halved (FR-004 to FR-009, FR-013). If nothing smaller than today keeps the answers and timings (FR-009), this phase carries only the measurements.
+
+**Independent Test**: the helper's output on the reference graph and the demo's graph compared with `data/baseline-ref.json` and `data/baseline-demo.json`, plus `uv run pytest packages/aoa-maxitor/tests -q`.
+
+- [x] T016 [US2] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`, remove what T008 decided:
+  - expected: ` PRIMARY KEY` from the 21 node tables, the 62 `CREATE INDEX ix_<table>_source/target` statements and the 2 `state` indexes in `_install_post_load_objects`;
+  - rewrite `_install_post_load_objects`'s docstring to say it creates the views only (or fold the method into the build, if nothing but views remains);
+  - correct the module header and `_install_database`'s docstring, which say that indexes are created there.
+- [x] T017 [US2] Run the helper on both saved graphs and compare with T004:
+  - `memory_mib.total` ≤ a third of the baseline (the target of FR-008);
+  - the process size per graph at most half the baseline's (SC-006), reported next to `memory_mib.total` (FR-004);
+  - every `query_ms` within +20 % or +1 ms of its baseline (whichever is larger) and ≤ 50 ms on the reference graph;
+  - every `fingerprints` value equal.
+
+  A fingerprint that differs because a query without `ORDER BY` now returns rows in another order → add the `ORDER BY` that matches the old order to that query in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/` and re-run. Append "R9. After" to `specs/025-graph-index-memory/research.md` with the same table as R8, and mirror it in `research.ru_draft.md`. Result: 43.51 → 13.38 MiB and 65.43 → 20.35 MiB (both at 30.8–31.1 % of baseline), process 53.4 → 24.5 and 77.6 → 32.0, every fingerprint equal, every query within the bound; no `ORDER BY` was needed.
+- [x] T018 [US2] Apply FR-009 to T017's result:
+  - a variant that keeps the timings is at or under a third → it ships;
+  - the smallest such variant is smaller than today but above a third → it still ships, and R9 says how far it is from a third and which index or structure stood in the way;
+  - no variant that keeps the timings is smaller than today → revert T016, keep R8 and R9 as the evidence, and skip T019 and T020. Result: the "nothing" variant is at or under a third, so it ships.
+- [x] T019 [US2] Create `packages/aoa-maxitor/tests/test_duckdb_graph_memory.py` (module header). It builds the tiny payload of `test_api_diagram_routes.py` (copied into the file; tests do not import each other) and makes two independent assertions:
+  - **shape**: `SELECT index_name FROM duckdb_indexes()` returns exactly the indexes the change keeps, and `SELECT … FROM duckdb_constraints() WHERE constraint_type = 'PRIMARY KEY'` returns exactly the primary keys it keeps (both empty for the expected variant);
+  - **memory**: the total `duckdb_memory()` is ≤ a ceiling set halfway between the value measured after T016 and the smallest regressing variant of research R1, re-measured now.
+
+  Each failure message names what was found: the extra indexes and keys, or the measured value and the ceiling. The test's docstring says that the ceiling was measured on macOS with the locked DuckDB version, and that only the local check run executes the test, because CI does not run pytest (FR-013). The tiny graph takes 1.24 MiB; the ceiling is 1.75 MiB.
+- [x] T020 Adversarial check, one break at a time:
+  - put the primary keys back → both assertions fail;
+  - put the 62 edge indexes back → both fail;
+  - put only the 2 `state` indexes back → the shape assertion fails;
+  - add one index under a new name → the shape assertion fails;
+  - add a heavy structure that is not an index (for example a copy of the largest edge table) → the memory assertion fails. Observed with one index under a new name, the 21 primary keys, and a 300 000-row table instead of the edge indexes: the first failed the shape assertion only, the keys failed both, the heavy table failed the memory assertion only. No other test failed; all were restored.
+- [x] T021 Prepare commit 5: `perf(maxitor): build graphs without the indexes no query needs (#268)`, or, if T018 left the schema unchanged, `docs(spec): measurements show the graph indexes are needed (#268)`. Landed together with phase 4 as `5ec17614`, because the two cannot be green apart.
+
+---
+
+## Phase 6: Memory on Linux (commit 6) · US4
+
+**Goal**: the process-size sequence in the stand's image, and whether a DuckDB setting changes it (FR-014).
+
+**Independent Test**: `docker run … python -m tests.graph_build_metrics /ref.json.gz --rss-sequence` per `quickstart.md` §5 prints the `rss_mib` list.
+
+- [x] T022 [US4] Add `--rss-sequence` to `packages/aoa-maxitor/tests/graph_build_metrics.py`, reading the process size the same way as `rss_per_graph` (T003). Run the issue's steps: 0, 1, 5, 10 held; all dropped plus `gc.collect()`; 3 built again. A repeatable `--setting name=value` applies a DuckDB setting to each connection before building. Implemented so the sequence runs first in the process, before any other build; the setting is applied to each connection right after `build_from_json` returns and before the graph is held or dropped (the build offers no hook).
+- [x] T023 [US4] Build the image and run the sequence per `specs/025-graph-index-memory/quickstart.md` §5, first with defaults. Then list `SELECT name FROM duckdb_settings() WHERE name LIKE 'allocator%'` inside the image and repeat the sequence once per allocator setting that exists. Append "R10. Linux" to `specs/025-graph-index-memory/research.md` (and `research.ru_draft.md`): the tables, and a plain answer to "does memory come back after graphs are dropped". If the image cannot be built or run, record that and what was measured instead (spec edge case). Result: the image built (Docker 29.2.1, linux/aarch64); memory comes back on Linux (309.0 → 192.5 MiB after dropping all ten); all three allocator settings exist and only lower the figures.
+- [x] T024 Prepare commit 6: `test(maxitor): measure process memory of held graphs on the stand's Linux image (#268)`.
+
+---
+
+## Phase 7: Closing check run (commit 7)
+
+- [x] T025 (FR-016, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); prepare commit 7 with whatever the run changed: `chore: take the check run to zero (#268)`.
+
+---
+
+## Phase 8: Documentation (commit 8)
+
+- [x] T026 [P] (FR-016, step 2) Create `examples/step_26_maxitor/03_graph_memory.py` and `.ipynb`, showing every case with the real printed output (constitution VI.4):
+  - what a built graph costs, by category (`duckdb_memory()` through `execute_fetch_dicts`);
+  - a payload with a duplicate node refused at build with its `id`;
+  - the same payload opened through the application: a 422 whose `detail` names the `id`, and nothing stored for that source (the real FastAPI app with a `GraphStore` over a fixture builder, as `02_api_graph_per_source.py` does);
+  - the same `id` in two node tables, accepted;
+  - an empty graph, which builds.
+
+  If T018 left the schema unchanged, the example shows only the memory case and the duplicate refusal as they are today. Run both files while writing them.
+- [x] T027 [P] (FR-016, step 2) Add a section to `docs/tutorials/step-26-maxitor.md` on what a built graph costs and why it has no indexes, linking the new example. Add a note to `packages/aoa-maxitor/README.md` next to `MAXITOR_MAX_GRAPHS`: memory per graph and for 50 graphs. Per FR-015, from R10: whether the process size stays at the peak of graphs held at once on Linux, and whether a setting changes that. Update both `.ru_draft.md` counterparts.
+- [x] T028 Prepare commit 8: `docs(maxitor): what a built graph costs, with runnable examples (#268)`.
+
+---
+
+## Phase 9: Changelog (commit 9)
+
+- [x] T029 (FR-016, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: how much less memory a held graph takes, in the process figure an operator sees, so the 50-graph store fits in far less; diagrams are unchanged; a service whose graph repeats a node is refused by name; what happens to process memory on the stand. No technical detail. If T018 left the schema unchanged, the article says what was measured and why nothing changed. Prepare commit 9: `docs(changelog): graphs without unneeded indexes (#268)`.
+
+---
+
+## Dependencies & Execution Order
+
+- Phase 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9.
+- Phase 3 needs the helper (Phase 2). Phase 4 needs T008's decision. Phase 5 needs the baseline (T004), the decision (T008) and the duplicate check (Phase 4) whenever primary keys are removed. Phase 6 needs only the helper and could run right after Phase 2. It comes after Phase 5 so the sequence measures the graphs as they will ship.
+- T026 and T027 touch different files and can run in parallel.
+
+## Parallel Example: Phase 8
+
+```text
+T026 examples/step_26_maxitor/03_graph_memory.py + .ipynb
+T027 docs/tutorials/step-26-maxitor.md · packages/aoa-maxitor/README.md (+ .ru_draft.md)
+```
+
+## Implementation Strategy
+
+- **MVP**: Phases 1–3. After commit 3 the maintainer has the numbers and the index usage table, which is enough to confirm or drop the hypothesis.
+- **Complete**: Phases 4–5 deliver the memory cut with the duplicate guard and the regression test. Phase 6 answers the Linux question. The tail (Phases 7–9) closes the change.

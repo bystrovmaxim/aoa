@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-26] — A graph takes a fraction of the memory
+
+Maxitor used to spend four fifths of a built graph's memory on lookup structures: every node table carried a primary key and every edge table two indexes. The diagram queries never read through them — every plan was already a full scan — so the graph paid tens of megabytes for nothing. The build now creates neither.
+
+The difference is visible in the number an operator watches. A graph of the reference service takes about 13 MiB instead of 43.5, and the demo's graph about 20 instead of 65. In the process, each held graph costs about 24.5 MiB instead of 53.4 on macOS and 16.7 MiB on Linux, so a store holding the full fifty graphs fits in roughly 1.1 GiB instead of 2.7. The build is also a little faster. Nothing a reader sees changes: every diagram and the sidebar answer exactly as before, at the same speed.
+
+A service whose graph lists the same node id twice in one table is still refused, and the message now names the duplicated id and its table instead of quoting the database. A repeated id in two different node tables remains accepted, as it always was.
+
+The stand runs Linux, and there the memory comes back to the system when graphs are dropped: the process fell from about 309 MiB with ten graphs to about 192 MiB after all were dropped, and rebuilding three added only a few megabytes. On macOS the process keeps its peak, as before. Changing DuckDB's allocator settings lowers the Linux peak somewhat but does not change that answer. ([#268](https://github.com/bystrovmaxim/aoa/issues/268))
+
 ## [2026-10-26] — One graph per source, and every request names it
 
 Maxitor used to keep a single graph per process. Whoever opened a service last owned it, so the next diagram drawn for anybody else silently showed that other service's graph; and because there was only one place to keep a graph, every open downloaded and rebuilt the whole thing again.
