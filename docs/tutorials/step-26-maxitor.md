@@ -412,3 +412,28 @@ The current ERD query reads the ordinary association and displays the dictionary
 See [selection declarations and transport](../how-to/dictionary-references.md), the [ERD script](../../examples/step_20_dictionaries/09_erd.py) and [executed notebook](../../examples/step_20_dictionaries/09_erd.ipynb).
 
 The [all-container dictionary example](../../examples/step_21_relations/72_role_dictionary.py) and [notebook](../../examples/step_21_relations/72_role_dictionary.ipynb) assert the source graph for all six ordinary roles. The [current consumer reproduction](../reports/endpoint-role-verification.md#dictionary-field-rows-in-the-erd) confirms that Maxitor carries all three families but still returns two payload rows for each retained dictionary field.
+
+## How the full graph is delivered and drawn
+
+The page opens faster than it did, and a second visit barely downloads anything. Three things changed, and one thing stopped working on purpose.
+
+**What is compressed and cached.** Every answer above 500 bytes is gzipped when the browser accepts it, and a file whose name carries a content hash is marked `Cache-Control: public, max-age=31536000, immutable`: the code and the styles are downloaded once and then come from the browser's cache. `index.html` is the exception — it is marked `no-cache`, so the browser asks again on every open and gets a `304` unless there is a new release; when there is, the page arrives whole and points at the new hashed files. That is why a new release still reaches a returning user on the next open. The graph reads themselves carry no cache lifetime: the same source can answer with a different graph after the store rebuilds it.
+
+**The arrangement is remembered.** Once the graph has been laid out, the browser keeps every node's position in IndexedDB under a fingerprint of the graph — its node ids and types, its edges and the layout settings. On the next open of the same graph the positions are replayed through a small G6 layout, so no layout runs at all; a changed graph or changed settings give another fingerprint and a fresh layout. At most twenty arrangements are kept, the least recently used dropped first. In a private window, with storage full or disabled, nothing is remembered and the page simply lays the graph out every time. Hiding nodes by type never moves the rest: the arrangement belongs to the whole graph, and the filter changes visibility only.
+
+**A node no longer moves when dragged.** This is the one intended change in behaviour, decided by the maintainer. Panning by dragging empty space, zooming, the hover card with the neighbour highlight, the colours, the glyphs and the domain hulls are as before; a node no longer shows a grab cursor. A drag that starts on a node leaves the picture where it was.
+
+**What the layout engine does on a first open.** G6 still computes the arrangement on the main thread and draws it; a web worker was built and measured, and it did not pay: it changed the longest frozen stretch by nothing measurable and made the first pixel 350–450 ms later. The measurement and the decision are in [research R13](../../specs/026-full-graph-fast-open/research.md). What ships from that work is the precomputed-layout adapter the remembered arrangement uses.
+
+**How it is measured.** `packages/aoa-maxitor/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
+
+| Criterion | Before | After | Target |
+|---|---|---|---|
+| bytes, first open | 3 056 128 | 1 229 863 | ≤ 1 300 000 |
+| bytes, repeat open | 311 515 | 22 120 | ≤ 50 000 |
+| first pixel, Slow 4G | 16 537 ms | 7 368 ms | < 6 000 |
+| longest task, 1× | 596 ms | 592 ms | < 150 |
+| longest task, 4× | 2 759 ms | 2 505 ms | < 600 |
+| first pixel, repeat open | 727 ms | 739 ms | < 500 |
+
+The download and the repeat visit meet their targets; the frozen stretches and the slow-network first pixel do not, and the research page states what stands in the way.

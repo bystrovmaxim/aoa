@@ -19,9 +19,9 @@ cd /Users/bystrovmaxim/PythonDev/aoa/packages/aoa-maxitor/client && node scripts
 | `--canvas` | none | where to save the canvas PNG of `cpu1x/first` |
 | `--compare-canvas` | none | a reference PNG; the run fails if any pixel of the settled frame differs |
 | `--no-pixel-probe` | off | turns the first-pixel sampler off (`firstGraphPixelMs` is then `null`, and the long-task window ends at `load` + 3 s); used only to check what the sampler costs |
-| `--interaction-probe` | off | moves the pointer across non-transparent canvas pixels until a `.graph-hover-label` appears (a node is under it), fails if no card appears; then drags 80 px from that point, moves the pointer out of the canvas, and fails if the settled canvas changed (FR-023, FR-024) |
+| `--interaction-probe` | off | moves the pointer across non-transparent canvas pixels until a `.graph-hover-label` appears (a node is under it), fails if no card appears; then drags 80 px from that point, clicks empty canvas to clear the hover card, moves the pointer out of the canvas, and fails if the settled canvas changed (FR-023, FR-024) |
 | `--no-worker` | off | deletes `window.Worker` before the page loads; the run then **expects** the viewer's fallback warning and fails without it, and still requires a drawn graph (FR-012) |
-| `--no-storage` | off | deletes `window.indexedDB` before the page loads; the repeat open must then lay out again (a layout worker appears) and show no error (FR-017) |
+| `--no-storage` | off | deletes `window.indexedDB` before the page loads; the page must still draw on both opens and show no error (FR-017) |
 
 Exit code `0` when the run succeeded; `1` when a console failure was seen, bytes differed between runs, or `--compare-canvas`, `--interaction-probe`, `--no-worker` or `--no-storage` found what they fail on.
 
