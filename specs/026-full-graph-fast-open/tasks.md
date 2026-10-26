@@ -1,0 +1,180 @@
+# Tasks: The Full Graph Opens Fast and Never Freezes the Tab
+
+**Input**: Design documents from `specs/026-full-graph-fast-open/`
+
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/ (http-headers, layout-worker, measurement-report), quickstart.md
+
+**Tests**: Required, and the client's vitest files run in the check run (`scripts/run_checks_with_log.sh` runs `npm test`), so they are fast and deterministic under jsdom. The spec asks for header tests (FR-008), a check that fails on a main-thread fallback (FR-003, FR-011), and a proof of the same picture (FR-010, FR-023); the constitution's adversarial rule needs, for each, a break that makes exactly that check fail.
+
+**Organization**: one phase = one commit, in the order of plan.md "Phases". Each phase names the user story it delivers (US1–US6 of spec.md). The three tail tasks (check run, documentation, changelog) are reserved and come in that order (constitution VI). Every commit is **prepared and shown**, never made without the maintainer's instruction (constitution I). Every commit message references `(#245)`.
+
+**Issue checkboxes**: issue #245 lists its phases as checkboxes, each ticked when its commit lands (`gh issue edit 245`). Mapping: commit 2 ticks issue phase 1 (measurement); commit 3 ticks phase 2 (compress and cache); commit 4 ticks phase 3 (G6 early); commit 5 ticks phase 4 (layout off the main thread); commit 6 ticks phase 5 (layout once per graph); commit 7 ticks phase 6 (first frame); commit 10 ticks phase 7 (tail). Commits 1, 8 and 9 have no box of their own.
+
+**Measuring**: every figure below is taken as in `quickstart.md` §2–§4: the frozen reference graph served on `127.0.0.1:8765`, a production build of the client copied into `packages/aoa-maxitor/src/aoa/maxitor/static/`, `maxitor-api` on port 8101. "Rebuild and measure" means: `npm run build`, copy `dist` into `static/`, restart `maxitor-api`, run the tool.
+
+**Test doubles**: none in production. The tool reads only what a browser exposes (network events, long tasks, the canvas, worker targets); no hook is added to the client for it.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel (different files, no shared dependency)
+- **[Story]**: maps the task to a user story (US1–US6)
+- Every description carries an exact file path.
+
+---
+
+## Phase 1: Setup: specification artifacts (commit 1)
+
+**Purpose**: a green baseline and the design documents.
+
+- [ ] T001 Confirm `feature/issue-245-compressed-graph-transfer` is checked out, run `uv run pytest packages/aoa-maxitor/tests -q` and, in `packages/aoa-maxitor/client`, `npm ci && npm test && npm run build`; record the pass counts here as the green baseline.
+- [ ] T002 Prepare commit 1 with `specs/026-full-graph-fast-open/` (spec, checklist, plan, research, data model, contracts, quickstart, tasks): `docs(spec): specify a full graph that opens fast and never freezes the tab (#245)`. `.specify/feature.json` stays out: `.specify/.gitignore` ignores it.
+
+---
+
+## Phase 2: Measurement tool and baseline (commit 2) · US1
+
+**Goal**: one way of measuring every claim of this work (FR-001 … FR-004).
+
+**Independent Test**: on `main`'s code, two runs of the tool give equal `totalBytes` in every condition and pixel-identical canvases.
+
+- [ ] T003 [US1] Add `playwright` to `devDependencies` and a `"measure": "node scripts/measure-full-graph.ts"` script in `packages/aoa-maxitor/client/package.json`; update `package-lock.json` with `npm install -D playwright`. Confirm `npm run build` does not bundle it.
+- [ ] T004 [US1] Create the tool's frame in `packages/aoa-maxitor/client/scripts/measure-full-graph.ts`, exactly to `contracts/measurement-report.md`: option parsing, exit codes, the report shape (with `commit`, `viewport`, `canvasSize`); one fresh Chromium context per condition and run, a first open then a repeat open in the same context; conditions `cpu1x`, `cpu4x` via `Emulation.setCPUThrottlingRate(4)`, `slow4g` via `Network.emulateNetworkConditions` (latency 150 ms, down 1.6 Mbit/s, up 750 kbit/s); viewport 1600×900; CDP `Network.responseReceived` / `Network.loadingFinished` for each resource's `encodedDataLength`, decoded size, `content-encoding`, `cache-control`, status and `fromDiskCache`; times as the median of `--runs` (default 3), bytes required equal across runs. Open with a module comment saying what the tool measures and that the check run does not run it (it has no browser). **Break**: serve one resource with a body that changes per request → the run exits 1 on unequal bytes; restore.
+- [ ] T005 [US1] Add the timing parts to the tool (research R9): a `PerformanceObserver({type: "longtask", buffered: true})` installed with `addInitScript`, counting tasks from navigation start until 3 s after the first graph pixel; the first graph pixel sampled once per animation frame by `drawImage` of the G6 canvas under `.ix-interchange-viewport` into a 16×16 offscreen canvas made with `willReadFrequently: true` and `getImageData` of those 256 pixels (alpha > 0), stopping at the first hit, never reading the full canvas; `--no-pixel-probe`; `Target.setAutoAttach` with `Profiler` on worker targets for `workers[].cpuMs` and the page's profile for `mainScriptingMs`; console messages containing `fallback to main thread` or `the background layout is unavailable` go to `consoleFailures` and fail the run. **Breaks**: (a) a 300 ms busy loop in the viewer's mount → `longestTaskMs` rises by about 300 and nothing else moves; (b) one `console.warn("…fallback to main thread…")` → exit 1 with the message in `consoleFailures`; (c) the sampler's own cost: with `--no-pixel-probe` the window ends at `load` + 3 s; compare only the long tasks that start before the end of the sampled run's window — they are the same within noise, and no long task starts inside a sampling callback. Restore each; record here.
+- [ ] T006 [US1] Add the canvas parts to the tool: the settled frame, `--canvas` and `--compare-canvas` (any differing pixel fails). Settling as in the contract: after the first graph pixel, two animation frames inside the page, a screenshot every 200 ms, settled after five identical ones in a row (≥ 800 ms unchanged), failure after 10 s. **Breaks**: (a) shift one node by 1 px in a copy of the PNG → `--compare-canvas` fails; (b) delay the viewer's `fitView` by 400 ms → the tool must wait for it: the settled canvas equals the undelayed one, not the frame before the fit; (c) keep the canvas changing every 150 ms (a temporary timer redrawing it) → the run fails on the 10 s limit instead of settling. Restore each; record here.
+- [ ] T007 [US1] Add the probes to the tool: `--interaction-probe` (move the pointer over non-transparent canvas pixels until a `.graph-hover-label` appears, fail if none does; then drag 80 px from that point and fail if the settled canvas changed); `--no-worker` and `--no-storage` (delete `window.Worker` / `window.indexedDB` with `addInitScript`; with `--no-worker` the fallback warning is expected — its absence fails the run — and a drawn graph is still required; with `--no-storage` the repeat open must show a layout worker again and no console error). **Breaks**, natural on today's code: `--interaction-probe` fails because nodes still move; `--no-worker` fails because today's page logs no fallback warning; `--no-storage` fails because today's repeat open shows no layout worker. Record the three failures here; they turn green in Phases 5–6.
+- [ ] T008 [US1] Run the tool on the current code as in `quickstart.md` §2–§4, twice. Save the first report as `specs/026-full-graph-fast-open/data/baseline-main.json`, a run with `--view domain-erd --conditions cpu1x` as `specs/026-full-graph-fast-open/data/baseline-main-erd.json` (the SC-008 baseline), the canvas as `specs/026-full-graph-fast-open/data/canvas-main.png`, and the local Maxitor's `GET /api/v1/full-graph?source=http://127.0.0.1:8765/graph-json` answer as `specs/026-full-graph-fast-open/data/full-graph-ref.json` (the input of T023's equivalence test); confirm the second run's bytes are equal and its canvas compares identical (research R4). If two runs on `main` do **not** give identical settled canvases, stop and record the difference in research.md before choosing a tolerance. Append the baseline to `specs/026-full-graph-fast-open/research.md` as "R10 — Baseline on main": per condition and open, total bytes, longest task, first pixel, main scripting time; and the resource list of `cpu1x/first`.
+- [ ] T009 Prepare commit 2 with the tool, `package.json`, `package-lock.json`, R10 and `data/`: `test(maxitor): measure what opening the full graph costs (#245)`. Tick issue phase 1.
+
+---
+
+## Phase 3: Compress and cache what the server sends (commit 3) · US2
+
+**Goal**: several times fewer bytes on a first open and almost none on a repeat open, with new releases still picked up (FR-005 … FR-008).
+
+**Independent Test**: `uv run pytest packages/aoa-maxitor/tests/test_api_compression_and_cache.py -q` passes; the tool shows `cpu1x.first.totalBytes ≤ 1 300 000` and `cpu1x.repeat.totalBytes ≤ 50 000`.
+
+- [ ] T010 [P] [US2] Create `packages/aoa-maxitor/tests/test_api_compression_and_cache.py` (module header, constitution III) against `create_app` with `_STATIC_DIR` pointed at a temporary directory holding `index.html` and `assets/index-abc123.js` (≥ 500 bytes): (1) the asset with `Accept-Encoding: gzip` comes back `Content-Encoding: gzip`, `Vary: Accept-Encoding`, `Cache-Control: public, max-age=31536000, immutable`, and decompresses to the file's bytes; (2) the same asset without `Accept-Encoding` comes back uncompressed with the same `Cache-Control`; (3) `/` and `/index.html` carry `Cache-Control: no-cache` and an `etag`, and a request with that `If-None-Match` gets `304`; (4) a body under 500 bytes is not compressed; (5) a `GET /api/v1/full-graph?source=…` over a fixture graph (as `test_api_diagram_routes.py` builds one) is compressed (its cache headers are not asserted, so a validator can be added later; research R1); (6) `GET /api/v1/full-graph` without `source` keeps status 400, its `detail`, and `Access-Control-Allow-Origin`; (7) a busy store's 503 keeps `Retry-After` and `Access-Control-Expose-Headers: Retry-After` (reuse the setup of `test_api_graph_source_middleware.py`); (8) after `index.html` is rewritten with other content, a request carrying the old `etag` in `If-None-Match` gets `200` and the new body, not `304` — the proof that a new release arrives. Run it and confirm (1), (3) and (5) fail before T011–T012.
+- [ ] T011 [P] [US2] Create `packages/aoa-maxitor/src/aoa/maxitor/api/cached_static_files.py`: `CachedStaticFiles(StaticFiles)` overriding `file_response(self, full_path, stat_result, scope, status_code=200)` to set `Cache-Control: public, max-age=31536000, immutable` when the served path is under `assets/`, and `no-cache` when the served file is `index.html`, leaving other files as they are (`contracts/http-headers.md`). Module header with `PURPOSE` and `ARCHITECTURE / DATA FLOW`; an AI-CORE block on the class (`ROLE`, `CONTRACT`, `INVARIANTS`: "a hashed asset is immutable; `index.html` is always revalidated"); one-line docstring on the method.
+- [ ] T012 [US2] In `packages/aoa-maxitor/src/aoa/maxitor/api/app.py`: mount `CachedStaticFiles` instead of `StaticFiles`; add `GZipMiddleware(minimum_size=500, compresslevel=6)` **after** the CORS middleware, so it is outermost (research R1), with a comment saying why it is last. Add the compression and cache step to the module header's data flow. Run T010's tests and the whole `uv run pytest packages/aoa-maxitor/tests -q`.
+- [ ] T013 [US2] Rebuild and measure. Record in research.md "R11 — After compression": bytes per condition and open, and the server's time to first byte of the two big scripts at level 6. Confirm SC-001 and SC-002, or record the gap (FR-025).
+- [ ] T014 [US2] Adversarial check: (a) remove the `GZipMiddleware` line → only the compression assertions of T010 fail; (b) change `immutable` to `max-age=0` → only the asset cache assertions fail, and the tool's `cpu1x.repeat.totalBytes` rises above 1 MB; (c) move `GZipMiddleware` inside CORS → assertions (6)–(7) still pass (document that the order is about coverage, not CORS). Restore each; record here.
+- [ ] T015 Prepare commit 3: `feat(maxitor): compress answers and cache hashed assets for a year (#245)`. Tick issue phase 2.
+
+---
+
+## Phase 4: Start downloading G6 as early as possible (commit 4) · US6
+
+**Goal**: a deep link to the full graph starts the G6 download before React mounts; other views never download it (FR-009, SC-008).
+
+**Independent Test**: the tool's `cpu1x.first.resources` show the G6 chunk requested before the app's first paint; a run with `--view domain-erd` shows no G6 chunk.
+
+- [ ] T016 [US6] In `packages/aoa-maxitor/client/src/main.tsx`, before `createRoot`, start `import("@antv/g6")` when `readUrlDeepLink().view === "full-graph"` (`@/lib/urlState`), with a one-line comment that the chunk is the same one the viewer imports (research R5). Keep `prefetchInterchangeG6` in the sidebar.
+- [ ] T017 [US6] Rebuild and measure twice: once with the default view and once with `--view domain-erd`. Record in research.md "R12 — Early G6": the G6 chunk's request start relative to the entry script's, the Slow 4G first pixel, and the ERD run compared with `data/baseline-main-erd.json`: no G6 chunk, `totalBytes` not higher, the app chunk's `decodedBytes` at most 5 000 above its baseline (SC-008).
+- [ ] T018 [US6] Adversarial check: change the condition to `!== "full-graph"` → the ERD run lists the G6 chunk and the full-graph run starts it late. Restore; record here.
+- [ ] T019 Prepare commit 4: `perf(maxitor): start loading the graph engine early on a full-graph link (#245)`. Tick issue phase 3.
+
+---
+
+## Phase 5: Move the layout off the main thread (commit 5) · US3
+
+**Goal**: the 220 steps of `d3-force` run in a worker of our own, G6 only draws, and the picture is identical (FR-010 … FR-013).
+
+**Independent Test**: the vitest equivalence test passes; the tool's canvas compares identical to `data/canvas-main.png`; `workers[]` shows the layout's CPU time in a worker; `consoleFailures` is empty.
+
+- [ ] T020 [P] [US3] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/layoutSettings.ts`: one exported `LAYOUT_SETTINGS` object with exactly the values of `data-model.md` "Layout settings" (`iterations` 220, `linkDistance` 72, `linkStrength` 0.82, `manyBody { strength: -360, distanceMax: 1200 }`, `collide { radiusOffset: 7, strength: 0.95, iterations: 4 }`, `centerStrength` 0.012, `alphaDecay` 0.012, `alphaMin` 0.0015, `velocityDecay` 0.42) and a comment explaining why distance and strength are constants (research R3: d3 hands the accessors node objects, so today's per-type rule never applied).
+- [ ] T021 [US3] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/forceLayout.ts`: `computeForceLayout(request: LayoutRequest): Record<string, [number, number]>` per `contracts/layout-worker.md`. Build `D3ForceLayout` from `@antv/layout` with the options G6 5.1.1's `initGraphLayout` would merge from today's viewer, as **one explicit nested object** built from `LAYOUT_SETTINGS` — every number read from it, never a literal: `nodeSize: nodeVisualPx`, `width`, `height`, `center: {x: width/2, y: height/2, z: 0, strength: LAYOUT_SETTINGS.centerStrength}`, `link: {distance: LAYOUT_SETTINGS.linkDistance, strength: LAYOUT_SETTINGS.linkStrength}`, and the other forces as they are. Never a shallow spread: it would drop `center.strength` and leave d3's default of 1 (research R4, measured: up to 1 387 px off). Add `@antv/layout` to `dependencies` in `packages/aoa-maxitor/client/package.json` pinned to exactly `2.0.0`, the version G6 resolves today, instead of importing a transitive package; `@antv/util` is not needed. Call `execute`, `stop`, `tick(iterations)` in that order, and read `x`, `y` of every node. Validate the result as `data-model.md` "Layout input and result" says (every node present, finite coordinates) and throw otherwise.
+- [ ] T022 [US3] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/forceLayout.worker.ts`: a module worker that takes one `LayoutRequest`, answers `{ok: true, positions, ms}` or `{ok: false, error}`, and holds no state.
+- [ ] T023 [US3] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/forceLayout.test.ts`: on `specs/026-full-graph-fast-open/data/full-graph-ref.json` (saved in T008), run (a) a reference built independently of `forceLayout.ts`: today's `layout` object copied **literally** from the old `FullGraphViewer.tsx` (accessor functions included, numbers as written there, not from `LAYOUT_SETTINGS`), with `type`, `animation` and `iterations` removed as G6 removes them, merged by the library itself — `new D3ForceLayout(rest)` then `execute(data, {nodeSize, width, height, center: {x, y, z: 0}})` — then `stop`, `tick(220)`; and (b) `computeForceLayout`; assert equal positions for every node within 1e-9 at the `canvasSize` recorded in `data/baseline-main.json`. Add a test that a result missing a node is rejected, and one that a shallow-merged variant (center without `strength`) gives **different** positions — the proof that the test can see a merge error. The file runs in the check run (`npm test`), so it reads the JSON from disk once and uses no timers or browser APIs.
+- [ ] T024 [US3] In `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/FullGraphViewer.tsx`: remove the `layout` option from `buildGraph`; before building the graph, read the canvas's `clientWidth` / `clientHeight`, start `new Worker(new URL("./forceLayout.worker.ts", import.meta.url), { type: "module" })`, post the `LayoutRequest`, and on `ok: true` with a valid result set each node's `style.x` / `style.y` and build and render the graph. On any failure (constructor throws, `error` event, `ok: false`, invalid result) log `Full graph layout: the background layout is unavailable, laying out on the main thread.` once with `console.warn` and build the graph with G6's own `layout` option set from `LAYOUT_SETTINGS` — today's path — remembering nothing from it (contract "Fallback"). `FullGraphViewer.tsx` imports `layoutSettings.ts` and the types only, never `forceLayout.ts` or `@antv/layout`, so the chunk every view loads gains no layout code (research R2). In the effect's cleanup, `terminate()` the worker and ignore any late answer (FR-013). Keep `DiagramShell`'s loading state until the graph is drawn.
+- [ ] T025 [US3] Rebuild and measure with `--compare-canvas data/canvas-main.png`. Confirm: the canvas is identical; `cpu1x.first.totalBytes` with the new worker chunk is still ≤ 1 300 000 (record the chunk's size); a `--view domain-erd` run passes the SC-008 comparison with `data/baseline-main-erd.json`; `consoleFailures` is empty; `workers[]` holds the layout worker with about the CPU time the layout took on the main thread in R10; `cpu1x.first.longestTaskMs` falls by about that much. Run once more with `--no-worker --compare-canvas data/canvas-main.png`: the fallback warning appears, the graph is drawn, the canvas is identical (FR-012). Record in research.md "R13 — Worker layout". Run `npm test`.
+- [ ] T026 [US3] Adversarial check: (a) set `linkDistance` to 200 → the equivalence test and `--compare-canvas` fail, nothing else; (b) make the worker answer `{ok: false}` → the tool fails with the fallback message, and the page still draws the graph; (c) unmount the viewer during the layout (switch view in the tool's page) → no graph is drawn afterwards and no worker target remains; (d) restore the rejected design — import `forceLayout` into `FullGraphViewer.tsx` and call `computeForceLayout` from the fallback — and confirm that only the SC-008 comparison of the `--view domain-erd` run fails, on the app chunk's `decodedBytes`; a bare unused import proves nothing, because `@antv/layout` sets `"sideEffects": false` and the bundler drops it. Restore each; record here.
+- [ ] T027 [US3] Add the three new modules to the Files table of `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/README.md` (and its `.ru_draft.md` if one exists beside it).
+- [ ] T028 Prepare commit 5: `perf(maxitor): lay the full graph out in a worker (#245)`. Tick issue phase 4.
+
+---
+
+## Phase 6: Remember the arrangement, and stop nodes from moving (commit 6) · US4
+
+**Goal**: a repeat open of an unchanged graph runs no layout (FR-014 … FR-019); nodes can no longer be dragged (FR-024).
+
+**Independent Test**: the tool's `cpu1x.repeat.firstGraphPixelMs < 500` with no layout worker in `repeat.workers`; `--interaction-probe` and `--no-storage` pass; vitest passes the fingerprint and store tests.
+
+- [ ] T029 [P] [US4] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/arrangementStore.ts` per `data-model.md` "Fingerprint" and "Remembered arrangement": `fingerprintGraph(payload)` → hex SHA-256 via `crypto.subtle` of the canonical JSON `{"settings": LAYOUT_SETTINGS, "nodes": [[id, node_type]…] sorted, "edges": [[source, target, edge_type]…] sorted}`, or `null` when `crypto.subtle` is missing; `readArrangement(fp, nodeIds)` → positions only if they cover every node id, touching `lastUsed`; `writeArrangement(fp, positions)` then prune to the **20** entries with the newest `lastUsed`. Keep the two decisions as pure exported functions so they are testable without IndexedDB: `coversEveryNode(positions, nodeIds)` (every id present, both coordinates finite) and `entriesToEvict(entries, limit = 20)` (the fingerprints to delete, oldest `lastUsed` first). Database `maxitor-full-graph`, version 1, store `arrangements`, key path `fingerprint`, index `lastUsed`. Every error (no `indexedDB`, open blocked, quota, malformed entry) resolves to "not remembered" without throwing.
+- [ ] T030 [P] [US4] Create `packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/arrangementStore.test.ts`: the fingerprint is equal for the same graph in another row order and with other labels and colours; it changes when a node is added, a node's `node_type` changes, an edge's `edge_type` changes, or `LAYOUT_SETTINGS` changes; with `indexedDB` undefined (jsdom has none) read and write resolve to "not remembered" without throwing; with `crypto.subtle` undefined the fingerprint is `null`; `coversEveryNode` rejects a map missing one id and a map with a `NaN`; `entriesToEvict` returns nothing for 20 entries and the single oldest for 21. The file runs in the check run, so it stubs nothing beyond `globalThis.crypto` / `indexedDB` and uses no timers.
+- [ ] T031 [US4] In `FullGraphViewer.tsx`: compute the fingerprint from the whole payload; if `readArrangement` returns positions, draw them and start no worker; otherwise run Phase 5's worker layout, draw, and — only if the effect is still current — `writeArrangement`. Never write after a cancelled layout (FR-013). A graph with no nodes runs no layout and writes nothing. Leave a comment at the read that the arrangement belongs to the whole graph and that hiding nodes (#246) must never recompute or rewrite it (FR-019). Add `arrangementStore.ts` to the Files table of `FullGraphViewer/README.md`.
+- [ ] T032 [US4] In `FullGraphViewer.tsx`, remove node dragging (research R7): drop `drag-element` from `behaviors`, change the node `cursor` from `"grab"` to `"default"`, remove the `node:dragend` handler and its `off`. Keep `zoom-canvas` and `drag-canvas`.
+- [ ] T033 [US4] Rebuild and measure with `--compare-canvas data/canvas-main.png --interaction-probe`. Confirm SC-006 (`cpu1x.repeat.firstGraphPixelMs < 500`), no layout worker on the repeat open, identical canvas on both opens, the hover card shown and the node unmoved, and the `--view domain-erd` run passing the SC-008 comparison with `data/baseline-main-erd.json`. Run once more with `--no-storage` and confirm the repeat open lays out again without an error (FR-017). Then serve a copy of the reference graph with one edge removed and confirm the repeat open lays out afresh. Record in research.md "R14 — Remembered arrangement". Run `npm test`.
+- [ ] T034 [US4] Adversarial check: (a) leave `node_type` out of the fingerprint → only the retyped-node test fails; (b) make `coversEveryNode` return `true` → only its unit test fails; (c) put `drag-element` back → only `--interaction-probe` fails; (d) set the eviction limit to 2 → only the `entriesToEvict` test fails. Restore each; record here.
+- [ ] T035 Prepare commit 6: `feat(maxitor): remember the full graph's arrangement and keep nodes in place (#245)`. Tick issue phase 5.
+
+---
+
+## Phase 7: Draw less in the first frame (commit 7) · US5
+
+**Goal**: the first picture appears before the work it does not need; each part stays only if the figures show a gain (FR-020 … FR-022, FR-025).
+
+**Independent Test**: the tool, run with and without each part, shows which parts shorten `longestTaskMs` or `firstGraphPixelMs`; the canvas after settling is identical to `data/canvas-main.png`.
+
+- [ ] T036 [US5] In `FullGraphViewer.tsx`: build the graph without `plugins`, `await graph.render()`, wait one `requestAnimationFrame`, then `graph.setPlugins(bubblePlugins)` and draw; keep `pointerEvents: "none"` on every hull (`normalizeBubblePluginsForInterchange`). Rebuild and measure; keep only if `longestTaskMs` or `firstGraphPixelMs` improves, and the settled canvas is identical.
+- [ ] T037 [US5] In `packages/aoa-maxitor/client/src/lib/icons/graph_node_disk_icons.ts`, cache `svgDataUriForGraphNodeGlyphOnly` by node type in a module-level `Map`. Rebuild and measure; keep only if it improves a figure.
+- [ ] T038 [US5] Add `@antv/g-webgl` and pass a WebGL renderer to the graph; rebuild and measure with `--compare-canvas`. Keep it only if it is faster **and** the canvas is identical **and** `cpu1x.first.totalBytes` stays ≤ 1 300 000; otherwise remove the dependency and the code.
+- [ ] T039 [US5] Final measurement of the whole change, three runs. Write research.md "R15 — Result": the spec's acceptance table (SC-001 … SC-006, SC-008) with baseline, target and result; for each part of this phase, the figures with and without it and whether it was kept; for every missed criterion, the figure reached and what stood in the way (FR-025). Save the report as `specs/026-full-graph-fast-open/data/final.json`.
+- [ ] T040 Prepare commit 7 with what was kept and R15: `perf(maxitor): draw the first frame of the full graph sooner (#245)`. Tick issue phase 6.
+
+---
+
+## Phase 8: Closing check run (commit 8)
+
+- [ ] T041 (FR-027, step 1) Run `bash scripts/run_checks_with_log.sh` and fix every remark until it is clean (the two accepted remarks stay); the run includes the client's `npm test`, so the new vitest files are part of it. Prepare commit 8 with whatever the run changed: `chore: take the check run to zero (#245)`. If the run changed nothing, say so and skip the commit.
+
+---
+
+## Phase 9: Documentation (commit 9)
+
+- [ ] T042 [P] (FR-027, step 2) Create `examples/step_26_maxitor/04_full_graph_delivery.py` and `.ipynb` showing every server-side case with the real printed output (constitution VI.4–VI.6), through `create_app` and a `TestClient` over a temporary static directory, as `02_api_graph_per_source.py` does: a hashed asset compressed and marked immutable; the same asset to a client that does not accept gzip; `index.html` marked `no-cache` and answered `304` on revalidation; a small answer left uncompressed; a graph read compressed; a refusal with its status, `detail` and CORS headers intact. Run both files while writing them.
+- [ ] T043 [P] (FR-027, step 2) Create `examples/step_26_maxitor/05_full_graph_in_the_browser.py` and `.ipynb` showing every browser-side case with the real printed output (constitution VI.5): the script serves the frozen reference graph and a production build of Maxitor as `quickstart.md` §2–§3 does (subprocesses, stopped at the end), then runs the measurement tool once per case and prints the few report fields that show it — the layout in a worker (`workers[]`, longest task); the same picture (`--compare-canvas`); the fallback without a worker (`--no-worker`: the warning, a drawn graph); the remembered arrangement (repeat open: no layout worker, first pixel); storage disabled (`--no-storage`: laid out again, no error); a hover card shown and a drag refused (`--interaction-probe`). The notebook runs the same steps cell by cell. State at the top what must be installed (`npm ci`, `npx playwright install chromium`). Run both files while writing them.
+- [ ] T044 [P] (FR-027, step 2) Add a section to `docs/tutorials/step-26-maxitor.md` on how the full graph is delivered and drawn, for a reader who has not seen this change: what is compressed and cached and why a new release still arrives; that the layout runs in the background and what happens when it cannot; that an arrangement is remembered per graph and when it is computed again (a layout drawn by the fallback is not remembered, so its next open tries the background again); that nodes do not move by dragging; that an arrangement belongs to the whole graph and hiding nodes never moves the rest (FR-019); and the measurement tool with its command and the real acceptance table from R15. Link both new examples. Update the `.ru_draft.md` counterpart.
+- [ ] T045 Prepare commit 9: `docs(maxitor): how the full graph is delivered and drawn, with runnable examples (#245)`.
+
+---
+
+## Phase 10: Changelog (commit 10)
+
+- [ ] T046 (FR-027, step 3) Write one article in `docs/CHANGELOG.md` about what this work created, in plain words and with the nuances a user needs: the full graph opens several times faster and the page no longer freezes while it is drawn; a second visit downloads almost nothing and shows a known graph at once, while a new release still arrives; nodes no longer move when dragged; the picture is otherwise the same. No technical detail. Prepare commit 10: `docs(changelog): a full graph that opens fast and never freezes (#245)`. Tick issue phase 7.
+
+---
+
+## After the maintainer deploys (no commit)
+
+- [ ] T047 (FR-026) Run `quickstart.md` §7 against the stand and record the headers seen through its nginx. Post them to issue #245 only when the maintainer asks (constitution I).
+
+---
+
+## Dependencies & Execution Order
+
+- Phase 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10.
+- Phase 2 is needed by every later phase: each one is accepted by the tool against `data/baseline-main.json` and `data/canvas-main.png`.
+- Phases 3 and 4 touch disjoint files (server; `main.tsx`) and could be done in either order; they stay in the issue's order so each measurement adds one change.
+- Phase 6 needs Phase 5: a remembered arrangement is drawn the way Phase 5 draws computed positions, and the fingerprint reads `LAYOUT_SETTINGS`.
+- Phase 7 needs Phases 5–6 (the hulls move inside the new drawing path).
+- Within phases: T004 → T005 → T006 → T007 build one file and go in order; T010 and T011 in parallel; T020 alongside the start of T021; T029 and T030 in parallel; T042, T043 and T044 in parallel.
+
+## Parallel Example: Phase 3
+
+```text
+T010 packages/aoa-maxitor/tests/test_api_compression_and_cache.py
+T011 packages/aoa-maxitor/src/aoa/maxitor/api/cached_static_files.py
+```
+
+## Parallel Example: Phase 6
+
+```text
+T029 FullGraphViewer/arrangementStore.ts
+T030 FullGraphViewer/arrangementStore.test.ts
+```
+
+## Implementation Strategy
+
+- **MVP**: Phases 1–3. After commit 3 the tool exists and the page downloads several times less — the largest gain on a slow network, with no change to the client.
+- **The freeze**: Phase 5 is the change users feel most; Phase 4 is small and can be reviewed with it.
+- **Complete**: Phase 6 makes repeat opens instant; Phase 7 trims what is left and writes the final acceptance table. The tail (Phases 8–10) closes the change; T047 waits for the deploy.
