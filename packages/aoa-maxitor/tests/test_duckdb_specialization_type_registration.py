@@ -142,19 +142,6 @@ class TestTheKindsAreKnown:
         assert columns["classifier_value"] == "NO"
         assert columns["head_entity_id"] == "NO"
 
-    def test_both_tables_are_indexed_like_every_other_edge_table(self) -> None:
-        """Edge tables are indexed through one tuple; an entry missing from it slows the viewer."""
-        duck = DuckDBGraphResource.build_from_json(_graph_with(SPECIALIZATION, GENERALIZATION))
-
-        for table in (_SPECIALIZATION_TABLE, _GENERALIZATION_TABLE):
-            indexes = {
-                row[0]
-                for row in duck.service.execute(  # type: ignore[union-attr]
-                    f"SELECT index_name FROM duckdb_indexes() WHERE table_name = '{table}'"
-                ).fetchall()
-            }
-            assert indexes == {f"ix_{table}_source", f"ix_{table}_target"}
-
     def test_both_kinds_appear_in_the_view_the_viewer_reads(self) -> None:
         duck = DuckDBGraphResource.build_from_json(_graph_with(SPECIALIZATION, GENERALIZATION))
 

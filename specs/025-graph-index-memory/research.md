@@ -71,10 +71,10 @@ Nothing filters `state` by `kind` or by `lifecycle_class_id`, so `ix_state_kind`
 
 **Measured today.** A payload with one node twice fails the build with `duckdb.ConstraintException`: `Constraint Error: Duplicate key "id: actions.admins.sign_in_admin_action.SignInAdminAction" violates primary key constraint.` `GraphStore` turns any build exception into `GraphBuildError(str(exc))` (`graph_store.py:240` and `:268`), and the routes answer that with the existing refusal for a source that cannot be built.
 
-**Decision.** After the rows are loaded, one query over the 21 node tables looks for an `id` that appears more than once **in the same table** (clarified scope: a repeat across tables stays accepted). If it finds one, the build raises `ValueError` naming the `id` and the table. The message replaces DuckDB's wording, for example: `Graph has a duplicate node id "actions.admins.sign_in_admin_action.SignInAdminAction" in table "action".` The store's existing wrapping carries it to the user unchanged (FR-011), and nothing is stored.
+**Decision.** After the rows are loaded, one small `GROUP BY` per node table, in table-name order, looks for an `id` that appears more than once **in the same table** (clarified scope: a repeat across tables stays accepted). If it finds one, the build raises `ValueError` naming the `id` and the table. The message replaces DuckDB's wording, for example: `Graph has a duplicate node id "actions.admins.sign_in_admin_action.SignInAdminAction" in table "action".` The store's existing wrapping carries it to the user unchanged (FR-011), and nothing is stored. The per-table loop replaced a single `UNION ALL` query over all 21 tables: the union retained about 6 MiB per held connection, the loop about 2.6 MiB (R9).
 
 **Alternatives considered.**
-- Checking in Python while filling the tables. Rejected: the fill code is spread over 21 `_fill_table_*` functions, and the database answers the question in one statement.
+- Checking in Python while filling the tables. Rejected: the fill code is spread over 21 `_fill_table_*` functions, and the database answers the question in one scan per table.
 - A `UNIQUE` constraint. Rejected: it builds the same index as a primary key and costs the same memory.
 
 The check's cost is part of the build time measured before (plan phase 2) and after (plan phase 5).
@@ -133,3 +133,31 @@ The demo's figures are for the graph as it is at commit `fd10ed4b`; the SHA-256 
 **The process figure's method.** The helper reads `VmRSS` on Linux and `ps -o rss=` elsewhere. The sandbox in which this baseline was taken does not permit `ps`, so the helper used its `getrusage` peak fallback; the method is named in the JSON as `getrusage-peak`. R1's `ps` figure for the same graph and schema was 54.3 MiB per graph, against 53.4 here, so the two agree.
 
 **Timings are noisier than memory.** Two full runs of the demo differed by up to 30 % on `domain-use-case-diagram` (7.36 against 9.48 ms), while three isolated repeats of that family agreed at 7.1–7.2 ms. The table keeps the faster full run, and phase 5 compares the faster of three runs per graph, so a transient slow session cannot fake a regression. `memory_mib` and `fingerprints` did not move between runs.
+
+## R9. After: the same graphs with no primary key and no index
+
+**Measured.** The final build has 21 node tables with `id VARCHAR NOT NULL` and no `PRIMARY KEY`, no `CREATE INDEX`, and `_refuse_duplicate_node_ids` after loading. The same helper and the same saved graphs as R8:
+
+| Figure | Reference before | Reference after | Demo before | Demo after |
+|---|---|---|---|---|
+| Memory total | 43.51 MiB | **13.38 MiB** | 65.43 MiB | **20.35 MiB** |
+| — `BASE_TABLE` | — | 8.25 MiB | — | 11.50 MiB |
+| — `IN_MEMORY_TABLE` | 5.26 MiB | 4.88 MiB | 7.93 MiB | 8.85 MiB |
+| — `ART_INDEX` | 38.00 MiB | — | 57.50 MiB | — |
+| Process size gained per graph | 53.4 MiB | **24.5 MiB** | 77.6 MiB | **32.0 MiB** |
+| Build time, median of 7 | 125.3 ms | 108.8 ms | 850.8 ms | 750.5 ms |
+| `list-domains` | 1.23 ms | 1.18 ms | 1.39 ms | 1.37 ms |
+| `list-node-types` | 2.38 ms | 2.32 ms | 2.42 ms | 2.40 ms |
+| `full-graph` | 5.86 ms | 5.96 ms | 19.83 ms | 19.70 ms |
+| `sidebar` | 4.30 ms | 4.37 ms | 20.10 ms | 18.43 ms |
+| `list-entities` (slowest domain) | 25.56 ms | 25.10 ms | 31.65 ms | 30.49 ms |
+| `domain-use-case-diagram` (slowest domain) | 6.40 ms | 6.26 ms | 7.36 ms | 7.10 ms |
+| `lifecycle-finite-automaton` (slowest lifecycle) | 4.42 ms | 4.37 ms | 6.57 ms | 4.69 ms |
+
+The target is met on both graphs: 13.38 is 30.8 % of 43.51 (target 14.50), and 20.35 is 31.1 % of 65.43 (target 21.81). The process figure falls by 54.1 % on the reference (53.4 → 24.5, target 26.7) and by 58.8 % on the demo (77.6 → 32.0). The build is faster as well (the 85 index structures are no longer created). Every fingerprint is unchanged: 15 of 15 on the reference, 243 of 243 on the demo. Every query is within FR-007's `max(20 %, 1 ms)` bound and under 50 ms.
+
+**The duplicate check's own cost.** A single `UNION ALL` query over the 21 node tables retained about 6 MiB per held connection: the same 10-graph probe gave 27.9 MiB per graph, and a no-check build gave 21.9. Replacing it with one small `GROUP BY` per table, stopping at the first duplicate, keeps the required table-name-then-id order and lowers the figure to 24.5 MiB per graph (32.0 on the demo). That is the implementation that ships; the check looks at every node table and adds a few milliseconds to the build.
+
+**The process figure's method.** The baseline was read with the `getrusage` peak fallback (53.4 MiB); the after figure is current RSS through `psutil`, because `ps` is not permitted in the sandbox (the helper prefers `/proc/self/status`, then `ps`, then `psutil`, then the peak). R1's `ps` figure for the same "nothing" variant was 22.0 MiB, so the two methods agree within their noise. On the stand's Linux image the helper reads `VmRSS`.
+
+**The guard.** `tests/test_duckdb_graph_memory.py` asserts an empty `duckdb_indexes()` and no `PRIMARY KEY` in `duckdb_constraints()`, and a total at or under 1.75 MiB on the tiny graph (the build takes 1.24). The adversarial breaks were each seen and reverted: one index back fails the shape assertion, the 21 primary keys back fail both, a 300 000-row table that is not an index fails the memory assertion only, and removing `_refuse_duplicate_node_ids` fails three duplicate tests.

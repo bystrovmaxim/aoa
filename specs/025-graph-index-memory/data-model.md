@@ -16,7 +16,7 @@ Nothing here is stored by the product except the graph schema itself; the other 
 ## Duplicate check
 
 - **When**: after all rows are loaded, before the views are created.
-- **What**: one query over the 21 node tables returning the first `(table, id)` that occurs more than once in its table, in a stable order (table name, then id).
+- **What**: one small `GROUP BY` per node table, in table-name order, returning the first `id` that occurs more than once in that table (so the first `(table, id)` pair in table-name, then id order). The per-table loop replaced a single `UNION ALL` query because that query retained about 6 MiB per held connection (R9).
 - **Outcome**: none found → the build continues; one found → `ValueError` with the message in [contracts/graph-build.md](contracts/graph-build.md); no resource is returned, so the store keeps nothing.
 
 ## Schema variant

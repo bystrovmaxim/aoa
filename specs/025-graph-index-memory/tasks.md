@@ -71,18 +71,18 @@
 
 **Independent Test**: `uv run pytest packages/aoa-maxitor/tests/test_duckdb_duplicate_node_id.py -q`.
 
-- [ ] T012 [US3] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`:
+- [x] T012 [US3] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`:
   - Add a node-table name tuple next to `_EDGE_TABLE_NAMES`, covering the 21 node tables.
-  - Add `_refuse_duplicate_node_ids(con)`. It runs **one** query over those tables that returns the first `(table, id)` occurring more than once **in its table**, ordered by table name, then id, and raises `ValueError(f'Graph has a duplicate node id "{id}" in table "{table}".')`.
+  - Add `_refuse_duplicate_node_ids(con)`. It returns the first `(table, id)` occurring more than once **in its table**, ordered by table name, then id, and raises `ValueError(f'Graph has a duplicate node id "{id}" in table "{table}".')`. Implemented as one small `GROUP BY` per table, stopping at the first duplicate: a single `UNION ALL` query retained about 6 MiB per held connection, this loop about 2.6 MiB (R9).
   - Call it in `build_from_json` after `_fill_database` and before `_install_post_load_objects`.
   - Add `INVARIANTS: a node id is unique within its node table; the build refuses a duplicate.` to the class's AI-CORE block.
-- [ ] T013 [US3] Create `packages/aoa-maxitor/tests/test_duckdb_duplicate_node_id.py` (module header; a payload built in the file, like `_payload` in `test_api_diagram_routes.py`):
+- [x] T013 [US3] Create `packages/aoa-maxitor/tests/test_duckdb_duplicate_node_id.py` (module header; a payload built in the file, like `_payload` in `test_api_diagram_routes.py`):
   - one node listed twice → `build_from_json` raises, and the message contains that `id`;
   - two duplicates in two tables → the message names the one first in table, then id, order;
   - the same `id` as a `Domain` and as a `Lifecycle` → builds (clarified scope);
   - no duplicate → builds;
   - through the application, a graph read for a source whose builder returns the duplicate payload → 422, its `detail` contains the `id`, and the store holds nothing for that source (FR-011). Use a `GraphStore` over a stub builder, as `test_api_diagram_routes.py` does.
-- [ ] T014 Adversarial check: locally remove ` PRIMARY KEY` from the node tables **and** the call to `_refuse_duplicate_node_ids`. The duplicate tests fail and no other test does. Restore the call only: they pass on the check alone. Restore the primary keys.
+- [x] T014 Adversarial check: locally remove ` PRIMARY KEY` from the node tables **and** the call to `_refuse_duplicate_node_ids`. The duplicate tests fail and no other test does. Restore the call only: they pass on the check alone. Restore the primary keys. Observed: with the call removed and the keys already gone, three duplicate tests fail; with the call restored, all five pass. Putting the keys back makes DuckDB refuse first, as before, so the check alone is what protects the final schema.
 - [ ] T015 Prepare commit 4: `feat(maxitor): refuse a graph with a duplicate node id by name (#268)`.
 
 ---
@@ -93,34 +93,32 @@
 
 **Independent Test**: the helper's output on the reference graph and the demo's graph compared with `data/baseline-ref.json` and `data/baseline-demo.json`, plus `uv run pytest packages/aoa-maxitor/tests -q`.
 
-- [ ] T016 [US2] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`, remove what T008 decided:
+- [x] T016 [US2] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/resources/duckdb_graph_resource.py`, remove what T008 decided:
   - expected: ` PRIMARY KEY` from the 21 node tables, the 62 `CREATE INDEX ix_<table>_source/target` statements and the 2 `state` indexes in `_install_post_load_objects`;
   - rewrite `_install_post_load_objects`'s docstring to say it creates the views only (or fold the method into the build, if nothing but views remains);
   - correct the module header and `_install_database`'s docstring, which say that indexes are created there.
-- [ ] T017 [US2] Run the helper on both saved graphs and compare with T004:
+- [x] T017 [US2] Run the helper on both saved graphs and compare with T004:
   - `memory_mib.total` ≤ a third of the baseline (the target of FR-008);
   - the process size per graph at most half the baseline's (SC-006), reported next to `memory_mib.total` (FR-004);
   - every `query_ms` within +20 % or +1 ms of its baseline (whichever is larger) and ≤ 50 ms on the reference graph;
   - every `fingerprints` value equal.
 
-  A fingerprint that differs because a query without `ORDER BY` now returns rows in another order → add the `ORDER BY` that matches the old order to that query in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/` and re-run. Append "R9. After" to `specs/025-graph-index-memory/research.md` with the same table as R8, and mirror it in `research.ru_draft.md`.
-- [ ] T018 [US2] Apply FR-009 to T017's result:
+  A fingerprint that differs because a query without `ORDER BY` now returns rows in another order → add the `ORDER BY` that matches the old order to that query in `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/` and re-run. Append "R9. After" to `specs/025-graph-index-memory/research.md` with the same table as R8, and mirror it in `research.ru_draft.md`. Result: 43.51 → 13.38 MiB and 65.43 → 20.35 MiB (both at 30.8–31.1 % of baseline), process 53.4 → 24.5 and 77.6 → 32.0, every fingerprint equal, every query within the bound; no `ORDER BY` was needed.
+- [x] T018 [US2] Apply FR-009 to T017's result:
   - a variant that keeps the timings is at or under a third → it ships;
   - the smallest such variant is smaller than today but above a third → it still ships, and R9 says how far it is from a third and which index or structure stood in the way;
-  - no variant that keeps the timings is smaller than today → revert T016, keep R8 and R9 as the evidence, and skip T019 and T020.
-- [ ] T019 [US2] Create `packages/aoa-maxitor/tests/test_duckdb_graph_memory.py` (module header). It builds the tiny payload of `test_api_diagram_routes.py` (copied into the file; tests do not import each other) and makes two independent assertions:
+  - no variant that keeps the timings is smaller than today → revert T016, keep R8 and R9 as the evidence, and skip T019 and T020. Result: the "nothing" variant is at or under a third, so it ships.
+- [x] T019 [US2] Create `packages/aoa-maxitor/tests/test_duckdb_graph_memory.py` (module header). It builds the tiny payload of `test_api_diagram_routes.py` (copied into the file; tests do not import each other) and makes two independent assertions:
   - **shape**: `SELECT index_name FROM duckdb_indexes()` returns exactly the indexes the change keeps, and `SELECT … FROM duckdb_constraints() WHERE constraint_type = 'PRIMARY KEY'` returns exactly the primary keys it keeps (both empty for the expected variant);
   - **memory**: the total `duckdb_memory()` is ≤ a ceiling set halfway between the value measured after T016 and the smallest regressing variant of research R1, re-measured now.
 
-  Each failure message names what was found: the extra indexes and keys, or the measured value and the ceiling. The test's docstring says that the ceiling was measured on macOS with the locked DuckDB version, and that only the local check run executes the test, because CI does not run pytest (FR-013).
-- [ ] T020 Adversarial check, one break at a time:
+  Each failure message names what was found: the extra indexes and keys, or the measured value and the ceiling. The test's docstring says that the ceiling was measured on macOS with the locked DuckDB version, and that only the local check run executes the test, because CI does not run pytest (FR-013). The tiny graph takes 1.24 MiB; the ceiling is 1.75 MiB.
+- [x] T020 Adversarial check, one break at a time:
   - put the primary keys back → both assertions fail;
   - put the 62 edge indexes back → both fail;
   - put only the 2 `state` indexes back → the shape assertion fails;
   - add one index under a new name → the shape assertion fails;
-  - add a heavy structure that is not an index (for example a copy of the largest edge table) → the memory assertion fails.
-
-  Each time, no other test fails. Restore.
+  - add a heavy structure that is not an index (for example a copy of the largest edge table) → the memory assertion fails. Observed with one index under a new name, the 21 primary keys, and a 300 000-row table instead of the edge indexes: the first failed the shape assertion only, the keys failed both, the heavy table failed the memory assertion only. No other test failed; all were restored.
 - [ ] T021 Prepare commit 5: `perf(maxitor): build graphs without the indexes no query needs (#268)`, or, if T018 left the schema unchanged, `docs(spec): measurements show the graph indexes are needed (#268)`.
 
 ---
