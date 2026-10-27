@@ -1,5 +1,5 @@
 // src/app/App.tsx
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DiagramWorkspacePage } from "@/components/pages/DiagramWorkspacePage";
 import { LeftSidebar } from "@/components/navigation/LeftSidebar";
@@ -15,9 +15,14 @@ import {
   deepLinkToSelection,
   pushUrlState,
   readUrlDeepLink,
+  setUrlRoom,
   syncUrlToState,
   type UrlDeepLink,
 } from "@/lib/urlState";
+import { NameDialog } from "@/rooms/NameDialog";
+import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
+import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
+import { lastName, useRoomSession } from "@/rooms/useRoomSession";
 
 export function App() {
   const [diagram, setDiagram] = useState<DiagramSelection | null>(null);
@@ -38,7 +43,38 @@ export function App() {
     initialLinkRef.current = readUrlDeepLink();
     // The source must be known before the page's first read: the read below goes out with it.
     setActiveSource(initialLinkRef.current.source ?? null);
+    // A room link keeps ``room`` in the address while its name dialog is open.
+    setUrlRoom(initialLinkRef.current.room ?? null);
   }
+
+  const page = diagram ? pageKeyOf(diagram) : null;
+  const [askLeaveForService, setAskLeaveForService] = useState(false);
+
+  /** The server opened this tab on a page other than its link's: go there, without a history entry. */
+  const handleFallbackPage = useCallback(
+    (key: string) => {
+      const selection = selectionOfPageKey(key);
+      if (!selection) return;
+      pushUrlState(serviceUrl, selection, { replace: true });
+      setDiagram(selection);
+    },
+    [serviceUrl],
+  );
+
+  /** Someone in the room pressed Reload and the graph changed: read the left panel and the diagram again. */
+  const handleGraphChanged = useCallback(() => {
+    void reload().catch(() => undefined);
+    setWorkspaceKey((count) => count + 1);
+  }, [reload]);
+
+  const room = useRoomSession({
+    initialRoom: initialLinkRef.current.room,
+    source: serviceUrl,
+    page,
+    onFallbackPage: handleFallbackPage,
+    onGraphChanged: handleGraphChanged,
+  });
+  const labelOfPage = (key: string | null) => pageLabel(key, sidebar);
 
   // A busy server means "retrying", not "your source is wrong": the page says so and waits.
   useEffect(() => onGraphBusy(() => setBusy(true)), []);
@@ -127,6 +163,12 @@ export function App() {
     void reload().catch(() => undefined);
   }
 
+  /** *Load a different service*: inside a room it asks first, since the room is for this service (FR-064). */
+  function requestReset() {
+    if (room.inRoom) setAskLeaveForService(true);
+    else handleReset();
+  }
+
   function handleReset() {
     pushUrlState(null, null);
     setActiveSource(null);
@@ -140,6 +182,11 @@ export function App() {
   /** Rebuild the open source from its service, then read its sidebar and the current diagram again. */
   async function handleReloadFromService() {
     if (!serviceUrl || reloading) return;
+    if (room.inRoom) {
+      // Inside a room Reload rebuilds the graph for everyone and nobody leaves (FR-065).
+      room.send({ type: "reload" });
+      return;
+    }
     setReloading(true);
     setReloadError(null);
     try {
@@ -155,13 +202,17 @@ export function App() {
 
   return (
     <MainLayout
+      topRow={(compact) => (
+        <RoomBar session={room} page={page} pageLabel={labelOfPage} canOpen={serviceUrl !== null} compact={compact} />
+      )}
+      overlay={<RoomBanner banner={room.banner} onOpenRoom={room.requestOpen} onDismiss={room.dismissBanner} />}
       sidebar={
         <LeftSidebar
           diagram={diagram}
           onSelectDiagram={handleSelectDiagram}
           sidebar={sidebar}
           onLoaded={handleLoaded}
-          onReset={handleReset}
+          onReset={requestReset}
           source={serviceUrl}
           onReloadFromService={() => void handleReloadFromService()}
           reloading={reloading}
@@ -171,6 +222,23 @@ export function App() {
       }
     >
       <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+      <NameDialog
+        mode={room.dialog?.mode ?? null}
+        initialName={room.dialog?.mode === "rename" ? (room.room?.participants.find((p) => p.id === room.room?.youId)?.name ?? lastName()) : lastName()}
+        pageLabel={labelOfPage(page)}
+        error={room.dialog?.error ?? null}
+        onCancel={room.cancelDialog}
+        onConfirm={room.confirmName}
+      />
+      <LeaveForServiceDialog
+        open={askLeaveForService}
+        onCancel={() => setAskLeaveForService(false)}
+        onConfirm={() => {
+          setAskLeaveForService(false);
+          room.leave();
+          handleReset();
+        }}
+      />
     </MainLayout>
   );
 }

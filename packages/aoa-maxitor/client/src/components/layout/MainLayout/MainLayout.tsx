@@ -9,9 +9,20 @@ import type { ReactNode } from "react";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { SidebarCollapseProvider, useSidebarCollapse } from "./SidebarCollapseContext";
 
+/** Height of the row above the workspace: the left panel's header row, so the two lines meet. */
+const TOP_ROW_HEIGHT = 38;
+const WORKSPACE_SURFACE = "#f4f5f7";
+
 type MainLayoutProps = {
   sidebar: ReactNode;
   children: ReactNode;
+  /**
+   * Controls at the right of the row above the workspace — a 38 px row on the workspace surface on a
+   * desktop, the existing 44 px bar on a phone. Told which, so it can lay itself out for it.
+   */
+  topRow?: (compact: boolean) => ReactNode;
+  /** Laid over the top of the workspace, under the row (room notices). */
+  overlay?: ReactNode;
 };
 
 const PAPER_BASE_SX = {
@@ -24,7 +35,7 @@ const PAPER_BASE_SX = {
   overflow: "hidden",
 };
 
-function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
+function MainLayoutBody({ sidebar, children, topRow, overlay }: MainLayoutProps) {
   const { collapsed, setCollapsed } = useSidebarCollapse();
   const theme = useTheme();
   // Below `sm` a permanent drawer has no room to share with content — it becomes an overlay instead.
@@ -68,8 +79,28 @@ function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          position: "relative",
         }}
       >
+        {!isMobile && topRow && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              height: TOP_ROW_HEIGHT,
+              pl: "14px",
+              pr: "10px",
+              bgcolor: WORKSPACE_SURFACE,
+              borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
+              position: "relative",
+              zIndex: 60,
+            }}
+          >
+            {topRow(false)}
+          </Box>
+        )}
         {isMobile && (
           <Box
             sx={{
@@ -86,18 +117,25 @@ function MainLayoutBody({ sidebar, children }: MainLayoutProps) {
             <IconButton onClick={() => setCollapsed(false)} aria-label="Open sidebar" size="medium">
               <MenuIcon fontSize="small" />
             </IconButton>
+            <Box sx={{ flex: 1 }} />
+            {topRow?.(true)}
           </Box>
         )}
-        {children}
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column", position: "relative" }}>
+          {overlay}
+          {children}
+        </Box>
       </Box>
     </Box>
   );
 }
 
-export function MainLayout({ sidebar, children }: MainLayoutProps) {
+export function MainLayout({ sidebar, children, topRow, overlay }: MainLayoutProps) {
   return (
     <SidebarCollapseProvider>
-      <MainLayoutBody sidebar={sidebar}>{children}</MainLayoutBody>
+      <MainLayoutBody sidebar={sidebar} topRow={topRow} overlay={overlay}>
+        {children}
+      </MainLayoutBody>
     </SidebarCollapseProvider>
   );
 }
