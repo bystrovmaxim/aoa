@@ -15,4 +15,4 @@
 
 | File             | Responsibility                         |
 | ---------------- | -------------------------------------- |
-| `MainLayout.tsx` | MUI `Drawer` + main slot (`children`). |
+| `MainLayout.tsx` | MUI `Drawer` + main slot (`children`); the row above the workspace (`topRow`: 38 px on the workspace surface on a desktop, the 44 px bar on a phone) and an `overlay` over the top of the workspace. |

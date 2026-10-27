@@ -46,7 +46,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": { target: backend, changeOrigin: true, ws: true },
+      // Room connections keep the page's Host: Maxitor accepts a browser origin of the same host,
+      // and ``changeOrigin`` would replace it with the backend's (the stand's nginx does the same).
+      "/api/v1/rooms": { target: backend, changeOrigin: false, ws: true },
+      "/api": { target: backend, changeOrigin: true },
     },
   },
   test: {
