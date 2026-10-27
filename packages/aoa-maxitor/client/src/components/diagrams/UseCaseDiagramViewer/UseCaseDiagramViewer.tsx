@@ -7,6 +7,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
@@ -240,16 +241,19 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     [domainKeyList],
   );
 
-  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } =
-    useSvgPanZoom({
-      fitBottomInset: 56,
-      fitMarginPx: 14,
-      fitBoundsSelector: "g.graph g.node, g.graph g.edge, g.graph g.cluster",
-    });
+  const panZoom = useSvgPanZoom({
+    fitBottomInset: 56,
+    fitMarginPx: 14,
+    fitBoundsSelector: "g.graph g.node, g.graph g.edge, g.graph g.cluster",
+  });
+  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } = panZoom;
 
   const [svgMarkup, setSvgMarkup] = useState("");
   // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090).
   const layoutHashValue = useSvgLayoutHash(svgMarkup);
+  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
+  const layoutInputDigest = useSvgLayoutHash(svgMarkup ? `${graphvizEngineForBundle}\n${dot}` : "");
+  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup));
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
@@ -381,6 +385,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
             <Box
               ref={viewportRef}
               data-layout-hash={layoutHashValue}
+              data-layout-input={layoutInputDigest}
               sx={{
                 position: "absolute",
                 inset: 0,

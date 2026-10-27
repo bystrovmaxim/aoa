@@ -8,6 +8,8 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import NearMeDisabledOutlinedIcon from "@mui/icons-material/NearMeDisabledOutlined";
+import NearMeOutlinedIcon from "@mui/icons-material/NearMeOutlined";
 import { useEffect, useRef, useState } from "react";
 import { roomLink } from "@/lib/urlState";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
@@ -49,8 +51,8 @@ function StatusText({ session }: { session: RoomSession }) {
 
 /**
  * The room controls (spec 028, FR-019 … FR-028; mockup screens 1, 3, 5, 14). Outside a room: **Open
- * room**. Inside: the circles, **Copy link** and **Leave room** on a desktop; on a phone the circles
- * and one ⋮ menu that says the same in words.
+ * room**. Inside: the circles, **Copy link**, **Hide pointers** and **Leave room** on a desktop; on a
+ * phone the circles and one ⋮ menu that says the same in words.
  */
 export function RoomBar({ session, page, pageLabel, canOpen, compact }: RoomBarProps) {
   const copyButton = useRef<HTMLButtonElement | null>(null);
@@ -126,6 +128,19 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact }: RoomBarP
           <MenuItem
             onClick={() => {
               setMenuAnchor(null);
+              session.toggleHidePointers();
+            }}
+          >
+            {session.hidePointers ? (
+              <NearMeOutlinedIcon sx={{ fontSize: 16, mr: "10px", color: "rgb(100, 116, 139)" }} />
+            ) : (
+              <NearMeDisabledOutlinedIcon sx={{ fontSize: 16, mr: "10px", color: "rgb(100, 116, 139)" }} />
+            )}
+            {session.hidePointers ? "Show pointers" : "Hide pointers"}
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
               session.leave();
             }}
           >
@@ -153,6 +168,14 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact }: RoomBarP
         }}
       >
         Copy link
+      </Button>
+      <Button
+        sx={ROW_BUTTON_SX}
+        startIcon={session.hidePointers ? <NearMeOutlinedIcon /> : <NearMeDisabledOutlinedIcon />}
+        aria-pressed={session.hidePointers}
+        onClick={session.toggleHidePointers}
+      >
+        {session.hidePointers ? "Show pointers" : "Hide pointers"}
       </Button>
       <Button sx={ROW_BUTTON_SX} startIcon={<LogoutIcon />} onClick={session.leave}>
         Leave room

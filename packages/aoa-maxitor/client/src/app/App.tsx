@@ -20,6 +20,9 @@ import {
   type UrlDeepLink,
 } from "@/lib/urlState";
 import { NameDialog } from "@/rooms/NameDialog";
+import { PointerLayer } from "@/rooms/PointerLayer";
+import { useDiagramSurface } from "@/rooms/diagramSurface";
+import { usePointerSender } from "@/rooms/usePointerSender";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
@@ -67,13 +70,23 @@ export function App() {
     setWorkspaceKey((count) => count + 1);
   }, [reload]);
 
+  const surface = useDiagramSurface();
   const room = useRoomSession({
     initialRoom: initialLinkRef.current.room,
     source: serviceUrl,
     page,
     onFallbackPage: handleFallbackPage,
     onGraphChanged: handleGraphChanged,
+    surface,
+    fingerprint: sidebar?.fingerprint ?? null,
   });
+  // Pointers go out and come in only while connected and while this page's layout is the room's
+  // (FR-045, FR-093); Hide pointers only stops drawing other people's.
+  const pointersLive = room.inRoom && room.connection?.kind === "open" && !room.pointersOff;
+  usePointerSender(surface, room.send, pointersLive);
+  const pointerPeople = room.room
+    ? room.room.participants.filter((p) => p.id !== room.room?.youId && p.page === page && !p.away)
+    : [];
   const labelOfPage = (key: string | null) => pageLabel(key, sidebar);
 
   // A busy server means "retrying", not "your source is wrong": the page says so and waits.
@@ -205,7 +218,16 @@ export function App() {
       topRow={(compact) => (
         <RoomBar session={room} page={page} pageLabel={labelOfPage} canOpen={serviceUrl !== null} compact={compact} />
       )}
-      overlay={<RoomBanner banner={room.banner} onOpenRoom={room.requestOpen} onDismiss={room.dismissBanner} />}
+      overlay={
+        <>
+          <RoomBanner banner={room.banner} onOpenRoom={room.requestOpen} onDismiss={room.dismissBanner} />
+          <RoomBanner
+            banner={room.pageNotice ? { kind: "warn", text: room.pageNotice, open: false } : null}
+            onOpenRoom={room.requestOpen}
+            onDismiss={room.dismissPageNotice}
+          />
+        </>
+      }
       sidebar={
         <LeftSidebar
           diagram={diagram}
@@ -222,6 +244,7 @@ export function App() {
       }
     >
       <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}
         initialName={room.dialog?.mode === "rename" ? (room.room?.participants.find((p) => p.id === room.room?.youId)?.name ?? lastName()) : lastName()}

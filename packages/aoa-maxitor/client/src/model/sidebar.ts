@@ -13,6 +13,8 @@ export type SidebarPayload = {
   level2_diagrams: NodeRow[];
   level2_nodes: NodeRow[];
   level3_diagrams: NodeRow[];
+  /** SHA-256 of the graph-json the panel was read from; a tab in a room reports it with its picture. */
+  fingerprint?: string;
 };
 
 export type SidebarGroupedMaps = {

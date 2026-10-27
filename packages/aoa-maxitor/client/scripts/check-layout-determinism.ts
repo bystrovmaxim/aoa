@@ -11,11 +11,18 @@
  * and mode; the exit code is 1 as soon as one page and mode has two different hashes, or none.
  *
  * Nothing is added to the client for it: the hash on the element is the one the room reads.
+ *
+ * It then proves SC-003 in a real room: in each engine a desktop page opens a room on the ERD of all
+ * domains and a phone page joins it. The desktop's mouse rests on a node's centre, and the phone must
+ * draw that arrow within 2 px of the same node's centre on its own screen, before and after either
+ * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
+ * ring centred on the same node, within the same 2 px.
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createServer, request as httpRequest } from "node:http";
+import { connect } from "node:net";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve } from "node:path";
@@ -39,6 +46,8 @@ const VIEWPORTS: { name: string; width: number; height: number }[] = [
   { name: "1600x900", width: 1600, height: 900 },
 ];
 const HASH_TIMEOUT_MS = 60_000;
+/** The largest distance between a pointer and the point it marks on another screen (SC-003). */
+const POINTER_TOLERANCE_PX = 2;
 const API_START_TIMEOUT_MS = 60_000;
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -90,6 +99,20 @@ function startFrontServer(graphJson: Buffer, apiPort: () => number): Promise<Ser
     }
     res.writeHead(200, { "Content-Type": CONTENT_TYPES[extname(file)] ?? "application/octet-stream" });
     res.end(body);
+  });
+  // Room connections pass through untouched, with the page's own Host, as the stand's nginx does.
+  server.on("upgrade", (req: IncomingMessage, socket, head: Buffer) => {
+    const upstream = connect(apiPort(), "127.0.0.1", () => {
+      const headers = Object.entries(req.headers).flatMap(([name, value]) =>
+        (Array.isArray(value) ? value : [value]).map((v) => `${name}: ${v}`),
+      );
+      upstream.write(`${req.method} ${req.url} HTTP/1.1\r\n${headers.join("\r\n")}\r\n\r\n`);
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+    });
+    upstream.on("error", () => socket.destroy());
+    socket.on("error", () => upstream.destroy());
   });
   return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
 }
@@ -240,6 +263,129 @@ async function runEngine(
   }
 }
 
+/** Enter a name in the room dialog and confirm it. */
+async function confirmName(page: Page, name: string): Promise<void> {
+  await page.locator("#room-name-input").fill(name);
+  await domClick(page, 'form button[type="submit"]');
+}
+
+/** The client centre of the ``index``-th Graphviz node of the diagram on screen. */
+async function nodeCentre(page: Page, index: number): Promise<{ x: number; y: number }> {
+  return page.evaluate((i) => {
+    const box = document.querySelectorAll("[data-layout-hash] svg g.node")[i].getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  }, index);
+}
+
+/** The node nearest the middle of the diagram's element, so it stays in view when zooming in. */
+async function middleNode(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const view = document.querySelector("[data-layout-hash]")!.getBoundingClientRect();
+    const mx = view.left + view.width / 2;
+    const my = view.top + view.height / 2;
+    let best = 0;
+    let bestDistance = Infinity;
+    document.querySelectorAll("[data-layout-hash] svg g.node").forEach((node, i) => {
+      const box = node.getBoundingClientRect();
+      const d = Math.hypot(box.left + box.width / 2 - mx, box.top + box.height / 2 - my);
+      if (d < bestDistance) [best, bestDistance] = [i, d];
+    });
+    return best;
+  });
+}
+
+/** The client point a drawn pointer marks: an arrow's tip, 2 px inside its box, or a ring's centre. */
+async function markedPoint(watcher: Page, participant: string, kind: "mouse" | "touch") {
+  return watcher.evaluate(
+    ([id, k]) => {
+      const box = document.querySelector(`[data-participant="${id}"]`)?.getBoundingClientRect();
+      if (!box) return null;
+      return k === "touch" ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: box.left + 2, y: box.top + 2 };
+    },
+    [participant, kind] as const,
+  );
+}
+
+/** How far ``watcher`` draws ``participant``'s pointer from the centre of node ``index``, once it settles. */
+async function pointerOffset(watcher: Page, participant: string, index: number, kind: "mouse" | "touch" = "mouse"): Promise<number> {
+  let last = Infinity;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await watcher.waitForTimeout(kind === "touch" ? 100 : 250);
+    const tip = await markedPoint(watcher, participant, kind);
+    if (!tip) continue;
+    const centre = await nodeCentre(watcher, index);
+    const offset = Math.hypot(tip.x - centre.x, tip.y - centre.y);
+    if (Math.abs(offset - last) < 0.01) return offset;
+    last = offset;
+  }
+  return last;
+}
+
+/** Zoom a page in twice with its own zoom button. */
+async function zoomIn(page: Page): Promise<void> {
+  for (let i = 0; i < 2; i += 1) {
+    await page.locator("button", { hasText: /^\+$/ }).first().evaluate((button) => (button as HTMLElement).click());
+    await page.waitForTimeout(300);
+  }
+}
+
+/** SC-003 in one engine: the largest offset of a desktop's arrow on the phone, and of a phone's tap on the desktop. */
+async function pointerCase(engine: BrowserType, front: string, source: string): Promise<number[]> {
+  const browser: Browser = await engine.launch();
+  try {
+    // Two contexts: two browsers, two participants.
+    const desk = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
+    const phone = await (await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true })).newPage();
+    await desk.goto(`${front}/?${new URLSearchParams({ source, view: "domain-erd" }).toString()}`);
+    await nextHash(desk, null);
+    await domClick(desk, 'button:has-text("Open room")');
+    await confirmName(desk, "Desk");
+    await desk.waitForURL(/room=/, { timeout: HASH_TIMEOUT_MS });
+    // The invite card greets a new room; its backdrop would take the mouse.
+    await desk.locator(".MuiPopover-paper").waitFor({ timeout: HASH_TIMEOUT_MS });
+    await desk.keyboard.press("Escape");
+    await desk.locator(".MuiPopover-paper").waitFor({ state: "detached", timeout: HASH_TIMEOUT_MS });
+    const deskId = await desk.evaluate(() => {
+      const room = new URL(window.location.href).searchParams.get("room");
+      return window.localStorage.getItem(`maxitor.room.${room}.participant`);
+    });
+    await phone.goto(desk.url());
+    await confirmName(phone, "Phone");
+    await nextHash(phone, null);
+    await desk.locator('[aria-label^="Phone"]').first().waitFor({ timeout: HASH_TIMEOUT_MS });
+    await desk.waitForTimeout(1000);
+
+    const node = await middleNode(phone);
+    const offsets: number[] = [];
+    const point = async () => {
+      const centre = await nodeCentre(desk, node);
+      await desk.mouse.move(centre.x + 1, centre.y);
+      await desk.mouse.move(centre.x, centre.y);
+      offsets.push(await pointerOffset(phone, deskId ?? "", node));
+    };
+    await point();
+    await zoomIn(phone);
+    offsets.push(await pointerOffset(phone, deskId ?? "", node));
+    await zoomIn(desk);
+    await point();
+
+    // The other way: the phone touches the node, the desktop shows the ring there.
+    const phoneId = await phone.evaluate(() => {
+      const room = new URL(window.location.href).searchParams.get("room");
+      return window.localStorage.getItem(`maxitor.room.${room}.participant`);
+    });
+    // A phone opens with the left panel over the diagram; close it as a person would.
+    await phone.keyboard.press("Escape");
+    await phone.locator(".MuiDrawer-root .MuiPaper-root").first().waitFor({ state: "hidden", timeout: HASH_TIMEOUT_MS });
+    const touched = await nodeCentre(phone, node);
+    await phone.touchscreen.tap(touched.x, touched.y);
+    offsets.push(await pointerOffset(desk, phoneId ?? "", node, "touch"));
+    return offsets;
+  } finally {
+    await browser.close();
+  }
+}
+
 /** Check every page and mode; print one line each; return whether all of them agree. */
 function report(results: Map<string, Map<string, string>>): boolean {
   const expected = ENGINES.length * VIEWPORTS.length;
@@ -273,8 +419,15 @@ async function main(): Promise<void> {
     const results = new Map<string, Map<string, string>>();
     await Promise.all(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results)));
     ok = report(results);
-    // The pointer case of SC-003 needs rooms; it is added here together with the pointer layer (tasks T079, commit 11).
-    console.log("skip  pointers in a room: not built yet (spec 028, commit 11)");
+    const offsets = await Promise.all(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source)));
+    // Steps: arrow; arrow after the phone zooms; arrow after the desktop zooms; the phone's tap.
+    ENGINES.forEach(([name], i) => {
+      const largest = Math.max(...offsets[i]);
+      const fits = largest <= POINTER_TOLERANCE_PX;
+      ok &&= fits;
+      const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
+      console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
+    });
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );

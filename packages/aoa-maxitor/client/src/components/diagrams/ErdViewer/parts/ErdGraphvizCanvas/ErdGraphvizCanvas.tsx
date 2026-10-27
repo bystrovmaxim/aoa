@@ -8,6 +8,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -208,8 +209,9 @@ export function ErdGraphvizCanvas({
 
   const prevDiagramKeyRef = useRef<string | null>(null);
 
-  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } =
-    useSvgPanZoom();
+  const panZoom = useSvgPanZoom();
+  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
+  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup));
 
   useEffect(() => {
     layoutByDiagramKey.set(diagramResetKey, layout);
@@ -347,6 +349,8 @@ export function ErdGraphvizCanvas({
   }, [mergedData, bundle.entity_kinds]);
 
   const dot = useMemo(() => buildDotSource(drawnData, layout), [drawnData, layout]);
+  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
+  const layoutInputDigest = useSvgLayoutHash(rawSvg ? `${erdGraphvizEngine(layout)}\n${dot}` : "");
 
   // Reset fit flag whenever the DOT source changes (new diagram, layout mode, or 1-hop toggle)
   // so the next SVG insertion always re-fits
@@ -582,6 +586,7 @@ export function ErdGraphvizCanvas({
         <Box
           ref={viewportRef}
           data-layout-hash={layoutHashValue}
+          data-layout-input={layoutInputDigest}
           className="erd-svg-viewport"
           sx={{
             position: "absolute",
