@@ -196,11 +196,22 @@ check("the edge has no label in the middle", !paired.includes("showcase (one)"))
 check("both ends are drawn", (paired.match(/<polygon /g) ?? []).length >= 2, `${(paired.match(/<polygon /g) ?? []).length} shapes`);
 const dotLines = buildDotSource(lines, "gv-dot-lr");
 check("the ends follow the cardinalities (crow's foot and ring at the many side, two bars at the one side)",
-  dotLines.includes('[id="re0" dir=both arrowtail=crowodot arrowhead=teetee headlabel="showcase" taillabel="players" labelfontsize=9]'));
+  dotLines.includes('[id="re0" dir=both arrowtail=nonecrowodot arrowhead=noneteetee headlabel="showcase" taillabel="players" labelfontsize=9]'));
 // Spec 029, FR-043: four distinct ends, each where its side is.
-check("an optional end is a bar and a ring, a mandatory one two bars", /id="re3" dir=both arrowtail=crowodot arrowhead=teeodot/.test(dotLines));
-check("a reference has its crow's foot at the referring table and one value at the dictionary", /id="re4" dir=both arrowtail=crowodot arrowhead=teetee/.test(dotLines));
-check("every end of the drawing is one of the four crow's-foot ends", [...dotLines.matchAll(/arrow(?:tail|head)=(\w+)/g)].every((m) => ["teetee", "teeodot", "crowtee", "crowodot", "normal"].includes(m[1]!)));
+check("an optional end is a bar and a ring, a mandatory one two bars", /id="re3" dir=both arrowtail=nonecrowodot arrowhead=noneteeodot/.test(dotLines));
+check("a reference has its crow's foot at the referring table and one value at the dictionary", /id="re4" dir=both arrowtail=nonecrowodot arrowhead=noneteetee/.test(dotLines));
+// The end nearest a table stands off its outline, so a bar never merges with it (maintainer, 2026-10-27).
+{
+  const re0 = edgeGroup(0);
+  const showcaseLeft = (() => {
+    const node = lineSvg.slice(lineSvg.indexOf("<title>shop.ShowcaseCoreEntity</title>"));
+    const pts = /<path fill="none" stroke="[^"]+" d="([^"]+)"/.exec(node)?.[1] ?? "";
+    return Math.min(...(pts.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number).filter((_, i) => i % 2 === 0));
+  })();
+  const nearest = Math.max(...[...re0.matchAll(/<polygon[^>]*points="([^"]+)"/g)].flatMap((m) => m[1]!.trim().split(/\s+/).map((p) => Number(p.split(",")[0]))));
+  check("an end stands at least 3 points off the table it meets", showcaseLeft - nearest >= 3, `table ${showcaseLeft.toFixed(1)}, end ${nearest.toFixed(1)}`);
+}
+check("every end of the drawing is one of the four crow's-foot ends", [...dotLines.matchAll(/arrow(?:tail|head)=(\w+)/g)].every((m) => ["noneteetee", "noneteeodot", "nonecrowtee", "nonecrowodot", "normal"].includes(m[1]!)));
 check("a relation without an inverse has one role", dotLines.includes('headlabel="chosen_offer" labelfontsize=9]') && !/re2"[^\]]*taillabel/.test(dotLines));
 const pathOf = (k: number) => /<path[^>]* d="([^"]+)"/.exec(edgeGroup(k))?.[1] ?? "";
 check("two associations between the same tables are two distinct lines", pathOf(1) !== "" && pathOf(2) !== "" && pathOf(1) !== pathOf(2));

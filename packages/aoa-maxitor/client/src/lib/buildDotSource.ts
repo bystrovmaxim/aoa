@@ -62,13 +62,16 @@ export const erdEdgeId = (k: number) => `re${k}`;
 /**
  * The crow's-foot end for a cardinality, as Graphviz arrow shapes, the first one nearest the table
  * (spec 029, FR-043): exactly one — two bars; zero or one — a bar and a ring; one or many — a crow's
- * foot and a bar; zero or many — a crow's foot and a ring. An unknown value reads as zero or many.
+ * foot and a bar; zero or many — a crow's foot and a ring; each a little way off the table. An unknown
+ * value reads as zero or many.
  */
 export const ERD_ENDS: Readonly<Record<string, string>> = {
-  one: "teetee",
-  zero_one: "teeodot",
-  one_many: "crowtee",
-  zero_many: "crowodot",
+  // ``none`` first leaves a few points between the table's outline and the end, so the bar nearest the
+  // table does not merge with its outline (maintainer, 2026-10-27).
+  one: "noneteetee",
+  zero_one: "noneteeodot",
+  one_many: "nonecrowtee",
+  zero_many: "nonecrowodot",
 };
 
 function erdEnd(cardinality: string | undefined): string {

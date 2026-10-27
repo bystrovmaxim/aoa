@@ -1,7 +1,7 @@
 // src/lib/erdPostPass.test.ts
 import { afterEach, describe, expect, it } from "vitest";
 import type { ErdEntity } from "@/lib/buildDotSource";
-import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, END_LABEL_CLASS, erdEndLabelSx, focusTables, markRows, type ErdLineInfo } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, END_LABEL_CLASS, erdEndLabelSx, focusTables, markRows, placeEndLabel, type Box, type ErdLineInfo } from "@/lib/erdPostPass";
 
 // Markup shaped like Graphviz's: Player (0) has id, gender and an FK row named showcase twice
 // (own row and FK row); Showcase (1) has id and players; Gender (2) has id.
@@ -235,5 +235,36 @@ describe("a line's end labels (spec 029, FR-042)", () => {
     expect(line.classList.contains("is-hovered")).toBe(true);
     hover(line, false);
     expect(line.classList.contains("is-hovered")).toBe(false);
+  });
+});
+
+describe("where a line's end label goes (spec 029, FR-042)", () => {
+  // A straight line leaving a table at (0, 0) to the right; the label names this end.
+  const straight = (d: number) => ({ x: d, y: 0 });
+  const plate = { width: 30, height: 10 };
+  const table: Box = { x: -50, y: -20, width: 50, height: 40 };
+  const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const offTheLine = (box: Box) => box.y + box.height <= 0 || box.y >= 0;
+
+  it("stands clear of the table its line leaves, and beside the line, not on it", () => {
+    const box = placeEndLabel(straight, 200, plate, [table]);
+    expect(overlaps(box, table)).toBe(false);
+    expect(offTheLine(box)).toBe(true);
+  });
+
+  it("moves along the line past another table in the way", () => {
+    const inTheWay: Box = { x: 0, y: -30, width: 60, height: 60 };
+    const box = placeEndLabel(straight, 300, plate, [table, inTheWay]);
+    expect(overlaps(box, table) || overlaps(box, inTheWay)).toBe(false);
+    expect(box.x).toBeGreaterThanOrEqual(60);
+    expect(offTheLine(box)).toBe(true);
+  });
+
+  it("works for a line leaving downwards too", () => {
+    const down = (d: number) => ({ x: 0, y: d });
+    const above: Box = { x: -40, y: -40, width: 80, height: 40 };
+    const box = placeEndLabel(down, 200, plate, [above]);
+    expect(overlaps(box, above)).toBe(false);
+    expect(box.x + box.width <= 0 || box.x >= 0).toBe(true);
   });
 });
