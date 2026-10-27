@@ -53,10 +53,11 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const layoutHashValue = useSvgLayoutHash(svgMarkup);
   // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
   const layoutInputDigest = useSvgLayoutHash(svgMarkup ? `dot\n${dot}` : "");
-  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup));
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
+  // Registered after the second fit (one frame after the first), so a placed view is not undone.
+  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {

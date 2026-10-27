@@ -160,6 +160,10 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const hasFittedRef = useRef(false);
   const lastVpSizeRef = useRef({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(100);
+  /** Whether the picture has been fitted once; a view placed before that would be undone by the fit. */
+  const [fitted, setFitted] = useState(false);
+  /** Counts fits: a view placed from outside (going to someone) must be placed again after each. */
+  const [fitCount, setFitCount] = useState(0);
   /** Told after every pan, zoom and fit, so overlays drawn in diagram coordinates follow the picture. */
   const transformListenersRef = useRef(new Set<() => void>());
 
@@ -261,6 +265,8 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     panRef.current.ty = ty;
     applyTransform();
     hasFittedRef.current = true;
+    setFitted(true);
+    setFitCount((count) => count + 1);
   }, [applyTransform, fitBottomInset, fitMarginPx, fitBoundsSelector, fitMaxScale]);
 
   useEffect(() => {
@@ -489,6 +495,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
 
   const resetFitFlag = useCallback(() => {
     hasFittedRef.current = false;
+    setFitted(false);
     panRef.current = { scale: 1, tx: 0, ty: 0 };
     applyTransform(false);
     setZoomPct(100);
@@ -507,5 +514,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     centreOnClient,
     getScale,
     setScale,
+    fitted,
+    fitCount,
   };
 }

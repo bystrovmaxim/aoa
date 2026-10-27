@@ -60,6 +60,9 @@ PALETTE: tuple[str, ...] = (
     "#b45309", "#15803d", "#9333ea", "#be185d",
 )
 
+#: How long a mouse pointer that stopped moving still shows on other screens (FR-044).
+POINTER_SHOWN_SECONDS = 10.0
+
 #: The relayed message types and the numeric fields each one may carry.
 _RELAYED_FIELDS: dict[str, tuple[str, ...]] = {
     "pointer": ("x", "y"),
@@ -81,6 +84,7 @@ class Tab:
     layout_hash: str = ""
     settings_digest: str = ""
     pointer: dict[str, Any] | None = None
+    pointer_at: float = 0.0
     viewport: dict[str, Any] | None = None
     leaving: bool = False
 
@@ -317,11 +321,29 @@ class RoomRegistry(BaseController):
         if kind == "pointer":
             values["kind"] = "touch" if message.get("kind") == "touch" else "mouse"
             tab.pointer = values
+            tab.pointer_at = tab.last_activity
         else:
             tab.viewport = values
         event = {"type": kind, "participant": sender.id, **values}
         for other in _tabs_on_page(room, tab.page, except_participant=sender.id):
             other.channel.send_volatile(f"{kind}:{sender.id}", event)
+
+    def catch_up(self, room: Room, tab: Tab, participant: str) -> None:
+        """
+        Give a tab that just arrived on a page where the others are: each one's last screen, and their
+        pointer while it still shows (a mouse that moved in the last ten seconds), so going to someone
+        does not wait for them to move (spec 028, FR-050). Volatile, like the relay, and never logged.
+        """
+        now = self.clock()
+        for other in room.participants.values():
+            active = other.active_tab
+            if other.id == participant or active is None or active.page != tab.page:
+                continue
+            if active.viewport is not None:
+                tab.channel.send_volatile(f"viewport:{other.id}", {"type": "viewport", "participant": other.id, **active.viewport})
+            pointer = active.pointer
+            if pointer is not None and pointer.get("kind") == "mouse" and now - active.pointer_at < POINTER_SHOWN_SECONDS:
+                tab.channel.send_volatile(f"pointer:{other.id}", {"type": "pointer", "participant": other.id, **pointer})
 
     # ── timers ───────────────────────────────────────────────────────────
 

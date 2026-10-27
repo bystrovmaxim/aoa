@@ -357,3 +357,41 @@ def test_the_log_names_ids_never_names(client: TestClient, source: str, capsys: 
     log = capsys.readouterr().out
     assert room_id in log and "anna-id" in log
     assert "Secret" not in log
+
+
+def test_arriving_on_a_page_brings_the_last_screen_and_a_live_pointer(client: TestClient, source: str) -> None:
+    """(14) Boris comes to Anna's page and at once knows her screen and her pointer, without her moving."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        anna.send_json({"type": "viewport", "cx": 10, "cy": 20, "w": 300, "h": 200})
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 1.5, "y": 2.5})
+        boris = stack.enter_context(_connect(client, room_id, "boris", page=_ALL_DOMAINS))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        boris.send_json({"type": "page", "page": _FULL_GRAPH})
+        caught = {}
+        while len(caught) < 2:
+            event = boris.receive_json()
+            if event["type"] in ("viewport", "pointer"):
+                caught[event["type"]] = event
+
+    assert caught["viewport"] == {"type": "viewport", "participant": "anna", "cx": 10, "cy": 20, "w": 300, "h": 200}
+    assert caught["pointer"] == {"type": "pointer", "participant": "anna", "x": 1.5, "y": 2.5, "kind": "mouse"}
+
+
+def test_a_pointer_still_for_ten_seconds_is_not_brought(client: TestClient, source: str) -> None:
+    """(14) A pointer that stopped long ago would show as fresh: the newcomer gets the screen only."""
+    rooms = _rooms(client)
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 1.5, "y": 2.5})
+        anna.send_json({"type": "viewport", "cx": 10, "cy": 20, "w": 300, "h": 200})
+        assert _wait_for(lambda: rooms.room(room_id).participants["anna"].active_tab.viewport is not None)
+        rooms.room(room_id).participants["anna"].active_tab.pointer_at -= 11
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        first = boris.receive_json()
+        boris.send_json({"type": "stop_following"})
+        rest = [boris.receive_json()["type"]]
+    assert first["type"] == "viewport"
+    assert rest == ["follows"]

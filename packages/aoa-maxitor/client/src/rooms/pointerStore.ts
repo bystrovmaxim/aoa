@@ -27,6 +27,7 @@ export function putPointer(participant: string, pointer: RemotePointer): void {
 /** Record what a participant's screen shows. */
 export function putViewport(participant: string, viewport: DiagramViewport): void {
   viewports.set(participant, viewport);
+  changed();
 }
 
 /** Forget a participant's pointer: they left, or went to another page. */

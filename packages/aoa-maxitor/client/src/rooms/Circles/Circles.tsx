@@ -17,6 +17,8 @@ export type CirclesProps = {
   pageLabel: (page: string | null) => string;
   followers: (id: string) => number;
   onRename: () => void;
+  /** Go to a participant: their page, centred on them, at your zoom (FR-050). */
+  onGoTo: (participant: Participant) => void;
   /** On a phone three circles fit, on a desktop five (FR-020). */
   compact: boolean;
   surface?: string;
@@ -34,10 +36,11 @@ export function visibleCount(total: number, compact: boolean): number {
 
 /**
  * A circle per participant, yours first and ringed; beyond the limit the rest collapse into **+N**,
- * which opens the list. Each circle is a button labelled with the full name and page, so it is
- * reached with Tab and opened with Enter (FR-020 … FR-022, FR-028).
+ * which opens the list. A click on someone's circle goes to them; hover, Enter and a long press open
+ * the card. Each circle is a button labelled with the full name and page, so it is reached with Tab
+ * and opened with Enter (FR-020 … FR-022, FR-028, FR-050).
  */
-export function Circles({ participants, youId, yourPage, pageLabel, followers, onRename, compact, surface = WORKSPACE_SURFACE }: CirclesProps) {
+export function Circles({ participants, youId, yourPage, pageLabel, followers, onRename, onGoTo, compact, surface = WORKSPACE_SURFACE }: CirclesProps) {
   // A card opened by a click, Enter or a long press stays; one opened by hover goes with the pointer.
   const [card, setCard] = useState<{ id: string; anchor: HTMLElement; pinned: boolean } | null>(null);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
@@ -66,7 +69,13 @@ export function Circles({ participants, youId, yourPage, pageLabel, followers, o
         key={participant.id}
         aria-label={label}
         aria-haspopup="dialog"
-        onClick={(event) => setCard({ id: participant.id, anchor: event.currentTarget, pinned: true })}
+        onClick={(event) => {
+          // A pointer click goes to them; Enter (a click with no pointer, detail 0) opens the card.
+          if (event.detail > 0 && participant.id !== youId) {
+            closeCard();
+            onGoTo(participant);
+          } else setCard({ id: participant.id, anchor: event.currentTarget, pinned: true });
+        }}
         onMouseEnter={(event) => {
           const anchor = event.currentTarget;
           clearHover();
@@ -181,6 +190,7 @@ export function Circles({ participants, youId, yourPage, pageLabel, followers, o
           followers={followers(cardParticipant.id)}
           onClose={closeCard}
           onRename={onRename}
+          onGoTo={() => onGoTo(cardParticipant)}
           onHover={(inside) => {
             clearHover();
             if (!inside) hoverTimer.current = setTimeout(() => setCard((open) => (open?.pinned ? open : null)), HOVER_CLOSE_MS);

@@ -24,6 +24,7 @@ import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
 import { usePointerSender } from "@/rooms/usePointerSender";
+import { useGoTo } from "@/rooms/goTo";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
@@ -91,6 +92,17 @@ export function App() {
     () => (roomSettings ? { settings: roomSettings, set: setPageSetting } : null),
     [roomSettings, setPageSetting],
   );
+  /** Going to someone opens their page like any navigation: the left panel and the address follow. */
+  const navigateToPage = useCallback(
+    (key: string) => {
+      const selection = selectionOfPageKey(key);
+      if (!selection) return;
+      pushUrlState(serviceUrl, selection);
+      setDiagram(selection);
+    },
+    [serviceUrl],
+  );
+  const goTo = useGoTo({ surface, page, navigate: navigateToPage });
   const pointerPeople = room.room
     ? room.room.participants.filter((p) => p.id !== room.room?.youId && p.page === page && !p.away)
     : [];
@@ -223,7 +235,14 @@ export function App() {
   return (
     <MainLayout
       topRow={(compact) => (
-        <RoomBar session={room} page={page} pageLabel={labelOfPage} canOpen={serviceUrl !== null} compact={compact} />
+        <RoomBar
+          session={room}
+          page={page}
+          pageLabel={labelOfPage}
+          canOpen={serviceUrl !== null}
+          compact={compact}
+          onGoTo={goTo}
+        />
       )}
       overlay={
         <>

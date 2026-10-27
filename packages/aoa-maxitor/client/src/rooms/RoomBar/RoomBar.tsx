@@ -28,6 +28,8 @@ export type RoomBarProps = {
   canOpen: boolean;
   /** The phone layout: the controls sit in the existing 44 px bar. */
   compact: boolean;
+  /** Go to a participant (FR-050). */
+  onGoTo: (participant: string, page: string | null) => void;
 };
 
 /** The quiet line of state in the row: *Reconnecting…*, or the latest *Boris joined*. */
@@ -54,7 +56,7 @@ function StatusText({ session }: { session: RoomSession }) {
  * room**. Inside: the circles, **Copy link**, **Hide pointers** and **Leave room** on a desktop; on a
  * phone the circles and one ⋮ menu that says the same in words.
  */
-export function RoomBar({ session, page, pageLabel, canOpen, compact }: RoomBarProps) {
+export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo }: RoomBarProps) {
   const copyButton = useRef<HTMLButtonElement | null>(null);
   const [inviteAnchor, setInviteAnchor] = useState<HTMLElement | null>(null);
   const [inviteCopies, setInviteCopies] = useState(false);
@@ -97,6 +99,7 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact }: RoomBarP
       pageLabel={pageLabel}
       followers={(id) => followerCount(room, id)}
       onRename={session.requestRename}
+      onGoTo={(participant) => onGoTo(participant.id, participant.page)}
       compact={compact}
       surface={compact ? SIDEBAR_SURFACE : WORKSPACE_SURFACE}
     />
