@@ -6,7 +6,7 @@ Extends [028 room-protocol.md](../../028-maxitor-rooms/contracts/room-protocol.m
 
 | message | when | server |
 |---|---|---|
-| `{type: "seed", page, values: {name: value}}` | once per own setting (one setting per message; a value over 4 KB is not sent), right after the welcome of a room the tab opened | `SeedPageSettingsAction`: from the creator only; each value applied only if the room has none for `page`/`name`; each applied value broadcast as `setting` with `by` = creator. From anyone else: ignored with a `security` warning. Over 4 KB: `4413` as for any message |
+| `{type: "seed", page, settings: {name: value}}` | once per own setting (one setting per message; a value over 4 KB is not sent), right after the welcome of a room the tab opened | `SeedPageSettingsAction`: from the creator only; each value applied only if the room has none for `page`/`name`; each applied value broadcast as `setting` with `by` = creator. From anyone else: ignored with a `security` warning. Over 4 KB: `4413` as for any message |
 | `{type: "focus", page, hover, tooltip, selection, panels}` | on change, at most 10/s | relayed, never an action, never logged; validated as in [data-model.md](../data-model.md); sent only to tabs of participants who follow the sender |
 | `{type: "viewport", cx, cy, w, h}` | unchanged shape; now at most 20/s | unchanged |
 

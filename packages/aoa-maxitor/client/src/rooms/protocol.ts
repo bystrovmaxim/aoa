@@ -55,6 +55,7 @@ export type ClientMessage =
   | { type: "page"; page: string; build?: string; fingerprint?: string; layout_hash?: string; settings_digest?: string }
   | { type: "activity"; visible: boolean }
   | { type: "setting"; page: string; name: string; value: unknown }
+  | { type: "seed"; page: string; settings: Record<string, unknown> }
   | { type: "rename"; name: string }
   | { type: "follow"; target: string }
   | { type: "stop_following" }
@@ -62,3 +63,6 @@ export type ClientMessage =
   | { type: "reload" }
   | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number }
   | { type: "viewport"; cx: number; cy: number; w: number; h: number };
+
+/** The largest room message Maxitor accepts, in bytes; a larger one closes the connection with 4413. */
+export const MAX_MESSAGE_BYTES = 4096;

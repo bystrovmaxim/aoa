@@ -395,3 +395,62 @@ def test_a_pointer_still_for_ten_seconds_is_not_brought(client: TestClient, sour
         rest = [boris.receive_json()["type"]]
     assert first["type"] == "viewport"
     assert rest == ["follows"]
+
+
+def test_the_openers_seed_becomes_the_rooms_picture(client: TestClient, source: str) -> None:
+    """(029 FR-001) The opener's own values reach a guest who is there and one who joins later."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"layout": "gv-neato"}})
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"disabled_kinds": ["dictionary"]}})
+        heard = [_expect(boris, "setting"), _expect(boris, "setting")]
+        vera = stack.enter_context(_connect(client, room_id, "vera"))
+        settings = _expect(vera, "welcome")["room"]["settings"]
+
+    assert [(e["name"], e["value"], e["by"]) for e in heard] == [("layout", "gv-neato", "anna"), ("disabled_kinds", ["dictionary"], "anna")]
+    assert settings == {_ALL_DOMAINS: {"layout": "gv-neato", "disabled_kinds": ["dictionary"]}}
+
+
+def test_a_seed_never_overwrites_what_the_room_holds(client: TestClient, source: str) -> None:
+    """(029 FR-001) A value set in the room before the seed arrives wins; an unaccepted value is skipped."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        anna.send_json({"type": "setting", "page": _ALL_DOMAINS, "name": "layout", "value": "gv-circo"})
+        _expect(anna, "setting")
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"layout": "gv-neato"}})
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"colour": "red"}})
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"one_hop": False}})
+        added = _expect(anna, "setting")
+        room = _rooms(client).room(room_id)
+        assert room is not None
+
+    assert (added["name"], added["value"]) == ("one_hop", False)
+    assert room.page_settings[_ALL_DOMAINS] == {"layout": "gv-circo", "one_hop": False}
+
+
+def test_a_guest_cannot_seed(client: TestClient, source: str, capsys: pytest.CaptureFixture[str]) -> None:
+    """(029 FR-001) Only the room's creator seeds; a guest's seed changes nothing and is logged as security."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        boris.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"layout": "gv-neato"}})
+        assert _wait_for(lambda: "did not open it" in capsys.readouterr().out)
+        room = _rooms(client).room(room_id)
+        assert room is not None
+
+    assert room.page_settings.get(_ALL_DOMAINS, {}) == {}
+
+
+def test_a_seed_over_the_message_limit_closes_with_4413(client: TestClient, source: str) -> None:
+    """(029 FR-001) A seed is a room message like any other: over 4 KB it is refused, so the client never sends one."""
+    with ExitStack() as stack:
+        anna, _ = _open(stack, client, source)
+        anna.send_json({"type": "seed", "page": _ALL_DOMAINS, "settings": {"disabled_entities": ["x" * 60] * 80}})
+        code, _ = _closed(anna)
+
+    assert code == 4413
