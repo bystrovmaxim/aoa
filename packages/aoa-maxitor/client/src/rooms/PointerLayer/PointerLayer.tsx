@@ -147,7 +147,7 @@ export function PointerLayer({ surface, participants }: PointerLayerProps) {
                 }}
               />
               <Box component="span" sx={{ position: "absolute", left: 2, top: 2, borderRadius: "50%", boxShadow: "0 1px 4px rgba(0,0,0,.25)" }}>
-                <Avatar participant={participant} size={26} surface="transparent" />
+                <Avatar participant={participant} size={22} surface="transparent" />
               </Box>
             </Box>
           );

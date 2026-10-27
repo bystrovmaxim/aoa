@@ -22,6 +22,8 @@
  * a browser of another engine joins and follows it. The leader drags the ERD and stops; the
  * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
  * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
+ * There, too, the leader's circles must not touch (spec 029, FR-051): its own ring, the count of
+ * its follower and a focus ring on the follower's circle all drawn at once.
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -404,8 +406,30 @@ async function diagramCentre(page: Page): Promise<{ x: number; y: number; scale:
   });
 }
 
+/**
+ * The least gap between two circles of the room bar, everything each one draws included — its ring,
+ * a focus ring, a follower count; negative when two of them overlap.
+ */
+async function circleGap(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const boxes = [...document.querySelectorAll('[aria-label="People in this room"] > button')].map((button) => {
+      const parts = [button, ...button.querySelectorAll("*")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+      const style = getComputedStyle(button);
+      // An outline beyond the box (a positive offset) is part of what the circle draws.
+      const out = style.outlineStyle !== "none" ? Math.max(0, parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth)) : 0;
+      return {
+        left: Math.min(...parts.map((r) => r.left)) - out,
+        right: Math.max(...parts.map((r) => r.right)) + out,
+      };
+    });
+    let least = Infinity;
+    boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => (least = Math.min(least, Math.max(a.left, b.left) - Math.min(a.right, b.right)))));
+    return least;
+  });
+}
+
 /** Following, led in one engine and watched in another: how far apart the screens stop (px), and how soon the hover shows (ms). */
-async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number }> {
+async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number; gapPx: number }> {
   const leadBrowser: Browser = await lead.launch();
   const followBrowser: Browser = await follow.launch();
   try {
@@ -427,6 +451,12 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
     await follower.keyboard.press("Enter");
     await domClick(follower, 'button:has-text("Follow")');
     await follower.getByText("Following Leader").waitFor({ timeout: HASH_TIMEOUT_MS });
+    // The leader now shows its ring and a follower count; a focus ring joins them on the follower's circle.
+    await leader.getByLabel("1 following you").waitFor({ timeout: HASH_TIMEOUT_MS });
+    await leader.locator('[aria-label^="Follower"]').first().focus();
+    await leader.keyboard.press("Shift");
+    const gapPx = await circleGap(leader);
+    await leader.locator("[data-layout-hash]").first().click({ position: { x: 5, y: 5 } });
 
     const view = await leader.locator("[data-layout-hash]").first().boundingBox();
     const start = { x: view!.x + view!.width / 2, y: view!.y + view!.height / 2 };
@@ -459,7 +489,7 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
         () => true,
         () => false,
       );
-    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity };
+    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity, gapPx };
   } finally {
     await leadBrowser.close();
     await followBrowser.close();
@@ -512,10 +542,12 @@ async function main(): Promise<void> {
     for (const [leadName, leadEngine] of ENGINES) {
       for (const [followName, followEngine] of ENGINES) {
         if (leadName === followName) continue;
-        const { apartPx, hoverMs } = await followCase(leadEngine, followEngine, frontUrl, source);
-        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS;
+        const { apartPx, hoverMs, gapPx } = await followCase(leadEngine, followEngine, frontUrl, source);
+        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0;
         ok &&= fits;
-        console.log(`${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms`);
+        console.log(
+          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart`,
+        );
       }
     }
     console.log(
