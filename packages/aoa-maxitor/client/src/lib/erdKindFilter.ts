@@ -39,3 +39,13 @@ export function filterGraphByKinds(data: ErdGraphPayload, disabledKinds: Readonl
   if (disabledKinds.size === 0) return data;
   return pruneGraphToEntities(data, (e) => !disabledKinds.has(entityKindOf(e)));
 }
+
+/**
+ * The kinds a filter offers for a diagram: those of the named list (in its order) that at least one of
+ * ``entities`` has — the tables the diagram shows before kinds are filtered, so a kind switched off stays
+ * listed (spec 029, FR-044), as the domain filter lists only the diagram's domains.
+ */
+export function kindsOnDiagram<T extends { entity_kind: string }>(kinds: readonly T[], entities: readonly ErdEntity[]): T[] {
+  const present = new Set(entities.map(entityKindOf));
+  return kinds.filter((kind) => present.has(kind.entity_kind));
+}
