@@ -9,6 +9,7 @@ import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
 import { layoutHash } from "@/lib/layoutHash";
+import { registerG6DiagramSurface } from "@/rooms/diagramSurface";
 import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
 import { PrecomputedLayout } from "./precomputedLayout";
 
@@ -326,6 +327,8 @@ export function FullGraphViewer() {
     const graph = buildGraph(mod.Graph, canvas, payload, graphData, layoutOption);
     graphRef.current = graph;
     let cancelled = false;
+    /** Takes the graph off the room's surface; set once the graph is drawn. */
+    let unregisterSurface: (() => void) | null = null;
 
     const syncZoom = () => {
       try {
@@ -665,7 +668,10 @@ export function FullGraphViewer() {
           drawn[id] = [x, y];
         }
         const hash = await layoutHash(drawn, nodeIds);
-        if (!cancelled) rootRef.current?.setAttribute("data-layout-hash", hash);
+        if (cancelled) return;
+        rootRef.current?.setAttribute("data-layout-hash", hash);
+        // Pointers in a room travel in G6's canvas space, which every participant's picture shares.
+        if (rootRef.current) unregisterSurface = registerG6DiagramSurface(rootRef.current, graph);
       })
       .catch((err: unknown) => {
         setGraphError(err instanceof Error ? err.message : String(err));
@@ -673,6 +679,7 @@ export function FullGraphViewer() {
 
     return () => {
       cancelled = true;
+      unregisterSurface?.();
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
       graph.off("node:pointerenter", onNodeOver);

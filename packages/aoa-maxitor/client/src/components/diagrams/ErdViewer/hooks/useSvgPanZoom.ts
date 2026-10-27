@@ -160,6 +160,8 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const hasFittedRef = useRef(false);
   const lastVpSizeRef = useRef({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(100);
+  /** Told after every pan, zoom and fit, so overlays drawn in diagram coordinates follow the picture. */
+  const transformListenersRef = useRef(new Set<() => void>());
 
   const applyTransform = useCallback((publishZoom = true) => {
     const panner = pannerRef.current;
@@ -167,7 +169,49 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     const { scale, tx, ty } = panRef.current;
     panner.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${tx}, ${ty})`;
     if (publishZoom) setZoomPct(Math.round(scale * 100));
+    for (const listener of transformListenersRef.current) listener();
   }, []);
+
+  /** Subscribe to every change of the transform; returns the unsubscribe. */
+  const onTransform = useCallback((listener: () => void) => {
+    transformListenersRef.current.add(listener);
+    return () => {
+      transformListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  /** Pan so the client point ``(x, y)`` sits at the centre of the viewport; the zoom stays. */
+  const centreOnClient = useCallback(
+    (x: number, y: number) => {
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const rect = vp.getBoundingClientRect();
+      panRef.current.tx += rect.left + rect.width / 2 - x;
+      panRef.current.ty += rect.top + rect.height / 2 - y;
+      applyTransform();
+    },
+    [applyTransform],
+  );
+
+  /** The current zoom factor. */
+  const getScale = useCallback(() => panRef.current.scale, []);
+
+  /** Zoom to ``scale`` about the viewport's centre. */
+  const setScale = useCallback(
+    (scale: number) => {
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const cx = vp.clientWidth / 2;
+      const cy = vp.clientHeight / 2;
+      const s0 = panRef.current.scale;
+      const s1 = clampUserScale(scale);
+      panRef.current.tx = cx - (cx - panRef.current.tx) * (s1 / s0);
+      panRef.current.ty = cy - (cy - panRef.current.ty) * (s1 / s0);
+      panRef.current.scale = s1;
+      applyTransform();
+    },
+    [applyTransform],
+  );
 
   const fitToContainer = useCallback(() => {
     const vp = viewportRef.current;
@@ -459,5 +503,9 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     zoomOut,
     bindInteractions,
     resetFitFlag,
+    onTransform,
+    centreOnClient,
+    getScale,
+    setScale,
   };
 }

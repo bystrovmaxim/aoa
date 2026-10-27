@@ -1,0 +1,56 @@
+// src/rooms/usePointerSender.ts
+/**
+ * Send this tab's pointer and screen to the room, in diagram coordinates (FR-040, FR-043).
+ *
+ * Pointer Events on the diagram's element give mouse and touch alike; a pan or zoom gives the screen.
+ * Nothing goes out from a hidden tab, while pointers are off on this page, or outside a room.
+ */
+import { useEffect } from "react";
+import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
+import type { ClientMessage } from "@/rooms/protocol";
+import { POINTER_RATE, VIEWPORT_RATE, throttle } from "@/rooms/throttle";
+
+type PointerMessage = Point & { kind: "mouse" | "touch" };
+
+const samePointer = (a: PointerMessage, b: PointerMessage) => a.x === b.x && a.y === b.y && a.kind === b.kind;
+const sameViewport = (a: DiagramViewport, b: DiagramViewport) => a.cx === b.cx && a.cy === b.cy && a.w === b.w && a.h === b.h;
+
+/** Start sending for ``surface``; returns the call that stops. */
+export function startPointerSender(surface: DiagramSurface, send: (message: ClientMessage) => void): () => void {
+  const pointer = throttle<PointerMessage>(POINTER_RATE, (p) => send({ type: "pointer", ...p }), samePointer);
+  const viewport = throttle<DiagramViewport>(VIEWPORT_RATE, (v) => send({ type: "viewport", ...v }), sameViewport);
+  const hidden = () => document.visibilityState === "hidden";
+
+  const onPointer = (event: PointerEvent) => {
+    if (hidden()) return;
+    const point = surface.toDiagram({ x: event.clientX, y: event.clientY });
+    if (point) pointer.push({ ...point, kind: event.pointerType === "touch" ? "touch" : "mouse" });
+  };
+  const onTransform = () => {
+    if (hidden()) return;
+    const v = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
+    if (v) viewport.push(v);
+  };
+
+  const element = surface.element;
+  element.addEventListener("pointermove", onPointer, { passive: true });
+  element.addEventListener("pointerdown", onPointer, { passive: true });
+  const unsubscribe = surface.subscribe(onTransform);
+  onTransform();
+  return () => {
+    element.removeEventListener("pointermove", onPointer);
+    element.removeEventListener("pointerdown", onPointer);
+    unsubscribe();
+    pointer.cancel();
+    viewport.cancel();
+  };
+}
+
+/** Send while ``enabled`` and a diagram is on screen. */
+export function usePointerSender(surface: DiagramSurface | null, send: (message: ClientMessage) => void, enabled: boolean): void {
+  useEffect(() => {
+    if (!surface || !enabled) return undefined;
+    return startPointerSender(surface, send);
+  }, [surface, send, enabled]);
+}

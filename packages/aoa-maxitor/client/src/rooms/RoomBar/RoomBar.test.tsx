@@ -28,7 +28,11 @@ function session(overrides: Partial<RoomSession> = {}): RoomSession {
     connection: { kind: "open" },
     dialog: null,
     banner: null,
+    pageNotice: null,
     inviteOpen: false,
+    hidePointers: false,
+    toggleHidePointers: vi.fn(),
+    pointersOff: false,
     roomId: room.roomId,
     inRoom: true,
     requestOpen: vi.fn(),
@@ -40,6 +44,7 @@ function session(overrides: Partial<RoomSession> = {}): RoomSession {
     closeInvite: vi.fn(),
     openInvite: vi.fn(),
     dismissBanner: vi.fn(),
+    dismissPageNotice: vi.fn(),
     ...overrides,
   };
 }

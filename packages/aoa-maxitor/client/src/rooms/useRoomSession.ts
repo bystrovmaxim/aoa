@@ -10,6 +10,9 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
+import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
+import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
 
@@ -17,9 +20,44 @@ import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/
 export type NameDialogMode = "open" | "join" | "rename";
 
 /** A message across the top of the workspace. ``open`` offers **Open room** with it. */
-export type RoomBanner = { kind: "info" | "error"; text: string; open: boolean };
+export type RoomBanner = { kind: "info" | "warn" | "error"; text: string; open: boolean };
 
 const NAME_KEY = "maxitor.name";
+const HIDE_POINTERS_KEY = "maxitor.hidePointers";
+
+function storedFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function storeFlag(key: string, on: boolean): void {
+  try {
+    localStorage.setItem(key, on ? "1" : "0");
+  } catch {
+    // The choice lasts for this page only.
+  }
+}
+
+/** The ``data-layout-hash`` the diagram on screen carries now, following every redraw. */
+function useLayoutHash(surface: DiagramSurface | null): string | null {
+  const [hash, setHash] = useState<string | null>(null);
+  useEffect(() => {
+    const element = surface?.element;
+    if (!element) {
+      setHash(null);
+      return undefined;
+    }
+    const read = () => setHash(element.getAttribute("data-layout-hash"));
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(element, { attributes: true, attributeFilter: ["data-layout-hash", "data-layout-input"] });
+    return () => observer.disconnect();
+  }, [surface]);
+  return hash;
+}
 
 /** The name used last in this browser, to fill the dialog with. */
 export function lastName(): string {
@@ -70,9 +108,13 @@ export type RoomSessionOptions = {
   onFallbackPage: (page: string) => void;
   /** The room's source was rebuilt: read the left panel and the diagram again. */
   onGraphChanged: () => void;
+  /** The diagram on screen, for the page check and the restored view. */
+  surface: DiagramSurface | null;
+  /** The fingerprint of the graph the left panel was read from. */
+  fingerprint: string | null;
 };
 
-export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGraphChanged }: RoomSessionOptions) {
+export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGraphChanged, surface, fingerprint }: RoomSessionOptions) {
   const [room, dispatch] = useReducer(reducer, null);
   const [connection, setConnection] = useState<ConnectionState | null>(null);
   const [dialog, setDialog] = useState<{ mode: NameDialogMode; error: string | null } | null>(
@@ -80,6 +122,14 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   );
   const [banner, setBanner] = useState<RoomBanner | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  /** A sentence about this tab's picture: reloading, held back, or pointers off. */
+  const [pageNotice, setPageNotice] = useState<string | null>(null);
+  /** The page whose layout differs from the room's: pointers are off there, both ways (FR-093). */
+  const [pointersOffPage, setPointersOffPage] = useState<string | null>(null);
+  const [hidePointers, setHidePointers] = useState(() => storedFlag(HIDE_POINTERS_KEY));
+  const layoutHash = useLayoutHash(surface);
+  const surfaceRef = useRef(surface);
+  surfaceRef.current = surface;
   const target = useRef<string | null>(initialRoom);
   const socket = useRef<RoomConnection | null>(null);
   const opening = useRef(false);
@@ -92,6 +142,26 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const send = useCallback((message: ClientMessage) => socket.current?.send(message), []);
 
   const onEvent = useCallback((event: ServerEvent) => {
+    // Pointers and screens change many times a second: they bypass React state.
+    if (event.type === "pointer") {
+      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now() });
+      return;
+    }
+    if (event.type === "viewport") {
+      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
+      return;
+    }
+    if (event.type === "check") {
+      const outcome = decideCheck(event, Date.now(), lastSelfReload());
+      setPageNotice(checkNotice(outcome));
+      setPointersOffPage(outcome.pointersOff ? pageRef.current : null);
+      if (outcome.reload) reloadKeepingView(surfaceRef.current?.view() ?? null, Date.now(), () => window.location.reload());
+      else if (outcome.reread) callbacks.current.onGraphChanged();
+      return;
+    }
+    if (event.type === "left" || (event.type === "presence" && (event.away || event.page !== pageRef.current))) {
+      dropPointer(event.type === "left" ? event.participant.id : event.id);
+    }
     if (event.type === "welcome") {
       target.current = event.room.id;
       setUrlRoom(event.room.id);
@@ -108,6 +178,8 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     socket.current = null;
     dispatch({ kind: "reset" });
     setInviteOpen(false);
+    clearPointers();
+    setPageNotice(null);
     if (state.code === 4422) {
       // The server refused the name: the dialog opens again with the rule.
       setDialog({ mode: opening.current ? "open" : "join", error: closeSentence(4422) });
@@ -183,20 +255,47 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     setUrlRoom(null);
     setConnection(null);
     setInviteOpen(false);
+    setPageNotice(null);
+    setPointersOffPage(null);
+    clearPointers();
     dispatch({ kind: "reset" });
   }, [send]);
 
-  // Every page the tab opens is reported, so the room knows where its participants are (FR-013).
+  /** **Hide pointers** / **Show pointers**: other people's pointers on this tab, remembered in the browser. */
+  const toggleHidePointers = useCallback(() => {
+    setHidePointers((hidden) => {
+      storeFlag(HIDE_POINTERS_KEY, !hidden);
+      return !hidden;
+    });
+  }, []);
+
+  // Another page: pointers seen on the old one do not belong here.
+  useEffect(() => {
+    clearPointers();
+  }, [page]);
+
+  // Every page the tab opens is reported, so the room knows where its participants are (FR-013),
+  // and again after every draw with what the picture is, so the room can check it (FR-090).
   useEffect(() => {
     if (!page) return;
     socket.current?.setPage(page);
     if (room) {
-      send({ type: "page", page });
+      send(pageReport(page, __MAXITOR_BUILD__, fingerprint, layoutHash ? (surfaceRef.current?.element ?? null) : null));
       dispatch({ kind: "own-page", page });
     }
     // The page is reported again after every welcome, which is a fresh join.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, room?.roomId, connection?.kind, send]);
+  }, [page, room?.roomId, connection?.kind, send, layoutHash, fingerprint]);
+
+  // After Maxitor reloaded itself, the first diagram opens at the zoom and centre it had (FR-090).
+  useEffect(() => {
+    if (!surface) return undefined;
+    const saved = takeSavedView();
+    if (!saved) return undefined;
+    // Let the viewer fit first; the saved view then replaces the fit.
+    const timer = setTimeout(() => surface.restore(saved), 300);
+    return () => clearTimeout(timer);
+  }, [surface]);
 
   // Hidden and shown again: the circle pales while the tab is in the background (FR-044).
   useEffect(() => {
@@ -229,7 +328,12 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     connection,
     dialog,
     banner,
+    pageNotice,
     inviteOpen,
+    hidePointers,
+    toggleHidePointers,
+    /** Pointers are off on this page because its layout differs from the room's. */
+    pointersOff: page !== null && pointersOffPage === page,
     /** The room id the tab is in or is joining. */
     roomId: room?.roomId ?? target.current,
     inRoom: room !== null,
@@ -242,6 +346,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     closeInvite: () => setInviteOpen(false),
     openInvite: () => setInviteOpen(true),
     dismissBanner: () => setBanner(null),
+    dismissPageNotice: () => setPageNotice(null),
   };
 }
 

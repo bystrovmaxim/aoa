@@ -59,4 +59,6 @@ export type ClientMessage =
   | { type: "follow"; target: string }
   | { type: "stop_following" }
   | { type: "leave" }
-  | { type: "reload" };
+  | { type: "reload" }
+  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number }
+  | { type: "viewport"; cx: number; cy: number; w: number; h: number };

@@ -11,7 +11,11 @@ import { useEffect, useState } from "react";
 
 import { svgLayoutHash } from "./layoutHash";
 
-/** Return the layout hash of ``svg``, or ``undefined`` when there is none yet. */
+/**
+ * Return the layout hash of ``svg``, or ``undefined`` when there is none yet. The same hash of the
+ * text Graphviz was given (engine and DOT) is the picture's settings digest: two pictures of the same
+ * input must be laid out alike (spec 028, FR-093).
+ */
 export function useSvgLayoutHash(svg: string): string | undefined {
   const [hashed, setHashed] = useState<{ svg: string; hash: string } | null>(null);
 
