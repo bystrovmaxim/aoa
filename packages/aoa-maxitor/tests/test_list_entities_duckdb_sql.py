@@ -164,3 +164,31 @@ def test_an_optional_relation_end_is_zero_or_one_and_a_mandatory_one_is_one() ->
     relations = _slice(DuckDBGraphResource.build_from_json(payload), "d1")["relations"]
     ends = {r["source_field"]: (r["source_cardinality"], r["target_cardinality"]) for r in relations}
     assert ends == {"billed_in": ("zero_many", "zero_one"), "priced_in": ("zero_many", "one"), "legacy": ("zero_many", "one")}
+
+
+def test_a_table_lists_every_relation_field_whether_or_not_its_target_is_on_screen() -> None:
+    """(029 FR-045) 1-hop decides which extra tables come in, never which fields a table lists."""
+    payload = {
+        "schema_version": "1.0",
+        "nodes": [
+            *({"id": d, "type": "Domain", "label": d, "properties": {"name": d, "description": d}} for d in ("d1", "d2")),
+            *({"id": e, "type": "Entity", "label": e, "properties": {"description": e, "entity_kind": "core"}} for e in ("order", "currency")),
+        ],
+        "edges": [
+            _in_domain("order"),
+            {"source_id": "currency", "target_id": "d2", "type": "domain", "relationship": "Composition", "is_dag": False},
+            _relation("order", "currency", "billed_in", optional=False),
+        ],
+    }
+    duck = DuckDBGraphResource.build_from_json(payload)
+
+    for include_neighbors in (False, True):
+        out = ListEntitiesAction._slice_payload(duck, "d1", include_neighbors=include_neighbors)
+        order = next(e for e in out["entities"] if e["id"] == "order")
+        fields = [(f["name"], f["type"], f["foreign_key"]) for f in order["fields"]]
+        assert fields == [("billed_in", "currency", True)], include_neighbors
+
+    # Without 1-hop the target table stays off the diagram, and so does its line.
+    alone = ListEntitiesAction._slice_payload(duck, "d1", include_neighbors=False)
+    assert [e["id"] for e in alone["entities"]] == ["order"]
+    assert alone["relations"] == []
