@@ -23,7 +23,9 @@
  * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
  * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
  * There, too, the leader's circles must not touch (spec 029, FR-051): its own ring, the count of
- * its follower and a focus ring on the follower's circle all drawn at once.
+ * its follower and a focus ring on the follower's circle all drawn at once. The leader's name is
+ * 40 characters, the longest a name may be, and the follower's card for it must keep its buttons
+ * inside the card without one running into another (FR-052).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -428,8 +430,29 @@ async function circleGap(page: Page): Promise<number> {
   });
 }
 
+/** The longest name a room accepts, in one word: a card must still fit its buttons. */
+const LONG_NAME = "Leader" + "x".repeat(34);
+
+/** How far the open card's buttons run past the card or into each other, in px (0 when they fit). */
+async function cardButtonsOverlap(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const card = document.querySelector('[role="dialog"]')!.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('[role="dialog"] button')].map((b) => b.getBoundingClientRect());
+    let worst = 0;
+    for (const b of buttons) worst = Math.max(worst, card.left - b.left, b.right - card.right);
+    buttons.forEach((a, i) =>
+      buttons.slice(i + 1).forEach((b) => {
+        const across = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (across > 0 && down > 0) worst = Math.max(worst, Math.min(across, down));
+      }),
+    );
+    return worst;
+  });
+}
+
 /** Following, led in one engine and watched in another: how far apart the screens stop (px), and how soon the hover shows (ms). */
-async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number; gapPx: number }> {
+async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number; gapPx: number; cardPx: number }> {
   const leadBrowser: Browser = await lead.launch();
   const followBrowser: Browser = await follow.launch();
   try {
@@ -438,7 +461,7 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
     await leader.goto(`${front}/?${new URLSearchParams({ source, view: "domain-erd" }).toString()}`);
     await nextHash(leader, null);
     await domClick(leader, 'button:has-text("Open room")');
-    await confirmName(leader, "Leader");
+    await confirmName(leader, LONG_NAME);
     await leader.waitForURL(/room=/, { timeout: HASH_TIMEOUT_MS });
     await leader.locator(".MuiPopover-paper").waitFor({ timeout: HASH_TIMEOUT_MS });
     await leader.keyboard.press("Escape");
@@ -449,6 +472,8 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
     // Enter on a circle opens its card; Follow there starts following.
     await follower.locator('[aria-label^="Leader"]').first().focus();
     await follower.keyboard.press("Enter");
+    await follower.locator('[role="dialog"] button').first().waitFor({ timeout: HASH_TIMEOUT_MS });
+    const cardPx = await cardButtonsOverlap(follower);
     await domClick(follower, 'button:has-text("Follow")');
     await follower.getByText("Following Leader").waitFor({ timeout: HASH_TIMEOUT_MS });
     // The leader now shows its ring and a follower count; a focus ring joins them on the follower's circle.
@@ -489,7 +514,7 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
         () => true,
         () => false,
       );
-    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity, gapPx };
+    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity, gapPx, cardPx };
   } finally {
     await leadBrowser.close();
     await followBrowser.close();
@@ -542,11 +567,11 @@ async function main(): Promise<void> {
     for (const [leadName, leadEngine] of ENGINES) {
       for (const [followName, followEngine] of ENGINES) {
         if (leadName === followName) continue;
-        const { apartPx, hoverMs, gapPx } = await followCase(leadEngine, followEngine, frontUrl, source);
-        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0;
+        const { apartPx, hoverMs, gapPx, cardPx } = await followCase(leadEngine, followEngine, frontUrl, source);
+        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
         ok &&= fits;
         console.log(
-          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart`,
+          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
         );
       }
     }

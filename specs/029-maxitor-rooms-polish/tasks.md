@@ -219,6 +219,26 @@
 
 ---
 
+## Phase 16a: The participant card's buttons never overlap (commit 16a) · US5
+
+**Goal**: with a long name, *Go to …* and *Follow … instead* stand side by side when they fit and wrap to the next line when they do not; a name too long for one line ends with `…`, the whole in the button's tooltip (FR-052). Added 2026-10-27 from the maintainer's screenshot: phase 7 fixed the pill over the card, not the card's own buttons.
+
+- [X] T087 [US5] In `packages/aoa-maxitor/client/src/rooms/ParticipantCard/ParticipantCard.tsx` let the button row wrap and each button shrink to the card's width with its label cut by `…` and the full label as `title`. Done: the button row wraps; each button may shrink to the card (`minWidth: 0`, `maxWidth: 100%`) and its label is one line cut with `…`, the full label as `title`.
+- [X] T088 [US5] Geometry check in a real browser: in the cross-engine follow case the leader's name is 40 characters, and the follower's card buttons must stay inside the card and never overlap; plus a test that a long label keeps its full text as the tooltip. Adversarial check: the old non-wrapping row → the check fails. Restore. Done in the cross-engine follow case (the leader is named 40 characters; the follower's card is measured before Follow): `card buttons overrun 0.0 px` in all six pairs; the old non-wrapping row → `overrun 144.8 px`, DIFF. The tooltip is the `title` attribute in the markup; no separate unit test, since the card needs a live anchor to render.
+- [X] T089 [US5] Prepare commit 16a: `fix(maxitor): the participant card's buttons never overlap (#282)`; record it in issue #282. Done — committed on the standing instruction.
+
+---
+
+## Phase 16b: Specialization tables of one block share one width (commit 16b) · US6
+
+**Goal**: the tables of a specialization block (one Graphviz cluster, e.g. *kind (by EventKindEnumEntity)*) are all as wide as the widest of them, so the block reads as one column (maintainer's screenshot, 2026-10-27).
+
+- [ ] T090 [US6] In `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` give every table of a specialization cluster the header width of the cluster's widest table — measured from the tables' text the way Graphviz sizes them, or by laying the cluster out once — so each card in the block has one width; tables outside clusters keep their own width.
+- [ ] T091 [US6] In `packages/aoa-maxitor/client/scripts/check-erd-kinds-and-lines.ts` (the fixture with a specialization container) assert that every card of the block has the same width, equal to the widest; adversarial check: drop the shared width → the assertion fails. Re-check that layouts still agree across engines.
+- [ ] T092 [US6] Prepare commit 16b: `style(maxitor): specialization tables of one block share one width (#282)`; record it in issue #282.
+
+---
+
 ## Phase 17: The check run (commit 17)
 
 - [ ] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16.
