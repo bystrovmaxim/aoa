@@ -47,6 +47,8 @@ Maxitor shows the system from four sides — and all of them are built from the 
 
 This echoes [The system from different altitudes](../explanation/system-altitudes.md): Maxitor builds the first projections from code automatically.
 
+**Moving around.** On every diagram a drag, a two-finger swipe on a trackpad or a plain mouse wheel moves the picture; a pinch, or Ctrl / ⌘ with the wheel, zooms it at the pointer; Shift with the wheel moves it sideways. That is how design tools and the platforms' own trackpads behave. On a phone one finger moves and two fingers zoom.
+
 ## The full graph
 
 The full graph is an interactive network of all the system's elements. Nodes of different types, each with its own color: **Domain** (groups Actions), **Action**, **RegularAspect/SummaryAspect** (pipeline steps), **Compensator** (saga rollbacks), **ErrorHandler**, **Resource** (`@depends`), **Entity/EntityField** (the data model), **Lifecycle**, **Role**, **Params/Result/Field** (the operation's contract). The left panel filters by group, the graph can be zoomed, a cluster isolated.
@@ -345,15 +347,17 @@ A **room** lets several people look at one service at once. It changes nothing i
 
 **Opening and joining.** **Open room** in the row above the diagram asks for a name and opens a room for the service on screen; the address gains `room=<id>` and a card offers the link. The id is 128 random bits, so the link is the invitation. Whoever opens the link is asked for a name — *Everyone with the link sees your name and your pointer* — and joins. Each person gets a colour of their own; the row shows a circle per person, yours first and ringed, and folds the rest into **+N** beyond five (three on a phone). **Copy link** hands out the page you are on, not the one the room was opened on; **Leave room** keeps that page, its filters and its zoom.
 
-**What is shared, and what is not.** Every filter and layout mode of a page is the room's: switch the ERD to Neato and everyone on that page sees Neato; a later joiner opens it that way. A change travels as the new value, never as a toggle, so two people clicking at once end in the same last value. Zoom, scroll, hover and the left panel stay yours.
+**What is shared, and what is not.** Every filter and layout mode of a page is the room's: switch the ERD to Neato and everyone on that page sees Neato; a later joiner opens it that way. A change travels as the new value, never as a toggle, so two people clicking at once end in the same last value. Zoom, scroll, hover and the left panel stay yours — except while you follow someone (below).
 
-**Pointers.** Each pointer is sent in the diagram's own coordinates — the SVG's user space, or G6's canvas — and every screen places it at its own zoom, so it lands on the same table on a phone and on a desktop. A mouse is an arrow with a name; a touch is a ring that fades after a second; a pointer still for ten seconds fades until it moves. One outside your view is an arrow at the edge with the person's initials; a click on it centres the view there. **Hide pointers** hides other people's pointers on your screen only. This works only because every engine and screen lays a diagram out to the same bits — [the check run proves it](#the-same-layout-everywhere) in Chromium, Firefox and WebKit, on a phone and a desktop.
+**The room's picture.** When you open a room, every filter and layout mode you had, on every page, becomes the room's, so a guest sees exactly what you see; a value someone set in the room first is kept. Inside a room a page shows the room's values only — your own never mix in, and a setting the room has no value for shows its default for everyone. Leaving keeps every page as it was in the room.
+
+**Pointers.** Each pointer is sent in the diagram's own coordinates — the SVG's user space, or G6's canvas — and every screen places it at its own zoom, so it lands on the same table on a phone and on a desktop. A mouse is an arrow with a name; a touch is a ring that fades after a second; a pointer stays for as long as its person is in the room and on that page, however long it stands still, and someone arriving on the page sees it at once. One outside your view is an arrow at the edge with the person's initials; a click on it centres the view there. **Hide pointers** hides other people's pointers on your screen only. This works only because every engine and screen lays a diagram out to the same bits — [the check run proves it](#the-same-layout-everywhere) in Chromium, Firefox and WebKit, on a phone and a desktop.
 
 ### The same layout everywhere
 
 A pointer at "the header of `PlayerCoreEntity`" is only useful if that header is at the same diagram point on every screen. So every diagram is laid out to the same bits in every browser engine and at every screen size. Maxitor lays the full graph out itself — centred at the origin rather than at the window's middle, from starting positions computed without `cos`/`sin`, for a fixed number of steps — and hands G6 the finished positions; a layout remembered before this change is laid out once more. Graphviz's FDP runs in a fresh WebAssembly instance, because it reads state earlier layouts leave behind. Every viewer writes a hash of what it drew on its diagram element (`data-layout-hash`), and a step of the check run opens every page in every layout mode in Chromium, Firefox and WebKit, at 375×812 and 1600×900, and requires the hashes to be equal; then it opens a real room in each engine and requires a desktop's pointer and a phone's tap to land within 2 px of the same node on the other screen.
 
-**Going to someone and following.** A click on someone's circle opens the page they are on, centred on their pointer, or on the centre of their screen when they have none — at your own zoom. **Follow** in their card keeps your screen where theirs is, page after page, again at your zoom; a frame in their colour says *Following Boris · Stop*. Your own pan, your own navigation, **Stop**, Esc, or their leaving end it; zooming does not. **Follow Vera instead** switches in one step. Following never closes a circle: if Anna follows Boris, Boris cannot follow Anna — nor anyone who follows Anna — and his card says why; the server decides it under the room's lock, so two crossing requests cannot both succeed.
+**Going to someone and following.** A click on someone's circle opens the page they are on, centred on their pointer, or on the centre of their screen when they have none — at your own zoom. **Follow** in their card keeps your screen where theirs is, page after page, again at your zoom; a frame in their colour says *Following Boris · Stop*. While you follow you see what they see: the table or node they hover and its tooltip, what they selected, and which filter sections and left-panel branches they have open — sent to their followers and nobody else. Your view glides between the positions it receives instead of jumping, and stands exactly where theirs stands once they stop. Your own pan — a drag, or a swipe on a trackpad — your own navigation, **Stop**, Esc, or their leaving end it; zooming does not. When it ends, hover, selection and panels are yours again, as they stood. **Follow Vera instead** switches in one step. Following never closes a circle: if Anna follows Boris, Boris cannot follow Anna — nor anyone who follows Anna — and his card says why; the server decides it under the room's lock, so two crossing requests cannot both succeed.
 
 **When something goes wrong.** Each refusal closes the connection with a code the page turns into one sentence:
 
@@ -364,11 +368,11 @@ A pointer at "the header of `PlayerCoreEntity`" is only useful if that header is
 | `4422` | the name is empty or longer than 40 characters | the name dialog shows the rule |
 | `4403` | the page comes from another site (its `Origin` is neither Maxitor's host nor listed in `MAXITOR_ROOM_ORIGINS`) | *This page cannot join the room.* |
 | `4503` | the process already holds 100 rooms | *Too many rooms are open on this server; try again later.* |
-| `4413`, `4429`, `4008` | a message over 4 KB, over 40 messages a second, or a tab too slow to keep up | *The connection was closed: …*, and the page connects again |
+| `4413`, `4429`, `4008` | a message over 4 KB, over 80 messages a second, or a tab too slow to keep up | *The connection was closed: …*, and the page connects again |
 
 A lost connection is not leaving: the row says *Reconnecting…*, the page connects again after 1, 2, 4, 8 and then every 15 seconds, and a return within two minutes keeps your colour and is announced to nobody. After every draw a tab tells the room what it drew; a tab left open over a deploy reloads itself (at most once in five minutes, keeping zoom and centre), and a page whose layout differs from the room's turns pointers off there with *Pointers are off on this page: your diagram is laid out differently from the room's.*
 
-**Rooms are AOA too.** Every room operation — joining, leaving, a setting, a follow, a lost tab — is an AOA action run once per WebSocket message by `FastApiAdapter.websocket(...)`, over a `RoomRegistry` resource; the log names rooms and participants by id, never by name. Pointers are the exception: the adapter relays them as they come, never runs an action for them and never logs them. [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) and its [notebook](../../examples/step_26_maxitor/08_rooms.ipynb) open a room, share a setting, relay a pointer, refuse a circle and a full room, with the output they print.
+**Rooms are AOA too.** Every room operation — joining, leaving, a setting, a follow, a lost tab — is an AOA action run once per WebSocket message by `FastApiAdapter.websocket(...)`, over a `RoomRegistry` resource; the log names rooms and participants by id, never by name. Pointers are the exception: the adapter relays them as they come, never runs an action for them and never logs them. [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) and its [notebook](../../examples/step_26_maxitor/08_rooms.ipynb) open a room, share a setting, seed the room with the opener's filters, relay a pointer and bring it to a newcomer an hour later, send the followed person's hover to their follower only, refuse a circle and a full room, with the output they print.
 
 ## Graphs that follow their services
 
@@ -383,7 +387,7 @@ A changed service is rebuilt in the background, and the new graph replaces the o
 
 Open pages follow. A tab outside a room asks `GET /api/v1/graph-fingerprint` every 30 seconds while it is visible; a tab in a room is told by the room. Either way the page reads the left panel and its diagram again in place — page, filters, layout mode, zoom and centre stay — a filter that names something no longer in the model stops applying, and *The model was updated.* shows for a few seconds. **Reload** in the left panel still rebuilds at once; inside a room it rebuilds for everyone, and nobody leaves.
 
-Maxitor's own answers are conditional too: every successful `GET` of a `FastApiAdapter` app carries an `ETag` of its body, and a request that sends it back gets `304` with no body. [09_fresh_graphs.py](../../examples/step_26_maxitor/09_fresh_graphs.py) and its [notebook](../../examples/step_26_maxitor/09_fresh_graphs.ipynb) show the `ETag` and `304`, an unchanged service, a changed one rebuilt and a service that is down.
+Maxitor's own answers are conditional too: every successful `GET` of a `FastApiAdapter` app carries an `ETag` of its body, and a request that sends it back gets `304` with no body. Maxitor also serves its own model, as any AOA service does: `GET /examples/model/graph-json` — the path the demo uses — is an AOA action, so typing Maxitor's own address into the service field opens Maxitor's own diagram, its rooms and its diagram reads among its actions. [09_fresh_graphs.py](../../examples/step_26_maxitor/09_fresh_graphs.py) and its [notebook](../../examples/step_26_maxitor/09_fresh_graphs.ipynb) show the `ETag` and `304`, an unchanged service, a changed one rebuilt, a service that is down, and Maxitor's own graph.
 
 ## How to run it
 
@@ -487,11 +491,25 @@ The kind distinction does not change what is drawn on its own: associative entit
 
 ## Read and filter the ERD
 
-**The filter panel.** The ERD has one panel at its top left with two sections, **Domains** and **Kinds**. They fold like an accordion: one is open at a time, Domains when the diagram opens. A row is a coloured disk with a name; clicking it hides or shows those tables, and a switched-off row is dimmed. Kinds lists the answer of `list-entity-kinds` and appears only when the graph has more than one kind; its disks are grey with the kind's icon, because colour on this diagram means the domain. The panel is 148 px wide and never widens: a name that does not fit ends with an ellipsis and shows in full on hover. On a narrow screen the panel starts as a **Filter** pill.
+**The filter panel.** The ERD has one panel at its top left with two sections, **Domains** and **Kinds**. They fold like an accordion: one is open at a time, Domains when the diagram opens. A row is a coloured disk with a name; clicking it hides or shows those tables, and a switched-off row is dimmed. Kinds lists the kinds of the tables this diagram shows before kinds are filtered — a kind with no table here is not offered — and appears only when there are at least two; its disks are grey with the kind's icon, because colour on this diagram means the domain. The panel is 148 px wide and never widens: a name that does not fit ends with an ellipsis and shows in full on hover. On a narrow screen the panel starts as a **Filter** pill.
 
 **The table.** A table's header shows its kind's white icon beside its name, in the domain colour: a small table for Core, a chain link for Association, a branch off its owner for Detail, layers for Specialization, a list for Enumeration, a target for State, a question mark for a row that states no kind, and the word's first two letters for a kind Maxitor does not know. The header is 30 units high, flush with the frame and its rounded top corners, and icon and name sit at its left. A table is at least as wide as a short card, so a two-field table is not a stub. Every second row is tinted faintly with the domain colour; `PK` is bold rust-red and `FK` bold slate, in a column of their own before the field name; the type is smaller and grey, at the right edge of the row. A relation field's type is the name of the table it points to — the old `FK -> ` prefix and the `→` after a dictionary type are gone, because the line already says it.
 
-**The lines.** A line is drawn whenever both of its tables are on screen, whatever brought each there: the domain itself, a 1-hop neighbour, or another domain shown in the same view. A relation field and its declared inverse are one association, so they are one line, not two. Each end shows its cardinality the ERD way — a bar for one, a crow's foot for many — and the name of the field on that side, which is that end's role. A relation without an inverse is a line with one role. A specialization head has a line to the dictionary its axis is classified by, and an extension keeps its generalization line to its head, dashed and with a filled arrowhead. The specialization container is a little darker than the canvas, with a border 1 px thicker, so it reads as a frame.
+A type is one clean name, as you would write it: `str | None`, not `UnionType[str, NoneType]`; a relation by its target, `X[]` for many; a collection `X[]`; literal values as values. The full annotation shows in the row's tooltip. The name comes from `aoa-action-machine`, which writes it into `graph-json` as `field_type` and keeps the annotation beside it as `field_annotation`; a service on an older version is cleaned by the same rule in the browser. [10_field_types.py](../../examples/step_26_maxitor/10_field_types.py) ([notebook](../../examples/step_26_maxitor/10_field_types.ipynb)) shows the rule and two rows as the API sends them:
+
+```text
+   str | None                                  -> str | None
+   AssociationOne[Currency] | None             -> Currency | None
+   AggregateMany[Currency]                     -> Currency[]
+   typing.Literal['open', 'closed']            -> "open" | "closed"
+   ArbitrationBriefStubCoreEntity.currency_iso
+      type:       CurrencyEnumEntity
+      annotation: AssociationOne[CurrencyEnumEntity]
+```
+
+A table always lists every field it declares. **1-hop** decides which extra tables come onto the diagram — the ones another domain owns but a shown table points at — never which fields a table lists: with 1-hop off, `UserEvent` still lists `player`, only the line to `Player` waits until `Player` is on screen. The tables of one specialization block all take the width of the widest of them.
+
+**The lines.** A line is drawn whenever both of its tables are on screen, whatever brought each there: the domain itself, a 1-hop neighbour, or another domain shown in the same view. A relation field and its declared inverse are one association, so they are one line, not two. Each end shows its cardinality the ERD way: two bars for exactly one, a bar and a circle for zero or one — a relation that may hold nothing, because its annotation admits `None` or it defaults to `None` — and a crow's foot with a circle for zero or many. The end nearest a table stands a few units off its outline, so its bar never merges with it. The name of the field on each side is that end's role; it shows only while the line is hovered, on a white plate beside the line, clear of every table. A relation without an inverse is a line with one role. A specialization head has a line to the dictionary its axis is classified by, and each extension keeps a dashed line to its head. That line joins two declared fields — the extension's reverse field, which carries `FK`, and the head's axis field — so it ends like any other line: exactly one at the head, zero or one at the extension. ERD notation has no arrows, and neither does the diagram. The specialization container is a little darker than the canvas, with a border 1 px thicker, so it reads as a frame.
 
 [The lines example](../../examples/step_26_maxitor/07_erd_lines.py) ([notebook](../../examples/step_26_maxitor/07_erd_lines.ipynb)) reads these lines from `GET /api/v1/list-entities`:
 
@@ -502,16 +520,22 @@ The kind distinction does not change what is drawn on its own: associative entit
    Offer [zero_many] —— player [one] Player
 3. The specialization head and its axis dictionary
    UserEvent [zero_many] —— kind [one] EventKind
-4. A generalization
-   LoginSpec —generalization→ UserEvent
+4. A generalization, read like any other line
+   generalization: LoginSpec [zero_one] kind —— user_event [one] UserEvent
 5. Players + Showcases: the cross-slice line
    in the Players slice: False, in the Showcases slice: False, in the request list: True
    Offer [zero_many] —— industry [one] Industry
+6. Events with 1-hop off: UserEvent still lists every field
+   tables: ['EventKind', 'LoginSpec', 'ProfileSpec', 'UserEvent']
+   UserEvent fields: ['kind', 'player', 'referrer', 'showcase']
+   a line to Player: False
+7. A relation that may hold nothing
+   UserEvent [zero_many] —— referrer [zero_one] Player
 ```
 
 Case 5 is why the response has a top-level `relations` list beside its per-domain slices: when two domains are shown together, a line whose tables come from two different slices belongs to neither slice, but it belongs on the screen. A row of that list names the field on each side as `source_field` and `target_field`.
 
-**Following a line.** Hovering a line thickens and darkens it, raises it above the others, and marks in bold the field it starts from and the field it ends at, on both tables. Hovering a field marks every line that field belongs to, and the fields at their other ends. Nothing changes colour or background: the marking is in the weight of the text.
+**Hover.** Hovering a table dims every other table and every line that does not touch it. Hovering a line thickens and darkens it, raises it above the others, shows its role names, marks in bold the field it starts from and the field it ends at, and keeps bright only the two tables it joins. Hovering a key field — `PK` or `FK` — makes that field's lines bold, keeps bright the tables they join, dims every other table, leaves the hovered table's other lines as they are and dims the lines that do not touch it. A specialization head and its extensions answer the same way: hovering the head's axis field lights the head and every extension, an extension's reverse field lights that extension and its head. Nothing changes colour or background: the marking is in the weight of the text and the dimming of the rest.
 
 **Copying a name.** Clicking a table's name or a field's name copies it, and a note such as `Copied player_id` appears at the bottom for a moment. Dragging the canvas never copies: a press that moves more than a few pixels is a pan.
 
