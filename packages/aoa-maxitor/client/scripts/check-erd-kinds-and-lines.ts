@@ -12,7 +12,7 @@
  */
 
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
-import { buildDotSource, ERD_CARD_RADIUS, ERD_CARD_STROKE, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
+import { buildDotSource, buildErdDot, ERD_CARD_RADIUS, ERD_CARD_STROKE, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
 import { drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
@@ -62,7 +62,7 @@ function textXOf(markup: string, id: string): number {
 
 /** The drawing the page shows for a payload: Graphviz, then the production passes. */
 function drawn(data: ErdGraphPayload): string {
-  return placeKindIcons(drawErdCards(containNodeFills(gv.layout(buildDotSource(data, "gv-dot-lr"), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE), data.entities, kindGlyphSvg);
+  return placeKindIcons(drawErdCards(containNodeFills(gv.layout(buildErdDot(data, "gv-dot-lr", (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE), data.entities, kindGlyphSvg);
 }
 
 const field = (name: string, type: string, extra: Record<string, unknown> = {}) => ({ name, type, primary_key: false, foreign_key: false, ...extra });
@@ -80,7 +80,8 @@ const fixture: ErdGraphPayload = {
     { id: "shop.LegacyEntity", label: "LegacyEntity", color: "#3b82f6", fields: [{ ...field("id", "str"), primary_key: true }] },
     // A specialization container with two members.
     { id: "shop.CardSpecEntity", label: "CardSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }] },
-    { id: "shop.BankSpecEntity", label: "BankSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }] },
+    // One member wider than the minimum, so the block's shared width (spec 029) is its width, not the floor.
+    { id: "shop.BankSpecEntity", label: "BankSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }, field("correspondent_routing_reference", "CorrespondentRoutingReferenceCoreEntity")] },
   ],
   relations: [{ source: "shop.PlayerCoreEntity", target: "shop.GenderEnumEntity", label: "gender", relationship_kind: "reference" }],
   groups: [{ group_id: "shop.PaymentCoreEntity:kind", label: "kind (by PaymentKindEnumEntity)", members: ["shop.CardSpecEntity", "shop.BankSpecEntity"] }],
@@ -141,6 +142,19 @@ check("type cells are aligned to the right edge", rightX.length > 0 && rightX.ev
 
 // ── Specialization container ─────────────────────────────────────────────────
 const cluster = svg.slice(svg.indexOf('<g id="clust1"'), svg.indexOf("</g>", svg.indexOf('<g id="clust1"')));
+// Spec 029: every table of a block is as wide as its widest table.
+const cardWidth = (id: string) => {
+  const node = svg.slice(svg.indexOf(`<title>${id}</title>`));
+  return Number(/<rect fill="none" stroke="[^"]+" stroke-width="[\d.]+" x="[-\d.]+" y="[-\d.]+" width="([\d.]+)"/.exec(node)?.[1]);
+};
+const blockWidths = ["shop.CardSpecEntity", "shop.BankSpecEntity"].map(cardWidth);
+const naturalBank = natural.get("shop.BankSpecEntity")!.width;
+check(
+  "029 every table of a specialization block is as wide as the widest",
+  blockWidths[0] === blockWidths[1] && Math.abs(blockWidths[1]! - naturalBank) < 1.5 && naturalBank > ERD_TABLE_MIN_WIDTH_PT + 10,
+  `Card ${blockWidths[0]}, Bank ${blockWidths[1]}, Bank alone ${naturalBank.toFixed(1)}`,
+);
+check("029 a table outside a block keeps its own width", cardWidth("shop.OrderAggregateEntity") < blockWidths[0]!, `${cardWidth("shop.OrderAggregateEntity")}`);
 check("the container is see-through and half a tone darker", /fill="#0f172a" fill-opacity="0\.05\d*"/.test(cluster), cluster.slice(0, 160));
 check("the container outline is one point wider", cluster.includes('stroke-width="2"'));
 

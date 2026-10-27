@@ -19,6 +19,7 @@ import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
 import {
   buildDotSource,
+  buildErdDot,
   ERD_CARD_RADIUS,
   ERD_CARD_STROKE,
   erdGraphvizEngine,
@@ -285,7 +286,8 @@ export function ErdGraphvizCanvas({
     loadGraphvizWasmFor(engine)
       .then((gv) => {
         if (cancelled) return;
-        const svg = gv.layout(dot, "svg", engine);
+        // Every table of a specialization block as wide as its widest table (spec 029): measured first.
+        const svg = gv.layout(buildErdDot(drawnData, layout, (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", engine);
         if (cancelled) return;
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
