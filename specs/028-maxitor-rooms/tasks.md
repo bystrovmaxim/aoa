@@ -265,7 +265,7 @@
 
 ## Phase 17: Closing check run (commit 17)
 
-- [ ] T101 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark until it is green, leaving only the two accepted remarks (constitution, "Final step"); review what `ruff --fix` changed. Record the step count and time here.
+- [X] T101 Run `bash scripts/run_checks_with_log.sh` from the repository root and fix every remark until it is green, leaving only the two accepted remarks (constitution, "Final step"); review what `ruff --fix` changed. Record the step count and time here. Done. First run: 37 steps green in 198 s, `ruff --fix` changed nothing — but the client's unit-test step printed two remarks outside the accepted two, both brought by this feature's client work: Vite's "Sourcemap for …/@antv/layout/… points to missing source files" (`@antv/layout` 2.0.0, added in commit 2, ships maps naming sources it does not ship) and Node 25's "`--localstorage-file` was provided without a valid path" (its own global `localStorage` shadowing jsdom's). Fixed in `client/vite.config.ts`: a small plugin serves that package's modules without the dangling map reference, and the tests run with `--no-experimental-webstorage`. Second run: 37 steps, 0 failures, 186 s; only the two accepted remarks remain (the Vite chunk-size advisory, LangGraph's pending deprecation). Tests: action machine 3043, Maxitor 302 (+1 skipped: it needs a running AOA service, as before), adapter 180, MCP 130, LangGraph 87, OCEL 79, OTel 63, demo 26, packaging 10; client 150.
 - [ ] T102 Prepare commit 17 with whatever the run changed: `chore: take the check run to zero (#271)`.
 
 ---
