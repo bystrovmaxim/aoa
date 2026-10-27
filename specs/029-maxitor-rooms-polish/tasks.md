@@ -214,8 +214,8 @@
 
 ## Phase 16: The demo on the fresh adapter (commit 16) · US4
 
-- [ ] T079 [US4] In `packages/aoa-demo/pyproject.toml` require `aoa-fastapi-adapter>=1.3.0` and raise the version; `uv lock`; a test in `packages/aoa-demo/tests/` that `graph-json` answers with an `ETag` and `304` (FR-061, FR-062; R16).
-- [ ] T080 [US4] Acceptance: `curl` the local stand's demo (`http://127.0.0.1:8100/examples/model/graph-json`) twice → `304`; prepare commit 16: `chore(demo): serve graph-json with an ETag through the fresh adapter (#282)`. Tick issue phase 15. Publishing `aoa-demo` and redeploying `demo.aoa.run` wait for the maintainer's command (T086).
+- [X] T079 [US4] In `packages/aoa-demo/pyproject.toml` require `aoa-fastapi-adapter>=1.3.0` and raise the version; `uv lock`; a test in `packages/aoa-demo/tests/` that `graph-json` answers with an `ETag` and `304` (FR-061, FR-062; R16). Done: `aoa-fastapi-adapter>=1.3.0` in the demo's `fastapi` extra (the lock is unchanged — workspace packages carry no specifier there); the version rises with the other packages in T084, so the release raises all three at once. Test `tests/fastapi_mcp_services/test_graph_json_freshness.py`; break: the adapter without `ConditionalGetMiddleware` → it fails; restored, aoa-demo 80.
+- [X] T080 [US4] Acceptance: `curl` the local stand's demo (`http://127.0.0.1:8100/examples/model/graph-json`) twice → `304`; prepare commit 16: `chore(demo): serve graph-json with an ETag through the fresh adapter (#282)`. Tick issue phase 15. Publishing `aoa-demo` and redeploying `demo.aoa.run` wait for the maintainer's command (T086). Done: the local stand's demo answers with an `ETag` and `304`; committed on the standing instruction. Publishing `aoa-demo` and redeploying `demo.aoa.run` wait for the maintainer (T085, T086).
 
 ---
 
