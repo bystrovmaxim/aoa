@@ -14,7 +14,7 @@
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
 import { buildDotSource, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
-import { placeKindIcons } from "../src/lib/erdPostPass.ts";
+import { HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
 
 let failures = 0;
@@ -116,13 +116,11 @@ fixture.entities.forEach((entity, table) => {
   const iconX = Number(/class="erd-kind-icon"[^>]*translate\(([-\d.]+),/.exec(slot)?.[1]);
   const nameX = textXOf(svg, `hn${table}`);
   check(`kind icon of ${entity.label} sits right before the name`, Math.abs(nameX - (iconX + 13) - 4) < 0.6, `icon ${iconX}, name ${nameX}`);
-  // Icon, gap and name, as one group, sit in the middle of the header.
+  // Icon, gap and name sit at the left of the header, after the inset (spec 028, FR-110).
   const cell = boxOf(raw, `hn${table}`);
   const nameWidth = cell.left + cell.right - 2 * textXOf(raw, `hn${table}`);
   const header = boxOf(svg, `hd${table}`);
-  const groupCentre = (iconX + nameX + nameWidth) / 2;
-  const headerCentre = (header.left + header.right) / 2;
-  check(`icon and name of ${entity.label} are centred together in the header`, Math.abs(groupCentre - headerCentre) < 0.6, `group ${groupCentre.toFixed(1)}, header ${headerCentre.toFixed(1)}`);
+  check(`icon and name of ${entity.label} start at the left of the header`, Math.abs(iconX - (header.left + HEADER_INSET_PT)) < 0.6, `icon ${iconX.toFixed(1)}, header ${header.left}`);
   check(`icon and name of ${entity.label} stay inside the header`, iconX > header.left && nameX + nameWidth < header.right, `${iconX.toFixed(1)}–${(nameX + nameWidth).toFixed(1)} in ${header.left}–${header.right}`);
 });
 check("a kind Maxitor does not know is drawn as a monogram", /<g id="a_ks2">[\s\S]*?>ag<\/text>/.test(svg));

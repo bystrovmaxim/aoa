@@ -164,6 +164,7 @@ run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-card-cont
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-dictionary-values.ts)" "Maxitor client: dictionary value properties"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-group-label.ts)" "Maxitor client: group label composed once"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-kinds-and-lines.ts)" "Maxitor client: ERD kinds, tables and lines"
+run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-table-style.ts)" "Maxitor client: ERD table style"
 
 # The auto-fix step takes the same scope as the lint target below (`task lint`), so that the two
 # agree on what this repository lints. `examples/` and its notebooks are tutorial material and sit
