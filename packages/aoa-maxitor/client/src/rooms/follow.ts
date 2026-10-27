@@ -7,6 +7,9 @@
  * tab follows while the links say so. It stops on your own pan (a drag; zooming does not stop it),
  * your own navigation, **Stop**, Esc, or their leaving, which the server turns into new links.
  *
+ * The follower's screen glides: each new centre is reached over the time since the previous one, from
+ * wherever the screen is now, and the glide ends exactly on it (spec 029, FR-014).
+ *
  * While following, the follower also sees what the followed person sees — their hover, tooltip,
  * selection and open panels (spec 029, FR-010) — through ``focusStore``; every tab in a room sends what
  * it shows as ``focus``, at most ten times a second, and the server passes it to its followers only.
@@ -22,6 +25,55 @@ import { throttle } from "@/rooms/throttle";
 
 /** Messages a second a focus may send (spec 029, contracts/room-protocol.md). */
 export const FOCUS_RATE = 10;
+
+/** The shortest and the longest glide to a new centre, in milliseconds. */
+export const GLIDE_MIN_MS = 30;
+export const GLIDE_MAX_MS = 200;
+
+/**
+ * The follower's centre between the screens it is told: a glide from where it is to each new centre,
+ * as long as the time since the previous one (``GLIDE_MIN_MS`` … ``GLIDE_MAX_MS``), ending exactly on it.
+ */
+export type Glide = {
+  /** A new centre arrived at ``now``. */
+  push(target: Point, now: number): void;
+  /** Where the screen is at ``now``, and whether it has arrived. */
+  at(now: number): { point: Point; arrived: boolean };
+  /** Stand at ``point`` at once (a new picture, or the first centre). */
+  jump(point: Point, now: number): void;
+};
+
+export function createGlide(): Glide {
+  let from: Point | null = null;
+  let to: Point | null = null;
+  let start = 0;
+  let duration = GLIDE_MIN_MS;
+  let lastPush = -Infinity;
+
+  const at = (now: number) => {
+    if (!to) return { point: { x: 0, y: 0 }, arrived: true };
+    if (!from || now >= start + duration) return { point: to, arrived: true };
+    const k = Math.max(0, (now - start) / duration);
+    return { point: { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k }, arrived: false };
+  };
+
+  return {
+    push(target, now) {
+      from = to ? at(now).point : target;
+      to = target;
+      start = now;
+      duration = Math.min(GLIDE_MAX_MS, Math.max(GLIDE_MIN_MS, now - lastPush));
+      lastPush = now;
+    },
+    at,
+    jump(point, now) {
+      from = point;
+      to = point;
+      start = now;
+      lastPush = now;
+    },
+  };
+}
 
 /** The person this tab follows, or ``null``. */
 export function followedBy(room: RoomState | null): Participant | null {
@@ -107,15 +159,43 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetId, targetPage, page, navigate]);
 
-  // Their screen's centre, on every new surface and every screen they report.
+  // Their screen's centre: at once on every new surface, then gliding to every screen they report.
   useEffect(() => {
     if (!targetId || !surface || page !== targetPage) return undefined;
-    const centre = () => {
-      const point = followCentre(viewportOfParticipant(targetId));
-      if (point) surface.centreOn(point);
+    const glide = createGlide();
+    let frame: number | null = null;
+    let last: Point | null = null;
+    const step = () => {
+      frame = null;
+      const { point, arrived } = glide.at(performance.now());
+      surface.centreOn(point);
+      if (!arrived) frame = requestAnimationFrame(step);
     };
-    centre();
-    return subscribePointers(centre);
+    const onScreen = () => {
+      const point = followCentre(viewportOfParticipant(targetId));
+      if (!point || (last && point.x === last.x && point.y === last.y)) return;
+      if (!last) {
+        // The first centre they report: nothing to glide from yet.
+        last = point;
+        glide.jump(point, performance.now());
+        surface.centreOn(point);
+        return;
+      }
+      last = point;
+      glide.push(point, performance.now());
+      if (frame === null) frame = requestAnimationFrame(step);
+    };
+    const first = followCentre(viewportOfParticipant(targetId));
+    if (first) {
+      last = first;
+      glide.jump(first, performance.now());
+      surface.centreOn(first);
+    }
+    const unsubscribe = subscribePointers(onScreen);
+    return () => {
+      unsubscribe();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, [targetId, targetPage, surface, page]);
 
   // What the followed person sees shows here; the viewers then ignore this tab's own mouse.

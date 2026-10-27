@@ -2,14 +2,15 @@
 /**
  * Send at most once per interval, the newest value, and only when it changed.
  *
- * A pointer may go out 20 times a second and a screen 10 times (FR-043); between two sends only the
- * newest value matters, so it is sent when the interval ends rather than queued.
+ * A pointer may go out 20 times a second and a screen 20 times (spec 028 FR-043, spec 029 R3: a
+ * follower glides between screens, and twenty a second keeps it close behind); between two sends only
+ * the newest value matters, so it is sent when the interval ends rather than queued.
  */
 
 /** Messages a second a pointer may send. */
 export const POINTER_RATE = 20;
 /** Messages a second a screen position may send. */
-export const VIEWPORT_RATE = 10;
+export const VIEWPORT_RATE = 20;
 
 export type Throttled<T> = {
   /** Offer a value; it goes out now, or as the newest one when the interval ends. */
