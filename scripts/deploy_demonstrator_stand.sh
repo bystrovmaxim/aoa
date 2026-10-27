@@ -4,7 +4,9 @@
 # The stand is accepted by opening two URLs and by running one command — this
 # script is that command. In order: DNS and TLS-terminator gates, build both
 # images, start both containers, poll their health, verify both domains, and
-# roll back to the previously running images on any failure.
+# roll back to the previously running images on any failure. On nginx, every run
+# also makes sure Maxitor's vhost passes room WebSockets (spec 028), including a
+# vhost an earlier run wrote.
 #
 # Host facts (the DNS zone, the existing TLS terminator, the real values of
 # deploy/stand/.env) never enter this repository: the gates assert the facts,
@@ -89,14 +91,101 @@ detect_terminator() {
     return 1
 }
 
-reload_nginx() {
+test_nginx() {
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx nginx-proxy; then
-        docker exec nginx-proxy nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
+        docker exec nginx-proxy nginx -t
+    else
+        nginx -t
+    fi
+}
+
+reload_nginx() {
+    test_nginx || fail "vhost step: nginx -t rejected the new virtual hosts."
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx nginx-proxy; then
         docker exec nginx-proxy nginx -s reload || fail "vhost step: nginx reload failed."
     else
-        nginx -t || fail "vhost step: nginx -t rejected the new virtual hosts."
         systemctl reload nginx || fail "vhost step: nginx reload failed."
     fi
+}
+
+# Maxitor's rooms run over a WebSocket (spec 028): its :443 block needs a
+# `location /api/v1/rooms/` that passes the upgrade through, keeps the page's
+# Host (a foreign Host is refused with 4403) and keeps a quiet connection open.
+# Inserted before the block's `location /`, into a block written by this script
+# or by an earlier run alike; a block that already has it is left as it is.
+# Succeeds only when it changed the file, so the caller knows to reload.
+add_rooms_location() {
+    local front_conf="$1" domain="$2" upstream="$3" internal_port="$4"
+    local edited original status=0
+    edited="$(mktemp)"
+    original="$(mktemp)"
+    awk -v domain="$domain" -v upstream="$upstream" -v port="$internal_port" '
+        # Each top-level server block is buffered and printed when it closes;
+        # everything outside server blocks is printed as it comes.
+        function rooms_location() {
+            print "    location /api/v1/rooms/ {"
+            print "        proxy_pass http://" upstream ":" port ";"
+            print "        proxy_http_version 1.1;"
+            print "        proxy_set_header Upgrade $http_upgrade;"
+            print "        proxy_set_header Connection \"upgrade\";"
+            print "        proxy_set_header Host $host;"
+            print "        proxy_set_header X-Real-IP $remote_addr;"
+            print "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
+            print "        proxy_set_header X-Forwarded-Proto $scheme;"
+            print "        proxy_read_timeout 1h;"
+            print "    }"
+            print ""
+        }
+        function flush(   i, ssl, named, present, done) {
+            for (i = 1; i <= n; i++) {
+                if (index(buf[i], "listen 443")) ssl = 1
+                if (index(buf[i], "server_name " domain ";")) named = 1
+                if (index(buf[i], "location /api/v1/rooms/")) present = 1
+            }
+            if (ssl && named) state = present ? 3 : 0
+            for (i = 1; i <= n; i++) {
+                if (ssl && named && !present && !done && (buf[i] ~ /^[[:space:]]*location \/ *\{/ || i == n)) {
+                    rooms_location()
+                    done = 1
+                }
+                print buf[i]
+            }
+            n = 0
+        }
+        BEGIN { state = 4 }
+        depth == 0 && $0 !~ /^[[:space:]]*server[[:space:]]*\{/ { print; next }
+        {
+            buf[++n] = $0
+            depth += gsub(/\{/, "{") - gsub(/\}/, "}")
+            if (depth == 0) flush()
+        }
+        END { if (n) flush(); exit state }
+    ' "$front_conf" > "$edited" || status=$?
+    case "$status" in
+        0)
+            cp "$front_conf" "$original"
+            # Written in place, not moved: nginx-proxy reads this file through a
+            # single-file bind mount, which a new inode would leave behind.
+            cat "$edited" > "$front_conf"
+            if ! test_nginx; then
+                cat "$original" > "$front_conf"
+                rm -f "$edited" "$original"
+                fail "vhost step: nginx -t rejected the rooms location for ${domain}; the previous config is restored."
+            fi
+            say "vhost step: ${domain} passes WebSockets to /api/v1/rooms/"
+            rm -f "$edited" "$original"
+            return 0
+            ;;
+        3)
+            say "vhost step: ${domain} already passes WebSockets to /api/v1/rooms/"
+            rm -f "$edited" "$original"
+            return 1
+            ;;
+        *)
+            rm -f "$edited" "$original"
+            fail "vhost step: no :443 block for ${domain} in ${front_conf} to add the rooms location to."
+            ;;
+    esac
 }
 
 install_vhosts() {
@@ -196,6 +285,7 @@ server {
 EOF
                 need_reload=1
             done
+            add_rooms_location "$front_conf" "$MAXITOR_DOMAIN" dev_aoa_maxitor 8101 && need_reload=1
             [[ $need_reload -eq 1 ]] && reload_nginx
             ;;
         caddy)
