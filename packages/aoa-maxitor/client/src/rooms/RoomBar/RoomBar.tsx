@@ -120,7 +120,7 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo, on
           aria-label="Room"
           aria-haspopup="menu"
           onClick={(event) => setMenuAnchor(event.currentTarget)}
-          sx={{ width: 44, height: 44, color: "rgb(100, 116, 139)", bgcolor: menuAnchor ? "rgba(15, 23, 42, 0.08)" : undefined }}
+          sx={{ width: 32, height: 32, borderRadius: "8px", color: "rgb(100, 116, 139)", bgcolor: menuAnchor ? "rgba(15, 23, 42, 0.08)" : undefined }}
         >
           <MoreVertIcon sx={{ fontSize: 18 }} />
         </IconButton>

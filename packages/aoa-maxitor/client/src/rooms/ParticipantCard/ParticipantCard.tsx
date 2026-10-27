@@ -86,7 +86,7 @@ export function ParticipantCard({
           sx={{ ...CARD_PAPER_SX, width: 260, p: "12px", mt: "6px" }}
         >
           <Box sx={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <Avatar participant={participant} size={30} surface="#fff" />
+            <Avatar participant={participant} size={24} surface="#fff" />
             <Box sx={{ minWidth: 0 }}>
               <Box sx={{ fontWeight: 600, fontSize: 13, overflowWrap: "anywhere" }}>
                 {participant.name}
