@@ -122,12 +122,12 @@ Hello, World!
 | Package | Version | Contents |
 | ----------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
 | [aoa-action-machine](packages/aoa-action-machine/README.md) | 1.0.1a6 | Core engine: Actions, pipeline, sagas, cache, plugins, entities, testing |
-| [aoa-fastapi-adapter](packages/aoa-fastapi-adapter/README.md) | 1.2.1 | HTTP/REST transport for the machine |
+| [aoa-fastapi-adapter](packages/aoa-fastapi-adapter/README.md) | 1.3.0 | HTTP/REST transport for the machine |
 | [aoa-mcp-adapter](packages/aoa-mcp-adapter/README.md) | 1.2.1 | Tools for AI agents |
 | [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
 | [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
-| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.2.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
+| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.3.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
 
 ---
