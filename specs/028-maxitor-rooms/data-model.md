@@ -57,18 +57,17 @@ One page's shared settings in one room. Values are "set to", never toggles (FR-0
 | Page | Setting | Value |
 |---|---|---|
 | ERD (`domain-erd`) | `layout` | one of `gv-dot-lr`, `gv-dot-tb`, `gv-neato`, `gv-fdp`, `gv-circo` |
-| | `domains` | the set of enabled domain qualnames |
-| | `entities` | the set of enabled entity qualifiers |
+| | `domains` | the set of enabled domain qualnames; unset means all |
+| | `disabled_entities` | single-domain ERD: the entity qualifiers switched off, so a table one-hop brings in later starts on (commit 10: was `entities`, the enabled set, which could not tell a new table from one switched off) |
 | | `disabled_kinds` | the set of switched-off entity kinds |
 | | `one_hop` | bool |
 | Use case (`use-case`) | `layout` | one of `dot_lr`, `dot_tb`, `neato`, `fdp` |
-| | `rankdir` | `LR` or `TB` (`DomainUseCaseRankdir` in `lib/buildDomainUseCaseDotSource.ts`) |
-| | `domains` | the set of enabled domains |
+| | `domains` | the set of enabled domains; unset means all (the direction is part of `layout`: `dot_lr` / `dot_tb`; commit 10 dropped the separate `rankdir`) |
 | | `boundary` | bool |
 | Lifecycle (`lifecycle-fsm`) | `rankdir` | `LR` or `TB` |
 | Full graph | — | none today; a filter added later joins by the same rule (spec, assumptions) |
 
-The **settings digest** is SHA-256 over the canonical JSON of a page's settings; with the page key it identifies one picture, so layout hashes are compared only between tabs that should draw the same thing.
+The **settings digest** identifies one picture with the page key, so layout hashes are compared only between tabs that should draw the same thing. Commit 11 made it SHA-256 of the engine and the DOT text a Graphviz viewer hands to Graphviz (`data-layout-input`): that text is exactly what the settings and the graph produce, so it also covers a viewer's personal choices, and two tabs with equal input must lay out alike. The full graph has none (empty).
 
 ## Pointer and Viewport
 

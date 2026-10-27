@@ -7,6 +7,7 @@
  * settings and layout mode, only taking ``room`` out of the address (spec 028, FR-019 … FR-028).
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { keepRoomSettings } from "@/lib/pageSettings";
 import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
@@ -172,9 +173,13 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     dispatch({ kind: "event", event });
   }, []);
 
+  const roomRef = useRef(room);
+  roomRef.current = room;
+
   const onState = useCallback((state: ConnectionState) => {
     setConnection(state);
     if (state.kind !== "closed") return;
+    if (roomRef.current) keepRoomSettings(roomRef.current.settings);
     socket.current = null;
     dispatch({ kind: "reset" });
     setInviteOpen(false);
@@ -248,6 +253,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
 
   /** **Leave room**: close the connection, keep the page, take ``room`` out of the address. */
   const leave = useCallback(() => {
+    if (roomRef.current) keepRoomSettings(roomRef.current.settings);
     send({ type: "leave" });
     socket.current?.close();
     socket.current = null;
@@ -260,6 +266,19 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     clearPointers();
     dispatch({ kind: "reset" });
   }, [send]);
+
+  /**
+   * Set a page setting for the room: sent as the new value, shown at once; the room's echo of every
+   * change, in the order the server took them, ends in the same last value for everyone (FR-031).
+   */
+  const setPageSetting = useCallback(
+    (settingPage: string, name: string, value: unknown) => {
+      const you = roomRef.current?.youId ?? "";
+      send({ type: "setting", page: settingPage, name, value });
+      dispatch({ kind: "event", event: { type: "setting", page: settingPage, name, value, by: you } });
+    },
+    [send],
+  );
 
   /** **Hide pointers** / **Show pointers**: other people's pointers on this tab, remembered in the browser. */
   const toggleHidePointers = useCallback(() => {
@@ -346,6 +365,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     closeInvite: () => setInviteOpen(false),
     openInvite: () => setInviteOpen(true),
     dismissBanner: () => setBanner(null),
+    setPageSetting,
     dismissPageNotice: () => setPageNotice(null),
   };
 }

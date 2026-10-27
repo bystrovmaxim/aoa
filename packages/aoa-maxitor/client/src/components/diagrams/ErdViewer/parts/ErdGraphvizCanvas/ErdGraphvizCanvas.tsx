@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -126,7 +127,6 @@ export type ErdGraphvizCanvasProps = {
   bundle: ErdDomainsBundle;
   /** Increments only when the async loader has accepted a new bundle. */
   bundleVersion: number;
-  diagramResetKey: string;
   includeOneHop: boolean;
   onIncludeOneHopChange: (next: boolean) => void;
 };
@@ -143,24 +143,16 @@ const LAYOUT_TOOLS: {
   { value: "gv-circo", title: "Circo (circular)", Glyph: LayoutGlyphCirco },
 ];
 
-const layoutByDiagramKey = new Map<string, ErdGraphvizLayout>();
-const enabledDomainsByDiagramKey = new Map<string, string[]>();
-/** Single-slice ERD: persisted ``domain_qualname`` toggles (1-hop neighbors). */
-const enabledEntityQualsByDiagramKey = new Map<string, string[]>();
-/** Entity kinds switched off, per diagram; a kind the graph gains later starts on. */
-const disabledKindsByDiagramKey = new Map<string, string[]>();
 
 
 export function ErdGraphvizCanvas({
   bundle,
   bundleVersion,
-  diagramResetKey,
   includeOneHop,
   onIncludeOneHopChange,
 }: ErdGraphvizCanvasProps) {
-  const [layout, setLayout] = useState<ErdGraphvizLayout>(
-    () => layoutByDiagramKey.get(diagramResetKey) ?? "gv-dot-lr",
-  );
+  // Page settings: the person's own outside a room, the room's inside one (spec 028, FR-030).
+  const [layout, setLayout] = usePageSetting<ErdGraphvizLayout>("layout", "gv-dot-lr");
   const [svgMarkup, setSvgMarkup] = useState("");
   /** Graphviz's output before the post-passes; its hash fixes every node's position (FR-005, FR-090). */
   const [rawSvg, setRawSvg] = useState("");
@@ -192,73 +184,26 @@ export function ErdGraphvizCanvas({
     return n;
   }, [enriched]);
 
-  const [enabledDomains, setEnabledDomains] = useState(() => {
+  /** The domains switched on; ``null`` until someone chooses, which means all of them. */
+  const [chosenDomains, setChosenDomains] = usePageSetting<string[] | null>("domains", null);
+  /** Single-domain ERD: tables switched off, so a table 1-hop brings in later starts on. */
+  const [disabledEntityList, setDisabledEntityList] = usePageSetting<string[]>("disabled_entities", []);
+  /** Entity kinds switched off; a kind the graph gains later starts on. */
+  const [disabledKindList, setDisabledKindList] = usePageSetting<string[]>("disabled_kinds", []);
+
+  // A chosen set that names none of this graph's domains (its model changed) falls back to all.
+  const enabledDomains = useMemo(() => {
     const keys = Object.keys(bundle.domains ?? {}).sort();
-    const saved = enabledDomainsByDiagramKey.get(diagramResetKey);
-    if (saved) {
-      const restored = new Set(keys.filter((k) => saved.includes(k)));
-      if (restored.size > 0) return restored;
-    }
-    return new Set(keys);
-  });
-
-  const [enabledEntityQualifiers, setEnabledEntityQualifiers] = useState<Set<string>>(() => new Set());
-  const [disabledKinds, setDisabledKinds] = useState<Set<string>>(
-    () => new Set(disabledKindsByDiagramKey.get(diagramResetKey) ?? []),
-  );
-
-  const prevDiagramKeyRef = useRef<string | null>(null);
+    if (chosenDomains === null) return new Set(keys);
+    const chosen = keys.filter((k) => chosenDomains.includes(k));
+    return new Set(chosen.length > 0 || chosenDomains.length === 0 ? chosen : keys);
+  }, [bundle, chosenDomains]);
+  const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup));
 
-  useEffect(() => {
-    layoutByDiagramKey.set(diagramResetKey, layout);
-  }, [diagramResetKey, layout]);
-
-  useEffect(() => {
-    enabledDomainsByDiagramKey.set(diagramResetKey, [...enabledDomains].sort());
-  }, [diagramResetKey, enabledDomains]);
-
-  useEffect(() => {
-    disabledKindsByDiagramKey.set(diagramResetKey, [...disabledKinds].sort());
-  }, [diagramResetKey, disabledKinds]);
-
-  // Another diagram brings its own remembered kinds (or all on).
-  const prevKindsDiagramKeyRef = useRef(diagramResetKey);
-  useLayoutEffect(() => {
-    if (prevKindsDiagramKeyRef.current === diagramResetKey) return;
-    prevKindsDiagramKeyRef.current = diagramResetKey;
-    setDisabledKinds(new Set(disabledKindsByDiagramKey.get(diagramResetKey) ?? []));
-  }, [diagramResetKey]);
-
-  useEffect(() => {
-    if (multiTab) return;
-    enabledEntityQualsByDiagramKey.set(diagramResetKey, [...enabledEntityQualifiers].sort());
-  }, [multiTab, diagramResetKey, enabledEntityQualifiers]);
-
-  useLayoutEffect(() => {
-    const keys = Object.keys(bundle.domains ?? {}).sort();
-    const all = new Set(keys);
-    const prevKey = prevDiagramKeyRef.current;
-    const sameDiagram = prevKey === diagramResetKey;
-    prevDiagramKeyRef.current = diagramResetKey;
-
-    if (prevKey === null) {
-      return;
-    }
-
-    if (!sameDiagram) {
-      setEnabledDomains(all);
-      return;
-    }
-
-    setEnabledDomains((prevEnabled) => {
-      const merged = new Set(keys.filter((k) => prevEnabled.has(k)));
-      return merged.size > 0 ? merged : all;
-    });
-  }, [bundle, diagramResetKey]);
 
   const mergedByTabs = useMemo(
     () =>
@@ -280,48 +225,10 @@ export function ErdGraphvizCanvas({
     [mergedByTabs.entities, fallbackQual],
   );
 
-  const entityQualListKey = entityQualList.join("\u001f");
-
-  // When entityQualList grows (1-hop ON) — add new quals as enabled.
-  // When it shrinks (1-hop OFF) — keep the Set untouched; missing quals just won't appear in legend.
-  // Reset only when the diagram itself changes (diagramResetKey).
-  const prevEntityQualListKeyRef = useRef<string>("");
-  const prevEntityDiagramKeyRef = useRef<string>("");
-  useLayoutEffect(() => {
-    if (multiTab) return;
-
-    const diagramChanged = prevEntityDiagramKeyRef.current !== diagramResetKey;
-    const listChanged = prevEntityQualListKeyRef.current !== entityQualListKey;
-    prevEntityDiagramKeyRef.current = diagramResetKey;
-    prevEntityQualListKeyRef.current = entityQualListKey;
-
-    if (!listChanged && !diagramChanged) return;
-
-    if (diagramChanged) {
-      // New diagram — restore saved or enable all
-      const saved = enabledEntityQualsByDiagramKey.get(diagramResetKey);
-      if (saved?.length) {
-        setEnabledEntityQualifiers(new Set(saved));
-      } else {
-        setEnabledEntityQualifiers(new Set(entityQualList));
-      }
-      return;
-    }
-
-    // List changed (1-hop toggle or data refresh) — add new quals as enabled, keep existing state
-    setEnabledEntityQualifiers((prev) => {
-      if (entityQualList.length === 0) return prev;
-      const next = new Set(prev);
-      let changed = false;
-      for (const q of entityQualList) {
-        if (!next.has(q)) {
-          next.add(q);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [multiTab, diagramResetKey, entityQualListKey]);
+  const enabledEntityQualifiers = useMemo(
+    () => new Set(entityQualList.filter((q) => !disabledEntityList.includes(q))),
+    [entityQualList, disabledEntityList],
+  );
 
   const mergedData = useMemo(() => {
     // A table is on screen only when its domain (or qualifier) and its kind are both on.
@@ -500,22 +407,19 @@ export function ErdGraphvizCanvas({
     return Object.keys(out).length > 0 ? out : undefined;
   }, [entityQualList, bundle.domain_qualifier_labels]);
 
+  // Each change is sent as the whole new set, never as a toggle (FR-031).
   const toggleDomain = (key: string) => {
-    setEnabledDomains((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+    const next = new Set(enabledDomains);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setChosenDomains([...next].sort());
   };
 
   const toggleKind = (kind: string) => {
-    setDisabledKinds((prev) => {
-      const next = new Set(prev);
-      if (next.has(kind)) next.delete(kind);
-      else next.add(kind);
-      return next;
-    });
+    const next = new Set(disabledKinds);
+    if (next.has(kind)) next.delete(kind);
+    else next.add(kind);
+    setDisabledKindList([...next].sort());
   };
 
   const domainRows: ErdFilterRow[] = multiTab
@@ -540,12 +444,10 @@ export function ErdGraphvizCanvas({
   }));
 
   const toggleEntityQual = (qual: string) => {
-    setEnabledEntityQualifiers((prev) => {
-      const next = new Set(prev);
-      if (next.has(qual)) next.delete(qual);
-      else next.add(qual);
-      return next;
-    });
+    const next = new Set(disabledEntityList);
+    if (next.has(qual)) next.delete(qual);
+    else next.add(qual);
+    setDisabledEntityList([...next].sort());
   };
 
   return (
