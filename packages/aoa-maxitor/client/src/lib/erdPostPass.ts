@@ -25,6 +25,11 @@ const HEADER_GLYPH_STROKE = 2.4;
 const HEADER_GLYPH_GAP = 4;
 /** Space between the header's left edge and the glyph, in points (the mockup's 12 of a 250 card). */
 export const HEADER_INSET_PT = 10;
+/**
+ * Half the height of a capital of Helvetica, as a share of the font size (its cap height is 0.718 em):
+ * how far above its baseline a name's visual middle stands.
+ */
+export const CAP_HALF_EM = 0.359;
 
 /**
  * The box of a cell's ``points`` polygon inside its ``<g id="a_<id>">``, or ``null``. A cell that holds a
@@ -34,7 +39,7 @@ function cellBox(
   markup: string,
   cellId: string,
   outer = false,
-): { x: number; y: number; right: number; size: number; end: number } | null {
+): { x: number; y: number; right: number; bottom: number; size: number; end: number } | null {
   const start = markup.indexOf(`<g id="a_${cellId}">`);
   if (start < 0) return null;
   const close = markup.indexOf("</a>", start);
@@ -53,22 +58,32 @@ function cellBox(
   const x = Math.min(...xs);
   const y = Math.min(...ys);
   const size = Math.min(Math.max(...xs) - x, Math.max(...ys) - y);
-  return { x, y, right: Math.max(...xs), size, end: close };
+  return { x, y, right: Math.max(...xs), bottom: Math.max(...ys), size, end: close };
 }
 
-/** The text start ``x`` of the first ``<text>`` inside ``<g id="a_<id>">``, and where that attribute sits. */
-function textStart(markup: string, cellId: string): { x: number; at: number; length: number } | null {
+type Attribute = { at: number; length: number };
+
+/** The first ``<text>`` inside ``<g id="a_<id>">``: where its ``x`` and ``y`` attributes sit, and its font size. */
+function textPlace(markup: string, cellId: string): { x: Attribute; y: Attribute; fontSize: number } | null {
   const start = markup.indexOf(`<g id="a_${cellId}">`);
   if (start < 0) return null;
-  const match = /<text[^>]* x="([-\d.]+)"/.exec(markup.slice(start));
-  if (!match) return null;
-  const attr = ` x="${match[1]}"`;
-  return { x: Number(match[1]), at: start + match.index + match[0].lastIndexOf(attr), length: attr.length };
+  const tag = /<text\b[^>]*>/.exec(markup.slice(start));
+  if (!tag) return null;
+  const find = (name: string): Attribute | null => {
+    const attr = new RegExp(` ${name}="[-\\d.]+"`).exec(tag[0]);
+    return attr ? { at: start + tag.index + attr.index, length: attr[0].length } : null;
+  };
+  const x = find("x");
+  const y = find("y");
+  const fontSize = Number(/ font-size="([\d.]+)"/.exec(tag[0])?.[1]);
+  return x && y && fontSize > 0 ? { x, y, fontSize } : null;
 }
 
 /**
- * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it.
- * ``entities`` is the list the DOT was built from (its order gives the cell ids).
+ * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it,
+ * both on one axis — the middle of the header band: the glyph's centre on it, and the name's capitals
+ * centred on it (spec 029, FR-033). ``entities`` is the list the DOT was built from (its order gives the
+ * cell ids).
  */
 export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer): string {
   const edits: Array<{ at: number; remove: number; text: string }> = [];
@@ -76,17 +91,21 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
     const slot = cellBox(markup, `ks${table}`);
     const header = cellBox(markup, `hd${table}`, true);
     const nameCell = cellBox(markup, `hn${table}`, true);
-    const name = textStart(markup, `hn${table}`);
+    const name = textPlace(markup, `hn${table}`);
     if (!slot || slot.size <= 0 || !header || !nameCell || !name) return;
     const iconX = header.x + HEADER_INSET_PT;
     const textX = iconX + slot.size + HEADER_GLYPH_GAP;
+    const axis = (header.y + header.bottom) / 2;
+    const iconY = axis - slot.size / 2;
+    const textY = axis + CAP_HALF_EM * name.fontSize;
     const kind = entity.entity_kind?.trim() || "unknown";
-    edits.push({ at: name.at, remove: name.length, text: ` x="${textX.toFixed(2)}"` });
+    edits.push({ at: name.y.at, remove: name.y.length, text: ` y="${textY.toFixed(2)}"` });
+    edits.push({ at: name.x.at, remove: name.x.length, text: ` x="${textX.toFixed(2)}"` });
     edits.push({
       at: slot.end,
       remove: 0,
       text:
-        `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${slot.y}) ` +
+        `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${iconY.toFixed(2)}) ` +
         `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, "#ffffff", HEADER_GLYPH_STROKE)}</g>`,
     });
   });

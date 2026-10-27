@@ -129,7 +129,7 @@
 - [X] T041 [US6] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` draw each card beneath its cells from the table's bounding box: one rounded rectangle (radius 9 px at 100 %, stroke 1.4, the domain colour) and the header as a path with the same top radius filling to the outline; row tints stop 1 px inside the outline. Done as `drawErdCards` in `lib/erdPostPass.ts`, run after `containNodeFills` (which the use-case and lifecycle cards keep): Graphviz's backdrop and its rounded outline (radius 12, 1 wide) give way to `rect`s of radius 9 (`ERD_CARD_RADIUS`) with a 1.4 outline (`ERD_CARD_STROKE`); the fills that stopped one unit inside the outline now reach it, and every fill — header and rows — is clipped by the same rounded rectangle. A card ends where the next group of the drawing begins, so lines (`re<k>`) are never touched.
 - [X] T042 [US6] In `packages/aoa-maxitor/client/scripts/check-erd-table-style.ts` add: no gap between header and outline; outline and header share the radius within 0.5 px; re-check the identical-layout hashes of spec 028 still match (`check-layout-determinism.ts`). Done: `check-erd-table-style.ts` asserts the header reaches the outline (side and top), the outline is radius 9 and 1.4 wide in the domain colour, the body is the card's own shape, the header's clip is the outline's rectangle (SC-007, within 0.5), every fill is clipped, Graphviz's outline is gone; the header height now counts the unit under the outline (31). `check-erd-kinds-and-lines.ts` runs the same pipeline. The cross-engine check shows no DIFF: layouts unchanged.
 - [X] T043 [US6] Adversarial check: give the header a 2 px inset → the gap assertion fails. Restore. Done: fills stopping inside the outline, the clip keeping Graphviz's curve, the step reaching into lines — each failed its own assertion; restored, all pass.
-- [X] T044 [US6] Acceptance on the local stand (quickstart "ERD card"); prepare commit 8: `style(maxitor): the ERD card drawn as in the mockup (#282)`. Tick issue phase 7.
+- [X] T044 [US6] Acceptance on the local stand (quickstart "ERD card"); prepare commit 8: `style(maxitor): the ERD card drawn as in the mockup (#282)`. Tick issue phase 7. Committed as `67d41128`; issue phase 7 ticked.
 
 ---
 
@@ -137,10 +137,10 @@
 
 **Goal**: the icon's centre on the name's visual centre line (FR-033; R9).
 
-- [ ] T045 [US6] In `placeKindIcons` (`erdPostPass.ts`) centre the icon at `baseline − 0.36 × fontSize` and centre the pair in the header band.
-- [ ] T046 [US6] In `check-erd-table-style.ts` measure the icon's centre against the name's bounding-box centre (≤ 0.5 px) for every table of the reference ERD.
-- [ ] T047 [US6] Adversarial check: restore the top-of-cell placement → only the axis assertion fails. Restore.
-- [ ] T048 [US6] Acceptance on the local stand (quickstart "Icon axis"); prepare commit 9: `style(maxitor): the kind icon on the table name's axis (#282)`. Tick issue phase 13.
+- [X] T045 [US6] In `placeKindIcons` (`erdPostPass.ts`) centre the icon at `baseline − 0.36 × fontSize` and centre the pair in the header band. Done: the axis is the middle of the header band; the glyph's centre is put on it and the name's baseline at `axis + CAP_HALF_EM × font size` (`CAP_HALF_EM` = 0.359, half Helvetica's 0.718 em cap height). Measured before: the name's capitals stood 1.2 units above the glyph's centre (the issue had the direction wrong; spec and issue corrected).
+- [X] T046 [US6] In `check-erd-table-style.ts` measure the icon's centre against the name's bounding-box centre (≤ 0.5 px) for every table of the reference ERD. Done in `check-erd-table-style.ts`, for every table, within 0.1 (the placement is exact; 0.5 could not see the old glyph's 0.2 offset).
+- [X] T047 [US6] Adversarial check: restore the top-of-cell placement → only the axis assertion fails. Restore. Done: the glyph from the top of its cell → `icon -101.50, name -101.30`; the name on Graphviz's baseline → `name -102.51` — each failed for both tables; restored, all pass.
+- [X] T048 [US6] Acceptance on the local stand (quickstart "Icon axis"); prepare commit 9: `style(maxitor): the kind icon on the table name's axis (#282)`. Tick issue phase 13. Done — committed on the maintainer's standing instruction to go on phase after phase.
 
 ---
 
