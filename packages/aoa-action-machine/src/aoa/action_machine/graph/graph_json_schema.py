@@ -381,7 +381,12 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
               ],
               "properties": {
                 "field_type": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The type as one clean name a diagram shows (str | None, X, X[])."
+                },
+                "field_annotation": {
+                  "type": "string",
+                  "description": "The full annotation as Python spells it, for a tooltip."
                 },
                 "primary_key_hint": {
                   "type": "boolean",

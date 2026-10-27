@@ -148,7 +148,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       label VARCHAR NOT NULL,
       field_type VARCHAR NOT NULL,
       primary_key_hint BOOLEAN NOT NULL,
-      reference_qualname VARCHAR
+      reference_qualname VARCHAR,
+      field_annotation VARCHAR
     );""",
             """CREATE TABLE resource (
       id VARCHAR NOT NULL,
@@ -1232,7 +1233,7 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     entity_field_nodes = nodes_by_type.get("EntityField", [])
     _executemany(
         con,
-        "INSERT INTO entity_field VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO entity_field VALUES (?, ?, ?, ?, ?, ?)",
         [
             [
                 n["id"],
@@ -1240,6 +1241,8 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
                 _get_properties(n)["field_type"],
                 _get_properties(n)["primary_key_hint"],
                 _get_properties(n).get("reference_qualname"),
+                # The full annotation (spec 029); a service on an older aoa-action-machine sends none.
+                _get_properties(n).get("field_annotation"),
             ]
             for n in entity_field_nodes
         ],

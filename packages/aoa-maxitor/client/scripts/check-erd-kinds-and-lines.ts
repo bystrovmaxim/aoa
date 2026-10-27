@@ -66,7 +66,8 @@ function drawn(data: ErdGraphPayload): string {
 }
 
 const field = (name: string, type: string, extra: Record<string, unknown> = {}) => ({ name, type, primary_key: false, foreign_key: false, ...extra });
-const longType = "Union[AssociationOne[GenderEnumEntity], NoneType]";
+// A type long even as a clean name (spec 029 shows `X | None`, cut to the column), so the table stays wide.
+const longType = "Union[AssociationOne[BillingChargebackIngestCorrelateCoreEntity], NoneType]";
 
 const fixture: ErdGraphPayload = {
   entities: [

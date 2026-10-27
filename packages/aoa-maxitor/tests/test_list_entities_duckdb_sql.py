@@ -78,8 +78,39 @@ def test_slice_payload_includes_scalar_field_from_entity_field_tables() -> None:
             "primary_key": False,
             "foreign_key": False,
             "reference_qualname": None,
+            "annotation": None,
         },
     ]
+
+
+def test_a_field_row_carries_its_clean_type_and_its_full_annotation() -> None:
+    """(029 FR-031) The clean name a service sends stays the row's type; its full annotation rides beside it."""
+    payload = {
+        "schema_version": "1.0",
+        "nodes": [
+            {"id": "d1", "type": "Domain", "label": "D", "properties": {"name": "D", "description": "d"}},
+            {"id": "e1", "type": "Entity", "label": "E", "properties": {"description": "e", "entity_kind": "core"}},
+            {
+                "id": "e1:f1",
+                "type": "EntityField",
+                "label": "nickname",
+                "properties": {"field_type": "str | None", "field_annotation": "UnionType[str, NoneType]", "primary_key_hint": False},
+            },
+        ],
+        "edges": [
+            {"source_id": "e1", "target_id": "d1", "type": "domain", "relationship": "Composition", "is_dag": False},
+            {
+                "source_id": "e1",
+                "target_id": "e1:f1",
+                "type": "entity_field",
+                "relationship": "Composition",
+                "is_dag": False,
+                "properties": {"ordinal": 0, "field_name": "nickname"},
+            },
+        ],
+    }
+    row = _slice(DuckDBGraphResource.build_from_json(payload), "d1")["entities"][0]["fields"][0]
+    assert (row["type"], row["annotation"]) == ("str | None", "UnionType[str, NoneType]")
 
 
 def test_the_kind_the_wire_carries_is_the_kind_the_store_returns() -> None:
