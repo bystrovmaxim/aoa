@@ -8,7 +8,7 @@
  * the domain colour, flush with the frame and as high as the mockup's, its name white, bold and at the
  * left; the frame in the domain colour around a white body; every second row tinted at 6 %; PK and FK
  * in their colours in a column of their own; the type smaller, grey and on the right; grey lines, a
- * dashed generalization with a filled arrowhead. It is plain Node: no framework, no bundler.
+ * dashed generalization that ends in ERD bars, not an arrowhead. It is plain Node: no framework, no bundler.
  *
  * Exit codes: 0 all assertions passed; 1 an assertion failed; 2 the environment cannot run it.
  */
@@ -63,7 +63,7 @@ const fixture: ErdGraphPayload = {
     },
     { id: "shop.BaseEntity", label: "BaseEntity", color: "#3b82f6", entity_kind: "core", fields: [{ ...field("id", "str"), primary_key: true }] },
   ],
-  relations: [{ source: "shop.PlayerCoreEntity", target: "shop.BaseEntity", label: "", relationship_kind: "generalization" }],
+  relations: [{ source: "shop.PlayerCoreEntity", target: "shop.BaseEntity", label: "", relationship_kind: "generalization", source_cardinality: "zero_one", target_cardinality: "one" }],
 };
 
 const svg = placeKindIcons(
@@ -169,7 +169,13 @@ check("FR-114 the type is right-aligned, the name left", typeText !== null && ty
 const edge = svg.slice(svg.indexOf('<g id="re0"'), svg.indexOf("</g>", svg.indexOf('<g id="re0"')));
 check("FR-115 the line is grey", edge.includes('stroke="#94a3b8"'));
 check("FR-115 a generalization is dashed", /<path[^>]*stroke-dasharray=/.test(edge));
-check("FR-115 its arrowhead is filled", /<polygon fill="#94a3b8"/.test(edge));
+// ERD notation has no arrows (spec 029, FR-043): a generalization ends in bars and a circle — two bars
+// at the head, a bar and a circle at the variant — never a triangle. Graphviz closes each polygon by
+// repeating its first point, so a triangle has 4 points and a bar 5.
+const polygonPoints = [...edge.matchAll(/<polygon[^>]* points="([^"]+)"/g)].map((m) => m[1]!.trim().split(/\s+/).length);
+check("FR-043 a generalization has no arrowhead", !polygonPoints.includes(4), `${polygonPoints}`);
+check("FR-043 three bars: two at the head, one at the variant", polygonPoints.filter((n) => n === 5).length === 3, `${polygonPoints}`);
+check("FR-043 one circle, at the variant", (edge.match(/<ellipse/g) ?? []).length === 1);
 
 if (failures) {
   console.error(`${failures} assertion(s) failed`);

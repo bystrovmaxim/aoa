@@ -270,7 +270,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         SELECT pe.source_id AS source, pe.target_id AS target,
                CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
                'generalization' AS relationship_kind,
-               'zero_many' AS source_cardinality,
+               -- A head row has at most one row of each variant; a variant row has exactly one head.
+               'zero_one' AS source_cardinality,
                'one' AS target_cardinality,
                -- The two declared fields that join a variant to its head: its reverse field, the head's axis.
                pe.field_name AS source_field,

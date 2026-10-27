@@ -281,6 +281,15 @@
 
 ---
 
+## Phase 16g: No arrow on the generalization line (commit 16g) · US7
+
+**Goal** (maintainer, 2026-10-27, screenshot of a dashed arrow): ERD notation has no arrows. Once the line between a variant and its head names its two key fields (16f), it is an ordinary relation and ends like one (FR-043).
+
+- [X] T105 [US7] In `list_entities_action.py` the generalization line's ends are `zero_one` at the variant and `one` at the head; in `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` it is drawn dashed with ERD ends (`dir=both`, `arrowtail`/`arrowhead` from `ERD_ENDS`) instead of `arrowhead=normal`; a line from an older server without fields is a plain line (`arrowhead=none`). Done.
+- [X] T106 [US7] Tests: the server test of the ends; `check-erd-table-style.ts` asserts no triangle, two bars at the head, a bar and a circle at the variant. Adversarial checks: `zero_many` at the variant → only the ends test fails; `arrowhead=normal` back → the three drawing assertions fail. Prepare commit 16g: `style(maxitor): the generalization line ends the ERD way, without an arrow (#282)`; record it in issue #282.
+
+---
+
 ## Phase 17: The check run (commit 17)
 
 - [ ] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16.
