@@ -9,8 +9,9 @@ Every operation below is an AOA action run by Maxitor's machine; every store and
 | `RoomRegistry` | `RoomRegistry` | `BaseController` | rooms, participants, tabs, page settings, follow links, return windows, room timers; `relay(channel, message)` for pointers and viewports |
 | `OpenTabs` | `OpenTabsRegistry` | `BaseController` | source → last time a tab outside a room asked for the fingerprint |
 | `GraphStore` | `GraphStoreController` | `BaseController` | held graphs, build slots, swap-on-success |
-| `GraphSource` | `GraphSourceGateway` | `BaseGateway` | `httpx`; `fetch(url, etag, last_modified)` → `NotModified` / `Document(body, etag, last_modified, sha256)` / `Unreachable(reason)` |
+| `GraphSource` | `GraphSourceGateway` | `BaseGateway` | `httpx`; `fetch(url)` → `Document(body, etag, last_modified, sha256)` / `Unreachable(reason)`; `fetch_if_changed(url, etag, last_modified)` also → `NotModified` (commit 7: two methods, so the first load never handles a `304` it cannot get) |
 | `StaticBundle` | `StaticBundleResource` | `BaseStorage` | the installed client bundle; reads `build.json` |
+| `SourceChecks` | `SourceChecks` | `BaseController` | the clock (every 10 s, `CheckDueSourcesAction`) and `run_soon` for one background `CheckSourceAction`; started and closed by the lifespan (commit 7) |
 | `socket` | `SocketChannel` | `BaseController` | one connection (contracts/websocket-adapter.md) |
 
 Resources hold state and do I/O; they decide nothing. Every rule below is checked in an aspect.
@@ -29,7 +30,7 @@ Resources hold state and do I/O; they decide nothing. Every rule below is checke
 | `SetPageSettingAction` | `setting` | `page`, `name`, `value` | `name` is a known setting of that page; `value` has its type | `refused 4422` |
 | `FollowAction` | `follow` | `target` | target present and not self; no circle (data-model.md, FollowLink), checked and written under the room lock | `follow_refused` |
 | `StopFollowingAction` | `stop_following` | — | — | — |
-| `ReloadSourceForRoomAction` | `reload` | — | the participant is in a room of that source; runs `CheckSourceAction(force=True)` through `box.run` (until commit 7 adds it: rebuilds through `GraphStore.replace` and announces `graph_changed` itself) | `refused 4502`; the old graph stays |
+| `ReloadSourceForRoomAction` | `reload` | — | the participant is in a room of that source; runs `CheckSourceAction(force=True)` through `box.run`, which rebuilds and announces `graph_changed` | `refused 4502` when the build fails; the old graph stays |
 
 ## Graph actions (domain `CoreDomain`)
 

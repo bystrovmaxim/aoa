@@ -12,8 +12,8 @@ split the room into people with an old and a new graph, nor make anyone leave (s
 new fingerprint, so every tab re-reads the graph in place. A failed rebuild keeps the
 graph everyone already has and is refused with the reason.
 
-Until the freshness checks exist (commit 7), the rebuild goes straight through the
-store's ``replace``; they will route it through the source check instead.
+It runs ``CheckSourceAction`` with ``force``: the same rebuild the freshness checks do, so a
+Reload and a check of one source never overlap.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -21,9 +21,9 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    {"type": "reload"} ──► GraphStore.replace(room.source)
-        ├─ new fingerprint ──► graph_changed to every room of the source
-        └─ failure         ──► refused 4502, the old graph stays
+    {"type": "reload"} ──► CheckSourceAction(room.source, force=True)
+        ├─ rebuilt ──► graph_changed to every room of the source (by the check)
+        └─ failed  ──► refused 4502, the old graph stays
 """
 
 from __future__ import annotations
@@ -40,7 +40,8 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import ConnectionRefusalError, SocketChannel
-from aoa.maxitor.api.graph_store import GraphBuildError, GraphStoreBusyError
+from aoa.maxitor.model.core.actions.check_source_action import CheckSourceAction, CheckSourceParams
+from aoa.maxitor.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from aoa.maxitor.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
 from aoa.maxitor.model.rooms.actions.room_action_support import SOURCE_UNAVAILABLE, RoomAnswer, located
 from aoa.maxitor.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
@@ -56,11 +57,12 @@ class ReloadSourceForRoomParams(BaseParams):
 @connection(RoomRegistry, key=ROOM_REGISTRY_KEY, description="Every open room")
 @connection(SocketChannel, key="socket", description="The connection that pressed Reload")
 @connection(GraphStoreController, key=GRAPH_STORE_CONNECTION_KEY, description="Built graphs")
+@connection(GraphSourceGateway, key=GRAPH_SOURCE_CONNECTION_KEY, description="Downloads graph-json")
 class ReloadSourceForRoomAction(BaseAction[ReloadSourceForRoomParams, RoomAnswer]):
     """
     AI-CORE-BEGIN
     ROLE: Rebuild the room's source once and tell every room of that source the new fingerprint.
-    CONTRACT: A failed rebuild keeps the held graph and is refused with 4502; an unchanged one announces nothing.
+    CONTRACT: A failed rebuild keeps the held graph and is refused with 4502; the check announces a changed graph.
     INVARIANTS: Nobody leaves the room; the log carries ids and the source, never names.
     AI-CORE-END
     """
@@ -75,21 +77,21 @@ class ReloadSourceForRoomAction(BaseAction[ReloadSourceForRoomParams, RoomAnswer
     ) -> RoomAnswer:
         """Rebuild, then tell every room of the source when the graph changed."""
         registry = cast(RoomRegistry, connections[ROOM_REGISTRY_KEY])
-        store = cast(GraphStoreController, connections[GRAPH_STORE_CONNECTION_KEY])
         room, participant, _ = located(registry, cast(SocketChannel, connections["socket"]))
-        before = store.entry(room.source)
-        try:
-            entry = await store.replace(room.source)
-        except (GraphBuildError, GraphStoreBusyError) as exc:
-            await box.warning(Channel.error, "Reload of {%var.source} failed in room {%var.room}", source=room.source, room=room.id)
-            raise ConnectionRefusalError(SOURCE_UNAVAILABLE, "the service's graph cannot be rebuilt now") from exc
-        if before is not None and before.fingerprint == entry.fingerprint:
-            return RoomAnswer()
-        for other in registry.rooms_of_source(room.source):
-            registry.broadcast(other, {"type": "graph_changed", "fingerprint": entry.fingerprint})
+        result = await box.run(
+            CheckSourceAction,
+            CheckSourceParams(source=room.source, force=True),
+            {
+                GRAPH_STORE_CONNECTION_KEY: connections[GRAPH_STORE_CONNECTION_KEY],
+                GRAPH_SOURCE_CONNECTION_KEY: connections[GRAPH_SOURCE_CONNECTION_KEY],
+                ROOM_REGISTRY_KEY: registry,
+            },
+        )
+        if result.status == "failed":
+            raise ConnectionRefusalError(SOURCE_UNAVAILABLE, "the service's graph cannot be rebuilt now")
         await box.info(
             Channel.business,
-            "Participant {%var.participant} rebuilt {%var.source} for room {%var.room}",
+            "Participant {%var.participant} reloaded {%var.source} for room {%var.room}",
             participant=participant.id,
             source=room.source,
             room=room.id,

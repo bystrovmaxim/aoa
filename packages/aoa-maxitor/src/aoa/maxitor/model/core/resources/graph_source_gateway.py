@@ -58,6 +58,11 @@ class Document:
 
 
 @dataclass(frozen=True)
+class NotModified:
+    """The service answered ``304``: the body held for the validators sent is still current."""
+
+
+@dataclass(frozen=True)
 class Unreachable:
     """No usable answer: the service answered an HTTP error (``status``) or could not be reached."""
 
@@ -71,7 +76,8 @@ class GraphSourceGateway(BaseGateway):
     AI-CORE-BEGIN
     ROLE: The gateway through which Maxitor's actions download a ``graph-json`` document.
     CONTRACT: ``fetch`` returns ``Document`` for a 2xx answer and ``Unreachable`` for an HTTP error,
-    a timeout or a network failure; it never raises for those.
+    a timeout or a network failure; ``fetch_if_changed`` also returns ``NotModified`` for a ``304`` to
+    the validators it was given. Neither raises for those.
     INVARIANTS: One HTTP client per gateway, created on first use and closed by ``aclose``; the
     gateway keeps no answers and decides nothing about them.
     AI-CORE-END
@@ -91,12 +97,32 @@ class GraphSourceGateway(BaseGateway):
 
     async def fetch(self, url: str) -> Document | Unreachable:
         """Download ``url``; return the body with its SHA-256 and validators, or why there is none."""
+        answer = await self._get(url, {})
+        # Without validators a service has nothing to answer 304 to.
+        return Unreachable(reason="HTTP 304 to an unconditional request", status=304) if isinstance(answer, NotModified) else answer
+
+    async def fetch_if_changed(self, url: str, etag: str | None, last_modified: str | None) -> Document | NotModified | Unreachable:
+        """
+        Ask ``url`` again with the validators of the body held: ``NotModified`` when the service
+        confirms it, the new ``Document`` when it changed, or why there is no answer.
+        """
+        headers = {}
+        if etag:
+            headers["If-None-Match"] = etag
+        if last_modified:
+            headers["If-Modified-Since"] = last_modified
+        return await self._get(url, headers)
+
+    async def _get(self, url: str, headers: dict[str, str]) -> Document | NotModified | Unreachable:
+        """One GET of ``url`` with ``headers``, turned into a typed answer."""
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=self._timeout)
         try:
-            response = await self._client.get(url)
+            response = await self._client.get(url, headers=headers)
         except httpx.RequestError as exc:
             return Unreachable(reason=str(exc) or type(exc).__name__)
+        if response.status_code == 304:
+            return NotModified()
         if response.is_error:
             return Unreachable(reason=f"HTTP {response.status_code}", status=response.status_code)
         body = response.content

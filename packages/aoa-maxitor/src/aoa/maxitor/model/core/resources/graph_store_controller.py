@@ -75,6 +75,10 @@ class GraphStoreController(BaseController):
         """Build ``source`` again and swap the entry in only when the build succeeds."""
         return await self._store.reload(source)
 
+    def now(self) -> float:
+        """The store's clock, the one ``last_checked`` is measured on."""
+        return self._store.now()
+
     def held_sources(self) -> tuple[str, ...]:
         """Return the sources held right now."""
         return self._store.held_sources()

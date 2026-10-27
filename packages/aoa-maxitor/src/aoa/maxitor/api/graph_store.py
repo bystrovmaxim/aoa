@@ -176,6 +176,10 @@ class GraphStore:
         """Number of builds waiting for a free slot right now."""
         return self._queued
 
+    def now(self) -> float:
+        """The store's clock: the time ``last_read`` and ``last_checked`` are measured on."""
+        return self._clock()
+
     def held_sources(self) -> tuple[str, ...]:
         """Return the sources held right now, in insertion order."""
         return tuple(self._entries)
@@ -238,6 +242,8 @@ class GraphStore:
             if self._in_flight.get(source) is asyncio.current_task():
                 del self._in_flight[source]
         entry.last_read = self._clock()
+        # A graph just built from a fresh download needs no check before its interval has passed.
+        entry.last_checked = entry.last_read
         self._store(source, entry)
         self._failures.pop(source, None)
         return entry
