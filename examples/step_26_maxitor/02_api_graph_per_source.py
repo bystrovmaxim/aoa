@@ -7,8 +7,9 @@ full download and build because there was nowhere to keep a second graph.
 
 Now every graph read names the AOA service whose graph it wants — ``?source=<graph-json
 URL>`` — and the process keeps one built graph per source. A read that finds no graph
-builds it; a burst of readers on one link costs one build; a graph unread for an hour is
-removed; at most 50 are held and at most four builds run at once. ``POST /api/load`` is no
+builds it; a burst of readers on one link costs one build; a built graph stays until the store
+is full — at most 50 are held, the one read longest ago leaves first — and at most four builds run
+at once (spec 028 removed the hour-long idle removal: the next visitor no longer waits for a build). ``POST /api/load`` is no
 longer "load this into the slot" but "rebuild this source", and it leaves every other
 source alone.
 
@@ -22,7 +23,7 @@ store whose builder returns fixtures instead of downloading:
   5. a busy store — 503 with ``Retry-After``, never a wrong graph;
   6. an explicit reload rebuilds one source and leaves the other untouched;
   7. a failed reload keeps the graph already built;
-  8. a graph unread for the idle timeout is removed and rebuilt on the next read;
+  8. a graph unread for hours is still held, and its next read builds nothing;
   9. a full store evicts the least recently read graph;
  10. a burst of readers on one link builds once;
  11. a reader who leaves during a build does not cancel it for the others.
@@ -59,9 +60,9 @@ Output:
        POST /api/load B -> 422 {'detail': 'service is down'}
        B still answers with: ['d.b.Dom:v2']
 
-    8. A graph unread for the idle timeout is removed and rebuilt
-       61 seconds later -> 200 {'level1_nodes': [], 'level2_diagrams': [], 'level2_nodes': [], 'level3_diagrams': []}
-       builds so far: 2 (one before the timeout, one after)
+    8. A graph unread for hours is still held
+       six hours later -> 200 {'level1_nodes': [], 'level2_diagrams': [], 'level2_nodes': [], 'level3_diagrams': [], 'fingerprint': ''}
+       builds so far: 1 (only the first read built it)
 
     9. A full store evicts the least recently read graph
        held sources: ('https://a.aoa.run/graph-json', 'https://c.aoa.run/graph-json')
@@ -243,16 +244,16 @@ def main() -> None:
     print(f"   POST /api/load B -> {answer.status_code} {answer.json()}")
     print(f"   B still answers with: {_domains(client, SOURCE_B)}")
 
-    print("\n8. A graph unread for the idle timeout is removed and rebuilt")
+    print("\n8. A graph unread for hours is still held")
     clock = FakeClock()
-    idle_builder = RevisionBuilder()
-    idle_store = GraphStore(idle_builder, idle_seconds=60.0, clock=clock)
-    idle_client = _client(idle_store)
-    _domains(idle_client, SOURCE_A)
-    clock.advance(61.0)
-    answer = idle_client.get("/api/sidebar", params={"source": SOURCE_A})
-    print(f"   61 seconds later -> {answer.status_code} {answer.json()}")
-    print(f"   builds so far: {_built(idle_builder)} (one before the timeout, one after)")
+    quiet_builder = RevisionBuilder()
+    quiet_store = GraphStore(quiet_builder, clock=clock)
+    quiet_client = _client(quiet_store)
+    _domains(quiet_client, SOURCE_A)
+    clock.advance(6 * 3600.0)
+    answer = quiet_client.get("/api/sidebar", params={"source": SOURCE_A})
+    print(f"   six hours later -> {answer.status_code} {answer.json()}")
+    print(f"   builds so far: {_built(quiet_builder)} (only the first read built it)")
 
     print("\n9. A full store evicts the least recently read graph")
     small_builder = RevisionBuilder()
