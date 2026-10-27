@@ -30,6 +30,11 @@ from a second adapter app, outside the paths ``GraphSourceMiddleware`` guards.
 ``MAXITOR_ROOM_ORIGINS`` lists extra browser origins allowed to join a room (comma
 separated), for a client served from another address, such as the Vite dev server.
 
+Held graphs are kept current (#271): ``GET /api/v1/graph-fingerprint`` answers from memory
+and marks the source watched, and a clock started in the lifespan runs
+``CheckDueSourcesAction`` every ten seconds, which asks each watched, due source whether it
+changed and rebuilds it when it did. The clock decides nothing; the actions do.
+
 Set ``AOA_SERVICE_URL`` env var to override the default AOA examples service URL.
 """
 
@@ -49,6 +54,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.model import ParamsStub
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 from aoa.maxitor.api.cached_static_files import CachedStaticFiles
@@ -58,8 +64,13 @@ from aoa.maxitor.api.graph_store import GraphStore, build_graph_entry
 from aoa.maxitor.api.routes.load import router as load_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.model.core.actions.app_info_action import AppInfoAction
-from aoa.maxitor.model.core.resources.graph_source_gateway import GraphSourceGateway
+from aoa.maxitor.model.core.actions.check_due_sources_action import CheckDueSourcesAction
+from aoa.maxitor.model.core.actions.check_source_action import CheckSourceAction
+from aoa.maxitor.model.core.actions.graph_fingerprint_action import GraphFingerprintAction
+from aoa.maxitor.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from aoa.maxitor.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from aoa.maxitor.model.core.resources.open_tabs_registry import OPEN_TABS_CONNECTION_KEY, OpenTabsRegistry
+from aoa.maxitor.model.core.resources.source_checks import SOURCE_CHECKS_CONNECTION_KEY, SourceChecks
 from aoa.maxitor.model.core.resources.static_bundle_resource import STATIC_BUNDLE_CONNECTION_KEY, StaticBundleResource
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
@@ -119,12 +130,17 @@ def create_app() -> FastAPI:
     rooms = RoomRegistry(allowed_origins=_origins_env("MAXITOR_ROOM_ORIGINS"))
     rooms.bind(machine)
     bundle = StaticBundleResource(_STATIC_DIR)
+    open_tabs = OpenTabsRegistry()
+    source_checks = SourceChecks()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         application.state.machine = machine
         application.state.graph_store = store
+        # The clock only runs the action that decides which sources are due (spec 028, FR-071).
+        source_checks.start(CheckDueSourcesAction, ParamsStub())
         yield
+        await source_checks.close()
         await rooms.close()
         await graph_source.aclose()
 
@@ -138,6 +154,14 @@ def create_app() -> FastAPI:
     fastapi_app.state.graph_store = store
     fastapi_app.state.rooms = rooms
     graphs = GraphStoreController(store)
+    check_connections = {GRAPH_STORE_CONNECTION_KEY: graphs, GRAPH_SOURCE_CONNECTION_KEY: graph_source, ROOM_REGISTRY_KEY: rooms}
+    source_checks.bind(
+        machine,
+        {
+            CheckDueSourcesAction: {**check_connections, OPEN_TABS_CONNECTION_KEY: open_tabs},
+            CheckSourceAction: check_connections,
+        },
+    )
 
     duckdb_graph = DuckDBGraphHolder()
 
@@ -206,6 +230,15 @@ def create_app() -> FastAPI:
             GetDomainUseCaseDiagramAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
+        .get(
+            "/graph-fingerprint",
+            GraphFingerprintAction,
+            connections={
+                GRAPH_STORE_CONNECTION_KEY: graphs,
+                OPEN_TABS_CONNECTION_KEY: open_tabs,
+                SOURCE_CHECKS_CONNECTION_KEY: source_checks,
+            },
+        )
         .websocket(
             "/rooms/{room_id}/live",
             on_open=JoinRoomAction,
@@ -225,6 +258,7 @@ def create_app() -> FastAPI:
             connections={
                 ROOM_REGISTRY_KEY: rooms,
                 GRAPH_STORE_CONNECTION_KEY: graphs,
+                GRAPH_SOURCE_CONNECTION_KEY: graph_source,
                 STATIC_BUNDLE_CONNECTION_KEY: bundle,
             },
             description="A room: everyone looking at one service together",
