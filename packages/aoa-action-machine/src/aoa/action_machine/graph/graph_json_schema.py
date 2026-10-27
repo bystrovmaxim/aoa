@@ -1159,6 +1159,10 @@ _GRAPH_JSON_SCHEMA_RAW = r"""
                 "cardinality": {
                   "type": "string"
                 },
+                "optional": {
+                  "type": "boolean",
+                  "description": "Whether the relation may hold nothing: its annotation admits None, or it defaults to None."
+                },
                 "description": {
                   "type": "string"
                 },

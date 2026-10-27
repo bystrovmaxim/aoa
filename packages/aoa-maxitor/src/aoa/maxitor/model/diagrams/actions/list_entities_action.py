@@ -212,12 +212,16 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT r.source_id AS source, r.target_id AS target,
                  CASE WHEN r.cardinality = '' THEN r.field_name ELSE r.field_name || ' (' || r.cardinality || ')' END AS label,
                  COALESCE(NULLIF(r.relation_type, ''), 'association') AS relationship_kind,
+                 -- An end is one, zero or one (an optional relation), or zero or many (spec 029, FR-043).
                  CASE
                    WHEN i.field_name IS NULL THEN CASE WHEN r.cardinality = 'one' THEN 'zero_many' ELSE 'one' END
-                   WHEN i.cardinality = 'one' THEN 'one'
+                   WHEN i.cardinality = 'one' THEN CASE WHEN i.optional THEN 'zero_one' ELSE 'one' END
                    ELSE 'zero_many'
                  END AS source_cardinality,
-                 CASE WHEN r.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality,
+                 CASE
+                   WHEN r.cardinality = 'one' THEN CASE WHEN r.optional THEN 'zero_one' ELSE 'one' END
+                   ELSE 'zero_many'
+                 END AS target_cardinality,
                  r.field_name AS source_field,
                  i.field_name AS target_field
           FROM rel r
@@ -233,8 +237,9 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           UNION ALL
           SELECT rr.source_id AS source, rr.target_id AS target, rr.field_name AS label,
                  'reference' AS relationship_kind,
-                 'one' AS source_cardinality,
-                 'zero_many' AS target_cardinality,
+                 -- Many rows refer to one dictionary value: the crow's foot at the referring table.
+                 'zero_many' AS source_cardinality,
+                 'one' AS target_cardinality,
                  rr.field_name AS source_field,
                  CAST(NULL AS VARCHAR) AS target_field
           FROM entity_reference_edges rr

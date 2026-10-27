@@ -130,3 +130,37 @@ def test_the_kind_the_wire_carries_is_the_kind_the_store_returns() -> None:
     stored = duck.execute_fetch_dicts("SELECT payload FROM nodes WHERE id = ?", ["e1"])[0]["payload"]
 
     assert json.loads(stored)["entity_kind"] == "spec"
+
+
+def _relation(source: str, target: str, field: str, *, optional: bool | None) -> dict:
+    """An ``entity_relation`` edge with one end; ``optional`` absent when ``None`` (an older service)."""
+    properties = {"field_name": field, "relation_type": "association", "cardinality": "one", "description": "d", "has_inverse": False, "deprecated": False}
+    if optional is not None:
+        properties["optional"] = optional
+    return {"source_id": source, "target_id": target, "type": "entity_relation", "relationship": "Association", "is_dag": False, "properties": properties}
+
+
+def _in_domain(entity: str) -> dict:
+    """The edge that puts ``entity`` into domain ``d1``."""
+    return {"source_id": entity, "target_id": "d1", "type": "domain", "relationship": "Composition", "is_dag": False}
+
+
+def test_an_optional_relation_end_is_zero_or_one_and_a_mandatory_one_is_one() -> None:
+    """(029 FR-043) The end at the target shows whether the relation may be empty; an older service reads as mandatory."""
+    payload = {
+        "schema_version": "1.0",
+        "nodes": [
+            {"id": "d1", "type": "Domain", "label": "D", "properties": {"name": "D", "description": "d"}},
+            *({"id": e, "type": "Entity", "label": e, "properties": {"description": e, "entity_kind": "core"}} for e in ("order", "currency")),
+        ],
+        "edges": [
+            _in_domain("order"),
+            _in_domain("currency"),
+            _relation("order", "currency", "billed_in", optional=True),
+            _relation("order", "currency", "priced_in", optional=False),
+            _relation("order", "currency", "legacy", optional=None),
+        ],
+    }
+    relations = _slice(DuckDBGraphResource.build_from_json(payload), "d1")["relations"]
+    ends = {r["source_field"]: (r["source_cardinality"], r["target_cardinality"]) for r in relations}
+    assert ends == {"billed_in": ("zero_many", "zero_one"), "priced_in": ("zero_many", "one"), "legacy": ("zero_many", "one")}
