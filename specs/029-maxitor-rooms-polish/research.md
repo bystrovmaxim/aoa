@@ -85,7 +85,7 @@ Phase 0 of [plan.md](plan.md). Each decision starts from what the code does toda
 
 ## R16. The demo on the fresh adapter
 
-- **Decision**: `aoa-demo` declares `aoa-fastapi-adapter>=1.3.0` and its version rises; publishing (a tag) and redeploying `demo.aoa.run` wait for the maintainer's command and are recorded as release steps after the changelog.
+- **Decision**: `aoa-demo` declares `aoa-fastapi-adapter>=1.3.0` and its version rises. Publishing to PyPI and redeploying `demo.aoa.run` are not part of this work (maintainer, 2026-10-27).
 
 ## R17. Local acceptance stand
 
