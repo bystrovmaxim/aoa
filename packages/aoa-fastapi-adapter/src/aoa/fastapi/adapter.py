@@ -149,6 +149,7 @@ from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+from aoa.fastapi.conditional_get import ConditionalGetMiddleware
 from aoa.fastapi.route_record import FastApiRouteRecord
 from aoa.fastapi.websocket_route import SOCKET_KEY, FastApiWebSocketRoute, make_websocket_endpoint
 from fastapi import FastAPI, Query, Request
@@ -887,7 +888,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         Initialization order:
         1. Create FastAPI app with OpenAPI metadata and, when given, the lifespan.
-        2. Add middleware for uncaught exception handling.
+        2. Add middleware for uncaught exception handling and, inside it, conditional GET:
+           every successful ``GET`` carries an ``ETag`` of its body, and a request whose
+           ``If-None-Match`` holds it is answered ``304`` with no body.
         3. Register exception handlers.
         4. Register health check endpoint ``GET /health``.
         5. Generate/register endpoint for each route.
@@ -912,6 +915,8 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             app_kwargs["lifespan"] = lifespan
         app = FastAPI(**app_kwargs)
 
+        # Added first, so it sits inside the error middleware: a 500 is never tagged.
+        app.add_middleware(ConditionalGetMiddleware)
         app.add_middleware(_CatchAllErrorsMiddleware)
         self._register_exception_handlers(app)
         self._register_health_check(app)
