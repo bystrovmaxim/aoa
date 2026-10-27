@@ -20,3 +20,4 @@ While a source is open the header shows **`ReloadServiceButton`** ("Reload from 
 | `hooks/useSidebarPayload.ts` | Fetches `/api/sidebar` via `@/api/sidebar` (not exported from **`index.ts`**). |
 | `SidebarRowIcon.tsx` | Row-type icon — private helper colocated here (§1), not a separate component root. |
 | `ReloadServiceButton.tsx` | "Reload from service" control for the open source; disabled while its reload runs. |
+| `ProjectFooter.tsx` | The bottom of the panel: the GitHub mark linking to the project, **Maxitor** and the running version from `/api/meta/app-info` (never written into the client), centred; on the collapsed rail only the mark, with the tooltip "Maxitor on GitHub" (spec 028, FR-100 … FR-102). |
