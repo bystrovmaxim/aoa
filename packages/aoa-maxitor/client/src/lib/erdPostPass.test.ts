@@ -1,7 +1,7 @@
 // src/lib/erdPostPass.test.ts
 import { afterEach, describe, expect, it } from "vitest";
 import type { ErdEntity } from "@/lib/buildDotSource";
-import { addEdgeHitAreas, bindLineHover, markRows, type ErdLineInfo } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, bindLineHover, focusTables, markRows, type ErdLineInfo } from "@/lib/erdPostPass";
 
 // Markup shaped like Graphviz's: Player (0) has id, gender and an FK row named showcase twice
 // (own row and FK row); Showcase (1) has id and players; Gender (2) has id.
@@ -150,5 +150,46 @@ describe("markRows", () => {
     markRows(root, ["fn0_0", "ft0_0"], true);
 
     expect(polygonsSnapshot(root)).toBe(before);
+  });
+});
+
+describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
+  const bright = (root: ParentNode) =>
+    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1").map((n) => n.querySelector("title")!.textContent).sort();
+  const brightLines = (root: ParentNode) =>
+    [...root.querySelectorAll<SVGElement>("g.edge")].filter((e) => e.style.opacity === "1").map((e) => e.id).sort();
+
+  it("a hovered table: itself and its lines, as before", () => {
+    const { root } = mount();
+    focusTables(root, new Set(["Player"]));
+    expect(bright(root)).toEqual(["Player"]);
+    expect(brightLines(root)).toEqual(["re0", "re1"]);
+  });
+
+  it("an FK row: its own table and the table its line joins", () => {
+    const { root } = mount();
+    focusTables(root, new Set(["Player"])); // the pointer is inside Player first
+    hover(root.querySelector('g[id="a_fn0_2"]')!, true);
+    expect(bright(root)).toEqual(["Player", "Showcase"]);
+    expect(brightLines(root)).toEqual(["re0"]);
+    hover(root.querySelector('g[id="a_fn0_2"]')!, false);
+    expect(bright(root)).toEqual(["Player"]);
+  });
+
+  it("a PK row: every table whose lines point at it", () => {
+    const { root } = mount();
+    hover(root.querySelector('g[id="a_fn2_0"]')!, true);
+    expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
+    expect(brightLines(root)).toEqual(["re1", "re2"]);
+  });
+
+  it("a line: the two tables it joins, and everything bright again when it is left", () => {
+    const { root } = mount();
+    const line = root.querySelector('g[id="re2"]')!;
+    hover(line, true);
+    expect(bright(root)).toEqual(["Gender", "Showcase"]);
+    expect(brightLines(root)).toEqual(["re2"]);
+    hover(line, false);
+    expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
   });
 });
