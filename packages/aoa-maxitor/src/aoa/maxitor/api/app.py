@@ -88,6 +88,7 @@ from aoa.maxitor.model.rooms.actions import (
     ReloadSourceForRoomAction,
     RenameParticipantAction,
     ReportPageAction,
+    SeedPageSettingsAction,
     SetPageSettingAction,
     StopFollowingAction,
 )
@@ -246,6 +247,7 @@ def create_app() -> FastAPI:
                 "page": ReportPageAction,
                 "activity": ReportPageAction,
                 "setting": SetPageSettingAction,
+                "seed": SeedPageSettingsAction,
                 "rename": RenameParticipantAction,
                 "follow": FollowAction,
                 "stop_following": StopFollowingAction,

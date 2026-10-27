@@ -2,7 +2,8 @@
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PageSettingsProvider, clearLocalPageSettings, keepRoomSettings, usePageSetting, type RoomSettings } from "@/lib/pageSettings";
+import { PageSettingsProvider, clearLocalPageSettings, keepRoomSettings, ownSettingsByPage, usePageSetting, type RoomSettings } from "@/lib/pageSettings";
+import { seedMessages } from "@/rooms/seed";
 
 const ERD = "view=domain-erd";
 const ERD_PLAYERS = "view=domain-erd&domain=players";
@@ -66,6 +67,13 @@ describe("page settings inside a room", () => {
     expect(view.result.current[0]).toBe("gv-dot-lr");
   });
 
+  it("never show the person's own value, so everyone in the room sees one picture (spec 029)", () => {
+    const own = layoutOn(ERD);
+    act(() => own.result.current[1]("gv-neato"));
+    const view = layoutOn(ERD, { settings: {}, set: vi.fn() });
+    expect(view.result.current[0]).toBe("gv-dot-lr");
+  });
+
   it("stay as they were after leaving the room", () => {
     const settings = { [ERD]: { layout: "gv-circo" } };
     const view = layoutOn(ERD, { settings, set: vi.fn() });
@@ -86,5 +94,29 @@ describe("the default value", () => {
     const first = view.result.current[0];
     view.rerender();
     expect(view.result.current[0]).toBe(first);
+  });
+});
+
+describe("seeding a room the tab opens (spec 029)", () => {
+  it("collects the tab's own values by page", () => {
+    const erd = layoutOn(ERD);
+    const players = layoutOn(ERD_PLAYERS);
+    act(() => erd.result.current[1]("gv-neato"));
+    act(() => players.result.current[1]("gv-circo"));
+    expect(ownSettingsByPage()).toEqual({ [ERD]: { layout: "gv-neato" }, [ERD_PLAYERS]: { layout: "gv-circo" } });
+  });
+
+  it("sends one setting per message", () => {
+    const messages = seedMessages({ [ERD]: { layout: "gv-neato", one_hop: false } });
+    expect(messages).toEqual([
+      { type: "seed", page: ERD, settings: { layout: "gv-neato" } },
+      { type: "seed", page: ERD, settings: { one_hop: false } },
+    ]);
+  });
+
+  it("leaves out a value too large for one room message", () => {
+    const long = Array.from({ length: 80 }, (_, i) => `entity-${"x".repeat(50)}-${i}`);
+    const messages = seedMessages({ [ERD]: { layout: "gv-neato", disabled_entities: long } });
+    expect(messages).toEqual([{ type: "seed", page: ERD, settings: { layout: "gv-neato" } }]);
   });
 });
