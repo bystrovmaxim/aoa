@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph history — mockup</title>
+<style>
+  /* Mockup page chrome. The screens use Maxitor's own sizes and colours, as in specs/028-maxitor-rooms/mockup. */
+  :root {
+    --page-bg: #e9edf1;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: rgba(15, 23, 42, 0.1);
+    --sidebar: #EBF2F5;
+    --workspace: #f4f5f7;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* Comparison statuses: green appears, red disappears, amber changes. Never the only sign: every mark carries +, − or ~. */
+    --add: #16a34a; --add-ink: #14532d; --add-tint: #dcfce7;
+    --del: #dc2626; --del-ink: #7f1d1d; --del-tint: #fee2e2;
+    --chg: #d97706; --chg-ink: #78350f; --chg-tint: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--font); color: var(--ink); background: var(--page-bg); display: flex; }
+
+  /* ---- mockup navigation ---- */
+  .nav { width: 290px; flex-shrink: 0; height: 100vh; overflow-y: auto; background: #fff; border-right: 1px solid var(--line); padding: 20px 14px 32px; }
+  .nav h1 { font-size: 15px; margin: 0 6px 4px; }
+  .nav .sub { font-size: 12px; color: var(--muted); margin: 0 6px 16px; line-height: 1.45; }
+  .nav .group { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 16px 6px 6px; }
+  .nav button.screen { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; padding: 7px 8px; border-radius: 7px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .nav button.screen:hover { background: rgba(15, 23, 42, 0.05); }
+  .nav button.screen.on { background: rgba(15, 23, 42, 0.08); font-weight: 600; }
+  .nav button.screen .n { color: var(--muted); font-size: 11px; min-width: 18px; font-variant-numeric: tabular-nums; }
+
+  .stage { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; padding: 24px 28px 48px; }
+  .frames { display: flex; gap: 28px; align-items: flex-start; }
+  .frame-wrap { flex-shrink: 0; }
+  .frame-cap { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .frame-cap b { color: var(--ink); }
+  .frame-scale { transform-origin: top left; }
+  .notes { max-width: 860px; margin-top: 22px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+  .notes h2 { font-size: 16px; margin: 0 0 4px; }
+  .notes .ref { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .notes li { font-size: 13px; line-height: 1.55; }
+  .notes ul { padding-left: 18px; margin: 6px 0 0; }
+  .notes code { font-size: 12px; background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+  .notes .q { border-left: 3px solid #fcd34d; background: #fffbeb; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-top: 10px; font-size: 13px; line-height: 1.55; }
+
+  /* ---- device frames ---- */
+  .device { position: relative; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 8px 28px rgba(15,23,42,.12); }
+  .device.desktop { border-radius: 10px; display: flex; }
+  .device.phone { border-radius: 34px; border: 10px solid #111827; display: flex; flex-direction: column; }
+
+  /* ---- Maxitor: left sidebar ---- */
+  .sb { width: 255px; flex-shrink: 0; background: var(--sidebar); border-right: 1px solid rgba(15,23,42,.08); display: flex; flex-direction: column; }
+  .sb-head { height: 38px; padding: 4px 4px 2px; display: flex; align-items: center; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 8px; color: rgb(100,116,139); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.on { background: rgba(15,23,42,.08); color: #0f172a; }
+  .sb-row { display: flex; align-items: center; gap: 6px; height: 31px; padding: 0 10px; margin: 0 6px; border-radius: 6px; font-size: 13px; color: rgb(30,41,59); white-space: nowrap; }
+  .sb-row.l1 { font-weight: 500; margin-top: 2px; }
+  .sb-row.l2 { padding-left: 36px; }
+  .sb-row.l3 { padding-left: 58px; }
+  .sb-row.sel { background: rgba(15,23,42,.09); }
+  .sb-row svg { width: 16px; height: 16px; color: rgb(100,116,139); flex-shrink: 0; }
+  .sb-row .mk { margin-left: auto; }
+  .sb-foot { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px 12px; font-size: 11.5px; color: rgb(100,116,139); white-space: nowrap; }
+  .sb-foot .gh { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; color: rgb(71,85,105); }
+  .sb-foot .gh svg { width: 16px; height: 16px; }
+  .sb-foot .nm { font-weight: 600; color: rgb(30,41,59); }
+  .sb.rail { width: 48px; }
+  .sb.rail .sb-head { justify-content: center; }
+
+  /* The "AOA Service URL" form of the left panel (ServiceUrlInput.tsx). */
+  .sb-form { padding: 12px 10px 8px; }
+  .label-caps { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgb(100,116,139); }
+  .field { display: flex; align-items: center; gap: 6px; border: 1px solid rgba(15,23,42,.18); border-radius: 4px; background: rgba(255,255,255,.7); padding: 6px 6px 6px 10px; font-size: 12.5px; color: rgb(30,41,59); white-space: nowrap; overflow: hidden; margin-top: 6px; }
+  .field .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .field svg { width: 17px; height: 17px; color: rgb(100,116,139); flex-shrink: 0; }
+  .key { letter-spacing: .08em; color: rgb(100,116,139); }
+  .field-help { font-size: 11.5px; color: rgb(100,116,139); margin-top: 6px; line-height: 1.4; }
+  .recent { margin-top: 14px; }
+  .recent-row { display: flex; gap: 8px; align-items: flex-start; padding: 6px; border-radius: 6px; font-size: 12.5px; }
+  .recent-row.hover { background: rgba(15,23,42,.05); }
+  .recent-row svg { width: 15px; height: 15px; color: rgb(100,116,139); flex-shrink: 0; margin-top: 1px; }
+  .recent-row .addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(30,41,59); }
+  .recent-row .kind { font-size: 11px; color: rgb(100,116,139); margin-top: 1px; }
+
+  /* ---- Maxitor: main column ---- */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+  .toprow { height: 38px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--workspace); border-bottom: 1px solid rgba(15,23,42,.06); }
+  .toprow .spacer { flex: 1; }
+  .ghost { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; color: #0f172a; background: rgba(15,23,42,.06); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .ghost svg { width: 14px; height: 14px; }
+
+  /* The version button: the whole history in one line, closed while you work. */
+  .vpill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 8px; border-radius: 8px; background: rgba(15,23,42,.05); font-size: 12.5px; color: #334155; white-space: nowrap; }
+  .vpill.open { background: rgba(15,23,42,.1); }
+  .vpill > svg { width: 15px; height: 15px; color: #64748b; flex-shrink: 0; }
+  .vpill b { color: #0f172a; font-weight: 600; }
+  .vpill .md { color: #64748b; }
+  .vpill .cnt { margin-left: 4px; display: inline-flex; gap: 6px; font-variant-numeric: tabular-nums; }
+  .cur { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .cur.sm { width: 16px; height: 16px; font-size: 9px; }
+  .cur.a { background: #fff; color: #0f172a; box-shadow: inset 0 0 0 1.4px #0f172a; }
+  .cur.b { background: #0f172a; color: #fff; }
+  .p { color: var(--add-ink); font-weight: 600; } .m { color: var(--del-ink); font-weight: 600; } .c { color: var(--chg-ink); font-weight: 600; }
+
+  /* The version picker, opened from the button. */
+  .vpop { position: absolute; z-index: 70; top: 44px; left: 10px; width: 760px; background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 10px;
+          box-shadow: 0 12px 40px rgba(15,23,42,.16), 0 1px 2px rgba(15,23,42,.06); padding: 14px 20px 12px;
+          /* Never taller than the workspace: with a long list of versions between, the whole card scrolls. */
+          max-height: calc(100% - 54px); overflow-y: auto; scrollbar-width: thin; }
+  .vpop-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .vpop-title { font-size: 13px; font-weight: 600; color: #0f172a; }
+  .vpop-sub { font-size: 11.5px; color: #64748b; margin-top: 1px; }
+  .vpop svg { display: block; }
+  .vlist { margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(15,23,42,.06); }
+  .vrow-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #334155; padding: 4px 0; white-space: nowrap; }
+  .vrow-h svg { width: 14px; height: 14px; color: #94a3b8; flex-shrink: 0; }
+  .vrow-h b { color: #0f172a; font-weight: 600; flex-shrink: 0; }
+  .vrow-h .t { overflow: hidden; text-overflow: ellipsis; }
+  .vrow-h .t.muted { color: #94a3b8; font-size: 11.5px; }
+  .vcols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .vlist > .vmsg-body, .vcols > .vmsg-body { margin: 2px 0 6px; }
+  .vbetween { margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(15,23,42,.1); }
+  .rchip { flex-shrink: 0; height: 19px; padding: 0 8px; border-radius: 10px; display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; }
+  .rchip.a { background: #fff; color: #0f172a; box-shadow: inset 0 0 0 1.2px #0f172a; }
+  .rchip.b { background: #0f172a; color: #fff; }
+  .vrow-h .d { margin-left: auto; padding-left: 12px; color: #94a3b8; font-size: 11.5px; flex-shrink: 0; }
+  /* A message keeps its own line breaks and wraps long lines by words. Its box stops at about nine lines and
+     scrolls inside; while more is below, its lower edge fades. In two columns each box scrolls on its own. */
+  .vmsg-body { white-space: pre-wrap; font-size: 12px; line-height: 1.5; color: #334155; background: #f8fafc; border: 1px solid rgba(15,23,42,.06);
+               border-radius: 6px; padding: 8px 10px; margin: 2px 0 6px 22px; max-height: 180px; overflow-y: auto; user-select: text; }
+  .vmsg-body::-webkit-scrollbar { width: 6px; }
+  .vmsg-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .vmsg-body::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+  .vmsg-body.long { -webkit-mask-image: linear-gradient(#000 calc(100% - 26px), transparent); mask-image: linear-gradient(#000 calc(100% - 26px), transparent); }
+  .vpop-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid rgba(15,23,42,.06); font-size: 12px; color: #475569; white-space: nowrap; }
+  .vpop-foot .dir { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: #0f172a; }
+  .vpop-foot .dir svg { width: 15px; height: 15px; }
+  .vpop-foot .spacer { flex: 1; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 26px; border-radius: 8px; padding: 0 10px 0 8px; font-size: 12px; font-weight: 500; white-space: nowrap; background: rgba(15,23,42,.06); color: #0f172a; }
+  .btn svg { width: 14px; height: 14px; }
+  .seg { display: inline-flex; border: 1px solid rgba(15,23,42,.12); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg span { height: 24px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; font-size: 12px; color: #475569; white-space: nowrap; }
+  .seg span.on { background: rgba(15,23,42,.08); color: #0f172a; font-weight: 600; }
+  .seg span svg { width: 14px; height: 14px; }
+
+  /* ---- Maxitor: workspace ---- */
+  .ws { flex: 1; min-height: 0; position: relative; overflow: hidden; background-color: var(--workspace);
+        background-image: radial-gradient(rgba(160,168,180,.42) 1px, transparent 1px); background-size: 20px 20px; }
+  .ws > svg.diagram, .half > svg.diagram { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #94a3b8; }
+  .zoombar { position: absolute; bottom: 10px; left: 10px; z-index: 40; display: flex; align-items: center; gap: 4px; }
+  .zoombar .z { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; font-size: 15px; font-weight: 500; }
+  .zoombar .pct { font-size: 11px; color: #64748b; min-width: 3.1em; text-align: center; font-variant-numeric: tabular-nums; }
+  .zoombar .mode { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; border-radius: 6px; }
+  .zoombar .mode.on { background: rgba(15,23,42,.08); color: #0f172a; }
+  .zoombar .mode svg { width: 16px; height: 16px; }
+  .locate { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 6px; padding: 5px 11px 5px 8px; border-radius: 14px;
+            background: #0f172a; color: #fff; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 10px rgba(15,23,42,.2); }
+  .locate svg { width: 15px; height: 15px; }
+  .mk { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+  .mk.p { background: var(--add); } .mk.m { background: var(--del); } .mk.c { background: var(--chg); }
+
+  /* The card of one element, opened by a click: what changed, before and after. */
+  .fcard { position: absolute; z-index: 60; width: 300px; background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 8px; box-shadow: 0 8px 30px rgba(15,23,42,.14), 0 1px 2px rgba(15,23,42,.06);
+           padding: 10px 12px; font-size: 12px; color: #1e293b; }
+  .fcard .h { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; }
+  .fcard .s { color: #64748b; font-size: 11.5px; margin: 2px 0 8px 23px; }
+  .fcard .r { display: grid; grid-template-columns: 56px 1fr; gap: 6px; padding: 4px 0; border-top: 1px solid rgba(15,23,42,.06); line-height: 1.4; }
+  .fcard .r span:first-child { color: #64748b; }
+  .fcard .was { color: var(--del-ink); text-decoration: line-through; text-decoration-color: rgba(127,29,29,.45); }
+  .fcard .now { color: var(--add-ink); }
+
+  /* Side by side: two halves of one workspace, A on the left, B on the right. */
+  .split { display: flex; }
+  .half { flex: 1; position: relative; overflow: hidden; }
+  .half + .half { border-left: 1px solid rgba(15,23,42,.14); }
+  .half-head { position: absolute; top: 0; left: 0; right: 0; height: 30px; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; color: #334155;
+               background: rgba(244,245,247,.92); border-bottom: 1px solid rgba(15,23,42,.06); }
+  .half-head b { color: #0f172a; }
+
+  /* ---- phone ---- */
+  .phonebar { height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 2px; padding: 0 6px 0 4px; background: var(--sidebar); border-bottom: 1px solid rgba(15,23,42,.08); }
+  .phonebar .spacer { flex: 1; }
+  .phonebar .icon-btn { width: 44px; height: 44px; }
+  .phonebar .icon-btn svg { width: 18px; height: 18px; }
+  .phonebar .vpill { height: 32px; }
+  .scrim { position: absolute; inset: 0; z-index: 80; background: rgba(15,23,42,.22); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 90; background: #fff; border-radius: 16px 16px 0 0; box-shadow: 0 -6px 24px rgba(15,23,42,.18); padding: 8px 16px 18px; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: #cbd5e1; margin: 0 auto 12px; }
+  .sheet .seg span { height: 34px; padding: 0 14px; font-size: 13px; }
+  .sheet .scroller { position: relative; overflow: hidden; margin: 14px -16px 0; height: 64px; }
+  .sheet .scroller svg { position: absolute; top: 0; }
+  .sheet .scroller::before, .sheet .scroller::after { content: ""; position: absolute; top: 0; bottom: 0; width: 28px; z-index: 2; }
+  .sheet .scroller::before { left: 0; background: linear-gradient(90deg, #fff, rgba(255,255,255,0)); }
+  .sheet .scroller::after { right: 0; background: linear-gradient(270deg, #fff, rgba(255,255,255,0)); }
+  .sheet .foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12.5px; color: #334155; }
+  .sheet .foot .btn { height: 44px; padding: 0 14px; font-size: 13px; margin-left: auto; }
+
+  /* ---- the picker up close ---- */
+  .sheetcard { background: #fff; border-radius: 10px; box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 8px 28px rgba(15,23,42,.12); padding: 4px 24px 12px; width: 820px; }
+  .cmp { padding: 16px 0 14px; border-bottom: 1px solid rgba(15,23,42,.07); position: relative; }
+  .cmp:last-child { border-bottom: 0; }
+  .cmp-h { font-size: 12.5px; color: #475569; margin-bottom: 10px; line-height: 1.45; }
+  .cmp-h b { color: #0f172a; margin-right: 6px; }
+  .mini { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; margin: 4px 0 0; }
+  .tip { position: absolute; z-index: 5; width: 250px; background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 8px; box-shadow: 0 8px 30px rgba(15,23,42,.14), 0 1px 2px rgba(15,23,42,.06); padding: 10px 12px; font-size: 12px; color: #1e293b; line-height: 1.45; }
+  .tip .h { font-weight: 600; font-size: 13px; }
+  .tip .h span { font-weight: 400; color: #64748b; font-size: 12px; }
+  .tip .m2 { color: #64748b; font-size: 11.5px; }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <h1>Graph history</h1>
+  <p class="sub">Design mockup for issue #273: picking versions of a service's graph and comparing two of them on every diagram. Maxitor's own sizes and colours. Diagrams use gameoffer's real changes between 0.8.0 and 0.9.0, cut down; what is invented is said on each screen.</p>
+</nav>
+<main class="stage">
+  <div class="frames" id="frames"></div>
+  <section class="notes" id="notes"></section>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Icons (the first ones are Maxitor's own, as in the rooms mockup)
+// ---------------------------------------------------------------------------
+
+const I = {
+  panel: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linejoin="round" d="M4.75 5.75h14.5c.55 0 1 .45 1 1v10.5c0 .55-.45 1-1 1H4.75c-.55 0-1-.45-1-1V6.75c0-.55.45-1 1-1z"/><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" d="M9.25 6.25v11.5"/></svg>',
+  swap: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" stroke-linejoin="round" d="M4.75 8h14.5M15.75 5l3 3-3 3M19.25 16H4.75M8.25 13l-3 3 3 3"/></svg>',
+  reload: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" stroke-linejoin="round" d="M19.25 12a7.25 7.25 0 1 1-2.12-5.13M19.25 4.75v4h-4"/></svg>',
+  chevR: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+  chevD: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>',
+  table: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.4" d="M4 5h16v14H4zM4 10h16M10 10v9"/></svg>',
+  graph: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="2.2"/><circle cx="5" cy="6" r="1.6"/><circle cx="19" cy="6" r="1.6"/><circle cx="6" cy="18.5" r="1.6"/><circle cx="18" cy="18" r="1.6"/><path d="M10.3 10.6 6.2 7.1M13.7 10.6l4.1-3.5M10.5 13.8 7.1 17.3M13.6 13.6l3.3 3.3"/></g></svg>',
+  fsm: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="9" width="7" height="6" rx="3"/><rect x="14" y="4" width="7" height="6" rx="3"/><rect x="14" y="14" width="7" height="6" rx="3"/><path d="M10 11l4-3M10 13l4 3"/></g></svg>',
+  menu: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"/></svg>',
+  people: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17 14.3c1.9.6 3.1 2.2 3.5 4.7"/></g></svg>',
+  link: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 13.5a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.2 1.2"/><path d="M14 10.5a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.2-1.2"/></g></svg>',
+  github: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>',
+  history: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.75 12a8.25 8.25 0 1 0 2.42-5.83"/><path d="M3.75 4.5v3.75H7.5"/><path d="M12 7.75V12l2.75 1.75"/></g></svg>',
+  live: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M8.3 8.3a5.2 5.2 0 0 0 0 7.4M15.7 8.3a5.2 5.2 0 0 1 0 7.4M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></g></svg>',
+  swapV: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M8 4.75v14.5M4.75 8 8 4.75 11.25 8M16 19.25V4.75M12.75 16 16 19.25 19.25 16"/></svg>',
+  arrowR: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M4.75 12h14.5M14 6.75 19.25 12 14 17.25"/></svg>',
+  arrowL: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M19.25 12H4.75M10 6.75 4.75 12 10 17.25"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.75 12S6 5.75 12 5.75 21.25 12 21.25 12 18 18.25 12 18.25 2.75 12 2.75 12z"/><circle cx="12" cy="12" r="2.75"/></g></svg>',
+  one: '<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  diff: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8.5 9.5h4M10.5 7.5v4M8.5 15.5h4"/></g></svg>',
+  split: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M12 5v14"/></g></svg>',
+  modeLR: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="9" width="5" height="6" rx="1"/><rect x="16" y="4" width="5" height="6" rx="1"/><rect x="16" y="14" width="5" height="6" rx="1"/><path d="M8 12h4M12 7v10M12 7h4M12 17h4"/></g></svg>',
+  modeTB: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="4" y="16" width="6" height="5" rx="1"/><rect x="14" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M7 12h10M7 12v4M17 12v4"/></g></svg>',
+  locate: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2.75v3M12 18.25v3M2.75 12h3M18.25 12h3"/></g></svg>',
+};
+
+const PROJECT_URL = "https://github.com/bystrovmaxim/aoa/tree/main/packages/aoa-maxitor";
+const MAXITOR_VERSION = "2.3.0";
+
+// ---------------------------------------------------------------------------
+// The history: oldest first. 001–006 are gameoffer's real snapshots (seed versions);
+// the merges after 0.9.0 are invented. Index N is Live.
+// ---------------------------------------------------------------------------
+
+const VERSIONS = [
+  { id: "001", label: "0.4.0", date: "Oct 22", title: "Income ranges come from rewards", seed: true },
+  { id: "002", label: "0.5.0", date: "Oct 23", title: "Player status in games", seed: true },
+  { id: "003", label: "0.6.0", date: "Oct 23", title: "Dictionary enums", seed: true },
+  { id: "004", label: "0.7.0", date: "Oct 23", title: "Offer request log", seed: true },
+  { id: "005", label: "0.8.0", date: "Oct 24", title: "AOA update, complete relations", seed: true, nodes: 418, edges: 517, tags: ["v0.8.0"],
+    msg: "- AOA moves to 90dd83e5: every relation is declared on both of its ends, so the graph gets the inverse links.\n- Direct many-to-many relations replace the link entities between players and showcases.\n- Dictionaries become containers: the gender, platform and event-kind dictionaries hold their values in the graph.\n- The admin panel reads dictionaries through one action instead of one per dictionary.\n\nThe graph builds with 418 nodes and 517 edges.\n\nSnapshot taken after the merge of #125 (issue #122)." },
+  { id: "006", label: "0.9.0", date: "Oct 26", title: "Offer request state, the chosen offer and the offer type", seed: true, nodes: 440, edges: 550, link: "gameoffer#129", tags: ["v0.9.0"],
+    msg: "Activation\n- POST /offers returns the id of each issued offer; a player activates an issued offer with POST /offers/activate.\n- An activation answers with the offer's type and the ticket's one-time content.\n- is_activated is gone from the issued offer: the request's lifecycle says what happened instead — issued, then activated, exhausted or expired.\n\nOffer types and tickets\n- OfferTypeEnumEntity: a promo code or a task.\n- OfferTicketDetailEntity: one unit of an offer's stock, with its one-time content.\n\nErrors\n- 404 Issued offer not found.\n- 409 Offer activation is no longer possible.\n- 409 Offer tickets are exhausted.\n\nAdmin panel\n- The offer card shows the type; the request card shows its state and the chosen offer.\n\nSnapshot taken after the merge of #130 (issue #129)." },
+  { id: "7c41e2a09b13", label: "0.10.0", date: "Oct 27", title: "Gift offers: an admin can give a player an offer without a request", pr: 140,
+    msg: "- New action GrantOfferAction, POST /offers/gift.\n- OfferRequestCoreEntity gets the kind gift.\n- A gift skips the offer's own caps, but not its advertiser's.\n- The admin panel gets a Gift button on the player card; it asks for the offer and a comment.\n\nWhy: support needs a way to make up for a failed activation without editing the database.\n\nMigration 0006_gift_requests adds the kind column, default request.\n\nNot in this change: a limit on how many gifts one admin may give (#141).", tags: ["v0.10.0"] },
+  { id: "d09a7f5e2c18", label: "0.10.0", date: "Oct 28", title: "Ticket import from CSV", pr: 142 },
+  { id: "3be81c6d4f70", label: "0.11.0", date: "Oct 30", title: "Advertiser caps: a daily and a monthly cap per advertiser", pr: 145,
+    msg: "An offer's caps are now checked against its advertiser's caps too; the stricter one wins.", tags: ["v0.11.0"] },
+  { id: "a6f2b7e91d05", label: "0.11.0", date: "Nov 2", title: "Offer regions: an offer is shown only in the regions it lists", pr: 147,
+    msg: "Model\n- OfferCoreEntity.regions becomes a list of RegionEnumEntity instead of a comma-separated string.\n- New dictionary RegionEnumEntity with the 85 regions; codes follow ISO 3166-2:RU.\n- An offer with no regions is shown everywhere, as before.\n\nActions\n- ReadOffersAction filters by the player's region; a player without a region sees only offers with no regions.\n- ReadOfferAction returns regions as an array of codes.\n- CreateOfferAction and UpdateOfferAction accept regions as an array; an unknown code is refused with 422.\n\nMigration\n- 0007_offer_regions splits the old strings, trims them and maps old names to codes.\n- 14 old values matched no region; they are listed in docs/migrations/0007.md and were fixed by hand on the stand.\n- The migration is reversible: going down joins the codes back with commas.\n\nAdmin panel\n- Regions are shown as chips on the offer card.\n- The offer list gets a region filter; it remembers the last choice.\n\nBreaking for clients\n- regions in the offer answer is now an array of codes, not a string.\n- Clients on the old format keep working until 1 December: the field regions_text still carries the old string.\n\nChecked\n- On the stand with the March export: 12 400 offers, 3 without a region, all shown everywhere.\n- Load test: ReadOffersAction p95 went from 41 ms to 44 ms.\n\nCloses #146." },
+  { id: "5e9d03c4a2b8", label: "0.11.0", date: "Nov 3", title: "Showcase keys are rotated without downtime", pr: 150, tags: ["prod"] },
+  { id: "c2718f6b0e9a", label: "0.12.0", date: "Nov 6", title: "Player segments: offers can target a segment", pr: 153,
+    msg: "- SegmentCoreEntity and the segment field of OfferCoreEntity.\n- ReadOffersAction keeps only the offers of the player's segments." },
+];
+const N = VERSIONS.length;
+const isMajor = (i) => i === 0 || i === N || VERSIONS[i].label !== VERSIONS[i - 1].label;
+const vName = (i) => (i === N ? "Live" : VERSIONS[i].pr && !isMajor(i) ? `${VERSIONS[i].label} · #${VERSIONS[i].pr}` : VERSIONS[i].label);
+
+/** Whether something marked p exists in version v: "both", "old" (0.8.0 only) or "new" (0.9.0 only). */
+const inV = (p, v) => (v <= 4 ? p !== "new" : p !== "old");
+
+/** Status when moving from A to B: "+" appears, "-" disappears, "~" changes, "=" stays. */
+function status(el, a, b) {
+  const inA = inV(el.p, a), inB = inV(el.p, b);
+  if (inA && inB) return el.changed ? "~" : "=";
+  return inA ? "-" : "+";
+}
+const HEX = { "+": "#16a34a", "-": "#dc2626", "~": "#d97706", "=": "#94a3b8" };
+const TINT = { "+": "var(--add-tint)", "-": "var(--del-tint)", "~": "var(--chg-tint)" };
+const INK = { "+": "var(--add-ink)", "-": "var(--del-ink)", "~": "var(--chg-ink)", "=": "#0f172a" };
+const SIGN = { "+": "+", "-": "−", "~": "~" };
+const MID = { "+": "p", "-": "m", "~": "c", "=": "e" };
+const markers = () => "<defs>" + Object.entries(HEX).map(([k, c]) =>
+  `<marker id="arr${MID[k]}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker>`).join("") + "</defs>";
+const badge = (x, y, s, r = 9) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${HEX[s]}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + r * 0.44}" font-size="${r * 1.3}" font-weight="700" fill="#fff" text-anchor="middle">${SIGN[s]}</text>`;
+
+// ---------------------------------------------------------------------------
+// ERD: one union of 0.8.0 and 0.9.0 in the offers domain. Two changes are illustrative and
+// not in gameoffer's real diff: erid's type, and chosen_offer pointing at another table.
+// ---------------------------------------------------------------------------
+
+const r = (n, t, k, p, extra = {}) => ({ n, t, k, p, ...extra });
+const TABLES = [
+  { id: "type", name: "OfferTypeEnumEntity", x: 0, y: 0, p: "new",
+    rows: [r("id", "str", "PK", "new"), r("code", "str", null, "new"), r("display_name", "str", null, "new"), r("is_obsolete", "bool", null, "new")] },
+  { id: "offer", name: "OfferCoreEntity", x: 0, y: 170, p: "both",
+    rows: [r("id", "str", "PK", "both"), r("title", "str", null, "both"), r("erid", "str | None", null, "both", { changed: true, was: "str" }), r("active_from", "datetime", null, "both"),
+           r("active_to", "datetime", null, "both"), r("offer_type", "OfferTypeEnumEntity", "FK", "new"), r("… 10 more fields", "", null, "both", { more: true })] },
+  { id: "ticket", name: "OfferTicketDetailEntity", x: 340, y: 0, p: "new",
+    rows: [r("id", "str", "PK", "new"), r("content", "str", null, "new"), r("offer", "OfferCoreEntity", "FK", "new"),
+           r("issued_offer", "OfferRequestItemDetailEntity", "FK", "new"), r("created_at", "datetime", null, "new"), r("updated_at", "datetime", null, "new")] },
+  { id: "item", name: "OfferRequestItemDetailEntity", x: 340, y: 220, p: "both", changed: true,
+    rows: [r("id", "str", "PK", "both"), r("position", "int", null, "both"), r("is_activated", "bool", null, "old"),
+           r("offer", "OfferCoreEntity", "FK", "both"), r("offer_request", "OfferRequestCoreEntity", "FK", "both"), r("created_at", "datetime", null, "both")] },
+  { id: "req", name: "OfferRequestCoreEntity", x: 680, y: 170, p: "both",
+    rows: [r("id", "str", "PK", "both"), r("lifecycle", "OfferRequestLifecycle", null, "new"), r("session_id", "str", null, "new"), r("requested_count", "int", null, "both"),
+           r("returned_count", "int", null, "both"), r("chosen_offer", "OfferRequestItemDetailEntity", "FK", "both", { changed: true, was: "OfferCoreEntity" }), r("created_at", "datetime", null, "both")] },
+];
+const T = Object.fromEntries(TABLES.map((t) => [t.id, t]));
+const TW = 270, TH = 30, RH = 20;
+const typeIn = (row, v) => (row.was && v <= 4 ? row.was : row.t);
+
+/**
+ * Links from an FK row to the table it points at. A link is its field: when only the target changes, it stays
+ * one link, changed, with a path per version (`was` in A, `d` in B).
+ */
+const LINES = [
+  { p: "new", ends: ["offer", "type"], src: ["offer", 5], dst: "type", d: (mid) => { const y = mid(T.offer, 5); return `M0,${y} C-48,${y} -48,15 0,15`; } },
+  { p: "new", ends: ["ticket", "offer"], src: ["ticket", 2], dst: "offer", d: (mid) => { const y = mid(T.ticket, 2); return `M340,${y} C305,${y} 305,185 270,185`; } },
+  { p: "new", ends: ["ticket", "item"], src: ["ticket", 3], dst: "item", d: (mid) => { const y = mid(T.ticket, 3); return `M610,${y} C652,${y} 652,235 610,235`; } },
+  { p: "both", ends: ["item", "offer"], src: ["item", 3], dst: "offer", d: (mid) => { const y = mid(T.item, 3); return `M340,${y} C305,${y} 305,215 270,215`; } },
+  { p: "both", ends: ["item", "req"], src: ["item", 4], dst: "req", d: (mid) => { const y = mid(T.item, 4); return `M610,${y} C645,${y} 645,185 680,185`; } },
+  { p: "both", changed: true, ends: ["req", "item", "offer"], src: ["req", 5], dst: "item", dstWas: "offer",
+    d: (mid) => { const y = mid(T.req, 5); return `M680,${y} C645,${y} 645,265 610,265`; },
+    was: (mid) => { const y = mid(T.req, 5); return `M680,${y} C640,${y} 655,192 615,192 L318,192 C292,192 292,200 270,200`; } },
+];
+
+/** Hovering a table lights it, its lines and the tables they join; everything else dims (Maxitor's ERD hover). */
+function litOf(id) {
+  const lines = new Set(LINES.filter((l) => l.ends.includes(id)));
+  const tables = new Set([id, ...[...lines].flatMap((l) => l.ends)]);
+  return { lines, tables };
+}
+
+/** 0.8.0's own layout, for Side by side: three of the five tables, arranged its own way. */
+const POS_A = { req: [0, 0], item: [340, 150], offer: [680, 0] };
+
+/** A link from a row's side to the target table's header, for a layout not tuned by hand. */
+function linkPath(sx, rowY, dx, dy) {
+  const ty = dy + 15;
+  if (dx + TW <= sx) return `M${sx},${rowY} C${sx - 40},${rowY} ${dx + TW + 40},${ty} ${dx + TW},${ty}`;
+  if (dx >= sx + TW) return `M${sx + TW},${rowY} C${sx + TW + 40},${rowY} ${dx - 40},${ty} ${dx},${ty}`;
+  return `M${sx + TW},${rowY} C${sx + TW + 44},${rowY} ${dx + TW + 44},${ty} ${dx + TW},${ty}`;
+}
+
+function erdSvg(cfg) {
+  const { mode, a, b } = cfg;
+  const compare = mode !== "one";
+  const split = mode === "split";
+  // The version a picture shows on its own: One mode's version, or one half of Side by side.
+  const sideV = split ? (cfg.side === "A" ? a : b) : mode === "one" ? cfg.v : null;
+  const shownIn = (p) => (sideV == null || inV(p, sideV));
+  const st = (el) => (compare ? status(el, a, b) : "=");
+  // A single version has its own layout: rows it lacks take no room, and in Side by side 0.8.0 places its
+  // tables its own way — a serious change may rebuild the picture. Diff draws the union and keeps every row's place.
+  const own = sideV != null;
+  const handTuned = !(split && sideV <= 4);
+  const pos = (tb) => (handTuned ? [tb.x, tb.y] : POS_A[tb.id]);
+  const idx = (tb, i) => (own ? tb.rows.slice(0, i).filter((row) => inV(row.p, sideV)).length : i);
+  const rTop = (tb, i) => pos(tb)[1] + TH + 4 + idx(tb, i) * RH;
+  const rMid = (tb, i) => rTop(tb, i) + RH / 2;
+  const hOf = (tb) => TH + (own ? tb.rows.filter((row) => inV(row.p, sideV)).length : tb.rows.length) * RH + 6;
+  // Hover and selection follow the element, not the place: both halves light the same table and its links.
+  const lit = cfg.hover ? litOf(cfg.hover) : null;
+  let out = markers();
+  for (const l of LINES) {
+    if (!shownIn(l.p)) continue;
+    const s = st(l), faded = compare && s === "=";
+    const op = lit && !lit.lines.has(l) ? 0.12 : faded ? 0.5 : 1;
+    const pathIn = (v) => {
+      if (handTuned) return (l.was && v <= 4 ? l.was : l.d)(rMid);
+      const target = T[l.dstWas && v <= 4 ? l.dstWas : l.dst], from = T[l.src[0]];
+      return linkPath(pos(from)[0], rMid(from, l.src[1]), pos(target)[0], pos(target)[1]);
+    };
+    if (mode === "diff" && l.was) out += `<path d="${pathIn(a)}" fill="none" stroke="${HEX[s]}" stroke-width="1.3" stroke-dasharray="4 4" opacity="${op * 0.85}" marker-end="url(#arr${MID[s]})"/>`;
+    out += `<path d="${pathIn(sideV ?? b)}" fill="none" stroke="${HEX[s]}" stroke-width="${s === "=" ? 1.3 : 1.9}" ${s === "-" ? 'stroke-dasharray="5 4"' : ""} opacity="${op}" marker-end="url(#arr${MID[s]})"/>`;
+  }
+  for (const tb of TABLES) {
+    if (!shownIn(tb.p)) continue;
+    const s = st(tb), h = hOf(tb), [x, y] = pos(tb);
+    if (cfg.select === tb.id) out += `<rect x="${x - 6}" y="${y - 6}" width="${TW + 12}" height="${h + 12}" rx="14" fill="none" stroke="#0f172a" stroke-width="2"/>`;
+    out += `<g${lit && !lit.tables.has(tb.id) ? ' opacity=".18"' : ""}><rect x="${x}" y="${y}" width="${TW}" height="${h}" rx="9" fill="#fff" stroke="${s === "=" ? "#8b5cf6" : HEX[s]}" stroke-width="${s === "=" ? 1.4 : 2.2}" ${s === "-" ? 'stroke-dasharray="7 4"' : ""}/>`;
+    out += `<path d="M${x} ${y + 9}a9 9 0 0 1 9-9h${TW - 18}a9 9 0 0 1 9 9v${TH - 9}h-${TW}z" fill="#8b5cf6" ${s === "-" ? 'fill-opacity=".55"' : ""}/>`;
+    out += `<text x="${x + 12}" y="${y + 20}" font-size="12.5" font-weight="600" fill="#fff">${tb.name}</text>`;
+    tb.rows.forEach((row, i) => {
+      if (!shownIn(row.p)) return;
+      const rs = st(row), ry = rTop(tb, i);
+      out += `<g${compare && rs === "=" ? ' opacity=".45"' : ""}>`;
+      if (rs !== "=") out += `<rect x="${x + 1}" y="${ry}" width="${TW - 2}" height="${RH}" fill="${TINT[rs]}"/>`;
+      else if (idx(tb, i) % 2) out += `<rect x="${x + 1}" y="${ry}" width="${TW - 2}" height="${RH}" fill="#8b5cf6" fill-opacity=".06"/>`;
+      if (rs !== "=") out += `<circle cx="${x + 11}" cy="${ry + 10}" r="5.6" fill="${HEX[rs]}"/><text x="${x + 11}" y="${ry + 13.4}" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">${SIGN[rs]}</text>`;
+      if (row.k) out += `<text x="${x + 21}" y="${ry + 14}" font-size="8.5" font-weight="700" fill="${row.k === "PK" && !compare ? "#b45309" : "#64748b"}">${row.k}</text>`;
+      out += `<text x="${x + 40}" y="${ry + 14}" font-size="11" fill="${row.more ? "#94a3b8" : INK[rs]}" ${row.more ? 'font-style="italic"' : ""}>${row.n}</text>`;
+      // A changed type shows both values when they fit, A's struck through; otherwise B's, and the card has both.
+      let type = row.t;
+      if (sideV != null) type = typeIn(row, sideV);
+      else if (rs === "~" && row.was) {
+        const from = typeIn(row, a), to = typeIn(row, b);
+        type = (from + to).length <= 18 ? `<tspan fill="#94a3b8" text-decoration="line-through">${from}</tspan> → ${to}` : to;
+      } else if (compare) type = typeIn(row, rs === "-" ? a : b);
+      if (row.t) out += `<text x="${x + TW - 10}" y="${ry + 14}" font-size="9.5" fill="${rs === "~" ? INK["~"] : "#64748b"}" text-anchor="end">${type}</text>`;
+      out += `</g>`;
+    });
+    if (s !== "=") out += badge(x + TW, y, s);
+    out += `</g>`;
+  }
+  return out;
+}
+
+/** What a diagram marks, counted per status — boxes and rows, not lines. */
+function erdCounts(a, b) {
+  const c = { "+": 0, "-": 0, "~": 0 };
+  for (const t of TABLES) {
+    const s = status(t, a, b); if (s !== "=") c[s]++;
+    for (const row of t.rows) { const rs = status(row, a, b); if (rs !== "=" && !row.more) c[rs]++; }
+  }
+  return c;
+}
+const cnt = (c) => ["+", "-", "~"].filter((k) => c[k]).map((k) => `<span class="${MID[k]}">${SIGN[k]}${c[k]}</span>`).join("");
+
+// ---------------------------------------------------------------------------
+// Full graph: a stand-in with four domain clusters; the changes sit in the offers cluster.
+// The counts on the button are gameoffer's real ones for 0.8.0 ↔ 0.9.0.
+// ---------------------------------------------------------------------------
+
+const GRAPH = (() => {
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const clusters = [
+    { label: "EventsDomain", color: "#3b82f6", cx: 220, cy: 190 },
+    { label: "OffersDomain", color: "#8b5cf6", cx: 640, cy: 170 },
+    { label: "PlayersDomain", color: "#10b981", cx: 230, cy: 470 },
+    { label: "ShowcasesDomain", color: "#f59e0b", cx: 650, cy: 470 },
+  ];
+  const nodes = [{ x: 440, y: 320, fill: "#000000", p: "both" }], edges = [];
+  clusters.forEach((c, ci) => {
+    const hub = nodes.push({ x: c.cx, y: c.cy, fill: "#377EB8", p: "both" }) - 1;
+    edges.push([0, hub]);
+    for (let e = 0; e < 4; e++) {
+      const a = (e / 4) * Math.PI * 2 + rnd() * 0.6;
+      const offers = ci === 1;
+      const entP = offers && e === 3 ? "new" : "both";
+      const ent = nodes.push({ x: c.cx + Math.cos(a) * 58, y: c.cy + Math.sin(a) * 58, fill: "#1B9E77", p: entP, changed: offers && e === 1 }) - 1;
+      edges.push([hub, ent]);
+      const k = 3 + Math.floor(rnd() * 3);
+      for (let f = 0; f < k; f++) {
+        const b = a + (f - (k - 1) / 2) * 0.32, rr = 100 + rnd() * 16;
+        let p = entP, changed = false;
+        if (offers && e === 0 && f === 1) p = "old";
+        if (offers && e === 0 && f === 2) p = "new";
+        if (offers && e === 2 && f < 2) changed = true;
+        const fld = nodes.push({ x: c.cx + Math.cos(b) * rr, y: c.cy + Math.sin(b) * rr, fill: f % 2 ? "#5AB4AC" : "#6B5B95", p, changed }) - 1;
+        edges.push([ent, fld]);
+      }
+    }
+    const act = nodes.push({ x: c.cx + (c.cx < 440 ? 1 : -1) * 130, y: c.cy + (c.cy < 320 ? 1 : -1) * 70, fill: "#4F46E5", p: "both", changed: ci === 1 }) - 1;
+    edges.push([act, hub]);
+  });
+  return { clusters, nodes, edges };
+})();
+
+function graphSvg(cfg) {
+  const { a, b } = cfg;
+  const edgeP = (e) => { const p1 = GRAPH.nodes[e[0]].p, p2 = GRAPH.nodes[e[1]].p; return p1 === "both" ? p2 : p1; };
+  let out = markers();
+  for (const c of GRAPH.clusters) out += `<circle cx="${c.cx}" cy="${c.cy}" r="138" fill="${c.color}" fill-opacity=".08" stroke="${c.color}" stroke-opacity=".35" stroke-width="1.5"/>`;
+  for (const e of GRAPH.edges) {
+    const s = status({ p: edgeP(e) }, a, b);
+    const n1 = GRAPH.nodes[e[0]], n2 = GRAPH.nodes[e[1]];
+    const dx = n2.x - n1.x, dy = n2.y - n1.y, L = Math.hypot(dx, dy) || 1;
+    out += `<line x1="${n1.x}" y1="${n1.y}" x2="${n2.x - (dx / L) * 9}" y2="${n2.y - (dy / L) * 9}" stroke="${HEX[s]}" stroke-width="${s === "=" ? 1.1 : 1.8}" ${s === "-" ? 'stroke-dasharray="4 3"' : ""} opacity="${s === "=" ? 0.35 : 1}"/>`;
+  }
+  for (const n of GRAPH.nodes) {
+    const s = status(n, a, b);
+    if (s === "=") out += `<circle cx="${n.x}" cy="${n.y}" r="7" fill="${n.fill}" opacity=".28"/>`;
+    else if (s === "-") out += `<circle cx="${n.x}" cy="${n.y}" r="7.5" fill="#fff" stroke="${HEX[s]}" stroke-width="2" stroke-dasharray="3 2"/>`;
+    else out += `<circle cx="${n.x}" cy="${n.y}" r="10" fill="${HEX[s]}" fill-opacity=".18"/><circle cx="${n.x}" cy="${n.y}" r="7" fill="${n.fill}" stroke="${HEX[s]}" stroke-width="2.4"/>`;
+  }
+  for (const c of GRAPH.clusters) {
+    const w = c.label.length * 6.4 + 12;
+    out += `<rect x="${c.cx - w / 2}" y="${c.cy - 150}" width="${w}" height="18" rx="5" fill="${c.color}" opacity="${c.label === "OffersDomain" ? 1 : 0.5}"/><text x="${c.cx}" y="${c.cy - 137}" font-size="11" fill="#fff" text-anchor="middle" font-weight="600">${c.label}</text>`;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Use case: gameoffer's real OffersDomain. No action came or went between 0.8.0 and 0.9.0, but three
+// changed inside — their results got new fields — so they are marked as changed.
+// ---------------------------------------------------------------------------
+
+const UC = [
+  { n: "ReadOffersAction", x: 360, y: 70, p: "both", changed: true },
+  { n: "ReadOfferAction", x: 360, y: 200, p: "both", changed: true },
+  { n: "ReadOfferRequestAction", x: 360, y: 330, p: "both", changed: true },
+  { n: "ReadAdvertisersAction", x: 640, y: 70, p: "both" },
+  { n: "ReadAdvertiserAction", x: 640, y: 200, p: "both" },
+  { n: "ReadGameOfferRewardsAction", x: 640, y: 330, p: "both" },
+];
+function ucSvg(cfg) {
+  const { a, b } = cfg;
+  let out = `<rect x="210" y="-10" width="580" height="420" rx="16" fill="#8b5cf6" fill-opacity=".04" stroke="#8b5cf6" stroke-opacity=".5" stroke-width="1.4"/>`;
+  out += `<rect x="226" y="-22" width="104" height="22" rx="6" fill="#8b5cf6"/><text x="278" y="-7" font-size="11.5" fill="#fff" text-anchor="middle" font-weight="600">OffersDomain</text>`;
+  const ax = 70, ay = 200;
+  for (const u of UC) {
+    const s = status(u, a, b);
+    out += `<line x1="${ax + 22}" y1="${ay}" x2="${u.x - 118}" y2="${u.y}" stroke="#94a3b8" stroke-width="1.2" opacity="${s === "=" ? 0.4 : 0.9}"/>`;
+  }
+  out += `<g stroke="#334155" stroke-width="1.8" fill="none" stroke-linecap="round"><circle cx="${ax}" cy="${ay - 30}" r="10" fill="#fff"/><path d="M${ax} ${ay - 20}v26M${ax - 16} ${ay - 8}h32M${ax} ${ay + 6}l-12 18M${ax} ${ay + 6}l12 18"/></g>`;
+  out += `<text x="${ax}" y="${ay + 44}" font-size="11.5" fill="#0f172a" text-anchor="middle" font-weight="600">AdminViewerRole</text>`;
+  for (const u of UC) {
+    const s = status(u, a, b);
+    out += `<g opacity="${s === "=" ? 0.4 : 1}"><ellipse cx="${u.x}" cy="${u.y}" rx="118" ry="26" fill="${s === "=" ? "#fff" : TINT[s]}" stroke="${s === "=" ? "#8b5cf6" : HEX[s]}" stroke-width="${s === "=" ? 1.3 : 2.2}"/>`;
+    out += `<text x="${u.x}" y="${u.y + 4}" font-size="11.5" fill="${INK[s]}" text-anchor="middle">${u.n}</text></g>`;
+    if (s !== "=") out += badge(u.x + 104, u.y - 20, s, 8);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle: OfferRequestCoreEntity's lifecycle is new in 0.9.0 (real). A has no such diagram at all.
+// ---------------------------------------------------------------------------
+
+const FSM = [
+  { n: "issued", x: 60, y: 150, kind: "initial" },
+  { n: "activated", x: 380, y: 30, kind: "final" },
+  { n: "exhausted", x: 380, y: 150, kind: "final" },
+  { n: "expired", x: 380, y: 270, kind: "final" },
+];
+function fsmSvg(cfg) {
+  const s = status({ p: "new" }, cfg.a, cfg.b);
+  let out = markers();
+  out += `<circle cx="-10" cy="150" r="7" fill="${HEX[s]}"/><path d="M-3 150H18" stroke="${HEX[s]}" stroke-width="1.8" marker-end="url(#arr${MID[s]})"/>`;
+  for (const t of FSM.slice(1)) out += `<path d="M${FSM[0].x + 84},150 C230,150 260,${t.y} ${t.x - 4},${t.y}" fill="none" stroke="${HEX[s]}" stroke-width="1.8" ${s === "-" ? 'stroke-dasharray="5 4"' : ""} marker-end="url(#arr${MID[s]})"/>`;
+  for (const t of FSM) {
+    out += `<rect x="${t.x - 42}" y="${t.y - 18}" width="${t.x === 60 ? 126 : 130}" height="36" rx="18" fill="${TINT[s]}" stroke="${HEX[s]}" stroke-width="2" ${s === "-" ? 'stroke-dasharray="6 4"' : ""}/>`;
+    if (t.kind === "final") out += `<rect x="${t.x - 38}" y="${t.y - 14}" width="122" height="28" rx="14" fill="none" stroke="${HEX[s]}" stroke-width="1.2"/>`;
+    out += `<text x="${t.x + (t.x === 60 ? 21 : 23)}" y="${t.y + 4}" font-size="12" fill="${INK[s]}" text-anchor="middle" font-weight="600">${t.n}</text>`;
+    out += badge(t.x + (t.x === 60 ? 84 : 88), t.y - 18, s, 8);
+  }
+  return out;
+}
+
+const DIAGRAMS = {
+  erd: { svg: erdSvg, bounds: [-62, -16, 960, 392], counts: erdCounts },
+  graph: { svg: graphSvg, bounds: [60, 10, 820, 620], counts: (a, b) => (b > a ? { "+": 23, "-": 1, "~": 5 } : { "+": 1, "-": 23, "~": 5 }) },
+  uc: { svg: ucSvg, bounds: [20, -30, 800, 420], counts: () => ({ "+": 0, "-": 0, "~": 3 }) },
+  fsm: { svg: fsmSvg, bounds: [-30, 0, 530, 300], counts: (a, b) => (b > a ? { "+": 4, "-": 0, "~": 0 } : { "+": 0, "-": 4, "~": 0 }) },
+};
+
+// ---------------------------------------------------------------------------
+// The picker: one time axis. A comparison is a range on it, from A (older) to B (newer).
+// ---------------------------------------------------------------------------
+
+function railX(i, w, pad = 16) {
+  const step = (w - 2 * pad) / (N - 1 + 1.4);
+  return i < N ? pad + i * step : pad + (N - 1) * step + 1.4 * step;
+}
+
+/**
+ * One time axis, oldest left, newest right, Live last after a dashed gap.
+ * mode "one": one handle, on b. mode "range": A and B on the same track, A always older than B.
+ */
+function timelineSvg(o) {
+  const range = o.mode === "range";
+  const w = o.w, X = (i) => railX(i, w), y = o.drag ? 48 : 26, yL = y + 26, h = yL + 12;
+  let s = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="ui-sans-serif, system-ui, sans-serif">`;
+  s += `<defs><filter id="tl-sh" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#0f172a" flood-opacity=".22"/></filter></defs>`;
+  // Git tags on a version's commit are small flags above the track; their names are in the point's tooltip.
+  s += VERSIONS.map((v, i) => (v.tags ? `<path d="M${X(i)} ${y - 6}V${y - 18}" stroke="#94a3b8" stroke-width="1.2"/><path d="M${X(i)} ${y - 18}h7l-2 2.4 2 2.4h-7z" fill="#94a3b8"/>` : "")).join("");
+  s += `<line x1="${X(0)}" y1="${y}" x2="${X(N - 1)}" y2="${y}" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"/>`;
+  s += `<line x1="${X(N - 1)}" y1="${y}" x2="${X(N)}" y2="${y}" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="2 4" stroke-linecap="round"/>`;
+  for (let i = 0; i <= N; i++) {
+    if (i === N) s += `<circle cx="${X(i)}" cy="${y}" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>`;
+    else s += `<circle cx="${X(i)}" cy="${y}" r="${isMajor(i) ? 3.4 : 2.2}" fill="${isMajor(i) ? "#cbd5e1" : "#dbe2ea"}"/>`;
+  }
+  // The chosen span is a dark stretch of track from A to B; the versions inside it stay visible as light dots.
+  if (range) {
+    s += `<line x1="${X(o.a)}" y1="${y}" x2="${X(o.b)}" y2="${y}" stroke="#334155" stroke-width="3" stroke-linecap="round"/>`;
+    for (let i = o.a + 1; i < o.b; i++) s += `<circle cx="${X(i)}" cy="${y}" r="1.7" fill="#fff"/>`;
+  }
+  if (o.hover != null) s += `<circle cx="${X(o.hover)}" cy="${y}" r="7.5" fill="none" stroke="#94a3b8" stroke-width="1.4"/>`;
+  const knob = (i, dark) => `<circle cx="${X(i)}" cy="${y}" r="7.5" fill="${dark ? "#0f172a" : "#fff"}" stroke="${dark ? "#fff" : "#0f172a"}" stroke-width="2" filter="url(#tl-sh)"/>`;
+  if (range) s += knob(o.a, false);
+  s += knob(o.b, true);
+  // A drag in progress, for the close-up: a dashed path from the handle to where it is dropped.
+  if (o.drag) {
+    const [from, to] = o.drag, x1 = X(from), x2 = X(to), top = y - 44;
+    s += `<defs><marker id="dr-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 .5L9 5L0 9.5z" fill="#64748b"/></marker></defs>`;
+    s += `<path d="M${x1},${y - 11} C${x1},${top} ${x2},${top} ${x2},${y - 12}" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#dr-arrow)"/>`;
+    s += `<circle cx="${x2}" cy="${y}" r="7.5" fill="#fff" fill-opacity=".6" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+  }
+  // Version names appear once, under the track; the chosen ones become chips in their handle's style.
+  const sel = range ? [o.a, o.b] : [o.b];
+  const half = (j) => (vName(j).length * 6.3 + 16) / 2;
+  for (let i = 0; i <= N; i++) {
+    if (!isMajor(i) || sel.some((j) => Math.abs(X(j) - X(i)) < half(j) + 20)) continue;
+    s += `<text x="${X(i)}" y="${yL + 4}" font-size="10.5" fill="#94a3b8" text-anchor="middle">${i === N ? "Live" : VERSIONS[i].label}</text>`;
+  }
+  const chip = (j, dark) => `<rect x="${X(j) - half(j)}" y="${yL - 9}" width="${half(j) * 2}" height="18" rx="9" fill="${dark ? "#0f172a" : "#fff"}" stroke="#0f172a" stroke-width="1.2"/><text x="${X(j)}" y="${yL + 3.8}" font-size="10.5" font-weight="600" fill="${dark ? "#fff" : "#0f172a"}" text-anchor="middle">${vName(j)}</text>`;
+  if (range) s += chip(o.a, false);
+  return s + chip(o.b, true) + "</svg>";
+}
+
+/**
+ * A long history in a card narrower than its track: 64 invented versions, a release every fourth.
+ * The track keeps 26 px per point and scrolls sideways without a scrollbar; the edges fade where more is hidden,
+ * and a handle scrolled out of view is pinned to its edge.
+ */
+function longTrackSvg(o) {
+  const L = 64, step = 26, w = o.w, y = 26, yL = 52, h = 64;
+  const X = (i) => 16 + (i < L ? i * step : (L - 1) * step + 1.6 * step);
+  const name = (i) => (i === L ? "Live" : `0.${Math.floor(i / 4) + 1}.0${i % 4 ? ` · #${200 + i}` : ""}`);
+  const major = (i) => i === L || i % 4 === 0;
+  const off = o.offset, seen = (i) => X(i) - off > 24 && X(i) - off < w - 24;
+  let g = `<line x1="${X(0)}" y1="${y}" x2="${X(L - 1)}" y2="${y}" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"/>`;
+  g += `<line x1="${X(L - 1)}" y1="${y}" x2="${X(L)}" y2="${y}" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="2 4"/>`;
+  for (let i = 0; i <= L; i++) g += i === L ? `<circle cx="${X(i)}" cy="${y}" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>` : `<circle cx="${X(i)}" cy="${y}" r="${major(i) ? 3.4 : 2.2}" fill="${major(i) ? "#cbd5e1" : "#dbe2ea"}"/>`;
+  g += `<line x1="${X(o.a)}" y1="${y}" x2="${X(o.b)}" y2="${y}" stroke="#334155" stroke-width="3" stroke-linecap="round"/>`;
+  for (let i = o.a + 1; i < o.b; i++) g += `<circle cx="${X(i)}" cy="${y}" r="1.7" fill="#fff"/>`;
+  const chipW = (i) => name(i).length * 6.3 + 16;
+  for (let i = 0; i <= L; i++) if (major(i) && Math.abs(X(i) - X(o.b)) > chipW(o.b) / 2 + 20) g += `<text x="${X(i)}" y="${yL + 4}" font-size="10.5" fill="#94a3b8" text-anchor="middle">${name(i).split(" ")[0]}</text>`;
+  g += `<circle cx="${X(o.b)}" cy="${y}" r="7.5" fill="#0f172a" stroke="#fff" stroke-width="2"/>`;
+  g += `<rect x="${X(o.b) - chipW(o.b) / 2}" y="${yL - 9}" width="${chipW(o.b)}" height="18" rx="9" fill="#0f172a"/><text x="${X(o.b)}" y="${yL + 3.8}" font-size="10.5" font-weight="600" fill="#fff" text-anchor="middle">${name(o.b)}</text>`;
+  let s = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="ui-sans-serif, system-ui, sans-serif">`;
+  s += `<defs><linearGradient id="fadeL"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><linearGradient id="fadeR"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>`;
+  s += `<g transform="translate(${-off} 0)">${g}</g>`;
+  s += `<rect x="0" y="0" width="56" height="${h}" fill="url(#fadeL)"/><rect x="${w - 56}" y="0" width="56" height="${h}" fill="url(#fadeR)"/>`;
+  // A, scrolled out on the left, is pinned to that edge: a click on it scrolls back to it.
+  if (!seen(o.a)) {
+    s += `<path d="M10 ${y}l5-4.5v9z" fill="#334155"/><circle cx="26" cy="${y}" r="7.5" fill="#fff" stroke="#0f172a" stroke-width="2"/>`;
+    const t2 = name(o.a), cw = t2.length * 6.3 + 16;
+    s += `<rect x="8" y="${yL - 9}" width="${cw}" height="18" rx="9" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><text x="${8 + cw / 2}" y="${yL + 3.8}" font-size="10.5" font-weight="600" fill="#0f172a" text-anchor="middle">${t2}</text>`;
+  }
+  const newer = L + 1 - [...Array(L + 1).keys()].filter((i) => X(i) - off < w - 24).length;
+  if (newer > 0) s += `<text x="${w - 6}" y="${yL + 4}" font-size="10.5" fill="#64748b" text-anchor="end">${newer} newer ›</text>`;
+  return s + "</svg>";
+}
+
+// ---------------------------------------------------------------------------
+// Maxitor chrome
+// ---------------------------------------------------------------------------
+
+function sidebar(cfg) {
+  const gh = `<a class="gh" href="${PROJECT_URL}" target="_blank" rel="noopener" title="Maxitor on GitHub">${I.github}</a>`;
+  if (cfg.collapsed) return `<aside class="sb rail"><div class="sb-head"><span class="icon-btn">${I.panel}</span></div><div class="sb-foot">${gh}</div></aside>`;
+  const head = `<div class="sb-head"><span class="icon-btn">${I.panel}</span><span class="icon-btn${cfg.input ? " on" : ""}">${I.swap}</span><span class="icon-btn">${I.reload}</span></div>`;
+  const foot = `<div class="sb-foot">${gh}<span class="nm">Maxitor</span><span>${MAXITOR_VERSION}</span></div>`;
+  if (cfg.input) {
+    const rec = (icon, addr, kind, hover) => `<div class="recent-row${hover ? " hover" : ""}">${icon}<div style="min-width:0"><div class="addr">${addr}</div><div class="kind">${kind}</div></div></div>`;
+    return `<aside class="sb">${head}<div class="sb-form">
+      <div class="label-caps">AOA Service URL</div>
+      <div class="field"><span class="txt">history.example.com/h/<span class="key">••••••••</span>/index.json</span>${I.eye}${I.link}</div>
+      <div class="field-help">A running service, a graph-json address, a history gateway address, or a graph file on GitHub.</div>
+      <div class="recent"><div class="label-caps">Recent</div>
+        ${rec(I.history, `history.example.com/h/<span class="key">••••••••</span>/index.json`, "History · forecast-admin · 12 versions and Live", true)}
+        ${rec(I.live, "admin.example.com", "Live service · one graph")}
+        ${rec(I.history, "github.com/bystrovmaxim/aoa/…/aoa-demo/graph.json", "History · public GitHub")}
+      </div></div>${foot}</aside>`;
+  }
+  const row = (cls, icon, text, mark) => `<div class="sb-row ${cls}">${icon}${text}${mark ? `<span class="mk ${MID[mark]}">${SIGN[mark]}</span>` : ""}</div>`;
+  if (cfg.diagram === "fsm") {
+    return `<aside class="sb">${head}
+      ${row("l1", I.chevR, "Applications")}
+      ${row("l1", I.chevR, "Domains")}
+      ${row("l1", I.chevR, "Roles")}
+      ${row("l1", I.chevR, "Actions")}
+      ${row("l1", I.chevD, "Entities")}
+      ${row("l2", I.chevR, "OfferCoreEntity")}
+      ${row("l2", I.chevD, "OfferRequestCoreEntity")}
+      ${row("l3 sel", I.fsm, "lifecycle", "+")}
+      ${row("l2", I.chevR, "OfferTicketDetailEntity", "+")}
+      ${row("l2", I.chevR, "OfferTypeEnumEntity", "+")}
+      ${row("l2", I.chevR, "PlayerCoreEntity")}
+      ${foot}</aside>`;
+  }
+  return `<aside class="sb">${head}
+    ${row("l1", I.chevD, "Applications")}
+    ${row("l2" + (cfg.diagram === "graph" ? " sel" : ""), I.graph, "Full graph view")}
+    ${row("l1", I.chevD, "Domains")}
+    ${row("l2", I.table, "Entity all domains view")}
+    ${row("l2", I.chevR, "EventsDomain")}
+    ${row("l2" + (cfg.diagram === "erd" || cfg.diagram === "uc" || !cfg.diagram ? " sel" : ""), I.chevR, "OffersDomain")}
+    ${row("l2", I.chevR, "PlayersDomain")}
+    ${row("l2", I.chevR, "ShowcasesDomain")}
+    ${row("l1", I.chevR, "Roles")}
+    ${row("l1", I.chevR, "Actions")}
+    ${row("l1", I.chevR, "Entities")}
+    ${foot}</aside>`;
+}
+
+function modeSwitch(mode, phone) {
+  const item = (m, icon, text) => `<span class="${mode === m ? "on" : ""}">${icon}${text}</span>`;
+  return `<span class="seg">${item("one", I.one, "One")}${item("diff", I.diff, "Diff")}${phone ? item("ab", I.swap, "A / B") : item("split", I.split, "Side by side")}</span>`;
+}
+
+/** The closed picker: where you are, in one line, with what this diagram marks. */
+function versionPill(cfg) {
+  const d = DIAGRAMS[cfg.diagram ?? "erd"];
+  const body = cfg.mode === "one"
+    ? `<b>${vName(cfg.b)}</b>`
+    : `<span class="cur a sm">A</span><b>${vName(cfg.a)}</b>${I.arrowR}<span class="cur b sm">B</span><b>${vName(cfg.b)}</b>${cfg.mode === "split" ? '<span class="md">· side by side</span>' : ""}<span class="cnt">${cnt(d.counts(cfg.a, cfg.b))}</span>`;
+  return `<span class="vpill${cfg.open ? " open" : ""}">${I.history}${body}${I.chevD}</span>`;
+}
+
+function topRow(cfg) {
+  return `<div class="toprow">${cfg.history ? versionPill(cfg) : ""}<span class="spacer"></span><span class="ghost">${I.people}Open room</span></div>`;
+}
+
+/**
+ * A version's message: one text, as git keeps it — the merge commit's message without GitHub's
+ * "Merge pull request #N from …" line, or the description a saved snapshot came with.
+ */
+const messageOf = (v) => v.title + (v.msg ? `\n\n${v.msg}` : "");
+
+/**
+ * One row of the list. Closed, it previews the message's first line; open, the header keeps only the version
+ * and the date, and the whole message — first line included — sits below. role "A" or "B" marks a handle's version.
+ */
+function messageRow(i, open, role) {
+  if (i === N) return `<div class="vrow"><div class="vrow-h">${I.live}<b>Live</b><span class="t">not merged yet: what the service runs now</span></div></div>`;
+  const v = VERSIONS[i], text = messageOf(v);
+  // Every merge shows its pull request, releases included: the number is how people refer to it.
+  const name = `${v.label}${v.pr ? ` · #${v.pr}` : ""}`;
+  const label = role ? `<span class="rchip ${role.toLowerCase()}">${name}</span>` : `<b>${name}</b>`;
+  const preview = open ? "" : `<span class="t">${text.split("\n")[0]}</span>`;
+  return `<div class="vrow${open ? " open" : ""}"><div class="vrow-h">${open ? I.chevD : I.chevR}${label}${preview}<span class="d">${v.date}</span></div>${
+    open ? `<div class="vmsg-body${text.length > 260 ? " long" : ""}">${text}</div>` : ""}</div>`;
+}
+
+/** A chosen version's whole message, with nothing above it: the chip on the track already says which version it is. */
+function messageBox(i) {
+  const text = i === N ? "Live: not merged yet, what the service runs now." : messageOf(VERSIONS[i]);
+  return `<div class="vmsg-body${text.length > 260 ? " long" : ""}">${text}</div>`;
+}
+
+/**
+ * Under the track, the same in both modes: the chosen versions' messages, always shown — one, or A's on the left
+ * and B's on the right, the sides of the track. Only the versions in between fold: one line opens them, newest
+ * first, and each of them opens its own message. o.between opens that line; o.opens lists the rows shown open.
+ */
+function messages(cfg, o = {}) {
+  if (cfg.mode === "one") return `<div class="vlist">${messageBox(cfg.b)}</div>`;
+  let html = `<div class="vlist"><div class="vcols">${messageBox(cfg.a)}${messageBox(cfg.b)}</div>`;
+  const n = cfg.b - cfg.a - 1;
+  if (n > 0) {
+    html += `<div class="vbetween"><div class="vrow-h">${o.between ? I.chevD : I.chevR}<b>${n} version${n > 1 ? "s" : ""} between</b><span class="t">${
+      o.between ? "" : [...Array(n).keys()].map((k) => vName(cfg.b - 1 - k)).join(", ")}</span></div>`;
+    if (o.between) for (let i = cfg.b - 1; i > cfg.a; i--) html += messageRow(i, (o.opens ?? []).includes(i));
+    html += `</div>`;
+  }
+  return html + `</div>`;
+}
+
+function popover(cfg) {
+  const two = cfg.mode !== "one";
+  let foot;
+  if (!two) {
+    // A version's own message already names it, so only Live, which has no message, gets a closing line.
+    foot = cfg.b === N ? `<span class="dir">${I.live}Live</span><span>checked 12 s ago · newest version ${vName(N - 1)}, ${VERSIONS[N - 1].date}</span>` : "";
+  } else {
+    const n = cfg.b - cfg.a;
+    foot = `<span class="dir">What changed from ${vName(cfg.a)} to ${vName(cfg.b)}</span><span>· ${n} version${n > 1 ? "s" : ""} later</span>`;
+  }
+  return `<div class="vpop"><div class="vpop-head"><div><div class="vpop-title">forecast-admin</div><div class="vpop-sub">12 versions and Live</div></div>${modeSwitch(cfg.mode)}</div>
+    ${timelineSvg({ w: 718, mode: two ? "range" : "one", a: cfg.a, b: cfg.b })}
+    ${cfg.b === N && !two ? "" : messages(cfg)}
+    ${foot ? `<div class="vpop-foot">${foot}</div>` : ""}</div>`;
+}
+
+function fit(w, h, cfg, top = 0) {
+  const [x0, y0, x1, y1] = DIAGRAMS[cfg.diagram ?? "erd"].bounds;
+  const pad = cfg.kind === "phone" ? 12 : 36;
+  let k = Math.min((w - pad * 2) / (x1 - x0), (h - top - pad * 2 - 30) / (y1 - y0));
+  if (cfg.zoom) k *= cfg.zoom;
+  const c = cfg.center ?? [(x0 + x1) / 2, (y0 + y1) / 2];
+  return { k, tx: w / 2 - c[0] * k, ty: top + (h - top - 30) / 2 - c[1] * k + 6 };
+}
+const svgAt = (v, body) => `<svg class="diagram"><g transform="translate(${v.tx} ${v.ty}) scale(${v.k})" font-family="ui-sans-serif, system-ui, sans-serif">${body}</g></svg>`;
+const zoombar = (k, layout) => `<div class="zoombar"><span class="z">−</span><span class="pct">${Math.round(k * 100)}%</span><span class="z">+</span>${
+  layout ? `<span class="mode${layout === "lr" ? " on" : ""}">${I.modeLR}</span><span class="mode${layout === "tb" ? " on" : ""}">${I.modeTB}</span>` : ""}</div>`;
+
+/** A card pinned next to a diagram point (given in diagram coordinates). */
+function cardAt(v, x, y, html) {
+  return `<div class="fcard" style="left:${Math.round(v.tx + x * v.k)}px;top:${Math.round(v.ty + y * v.k)}px">${html}</div>`;
+}
+
+function workspace(cfg, w, h) {
+  if (cfg.empty) return `<div class="ws"><div class="empty">Open a service or a history</div></div>`;
+  const d = DIAGRAMS[cfg.diagram ?? "erd"];
+  if (cfg.mode === "split") {
+    // Each half has its own view and layout mode; only what is chosen (versions, filters) is shared.
+    const half = (side) => {
+      const hc = cfg.halves?.[side] ?? {};
+      const v = fit(w / 2, h, { ...cfg, zoom: hc.zoom, center: hc.center }, 30), ver = side === "A" ? cfg.a : cfg.b;
+      const head = `<div class="half-head"><span class="cur ${side.toLowerCase()}">${side}</span><b>${vName(ver)}</b> · ${VERSIONS[ver].date}</div>`;
+      // The pointer is in one half only; what it hovers and clicks is lit and selected in both.
+      const ptr = hc.pointer
+        ? `<svg style="position:absolute;z-index:50;left:${Math.round(v.tx + hc.pointer[0] * v.k)}px;top:${Math.round(v.ty + hc.pointer[1] * v.k)}px" width="18" height="22" viewBox="0 0 18 22"><path d="M1.5 1.5v16.5l4.4-4.1 2.9 6.5 3-1.4-2.9-6.3 6.1-.3z" fill="#0f172a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>`
+        : "";
+      const note = hc.located ? `<div class="locate">${I.locate}${hc.located}</div>` : "";
+      return `<div class="half">${head}${svgAt(v, d.svg({ ...cfg, side }))}${ptr}${note}${zoombar(v.k, hc.layout)}</div>`;
+    };
+    return `<div class="ws split">${half("A")}${half("B")}</div>`;
+  }
+  const v = fit(w, h, cfg);
+  let extra = "";
+  if (cfg.card === "chosen") {
+    extra = cardAt(v, 680, 170 + TH + T.req.rows.length * RH + 6 + 16, `<div class="h"><span class="mk c">~</span>chosen_offer</div><div class="s">field of OfferRequestCoreEntity</div>
+      <div class="r"><span>type</span><span><span class="was">OfferCoreEntity</span><br><span class="now">OfferRequestItemDetailEntity</span></span></div>
+      <div class="r"><span>link</span><span>now points at <b>OfferRequestItemDetailEntity</b>, no longer at OfferCoreEntity</span></div>`);
+  }
+  if (cfg.card === "uc") {
+    extra = cardAt(v, 16, 300, `<div class="h"><span class="mk c">~</span>ReadOfferRequestAction</div><div class="s">the action is the same; its result changed</div>
+      <div class="r"><span>result</span><span><span class="now">+ chosen_offer</span><br><span class="now">+ offer_request_state</span><br><span style="color:var(--chg-ink)">~ offers</span> — its items lost <span class="was">is_activated</span></span></div>`);
+  }
+  return `<div class="ws">${svgAt(v, d.svg({ ...cfg, v: cfg.b }))}${zoombar(v.k)}${extra}</div>`;
+}
+
+const DESKTOP = { w: 1280, h: 760 };
+const PHONE = { w: 375, h: 760 };
+
+function desktop(cfg) {
+  const mainW = DESKTOP.w - (cfg.collapsed ? 48 : 255);
+  return `<div class="device desktop" style="width:${DESKTOP.w}px;height:${DESKTOP.h}px">${sidebar(cfg)}<div class="main">${topRow(cfg)}${workspace(cfg, mainW, DESKTOP.h - 38)}${cfg.open ? popover(cfg) : ""}</div></div>`;
+}
+
+function phone(cfg) {
+  const inner = PHONE.w - 20, wsH = PHONE.h - 20 - 44;
+  const v = fit(inner, wsH, { ...cfg, kind: "phone" });
+  let sheet = "";
+  if (cfg.sheet) {
+    const RW = 720, off = 160;
+    sheet = `<div class="scrim"></div><div class="sheet"><div class="grab"></div>${modeSwitch("diff", true)}
+      <div class="scroller">${timelineSvg({ w: RW, mode: "range", a: cfg.a, b: cfg.b }).replace("<svg ", `<svg style="left:-${off}px" `)}</div>
+      <div class="foot"><span style="font-weight:600;color:#0f172a">What changed from ${vName(cfg.a)} to ${vName(cfg.b)}</span></div></div>`;
+  }
+  const pill = `<span class="vpill${cfg.sheet ? " open" : ""}"><span class="cur a sm">A</span><b>${vName(cfg.a)}</b>${I.arrowR}<span class="cur b sm">B</span><b>${vName(cfg.b)}</b>${I.chevD}</span>`;
+  return `<div class="device phone" style="width:${PHONE.w}px;height:${PHONE.h}px"><div class="phonebar"><span class="icon-btn">${I.menu}</span>${pill}<span class="spacer"></span><span class="icon-btn">${I.people}</span></div><div class="ws">${svgAt(v, erdSvg({ ...cfg, v: cfg.b }))}</div>${sheet}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// The picker up close
+// ---------------------------------------------------------------------------
+
+function pickerSheet() {
+  const W = 772;
+  const item = (title, text, svg, extra = "", pad = 0) => `<div class="cmp"${pad ? ` style="padding-bottom:${pad}px"` : ""}><div class="cmp-h"><b>${title}</b>${text}</div><div style="position:relative">${svg}${extra}</div></div>`;
+  const v = VERSIONS[5];
+  const tipX = railX(5, W) + 16;
+  const tip = `<div class="tip" style="left:${tipX}px;top:2px"><div class="h">${v.label} <span>· ${v.id} · saved snapshot</span></div><div class="m2">${v.date}, 2026 · tag ${v.tags.join(", ")}</div><div style="margin:4px 0">${v.title}</div><div class="m2">${v.nodes} nodes · ${v.edges} edges · ${v.link}</div></div>`;
+  return `<div class="sheetcard">` +
+    item("Long messages, two versions.", "A = 0.10.0 · #140, B = 0.11.0 · #147. Each box stops at about nine lines, whatever the length: #147 runs to several screens and scrolls inside its own column, and the bar on its right shows how much there is. Below, the two merges between them, newest first, like release notes: a closed row previews its message's first line, a click opens the whole message.",
+      `${timelineSvg({ w: W, mode: "range", a: 6, b: 9 })}<div class="vpop" style="position:static;width:auto;max-height:none;box-shadow:none;border-color:rgba(15,23,42,.08);margin-top:8px;padding:0 16px 6px">${messages({ mode: "range", a: 6, b: 9 }, { between: true, opens: [8] })}</div>`) +
+    item("Passing over.", "Drag the 0.8.0 handle past 0.9.0 to 0.11.0. Roles follow the position, not the handle: the left one is always A, the right one B. The handle you dragged is now B; the one you passed became A.",
+      `<div class="mini">Dragging</div>${timelineSvg({ w: W, mode: "range", a: 4, b: 5, drag: [4, 8] })}<div class="mini">Dropped</div>${timelineSvg({ w: W, mode: "range", a: 5, b: 8 })}`) +
+    item("Neighbours.", "A = 0.8.0, B = 0.9.0: the closest pair. The two handles never stand on one version: dropped on the other handle's point, a handle goes to the next point in the direction it was moving.", timelineSvg({ w: W, mode: "range", a: 4, b: 5 })) +
+    item("Far apart.", "A = 0.6.0, B = 0.11.0 · #147. The diagram compares the two ends: something added and removed again in between does not show.", timelineSvg({ w: W, mode: "range", a: 2, b: 9 })) +
+    item("Up to Live.", "A = 0.12.0, B = Live: what changed since the last version. A can never be Live, since Live is the newest point.", timelineSvg({ w: W, mode: "range", a: N - 1, b: N })) +
+    item("Long history.", "64 versions do not fit, so the track scrolls sideways — by a sideways swipe, by the mouse wheel over the track, or by dragging the empty track. There is no scrollbar: the edges fade where more is hidden, and the right edge says how many newer versions are out of view. A, scrolled out on the left, is pinned to that edge with its version; a click on it scrolls back.",
+      longTrackSvg({ w: W, a: 22, b: 50, offset: 704 })) +
+    item("Releases and tags.", "Every point is a merged pull request. A release is a point where the version number changed: those are named. A git tag on a point's commit is a flag; its names are in the tooltip.", timelineSvg({ w: W, mode: "one", b: N, hover: 5 }), tip, 70) +
+    `</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Screens
+// ---------------------------------------------------------------------------
+
+const SCREENS = [
+  {
+    group: "Where the graph comes from", title: "A running service: no history", ref: "§8",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · the address of a running service", mode: "one", b: 5 }],
+    notes: `<ul>
+      <li>A running service gives one graph: nothing to compare, so no version button at all. The top row is as today.</li>
+      <li>Maxitor tells a graph from a history by the answer, never by the host name.</li></ul>`,
+  },
+  {
+    group: "Where the graph comes from", title: "Typing an address", ref: "§7.5, §8",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · the address field, opened with the swap button", input: true, empty: true }],
+    notes: `<ul>
+      <li>One field for every kind of address. Recent says what each one turned out to be.</li>
+      <li><b>A read key is shown as dots</b> wherever an address is shown; the eye reveals it. A shared screen or a screenshot does not give it away.</li></ul>
+      <div class="q"><b>Open question.</b> A direct link to a graph file on <i>public</i> GitHub: does Maxitor pass it to the gateway (which then reads public repositories without a key), or read git itself? To be decided before the spec.</div>`,
+  },
+  {
+    group: "Picking versions", title: "A history, at work", ref: "§8",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · one version, picker closed", history: true, mode: "one", b: N }],
+    notes: `<ul>
+      <li><b>The picker is closed while you work.</b> One button in the top row says where you are: <b>Live</b> here.</li>
+      <li>A history opens on its newest point: Live when the index names one, otherwise the newest version.</li></ul>`,
+  },
+  {
+    group: "Picking versions", title: "Picking one version", ref: "§8",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · the button opened, 0.11.0 · #147 picked", history: true, mode: "one", b: 9, open: true }],
+    notes: `<ul>
+      <li>The button opens the picker over the diagram; a click outside closes it.</li>
+      <li>One track is a time axis: oldest left, newest right, Live last after a dashed gap. Every point is a merged pull request; releases — points where the version number changed — are named, the merges between them are small dots. Flags are git tags.</li>
+      <li>Click a point or drag the handle; ← → step, Home and End jump to the ends.</li>
+      <li><b>Under the track: the version's merge commit message</b>, one text as git keeps it, line breaks kept, with nothing above it: the chip on the track already names the version. Only GitHub's "Merge pull request #147 from …" line is left out. The box stops at about nine lines and scrolls inside. A saved snapshot shows the description it came with.</li></ul>`,
+  },
+  {
+    group: "Picking versions", title: "Picking two versions", ref: "§8",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · Diff, A = 0.8.0, B = 0.9.0", history: true, mode: "diff", a: 4, b: 5, open: true, collapsed: true }],
+    notes: `<ul>
+      <li><b>One track, a range on it.</b> A is always the older version, B the newer one; the stretch between them is dark. Either handle may be dragged past the other: roles follow the position, so the left handle is always A and the right one B. The two never stand on one version. A link that names them the other way round opens with the two swapped.</li>
+      <li>The diagram shows what changed from A to B: green appeared in B, red is gone in B, amber changed. Read backwards, the same picture answers the rollback question: going back to A, green disappears and red comes back.</li>
+      <li>Version names appear once; the chosen ones are chips in the style of their handle.</li>
+      <li><b>Under the track: A's message on the left, B's on the right</b> — the same sides as on the track and in Side by side. A message is plain text: the author's line breaks stay, long lines wrap by words, so half the card's width is enough. Each box stops at about nine lines and scrolls on its own; both are always shown, like the single message in One. (gameoffer's snapshots of 0.8.0 and 0.9.0 have one line each; the texts here are lengthened for the mockup, from what those releases changed.) Only the versions in between fold: one line opens them. On a phone the two stand one under the other.</li>
+      <li>Switching One → Diff keeps the version as B and puts A on the one before it.</li></ul>`,
+  },
+  {
+    group: "Picking versions", title: "The picker up close", ref: "§8",
+    sheet: true,
+    notes: `<ul>
+      <li>The keyboard follows the same rule: ← → move the focused handle, past the other one too, and the roles swap as it passes; focus stays on the handle you moved.</li>
+      <li>Shift + ← → moves both handles together, keeping the distance: stepping through a history release by release.</li>
+      <li>Tags come from git: the gateway reads the tags on each version's commit into the index (<code>tags</code>). gameoffer has no release tags today; the ones here are invented.</li>
+      <li><b>A long history scrolls sideways, without a scrollbar.</b> Points keep at least 24 px apart; release names thin out before they collide. The picker opens with B in view, and A too when both fit; dragging a handle to an edge scrolls the track along. A handle out of view is pinned to its edge.</li></ul>`,
+  },
+  {
+    group: "Comparing", title: "ERD", ref: "§9, §10",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · A = 0.8.0 → B = 0.9.0, a changed field opened", history: true, mode: "diff", a: 4, b: 5, collapsed: true, card: "chosen" }],
+    notes: `<ul>
+      <li>The button carries this diagram's count: <span class="p">+15</span> <span class="m">−1</span> <span class="c">~3</span>. No separate legend: the marks say + − ~ themselves.</li>
+      <li><b>A field changes</b> when its type does — <code>erid</code>: <s>str</s> → str | None, shown in the row when it fits — or when its link <b>points at another table</b>: <code>chosen_offer</code> pointed at OfferCoreEntity and now at OfferRequestItemDetailEntity. A link is its field, and the field is still there, so it stays one link and turns amber: solid where it points now, thin dashed where it pointed in A. A link is red only when its field is gone, and green only when its field is new.</li>
+      <li>A click on any marked row or table opens its card: every property that changed, before and after.</li>
+      <li>Real for gameoffer: the two new tables, the new fields, <code>is_activated</code> gone, the changed description of OfferRequestItemDetailEntity. Illustrative: <code>erid</code>'s type and <code>chosen_offer</code>'s target.</li></ul>`,
+  },
+  {
+    group: "Comparing", title: "Full graph", ref: "§10",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · full graph, A = 0.8.0 → B = 0.9.0", history: true, mode: "diff", a: 4, b: 5, collapsed: true, diagram: "graph" }],
+    notes: `<ul>
+      <li>Every diagram has its history, the full graph included. New nodes get a green ring, changed ones amber, a removed one a dashed red circle; everything else fades.</li>
+      <li>The count is gameoffer's real one: nodes <span class="p">+23</span> <span class="m">−1</span> <span class="c">~5</span>. The picture is a stand-in.</li></ul>`,
+  },
+  {
+    group: "Comparing", title: "Use case: changed inside", ref: "§9, §10",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · OffersDomain use cases, A = 0.8.0 → B = 0.9.0", history: true, mode: "diff", a: 4, b: 5, collapsed: true, diagram: "uc", card: "uc" }],
+    notes: `<ul>
+      <li>Real for gameoffer: no action came or went in OffersDomain, but three actions changed inside — their results got new fields. A diagram that does not draw an element's parts marks the element when any part changed; the card says which.</li>
+      <li>A diagram that draws the parts (the ERD draws fields) marks the parts instead.</li></ul>`,
+  },
+  {
+    group: "Comparing", title: "Lifecycle that A does not have", ref: "§9, §10",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · OfferRequestCoreEntity lifecycle, A = 0.8.0 → B = 0.9.0", history: true, mode: "diff", a: 4, b: 5, diagram: "fsm", zoom: 0.72 }],
+    notes: `<ul>
+      <li>Real for gameoffer: OfferRequestCoreEntity got a lifecycle in 0.9.0 — issued, then activated, exhausted or expired.</li>
+      <li>The left panel lists what exists in either version and marks what exists in only one, so such a page can be opened at all. On it everything is green; the + beside the page in the left panel already says it is new, so the diagram needs no extra note.</li>
+      <li>A page that exists only in A — its lifecycle removed in B — is all red in the same way.</li></ul>`,
+  },
+  {
+    group: "Comparing", title: "Side by side", ref: "§11",
+    frames: [{ kind: "desktop", cap: "<b>Desktop</b> · OfferRequestCoreEntity clicked in A; B brought it to the centre", history: true, mode: "split", a: 4, b: 5, collapsed: true,
+               hover: "req", select: "req",
+               halves: { A: { layout: "tb", pointer: [150, 14] }, B: { layout: "lr", zoom: 1.5, center: [815, 258], located: "OfferRequestCoreEntity brought to the centre" } } }],
+    notes: `<ul>
+      <li>The older version A is on the left, the newer B on the right. <b>Each half is laid out on its own</b>: a serious change can rebuild a picture completely, so the halves are not forced to look alike — here 0.8.0 places its three tables differently from 0.9.0.</li>
+      <li><b>Shared:</b> the versions and the filters, which apply to both halves at once. <b>Each half's own:</b> pan, zoom and layout mode (top-down on the left, left-to-right on the right).</li>
+      <li><b>Locator.</b> A click on an element selects it in both halves. If the other half does not show it, that half glides to put it in the centre, keeping its own zoom, and says so for a moment. If the element is not in that version, the half says "Not in 0.9.0" instead.</li>
+      <li><b>Hover follows the element, not the place:</b> both halves light the same table, its links and the tables they join, and dim the rest. Each half draws <code>chosen_offer</code> where it points in its own version, amber in both.</li>
+      <li><b>In a room</b> everything here is shared — the versions, the filters, the view (One, Diff or Side by side), each half's layout mode, the selection. Pan is personal while you follow no one; when you follow someone, each half's pan follows theirs. Zoom always stays personal.</li></ul>`,
+  },
+  {
+    group: "Phone", title: "Phone", ref: "§10, §11",
+    frames: [
+      { kind: "phone", cap: "<b>Phone</b> · Diff, picker closed", mode: "diff", a: 4, b: 5, zoom: 2, center: [475, 240] },
+      { kind: "phone", cap: "<b>Phone</b> · the picker opened", mode: "diff", a: 4, b: 5, zoom: 2, center: [475, 240], sheet: true },
+    ],
+    notes: `<ul>
+      <li>The same button sits in the phone bar. It opens a sheet with the mode switch and the track, which scrolls sideways; neighbouring points stand far enough apart to be touched.</li>
+      <li>Side by side is not offered on a phone: <b>A / B</b> flips one diagram between the two versions, each in its own layout; the selected element stays in the centre across the flip.</li></ul>`,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+const nav = document.getElementById("nav");
+const framesEl = document.getElementById("frames");
+const notesEl = document.getElementById("notes");
+let current = 0;
+let lastGroup = null;
+SCREENS.forEach((s, i) => {
+  if (s.group !== lastGroup) { nav.insertAdjacentHTML("beforeend", `<div class="group">${s.group}</div>`); lastGroup = s.group; }
+  nav.insertAdjacentHTML("beforeend", `<button class="screen" data-i="${i}"><span class="n">${i + 1}</span><span>${s.title}</span></button>`);
+});
+nav.addEventListener("click", (e) => { const b = e.target.closest("button.screen"); if (b) show(+b.dataset.i); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") show(Math.min(current + 1, SCREENS.length - 1));
+  if (e.key === "ArrowUp") show(Math.max(current - 1, 0));
+});
+
+function show(i) {
+  current = i;
+  const s = SCREENS[i];
+  nav.querySelectorAll("button.screen").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
+  if (s.sheet) {
+    framesEl.innerHTML = `<div class="frame-wrap"><p class="frame-cap"><b>The picker</b> · real size</p>${pickerSheet()}</div>`;
+  } else {
+    framesEl.innerHTML = s.frames.map((cfg) => {
+      const size = cfg.kind === "phone" ? PHONE : DESKTOP;
+      return `<div class="frame-wrap" data-w="${size.w}" data-h="${size.h}"><p class="frame-cap">${cfg.cap}</p><div class="frame-scale">${cfg.kind === "phone" ? phone(cfg) : desktop(cfg)}</div></div>`;
+    }).join("");
+  }
+  notesEl.innerHTML = `<h2>${s.title}</h2><div class="ref">Issue #273 ${s.ref}</div>${s.notes}`;
+  scaleFrames();
+}
+
+/** Scale the frames down so the whole screen fits the stage width. */
+function scaleFrames() {
+  const wraps = [...framesEl.querySelectorAll(".frame-wrap[data-w]")];
+  if (!wraps.length) return;
+  const natural = wraps.reduce((sum, w) => sum + +w.dataset.w, 0) + 28 * (wraps.length - 1);
+  const k = Math.min(1, (framesEl.parentElement.clientWidth - 56) / natural);
+  for (const w of wraps) {
+    const inner = w.querySelector(".frame-scale");
+    inner.style.transform = `scale(${k})`;
+    inner.style.width = `${w.dataset.w}px`;
+    inner.style.height = `${w.dataset.h}px`;
+    inner.style.marginBottom = `${w.dataset.h * (k - 1)}px`;
+    w.style.width = `${w.dataset.w * k}px`;
+  }
+}
+window.addEventListener("resize", scaleFrames);
+show(0);
+</script>
+</body>
+</html>
