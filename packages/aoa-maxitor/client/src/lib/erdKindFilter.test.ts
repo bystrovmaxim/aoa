@@ -1,7 +1,7 @@
 // src/lib/erdKindFilter.test.ts
 import { describe, expect, it } from "vitest";
 import type { ErdEntity, ErdGraphPayload } from "@/lib/buildDotSource";
-import { entityKindOf, filterGraphByKinds } from "@/lib/erdKindFilter";
+import { entityKindOf, filterGraphByKinds, kindsOnDiagram } from "@/lib/erdKindFilter";
 
 const entity = (id: string, entity_kind?: string): ErdEntity => ({ id, label: id, fields: [], entity_kind }) as ErdEntity;
 
@@ -61,5 +61,26 @@ describe("filterGraphByKinds", () => {
     const data = payload();
 
     expect(filterGraphByKinds(data, new Set())).toBe(data);
+  });
+});
+
+describe("the kinds a diagram's filter offers (spec 029, FR-044)", () => {
+  const kinds = [
+    { entity_kind: "core", label: "Core" },
+    { entity_kind: "enum", label: "Enumeration" },
+    { entity_kind: "spec", label: "Specialization" },
+  ];
+
+  it("are only the kinds of the diagram's tables, in the named order", () => {
+    const entities = [{ id: "a", entity_kind: "spec" }, { id: "b", entity_kind: "core" }];
+    expect(kindsOnDiagram(kinds, entities).map((k) => k.entity_kind)).toEqual(["core", "spec"]);
+  });
+
+  it("keep a kind that is switched off: it is counted before kinds are filtered", () => {
+    const shownBeforeKinds = [{ id: "a", entity_kind: "core" }, { id: "b", entity_kind: "enum" }];
+    const switchedOff = new Set(["enum"]);
+    const onScreen = shownBeforeKinds.filter((e) => !switchedOff.has(e.entity_kind));
+    expect(kindsOnDiagram(kinds, shownBeforeKinds).map((k) => k.entity_kind)).toEqual(["core", "enum"]);
+    expect(kindsOnDiagram(kinds, onScreen).map((k) => k.entity_kind)).toEqual(["core"]);
   });
 });

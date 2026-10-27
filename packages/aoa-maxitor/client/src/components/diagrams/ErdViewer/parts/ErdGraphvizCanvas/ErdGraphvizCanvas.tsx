@@ -30,7 +30,7 @@ import {
 } from "@/lib/buildDotSource";
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
-import { filterGraphByKinds, pruneGraphToEntities } from "@/lib/erdKindFilter";
+import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
@@ -234,12 +234,15 @@ export function ErdGraphvizCanvas({
     [entityQualList, disabledEntityList],
   );
 
-  const mergedData = useMemo(() => {
-    // A table is on screen only when its domain (or qualifier) and its kind are both on.
-    if (multiTab) return filterGraphByKinds(mergedByTabs, disabledKinds);
+  // The tables the diagram shows before kinds are filtered: its domains (or qualifiers) and one-hop.
+  const beforeKinds = useMemo(() => {
+    if (multiTab) return mergedByTabs;
     if (enabledEntityQualifiers.size === 0) return { entities: [], relations: [] };
-    return filterGraphByKinds(filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual), disabledKinds);
-  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual, disabledKinds]);
+    return filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual);
+  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual]);
+
+  // A table is on screen only when its domain (or qualifier) and its kind are both on.
+  const mergedData = useMemo(() => filterGraphByKinds(beforeKinds, disabledKinds), [beforeKinds, disabledKinds]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -425,7 +428,8 @@ export function ErdGraphvizCanvas({
         on: enabledEntityQualifiers.has(qual),
       }));
 
-  const kindRows: ErdFilterRow[] = (bundle.entity_kinds ?? []).map((row) => ({
+  // Only the kinds this diagram has (spec 029, FR-044).
+  const kindRows: ErdFilterRow[] = kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row) => ({
     key: row.entity_kind,
     label: row.label,
     iconSrc: kindLegendDiskUri(row.entity_kind),

@@ -193,9 +193,9 @@
 
 ## Phase 14: *Kinds* lists the diagram's kinds (commit 14) · US7
 
-- [ ] T070 [US7] In `ErdGraphvizCanvas.tsx` / `ErdFilterPanel.tsx` build the *Kinds* list from the tables shown before the kind filter (after domain and one-hop), with names from `list-entity-kinds`; a kind switched off stays listed (FR-044; R14).
-- [ ] T071 [US7] Test in `packages/aoa-maxitor/client/src/lib/erdKindFilter.test.ts`: a diagram missing kinds lists only its own; a switched-off kind stays; adversarial check by listing all kinds. Restore.
-- [ ] T072 [US7] Acceptance on the local stand (quickstart "Kinds filter"); prepare commit 14: `feat(maxitor): the Kinds filter lists only the diagram's kinds (#282)`. Tick issue phase 11.
+- [X] T070 [US7] In `ErdGraphvizCanvas.tsx` / `ErdFilterPanel.tsx` build the *Kinds* list from the tables shown before the kind filter (after domain and one-hop), with names from `list-entity-kinds`; a kind switched off stays listed (FR-044; R14). Done: `ErdGraphvizCanvas` keeps the tables shown before the kind filter (`beforeKinds`: domains or qualifiers, one-hop) and filters kinds from it; the *Kinds* rows come from `kindsOnDiagram(list-entity-kinds, beforeKinds.entities)` in `lib/erdKindFilter.ts`, in the named order.
+- [X] T071 [US7] Test in `packages/aoa-maxitor/client/src/lib/erdKindFilter.test.ts`: a diagram missing kinds lists only its own; a switched-off kind stays; adversarial check by listing all kinds. Restore. Done in `src/lib/erdKindFilter.test.ts` (2 tests); break: listing every kind → both fail; restored, client 210. The canvas wiring itself has no unit test (the component is not rendered in tests) — it is checked on the stand.
+- [X] T072 [US7] Acceptance on the local stand (quickstart "Kinds filter"); prepare commit 14: `feat(maxitor): the Kinds filter lists only the diagram's kinds (#282)`. Tick issue phase 11. Done — committed on the standing instruction.
 
 ---
 
