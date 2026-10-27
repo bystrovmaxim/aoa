@@ -1,11 +1,11 @@
 // src/components/diagrams/FullGraphViewer/forceLayout.test.ts
 /**
- * The worker's layout must be today's picture: the same positions G6's configuration gives.
+ * `computeForceLayout` must run exactly the configuration it claims: the library's own merge of
+ * the settings, around the origin, from the starting spiral.
  *
- * The reference is built independently of `forceLayout.ts` — today's `layout` object copied
- * literally from the old viewer, its date and strength accessors included, and merged by the
- * library itself (`new D3ForceLayout(rest)` then `execute(data, config)`). Only a reference
- * built a different way can prove the new code right (research R4).
+ * The reference is built independently of `forceLayout.ts` — the settings written out literally
+ * and merged by the library itself (`new D3ForceLayout(rest)` then `execute(data, config)`). Only
+ * a reference built a different way can prove the new code right (spec 026, research R4).
  *
  * The test runs in the check run, so it reads the fixture once and uses no timers or browser APIs.
  */
@@ -17,62 +17,28 @@ import { D3ForceLayout } from "@antv/layout";
 import { describe, expect, it } from "vitest";
 
 import { computeForceLayout, validatePositions } from "./forceLayout";
+import { initialPositions } from "./initialPositions";
 
-type PayloadNode = { id: string; data?: Record<string, unknown>; style?: Record<string, unknown> };
-type PayloadEdge = { source: string; target: string; id?: string; data?: Record<string, unknown> };
 type Payload = {
-  nodes: PayloadNode[];
-  edges: PayloadEdge[];
-  node_type_map: Record<string, string>;
-  constants: {
-    node_visual_px: number;
-    entity_field_interchange_type?: string;
-    layout_entity_scalar_link?: { distance: number; strength: number };
-  };
+  nodes: { id: string }[];
+  edges: { source: string; target: string }[];
+  constants: { node_visual_px: number };
 };
 
-// `npm test` runs in the client package, three levels below the repository root.
-const DATA = resolve(process.cwd(), "../../../specs/026-full-graph-fast-open/data");
-const payload: Payload = JSON.parse(readFileSync(resolve(DATA, "full-graph-ref.json"), "utf8")).payload;
-const baseline = JSON.parse(readFileSync(resolve(DATA, "baseline-main.json"), "utf8")) as {
-  canvasSize: [number, number];
-};
+// `npm test` runs in the client package; the fixture is Maxitor's answer for the frozen reference graph.
+const FIXTURE = resolve(process.cwd(), "src/components/diagrams/FullGraphViewer/__fixtures__/full-graph-ref.json");
+const payload: Payload = JSON.parse(readFileSync(FIXTURE, "utf8")).payload;
 
-const [CANVAS_WIDTH, CANVAS_HEIGHT] = baseline.canvasSize;
 const NODE_VISUAL_PX = payload.constants.node_visual_px;
 const NODE_IDS = payload.nodes.map((node) => String(node.id));
 const EDGES = payload.edges.map((edge) => [String(edge.source), String(edge.target)] as [string, string]);
 
-/** Today's `layout` object, copied verbatim from the old `FullGraphViewer.tsx`. */
-function todayLayout(): Record<string, unknown> {
-  const nodeTypeMap = payload.node_type_map;
-  const scalarLink = payload.constants.layout_entity_scalar_link;
-  const entityFieldType = String(payload.constants.entity_field_interchange_type ?? "EntityField").trim();
-  const px = NODE_VISUAL_PX;
+/** The settings written out literally, the way the old viewer gave them to G6. */
+function literalLayout(): Record<string, unknown> {
   return {
-    type: "d3-force",
-    iterations: 220,
-    animation: false,
-    link: {
-      distance: (edge: { source: unknown; target: unknown }) => {
-        const st = nodeTypeMap[String(edge.source)] ?? "";
-        const tt = nodeTypeMap[String(edge.target)] ?? "";
-        const entityScalar =
-          (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
-        if (scalarLink && entityScalar) return scalarLink.distance;
-        return st === tt ? 72 : 200;
-      },
-      strength: (edge: { source: unknown; target: unknown }) => {
-        const st = nodeTypeMap[String(edge.source)] ?? "";
-        const tt = nodeTypeMap[String(edge.target)] ?? "";
-        const entityScalar =
-          (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
-        if (scalarLink && entityScalar) return scalarLink.strength;
-        return st === tt ? 0.82 : 0.11;
-      },
-    },
+    link: { distance: 72, strength: 0.82 },
     manyBody: { strength: -360, distanceMax: 1200 },
-    collide: { radius: px * 0.5 + 7, strength: 0.95, iterations: 4 },
+    collide: { radius: NODE_VISUAL_PX * 0.5 + 7, strength: 0.95, iterations: 4 },
     center: { strength: 0.012 },
     alphaDecay: 0.012,
     alphaMin: 0.0015,
@@ -80,18 +46,19 @@ function todayLayout(): Record<string, unknown> {
   };
 }
 
-/** Run the library over the fixture the way G6 does, and return the positions it produces. */
-function runG6Configuration(layoutOptions: Record<string, unknown>): Map<string, [number, number]> {
+/** Run the library over the fixture around the origin, from the starting spiral. */
+function runLibrary(layoutOptions: Record<string, unknown>): Map<string, [number, number]> {
+  const start = initialPositions(NODE_IDS);
   const layout = new D3ForceLayout(layoutOptions as never);
   const data = {
-    nodes: NODE_IDS.map((id) => ({ id })),
+    nodes: NODE_IDS.map((id) => ({ id, x: start[id][0], y: start[id][1] })),
     edges: EDGES.map(([source, target]) => ({ source, target })),
   };
   void layout.execute(data as never, {
     nodeSize: NODE_VISUAL_PX,
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
-    center: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, z: 0 },
+    width: 0,
+    height: 0,
+    center: { x: 0, y: 0, z: 0 },
   } as never);
   layout.stop();
   layout.tick(220);
@@ -103,22 +70,10 @@ function runG6Configuration(layoutOptions: Record<string, unknown>): Map<string,
   return positions;
 }
 
-/** Today's layout minus the keys G6 strips before it merges. */
-function restOfTodayLayout(): Record<string, unknown> {
-  const { type: _type, animation: _animation, iterations: _iterations, ...rest } = todayLayout();
-  return rest;
-}
-
-describe("the layout worker's positions", () => {
-  it("equal today's G6 configuration for every node", () => {
-    const reference = runG6Configuration(restOfTodayLayout());
-    const actual = computeForceLayout({
-      nodes: NODE_IDS,
-      edges: EDGES,
-      nodeVisualPx: NODE_VISUAL_PX,
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
-    });
+describe("the full graph's layout", () => {
+  it("equals the library's own merge of the settings for every node", () => {
+    const reference = runLibrary(literalLayout());
+    const actual = computeForceLayout({ nodes: NODE_IDS, edges: EDGES, nodeVisualPx: NODE_VISUAL_PX });
 
     expect(reference.size).toBe(NODE_IDS.length);
     for (const id of NODE_IDS) {
@@ -135,9 +90,9 @@ describe("the layout worker's positions", () => {
   });
 
   it("differs when the centre's strength is lost by a shallow merge", () => {
-    const reference = runG6Configuration(restOfTodayLayout());
-    const { center: _center, ...withoutCenter } = restOfTodayLayout();
-    const shallow = runG6Configuration(withoutCenter);
+    const reference = runLibrary(literalLayout());
+    const { center: _center, ...withoutCenter } = literalLayout();
+    const shallow = runLibrary(withoutCenter);
     let moved = 0;
     for (const id of NODE_IDS) {
       const expected = reference.get(id)!;

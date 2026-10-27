@@ -6,6 +6,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
+import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
@@ -247,6 +248,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     });
 
   const [svgMarkup, setSvgMarkup] = useState("");
+  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090).
+  const layoutHashValue = useSvgLayoutHash(svgMarkup);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
@@ -377,6 +380,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
             )}
             <Box
               ref={viewportRef}
+              data-layout-hash={layoutHashValue}
               sx={{
                 position: "absolute",
                 inset: 0,
