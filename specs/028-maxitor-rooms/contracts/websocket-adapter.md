@@ -26,18 +26,18 @@ Returns the adapter for chaining, like `get` / `post`. `build()` registers the r
 ## One connection
 
 1. **Accept**, then create `SocketChannel` (below) for this connection.
-2. **Open**: run `on_open` with params built from the path and query parameters plus `origin` (the request's `Origin` header, or empty), the auth coordinator's context, and connections `{**connections, "socket": channel}`. Whether an origin is acceptable is the action's decision, not the adapter's.
+2. **Open**: ask the auth coordinator for a context (none → close `4401`, `authentication required`); run `on_open` with params built from the connection's values — query parameters, path parameters, and `origin` (the request's `Origin` header, or empty) — and connections `{**connections, "socket": channel}`, each action receiving exactly the keys it declares. Params that do not validate close `4422`, `invalid parameters`. Whether an origin is acceptable is the action's decision, not the adapter's.
 3. **Loop**: each text frame must be a JSON object with a string `type`.
    - Over `max_message_bytes`: close `4413`, reason `message too large`.
    - More than `max_messages_per_second` in any one-second window: close `4429`, reason `too many messages`.
-   - `type` in `relay`: `connections[relay_key].relay(channel, message)`; no action runs, nothing is logged.
-   - `type` in `messages`: validate the remaining fields as that action's params; run it with the same connections. Messages of one connection run one at a time, in arrival order.
+   - `type` in `relay`: `connections[relay_key].relay(channel, message)` — the resource implements `RelayTarget` (exported by the adapter); no action runs, nothing is logged.
+   - `type` in `messages`: the connection's values fill the params fields of the same name, the message's other fields the rest; a message that sets a connection value (say `room_id`) is answered with an error, so a client cannot speak for another room or participant. Run the action; messages of one connection run one at a time, in arrival order.
    - Any other `type`, or params that do not validate: send `{"type": "error", "reason": ...}`; the connection stays open.
-4. **Close**: on any end of the connection, run `on_close` with the same params and connections. Errors in it are logged by the machine, never sent.
+4. **Close**: when the connection ends after `on_open` succeeded, run `on_close` with the connection's values and connections. Errors in it are never sent to the client.
 
 ## Refusals
 
-An action refuses the connection by raising `ConnectionRefused(code: int, reason: str)` (new, exported by the adapter). Raised by `on_open`, it closes the socket with that code and reason; raised by a message action, it sends `{"type": "refused", "code": ..., "reason": ...}` and keeps the socket open. Codes `4000–4999` are the application's; the adapter itself uses `4413`, `4429`, `4008` and `1011` (internal error, reason `internal error`).
+An action refuses the connection by raising `ConnectionRefusalError(code: int, reason: str)` (new, exported by the adapter). Raised by `on_open`, it closes the socket with that code and reason; raised by a message action, it sends `{"type": "refused", "code": ..., "reason": ...}` and keeps the socket open. Codes `4000–4999` are the application's; the adapter itself uses `4401`, `4422`, `4413`, `4429`, `4008` and `1011` (internal error, reason `internal error`).
 
 ## SocketChannel
 
