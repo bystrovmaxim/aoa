@@ -16,10 +16,11 @@ download.
 What the store does not do matters as much as what it does. It never closes a DuckDB
 connection by force: removing or replacing an entry only drops the store's reference, and
 a request that already holds the entry keeps it. It never re-checks a source on a timer.
-And it bounds its own cost: at most ``max_graphs`` entries, an entry unread for
-``idle_seconds`` is removed, and at most ``max_concurrent_builds`` builds run at once, so
-a burst of *different* sources cannot create hundreds of graphs before the capacity limit
-could act.
+And it bounds its own cost: at most ``max_graphs`` entries — a built graph stays until that
+limit is reached, and then the one read longest ago leaves — and at most
+``max_concurrent_builds`` builds run at once, so a burst of *different* sources cannot create
+hundreds of graphs before the capacity limit could act. A graph nobody read for an hour is
+kept on purpose: the first visitor after a quiet period gets it without a download.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -40,7 +41,8 @@ ARCHITECTURE / DATA FLOW
                                                     store entry, evict beyond max_graphs
 
     reload(source) ──► sweep() ──► wait for the one build in flight (no slot held)
-                            └────► build again, replace the entry, ignore the failure memory
+                            └────► build again; replace the entry only when the build
+                                   succeeds, ignore the failure memory
 
 Every build runs as its own task and every waiter awaits it through ``asyncio.shield``:
 a reader who closes the tab stops waiting, but the build goes on for everyone else and
@@ -66,6 +68,7 @@ from aoa.action_machine.model import ParamsStub
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.maxitor.model.core.actions.left_sidebar_action import GetLeftMenuSidebarDataAction
 from aoa.maxitor.model.core.actions.load_aoa_service_action import LoadAOAServiceAction, LoadAOAServiceParams
+from aoa.maxitor.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 #: A source that failed to build is refused without a new download for this long.
@@ -98,8 +101,9 @@ class GraphEntry:
     AI-CORE-BEGIN
     ROLE: The unit the store keeps, hands to one request, and drops when it is evicted.
     CONTRACT: ``graph`` answers every diagram query of a request; ``sidebar`` answers the sidebar read.
-    INVARIANTS: ``graph`` and ``sidebar`` come from one build; the entry is never mutated after
-    it is built, except ``last_read``, which the store moves on every read.
+    INVARIANTS: ``graph``, ``sidebar`` and ``content_sha256`` come from one build; the entry is never
+    mutated after it is built, except ``last_read`` (moved on every read), ``last_checked`` and
+    ``checking`` (moved by the freshness checks of the source).
     AI-CORE-END
     """
 
@@ -107,6 +111,21 @@ class GraphEntry:
     graph: DuckDBGraphResource
     sidebar: Any
     last_read: float
+    content_sha256: str = ""
+    """SHA-256 of the ``graph-json`` body the graph was built from."""
+    etag: str | None = None
+    """The source's ``ETag`` for that body, when it gave one."""
+    last_modified: str | None = None
+    """The source's ``Last-Modified`` for that body, when it gave one."""
+    last_checked: float = 0.0
+    """When the source was last asked whether its graph changed."""
+    checking: bool = False
+    """Whether a check of the source is running now; checks of one source never overlap."""
+
+    @property
+    def fingerprint(self) -> str:
+        """What identifies the built content to a tab: the SHA-256 of the body it was built from."""
+        return self.content_sha256
 
 
 class GraphStore:
@@ -115,8 +134,9 @@ class GraphStore:
 
     AI-CORE-BEGIN
     ROLE: The one place that knows which sources this process has built, and builds the rest.
-    CONTRACT: ``acquire`` never hands back "not loaded" — it builds; ``reload`` rebuilds one source
-    and leaves every other alone; a build that cannot get a slot raises ``GraphStoreBusyError``.
+    CONTRACT: ``acquire`` never hands back "not loaded" — it builds; ``reload`` rebuilds one source,
+    replaces its entry only when the build succeeds and leaves every other alone; a build that cannot
+    get a slot raises ``GraphStoreBusyError``.
     INVARIANTS: At most ``max_graphs`` entries; at most ``max_concurrent_builds`` builds running;
     one build in flight per source of any kind; a failed source is remembered ``FAILURE_MEMORY_SECONDS``
     but a busy one never is; an entry is only ever dropped, never closed.
@@ -128,13 +148,11 @@ class GraphStore:
         builder: Callable[[str], Awaitable[GraphEntry]],
         *,
         max_graphs: int = 50,
-        idle_seconds: float = 3600.0,
         max_concurrent_builds: int = 4,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._builder = builder
         self._max_graphs = max_graphs
-        self._idle_seconds = float(idle_seconds)
         self._clock = clock
         self._entries: dict[str, GraphEntry] = {}
         self._in_flight: dict[str, asyncio.Task[GraphEntry]] = {}
@@ -161,6 +179,10 @@ class GraphStore:
     def held_sources(self) -> tuple[str, ...]:
         """Return the sources held right now, in insertion order."""
         return tuple(self._entries)
+
+    def peek(self, source: str) -> GraphEntry | None:
+        """Return the entry held for ``source`` without counting it as a read, or ``None``."""
+        return self._entries.get(source)
 
     async def acquire(self, source: str) -> GraphEntry:
         """Return the built entry for ``source``, building it when the store does not hold it."""
@@ -190,10 +212,8 @@ class GraphStore:
         return entry
 
     def sweep(self) -> None:
-        """Drop entries unread for the idle timeout and failures older than the memory window."""
+        """Forget failures older than the memory window; held graphs leave only beyond ``max_graphs``."""
         now = self._clock()
-        for source in [name for name, entry in self._entries.items() if now - entry.last_read > self._idle_seconds]:
-            del self._entries[source]
         for source in [
             name for name, (_, failed_at) in self._failures.items() if now - failed_at > FAILURE_MEMORY_SECONDS
         ]:
@@ -251,13 +271,14 @@ class GraphStore:
         self._entries[source] = entry
 
 
-async def build_graph_entry(machine: ActionProductMachine, source: str) -> GraphEntry:
-    """Build one entry for ``source`` by running the two actions the load route runs."""
+async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceGateway, source: str) -> GraphEntry:
+    """Build one entry for ``source`` by running the two actions the load route runs; download through ``gateway``."""
     try:
         load_result = await machine.run(
             Context(),
             LoadAOAServiceAction(),
             LoadAOAServiceParams(service_url=source),
+            connections={GRAPH_SOURCE_CONNECTION_KEY: gateway},
         )
         sidebar_result = await machine.run(
             Context(),
@@ -267,4 +288,12 @@ async def build_graph_entry(machine: ActionProductMachine, source: str) -> Graph
         )
     except Exception as exc:
         raise GraphBuildError(str(exc)) from exc
-    return GraphEntry(source=source, graph=load_result.graph_resource, sidebar=sidebar_result, last_read=0.0)
+    return GraphEntry(
+        source=source,
+        graph=load_result.graph_resource,
+        sidebar=sidebar_result,
+        last_read=0.0,
+        content_sha256=load_result.content_sha256,
+        etag=load_result.etag or None,
+        last_modified=load_result.last_modified or None,
+    )

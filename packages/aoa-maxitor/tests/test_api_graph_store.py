@@ -180,40 +180,61 @@ async def test_the_least_recently_read_graph_is_evicted_when_full() -> None:
     assert store.held_sources() == ("A", "C")
 
 
-async def test_a_graph_unread_for_the_idle_timeout_is_removed_and_rebuilt() -> None:
-    """An entry idle past the timeout is gone; a read inside it is kept."""
+async def test_a_graph_unread_for_hours_is_still_held() -> None:
+    """A held graph is not removed for being idle: hours later it answers without a new build (spec 028, FR-080)."""
     builder = RecordingBuilder()
     clock = FakeClock()
-    store = GraphStore(builder, idle_seconds=300.0, clock=clock)
+    store = GraphStore(builder, clock=clock)
 
     await store.acquire("A")
-    clock.advance(200.0)
-    await store.acquire("A")  # touches A inside the window
-    clock.advance(200.0)
-    await store.acquire("B")  # sweep keeps A, whose last read is 200 s ago
+    clock.advance(3 * 3600.0)
+    await store.acquire("B")  # sweeps, and must not drop A
+    again = await store.acquire("A")
 
     assert store.held_sources() == ("A", "B")
-
-    clock.advance(301.0)
-    await store.acquire("C")  # sweep drops A and B
-    assert store.held_sources() == ("C",)
-
-    await store.acquire("A")  # the removed source is built again on the next read
-    assert len(builder.calls) == 4  # A, B, C, then A again
+    assert cast(str, again.graph) == "A#1"
+    assert builder.calls == ["A", "B"]
 
 
-async def test_an_entry_held_by_a_reader_survives_removal() -> None:
-    """Removing an entry only drops the store's reference; the reader keeps its graph."""
+async def test_an_entry_held_by_a_reader_survives_eviction() -> None:
+    """Evicting an entry only drops the store's reference; the reader keeps its graph."""
     builder = RecordingBuilder()
-    clock = FakeClock()
-    store = GraphStore(builder, idle_seconds=300.0, clock=clock)
+    store = GraphStore(builder, max_graphs=1, clock=FakeClock())
 
     held = await store.acquire("A")
-    clock.advance(301.0)
-    await store.acquire("B")  # sweep removes A
+    await store.acquire("B")  # the limit evicts A
 
     assert "A" not in store.held_sources()
     assert cast(str, held.graph) == "A#1"
+
+
+async def test_a_read_started_before_a_rebuild_keeps_its_entry() -> None:
+    """A rebuild swaps the store's entry; a request that already holds the old one keeps it."""
+    builder = RecordingBuilder()
+    store = GraphStore(builder, clock=FakeClock())
+
+    held = await store.acquire("A")
+    await store.reload("A")
+
+    assert cast(str, held.graph) == "A#1"
+    assert cast(str, cast(GraphEntry, store.peek("A")).graph) == "A#2"
+
+
+async def test_peek_does_not_count_as_a_read() -> None:
+    """``peek`` returns the held entry without moving its last read, so it never keeps a graph alive."""
+    builder = RecordingBuilder()
+    clock = FakeClock()
+    store = GraphStore(builder, max_graphs=2, clock=clock)
+
+    await store.acquire("A")
+    clock.advance(10.0)
+    await store.acquire("B")
+    clock.advance(10.0)
+    assert store.peek("A") is not None  # does not make A the most recent
+    await store.acquire("C")  # evicts the least recently read: A
+
+    assert store.held_sources() == ("B", "C")
+    assert store.peek("missing") is None
 
 
 async def test_twenty_cold_sources_never_build_more_than_four_at_once() -> None:

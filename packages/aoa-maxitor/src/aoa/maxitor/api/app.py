@@ -50,6 +50,7 @@ from aoa.maxitor.api.graph_source_middleware import GraphSourceMiddleware
 from aoa.maxitor.api.graph_store import GraphStore, build_graph_entry
 from aoa.maxitor.api.routes.load import router as load_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
+from aoa.maxitor.model.core.resources.graph_source_gateway import GraphSourceGateway
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
@@ -76,20 +77,6 @@ def _positive_int_env(name: str, default: int) -> int:
     return value
 
 
-def _positive_seconds_env(name: str, default: float) -> float:
-    """Read a positive number of seconds, refusing to start on anything else but naming it."""
-    raw = os.environ.get(name, "").strip()
-    if not raw:
-        return default
-    try:
-        value = float(raw)
-    except ValueError:
-        raise ValueError(f"{name} must be a positive number, got {raw!r}") from None
-    if value <= 0:
-        raise ValueError(f"{name} must be a positive number, got {raw!r}")
-    return value
-
-
 def create_app() -> FastAPI:
     """
     Create the Maxitor FastAPI application.
@@ -101,19 +88,20 @@ def create_app() -> FastAPI:
     """
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator(context=Context())
+    graph_source = GraphSourceGateway()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         application.state.machine = machine
         application.state.graph_store = store
         yield
+        await graph_source.aclose()
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
 
     store = GraphStore(
-        partial(build_graph_entry, machine),
+        partial(build_graph_entry, machine, graph_source),
         max_graphs=_positive_int_env("MAXITOR_MAX_GRAPHS", 50),
-        idle_seconds=_positive_seconds_env("MAXITOR_GRAPH_IDLE_SECONDS", 3600.0),
         max_concurrent_builds=_positive_int_env("MAXITOR_MAX_CONCURRENT_BUILDS", 4),
     )
     fastapi_app.state.graph_store = store
