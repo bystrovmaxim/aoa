@@ -203,12 +203,12 @@
 
 **Goal**: Maxitor's address opens Maxitor's diagram; `ETag` / `304` (FR-060, FR-061; R15).
 
-- [ ] T073 [P] [US4] Create `packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/own_model_graph_resource.py`: `OwnModelGraphResource` holding Maxitor's coordinator, rendering `to_json()` once per process.
-- [ ] T074 [P] [US4] Create `packages/aoa-maxitor/src/aoa/maxitor/model/core/actions/get_own_graph_json_action.py`: `GetOwnGraphJsonAction` returning `{"coordinator_json": …}` through the resource (`@check_roles(GuestRole)`, `@meta` in Maxitor's core domain).
-- [ ] T075 [US4] Route `GET /examples/model/graph-json` to it in `app.py` with the resource as its connection.
-- [ ] T076 [US4] Tests `packages/aoa-maxitor/tests/test_own_graph_json.py`: `200` with Maxitor's own actions in the graph (e.g. `JoinRoomAction`); an `ETag`; `304` with no body on `If-None-Match`; no `source` needed; loading Maxitor's own address through `load_aoa_service_action` builds a graph.
-- [ ] T077 [US4] Adversarial check: make the resource render a body with a timestamp on every call → only the `304` test fails; remove the route → only the route tests fail. Restore.
-- [ ] T078 [US4] Acceptance on the local stand (quickstart "Maxitor's own graph"); prepare commit 15: `feat(maxitor): Maxitor serves and shows its own graph (#282)`. Tick issue phase 14.
+- [X] T073 [P] [US4] Create `packages/aoa-maxitor/src/aoa/maxitor/model/core/resources/own_model_graph_resource.py`: `OwnModelGraphResource` holding Maxitor's coordinator, rendering `to_json()` once per process. Done.
+- [X] T074 [P] [US4] Create `packages/aoa-maxitor/src/aoa/maxitor/model/core/actions/get_own_graph_json_action.py`: `GetOwnGraphJsonAction` returning `{"coordinator_json": …}` through the resource (`@check_roles(GuestRole)`, `@meta` in Maxitor's core domain). Done.
+- [X] T075 [US4] Route `GET /examples/model/graph-json` to it in `app.py` with the resource as its connection. Done: a third adapter app mounted at `/examples/model` (before the static bundle), with the resource built from `machine.graph_coordinator`.
+- [X] T076 [US4] Tests `packages/aoa-maxitor/tests/test_own_graph_json.py`: `200` with Maxitor's own actions in the graph (e.g. `JoinRoomAction`); an `ETag`; `304` with no body on `If-None-Match`; no `source` needed; loading Maxitor's own address through `load_aoa_service_action` builds a graph. Done in `tests/test_own_graph_json.py`: no `source`, the room and diagram actions in the graph (26 actions), the `ETag` and `304`, and the answer builds as a DuckDB graph with `RoomsDomain` and `CoreDomain` — 3 tests.
+- [X] T077 [US4] Adversarial check: make the resource render a body with a timestamp on every call → only the `304` test fails; remove the route → only the route tests fail. Restore. Done: a timestamp in every answer → only the `304` test fails; no route → the three route tests fail; restored, aoa-maxitor 323 / 1 skipped.
+- [X] T078 [US4] Acceptance on the local stand (quickstart "Maxitor's own graph"); prepare commit 15: `feat(maxitor): Maxitor serves and shows its own graph (#282)`. Tick issue phase 14. Done — committed on the standing instruction; checked on the stand with the next rebuild.
 
 ---
 
