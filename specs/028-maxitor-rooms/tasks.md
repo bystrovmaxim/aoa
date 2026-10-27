@@ -281,7 +281,7 @@
 
 ## Phase 19: Changelog (commit 19)
 
-- [ ] T107 Write one article in `docs/CHANGELOG.md` about what this work created — looking at a service together, pointers, following, graphs that stay fresh and ready — in plain words with the nuances a user needs (the link is the invitation, names are not verified, the stand's nginx must pass WebSockets), without technical detail or a per-file account (constitution VI.3).
+- [X] T107 Write one article in `docs/CHANGELOG.md` about what this work created — looking at a service together, pointers, following, graphs that stay fresh and ready — in plain words with the nuances a user needs (the link is the invitation, names are not verified, the stand's nginx must pass WebSockets), without technical detail or a per-file account (constitution VI.3). Done: one article at the top of `docs/CHANGELOG.md` — looking together, pointers, going to someone and following, the shared filters, what to know before sharing (the link is the invitation, names are not verified, twenty people, the two-minute end and return), the identical layout (a graph opened before is arranged once more), graphs kept and kept fresh, the ERD look, the version in the panel, and for operators and builders the WebSocket proxy, the removed idle setting, the adapter's WebSocket routes and conditional reads. The package changelogs are written at release, as before. Its Russian version is at the top of `docs/CHANGELOG.ru_draft.md`.
 - [ ] T108 Prepare commit 19: `docs(changelog): look at one service together (#271)`. Tick issue phase 14.
 
 ---
