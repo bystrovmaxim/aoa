@@ -8,6 +8,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { useState, type ReactNode } from "react";
 import { floatingLegendPanelSx, floatingLegendTitleSx } from "@/lib/ui";
+import { useShownPanel } from "@/rooms/focusStore";
 
 export type CollapsibleLegendPanelProps = {
   ariaLabel: string;
@@ -23,7 +24,9 @@ export type CollapsibleLegendPanelProps = {
 export function CollapsibleLegendPanel({ ariaLabel, title, children }: CollapsibleLegendPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [collapsed, setCollapsed] = useState(true);
+  const [ownCollapsed, setCollapsed] = useState(true);
+  // While following, the legend is expanded or not as the followed person has it (spec 029, FR-010).
+  const collapsed = !useShownPanel(!ownCollapsed, (expanded) => setCollapsed(!expanded), (panels) => panels.legend, (expanded) => ({ legend: expanded }));
 
   if (isMobile && collapsed) {
     return (

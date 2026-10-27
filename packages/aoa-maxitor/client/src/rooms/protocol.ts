@@ -1,8 +1,9 @@
 // src/rooms/protocol.ts
 /**
  * The room connection's messages, as the server sends and expects them
- * (specs/028-maxitor-rooms/contracts/room-protocol.md).
+ * (specs/028-maxitor-rooms/contracts/room-protocol.md, specs/029-maxitor-rooms-polish/contracts/room-protocol.md).
  */
+import type { FocusState } from "@/rooms/focusStore";
 
 /** A participant as the room shows them. ``page`` is the page key of their active tab. */
 export type Participant = {
@@ -46,6 +47,7 @@ export type ServerEvent =
   | { type: "follow_refused"; target: string; reason: string }
   | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch" }
   | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number }
+  | ({ type: "focus"; participant: string } & FocusState)
   | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" }
   | { type: "graph_changed"; fingerprint: string }
   | { type: "refused"; code: number; reason: string }
@@ -62,7 +64,8 @@ export type ClientMessage =
   | { type: "leave" }
   | { type: "reload" }
   | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number }
-  | { type: "viewport"; cx: number; cy: number; w: number; h: number };
+  | { type: "viewport"; cx: number; cy: number; w: number; h: number }
+  | ({ type: "focus" } & FocusState);
 
 /** The largest room message Maxitor accepts, in bytes; a larger one closes the connection with 4413. */
 export const MAX_MESSAGE_BYTES = 4096;

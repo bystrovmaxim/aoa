@@ -9,7 +9,9 @@ import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
 import { layoutHash } from "@/lib/layoutHash";
+import { useCurrentPage } from "@/lib/pageSettings";
 import { registerG6DiagramSurface } from "@/rooms/diagramSurface";
+import { isFollowing, mirroredFocus, reportHover, subscribeFocus } from "@/rooms/focusStore";
 import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
 import { PrecomputedLayout } from "./precomputedLayout";
 
@@ -235,6 +237,9 @@ function buildGraph(
  */
 export function FullGraphViewer() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  /** The page key, read by the graph's effect for the followed person's hover. */
+  const pageRef = useRef<string | null>(null);
+  pageRef.current = useCurrentPage();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   /** HTML overlay for hover cards — must sit above G6’s internal canvas/WebGL stack, not inside it. */
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null);
@@ -547,6 +552,7 @@ export function FullGraphViewer() {
       glowClearTimer = setTimeout(() => {
         clearNeighborGlow();
         hoverLabelNodeId = null;
+        reportHover(null);
         hoverPointerOutPending = false;
         scheduleHoverOverlaySync();
         glowClearTimer = null;
@@ -554,7 +560,37 @@ export function FullGraphViewer() {
       }, HOVER_CLEAR_DELAY_MS);
     };
 
+    /** Show ``nodeId``'s hover — its card, its neighbours' cards and the glow — or clear it. */
+    const showHover = (nodeId: string | null) => {
+      hoverPointerOutPending = false;
+      clearViewportQuietTimer();
+      if (glowClearTimer) {
+        clearTimeout(glowClearTimer);
+        glowClearTimer = null;
+      }
+      if (nodeId === hoverLabelNodeId) return;
+      if (nodeId === null) clearNeighborGlow();
+      hoverLabelNodeId = nodeId;
+      syncHoverLabels();
+      if (nodeId !== null) applyNeighborGlow(nodeId);
+    };
+
+    // The followed person's hover, while this tab follows them (spec 029, FR-010).
+    const showMirroredHover = () => {
+      if (!isFollowing()) return;
+      const focus = mirroredFocus();
+      const hover = focus && focus.page === pageRef.current && focus.hover?.kind === "node" ? focus.hover.id : null;
+      showHover(hover !== null && nodeById.has(hover) ? hover : null);
+    };
+    let wasFollowing = isFollowing();
+    const unsubscribeFocus = subscribeFocus(() => {
+      if (wasFollowing && !isFollowing()) showHover(null);
+      wasFollowing = isFollowing();
+      showMirroredHover();
+    });
+
     const onNodeOver = (evt: unknown) => {
+      if (isFollowing()) return;
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -567,20 +603,25 @@ export function FullGraphViewer() {
       hoverLabelNodeId = sid;
       syncHoverLabels();
       applyNeighborGlow(sid);
+      reportHover({ kind: "node", id: sid });
     };
 
     const onPointerMove = (evt: unknown) => {
+      if (isFollowing()) return;
       const sid = nodeIdFromPointerEvt(evt);
       if (sid == null || sid === hoverLabelNodeId) return;
       onNodeOver(evt);
     };
 
     const onNodeOut = () => {
+      if (isFollowing()) return;
       hoverPointerOutPending = true;
       armHoverClearDeferred();
     };
 
     const onCanvasClick = () => {
+      if (isFollowing()) return;
+      reportHover(null);
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -593,6 +634,8 @@ export function FullGraphViewer() {
     };
 
     const onCanvasLeave = () => {
+      if (isFollowing()) return;
+      reportHover(null);
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -656,6 +699,7 @@ export function FullGraphViewer() {
         await graph.fitView();
         syncZoom();
         scheduleHoverOverlaySync();
+        showMirroredHover();
         if (layout.fresh && layout.fingerprint && !cancelled) {
           void writeArrangement(layout.fingerprint, layout.positions);
         }
@@ -679,6 +723,7 @@ export function FullGraphViewer() {
 
     return () => {
       cancelled = true;
+      unsubscribeFocus();
       unregisterSurface?.();
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);

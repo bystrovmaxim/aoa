@@ -17,7 +17,9 @@ aspect of a room action, which logs what it decided.
 Two kinds of delivery exist. Events (someone joined, a setting changed) go to every
 tab in order, through each tab's ``SocketChannel``. Pointers and screen positions are
 relayed without an action, twenty times a second, only to the tabs on the same page,
-and only the newest one counts (``send_volatile``).
+and only the newest one counts (``send_volatile``). What a person is looking at — the
+hovered element, the tooltip, the selection, the open panels (``focus``) — is relayed
+the same way, but only to the people who follow them (spec 029, FR-010, FR-011).
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -30,6 +32,7 @@ ARCHITECTURE / DATA FLOW
                      │ broadcast(room, event)          ──► every tab, in order
                      │ schedule(delay, Action, params) ──► machine.run(Action) later
     adapter relay ──► relay(channel, pointer|viewport) ──► tabs on the same page, newest only
+                  └─► relay(channel, focus)            ──► tabs of the sender's followers, newest only
 """
 
 from __future__ import annotations
@@ -66,6 +69,14 @@ _RELAYED_FIELDS: dict[str, tuple[str, ...]] = {
     "viewport": ("cx", "cy", "w", "h"),
 }
 
+#: The diagram elements a ``focus`` may name, and the longest id or page key it may carry.
+_FOCUS_KINDS = frozenset({"node", "row", "edge", "table"})
+_FOCUS_TEXT_MAX = 512
+#: The most open left-panel branches a ``focus`` may list, and the filter-panel states it may name
+#: besides ``null`` (closed): open with no section, or open on a section.
+_FOCUS_SIDEBAR_MAX = 200
+_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds"})
+
 
 @dataclass
 class Tab:
@@ -82,6 +93,7 @@ class Tab:
     settings_digest: str = ""
     pointer: dict[str, Any] | None = None
     viewport: dict[str, Any] | None = None
+    focus: dict[str, Any] | None = None
     leaving: bool = False
 
 
@@ -151,6 +163,53 @@ class Room:
 def _is_number(value: Any) -> bool:
     """Whether ``value`` is a JSON number (a bool is not one)."""
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _short_text(value: Any) -> bool:
+    """Whether ``value`` is a string a ``focus`` may carry."""
+    return isinstance(value, str) and len(value) <= _FOCUS_TEXT_MAX
+
+
+def _element_ref(value: Any) -> tuple[bool, dict[str, str] | None]:
+    """``(valid, ref)`` for a ``focus`` element: ``null``, or a known kind with a short id."""
+    if value is None:
+        return True, None
+    if not isinstance(value, dict) or value.get("kind") not in _FOCUS_KINDS or not _short_text(value.get("id")):
+        return False, None
+    return True, {"kind": value["kind"], "id": value["id"]}
+
+
+def _panels(value: Any) -> dict[str, Any] | None:
+    """The open panels of a ``focus``, or ``None`` when they do not fit the contract."""
+    if not isinstance(value, dict):
+        return None
+    sidebar, section, legend = value.get("sidebar"), value.get("filter"), value.get("legend")
+    if not isinstance(sidebar, list) or len(sidebar) > _FOCUS_SIDEBAR_MAX or not all(_short_text(b) for b in sidebar):
+        return None
+    if (section is not None and section not in _FOCUS_FILTER_SECTIONS) or not isinstance(legend, bool):
+        return None
+    return {"sidebar": list(sidebar), "filter": section, "legend": legend}
+
+
+def focus_values(message: Mapping[str, Any]) -> dict[str, Any] | None:
+    """
+    The checked fields of a ``focus`` message, or ``None`` to drop it (spec 029, data-model).
+
+    AI-CORE-BEGIN
+    ROLE: Validate what a person says they are looking at before it is relayed to their followers.
+    CONTRACT: Element kinds from ``node``/``row``/``edge``/``table``, ids and page ≤ 512 chars, at most 200 open branches; anything else drops the message.
+    AI-CORE-END
+    """
+    page, panels = message.get("page"), _panels(message.get("panels"))
+    if not _short_text(page) or panels is None:
+        return None
+    values: dict[str, Any] = {"page": page, "panels": panels}
+    for name in ("hover", "tooltip", "selection"):
+        valid, ref = _element_ref(message.get(name))
+        if not valid:
+            return None
+        values[name] = ref
+    return values
 
 
 def _tabs_on_page(room: Room, page: str, *, except_participant: str) -> list[Tab]:
@@ -304,6 +363,9 @@ class RoomRegistry(BaseController):
 
     def relay(self, channel: SocketChannel, message: dict[str, Any]) -> None:
         """Pass a pointer or screen position on to the other participants' tabs on the sender's page."""
+        if message.get("type") == "focus":
+            self._relay_focus(channel, message)
+            return
         found = self.locate(channel)
         kind = message.get("type")
         fields = _RELAYED_FIELDS.get(str(kind))
@@ -322,6 +384,29 @@ class RoomRegistry(BaseController):
         event = {"type": kind, "participant": sender.id, **values}
         for other in _tabs_on_page(room, tab.page, except_participant=sender.id):
             other.channel.send_volatile(f"{kind}:{sender.id}", event)
+
+    def _relay_focus(self, channel: SocketChannel, message: dict[str, Any]) -> None:
+        """Keep what the sender is looking at and pass it on to the tabs of the people who follow them."""
+        found = self.locate(channel)
+        values = focus_values(message)
+        if found is None or values is None:
+            return
+        room, sender, tab = found
+        tab.focus = values
+        event = {"type": "focus", "participant": sender.id, **values}
+        for follower in room.participants.values():
+            if follower.follows == sender.id:
+                for other in follower.tabs.values():
+                    other.channel.send_volatile(f"focus:{sender.id}", event)
+
+    def send_focus(self, follower: Participant, target: Participant) -> None:
+        """Give a new follower what the person they now follow is looking at, without waiting for a change."""
+        active = target.active_tab
+        if active is None or active.focus is None:
+            return
+        event = {"type": "focus", "participant": target.id, **active.focus}
+        for tab in follower.tabs.values():
+            tab.channel.send_volatile(f"focus:{target.id}", event)
 
     def catch_up(self, room: Room, tab: Tab, participant: str) -> None:
         """

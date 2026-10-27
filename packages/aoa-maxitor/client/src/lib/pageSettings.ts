@@ -32,6 +32,11 @@ export function PageSettingsProvider({ page, room, children }: PageSettingsConte
   return createElement(PageSettingsContext.Provider, { value: { page, room } }, children);
 }
 
+/** The key of the page on screen, or ``null`` before one is chosen (what a viewer's focus names). */
+export function useCurrentPage(): string | null {
+  return useContext(PageSettingsContext).page;
+}
+
 /** Page key → setting name → value, for this tab outside a room. */
 const local = new Map<string, Map<string, unknown>>();
 const listeners = new Set<() => void>();

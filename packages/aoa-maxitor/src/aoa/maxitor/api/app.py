@@ -255,7 +255,7 @@ def create_app() -> FastAPI:
                 "reload": ReloadSourceForRoomAction,
             },
             on_close=DisconnectTabAction,
-            relay=frozenset({"pointer", "viewport"}),
+            relay=frozenset({"pointer", "viewport", "focus"}),
             relay_key=ROOM_REGISTRY_KEY,
             connections={
                 ROOM_REGISTRY_KEY: rooms,

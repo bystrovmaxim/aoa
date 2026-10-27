@@ -26,6 +26,7 @@ import { ReloadServiceButton } from "./ReloadServiceButton";
 import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
+import { useShownPanel } from "@/rooms/focusStore";
 
 /** One readable palette for the whole sidebar (on ``SIDEBAR_SURFACE`` drawer). */
 const SB = {
@@ -140,6 +141,18 @@ function erdRowLabelForDomainGroup(domainLabel: string, rowLabel: string): strin
   return rowLabel;
 }
 
+/** The open branches of an expand map, sorted, as a focus names them. */
+function openBranches(expanded: Record<string, boolean>): string[] {
+  return Object.keys(expanded)
+    .filter((id) => expanded[id])
+    .sort();
+}
+
+/** An expand map from the open branches a focus names. */
+function expandedFromList(ids: string[]): Record<string, boolean> {
+  return Object.fromEntries(ids.map((id) => [id, true]));
+}
+
 export function LeftSidebar({
   diagram,
   onSelectDiagram,
@@ -162,7 +175,9 @@ export function LeftSidebar({
   };
   const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
-  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
+  const [ownExpandedById, setExpandedById] = useState<Record<string, boolean>>({});
+  // While following, the branches open and close as the followed person's do (spec 029, FR-010).
+  const expandedById = useShownPanel(ownExpandedById, setExpandedById, (panels) => expandedFromList(panels.sidebar), (own) => ({ sidebar: openBranches(own) }));
 
   useEffect(() => {
     if (!diagram) return;
