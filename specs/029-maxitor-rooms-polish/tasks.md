@@ -183,11 +183,13 @@
 
 ---
 
-## Phase 13: Role labels on hover (commit 13) · US7
+## Phase 13: ERD line labels on hover (commit 13, redone) · US7
 
-- [X] T067 [US7] In `packages/aoa-maxitor/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx` hide role labels by default and show the label of the role under the pointer, or of the mirrored hover while following (FR-042; R13). Done: role nodes carry `class="uc-role"` in the DOT; `lib/useCaseRoleLabels.ts` hides a role's text unless its node has `is-hovered`, set by `mouseenter`/`mouseleave` caught once on the panner in the capture phase — so it survives a replaced drawing and a follower's replayed hover shows the label too (CSS `:hover` would not).
-- [X] T068 [US7] Test in `UseCaseDiagramViewer.test.tsx`: no label without hover; the hovered role's label shows; adversarial check by always showing labels. Restore. Done in `src/lib/useCaseRoleLabels.test.ts` (the DOT mark, the toggle on Graphviz's escaped `uc&#45;role`, the style); breaks: labels always shown, roles unmarked, bubbling-only listeners — each failed exactly its own test; restored, client 208.
-- [X] T069 [US7] Acceptance on the local stand (quickstart "Role labels"); prepare commit 13: `style(maxitor): role labels appear on hover (#282)`. Tick issue phase 10. Done — committed on the standing instruction.
+**Goal**: the field names at the ends of ERD relation lines show only while the line is hovered, on a plate that keeps them readable (FR-042). The first commit of this phase (`add4ba62`) hid the use-case diagram's actor names instead — a misreading of remark 10, corrected by the maintainer 2026-10-27; it is reverted here.
+
+- [X] T067 [US7] Revert `add4ba62` (use-case actor names show again); in `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` add `addEndLabelBadges` (a white, rounded plate under every line label) and `erdEndLabelSx` (labels and plates hidden unless the line has `is-hovered`), used by `ErdGraphvizCanvas.tsx`. A line's own hover, a key row's hover and a follower's replayed hover all set `is-hovered`, so all three show the labels. Done.
+- [X] T068 [US7] Tests in `src/lib/erdPostPass.test.ts` (one plate per label, once; hidden until hovered); breaks: labels always shown, no plates — each failed exactly its own test; restored, client 209. On the stand: 0 of 281 labels visible with nothing hovered; a hovered line shows its `audit_log` label on its plate.
+- [X] T069 [US7] Prepare commit 13: `style(maxitor): ERD line labels appear on hover, readable on a plate (#282)`. Done — committed on the standing instruction.
 
 ---
 
@@ -236,6 +238,16 @@
 - [X] T090 [US6] In `packages/aoa-maxitor/client/src/lib/buildDotSource.ts` give every table of a specialization cluster the header width of the cluster's widest table — measured from the tables' text the way Graphviz sizes them, or by laying the cluster out once — so each card in the block has one width; tables outside clusters keep their own width. Done by laying the blocks' tables out once on their own: `buildBlockMeasureDot` (those tables alone, no lines, no blocks), `erdBlockWidths` (each block's widest header, from that drawing) and `buildErdDot(data, layout, measure)`, which the canvas and the drawing checks call; the widths go into each header cell's `WIDTH`. Graphviz sizes text the same in every engine, so layouts stay identical.
 - [X] T091 [US6] In `packages/aoa-maxitor/client/scripts/check-erd-kinds-and-lines.ts` (the fixture with a specialization container) assert that every card of the block has the same width, equal to the widest; adversarial check: drop the shared width → the assertion fails. Re-check that layouts still agree across engines. Done: `BankSpecEntity` in the fixture is made wide (402 pt alone), and both cards of its block measure the same width, equal to it, while a table outside a block keeps its own; dropping the shared width → `Card 212, Bank 402.11`, FAIL. The cross-engine check: 0 DIFF, 56 page-modes.
 - [X] T092 [US6] Prepare commit 16b: `style(maxitor): specialization tables of one block share one width (#282)`; record it in issue #282. Done — committed on the standing instruction.
+
+---
+
+## Phase 16c: ERD hover exactly as the maintainer specified (commit 16c) · US7
+
+**Goal** (maintainer, 2026-10-27): **scenario 1** — the pointer on a table anywhere but a PK or FK field: every other table dims, and every line not connected to this table dims. **Scenario 2** — the pointer on a PK or FK field: that field's lines become bold; the tables they join stay bright; every other table dims; the hovered table's other lines stay as they are (neither bold nor dimmed); every line not connected to the hovered table dims. Phase 12 dimmed the hovered table's other lines in scenario 2.
+
+- [ ] T093 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` (`bindLineHover`, `focusTables`): on a key row, keep bright the joined tables and every line touching the hovered table, bold only the field's lines, dim the rest; leaving the row returns to scenario 1.
+- [ ] T094 [US7] Tests in `src/lib/erdPostPass.test.ts` for both scenarios line by line (which tables and lines are bright, bold, dimmed); adversarial check: dimming the table's other lines → fails. Check on the stand.
+- [ ] T095 [US7] Prepare commit 16c: `fix(maxitor): ERD hover as specified for tables and key fields (#282)`; record it in issue #282.
 
 ---
 
