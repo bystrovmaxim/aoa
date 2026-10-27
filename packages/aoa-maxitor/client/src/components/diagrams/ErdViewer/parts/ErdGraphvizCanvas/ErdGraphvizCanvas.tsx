@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { enabledKeys } from "@/lib/freshGraph";
 import { usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
@@ -191,13 +192,11 @@ export function ErdGraphvizCanvas({
   /** Entity kinds switched off; a kind the graph gains later starts on. */
   const [disabledKindList, setDisabledKindList] = usePageSetting<string[]>("disabled_kinds", []);
 
-  // A chosen set that names none of this graph's domains (its model changed) falls back to all.
-  const enabledDomains = useMemo(() => {
-    const keys = Object.keys(bundle.domains ?? {}).sort();
-    if (chosenDomains === null) return new Set(keys);
-    const chosen = keys.filter((k) => chosenDomains.includes(k));
-    return new Set(chosen.length > 0 || chosenDomains.length === 0 ? chosen : keys);
-  }, [bundle, chosenDomains]);
+  // A domain the model no longer has stops applying (spec 028, FR-076).
+  const enabledDomains = useMemo(
+    () => new Set(enabledKeys(Object.keys(bundle.domains ?? {}).sort(), chosenDomains)),
+    [bundle, chosenDomains],
+  );
   const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
   const panZoom = useSvgPanZoom();
