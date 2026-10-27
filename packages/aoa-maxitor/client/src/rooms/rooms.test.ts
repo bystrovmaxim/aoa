@@ -8,6 +8,7 @@ import { RECONNECT_DELAYS, RoomConnection, type ConnectionState } from "@/rooms/
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import type { Participant, ServerEvent, WelcomeEvent } from "@/rooms/protocol";
 import { followerCount, reduceRoom, youFirst, type RoomState } from "@/rooms/roomStore";
+import { currentPointers } from "@/rooms/pointerStore";
 import { nameIsValid, useRoomSession } from "@/rooms/useRoomSession";
 
 const anna: Participant = { id: "anna", name: "Anna", colour: "#2563eb", page: "view=full-graph", visible: true, away: false };
@@ -255,5 +256,26 @@ describe("seeding a room (spec 029, FR-001)", () => {
 
   it("sends nothing from a tab that joins someone else's room", () => {
     expect(welcomed("r1").seeds).toEqual([]);
+  });
+});
+
+describe("a pointer and its person (spec 029, FR-020)", () => {
+  beforeEach(() => {
+    FakeSocket.instances = [];
+    vi.stubGlobal("WebSocket", FakeSocket);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("goes when its person leaves the room", () => {
+    const options = { initialRoom: "r1", source: "https://svc/graph-json", page: "view=full-graph", onFallbackPage: vi.fn(), onGraphChanged: vi.fn(), surface: null, fingerprint: null };
+    const session = renderHook(() => useRoomSession(options));
+    act(() => session.result.current.confirmName("Boris"));
+    const socket = FakeSocket.instances.at(-1)!;
+    act(() => socket.serverSends(welcome));
+    act(() => socket.serverSends({ type: "pointer", participant: "anna", x: 1, y: 2, kind: "mouse" }));
+    expect(currentPointers().has("anna")).toBe(true);
+    act(() => socket.serverSends({ type: "left", participant: anna }));
+    expect(currentPointers().has("anna")).toBe(false);
   });
 });

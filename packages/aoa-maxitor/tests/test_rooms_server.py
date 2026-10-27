@@ -126,6 +126,14 @@ def _open(stack: ExitStack, client: TestClient, source: str, participant: str = 
     return ws, welcome["room"]["id"]
 
 
+def _until(ws: WebSocketTestSession, kind: str) -> set[str]:
+    """The types of every event up to and including the first of ``kind``."""
+    seen: set[str] = set()
+    while kind not in seen:
+        seen.add(ws.receive_json()["type"])
+    return seen
+
+
 def _closed(ws: WebSocketTestSession) -> tuple[int, str]:
     """The close code and reason the server ends this connection with, before it sends anything."""
     with pytest.raises(WebSocketDisconnect) as closed:
@@ -379,15 +387,30 @@ def test_arriving_on_a_page_brings_the_last_screen_and_a_live_pointer(client: Te
     assert caught["pointer"] == {"type": "pointer", "participant": "anna", "x": 1.5, "y": 2.5, "kind": "mouse"}
 
 
-def test_a_pointer_still_for_ten_seconds_is_not_brought(client: TestClient, source: str) -> None:
-    """(14) A pointer that stopped long ago would show as fresh: the newcomer gets the screen only."""
+def test_a_pointer_still_for_an_hour_is_still_brought(client: TestClient, source: str) -> None:
+    """(029 FR-021) A pointer shows while its person is in the room, however long it has stood still."""
     rooms = _rooms(client)
     with ExitStack() as stack:
         anna, room_id = _open(stack, client, source)
         anna.send_json({"type": "pointer", "kind": "mouse", "x": 1.5, "y": 2.5})
         anna.send_json({"type": "viewport", "cx": 10, "cy": 20, "w": 300, "h": 200})
         assert _wait_for(lambda: rooms.room(room_id).participants["anna"].active_tab.viewport is not None)
-        rooms.room(room_id).participants["anna"].active_tab.pointer_at -= 11
+        rooms.room(room_id).participants["anna"].active_tab.last_activity -= 3600
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        boris.send_json({"type": "stop_following"})
+        caught = _until(boris, "follows")
+    assert {"viewport", "pointer"} <= caught
+
+
+def test_a_tap_is_never_brought(client: TestClient, source: str) -> None:
+    """(029 FR-022) A tap is a moment: a newcomer gets the screen only."""
+    rooms = _rooms(client)
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        anna.send_json({"type": "pointer", "kind": "touch", "x": 1.5, "y": 2.5})
+        anna.send_json({"type": "viewport", "cx": 10, "cy": 20, "w": 300, "h": 200})
+        assert _wait_for(lambda: rooms.room(room_id).participants["anna"].active_tab.viewport is not None)
         boris = stack.enter_context(_connect(client, room_id, "boris"))
         _expect(boris, "welcome")
         first = boris.receive_json()

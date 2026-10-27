@@ -41,7 +41,7 @@
 - [X] T007 [US1] In `packages/aoa-maxitor/client/src/rooms/useRoomSession.ts`: after the welcome of a room this tab opened (`room=new`), send one `{type: "seed", page, settings: {name: value}}` per setting from `ownSettingsByPage()` (one setting per message, so no message nears the 4 KB limit); a value whose message would exceed 4 KB is not sent and that setting starts at its default; add the message to `packages/aoa-maxitor/client/src/rooms/protocol.ts`. Done in `client/src/rooms/seed.ts` (`seedMessages`, one setting per message, a value over `MAX_MESSAGE_BYTES` left out) and `useRoomSession.ts` (seeded after the welcome is applied, shown at once).
 - [X] T008 [P] [US1] Tests in `packages/aoa-maxitor/client/src/lib/pageSettings.test.ts` and `packages/aoa-maxitor/client/src/rooms/rooms.test.ts`: inside a room an own value never shows; the opener sends one seed per setting; a value over 4 KB is not sent; a joiner sends none. Done: three tests in `pageSettings.test.tsx`, two session tests in `rooms.test.ts`.
 - [X] T009 [US1] Adversarial check: restore the own-value fallback → only the "own value never shows" test fails; let a guest seed → only the guest test fails; drop the "only where empty" rule → only the overwrite test fails. Restore. Done: five breaks (guest seeds, seed overwrites, own value in a room, no size check, a joiner seeds) — each failed exactly its own test; restored, all green (aoa-maxitor 306 passed / 1 skipped, client 156).
-- [X] T010 [US1] Acceptance on the local stand (quickstart "Room picture on open"); prepare commit 2: `feat(maxitor): one room, one picture — the opener's settings seed the room (#282)`. Tick issue phase 1.
+- [X] T010 [US1] Acceptance on the local stand (quickstart "Room picture on open"); prepare commit 2: `feat(maxitor): one room, one picture — the opener's settings seed the room (#282)`. Tick issue phase 1. Committed as `b8f1d2c3`; issue phase 1 ticked.
 
 ---
 
@@ -51,11 +51,11 @@
 
 **Independent Test**: a still pointer is shown after a minute; it disappears on leave, away, other page, Hide pointers.
 
-- [ ] T011 [P] [US2] In `packages/aoa-maxitor/src/aoa/maxitor/model/rooms/resources/room_registry.py` remove `POINTER_SHOWN_SECONDS` and its window in `catch_up`: the last mouse pointer of every present participant on the page is sent whatever its age; taps (`kind == "touch"`) are still never caught up.
-- [ ] T012 [P] [US2] In `packages/aoa-maxitor/client/src/rooms/PointerLayer/PointerLayer.tsx` remove `POINTER_IDLE_MS` and the idle fade; keep hiding on left, away, other page and Hide pointers; taps keep their brief mark.
-- [ ] T013 [US2] Tests: `packages/aoa-maxitor/tests/rooms/test_room_registry.py` (a pointer an hour old is caught up; a tap is not; an away participant's is not) and `packages/aoa-maxitor/client/src/rooms/PointerLayer/PointerLayer.test.tsx` (a pointer still after 10 minutes of fake time; gone on leave).
-- [ ] T014 [US2] Adversarial check: put back a 10 s window on either side → only its test fails. Restore.
-- [ ] T015 [US2] Acceptance on the local stand (quickstart "Pointers stay"); prepare commit 3: `feat(maxitor): pointers stay while their person is in the room (#282)`. Tick issue phase 2.
+- [X] T011 [P] [US2] In `packages/aoa-maxitor/src/aoa/maxitor/model/rooms/resources/room_registry.py` remove `POINTER_SHOWN_SECONDS` and its window in `catch_up`: the last mouse pointer of every present participant on the page is sent whatever its age; taps (`kind == "touch"`) are still never caught up. Done: `POINTER_SHOWN_SECONDS` and `Tab.pointer_at` removed; away participants have no tab, so their pointer is never brought.
+- [X] T012 [P] [US2] In `packages/aoa-maxitor/client/src/rooms/PointerLayer/PointerLayer.tsx` remove `POINTER_IDLE_MS` and the idle fade; keep hiding on left, away, other page and Hide pointers; taps keep their brief mark. Done; the README of `PointerLayer` says so.
+- [X] T013 [US2] Tests: `packages/aoa-maxitor/tests/rooms/test_room_registry.py` (a pointer an hour old is caught up; a tap is not; an away participant's is not) and `packages/aoa-maxitor/client/src/rooms/PointerLayer/PointerLayer.test.tsx` (a pointer still after 10 minutes of fake time; gone on leave). Done in `tests/test_rooms_server.py` (an hour-old pointer is brought; a tap is not — collected up to a `follows` marker so a regression fails instead of hanging), `PointerLayer/PointerLayer.test.tsx` and `rooms/rooms.test.ts` (a pointer goes when its person leaves).
+- [X] T014 [US2] Adversarial check: put back a 10 s window on either side → only its test fails. Restore. Done: a 10 s window on the server, taps brought, a 10 s fade on the client — each failed exactly its own test; restored, aoa-maxitor 307 passed / 1 skipped, client 159.
+- [X] T015 [US2] Acceptance on the local stand (quickstart "Pointers stay"); prepare commit 3: `feat(maxitor): pointers stay while their person is in the room (#282)`. Tick issue phase 2.
 
 ---
 
