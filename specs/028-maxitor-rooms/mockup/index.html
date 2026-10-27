@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maxitor rooms — mockup</title>
+<style>
+  /* Mockup page chrome. The screens themselves use Maxitor's own values (theme.ts, layoutConstants.ts). */
+  :root {
+    --page-bg: #e9edf1;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: rgba(15, 23, 42, 0.1);
+    --sidebar: #EBF2F5;
+    --workspace: #f4f5f7;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--font); color: var(--ink); background: var(--page-bg); display: flex; }
+  button { font: inherit; }
+
+  /* ---- mockup navigation ---- */
+  .nav { width: 290px; flex-shrink: 0; height: 100vh; overflow-y: auto; background: #fff; border-right: 1px solid var(--line); padding: 20px 14px 32px; }
+  .nav h1 { font-size: 15px; margin: 0 6px 4px; }
+  .nav .sub { font-size: 12px; color: var(--muted); margin: 0 6px 16px; line-height: 1.45; }
+  .nav .group { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 16px 6px 6px; }
+  .nav button.screen { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; padding: 7px 8px; border-radius: 7px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .nav button.screen:hover { background: rgba(15, 23, 42, 0.05); }
+  .nav button.screen.on { background: rgba(15, 23, 42, 0.08); font-weight: 600; }
+  .nav button.screen .n { color: var(--muted); font-size: 11px; min-width: 18px; font-variant-numeric: tabular-nums; }
+
+  .stage { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; padding: 24px 28px 48px; }
+  .frames { display: flex; gap: 28px; align-items: flex-start; }
+  .frame-wrap { flex-shrink: 0; }
+  .frame-cap { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .frame-cap b { color: var(--ink); }
+  .frame-scale { transform-origin: top left; }
+  .notes { max-width: 860px; margin-top: 22px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+  .notes h2 { font-size: 16px; margin: 0 0 4px; }
+  .notes .ref { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .notes p, .notes li { font-size: 13px; line-height: 1.55; }
+  .notes ul { padding-left: 18px; margin: 6px 0 0; }
+  .notes code { font-size: 12px; background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+
+  /* ---- device frames ---- */
+  .device { position: relative; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 8px 28px rgba(15,23,42,.12); }
+  .device.desktop { border-radius: 10px; display: flex; }
+  .device.phone { border-radius: 34px; border: 10px solid #111827; display: flex; flex-direction: column; }
+
+  /* ---- Maxitor: left sidebar ---- */
+  .sb { width: 255px; flex-shrink: 0; background: var(--sidebar); border-right: 1px solid rgba(15,23,42,.08); display: flex; flex-direction: column; }
+  .sb-head { height: 38px; padding: 4px 4px 2px; display: flex; gap: 0; align-items: center; }
+  .icon-btn { width: 32px; height: 32px; border: 0; background: none; border-radius: 8px; color: rgb(100,116,139); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .sb-row { display: flex; align-items: center; gap: 6px; height: 31px; padding: 0 10px; margin: 0 6px; border-radius: 6px; font-size: 13px; color: rgb(30,41,59); white-space: nowrap; }
+  .sb-row.l1 { font-weight: 500; margin-top: 2px; }
+  .sb-row.l2 { padding-left: 36px; }
+  .sb-row.sel { background: rgba(15,23,42,.09); }
+  .sb-row svg { width: 16px; height: 16px; color: rgb(100,116,139); flex-shrink: 0; }
+
+  /* ---- Maxitor: main column ---- */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  /* The new top row: same surface as the workspace, a hairline instead of a bar (issue §7). */
+  .toprow { height: 38px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 14px; background: var(--workspace); border-bottom: 1px solid rgba(15,23,42,.06); position: relative; z-index: 60; }
+  .toprow .spacer { flex: 1; }
+  .phonebar { height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: var(--sidebar); border-bottom: 1px solid rgba(15,23,42,.08); position: relative; z-index: 60; }
+  .phonebar .spacer { flex: 1; }
+  .phonebar .icon-btn { width: 44px; height: 44px; }
+  .phonebar .icon-btn svg { width: 18px; height: 18px; }
+  .phonebar .icon-btn.on { background: rgba(15,23,42,.08); color: #0f172a; }
+
+  /* Left panel footer: project link, name and version, centred; the collapsed rail keeps only the link. */
+  .sb-foot { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px 12px; font-size: 11.5px; color: rgb(100,116,139); white-space: nowrap; }
+  .sb-foot .gh { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; color: rgb(71,85,105); }
+  .sb-foot .gh svg { width: 16px; height: 16px; }
+  .sb-foot .nm { font-weight: 600; color: rgb(30,41,59); }
+  .sb.rail { width: 48px; }
+  .sb.rail .sb-head { justify-content: center; }
+  .sb.rail .sb-foot { justify-content: center; padding: 10px 0 12px; }
+  .ghost { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #475569; font-size: 12.5px; font-weight: 500; cursor: default; white-space: nowrap; }
+  .ghost svg { width: 14px; height: 14px; }
+  .ghost.primary { color: #0f172a; background: rgba(15,23,42,.06); }
+  .ghost.hover { background: rgba(15,23,42,.08); color: #0f172a; }
+  .vsep { width: 1px; height: 18px; background: rgba(15,23,42,.12); margin: 0 2px; }
+
+  .circles { display: flex; align-items: center; gap: 4px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: .01em; position: relative; flex-shrink: 0; user-select: none; }
+  .av.me { box-shadow: 0 0 0 2px var(--workspace), 0 0 0 3.5px currentColor; }
+  .av.away::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #cbd5e1; border: 2px solid var(--workspace); }
+  .av.more { background: #e2e8f0; color: #334155; }
+  .phonebar .av { width: 30px; height: 30px; font-size: 12px; }
+  .phonebar .av.me { box-shadow: 0 0 0 2px var(--sidebar), 0 0 0 3.5px currentColor; }
+
+  /* ---- Maxitor: workspace ---- */
+  .ws { flex: 1; min-height: 0; position: relative; overflow: hidden; background-color: var(--workspace);
+        background-image: radial-gradient(rgba(160,168,180,.42) 1px, transparent 1px); background-size: 20px 20px; }
+  .ws > svg.diagram { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .legend { position: absolute; top: 12px; left: 12px; z-index: 40; display: flex; flex-direction: column; gap: 6px; padding: 10px; min-width: 132px;
+            background: rgba(255,255,255,.88); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,.08); border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+  .legend .t { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: rgba(0,0,0,.6); display: flex; align-items: center; gap: 4px; }
+  .legend .t svg { width: 14px; height: 14px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .legend .row.off { opacity: .4; }
+  .legend .row.off span { text-decoration: line-through; }
+  .legend .disk { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .legend .disk svg { width: 12px; height: 12px; }
+  .legend .changed { margin-top: 2px; font-size: 10.5px; color: #475569; display: flex; align-items: center; gap: 5px; }
+  .zoombar { position: absolute; bottom: 10px; left: 10px; z-index: 40; display: flex; align-items: center; gap: 6px; }
+  .zoombar .z { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; font-size: 15px; font-weight: 500; border-radius: 8px; }
+  .zoombar .pct { font-size: 11px; color: #64748b; min-width: 3.1em; text-align: center; font-variant-numeric: tabular-nums; padding: 0 6px 0 4px; }
+  .zoombar .mode { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; border-radius: 6px; }
+  .zoombar .mode.on { background: rgba(15,23,42,.08); color: #0f172a; }
+  .zoombar .mode svg { width: 16px; height: 16px; }
+  .zoombar .hop { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; margin-left: 6px; }
+  .zoombar .hop i { width: 14px; height: 14px; border-radius: 3px; background: #1976d2; display: inline-flex; align-items: center; justify-content: center; }
+  .phone .zoombar .z { width: 44px; height: 44px; }
+
+  /* ---- room overlays ---- */
+  .ptr { position: absolute; z-index: 50; pointer-events: none; }
+  .ptr svg { display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+  .ptr .lbl { position: absolute; left: 14px; top: 16px; padding: 2px 7px; border-radius: 9px; font-size: 11px; font-weight: 600; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  .touch { position: absolute; z-index: 50; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid; pointer-events: none; }
+  .touch .lbl { position: absolute; left: 30px; top: 22px; }
+  .edge-arrow { position: absolute; z-index: 55; width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  .edge-arrow .av { width: 26px; height: 26px; position: absolute; left: 2px; top: 2px; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .edge-arrow .tip { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-origin: 0 0; }
+  .edge-arrow .tip::before { content: ""; position: absolute; left: 14px; top: -6px; border-left: 8px solid var(--c); border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+
+  .follow-frame { position: absolute; inset: 0; z-index: 58; border: 3px solid; pointer-events: none; }
+  .follow-pill { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 59; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 6px 0 10px; border-radius: 14px; font-size: 12px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .phone .follow-pill { top: auto; bottom: 64px; }
+  .follow-pill .stop { border: 0; border-radius: 10px; padding: 3px 9px; font-size: 11.5px; font-weight: 600; background: rgba(255,255,255,.25); color: inherit; }
+
+  .banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 59; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 9px 10px 9px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+  .banner svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .banner.warn { background: #fffbeb; border: 1px solid #fcd34d; color: #78350f; }
+  .banner.info { background: #fff; border: 1px solid rgba(15,23,42,.12); color: #1e293b; }
+  .banner.err { background: #fef2f2; border: 1px solid #fca5a5; color: #7f1d1d; }
+  .banner .act { border: 0; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; background: rgba(15,23,42,.08); color: inherit; white-space: nowrap; }
+  .phone .banner { top: 10px; width: calc(100% - 20px); }
+
+  /* Cards, popovers and dialogs follow Maxitor's sidebar form: slate text, small uppercase labels,
+     the outlined input of "AOA Service URL", and quiet buttons like the zoom bar. No blue accent. */
+  .pop, .dialog { background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 8px; box-shadow: 0 8px 30px rgba(15,23,42,.14), 0 1px 2px rgba(15,23,42,.06); color: rgb(30,41,59); }
+  .pop { position: absolute; z-index: 70; font-size: 12.5px; }
+  .label-caps { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgb(100,116,139); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; border: 0; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .btn svg { width: 14px; height: 14px; }
+  .btn.ghost-btn { background: transparent; color: #64748b; }
+  .btn.quiet { background: rgba(15,23,42,.08); color: #0f172a; font-weight: 600; }
+  .btn[disabled] { opacity: .45; }
+  .pop .who { display: flex; gap: 10px; align-items: center; }
+  .pop .who .av { width: 30px; height: 30px; font-size: 11.5px; }
+  .pop .nm { font-weight: 600; font-size: 13px; }
+  .pop .pg { color: rgb(100,116,139); font-size: 12px; margin-top: 1px; }
+  .pop .pg b { font-weight: 600; color: rgb(71,85,105); }
+  .pop .hint { color: rgb(100,116,139); font-size: 11.5px; line-height: 1.45; }
+  .pop .acts { display: flex; gap: 4px; margin-top: 10px; margin-left: -6px; }
+  .field { border: 1px solid rgba(15,23,42,.18); border-radius: 4px; background: rgba(255,255,255,.7); padding: 7px 10px; font-size: 12.5px; color: rgb(30,41,59); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .field.focus { border-color: rgba(15,23,42,.45); }
+  .field.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: rgb(71,85,105); }
+  .field .caret { display: inline-block; width: 1px; height: 15px; background: rgb(30,41,59); margin-left: 1px; vertical-align: -3px; }
+  .pop .linkbox { display: flex; gap: 6px; align-items: center; }
+  .pop .linkbox .field { flex: 1; min-width: 0; }
+  .pop .list-row { display: flex; align-items: center; gap: 9px; padding: 6px 4px; border-radius: 6px; }
+  .pop .list-row .av { width: 24px; height: 24px; font-size: 10px; }
+  .pop .list-row .pg { margin: 0; margin-left: auto; font-size: 11.5px; }
+  .pop .menu-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; font-size: 13px; color: rgb(30,41,59); }
+  .pop .menu-row svg { width: 16px; height: 16px; color: rgb(100,116,139); }
+
+  .scrim { position: absolute; inset: 0; z-index: 80; background: rgba(15,23,42,.18); display: flex; align-items: center; justify-content: center; }
+  .dialog { width: 340px; max-width: calc(100% - 24px); padding: 16px; }
+  .dialog .dlg-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .dialog .lead { margin: 0 0 14px; font-size: 12.5px; color: rgb(71,85,105); line-height: 1.45; }
+  .dialog .label-caps { margin-bottom: 6px; }
+  .dialog .help { font-size: 11.5px; color: rgb(100,116,139); margin-top: 6px; line-height: 1.45; display: flex; justify-content: space-between; gap: 12px; }
+  .dialog .actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 16px; }
+  .dialog .here { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: rgba(15,23,42,.04); border-radius: 6px; font-size: 12.5px; color: rgb(30,41,59); margin-bottom: 14px; }
+  .dialog .here .av { width: 22px; height: 22px; font-size: 10px; }
+
+  .callout { position: absolute; z-index: 90; background: #fde047; color: #422006; font-size: 11px; font-weight: 600; padding: 3px 7px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <h1>Maxitor rooms</h1>
+  <p class="sub">Design mockup for issue #271. Every screen uses Maxitor's own sizes and colours; the diagrams are simplified stand-ins. Screens follow the walk-through in §3 of the issue.</p>
+</nav>
+<main class="stage">
+  <div class="frames" id="frames"></div>
+  <section class="notes" id="notes"></section>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Data: participants, diagram stand-ins
+// ---------------------------------------------------------------------------
+
+/** Server-assigned colours: distinct from the domain colours of the diagrams, readable on light and dark. */
+const PEOPLE = {
+  anna:  { name: "Anna",          color: "#E11D48" },
+  boris: { name: "Boris",         color: "#0891B2" },
+  vera:  { name: "Vera Ilina",    color: "#C026D3" },
+  gleb:  { name: "Gleb",          color: "#EA580C" },
+  dina:  { name: "Dina",          color: "#65A30D" },
+  egor:  { name: "Egor Sokolov",  color: "#4338CA" },
+  zoya:  { name: "Zoya",          color: "#DB2777" },
+  ilya:  { name: "Ilya",          color: "#92400E" },
+};
+
+const PAGES = { erd: "ERD · all domains", graph: "Full graph", uc: "Use case · PlayersDomain" };
+
+const DOMAINS = [
+  { key: "events",    label: "events",    color: "#3b82f6" },
+  { key: "offers",    label: "offers",    color: "#8b5cf6" },
+  { key: "players",   label: "players",   color: "#10b981" },
+  { key: "showcases", label: "showcases", color: "#f59e0b" },
+];
+const DOMAIN_COLOR = Object.fromEntries(DOMAINS.map((d) => [d.key, d.color]));
+
+const TABLES = [
+  { id: "player", name: "PlayerCoreEntity", d: "players", lr: [40, 40], tb: [40, 40],
+    f: [["id", "str", "PK"], ["external_id", "str"], ["lifecycle", "PlayerLifecycle"], ["region", "str | None"], ["username", "str"], ["showcase", "ShowcaseCoreEntity", "FK"]] },
+  { id: "gender", name: "GenderEnumEntity", d: "players", lr: [40, 270], tb: [40, 270],
+    f: [["id", "str", "PK"], ["is_obsolete", "bool"]] },
+  { id: "uevent", name: "UserEventCoreEntity", d: "events", lr: [360, 40], tb: [340, 40],
+    f: [["id", "str", "PK"], ["kind", "EventKindEnumEntity", "FK"], ["external_event_id", "str"], ["created_at", "datetime"], ["player", "PlayerCoreEntity", "FK"], ["showcase", "ShowcaseCoreEntity", "FK"]] },
+  { id: "login", name: "UserEventLoginSpecEntity", d: "events", lr: [360, 270], tb: [340, 270],
+    f: [["id", "str", "PK"], ["platform", "PlatformEnumEntity", "FK"], ["ip", "str"], ["streak_days", "int"]] },
+  { id: "showcase", name: "ShowcaseCoreEntity", d: "showcases", lr: [680, 40], tb: [640, 40],
+    f: [["id", "str", "PK"], ["name", "str"], ["public_key", "str"], ["created_at", "datetime"]] },
+  { id: "offer", name: "OfferCoreEntity", d: "offers", lr: [680, 220], tb: [940, 40],
+    f: [["id", "str", "PK"], ["active_from", "datetime"], ["active_to", "datetime"], ["adult_only", "bool"], ["advertiser", "AdvertiserCoreEntity", "FK"]] },
+  { id: "adv", name: "AdvertiserCoreEntity", d: "offers", lr: [680, 390], tb: [940, 230],
+    f: [["id", "str", "PK"], ["name", "str"]] },
+];
+const RELATIONS = [["uevent", "player"], ["login", "uevent", "gen"], ["player", "gender"], ["uevent", "showcase"], ["player", "showcase"], ["offer", "adv"]];
+const TW = 250, TH_HEAD = 30, TH_ROW = 20;
+const tableH = (t) => TH_HEAD + t.f.length * TH_ROW + 6;
+
+/** Diagram-coordinate bounds of each stand-in, for "fit". */
+const BOUNDS = { erd_lr: [0, 0, 970, 480], erd_tb: [0, 0, 1230, 440], graph: [0, 0, 900, 640] };
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function initials(name) {
+  const words = name.trim().split(/\s+/);
+  return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
+}
+
+/** Text colour for a filled circle: dark on light fills, white on dark ones. */
+function inkOn(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    c /= 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? "#0f172a" : "#ffffff";
+}
+
+function av(pid, extra = "") {
+  const p = PEOPLE[pid];
+  return `<span class="av ${extra}" style="background:${p.color};color:${inkOn(p.color)}">${initials(p.name)}</span>`;
+}
+
+const I = {
+  panel: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linejoin="round" d="M4.75 5.75h14.5c.55 0 1 .45 1 1v10.5c0 .55-.45 1-1 1H4.75c-.55 0-1-.45-1-1V6.75c0-.55.45-1 1-1z"/><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" d="M9.25 6.25v11.5"/></svg>',
+  swap: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" stroke-linejoin="round" d="M4.75 8h14.5M15.75 5l3 3-3 3M19.25 16H4.75M8.25 13l-3 3 3 3"/></svg>',
+  reload: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.38" stroke-linecap="round" stroke-linejoin="round" d="M19.25 12a7.25 7.25 0 1 1-2.12-5.13M19.25 4.75v4h-4"/></svg>',
+  chevR: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+  chevD: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>',
+  table: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.4" d="M4 5h16v14H4zM4 10h16M10 10v9"/></svg>',
+  graph: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="2.2"/><circle cx="5" cy="6" r="1.6"/><circle cx="19" cy="6" r="1.6"/><circle cx="6" cy="18.5" r="1.6"/><circle cx="18" cy="18" r="1.6"/><path d="M10.3 10.6 6.2 7.1M13.7 10.6l4.1-3.5M10.5 13.8 7.1 17.3M13.6 13.6l3.3 3.3"/></g></svg>',
+  menu: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"/></svg>',
+  people: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17 14.3c1.9.6 3.1 2.2 3.5 4.7"/></g></svg>',
+  link: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 13.5a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.2 1.2"/><path d="M14 10.5a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.2-1.2"/></g></svg>',
+  leave: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.75H6.75a1 1 0 0 0-1 1v12.5a1 1 0 0 0 1 1H14"/><path d="M11 12h9.25M17 8.5l3.5 3.5-3.5 3.5"/></g></svg>',
+  warn: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.2 2.8 17.5A2 2 0 0 0 4.5 20.5h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4.5M12 17.2v.1"/></g></svg>',
+  info: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.1"/></g></svg>',
+  block: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></g></svg>',
+  cube: '<svg viewBox="0 0 24 24"><g fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></g></svg>',
+  modeLR: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="9" width="5" height="6" rx="1"/><rect x="16" y="4" width="5" height="6" rx="1"/><rect x="16" y="14" width="5" height="6" rx="1"/><path d="M8 12h4M12 7v10M12 7h4M12 17h4"/></g></svg>',
+  modeTB: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="4" y="16" width="6" height="5" rx="1"/><rect x="14" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M7 12h10M7 12v4M17 12v4"/></g></svg>',
+  modeNeato: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6" cy="7" r="2"/><circle cx="17" cy="5" r="2"/><circle cx="12" cy="13" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="17" r="2"/><path d="M7.7 8.2 10.4 11.7M15.6 6.4 13.2 11.3M10.4 14.2 6.6 17M13.8 13.8 17.3 16.2"/></g></svg>',
+  modeFdp: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="2.2"/><circle cx="5" cy="5" r="1.7"/><circle cx="19" cy="5" r="1.7"/><circle cx="5" cy="19" r="1.7"/><circle cx="19" cy="19" r="1.7"/><path d="M6.3 6.3l4.1 4.1M17.7 6.3l-4.1 4.1M6.3 17.7l4.1-4.1M17.7 17.7l-4.1-4.1"/></g></svg>',
+  modeCirco: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="7.5" stroke-dasharray="2 2"/><circle cx="12" cy="4.5" r="1.8"/><circle cx="19.5" cy="12" r="1.8"/><circle cx="12" cy="19.5" r="1.8"/><circle cx="4.5" cy="12" r="1.8"/></g></svg>',
+  check: '<svg viewBox="0 0 24 24" width="12" height="12"><path fill="#fff" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+  done: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+  dots: '<svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="5.5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="18.5" r="1.8"/></g></svg>',
+  github: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>',
+};
+
+/** Footer of the left panel: the project link always; the name and version when the panel is open. */
+const PROJECT_URL = "https://github.com/bystrovmaxim/aoa/tree/main/packages/aoa-maxitor";
+/** In Maxitor itself the version is read from the ``aoa-maxitor`` package at build time; 2.2.0 is today's. */
+const MAXITOR_VERSION = "2.2.0";
+
+// ---------------------------------------------------------------------------
+// Diagram stand-ins, drawn in diagram coordinates
+// ---------------------------------------------------------------------------
+
+function erdSvg(layout, hidden) {
+  const pos = (t) => t[layout];
+  const shown = TABLES.filter((t) => !hidden.includes(t.d));
+  const byId = Object.fromEntries(shown.map((t) => [t.id, t]));
+  let out = '<defs><marker id="erd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs>';
+  for (const [a, b, kind] of RELATIONS) {
+    if (!byId[a] || !byId[b]) continue;
+    const [ax, ay] = pos(byId[a]), [bx, by] = pos(byId[b]);
+    const ah = tableH(byId[a]), bh = tableH(byId[b]);
+    let p;
+    if (bx >= ax + TW) p = [ax + TW, ay + 15 + ah / 4, bx, by + 15 + bh / 4, "h"];
+    else if (bx + TW <= ax) p = [ax, ay + 15 + ah / 4, bx + TW, by + 15 + bh / 4, "h"];
+    else if (by > ay) p = [ax + TW / 2, ay + ah, bx + TW / 2, by, "v"];
+    else p = [ax + TW / 2, ay, bx + TW / 2, by + bh, "v"];
+    const [x1, y1, x2, y2, dir] = p;
+    const c = dir === "h" ? `C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2}` : `C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2}`;
+    out += `<path d="M${x1},${y1} ${c} ${x2},${y2}" fill="none" stroke="#94a3b8" stroke-width="1.3" ${kind === "gen" ? 'stroke-dasharray="5 3"' : ""} marker-end="url(#erd-arrow)"/>`;
+  }
+  for (const t of shown) {
+    const [x, y] = pos(t), h = tableH(t), col = DOMAIN_COLOR[t.d];
+    out += `<g><rect x="${x}" y="${y}" width="${TW}" height="${h}" rx="9" fill="#fff" stroke="${col}" stroke-width="1.4"/>`;
+    out += `<path d="M${x} ${y + 9}a9 9 0 0 1 9-9h${TW - 18}a9 9 0 0 1 9 9v${TH_HEAD - 9}h-${TW}z" fill="${col}"/>`;
+    out += `<text x="${x + 12}" y="${y + 20}" font-size="12.5" font-weight="600" fill="#fff">${t.name}</text>`;
+    t.f.forEach(([name, type, key], i) => {
+      const ry = y + TH_HEAD + 4 + i * TH_ROW;
+      if (i % 2) out += `<rect x="${x + 1}" y="${ry}" width="${TW - 2}" height="${TH_ROW}" fill="${col}" fill-opacity=".06"/>`;
+      if (key) out += `<text x="${x + 10}" y="${ry + 14}" font-size="8.5" font-weight="700" fill="${key === "PK" ? "#b45309" : "#475569"}">${key}</text>`;
+      out += `<text x="${x + 32}" y="${ry + 14}" font-size="11" fill="#0f172a">${name}</text>`;
+      out += `<text x="${x + TW - 10}" y="${ry + 14}" font-size="10" fill="#64748b" text-anchor="end">${type}</text>`;
+    });
+    out += "</g>";
+  }
+  return out;
+}
+
+/** A deterministic stand-in for the full graph: four domain clusters with bubble hulls around one application node. */
+const GRAPH = (() => {
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const clusters = [
+    { label: "EventsDomain", color: "#3b82f6", cx: 220, cy: 190 },
+    { label: "OffersDomain", color: "#8b5cf6", cx: 640, cy: 170 },
+    { label: "PlayersDomain", color: "#10b981", cx: 230, cy: 470 },
+    { label: "ShowcasesDomain", color: "#f59e0b", cx: 650, cy: 470 },
+  ];
+  const nodes = [{ x: 440, y: 320, fill: "#000000" }], edges = [];
+  for (const c of clusters) {
+    const hub = nodes.push({ x: c.cx, y: c.cy, fill: "#377EB8" }) - 1;
+    edges.push([0, hub]);
+    for (let e = 0; e < 4; e++) {
+      const a = (e / 4) * Math.PI * 2 + rnd() * 0.6;
+      const ent = nodes.push({ x: c.cx + Math.cos(a) * 58, y: c.cy + Math.sin(a) * 58, fill: "#1B9E77" }) - 1;
+      edges.push([hub, ent]);
+      const k = 3 + Math.floor(rnd() * 3);
+      for (let f = 0; f < k; f++) {
+        const b = a + (f - (k - 1) / 2) * 0.32;
+        const r = 100 + rnd() * 16;
+        const fld = nodes.push({ x: c.cx + Math.cos(b) * r, y: c.cy + Math.sin(b) * r, fill: f % 2 ? "#5AB4AC" : "#6B5B95" }) - 1;
+        edges.push([ent, fld]);
+      }
+    }
+    const act = nodes.push({ x: c.cx + (c.cx < 440 ? 1 : -1) * 130, y: c.cy + (c.cy < 320 ? 1 : -1) * 70, fill: "#4F46E5" }) - 1;
+    edges.push([act, hub]);
+  }
+  return { clusters, nodes, edges };
+})();
+
+function graphSvg() {
+  let out = '<defs><marker id="g-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#95a5a6"/></marker></defs>';
+  for (const c of GRAPH.clusters) {
+    out += `<circle cx="${c.cx}" cy="${c.cy}" r="138" fill="${c.color}" fill-opacity=".14" stroke="${c.color}" stroke-opacity=".55" stroke-width="1.5"/>`;
+  }
+  for (const [a, b] of GRAPH.edges) {
+    const n1 = GRAPH.nodes[a], n2 = GRAPH.nodes[b];
+    const dx = n2.x - n1.x, dy = n2.y - n1.y, L = Math.hypot(dx, dy) || 1;
+    out += `<line x1="${n1.x}" y1="${n1.y}" x2="${n2.x - (dx / L) * 8}" y2="${n2.y - (dy / L) * 8}" stroke="#95a5a6" stroke-width="1.1" marker-end="url(#g-arrow)"/>`;
+  }
+  for (const n of GRAPH.nodes) {
+    out += `<circle cx="${n.x}" cy="${n.y}" r="7" fill="${n.fill}" stroke="rgba(15,23,42,.14)" stroke-width="1"/><circle cx="${n.x}" cy="${n.y}" r="2.2" fill="#fff" fill-opacity=".85"/>`;
+  }
+  for (const c of GRAPH.clusters) {
+    const w = c.label.length * 6.4 + 12;
+    out += `<rect x="${c.cx - w / 2}" y="${c.cy - 150}" width="${w}" height="18" rx="5" fill="${c.color}"/><text x="${c.cx}" y="${c.cy - 137}" font-size="11" fill="#fff" text-anchor="middle" font-weight="600">${c.label}</text>`;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Device rendering
+// ---------------------------------------------------------------------------
+
+const DESKTOP = { w: 1180, h: 700 };
+const PHONE = { w: 375, h: 760 };
+
+/** Workspace size of a device in CSS pixels (phone sizes are inside the 10 px bezel). */
+function wsSize(cfg) {
+  if (cfg.kind === "phone") return { w: PHONE.w - 20, h: PHONE.h - 20 - 44 };
+  return { w: DESKTOP.w - (cfg.collapsed ? 48 : 255), h: DESKTOP.h - 38 };
+}
+
+function boundsOf(cfg) {
+  return cfg.page === "graph" ? BOUNDS.graph : cfg.layout === "tb" ? BOUNDS.erd_tb : BOUNDS.erd_lr;
+}
+
+/** The view transform: fit the diagram, then optionally zoom further and centre on a diagram point. */
+function viewOf(cfg) {
+  const ws = wsSize(cfg);
+  const [x0, y0, x1, y1] = boundsOf(cfg);
+  const pad = cfg.kind === "phone" ? 16 : 40;
+  // On a desktop the floating legend takes the left edge, so the fitted picture starts to its right.
+  const left = cfg.kind === "phone" ? 0 : 150;
+  const k = Math.min((ws.w - left - pad * 2) / (x1 - x0), (ws.h - pad * 2 - 40) / (y1 - y0)) * (cfg.zoom ?? 1);
+  const center = cfg.center ?? [(x0 + x1) / 2, (y0 + y1) / 2];
+  const tx = left + (ws.w - left) / 2 - center[0] * k, ty = (ws.h - 30) / 2 - center[1] * k + (cfg.kind === "phone" ? 0 : 10);
+  return { k, tx, ty, ws };
+}
+
+function sidebar(cfg) {
+  const gh = `<a class="gh" href="${PROJECT_URL}" target="_blank" rel="noopener" title="Maxitor on GitHub">${I.github}</a>`;
+  if (cfg.collapsed) {
+    return `<aside class="sb rail"><div class="sb-head"><span class="icon-btn">${I.panel}</span></div><div class="sb-foot">${gh}</div></aside>`;
+  }
+  const sel = cfg.page;
+  const row = (cls, icon, text) => `<div class="sb-row ${cls}">${icon}${text}</div>`;
+  return `<aside class="sb">
+    <div class="sb-head"><span class="icon-btn">${I.panel}</span><span class="icon-btn">${I.swap}</span><span class="icon-btn">${I.reload}</span></div>
+    ${row("l1", I.chevD, "Applications")}
+    ${row("l2" + (sel === "graph" ? " sel" : ""), I.graph, "Full graph view")}
+    ${row("l1", I.chevD, "Domains")}
+    ${row("l2" + (sel === "erd" ? " sel" : ""), I.table, "Entity all domains view")}
+    ${row("l2", I.chevR, "EventsDomain")}
+    ${row("l2", I.chevR, "OffersDomain")}
+    ${row("l2", I.chevR, "PlayersDomain")}
+    ${row("l2", I.chevR, "ShowcasesDomain")}
+    ${row("l1", I.chevR, "Roles")}
+    ${row("l1", I.chevR, "Actions")}
+    ${row("l1", I.chevR, "Entities")}
+    ${row("l1", I.chevR, "Resources")}
+    <div class="sb-foot">${gh}<span class="nm">Maxitor</span><span>${MAXITOR_VERSION}</span></div>
+  </aside>`;
+}
+
+/** Circles: own first; beyond the limit (5 desktop, 3 phone) the rest collapse into +N. */
+function circles(cfg) {
+  const limit = cfg.kind === "phone" ? 3 : 5;
+  const ids = [cfg.me, ...cfg.room.filter((p) => p !== cfg.me)];
+  const shown = ids.length > limit ? ids.slice(0, limit - 1) : ids;
+  const rest = ids.length - shown.length;
+  let html = shown.map((id) => {
+    const away = cfg.pages?.[id] && cfg.pages[id] !== cfg.page ? " away" : "";
+    return av(id, (id === cfg.me ? "me" : "") + away).replace('class="av', `data-pid="${id}" style="color:${PEOPLE[id].color}" class="av`);
+  }).join("");
+  if (rest > 0) html += `<span class="av more" data-more>+${rest}</span>`;
+  return `<span class="circles">${html}</span>`;
+}
+
+function topRow(cfg) {
+  if (cfg.kind === "phone") {
+    const inRoom = cfg.room?.length;
+    return `<div class="phonebar"><span class="icon-btn">${I.menu}</span><span class="spacer"></span>${
+      inRoom
+        ? `${circles(cfg)}<span class="icon-btn${cfg.roomMenu ? " on" : ""}" title="Room">${I.dots}</span>`
+        : `<span class="ghost primary">${I.people}Open room</span>`
+    }</div>`;
+  }
+  if (!cfg.room?.length) {
+    return `<div class="toprow"><span class="spacer"></span><span class="ghost primary${cfg.hoverOpen ? " hover" : ""}">${I.people}Open room</span></div>`;
+  }
+  return `<div class="toprow"><span class="spacer"></span>${circles(cfg)}<span class="vsep"></span>
+    <span class="ghost${cfg.share ? " hover" : ""}" data-copy>${I.link}Copy link</span>
+    <span class="ghost">${I.leave}Leave room</span></div>`;
+}
+
+function legend(cfg) {
+  if (cfg.page === "graph") {
+    const types = [["Application", "#000000"], ["Domain", "#377EB8"], ["Entity", "#1B9E77"], ["EntityField", "#5AB4AC"], ["Field", "#6B5B95"], ["Action", "#4F46E5"]];
+    if (cfg.kind === "phone") return `<div class="legend"><div class="t">${I.chevR}Node types</div></div>`;
+    return `<div class="legend"><div class="t">Node types</div>${types.map(([t, c]) => `<div class="row"><span class="disk" style="background:${c}"></span><span>${t}</span></div>`).join("")}</div>`;
+  }
+  const hidden = cfg.hidden ?? [];
+  if (cfg.kind === "phone") {
+    const off = hidden.length ? ` · ${hidden.length} off` : "";
+    return `<div class="legend"><div class="t">${I.chevR}Domains${off}</div></div>`;
+  }
+  return `<div class="legend"><div class="t">${I.chevD}Domains</div>${DOMAINS.map((d) =>
+    `<div class="row${hidden.includes(d.key) ? " off" : ""}"><span class="disk" style="background:${d.color}">${I.cube}</span><span>${d.label}</span></div>`).join("")}
+    ${cfg.changedBy ? `<div class="changed">${av(cfg.changedBy).replace('class="av', 'style="width:14px;height:14px;font-size:7px" class="av')}${PEOPLE[cfg.changedBy].name} changed this</div>` : ""}
+    <div class="t">${I.chevR}Kinds</div></div>`;
+}
+
+function zoomBar(cfg, k) {
+  const pct = Math.round(k * 100) + "%";
+  const zoom = `<span class="z">+</span><span class="z">−</span><span class="z">⊡</span><span class="pct">${pct}</span>`;
+  if (cfg.kind === "phone" || cfg.page === "graph") return `<div class="zoombar">${zoom}</div>`;
+  const modes = [["lr", I.modeLR], ["tb", I.modeTB], ["neato", I.modeNeato], ["fdp", I.modeFdp], ["circo", I.modeCirco]];
+  return `<div class="zoombar">${zoom}<span class="vsep"></span>${modes.map(([m, ic]) => `<span class="mode${(cfg.layout ?? "lr") === m ? " on" : ""}">${ic}</span>`).join("")}<span class="hop"><i>${I.check}</i>1-hop</span></div>`;
+}
+
+/** A remote pointer: inside the view as an arrow with a name, outside as an edge arrow (issue §8). */
+function pointer(cfg, v, p) {
+  const person = PEOPLE[p.pid];
+  const sx = p.x * v.k + v.tx, sy = p.y * v.k + v.ty;
+  const fg = inkOn(person.color);
+  const inset = 20;
+  if (sx < 0 || sy < 0 || sx > v.ws.w || sy > v.ws.h) {
+    const cx = v.ws.w / 2, cy = v.ws.h / 2;
+    const dx = sx - cx, dy = sy - cy;
+    const s = Math.min((cx - inset) / Math.abs(dx || 1e-6), (cy - inset) / Math.abs(dy || 1e-6));
+    const ex = cx + dx * s, ey = cy + dy * s;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    return `<div class="edge-arrow" style="left:${ex}px;top:${ey}px;--c:${person.color}"><span class="tip" style="transform:rotate(${angle}deg)"></span>${av(p.pid)}</div>`;
+  }
+  const label = `<span class="lbl" style="background:${person.color};color:${fg}">${person.name}</span>`;
+  if (p.touch) {
+    return `<div class="touch" style="left:${sx}px;top:${sy}px;border-color:${person.color};background:${person.color}2e">${label}</div>`;
+  }
+  return `<div class="ptr" style="left:${sx - 2}px;top:${sy - 2}px"><svg width="18" height="22" viewBox="0 0 18 22"><path d="M2 2v16l4.4-4.1 3 6.6 2.9-1.3-3-6.5H16z" fill="${person.color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>${label}</div>`;
+}
+
+function workspace(cfg) {
+  const v = viewOf(cfg);
+  const body = cfg.page === "graph" ? graphSvg() : erdSvg(cfg.layout === "tb" ? "tb" : "lr", cfg.hidden ?? []);
+  let html = `<div class="ws"><svg class="diagram"><g transform="translate(${v.tx} ${v.ty}) scale(${v.k})" font-family="ui-sans-serif, system-ui, sans-serif">${body}</g></svg>`;
+  html += legend(cfg) + zoomBar(cfg, v.k);
+  for (const p of cfg.pointers ?? []) html += pointer(cfg, v, p);
+  if (cfg.follow) {
+    const p = PEOPLE[cfg.follow];
+    html += `<div class="follow-frame" style="border-color:${p.color}"></div>
+      <div class="follow-pill" style="background:${p.color};color:${inkOn(p.color)}">Following ${p.name}<button class="stop">Stop</button></div>`;
+  }
+  if (cfg.banner) html += cfg.banner;
+  for (const c of cfg.callouts ?? []) html += `<div class="callout" style="left:${c.x}px;top:${c.y}px">${c.text}</div>`;
+  return html + "</div>";
+}
+
+function device(cfg) {
+  const size = cfg.kind === "phone" ? PHONE : DESKTOP;
+  const main = `<div class="main">${topRow(cfg)}${workspace(cfg)}</div>`;
+  const inner = cfg.kind === "phone" ? main : sidebar(cfg) + main;
+  return `<div class="device ${cfg.kind}" style="width:${size.w}px;height:${size.h}px">${inner}${cfg.overlay ?? ""}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Overlays (popovers, dialogs, banners)
+// ---------------------------------------------------------------------------
+
+const ROOM_LINK = "https://maxitor.example/?source=https%3A%2F%2Fshop.example%2Fgraph-json&view=domain-erd&room=q8VZ0kR3b1xT9mWc4LhY2A";
+
+function nameDialog({ title, lead, value, here, action }) {
+  return `<div class="scrim"><div class="dialog">
+    <div class="dlg-title">${title}</div><p class="lead">${lead}</p>
+    ${here ?? ""}
+    <div class="label-caps">Your name</div>
+    <div class="field focus">${value}<span class="caret"></span></div>
+    <div class="help"><span>Shown to everyone in the room. Names are not checked.</span><span>${value.length}/40</span></div>
+    <div class="actions"><button class="btn ghost-btn">Cancel</button><button class="btn quiet">${action}</button></div>
+  </div></div>`;
+}
+
+function sharePopover() {
+  return `<div class="pop" style="right:110px;top:36px;width:360px;padding:12px 14px 14px">
+    <div class="label-caps" style="margin-bottom:8px">Invite to this room</div>
+    <div class="linkbox"><span class="field mono">${ROOM_LINK}</span><button class="btn quiet">${I.done}Copied</button></div>
+    <div class="hint" style="margin-top:8px">Anyone with this link can join and see your pointer and this service's diagrams.</div>
+  </div>`;
+}
+
+function roomMenu() {
+  return `<div class="pop" style="right:6px;top:46px;width:220px;padding:4px 0">
+    <div class="menu-row">${I.link}Copy room link</div>
+    <div class="menu-row">${I.leave}Leave room</div>
+  </div>`;
+}
+
+/**
+ * The card of another participant. ``mode`` is "follow" (a plain Follow), "switch" (you already
+ * follow someone else) or "loop" (they follow you, directly or through others, so Follow is refused).
+ */
+function personTooltip({ pid, right, top, page, mode = "follow", followsYou }) {
+  const p = PEOPLE[pid];
+  const first = p.name.split(" ")[0];
+  const followBtn = {
+    follow: `<button class="btn quiet">Follow</button>`,
+    switch: `<button class="btn quiet">Follow ${first} instead</button>`,
+    loop: `<button class="btn quiet" disabled>Follow</button>`,
+  }[mode];
+  const hint = {
+    follow: "A click on the circle goes there too. Your zoom stays yours.",
+    switch: "You stop following the other person and follow " + first + " from now on.",
+    loop: `${first} is following you, so you can't follow ${first}: your screens would chase each other.`,
+  }[mode];
+  return `<div class="pop" style="right:${right}px;top:${top}px;width:260px;padding:12px">
+    <div class="who">${av(pid)}<div><div class="nm">${p.name}</div><div class="pg">${PAGES[page]}${followsYou ? " · <b>following you</b>" : ""}</div></div></div>
+    <div class="acts"><button class="btn ghost-btn">Go to ${first}</button>${followBtn}</div>
+    <div class="hint" style="margin-top:6px">${hint}</div>
+  </div>`;
+}
+
+function overflowList(cfg, ids, pages) {
+  return `<div class="pop" style="right:150px;top:36px;width:280px;padding:8px">
+    <div class="hint" style="padding:2px 4px 6px">${ids.length} more in this room</div>
+    ${ids.map((id) => `<div class="list-row">${av(id)}<span class="nm" style="font-size:12.5px;font-weight:500">${PEOPLE[id].name}</span><span class="pg">${PAGES[pages[id]]}</span></div>`).join("")}
+  </div>`;
+}
+
+function banner(kind, icon, text, action) {
+  return `<div class="banner ${kind}">${icon}<span>${text}</span>${action ? `<button class="act">${action}</button>` : ""}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Screens
+// ---------------------------------------------------------------------------
+
+const ANNA_PTR_ERD = { pid: "anna", x: 165, y: 52 };
+const BORIS_TOUCH_ERD = { pid: "boris", x: 470, y: 126, touch: true };
+const ANNA_PTR_GRAPH = { pid: "anna", x: 652, y: 160 };
+
+const SCREENS = [
+  { group: "Opening and joining" },
+  {
+    title: "Outside a room",
+    ref: "§7",
+    frames: [{ cap: "<b>Anna</b> · desktop · ERD of all domains", kind: "desktop", me: "anna", page: "erd", hoverOpen: true }],
+    notes: `<p>The new row at the top of the workspace is <b>38 px</b>, the same as the header row of the left panel, so the two lines meet. It sits on the workspace surface with a hairline under it and no shadow: it should not read as a separate menu bar.</p>
+      <ul><li>Outside a room the row holds one button, <b>Open room</b>.</li>
+      <li>The floating legend and the zoom bar keep their places: they are inside the workspace, below the new row.</li></ul>`,
+  },
+  {
+    title: "Name dialog",
+    ref: "§3.1, §6",
+    frames: [{ cap: "<b>Anna</b> presses Open room", kind: "desktop", me: "anna", page: "erd",
+      overlay: nameDialog({ title: "Open a room", lead: "Look at this service together with others: they see your pointer, and filters and layout modes are shared.", value: "Anna", action: "Open room" }) }],
+    notes: `<ul><li>The last name used is filled in (kept in the browser). 1–40 characters, trimmed; the counter shows the limit.</li>
+      <li>The help text says it plainly: names are not checked. The interface does not pretend otherwise.</li></ul>`,
+  },
+  {
+    title: "Room is open: share the link",
+    ref: "§3.1, §9",
+    frames: [{ cap: "<b>Anna</b> alone in the new room · Copy link pressed", kind: "desktop", me: "anna", page: "erd", room: ["anna"], share: true, overlay: sharePopover() }],
+    notes: `<ul><li>The address gets <code>&amp;room=&lt;id&gt;</code>; the id is 128 random bits, so the link is the invitation.</li>
+      <li>The row now holds the circles (only Anna's for now), <b>Copy link</b> and <b>Leave room</b>. The button says “room” so it is never read as leaving Maxitor. Copy link copies at once and opens this small card with the warning.</li>
+      <li>Your own circle has a ring, so it is told apart from the others.</li>
+      <li>Opening the room gives Anna no extra rights: a room has no host.</li></ul>`,
+  },
+  {
+    title: "Joining by link (phone)",
+    ref: "§3.2",
+    frames: [{ cap: "<b>Boris</b> · phone · opened the link", kind: "phone", me: "boris", page: "erd", zoom: 1,
+      overlay: nameDialog({ title: "Join the room", lead: "ERD · all domains", value: "Boris", action: "Join",
+        here: `<div class="here">${av("anna")}<span><b>Anna</b> is in this room</span></div>` }) }],
+    notes: `<ul><li>On a phone the existing 44 px bar with the menu button holds the room controls; the dialog fills the width (the next screen shows the room menu).</li>
+      <li>Who is already inside is shown before joining, so a wrong link is noticed early.</li></ul>`,
+  },
+  {
+    title: "Room menu (phone)",
+    ref: "§7",
+    frames: [{ cap: "<b>Boris</b> · phone · the ⋮ button opened", kind: "phone", me: "boris", page: "erd", room: ["anna", "boris"], zoom: 2.6, center: [300, 150], roomMenu: true, overlay: roomMenu() }],
+    notes: `<ul><li>A phone bar has no room for two labelled buttons, and bare icons for “copy” and “leave” are easy to misread. One ⋮ button opens a menu with <b>Copy room link</b> and <b>Leave room</b>, both in words.</li></ul>`,
+  },
+  { group: "Together on one page" },
+  {
+    title: "Two screens, one picture",
+    ref: "§3.3, §5",
+    frames: [
+      { cap: "<b>Anna</b> · desktop · zoom of her own", kind: "desktop", me: "anna", page: "erd", room: ["anna", "boris"], pointers: [BORIS_TOUCH_ERD] },
+      { cap: "<b>Boris</b> · phone · smaller zoom", kind: "phone", me: "boris", page: "erd", room: ["anna", "boris"], zoom: 2.6, center: [300, 150], pointers: [ANNA_PTR_ERD] },
+    ],
+    notes: `<p>Anna's mouse is on the header of <code>PlayerCoreEntity</code>; Boris sees her arrow at the same spot of the diagram although his screen is smaller and zoomed differently. Boris touches <code>UserEventCoreEntity</code>; Anna sees a short-lived touch mark there.</p>
+      <ul><li>Pointers travel in diagram coordinates and are re-projected on every pan and zoom.</li>
+      <li>A mouse pointer is an arrow with a name tag; a touch is a ring that fades out after about a second (there is nothing to show between touches).</li></ul>`,
+  },
+  {
+    title: "Shared filters and layout",
+    ref: "§3.4, §5",
+    frames: [
+      { cap: "<b>Anna</b> · the page changes for her too", kind: "desktop", me: "anna", page: "erd", room: ["anna", "boris"], hidden: ["events"], layout: "tb", changedBy: "boris",
+        callouts: [{ x: 150, y: 152, text: "who changed it, for a few seconds" }] },
+      { cap: "<b>Boris</b> switched <i>events</i> off and chose top-to-bottom", kind: "phone", me: "boris", page: "erd", room: ["anna", "boris"], hidden: ["events"], layout: "tb", zoom: 1.4, center: [560, 180] },
+    ],
+    notes: `<ul><li><b>There is no host.</b> Anyone in the room can change the filters and the layout mode of a page, and the change is applied for everyone; the last change wins. Here it is Boris, not Anna who opened the room.</li>
+      <li>Domains (and node types, entity kinds, one-hop) and the layout mode are kept per page by the room. A third person who opens this page later gets the same settings.</li>
+      <li>Messages say “set on/off”, never “toggle”, so two clicks at the same moment do not cancel out.</li>
+      <li><b>Proposal, not in the issue:</b> a short “Boris changed this” line in the legend, so a filter switching off by itself is not a surprise. It fades after a few seconds.</li>
+      <li>Zoom and scroll stay personal: the two screens show the same layout at different scales.</li></ul>`,
+  },
+  {
+    title: "Pointers off the screen",
+    ref: "§8",
+    frames: [{ cap: "<b>Anna</b> zoomed in; Boris and Vera point elsewhere", kind: "desktop", me: "anna", page: "erd", room: ["anna", "boris", "vera"], zoom: 2.4, center: [180, 120],
+      pointers: [{ pid: "boris", x: 900, y: 300 }, { pid: "vera", x: 120, y: 420 }] }],
+    notes: `<ul><li>A pointer outside your view becomes a small arrow at the edge, in the person's colour, with their initials, pointing where they are.</li>
+      <li>A click on the arrow centres your view on that pointer; your zoom does not change.</li></ul>`,
+  },
+  { group: "Going to someone" },
+  {
+    title: "Circle tooltip",
+    ref: "§3.5, §7",
+    frames: [{ cap: "<b>Boris</b> on the ERD; Anna has gone to the full graph", kind: "desktop", me: "boris", page: "erd", room: ["anna", "boris"], pages: { anna: "graph", boris: "erd" },
+      overlay: personTooltip({ pid: "anna", right: 150, top: 36, page: "graph" }) }],
+    notes: `<ul><li>The tooltip shows the full name and the page the person is on, and a <b>Follow</b> button. On a touch screen it opens on a long press.</li>
+      <li><b>Proposal, not in the issue:</b> a grey dot on circles of people who are on another page, so it is visible at a glance who is here and who is not.</li></ul>`,
+  },
+  {
+    title: "After a click on the circle",
+    ref: "§3.5, §8",
+    frames: [
+      { cap: "<b>Anna</b> · full graph", kind: "desktop", me: "anna", page: "graph", room: ["anna", "boris"], zoom: 1.5, center: [600, 220] },
+      { cap: "<b>Boris</b> · phone · centred on Anna's pointer, his own zoom", kind: "phone", me: "boris", page: "graph", room: ["anna", "boris"], zoom: 2.6, center: [ANNA_PTR_GRAPH.x, ANNA_PTR_GRAPH.y], pointers: [ANNA_PTR_GRAPH] },
+    ],
+    notes: `<ul><li>A click opens that person's active page and centres the view on their pointer, or on the centre of their screen when they have no pointer (a phone between touches).</li>
+      <li>The page in the left panel and in the address change as with any navigation; Back returns.</li></ul>`,
+  },
+  {
+    title: "Following",
+    ref: "§3.6, §8",
+    frames: [
+      { cap: "<b>Anna</b> · the person followed", kind: "desktop", me: "anna", page: "graph", room: ["anna", "boris"], zoom: 1.5, center: [600, 220], pointers: [] },
+      { cap: "<b>Boris</b> · follows Anna, keeps his own zoom", kind: "phone", me: "boris", page: "graph", room: ["anna", "boris"], zoom: 3.4, center: [600, 220], follow: "anna", pointers: [ANNA_PTR_GRAPH] },
+    ],
+    notes: `<ul><li>Following is personal: it makes nobody a leader of the room and gives nobody extra rights.</li>
+      <li>A frame in the colour of the person followed surrounds the workspace, with “Following Anna · Stop” (on a phone, above the zoom bar, so it does not cover the legend).</li>
+      <li>The view stays centred on the centre of Anna's screen and goes to Anna's pages. The zoom is not copied, and zooming does not stop following.</li>
+      <li>Following stops on your own pan, own navigation, Stop or Esc, or when Anna leaves.</li></ul>`,
+  },
+  {
+    title: "Follow someone else",
+    ref: "§8",
+    frames: [{ cap: "<b>Boris</b> follows Anna and opens Vera's card", kind: "desktop", me: "boris", page: "graph", room: ["anna", "boris", "vera"], pages: { anna: "graph", boris: "graph", vera: "erd" },
+      zoom: 1.5, center: [600, 220], follow: "anna", pointers: [ANNA_PTR_GRAPH],
+      overlay: personTooltip({ pid: "vera", right: 150, top: 36, page: "erd", mode: "switch" }) }],
+    notes: `<ul><li>While following, any other person's card offers <b>Follow Vera instead</b>: one click switches, without stopping first. You follow at most one person at a time.</li>
+      <li><b>Stop</b> on the frame (or Esc) ends following at any moment; the view stays where it is.</li></ul>`,
+  },
+  {
+    title: "No following in a circle",
+    ref: "§8",
+    frames: [{ cap: "<b>Boris</b> · Anna is following him", kind: "desktop", me: "boris", page: "erd", room: ["anna", "boris", "vera"], pages: { anna: "erd", boris: "erd", vera: "erd" },
+      pointers: [{ pid: "vera", x: 820, y: 120 }],
+      overlay: personTooltip({ pid: "anna", right: 182, top: 36, page: "erd", mode: "loop", followsYou: true }) }],
+    notes: `<ul><li>Following must never close a circle. If Anna follows Boris, Boris can't follow Anna; if Vera follows Anna and Anna follows Boris, Boris can't follow Vera either. Otherwise the screens would chase each other.</li>
+      <li>The card says why, and the Follow button is disabled. “Go to Anna” still works: it is a single jump, not following.</li>
+      <li>The server checks this too, when the request arrives: two people who press Follow on each other at the same moment do not both succeed — the second request is refused with the same reason.</li>
+      <li>The card of someone who follows you says “following you”, so the reason is visible before you try.</li></ul>`,
+  },
+  { group: "Many people and edge cases" },
+  {
+    title: "Crowded room (+N)",
+    ref: "§7",
+    frames: [{ cap: "<b>Anna</b> in a room of eight · +4 opened", kind: "desktop", me: "anna", page: "erd",
+      room: ["anna", "boris", "vera", "gleb", "dina", "egor", "zoya", "ilya"],
+      pages: { anna: "erd", boris: "erd", vera: "erd", gleb: "graph", dina: "erd", egor: "graph", zoya: "uc", ilya: "erd" },
+      pointers: [{ pid: "boris", x: 520, y: 330 }, { pid: "vera", x: 820, y: 120 }, { pid: "dina", x: 140, y: 300 }],
+      overlay: overflowList(null, ["dina", "egor", "zoya", "ilya"], { dina: "erd", egor: "graph", zoya: "uc", ilya: "erd" }) }],
+    notes: `<ul><li>More than five circles on a desktop (three on a phone): the rest collapse into <b>+N</b>, which opens a list with the same actions as a circle.</li>
+      <li>Two people never share a colour; the server gives out the next free one.</li></ul>`,
+  },
+  {
+    title: "Maxitor was updated",
+    ref: "§4.3",
+    frames: [{ cap: "<b>Gleb</b> · a tab left open over a deploy", kind: "desktop", me: "gleb", page: "erd", room: ["anna", "boris", "gleb"],
+      banner: banner("info", I.reload, "Maxitor was updated — reloading…", null) }],
+    notes: `<ul><li>The tab's app build differs from the server's. It is compared with the server, not with the others, so it is always clear whose tab is out of date.</li>
+      <li>The tab reloads itself. The address keeps the page and the room; the zoom and the centre of the view are kept in <code>sessionStorage</code> and restored. Nothing to press.</li>
+      <li>At most one such reload in five minutes, so a mismatch a reload does not cure never becomes a loop.</li></ul>`,
+  },
+  {
+    title: "The model was updated",
+    ref: "§10",
+    frames: [
+      { cap: "<b>Anna</b> · the service now has a new model", kind: "desktop", me: "anna", page: "erd", room: ["anna", "boris"], hidden: ["events"], layout: "tb",
+        banner: banner("info", I.info, "The model was updated.", null) },
+      { cap: "<b>Boris</b> · gets it at the same moment", kind: "phone", me: "boris", page: "erd", room: ["anna", "boris"], hidden: ["events"], layout: "tb", zoom: 1.4, center: [560, 180],
+        banner: banner("info", I.info, "The model was updated.", null) },
+    ],
+    notes: `<ul><li>Maxitor noticed that the service's <code>graph-json</code> changed, built the new graph in the background and told every open tab of that source.</li>
+      <li>The page redraws by itself and keeps the page, the filters (here <i>events</i> off), the layout mode, the zoom and the centre of the view. A filter that names something removed from the model is dropped.</li>
+      <li>The notice is short and fades after a few seconds; it is there so moved nodes are not a mystery. In a room everyone gets the new graph at the same moment.</li></ul>`,
+  },
+  {
+    title: "Pointers are off",
+    ref: "§4.3",
+    frames: [{ cap: "<b>Gleb</b> · same build and graph, different layout", kind: "desktop", me: "gleb", page: "erd", room: ["anna", "boris", "gleb"],
+      banner: banner("warn", I.warn, "Pointers are off on this page: your diagram is laid out differently from the room's.", null) }],
+    notes: `<ul><li>The build and the graph are the same as the server's, but the layout hash is not: the layout is not deterministic. That is a bug the cross-engine proof must rule out, and a reload would not cure it, so nothing happens automatically.</li>
+      <li>Pointers on this page are off in both directions; everything else (circles, shared filters, going to someone) works.</li></ul>`,
+  },
+  {
+    title: "The room has ended",
+    ref: "§9",
+    frames: [{ cap: "A link to a room that no longer exists", kind: "desktop", me: "anna", page: "erd",
+      banner: banner("info", I.info, "This room has ended. You are looking at the diagram on your own.", "Open room") }],
+    notes: `<ul><li>The page opens normally without a room; <code>room</code> is removed from the address.</li>
+      <li>A room ends two minutes after its last participant leaves, or when the server restarts.</li></ul>`,
+  },
+  {
+    title: "Refused by a limit",
+    ref: "§9",
+    frames: [{ cap: "<b>Boris</b> · phone · the room is full", kind: "phone", me: "boris", page: "erd",
+      banner: banner("err", I.block, "Can't join: this room already has 20 people.", null) }],
+    notes: `<ul><li>Every limit (people per room, rooms per server, message rate and size) closes the connection with a reason the page can show in one sentence.</li></ul>`,
+  },
+  { group: "Maxitor-wide" },
+  {
+    title: "Left panel: project link",
+    ref: "new",
+    frames: [{ cap: "<b>Anna</b> · left panel collapsed to the rail", kind: "desktop", me: "anna", page: "erd", room: ["anna", "boris"], collapsed: true }],
+    notes: `<ul><li>At the very bottom of the left panel: the GitHub mark linking to the Maxitor project (<code>${PROJECT_URL.replace("https://", "")}</code>).</li>
+      <li>When the panel is open, the mark is followed by the name <b>Maxitor</b> and the running version (<b>${MAXITOR_VERSION}</b> today, read from the <code>aoa-maxitor</code> package, never typed by hand), all centred in the panel's width (every other screen shows it). No copyright and no year.</li>
+      <li>No divider line above the footer: it sits on the panel's surface like the rows above it.</li>
+      <li>When the panel is collapsed to the 48 px rail, only the mark remains, still a link.</li></ul>`,
+  },
+  {
+    title: "ERD table style",
+    ref: "new",
+    frames: [{ cap: "Entity tables, close up", kind: "desktop", me: "anna", page: "erd", zoom: 2.3, center: [520, 170] }],
+    notes: `<p>The entity tables of the mockup are the target look of the ERD in Maxitor itself:</p>
+      <ul><li><b>Header</b>: filled with the domain colour and flush with the frame — it shares the frame's rounded top corners, with no gap and no inner border. Entity name white, 12.5 px, semibold, left-aligned.</li>
+      <li><b>Frame</b>: 1.4 px in the domain colour, corner radius 9, white body, width 250 diagram units.</li>
+      <li><b>Rows</b>: 20 units high; every second row is tinted with the domain colour at 6 % opacity.</li>
+      <li><b>Keys</b>: <code>PK</code> in bold rust-red <code>#b45309</code>, <code>FK</code> in bold slate <code>#475569</code>, both 8.5 px in a column of their own before the field name.</li>
+      <li><b>Text</b>: field name 11 px <code>#0f172a</code> on the left; type 10 px <code>#64748b</code>, right-aligned.</li>
+      <li><b>Lines</b>: <code>#94a3b8</code>, 1.3 px, a filled arrowhead; a generalization (spec → core) is dashed 5/3.</li></ul>`,
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Page wiring
+// ---------------------------------------------------------------------------
+
+const nav = document.getElementById("nav");
+const framesEl = document.getElementById("frames");
+const notesEl = document.getElementById("notes");
+let current = 1;
+let n = 0;
+
+for (let i = 0; i < SCREENS.length; i++) {
+  const s = SCREENS[i];
+  if (s.group) {
+    nav.insertAdjacentHTML("beforeend", `<div class="group">${s.group}</div>`);
+    continue;
+  }
+  n += 1;
+  nav.insertAdjacentHTML("beforeend", `<button class="screen" data-i="${i}"><span class="n">${n}</span><span>${s.title}</span></button>`);
+}
+nav.addEventListener("click", (e) => {
+  const b = e.target.closest("button.screen");
+  if (b) show(+b.dataset.i);
+});
+document.addEventListener("keydown", (e) => {
+  const order = SCREENS.map((s, i) => (s.group ? -1 : i)).filter((i) => i >= 0);
+  const at = order.indexOf(current);
+  if (e.key === "ArrowDown" || e.key === "ArrowRight") show(order[Math.min(at + 1, order.length - 1)]);
+  if (e.key === "ArrowUp" || e.key === "ArrowLeft") show(order[Math.max(at - 1, 0)]);
+});
+
+function show(i) {
+  current = i;
+  const s = SCREENS[i];
+  nav.querySelectorAll("button.screen").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
+  framesEl.innerHTML = s.frames.map((f) => {
+    const cfg = { room: [], ...f };
+    const size = cfg.kind === "phone" ? PHONE : DESKTOP;
+    return `<div class="frame-wrap" data-w="${size.w}" data-h="${size.h}"><p class="frame-cap">${cfg.cap}</p><div class="frame-scale">${device(cfg)}</div></div>`;
+  }).join("");
+  notesEl.innerHTML = `<h2>${s.title}</h2><div class="ref">Issue #271 ${s.ref}</div>${s.notes}`;
+  fit();
+}
+
+/** Scale the frames down so the whole screen fits the stage width. */
+function fit() {
+  const wraps = [...framesEl.querySelectorAll(".frame-wrap")];
+  const natural = wraps.reduce((sum, w) => sum + +w.dataset.w, 0) + 28 * (wraps.length - 1);
+  const avail = framesEl.parentElement.clientWidth - 56;
+  const k = Math.min(1, avail / natural);
+  for (const w of wraps) {
+    const inner = w.querySelector(".frame-scale");
+    inner.style.transform = `scale(${k})`;
+    inner.style.width = `${w.dataset.w}px`;
+    w.style.width = `${w.dataset.w * k}px`;
+    inner.parentElement.style.height = "";
+    inner.style.height = `${w.dataset.h}px`;
+    inner.style.marginBottom = `${w.dataset.h * (k - 1)}px`;
+  }
+}
+window.addEventListener("resize", fit);
+show(1);
+</script>
+</body>
+</html>
