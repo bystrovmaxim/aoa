@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "@/rooms/coordinates";
 import type { DiagramSurface, SavedView } from "@/rooms/diagramSurface";
-import { followCentre, followNavigation, useFollow, watchOwnPan } from "@/rooms/follow";
+import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, useFollow, watchOwnPan } from "@/rooms/follow";
 import { clearPointers, putViewport } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -80,8 +80,9 @@ describe("following", () => {
     const send = vi.fn();
     const hook = renderHook(() => useFollow({ room: roomWith({ anna: "boris" }, ERD), send, surface: null, page: ERD, navigate: vi.fn() }));
     hook.result.current.follow("vera");
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith({ type: "follow", target: "vera" });
+    // The tab's focus goes out too (spec 029); following itself is one message.
+    const follows = send.mock.calls.filter(([message]) => message.type !== "focus");
+    expect(follows).toEqual([[{ type: "follow", target: "vera" }]]);
   });
 
   it("stops on Esc", () => {
@@ -103,16 +104,88 @@ describe("your own moves", () => {
     expect(onPan).toHaveBeenCalledTimes(1);
   });
 
-  it("do not stop it on a zoom: the wheel or a two-finger pinch", () => {
+  it("stop following on a wheel that moves the view: a trackpad swipe or a plain wheel (FR-053)", () => {
     const element = document.createElement("div");
     const onPan = vi.fn();
     const stop = watchOwnPan(element, onPan);
-    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -120 }));
+    element.dispatchEvent(new WheelEvent("wheel", { deltaX: 14, deltaY: -3 }));
+    stop();
+    expect(onPan).toHaveBeenCalledTimes(1);
+  });
+
+  it("do not stop it on a zoom: a pinch, Ctrl or ⌘ with the wheel, or a two-finger touch pinch", () => {
+    const element = document.createElement("div");
+    const onPan = vi.fn();
+    const stop = watchOwnPan(element, onPan);
+    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -3, ctrlKey: true }));
+    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -120, metaKey: true }));
     element.dispatchEvent(pointer("pointerdown", 1, 100));
     element.dispatchEvent(pointer("pointerdown", 2, 200));
     window.dispatchEvent(pointer("pointermove", 1, 80));
     window.dispatchEvent(pointer("pointermove", 2, 230));
     stop();
     expect(onPan).not.toHaveBeenCalled();
+  });
+});
+
+describe("the follower's glide (spec 029, FR-014, SC-003)", () => {
+  const SCREEN = 2000;
+  const FRAME = 1000 / 60;
+
+  /** The leader pans 300 px every 200 ms — 0.15 of the follower's screen per screen they report. */
+  function framesOfAPan(): { x: number; at: number }[] {
+    const glide = createGlide();
+    glide.jump({ x: 0, y: 0 }, 0);
+    const frames: { x: number; at: number }[] = [];
+    let next = 200;
+    let x = 0;
+    for (let now = 0; now <= 1600; now += FRAME) {
+      if (now >= next && next <= 1000) {
+        x += 300;
+        glide.push({ x, y: 0 }, now);
+        next += 200;
+      }
+      frames.push({ x: glide.at(now).point.x, at: now });
+    }
+    return frames;
+  }
+
+  it("moves on every frame and never jumps more than a tenth of the screen", () => {
+    const frames = framesOfAPan();
+    const steps = frames.slice(1).map((frame, i) => frame.x - frames[i]!.x);
+    expect(Math.max(...steps)).toBeLessThanOrEqual(SCREEN / 10);
+    expect(steps.every((step) => step >= 0)).toBe(true);
+  });
+
+  it("stands exactly where the leader stopped within half a second", () => {
+    const frames = framesOfAPan();
+    const settled = frames.filter((frame) => frame.at >= 1000 + 500);
+    expect(settled.every((frame) => frame.x === 1500)).toBe(true);
+  });
+
+  it("never glides longer than its longest interval, however long the leader was still", () => {
+    const glide = createGlide();
+    glide.jump({ x: 0, y: 0 }, 0);
+    glide.push({ x: 500, y: 0 }, 10_000);
+    expect(glide.at(10_000 + GLIDE_MAX_MS)).toEqual({ point: { x: 500, y: 0 }, arrived: true });
+  });
+
+  it("drives the follower's screen frame by frame and ends on the leader's centre", () => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
+    try {
+      const view = surface();
+      renderHook(() => useFollow({ room: roomWith({ anna: "boris" }, ERD), send: vi.fn(), surface: view, page: ERD, navigate: vi.fn() }));
+      act(() => putViewport("boris", { cx: 0, cy: 0, w: 2000, h: 1000 }));
+      act(() => vi.advanceTimersByTime(200));
+      act(() => putViewport("boris", { cx: 300, cy: 0, w: 2000, h: 1000 }));
+      act(() => vi.advanceTimersByTime(100));
+      const midway = view.centreOn.mock.calls.at(-1)![0];
+      expect(midway.x).toBeGreaterThan(0);
+      expect(midway.x).toBeLessThan(300);
+      act(() => vi.advanceTimersByTime(300));
+      expect(view.centreOn).toHaveBeenLastCalledWith({ x: 300, y: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -2,12 +2,13 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Popover from "@mui/material/Popover";
-import { useCallback, useRef, useState } from "react";
-import { Avatar } from "@/rooms/Circles/Avatar";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Avatar, ringedBox } from "@/rooms/Circles/Avatar";
 import { ParticipantCard, type FollowChoice } from "@/rooms/ParticipantCard";
 import { followsYou, wouldCloseCircle } from "@/rooms/followCircle";
 import type { FollowLinks, Participant } from "@/rooms/protocol";
 import { CARD_PAPER_SX, HINT_SX, WORKSPACE_SURFACE } from "@/rooms/roomStyles";
+import { setParticipantCardOpen } from "@/rooms/participantCardOpen";
 
 export type CirclesProps = {
   /** You first, then the others in the order they joined. */
@@ -88,9 +89,18 @@ export function Circles({
     setCard(null);
   }, []);
 
+  // The follow pill steps aside while a card or the list is open.
+  const anyCardOpen = card !== null || moreAnchor !== null;
+  useEffect(() => {
+    setParticipantCardOpen(anyCardOpen);
+    return () => setParticipantCardOpen(false);
+  }, [anyCardOpen]);
+
   const shown = visibleCount(participants.length, compact);
   const rest = participants.slice(shown);
-  const size = compact ? 30 : 26;
+  /** Every circle of the row is 22 px in a box that holds its ring (spec 029, FR-050, FR-051). */
+  const size = 22;
+  const box = ringedBox(size);
   const cardParticipant = card ? participants.find((p) => p.id === card.id) : undefined;
 
   function circle(participant: Participant) {
@@ -123,12 +133,21 @@ export function Circles({
           pressTimer.current = setTimeout(() => setCard({ id: participant.id, anchor, pinned: true }), LONG_PRESS_MS);
         }}
         onPointerUp={() => pressTimer.current && clearTimeout(pressTimer.current)}
-        sx={{ borderRadius: "50%", position: "relative", "&:focus-visible": { outline: "2px solid #0f172a", outlineOffset: 3 } }}
+        sx={{
+          width: box,
+          height: box,
+          borderRadius: "50%",
+          position: "relative",
+          flexShrink: 0,
+          // The focus ring is drawn inside the box, over the ring's place, never outside it.
+          "&:focus-visible": { outline: "2px solid #0f172a", outlineOffset: -2 },
+        }}
       >
         <Avatar
           participant={participant}
           size={size}
           ringed={participant.id === youId}
+          boxed
           surface={surface}
           pale={!participant.visible || participant.away}
           elsewhere={participant.id !== youId && participant.page !== null && participant.page !== yourPage}
@@ -139,17 +158,18 @@ export function Circles({
             aria-label={`${count} following you`}
             sx={{
               position: "absolute",
-              top: -5,
-              right: -6,
-              minWidth: 15,
-              height: 15,
+              // Kept within the circle's box sideways, so it never reaches the neighbour.
+              top: -4,
+              right: 0,
+              minWidth: 14,
+              height: 14,
               px: "3px",
               borderRadius: "8px",
               bgcolor: "#0f172a",
               color: "#fff",
               fontSize: 9.5,
               fontWeight: 700,
-              lineHeight: "15px",
+              lineHeight: "14px",
               textAlign: "center",
               border: `1.5px solid ${surface}`,
             }}
@@ -170,17 +190,19 @@ export function Circles({
           aria-haspopup="dialog"
           onClick={(event) => setMoreAnchor(event.currentTarget)}
           sx={{
-            width: size,
-            height: size,
+            width: box,
+            height: box,
             borderRadius: "50%",
-            bgcolor: "#e2e8f0",
-            color: "#334155",
-            fontSize: 11,
-            fontWeight: 600,
-            "&:focus-visible": { outline: "2px solid #0f172a", outlineOffset: 3 },
+            flexShrink: 0,
+            "&:focus-visible": { outline: "2px solid #0f172a", outlineOffset: -2 },
           }}
         >
-          +{rest.length}
+          <Box
+            component="span"
+            sx={{ width: size, height: size, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", bgcolor: "#e2e8f0", color: "#334155", fontSize: 10, fontWeight: 600 }}
+          >
+            +{rest.length}
+          </Box>
         </ButtonBase>
       )}
       <Popover
@@ -203,7 +225,7 @@ export function Circles({
             }}
             sx={{ display: "flex", width: "100%", alignItems: "center", gap: "9px", p: "6px 4px", borderRadius: "6px", justifyContent: "flex-start", "&:hover": { bgcolor: "rgba(15, 23, 42, 0.05)" } }}
           >
-            <Avatar participant={participant} size={24} surface="#fff" pale={!participant.visible || participant.away} />
+            <Avatar participant={participant} size={20} surface="#fff" pale={!participant.visible || participant.away} />
             <Box component="span" sx={{ fontSize: 12.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {participant.name}
             </Box>

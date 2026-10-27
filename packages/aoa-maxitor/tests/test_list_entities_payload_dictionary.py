@@ -151,7 +151,7 @@ def test_the_dictionary_row_carries_its_values(diagram: dict[str, Any]) -> None:
 
 
 def test_a_reference_field_is_a_relation_entry(diagram: dict[str, Any]) -> None:
-    """The ERD draws an arrow from the host to the dictionary it references."""
+    """The ERD draws a line from the host to the dictionary: many hosts refer to one value (spec 029, FR-043)."""
     entries = [entry for entry in diagram["relations"] if entry["relationship_kind"] == "reference"]
 
     assert entries == [
@@ -160,8 +160,8 @@ def test_a_reference_field_is_a_relation_entry(diagram: dict[str, Any]) -> None:
             "target": _CURRENCY,
             "label": "currency",
             "relationship_kind": "reference",
-            "source_cardinality": "one",
-            "target_cardinality": "zero_many",
+            "source_cardinality": "zero_many",
+            "target_cardinality": "one",
             "source_field": "currency",
             "target_field": None,
         },

@@ -5,8 +5,9 @@
  *
  * Viewers read and set them through ``usePageSetting``. Outside a room a value is kept per page for
  * the life of the tab, as the viewers' own maps kept it before. Inside a room the page shows the
- * room's value and a change is sent as the new value — "set to", never "toggle" — so the last change
- * wins for everyone; it shows at once and the room's echo confirms it. Zoom, scroll, hover and
+ * room's value, else the default — never the person's own (spec 029) — and a change is sent as the
+ * new value — "set to", never "toggle" — so the last change wins for everyone; it shows at once and
+ * the room's echo confirms it. A tab that opens a room first seeds it with its own values. Zoom, scroll, hover and
  * collapsed panels are not page settings and stay personal (FR-032).
  */
 import { createContext, createElement, useCallback, useContext, useRef, useSyncExternalStore, type ReactNode } from "react";
@@ -29,6 +30,11 @@ const PageSettingsContext = createContext<PageSettingsContextValue>({ page: null
 
 export function PageSettingsProvider({ page, room, children }: PageSettingsContextValue & { children: ReactNode }) {
   return createElement(PageSettingsContext.Provider, { value: { page, room } }, children);
+}
+
+/** The key of the page on screen, or ``null`` before one is chosen (what a viewer's focus names). */
+export function useCurrentPage(): string | null {
+  return useContext(PageSettingsContext).page;
 }
 
 /** Page key → setting name → value, for this tab outside a room. */
@@ -54,6 +60,11 @@ export function keepRoomSettings(settings: PageSettings): void {
   }
 }
 
+/** This tab's own values, page key → setting name → value: what it brings into a room it opens (spec 029, FR-001). */
+export function ownSettingsByPage(): Record<string, Record<string, unknown>> {
+  return Object.fromEntries([...local].map(([page, values]) => [page, Object.fromEntries(values)]));
+}
+
 /** Forget every value kept outside a room (tests). */
 export function clearLocalPageSettings(): void {
   local.clear();
@@ -77,9 +88,9 @@ export function usePageSetting<T>(name: string, fallback: T): [T, (value: T) => 
   const { page, room } = useContext(PageSettingsContext);
   const fallbackRef = useRef(fallback);
   useSyncExternalStore(subscribe, () => version);
-  const own = page ? local.get(page)?.get(name) : undefined;
-  const shared = room && page ? room.settings[page]?.[name] : undefined;
-  const value = (shared !== undefined ? shared : own !== undefined ? own : fallbackRef.current) as T;
+  // Inside a room only the room's value counts, so everyone sees one picture (spec 029, FR-002).
+  const held = page ? (room ? room.settings[page]?.[name] : local.get(page)?.get(name)) : undefined;
+  const value = (held !== undefined ? held : fallbackRef.current) as T;
 
   const set = useCallback(
     (next: T) => {

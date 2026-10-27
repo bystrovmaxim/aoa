@@ -14,8 +14,6 @@ export type PointerLayerProps = {
   participants: Participant[];
 };
 
-/** A mouse pointer that has not moved for this long fades out until it moves again (FR-044). */
-export const POINTER_IDLE_MS = 10_000;
 /** A touch shows as a ring for about this long (FR-041). */
 export const TOUCH_MS = 1_000;
 /** Distance of an edge arrow from the viewer's edge, in pixels. */
@@ -36,9 +34,12 @@ export function place(cx: number, cy: number, w: number, h: number): Placed {
   return { kind: "edge", x: mx + dx * s, y: my + dy * s, angle: (Math.atan2(dy, dx) * 180) / Math.PI };
 }
 
-/** Whether a pointer is still shown at ``now``. */
+/**
+ * Whether a pointer is still shown at ``now``: a mouse pointer always — it shows for as long as its
+ * person is in the room and on this page (spec 029, FR-020) — and a tap for a moment.
+ */
 export function pointerVisible(pointer: RemotePointer, now: number): boolean {
-  return now - pointer.at < (pointer.kind === "touch" ? TOUCH_MS : POINTER_IDLE_MS);
+  return pointer.kind === "mouse" || now - pointer.at < TOUCH_MS;
 }
 
 function Arrow({ colour }: { colour: string }) {
@@ -91,7 +92,7 @@ export function PointerLayer({ surface, participants }: PointerLayerProps) {
     };
     const unsubscribePointers = subscribePointers(schedule);
     const unsubscribeSurface = surface.subscribe(schedule);
-    // Pointers fade by time as well as by movement.
+    // A tap's ring fades by time.
     const tick = setInterval(schedule, 500);
     return () => {
       unsubscribePointers();
@@ -146,7 +147,7 @@ export function PointerLayer({ surface, participants }: PointerLayerProps) {
                 }}
               />
               <Box component="span" sx={{ position: "absolute", left: 2, top: 2, borderRadius: "50%", boxShadow: "0 1px 4px rgba(0,0,0,.25)" }}>
-                <Avatar participant={participant} size={26} surface="transparent" />
+                <Avatar participant={participant} size={22} surface="transparent" />
               </Box>
             </Box>
           );

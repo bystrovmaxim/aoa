@@ -20,6 +20,7 @@ ARCHITECTURE / DATA FLOW
 
     {"type": "follow", "target"} ──► lock ──► present? not self? no circle?
         ├─ yes ──► follows[participant] = target ──► follows to the room
+        │          └─► the target's last focus to the follower (spec 029, FR-010)
         └─ no  ──► follow_refused to the tab ──► security warning
 """
 
@@ -85,6 +86,7 @@ class FollowAction(BaseAction[FollowParams, RoomAnswer]):
             if reason is None:
                 participant.follows = params.target
                 registry.broadcast(room, {"type": "follows", "follows": room.follows()})
+                registry.send_focus(participant, room.participants[params.target])
         if reason is not None:
             socket.send({"type": "follow_refused", "target": params.target, "reason": reason})
             await box.warning(

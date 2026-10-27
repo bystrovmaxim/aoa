@@ -212,12 +212,16 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT r.source_id AS source, r.target_id AS target,
                  CASE WHEN r.cardinality = '' THEN r.field_name ELSE r.field_name || ' (' || r.cardinality || ')' END AS label,
                  COALESCE(NULLIF(r.relation_type, ''), 'association') AS relationship_kind,
+                 -- An end is one, zero or one (an optional relation), or zero or many (spec 029, FR-043).
                  CASE
                    WHEN i.field_name IS NULL THEN CASE WHEN r.cardinality = 'one' THEN 'zero_many' ELSE 'one' END
-                   WHEN i.cardinality = 'one' THEN 'one'
+                   WHEN i.cardinality = 'one' THEN CASE WHEN i.optional THEN 'zero_one' ELSE 'one' END
                    ELSE 'zero_many'
                  END AS source_cardinality,
-                 CASE WHEN r.cardinality = 'one' THEN 'one' ELSE 'zero_many' END AS target_cardinality,
+                 CASE
+                   WHEN r.cardinality = 'one' THEN CASE WHEN r.optional THEN 'zero_one' ELSE 'one' END
+                   ELSE 'zero_many'
+                 END AS target_cardinality,
                  r.field_name AS source_field,
                  i.field_name AS target_field
           FROM rel r
@@ -233,8 +237,9 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           UNION ALL
           SELECT rr.source_id AS source, rr.target_id AS target, rr.field_name AS label,
                  'reference' AS relationship_kind,
-                 'one' AS source_cardinality,
-                 'zero_many' AS target_cardinality,
+                 -- Many rows refer to one dictionary value: the crow's foot at the referring table.
+                 'zero_many' AS source_cardinality,
+                 'one' AS target_cardinality,
                  rr.field_name AS source_field,
                  CAST(NULL AS VARCHAR) AS target_field
           FROM entity_reference_edges rr
@@ -265,8 +270,12 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
         SELECT pe.source_id AS source, pe.target_id AS target,
                CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
                'generalization' AS relationship_kind,
-               'zero_many' AS source_cardinality,
-               'one' AS target_cardinality
+               -- A head row has at most one row of each variant; a variant row has exactly one head.
+               'zero_one' AS source_cardinality,
+               'one' AS target_cardinality,
+               -- The two declared fields that join a variant to its head: its reverse field, the head's axis.
+               pe.field_name AS source_field,
+               pe.inverse_field AS target_field
         FROM parent_entity_edges pe
         JOIN selected_entity src ON src.id = pe.source_id
         JOIN selected_entity tgt ON tgt.id = pe.target_id
@@ -307,10 +316,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT id FROM domain_entity
           {neighbor_clause}
         ), fk AS (
+          -- A table lists every relation field it declares, whether its target is on screen or not.
           SELECT er.source_id AS entity_id, er.field_name AS name, target.label AS type, TRUE AS foreign_key
           FROM entity_relation_edges er
           JOIN selected_entity src ON src.id = er.source_id
-          JOIN selected_entity tgt ON tgt.id = er.target_id
           JOIN entity target ON target.id = er.target_id
           WHERE er.field_name <> ''
         ), specialization_edge_rows AS (
@@ -345,9 +354,13 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             vf.label AS name,
             vf.field_type AS type,
             vf.primary_key_hint AS primary_key,
-            FALSE AS foreign_key,
+            -- A variant's reverse field is the key that points at its specialization head.
+            EXISTS (
+              SELECT 1 FROM parent_entity_edges pe WHERE pe.source_id = efe.source_id AND pe.field_name = vf.label
+            ) AS foreign_key,
             efe.ordinal AS ordinal,
-            vf.reference_qualname AS reference_qualname
+            vf.reference_qualname AS reference_qualname,
+            vf.field_annotation AS annotation
           FROM entity_field_edges efe
           INNER JOIN entity_field vf ON vf.id = efe.target_id
           WHERE efe.target_id NOT IN (SELECT field_node_id FROM excluded_field_nodes WHERE field_node_id IS NOT NULL)
@@ -360,10 +373,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             FALSE AS primary_key,
             TRUE AS foreign_key,
             rr.ordinal,
-            CAST(NULL AS VARCHAR) AS reference_qualname
+            CAST(NULL AS VARCHAR) AS reference_qualname,
+            CAST(NULL AS VARCHAR) AS annotation
           FROM rendered_rows rr
           UNION ALL
-          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal, CAST(NULL AS VARCHAR) AS reference_qualname FROM fk
+          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal, CAST(NULL AS VARCHAR) AS reference_qualname, CAST(NULL AS VARCHAR) AS annotation FROM fk
         ), ordered_field_rows AS (
           SELECT DISTINCT
                  fr.entity_id,
@@ -373,7 +387,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                  fr.primary_key,
                  fr.foreign_key,
                  fr.ordinal AS sort_key,
-                 fr.reference_qualname
+                 fr.reference_qualname,
+                 fr.annotation
           FROM field_rows fr
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
@@ -385,7 +400,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                    type := fr.type,
                    primary_key := fr.primary_key,
                    foreign_key := fr.foreign_key,
-                   reference_qualname := fr.reference_qualname
+                   reference_qualname := fr.reference_qualname,
+                   annotation := fr.annotation
                  ) ORDER BY fr.sort_key, fr.name) FILTER (WHERE fr.name IS NOT NULL),
                  CAST([] AS STRUCT(
                    field_id VARCHAR,
@@ -393,7 +409,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                    type VARCHAR,
                    primary_key BOOLEAN,
                    foreign_key BOOLEAN,
-                   reference_qualname VARCHAR
+                   reference_qualname VARCHAR,
+                   annotation VARCHAR
                  )[])
                ) AS fields
         FROM selected_entity se

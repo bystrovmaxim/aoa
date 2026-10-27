@@ -17,6 +17,15 @@
  * draw that arrow within 2 px of the same node's centre on its own screen, before and after either
  * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
  * ring centred on the same node, within the same 2 px.
+ *
+ * Last, following in every directed pair of engines (spec 029, FR-015): one browser opens a room,
+ * a browser of another engine joins and follows it. The leader drags the ERD and stops; the
+ * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
+ * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
+ * There, too, the leader's circles must not touch (spec 029, FR-051): its own ring, the count of
+ * its follower and a focus ring on the follower's circle all drawn at once. The leader's name is
+ * 40 characters, the longest a name may be, and the follower's card for it must keep its buttons
+ * inside the card without one running into another (FR-052).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -49,6 +58,8 @@ const HASH_TIMEOUT_MS = 60_000;
 /** The largest distance between a pointer and the point it marks on another screen (SC-003). */
 const POINTER_TOLERANCE_PX = 2;
 const API_START_TIMEOUT_MS = 60_000;
+/** How soon a follower must show the leader's hover (spec 029, SC-002). */
+const FOLLOW_HOVER_MS = 500;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -386,6 +397,130 @@ async function pointerCase(engine: BrowserType, front: string, source: string): 
   }
 }
 
+/** The diagram point at the centre of a page's diagram element, and the page's pixels per diagram unit. */
+async function diagramCentre(page: Page): Promise<{ x: number; y: number; scale: number }> {
+  return page.evaluate(() => {
+    const view = document.querySelector("[data-layout-hash]")!.getBoundingClientRect();
+    const svg = document.querySelector("[data-layout-hash] svg")! as SVGSVGElement;
+    const ctm = svg.getScreenCTM()!;
+    const p = new DOMPoint(view.left + view.width / 2, view.top + view.height / 2).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y, scale: Math.hypot(ctm.a, ctm.b) };
+  });
+}
+
+/**
+ * The least gap between two circles of the room bar, everything each one draws included — its ring,
+ * a focus ring, a follower count; negative when two of them overlap.
+ */
+async function circleGap(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const boxes = [...document.querySelectorAll('[aria-label="People in this room"] > button')].map((button) => {
+      const parts = [button, ...button.querySelectorAll("*")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+      const style = getComputedStyle(button);
+      // An outline beyond the box (a positive offset) is part of what the circle draws.
+      const out = style.outlineStyle !== "none" ? Math.max(0, parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth)) : 0;
+      return {
+        left: Math.min(...parts.map((r) => r.left)) - out,
+        right: Math.max(...parts.map((r) => r.right)) + out,
+      };
+    });
+    let least = Infinity;
+    boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => (least = Math.min(least, Math.max(a.left, b.left) - Math.min(a.right, b.right)))));
+    return least;
+  });
+}
+
+/** The longest name a room accepts, in one word: a card must still fit its buttons. */
+const LONG_NAME = "Leader" + "x".repeat(34);
+
+/** How far the open card's buttons run past the card or into each other, in px (0 when they fit). */
+async function cardButtonsOverlap(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const card = document.querySelector('[role="dialog"]')!.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('[role="dialog"] button')].map((b) => b.getBoundingClientRect());
+    let worst = 0;
+    for (const b of buttons) worst = Math.max(worst, card.left - b.left, b.right - card.right);
+    buttons.forEach((a, i) =>
+      buttons.slice(i + 1).forEach((b) => {
+        const across = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (across > 0 && down > 0) worst = Math.max(worst, Math.min(across, down));
+      }),
+    );
+    return worst;
+  });
+}
+
+/** Following, led in one engine and watched in another: how far apart the screens stop (px), and how soon the hover shows (ms). */
+async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number; gapPx: number; cardPx: number }> {
+  const leadBrowser: Browser = await lead.launch();
+  const followBrowser: Browser = await follow.launch();
+  try {
+    const leader = await (await leadBrowser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+    const follower = await (await followBrowser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+    await leader.goto(`${front}/?${new URLSearchParams({ source, view: "domain-erd" }).toString()}`);
+    await nextHash(leader, null);
+    await domClick(leader, 'button:has-text("Open room")');
+    await confirmName(leader, LONG_NAME);
+    await leader.waitForURL(/room=/, { timeout: HASH_TIMEOUT_MS });
+    await leader.locator(".MuiPopover-paper").waitFor({ timeout: HASH_TIMEOUT_MS });
+    await leader.keyboard.press("Escape");
+    await leader.locator(".MuiPopover-paper").waitFor({ state: "detached", timeout: HASH_TIMEOUT_MS });
+    await follower.goto(leader.url());
+    await confirmName(follower, "Follower");
+    await nextHash(follower, null);
+    // Enter on a circle opens its card; Follow there starts following.
+    await follower.locator('[aria-label^="Leader"]').first().focus();
+    await follower.keyboard.press("Enter");
+    await follower.locator('[role="dialog"] button').first().waitFor({ timeout: HASH_TIMEOUT_MS });
+    const cardPx = await cardButtonsOverlap(follower);
+    await domClick(follower, 'button:has-text("Follow")');
+    await follower.getByText("Following Leader").waitFor({ timeout: HASH_TIMEOUT_MS });
+    // The leader now shows its ring and a follower count; a focus ring joins them on the follower's circle.
+    await leader.getByLabel("1 following you").waitFor({ timeout: HASH_TIMEOUT_MS });
+    await leader.locator('[aria-label^="Follower"]').first().focus();
+    await leader.keyboard.press("Shift");
+    const gapPx = await circleGap(leader);
+    await leader.locator("[data-layout-hash]").first().click({ position: { x: 5, y: 5 } });
+
+    const view = await leader.locator("[data-layout-hash]").first().boundingBox();
+    const start = { x: view!.x + view!.width / 2, y: view!.y + view!.height / 2 };
+    await leader.mouse.move(start.x, start.y);
+    await leader.mouse.down();
+    for (let i = 1; i <= 30; i += 1) {
+      await leader.mouse.move(start.x - i * 8, start.y - i * 3);
+      await leader.waitForTimeout(30);
+    }
+    await leader.mouse.up();
+    await follower.waitForTimeout(1000);
+    const [a, b] = [await diagramCentre(leader), await diagramCentre(follower)];
+    const apartPx = Math.hypot(a.x - b.x, a.y - b.y) * b.scale;
+
+    const node = await middleNode(leader);
+    const centre = await nodeCentre(leader, node);
+    const hoveredAt = Date.now();
+    await leader.mouse.move(centre.x, centre.y);
+    // A hover that never shows is reported, not waited for: four times the limit is enough to know.
+    const shown = await follower
+      .waitForFunction(
+        (i) => {
+          const nodes = document.querySelectorAll<HTMLElement>("[data-layout-hash] svg g.node");
+          return nodes[i]?.style.opacity === "1" && [...nodes].some((n) => n.style.opacity === "0.35");
+        },
+        node,
+        { timeout: FOLLOW_HOVER_MS * 4, polling: 20 },
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity, gapPx, cardPx };
+  } finally {
+    await leadBrowser.close();
+    await followBrowser.close();
+  }
+}
+
 /** Check every page and mode; print one line each; return whether all of them agree. */
 function report(results: Map<string, Map<string, string>>): boolean {
   const expected = ENGINES.length * VIEWPORTS.length;
@@ -428,6 +563,18 @@ async function main(): Promise<void> {
       const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
+    // Following in every directed pair of engines, one pair at a time.
+    for (const [leadName, leadEngine] of ENGINES) {
+      for (const [followName, followEngine] of ENGINES) {
+        if (leadName === followName) continue;
+        const { apartPx, hoverMs, gapPx, cardPx } = await followCase(leadEngine, followEngine, frontUrl, source);
+        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
+        ok &&= fits;
+        console.log(
+          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
+        );
+      }
+    }
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );

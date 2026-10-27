@@ -15,7 +15,9 @@ body, ``ETag`` and availability it controls:
   2. the fingerprint of the held graph, answered from memory;
   3. an unchanged service answers 304 to the held ETag — nothing is rebuilt;
   4. the service changes — the graph is rebuilt and its fingerprint changes;
-  5. the service goes down — the graph everyone has is kept and still read.
+  5. the service goes down — the graph everyone has is kept and still read;
+  6. Maxitor is an AOA service too: it serves its own model as ``graph-json`` at the path the demo
+     uses, tagged like any answer, so its own address opens its own diagram (spec 029).
 
 Output:
 
@@ -26,21 +28,26 @@ The port and the fingerprints vary; the indented lines without an arrow are Maxi
        again with If-None-Match  -> 304, 0 bytes
 
     2. The held graph's fingerprint, from memory
-       GET graph-fingerprint     -> d134d9022eb8
+       GET graph-fingerprint     -> c928cf56a055
 
     3. An unchanged service
-      Source http://127.0.0.1:58700/graph-json unchanged
-       check -> unchanged, fingerprint d134d9022eb8; bodies sent by the service: 0
+      Source http://127.0.0.1:54115/graph-json unchanged
+       check -> unchanged, fingerprint c928cf56a055; bodies sent by the service: 0
        the same graph is held: True
 
     4. The service changes
-      Source http://127.0.0.1:58700/graph-json rebuilt
-       check -> rebuilt, fingerprint 2321f7bef930
+      Source http://127.0.0.1:54115/graph-json rebuilt
+       check -> rebuilt, fingerprint 03a4014fdfec
 
     5. The service goes down
-      Source http://127.0.0.1:58700/graph-json unreachable: HTTP 503
-       check -> unreachable, fingerprint 2321f7bef930
+      Source http://127.0.0.1:54115/graph-json unreachable: HTTP 503
+       check -> unreachable, fingerprint 03a4014fdfec
        the graph is kept and still read: True
+
+    6. Maxitor's own graph
+       GET /examples/model/graph-json -> 200, 3422 nodes, ETag "7a8d787970a9d303d83a269990409344"
+       room actions in it: EndRoomAction, JoinRoomAction, LeaveRoomAction, ReloadSourceForRoomAction, …
+       again with If-None-Match       -> 304, 0 bytes
 
 Tutorial: ../../docs/tutorials/step-26-maxitor.md  ·  topic: Maxitor (fresh graphs)
 
@@ -168,12 +175,26 @@ def case_5_down() -> None:
     print(f"   the graph is kept and still read: {asyncio.run(store.acquire(SOURCE)) is held}")
 
 
+def case_6_own_graph() -> None:
+    """Maxitor's own model, answered by an AOA action at ``/examples/model/graph-json``."""
+    print("\n6. Maxitor's own graph")
+    with TestClient(create_app()) as client:
+        first = client.get("/examples/model/graph-json")
+        nodes = json.loads(first.json()["coordinator_json"])["nodes"]
+        actions = sorted(n["label"] for n in nodes if n["type"] == "Action" and "Room" in n["label"])
+        print(f"   GET /examples/model/graph-json -> {first.status_code}, {len(nodes)} nodes, ETag {first.headers['etag']}")
+        print(f"   room actions in it: {', '.join(actions[:4])}, …")
+        again = client.get("/examples/model/graph-json", headers={"If-None-Match": first.headers["etag"]})
+        print(f"   again with If-None-Match       -> {again.status_code}, {len(again.content)} bytes")
+
+
 def main() -> None:
     """Run every case in order."""
     case_1_etag_and_304()
     case_3_unchanged()
     case_4_changed()
     case_5_down()
+    case_6_own_graph()
 
 
 if __name__ == "__main__":

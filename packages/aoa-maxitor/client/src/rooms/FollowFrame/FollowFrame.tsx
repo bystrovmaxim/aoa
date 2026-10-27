@@ -4,6 +4,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { inkOn } from "@/rooms/initials";
+import { useParticipantCardOpen } from "@/rooms/participantCardOpen";
 import type { Participant } from "@/rooms/protocol";
 
 export type FollowFrameProps = {
@@ -15,11 +16,13 @@ export type FollowFrameProps = {
 /**
  * While following, a frame in the followed person's colour around the workspace and a pill
  * *Following <name>* with **Stop** — at the top on a desktop, above the zoom bar on a phone
- * (spec 028, FR-052; mockup screen 11).
+ * (spec 028, FR-052; mockup screen 11). The pill steps aside while a participant's card is open.
  */
 export function FollowFrame({ following, onStop }: FollowFrameProps) {
   const theme = useTheme();
   const phone = useMediaQuery(theme.breakpoints.down("sm"));
+  // A participant's card opens over the pill's place; the pill steps aside meanwhile (spec 029, FR-052).
+  const cardOpen = useParticipantCardOpen();
   if (!following) return null;
   const ink = inkOn(following.colour);
   return (
@@ -34,6 +37,7 @@ export function FollowFrame({ following, onStop }: FollowFrameProps) {
           ...(phone ? { bottom: 64 } : { top: 8 }),
           zIndex: 59,
           display: "flex",
+          visibility: cardOpen ? "hidden" : "visible",
           alignItems: "center",
           gap: "8px",
           height: 28,

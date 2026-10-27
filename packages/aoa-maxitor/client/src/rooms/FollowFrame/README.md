@@ -8,7 +8,7 @@
   <a href="../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** While a person follows someone, a frame in the followed person's colour around the workspace and a pill *Following <name>* with **Stop** — at the top on a desktop, above the zoom bar on a phone (spec 028, FR-052; mockup screen 11).
+**Role:** While a person follows someone, a frame in the followed person's colour around the workspace and a pill *Following <name>* with **Stop** — at the top on a desktop, above the zoom bar on a phone (spec 028, FR-052; mockup screen 11). While a participant's card is open the pill steps aside, so switching whom you follow never draws one over the other (spec 029).
 
 ## Files
 
