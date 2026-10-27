@@ -11,7 +11,7 @@ import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
-import { loadGraphvizWasm } from "../../hooks/useGraphviz";
+import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
 import {
   buildDotSource,
@@ -363,10 +363,10 @@ export function ErdGraphvizCanvas({
     setGvBusy(true);
     setRenderError(null);
     setRawSvg("");
-    loadGraphvizWasm()
+    const engine = erdGraphvizEngine(layout) as Engine;
+    loadGraphvizWasmFor(engine)
       .then((gv) => {
         if (cancelled) return;
-        const engine = erdGraphvizEngine(layout) as Engine;
         const svg = gv.layout(dot, "svg", engine);
         if (cancelled) return;
         setRawSvg(svg);

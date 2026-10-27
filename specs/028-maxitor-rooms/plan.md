@@ -131,7 +131,7 @@ deploy/stand/docker-compose*.yml     # MAXITOR_MAX_GRAPHS for the stand (nginx i
 |---|---|---|---|
 | 1 | **Design documents**: `specs/028-maxitor-rooms/` | — | — |
 | 2 | **The same full-graph layout everywhere**: Maxitor lays out (lazy `forceLayout.ts`, drawn through `PrecomputedLayout`), origin centre, `initialPositions.ts`, `LAYOUT_VERSION` in the fingerprint, `layoutHash.ts`, `data-layout-hash` on all four viewers; guard test and golden hash | FR-001–005 | 1 |
-| 3 | **The cross-engine step**: fixture, `check-layout-determinism.ts`, its step in the check run; the pointer case added once commit 11 lands | FR-006, SC-003 | 2 |
+| 3 | **The cross-engine step**: fixture, `check-layout-determinism.ts`, its step in the check run, with a printed `skip` for the pointer case until commit 11 | FR-006 | 2 |
 | 4 | **Conditional answers in the adapter**: `ETag`, `304` | FR-070 | 1 |
 | 5 | **WebSocket routes in the adapter**: route record, `SocketChannel`, per-connection loop, refusals as close codes, rate and size limits, relay, ordered and volatile queues | FR-066, FR-068 (transport), FR-015 (rate, size) | 1 |
 | 6 | **Graph store kept until the limit, as a resource**: idle timeout removed, `GraphStoreController`, swap-on-success; `GraphSourceGateway`, through which `LoadAOAServiceAction` now downloads (#278's phase 3 taken here) | FR-080, FR-081 | 1 |
@@ -139,7 +139,7 @@ deploy/stand/docker-compose*.yml     # MAXITOR_MAX_GRAPHS for the stand (nginx i
 | 8 | **Rooms on the server**: `RoomsDomain`, `RoomRegistry`, the room actions, follow-circle rule, two-minute return, end of an empty room, limits, origin refusal, logging, the fingerprint in the sidebar answer, `AppInfoAction` and `/api/meta`, the route wiring, `websockets` dependency | FR-010–019, FR-054 (server), FR-060–069, FR-090 (server) | 5, 6 |
 | 9 | **Joining and the top row**: room connection with reconnect, name dialog and its notice, `room` in the address, Copy link (share sheet, hand-copy field), Leave, Change name, full room, ended room, *Load a different service* question, top row on desktop and phone, circles, cards, +N, notices, keyboard access | FR-019–028, FR-060–065 | 8 |
 | 10 | **Shared page settings**: `usePageSetting` in all four viewers | FR-030–033 | 9 |
-| 11 | **Pointers and out-of-date tabs**: overlay in diagram coordinates, edge arrows, throttling (pointer 20/s, screen 10/s), idle fade, hidden while offline, Hide pointers, build / fingerprint / layout checks and their outcomes | FR-040–045, FR-090–093 | 2, 9 |
+| 11 | **Pointers and out-of-date tabs**: overlay in diagram coordinates, edge arrows, throttling (pointer 20/s, screen 10/s), idle fade, hidden while offline, Hide pointers, build / fingerprint / layout checks and their outcomes; the pointer case of the cross-engine step replaces its `skip` | FR-040–045, FR-090–093, SC-003 | 2, 9 |
 | 12 | **Pages redraw on a new graph**: fingerprint poll outside a room, the room's announcement inside, re-read keeping page, settings, zoom and centre, *The model was updated* | FR-076 | 7, 9 |
 | 13 | **Going to someone**: Go to from a circle, a card or an edge arrow, at your own zoom | FR-050 | 11 |
 | 14 | **Following**: Follow, Follow instead, Stop / Esc, frame, the circle rule in the card, follower counter, history replaced | FR-051–057 | 13 |
@@ -156,7 +156,7 @@ Commits 2–3, 4–7, 15 and 16 can be built in any order relative to each other
 - **`D3ForceLayout` and starting positions.** If the wrapper drops `x`/`y`, the spiral of `d3-force-3d` returns with `cos`/`sin`. The guard test catches it in commit 2; the fallback is to call `d3-force-3d` directly with the same forces.
 - **The picture changes once.** A new starting spiral and centre give a slightly different full graph than today's; the golden hash is recorded once in commit 2 and the canvas comparison of #245 (`data/canvas-main.png`) is re-recorded on purpose.
 - **Playwright browsers in the check run.** Three browsers add download time and disk; on Linux they need system packages. Today's check run is local on macOS (R3).
-- **nginx and WebSocket.** The stand's nginx runs on the host, outside this repository (`deploy/stand` only publishes the container port). It must forward `Upgrade`/`Connection` for `/api/v1/rooms/`, or the room never connects; the lines are recorded in tasks.md (T057) and documented in commit 18, and the maintainer applies them on the host.
+- **nginx and WebSocket.** The stand's nginx runs on the host, outside this repository (`deploy/stand` only publishes the container port). It must forward `Upgrade`/`Connection` for `/api/v1/rooms/`, or the room never connects; the lines are recorded in tasks.md (T056) and documented in commit 18, and the maintainer applies them on the host.
 - **Memory without the idle timeout.** The process stays at its peak; `MAXITOR_MAX_GRAPHS` for the stand must fit the machine (R7).
 - **#278's phase 3 is taken here.** `LoadAOAServiceAction` downloads through `GraphSourceGateway` from commit 6 on, so the new validators and content hash never come from `httpx` inside an aspect; #278 records that its phase 3 is done by #271.
 - **`/api/v1` and the legacy middleware.** Until #278, every `/api/v1` HTTP path demands `source`; `POST /api/v1/rooms` and `GET /api/v1/graph-fingerprint` take it anyway, and the source-less `AppInfoAction` lives under `/api/meta` (R8).
