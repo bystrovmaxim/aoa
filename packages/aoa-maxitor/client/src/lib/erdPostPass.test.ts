@@ -268,3 +268,62 @@ describe("where a line's end label goes (spec 029, FR-042)", () => {
     expect(box.x + box.width <= 0 || box.x >= 0).toBe(true);
   });
 });
+
+describe("a specialization head and its variants (FR-046)", () => {
+  // Record (0) has id and its axis row pressing; FirstPress (1) and Repress (2) each have id and record,
+  // the reverse field; Label (3) stands apart. Each variant has its dashed line to the head.
+  const BLOCK_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g class="graph">
+<g id="node1" class="node"><title>Record</title>${cell("fn0_0", "id")}${cell("ft0_0", "str")}${cell("fn0_1", "pressing")}${cell("ft0_1", "Specialization 2+")}</g>
+<g id="node2" class="node"><title>FirstPress</title>${cell("fn1_0", "id")}${cell("ft1_0", "str")}${cell("fn1_1", "record")}${cell("ft1_1", "RecordCoreEntity")}</g>
+<g id="node3" class="node"><title>Repress</title>${cell("fn2_0", "id")}${cell("ft2_0", "str")}${cell("fn2_1", "record")}${cell("ft2_1", "RecordCoreEntity")}</g>
+<g id="node4" class="node"><title>Label</title>${cell("fn3_0", "id")}${cell("ft3_0", "str")}</g>
+<g id="re1" class="edge"><title>FirstPress&#45;&gt;Record</title><path fill="none" d="M0,0C1,1 2,2 3,3"/></g>
+<g id="re2" class="edge"><title>Repress&#45;&gt;Record</title><path fill="none" d="M0,0C4,4 5,5 6,6"/></g>
+</g></svg>`;
+  const blockEntities: ErdEntity[] = [
+    { id: "Record", fields: [{ name: "id", primary_key: true }, { name: "pressing", foreign_key: true }] },
+    { id: "FirstPress", fields: [{ name: "id", primary_key: true }, { name: "record", foreign_key: true }] },
+    { id: "Repress", fields: [{ name: "id", primary_key: true }, { name: "record", foreign_key: true }] },
+    { id: "Label", fields: [{ name: "id", primary_key: true }] },
+  ];
+  // As the server sends them: the axis line into the block (not drawn), then one dashed line per variant.
+  const blockRelations: ErdLineInfo[] = [
+    { source: "Record", target: "Record:pressing", relationship_kind: "specialization" },
+    { source: "FirstPress", target: "Record", relationship_kind: "generalization", source_field: "record", target_field: "pressing" },
+    { source: "Repress", target: "Record", relationship_kind: "generalization", source_field: "record", target_field: "pressing" },
+  ];
+  const mountBlock = () => {
+    document.body.innerHTML = `<div id="root">${BLOCK_SVG}</div>`;
+    const root = document.getElementById("root")!;
+    bindLineHover(root, blockRelations, blockEntities, new AbortController().signal);
+    return root;
+  };
+  const bright = (root: ParentNode) =>
+    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1").map((n) => n.querySelector("title")!.textContent);
+  const bold = (root: ParentNode) => [...root.querySelectorAll("g.edge.is-hovered")].map((e) => e.id);
+
+  it("hovering the head's axis row lights the head and every variant, their lines bold", () => {
+    const root = mountBlock();
+    hover(root.querySelector('g[id="a_fn0_1"]')!, true);
+    expect(bright(root)).toEqual(["Record", "FirstPress", "Repress"]);
+    expect(bold(root)).toEqual(["re1", "re2"]);
+    expect(text(root, "fn1_1").getAttribute("font-weight")).toBe("bold");
+  });
+
+  it("hovering a variant's reverse row lights that variant and the head only", () => {
+    const root = mountBlock();
+    hover(root.querySelector('g[id="a_fn2_1"]')!, true);
+    expect(bright(root)).toEqual(["Record", "Repress"]);
+    expect(bold(root)).toEqual(["re2"]);
+    expect(text(root, "fn0_1").getAttribute("font-weight")).toBe("bold");
+  });
+
+  it("hovering a dashed line marks the two fields it joins", () => {
+    const root = mountBlock();
+    hover(root.querySelector('g[id="re1"]')!, true);
+    expect(bright(root)).toEqual(["Record", "FirstPress"]);
+    expect(text(root, "fn1_1").getAttribute("font-weight")).toBe("bold");
+    expect(text(root, "fn0_1").getAttribute("font-weight")).toBe("bold");
+  });
+});

@@ -273,11 +273,11 @@
 
 ## Phase 16f: Hover joins a specialization head and its variants (commit 16f) · US7
 
-**Goal** (maintainer, 2026-10-27): hovering between a specialization head and its variants lit nothing. They are joined by the head's axis field and each variant's reverse field, but those two lines carried no field names, and the axis line points at the block's frame, not at a table (FR-046).
+**Goal** (maintainer, 2026-10-27): hovering between a specialization head and its variants lit nothing. They are joined by the head's axis field and each variant's reverse field, but the dashed line between them carried no field names, so neither field had a line to light (FR-046).
 
-- [ ] T102 [US7] In `list_entities_action.py` give the generalization line `source_field` (the variant's reverse field) and `target_field` (the head's axis field), the specialization line `source_field` (the axis field); mark the variant's reverse field as a foreign key.
-- [ ] T103 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` (`bindLineHover`) treat a block's frame as its variants: the tables a line to the frame joins are the head and every variant of that axis.
-- [ ] T104 [US7] Tests (server: the fields on both lines and the FK mark; client: hovering the axis row, a variant's reverse row and a generalization line light the head and the right variants); adversarial check for each; check on the stand. Prepare commit 16f: `fix(maxitor): hover joins a specialization head and its variants (#282)`; record it in issue #282.
+- [X] T102 [US7] In `list_entities_action.py` give the generalization line `source_field` (the variant's reverse field) and `target_field` (the head's axis field); mark the variant's reverse field as a foreign key. Done.
+- [X] T103 [US7] Client: nothing new is needed — the axis line into the block is not drawn, every variant has its own dashed line to the head, and `bindLineHover` already lights both ends of a line that names its fields. Confirmed by tests.
+- [X] T104 [US7] Tests (server: the fields on the line and the FK mark; client: hovering the axis row, a variant's reverse row and a dashed line light the head and the right variants); adversarial checks: no fields on the line → only the fields test fails; no FK mark → only the FK test fails; the client fixture with lines as they came before → the three new client tests fail. On the stand (demo `GeneralizationHeadCoreEntity`): the axis row `details` lights the head, both variants and the axis dictionary, three lines bold; a variant's `head` row lights that variant and the head, one line bold; `head` carries FK. Prepare commit 16f: `fix(maxitor): hover joins a specialization head and its variants (#282)`; record it in issue #282.
 
 ---
 
