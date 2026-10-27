@@ -4,8 +4,9 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Popover from "@mui/material/Popover";
 import { useCallback, useRef, useState } from "react";
 import { Avatar } from "@/rooms/Circles/Avatar";
-import { ParticipantCard } from "@/rooms/ParticipantCard";
-import type { Participant } from "@/rooms/protocol";
+import { ParticipantCard, type FollowChoice } from "@/rooms/ParticipantCard";
+import { followsYou, wouldCloseCircle } from "@/rooms/followCircle";
+import type { FollowLinks, Participant } from "@/rooms/protocol";
 import { CARD_PAPER_SX, HINT_SX, WORKSPACE_SURFACE } from "@/rooms/roomStyles";
 
 export type CirclesProps = {
@@ -19,6 +20,10 @@ export type CirclesProps = {
   onRename: () => void;
   /** Go to a participant: their page, centred on them, at your zoom (FR-050). */
   onGoTo: (participant: Participant) => void;
+  /** Who follows whom in the room. */
+  follows: FollowLinks;
+  onFollow: (participant: string) => void;
+  onStopFollowing: () => void;
   /** On a phone three circles fit, on a desktop five (FR-020). */
   compact: boolean;
   surface?: string;
@@ -40,7 +45,34 @@ export function visibleCount(total: number, compact: boolean): number {
  * the card. Each circle is a button labelled with the full name and page, so it is reached with Tab
  * and opened with Enter (FR-020 … FR-022, FR-028, FR-050).
  */
-export function Circles({ participants, youId, yourPage, pageLabel, followers, onRename, onGoTo, compact, surface = WORKSPACE_SURFACE }: CirclesProps) {
+export function Circles({
+  participants,
+  youId,
+  yourPage,
+  pageLabel,
+  followers,
+  onRename,
+  onGoTo,
+  follows,
+  onFollow,
+  onStopFollowing,
+  compact,
+  surface = WORKSPACE_SURFACE,
+}: CirclesProps) {
+  const nameOf = (id: string) => participants.find((p) => p.id === id)?.name ?? id;
+  /** What **Follow** can do for ``id``: the circle rule as the server applies it (FR-054). */
+  const followChoice = (id: string): FollowChoice => {
+    if (follows[youId] === id) return { kind: "following" };
+    if (wouldCloseCircle(follows, youId, id)) {
+      const how = followsYou(follows, youId, id);
+      return { kind: "circle", through: how && how !== "direct" ? nameOf(how) : null };
+    }
+    return follows[youId] ? { kind: "instead" } : { kind: "follow" };
+  };
+  const followsYouOf = (id: string) => {
+    const how = followsYou(follows, youId, id);
+    return how === null ? null : { through: how === "direct" ? null : nameOf(how) };
+  };
   // A card opened by a click, Enter or a long press stays; one opened by hover goes with the pointer.
   const [card, setCard] = useState<{ id: string; anchor: HTMLElement; pinned: boolean } | null>(null);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
@@ -191,6 +223,10 @@ export function Circles({ participants, youId, yourPage, pageLabel, followers, o
           onClose={closeCard}
           onRename={onRename}
           onGoTo={() => onGoTo(cardParticipant)}
+          followChoice={followChoice(cardParticipant.id)}
+          followsYou={followsYouOf(cardParticipant.id)}
+          onFollow={() => onFollow(cardParticipant.id)}
+          onStopFollowing={onStopFollowing}
           onHover={(inside) => {
             clearHover();
             if (!inside) hoverTimer.current = setTimeout(() => setCard((open) => (open?.pinned ? open : null)), HOVER_CLOSE_MS);

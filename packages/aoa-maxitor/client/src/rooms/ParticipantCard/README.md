@@ -8,7 +8,7 @@
   <a href="../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** The card of a circle: full name, the page they are on, **Go to** on someone else's card, and on your own how many follow you and **Change name**. Not modal; Esc and a click elsewhere close it. **Follow** joins it with following.
+**Role:** The card of a circle: full name, the page they are on and whether they follow you (directly or through whom); on someone else's card **Go to** and **Follow** — or **Follow <name> instead**, or **Stop following** — with **Follow** disabled and its reason given when it would close a circle; on your own how many follow you and **Change name**. Not modal; Esc and a click elsewhere close it.
 
 ## Files
 

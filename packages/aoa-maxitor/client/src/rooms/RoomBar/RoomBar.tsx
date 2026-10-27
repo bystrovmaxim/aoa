@@ -30,6 +30,9 @@ export type RoomBarProps = {
   compact: boolean;
   /** Go to a participant (FR-050). */
   onGoTo: (participant: string, page: string | null) => void;
+  /** Follow a participant, or stop (FR-051, FR-053). */
+  onFollow: (participant: string) => void;
+  onStopFollowing: () => void;
 };
 
 /** The quiet line of state in the row: *Reconnecting…*, or the latest *Boris joined*. */
@@ -56,7 +59,7 @@ function StatusText({ session }: { session: RoomSession }) {
  * room**. Inside: the circles, **Copy link**, **Hide pointers** and **Leave room** on a desktop; on a
  * phone the circles and one ⋮ menu that says the same in words.
  */
-export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo }: RoomBarProps) {
+export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo, onFollow, onStopFollowing }: RoomBarProps) {
   const copyButton = useRef<HTMLButtonElement | null>(null);
   const [inviteAnchor, setInviteAnchor] = useState<HTMLElement | null>(null);
   const [inviteCopies, setInviteCopies] = useState(false);
@@ -100,6 +103,9 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo }: 
       followers={(id) => followerCount(room, id)}
       onRename={session.requestRename}
       onGoTo={(participant) => onGoTo(participant.id, participant.page)}
+      follows={room.follows}
+      onFollow={onFollow}
+      onStopFollowing={onStopFollowing}
       compact={compact}
       surface={compact ? SIDEBAR_SURFACE : WORKSPACE_SURFACE}
     />
