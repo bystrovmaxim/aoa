@@ -67,3 +67,9 @@ def test_a_variants_reverse_field_is_a_foreign_key(slice_payload: dict[str, Any]
     marks = {f["name"]: f["foreign_key"] for f in variant["fields"]}
     assert marks["record"] is True
     assert marks["id"] is False
+
+
+def test_a_generalization_ends_zero_or_one_at_the_variant_and_one_at_the_head(slice_payload: dict[str, Any]) -> None:
+    """(029 FR-043) A head row has at most one row of each variant; a variant row has exactly one head."""
+    rows = [r for r in slice_payload["relations"] if r["relationship_kind"] == "generalization"]
+    assert {(r["source_cardinality"], r["target_cardinality"]) for r in rows} == {("zero_one", "one")}

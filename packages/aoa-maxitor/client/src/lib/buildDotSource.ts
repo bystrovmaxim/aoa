@@ -439,11 +439,15 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
     if (ed.relationship_kind === "specialization") return;
     const id = `id="${erdEdgeId(k)}" `;
     if (ed.relationship_kind === "generalization" || !ed.source_field) {
-      // A generalization is dashed with a filled arrowhead (FR-115); a row from an older server keeps
-      // its middle label and gets the plain filled arrowhead.
+      // ERD notation has no arrows (spec 029, FR-043). A generalization is dashed and ends like any
+      // other line — zero or one at the variant, exactly one at the head; a row from an older server
+      // keeps its middle label and is a plain line.
       const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-      const arrow = ed.relationship_kind === "generalization" ? "style=dashed arrowhead=normal " : "arrowhead=normal ";
-      lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${arrow}`.trim()}]`);
+      const ends =
+        ed.relationship_kind === "generalization"
+          ? `style=dashed dir=both arrowtail=${erdEnd(ed.source_cardinality)} arrowhead=${erdEnd(ed.target_cardinality)} `
+          : "arrowhead=none ";
+      lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${ends}`.trim()}]`);
       return;
     }
     // One association, read the ERD way: each end shows how many of the table it touches, and the
