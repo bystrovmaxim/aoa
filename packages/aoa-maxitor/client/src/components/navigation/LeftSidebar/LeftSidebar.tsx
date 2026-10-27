@@ -2,6 +2,7 @@
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SwitchServiceIcon } from "./SwitchServiceIcon";
+import { ProjectFooter } from "./ProjectFooter";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
@@ -584,6 +585,7 @@ export function LeftSidebar({
           </Typography>
         )}
       </Box>
+      <ProjectFooter collapsed={collapsed} />
     </Box>
   );
 }

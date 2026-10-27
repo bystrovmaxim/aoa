@@ -12,7 +12,7 @@ the coordinator graph into DuckDB.
 Aspect sequence:
   1. validate_url — verify the input is a well-formed HTTP/HTTPS URL
   2. normalize_url — resolve to canonical ``/examples/model/graph-json`` endpoint path
-  3. validate_service — verify HTTP reachability and presence of coordinator_json field
+  3. validate_service — download through ``GraphSourceGateway``; verify the answer and its coordinator_json field
   4. parse_service_graph — parse coordinator_json string, validate nodes/edges structure
   5. build_duckdb_graph (summary) — ingest service_graph_data into DuckDB, return counts
 """
@@ -24,18 +24,23 @@ import re
 from typing import Any, cast
 from urllib.parse import urlparse
 
-import httpx
 from pydantic import ConfigDict, Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
+from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.maxitor.model.core.core_domain import CoreDomain
+from aoa.maxitor.model.core.resources.graph_source_gateway import (
+    GRAPH_SOURCE_CONNECTION_KEY,
+    GraphSourceGateway,
+    Unreachable,
+)
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 _DEFAULT_GRAPH_JSON_PATH = "/examples/model/graph-json"
@@ -72,16 +77,20 @@ class LoadAOAServiceResult(BaseResult):
     node_count: int = Field(ge=0, description="Number of nodes loaded into DuckDB.")
     edge_count: int = Field(ge=0, description="Number of edges loaded into DuckDB.")
     graph_resource: DuckDBGraphResource = Field(description="Populated DuckDB graph resource.")
+    content_sha256: str = Field(min_length=64, max_length=64, description="SHA-256 of the graph-json body the graph was built from.")
+    etag: str = Field(description="The service's ETag for that body; empty when it gave none.")
+    last_modified: str = Field(description="The service's Last-Modified for that body; empty when it gave none.")
 
 
 @meta(description="Validate and load a remote AOA service graph into Maxitor.", domain=CoreDomain)
 @check_roles(GuestRole)
+@connection(GraphSourceGateway, key=GRAPH_SOURCE_CONNECTION_KEY, description="Downloads the service's graph-json")
 class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult]):
     """
     AI-CORE-BEGIN
     ROLE: Five-aspect pipeline — validate URL format, normalize to endpoint path, validate service reachability, parse graph data, build DuckDB graph.
     CONTRACT: Params.service_url accepts both a bare base URL (http://host:8001) and a full graph-json endpoint (http://host:8001/examples/model/graph-json); Result.graph_resource holds the populated DuckDB resource ready for catalog queries.
-    INVARIANTS: Only one HTTP GET is made (in validate_service_aspect); subsequent aspects read from state without re-fetching.
+    INVARIANTS: Only one download is made, through ``connections[GraphSource]`` in validate_service_aspect; subsequent aspects read from state without re-fetching; the body's SHA-256 and validators travel to the result.
     AI-CORE-END
     """
 
@@ -136,6 +145,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
 
     @result_string("service_graph_json_url", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_string("coordinator_json_raw", required=True, not_empty=True)  # type: ignore[untyped-decorator]
+    @result_instance("source_identity", dict, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Validate the AOA service: check HTTP reachability and verify coordinator_json field is present.")
     async def validate_service_aspect(
         self,
@@ -144,26 +154,24 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        _ = (params, box, connections)
+        _ = (params, box)
         url = cast(str, state["service_graph_json_url"])
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=15.0)
-                response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+        gateway = cast(GraphSourceGateway, connections[GRAPH_SOURCE_CONNECTION_KEY])
+        answer = await gateway.fetch(url)
+        if isinstance(answer, Unreachable):
+            if answer.status is not None:
+                raise ValueError(
+                    f"AOA service returned HTTP {answer.status} at {url!r}. "
+                    "Check that the service is running and the URL is correct."
+                )
             raise ValueError(
-                f"AOA service returned HTTP {exc.response.status_code} at {url!r}. "
-                "Check that the service is running and the URL is correct."
-            ) from exc
-        except httpx.RequestError as exc:
-            raise ValueError(
-                f"Cannot reach AOA service at {url!r}: {exc}. "
+                f"Cannot reach AOA service at {url!r}: {answer.reason}. "
                 "Check that the host and port are correct."
-            ) from exc
+            )
 
         try:
-            envelope = response.json()
+            envelope = json.loads(answer.body)
         except Exception as exc:
             raise ValueError(f"Response from {url!r} is not valid JSON: {exc}") from exc
 
@@ -177,12 +185,21 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
                 "Ensure the endpoint is a valid AOA graph-json endpoint."
             )
 
-        return {"service_graph_json_url": url, "coordinator_json_raw": coordinator_json_raw}
+        return {
+            "service_graph_json_url": url,
+            "coordinator_json_raw": coordinator_json_raw,
+            "source_identity": {
+                "sha256": answer.sha256,
+                "etag": answer.etag or "",
+                "last_modified": answer.last_modified or "",
+            },
+        }
 
     # ─── Aspect 4 ────────────────────────────────────────────────────────────
 
     @result_string("service_graph_json_url", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("service_graph_data", dict, required=True)  # type: ignore[untyped-decorator]
+    @result_instance("source_identity", dict, required=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Parse coordinator_json string and validate the graph structure contains nodes and edges.")
     async def parse_service_graph_aspect(
         self,
@@ -210,7 +227,11 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
                 "The service may be running an incompatible version."
             )
 
-        return {"service_graph_json_url": url, "service_graph_data": service_graph_data}
+        return {
+            "service_graph_json_url": url,
+            "service_graph_data": service_graph_data,
+            "source_identity": state["source_identity"],
+        }
 
     # ─── Aspect 5 (summary) ──────────────────────────────────────────────────
 
@@ -225,6 +246,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         _ = (params, box, connections)
         url = cast(str, state["service_graph_json_url"])
         service_graph_data = cast(dict[str, Any], state["service_graph_data"])
+        identity = cast(dict[str, str], state["source_identity"])
 
         graph_resource = DuckDBGraphResource.build_from_json(service_graph_data)
 
@@ -236,4 +258,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
             node_count=node_count,
             edge_count=edge_count,
             graph_resource=graph_resource,
+            content_sha256=identity["sha256"],
+            etag=identity["etag"],
+            last_modified=identity["last_modified"],
         )

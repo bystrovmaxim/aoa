@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/tests-193-brightgreen" alt="193 tests">
   <a href="client/README.md"><img src="https://img.shields.io/badge/SPA-React%2019%20·%20Vite-61dafb?logo=react&logoColor=white" alt="Maxitor client"></a>
   <img src="https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white" alt="Node 22">
-  <img src="https://img.shields.io/badge/version-2.2.0-informational" alt="2.2.0">
+  <img src="https://img.shields.io/badge/version-2.3.0-informational" alt="2.3.0">
 </p>
 
 # aoa-maxitor: A System You Can See
@@ -154,7 +154,7 @@ GraphSourceMiddleware → FastAPI Actions → JSON endpoints
 React SPA (G6 + Graphviz WASM)
 ```
 
-On backend startup, `NodeGraphCoordinator` scans all registered AOA code and builds the process graph. A diagram read names the AOA service it wants as `?source=<graph-json URL>`; the graph store builds that service's DuckDB snapshot on the first read and keeps it, so a repeat open costs nothing and two users of two services never see each other's graph. At most 50 graphs are held, at most 4 builds run at once, and a graph unread for an hour is removed.
+On backend startup, `NodeGraphCoordinator` scans all registered AOA code and builds the process graph. A diagram read names the AOA service it wants as `?source=<graph-json URL>`; the graph store builds that service's DuckDB snapshot on the first read and keeps it, so a repeat open costs nothing and two users of two services never see each other's graph. At most 50 graphs are held — a built graph stays until then, kept current with its service — and at most 4 builds run at once.
 
 **Important**: the React SPA is fully separate from the backend. Two independent processes. In production you can build static SPA assets and serve them from a CDN, with the API hosted separately.
 
@@ -179,8 +179,16 @@ GET /api/v1/list-node-types?source=<url> — graph node types
 GET /api/v1/domain-use-case-diagram?source=<url>&domain_id=…
 GET /api/v1/lifecycle-finite-automaton?source=<url>&lifecycle_graph_node_id=…
 
+GET /api/v1/graph-fingerprint?source=<url> — which graph is held for the source, from memory
+
+GET /api/meta/app-info                   — the running version and client build
+
+WS  /api/v1/rooms/{room_id}/live         — a room: everyone looking at one service together
+
 POST /api/load  {"service_url": "<url>"} — rebuild that one source
 ```
+
+Every successful `GET` carries an `ETag` of its content; a request that sends it back in `If-None-Match` gets `304` with no body.
 
 `source` is the AOA service's `graph-json` URL, URL-encoded. A read that names no source answers `400` and says which parameter is missing; a source that cannot be built answers `422` with the reason; a server with no free build slot answers `503` with `Retry-After` and the client retries. A read whose source is not built yet builds it on the spot — it never answers "not loaded".
 
@@ -195,6 +203,10 @@ POST /api/load  {"service_url": "<url>"} — rebuild that one source
 Swagger UI: `http://127.0.0.1:8000/docs`
 
 JSON from endpoints can be embedded in your portal, CI pipeline, or documentation tooling. A runnable tour of every case — two sources side by side, `400`, `422`, `503`, reload, eviction, a burst — is [examples/step_26_maxitor/02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
+
+**Held graphs stay current.** While someone looks at a graph, Maxitor asks its service whether it changed — every 30 seconds when the service gives `ETag` or `Last-Modified` (an unchanged one answers `304`), every 2 minutes when it does not (the body's SHA-256 is compared). A changed service is rebuilt in the background and replaces the old graph only when the build succeeded; a service that is down keeps the graph everyone has. Open pages redraw by themselves, keeping page, filters, zoom and centre. A built graph stays until `MAXITOR_MAX_GRAPHS` is reached. Tour: [09_fresh_graphs.py](../../examples/step_26_maxitor/09_fresh_graphs.py) · [notebook](../../examples/step_26_maxitor/09_fresh_graphs.ipynb).
+
+**Rooms.** **Open room** in the top row gives a link; whoever opens it joins after giving a name. Everyone in the room sees the others' pointers on the same spot of the diagram, filters and layout modes are shared per page, a click on someone's circle goes to them, and **Follow** keeps your screen where theirs is — always at your own zoom. A room holds 20 people and a process 100 rooms; a room ends two minutes after its last person leaves, and its link then opens the page on its own. Every room operation is an AOA action; pointers are relayed without one and never logged. Tour: [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) · [notebook](../../examples/step_26_maxitor/08_rooms.ipynb).
 
 ---
 
@@ -212,9 +224,9 @@ Starts FastAPI at `http://127.0.0.1:8000`. Environment:
 |---|---|---|
 | `MAXITOR_API_HOST` | `127.0.0.1` | where uvicorn listens |
 | `MAXITOR_API_PORT` | `8000` | port |
-| `MAXITOR_MAX_GRAPHS` | `50` | most graphs one process holds; the least recently read is evicted |
-| `MAXITOR_GRAPH_IDLE_SECONDS` | `3600` | a graph unread this long is removed (one hour) |
+| `MAXITOR_MAX_GRAPHS` | `50` | most graphs one process holds; a built graph stays until this many are held, then the least recently read leaves |
 | `MAXITOR_MAX_CONCURRENT_BUILDS` | `4` | builds running at once; further reads wait, then get `503` |
+| `MAXITOR_ROOM_ORIGINS` | — | extra browser origins allowed to join a room, comma separated; a page of the same host as Maxitor needs none |
 
 A held graph is much smaller than it used to be. The build keeps no index and no primary key, because no diagram query reads through one: the reference service's graph takes about 13 MiB of database memory (43.5 before #268), and the process gains about 24.5 MiB per graph on macOS and 16.7 MiB on Linux. At the default limit of fifty graphs that is roughly 1.1 GiB of process instead of 2.7. The diagrams and their timings are unchanged, and the build is slightly faster. A graph that lists the same node id twice in one table is still refused, now with a message that names the id and the table.
 
@@ -237,6 +249,18 @@ VITE_MAXITOR_API_BASE_URL=https://api.example.com npm run build
 ```
 
 Builds static SPA assets. Deploy: SPA on CDN or nginx, API in a separate container.
+
+Rooms run over a WebSocket. A reverse proxy in front of Maxitor must pass the upgrade through and keep the page's `Host`, or a browser is refused with `4403`; for nginx, in the `location` that proxies Maxitor (or a `location /api/v1/rooms/` of its own):
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_set_header Host $host;
+proxy_read_timeout 1h;
+```
+
+`proxy_read_timeout` keeps a quiet room connection open; without it nginx closes it after a minute and the page reconnects.
 
 ---
 

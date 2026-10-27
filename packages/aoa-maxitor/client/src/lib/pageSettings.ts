@@ -1,0 +1,93 @@
+// src/lib/pageSettings.ts
+/**
+ * A page's filters and layout mode: the person's own outside a room, the room's inside one
+ * (spec 028, FR-030 … FR-033).
+ *
+ * Viewers read and set them through ``usePageSetting``. Outside a room a value is kept per page for
+ * the life of the tab, as the viewers' own maps kept it before. Inside a room the page shows the
+ * room's value and a change is sent as the new value — "set to", never "toggle" — so the last change
+ * wins for everyone; it shows at once and the room's echo confirms it. Zoom, scroll, hover and
+ * collapsed panels are not page settings and stay personal (FR-032).
+ */
+import { createContext, createElement, useCallback, useContext, useRef, useSyncExternalStore, type ReactNode } from "react";
+import type { PageSettings } from "@/rooms/protocol";
+
+/** What the page settings need from the room the tab is in. */
+export type RoomSettings = {
+  settings: PageSettings;
+  /** Send ``name = value`` for ``page`` to the room. */
+  set(page: string, name: string, value: unknown): void;
+};
+
+type PageSettingsContextValue = {
+  /** The key of the page on screen (``rooms/pageKey.ts``), or ``null`` before one is chosen. */
+  page: string | null;
+  room: RoomSettings | null;
+};
+
+const PageSettingsContext = createContext<PageSettingsContextValue>({ page: null, room: null });
+
+export function PageSettingsProvider({ page, room, children }: PageSettingsContextValue & { children: ReactNode }) {
+  return createElement(PageSettingsContext.Provider, { value: { page, room } }, children);
+}
+
+/** Page key → setting name → value, for this tab outside a room. */
+const local = new Map<string, Map<string, unknown>>();
+const listeners = new Set<() => void>();
+let version = 0;
+
+function writeLocal(page: string, name: string, value: unknown): void {
+  let settings = local.get(page);
+  if (!settings) {
+    settings = new Map();
+    local.set(page, settings);
+  }
+  settings.set(name, value);
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+/** Keep a room's settings as this tab's own: leaving a room keeps every page as it was (FR-019). */
+export function keepRoomSettings(settings: PageSettings): void {
+  for (const [page, values] of Object.entries(settings)) {
+    for (const [name, value] of Object.entries(values)) writeLocal(page, name, value);
+  }
+}
+
+/** Forget every value kept outside a room (tests). */
+export function clearLocalPageSettings(): void {
+  local.clear();
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * The value of setting ``name`` on the page on screen, and the call that sets it. ``fallback`` is the
+ * value when nobody has set it: the viewer's default, taken from the first render so that a literal
+ * ``[]`` is the same array on every render and never re-runs an effect that depends on it.
+ */
+export function usePageSetting<T>(name: string, fallback: T): [T, (value: T) => void] {
+  const { page, room } = useContext(PageSettingsContext);
+  const fallbackRef = useRef(fallback);
+  useSyncExternalStore(subscribe, () => version);
+  const own = page ? local.get(page)?.get(name) : undefined;
+  const shared = room && page ? room.settings[page]?.[name] : undefined;
+  const value = (shared !== undefined ? shared : own !== undefined ? own : fallbackRef.current) as T;
+
+  const set = useCallback(
+    (next: T) => {
+      if (!page) return;
+      writeLocal(page, name, next);
+      room?.set(page, name, next);
+    },
+    [page, room, name],
+  );
+  return [value, set];
+}

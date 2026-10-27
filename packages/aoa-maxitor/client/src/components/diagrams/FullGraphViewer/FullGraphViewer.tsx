@@ -8,8 +8,9 @@ import { fullGraph } from "@/api/fullGraph";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
+import { layoutHash } from "@/lib/layoutHash";
+import { registerG6DiagramSurface } from "@/rooms/diagramSurface";
 import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
-import { g6LayoutOptions } from "./layoutSettings";
 import { PrecomputedLayout } from "./precomputedLayout";
 
 /** Slim edge ``data`` plus optional ``isForbiddenDagCycle`` if the server adds it later. */
@@ -133,17 +134,12 @@ function buildGraph(
   container: HTMLElement,
   payload: InterchangeGraphG6Payload,
   graphData: GraphData,
-  layoutOption?: Record<string, unknown>,
+  layoutOption: Record<string, unknown>,
 ): G6Graph {
   const px = payload.constants.node_visual_px;
   const dagColor = payload.constants.dag_cycle_violation_color;
   const defaultEdge = "#95a5a6";
   const defaultColor = payload.constants.default_color;
-  const nodeTypeMap = payload.node_type_map;
-  const scalarLink = payload.constants.layout_entity_scalar_link;
-  const entityFieldType = String(
-    payload.constants.entity_field_interchange_type ?? "EntityField",
-  ).trim();
 
   const bubblePlugins = normalizeBubblePluginsForInterchange(payload.bubble_plugins ?? []);
   const plugins = bubblePlugins as never[];
@@ -153,7 +149,9 @@ function buildGraph(
     autoResize: true,
     animation: false,
     data: graphData,
-    ...(layoutOption ? { layout: layoutOption as never } : {}),
+    // The only layout key: a literal one further down would win the spread and make G6 lay the
+    // graph out itself, ignoring the positions given here (which #245 shipped by mistake).
+    layout: layoutOption as never,
     node: {
       type: "circle",
       style: (data: NodeData) => {
@@ -220,35 +218,6 @@ function buildGraph(
         },
       },
     },
-    layout: {
-      type: "d3-force",
-      iterations: 220,
-      animation: false,
-      link: {
-        distance: (edge: EdgeData) => {
-          const st = nodeTypeMap[String(edge.source)] ?? "";
-          const tt = nodeTypeMap[String(edge.target)] ?? "";
-          const entityScalar =
-            (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
-          if (scalarLink && entityScalar) return scalarLink.distance;
-          return st === tt ? 72 : 200;
-        },
-        strength: (edge: EdgeData) => {
-          const st = nodeTypeMap[String(edge.source)] ?? "";
-          const tt = nodeTypeMap[String(edge.target)] ?? "";
-          const entityScalar =
-            (st === "Entity" && tt === entityFieldType) || (st === entityFieldType && tt === "Entity");
-          if (scalarLink && entityScalar) return scalarLink.strength;
-          return st === tt ? 0.82 : 0.11;
-        },
-      },
-      manyBody: { strength: -360, distanceMax: 1200 },
-      collide: { radius: px * 0.5 + 7, strength: 0.95, iterations: 4 },
-      center: { strength: 0.012 },
-      alphaDecay: 0.012,
-      alphaMin: 0.0015,
-      velocityDecay: 0.42,
-    },
     behaviors: [
       { type: "zoom-canvas", key: "zoom-canvas", enable: true },
       "drag-canvas",
@@ -273,32 +242,37 @@ export function FullGraphViewer() {
 
   const loadInterchange = useCallback(
     () =>
-      Promise.all([fullGraph(), import("@antv/g6")]).then(([p, mod]) => ({
+      // The layout module comes with G6, never in the chunk every view loads (spec 026, R2).
+      Promise.all([fullGraph(), import("@antv/g6"), import("./forceLayout")]).then(([p, mod, layoutModule]) => ({
         payload: p,
         mod,
+        computeForceLayout: layoutModule.computeForceLayout,
       })),
     [],
   );
   const { data, loading, error } = useDiagramLoader(loadInterchange);
   const payload = data?.payload ?? null;
   const graphModule = data?.mod ?? null;
+  const computeForceLayout = data?.computeForceLayout ?? null;
 
   const [zoomPct, setZoomPct] = useState(100);
   const [graphError, setGraphError] = useState<string | null>(null);
-  /** The background layout's answer: positions, or a fallback that has already logged why. */
   /**
-   * Where the arrangement comes from: the browser's store, or — when nothing is remembered —
-   * G6's own layout on the main thread, which the render chain then stores (FR-014, FR-016).
+   * The arrangement and where it came from: the browser's store, or — when nothing is
+   * remembered — Maxitor's own layout, the same on every engine and screen, which is then
+   * stored (spec 026 FR-014, FR-016; spec 028 FR-001 … FR-004).
    */
   const [layout, setLayout] = useState<{
-    positions: Record<string, [number, number]> | null;
-    fallback: boolean;
+    positions: Record<string, [number, number]>;
+    fresh: boolean;
     fingerprint: string | null;
   } | null>(null);
 
   useEffect(() => {
-    if (!payload) return undefined;
+    if (!payload || !computeForceLayout) return undefined;
     setLayout(null);
+    // A hash on the element always describes the picture on screen, never one being replaced.
+    rootRef.current?.removeAttribute("data-layout-hash");
     const nodeIds = payload.nodes.map((node) => String(node.id));
     let cancelled = false;
 
@@ -306,7 +280,7 @@ export function FullGraphViewer() {
     // so neither this read nor the write after the layout may be repeated for that reason.
     const run = async () => {
       if (nodeIds.length === 0) {
-        setLayout({ positions: {}, fallback: false, fingerprint: null });
+        setLayout({ positions: {}, fresh: false, fingerprint: null });
         return;
       }
       const fingerprint = await fingerprintGraph(payload);
@@ -315,18 +289,24 @@ export function FullGraphViewer() {
         const remembered = await readArrangement(fingerprint, nodeIds);
         if (cancelled) return;
         if (remembered) {
-          setLayout({ positions: remembered, fallback: false, fingerprint });
+          setLayout({ positions: remembered, fresh: false, fingerprint });
           return;
         }
       }
-      setLayout({ positions: null, fallback: true, fingerprint });
+      const positions = computeForceLayout({
+        nodes: nodeIds,
+        edges: payload.edges.map((edge) => [String(edge.source), String(edge.target)] as [string, string]),
+        nodeVisualPx: payload.constants.node_visual_px,
+      });
+      if (cancelled) return;
+      setLayout({ positions, fresh: true, fingerprint });
     };
     void run();
 
     return () => {
       cancelled = true;
     };
-  }, [payload]);
+  }, [payload, computeForceLayout]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -342,13 +322,13 @@ export function FullGraphViewer() {
       mod.register("layout", "precomputed", PrecomputedLayout as never);
       precomputedRegistered = true;
     }
-    const layoutOption = layout.fallback
-      ? g6LayoutOptions(payload.constants.node_visual_px)
-      : { type: "precomputed", positions: layout.positions };
+    const layoutOption = { type: "precomputed", positions: layout.positions };
 
     const graph = buildGraph(mod.Graph, canvas, payload, graphData, layoutOption);
     graphRef.current = graph;
     let cancelled = false;
+    /** Takes the graph off the room's surface; set once the graph is drawn. */
+    let unregisterSurface: (() => void) | null = null;
 
     const syncZoom = () => {
       try {
@@ -676,19 +656,22 @@ export function FullGraphViewer() {
         await graph.fitView();
         syncZoom();
         scheduleHoverOverlaySync();
-        if (layout.fallback && layout.fingerprint) {
-          const positions: Record<string, [number, number]> = {};
-          for (const node of payload.nodes) {
-            const id = String(node.id);
-            const position = graph.getElementPosition(id);
-            if (Array.isArray(position) && Number.isFinite(position[0]) && Number.isFinite(position[1])) {
-              positions[id] = [position[0], position[1]];
-            }
-          }
-          if (!cancelled && Object.keys(positions).length === payload.nodes.length) {
-            void writeArrangement(layout.fingerprint, positions);
-          }
+        if (layout.fresh && layout.fingerprint && !cancelled) {
+          void writeArrangement(layout.fingerprint, layout.positions);
         }
+        // The hash is taken over what G6 drew, not over what was handed to it, so it can only
+        // ever describe the picture on screen.
+        const nodeIds = payload.nodes.map((node) => String(node.id));
+        const drawn: Record<string, [number, number]> = {};
+        for (const id of nodeIds) {
+          const [x, y] = graph.getElementPosition(id);
+          drawn[id] = [x, y];
+        }
+        const hash = await layoutHash(drawn, nodeIds);
+        if (cancelled) return;
+        rootRef.current?.setAttribute("data-layout-hash", hash);
+        // Pointers in a room travel in G6's canvas space, which every participant's picture shares.
+        if (rootRef.current) unregisterSurface = registerG6DiagramSurface(rootRef.current, graph);
       })
       .catch((err: unknown) => {
         setGraphError(err instanceof Error ? err.message : String(err));
@@ -696,6 +679,7 @@ export function FullGraphViewer() {
 
     return () => {
       cancelled = true;
+      unregisterSurface?.();
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
       graph.off("node:pointerenter", onNodeOver);

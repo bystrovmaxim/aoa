@@ -4,9 +4,9 @@
  *
  * ``buildDotSource`` gives every table's header a kind slot — a cell with an ``ID`` and a ``TOOLTIP``,
  * filled with the header colour so Graphviz emits its box as ``<g id="a_ks<table>">`` — beside the name
- * cell. Graphviz stretches the name cell to the header and centres the name in it, so the slot stays at
- * the edge; but the name cell is the header minus the slot, so drawing the glyph right before the name
- * puts icon and name, together, in the middle of the header. The slot reserves the room and gives the
+ * cell. Graphviz stretches the name cell to the header and centres the name in it; this pass puts the
+ * glyph at the header's left, after a small inset, and the name right after it — the header of spec 028
+ * (FR-110; mockup screen 21), left-aligned like the field names below. The slot reserves the room and gives the
  * height; the glyph is drawn white inside the slot's link element, so its tooltip (the kind's name)
  * still covers it.
  *
@@ -23,6 +23,8 @@ export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) =
 const HEADER_GLYPH_STROKE = 2.4;
 /** Space between the glyph and the name, in points (the spacer cell of the header). */
 const HEADER_GLYPH_GAP = 4;
+/** Space between the header's left edge and the glyph, in points (the mockup's 12 of a 250 card). */
+export const HEADER_INSET_PT = 10;
 
 /**
  * The box of a cell's ``points`` polygon inside its ``<g id="a_<id>">``, or ``null``. A cell that holds a
@@ -65,7 +67,7 @@ function textStart(markup: string, cellId: string): { x: number; at: number; len
 }
 
 /**
- * Draw each table's kind glyph right before its name and centre the two together in the header.
+ * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it.
  * ``entities`` is the list the DOT was built from (its order gives the cell ids).
  */
 export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer): string {
@@ -76,10 +78,7 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
     const nameCell = cellBox(markup, `hn${table}`, true);
     const name = textStart(markup, `hn${table}`);
     if (!slot || slot.size <= 0 || !header || !nameCell || !name) return;
-    // Graphviz centres the name in its cell: its width is what is left on both sides, removed.
-    const nameWidth = nameCell.x + nameCell.right - 2 * name.x;
-    const groupWidth = slot.size + HEADER_GLYPH_GAP + nameWidth;
-    const iconX = (header.x + header.right) / 2 - groupWidth / 2;
+    const iconX = header.x + HEADER_INSET_PT;
     const textX = iconX + slot.size + HEADER_GLYPH_GAP;
     const kind = entity.entity_kind?.trim() || "unknown";
     edits.push({ at: name.at, remove: name.length, text: ` x="${textX.toFixed(2)}"` });

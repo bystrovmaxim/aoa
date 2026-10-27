@@ -109,7 +109,8 @@ describe("a deep link", () => {
 
     expect(postCalls()).toHaveLength(0);
     expect(calls[0].method).toBe("GET");
-    for (const read of calls.filter((c) => c.method === "GET")) {
+    // Every graph read; ``/api/meta/app-info`` asks which Maxitor runs and needs no source.
+    for (const read of calls.filter((c) => c.method === "GET" && !c.url.startsWith("/api/meta/"))) {
       expect(new URL(read.url, "http://localhost").searchParams.get("source")).toBe(SOURCE);
     }
   });

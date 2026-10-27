@@ -1,8 +1,9 @@
 // src/components/diagrams/ErdViewer/ErdViewer.tsx
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ErdGraphvizCanvas } from "./parts/ErdGraphvizCanvas";
 import { loadErdDomainsBundle, type ErdViewerSelection } from "@/lib/loadErdDomainsBundle";
+import { usePageSetting } from "@/lib/pageSettings";
 
 export type { ErdViewerSelection };
 
@@ -12,7 +13,8 @@ type ErdViewerProps = {
 
 /** Full-page ERD workspace: API JSON rendered with Graphviz WASM in React. */
 export function ErdViewer({ selection }: ErdViewerProps) {
-  const [includeOneHop, setIncludeOneHop] = useState(true);
+  // A page setting: shared inside a room (spec 028, FR-030).
+  const [includeOneHop, setIncludeOneHop] = usePageSetting("one_hop", true);
   const { qualifier } = selection;
 
   const loadBundle = useCallback(
@@ -31,7 +33,6 @@ export function ErdViewer({ selection }: ErdViewerProps) {
           key={`${diagramResetKey}:${dataVersion}`}
           bundle={bundle}
           bundleVersion={dataVersion}
-          diagramResetKey={diagramResetKey}
           includeOneHop={includeOneHop}
           onIncludeOneHopChange={setIncludeOneHop}
         />

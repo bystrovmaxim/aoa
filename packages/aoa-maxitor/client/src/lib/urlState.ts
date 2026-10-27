@@ -6,6 +6,13 @@ const PARAM_VIEW = "view";
 const PARAM_DOMAIN = "domain";
 const PARAM_NODE = "node";
 const PARAM_HOST = "host";
+const PARAM_ROOM = "room";
+
+/**
+ * The room this tab is in, or ``null``. Kept here rather than passed to every navigation, so that
+ * each address this module writes keeps ``room`` while the tab is in one (spec 028, FR-017).
+ */
+let currentRoom: string | null = null;
 
 /** Deep-link slugs for ``view=`` — kept in sync with the aoa.run marketing site's "Try Maxitor" links. */
 const VIEW_SLUG_BY_KIND: Record<DiagramSelection["kind"], string> = {
@@ -21,6 +28,7 @@ export type UrlDeepLink = {
   domain: string | null;
   node: string | null;
   host: string | null;
+  room: string | null;
 };
 
 export function readUrlDeepLink(): UrlDeepLink {
@@ -31,6 +39,7 @@ export function readUrlDeepLink(): UrlDeepLink {
     domain: params.get(PARAM_DOMAIN),
     node: params.get(PARAM_NODE),
     host: params.get(PARAM_HOST),
+    room: params.get(PARAM_ROOM),
   };
 }
 
@@ -52,7 +61,7 @@ export function deepLinkNeedsSidebarDefault(link: UrlDeepLink): "use_case" | "li
   return null;
 }
 
-function selectionToParams(sel: DiagramSelection): Record<string, string> {
+export function selectionToParams(sel: DiagramSelection): Record<string, string> {
   const view = VIEW_SLUG_BY_KIND[sel.kind];
   if (sel.kind === "erd") return sel.qualifier ? { view, domain: sel.qualifier } : { view };
   if (sel.kind === "use_case") return { view, domain: sel.domain_qualifier };
@@ -66,6 +75,7 @@ function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null)
   if (selection) {
     for (const [k, v] of Object.entries(selectionToParams(selection))) params.set(k, v);
   }
+  if (currentRoom) params.set(PARAM_ROOM, currentRoom);
   const qs = params.toString();
   return qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
 }
@@ -85,6 +95,31 @@ export function syncUrlToState(serviceUrl: string | null, selection: DiagramSele
  * loading a service, switching service) — one entry per action, so the Back button steps
  * through them one at a time.
  */
-export function pushUrlState(serviceUrl: string | null, selection: DiagramSelection | null): void {
-  window.history.pushState(null, "", buildUrl(serviceUrl, selection));
+export function pushUrlState(
+  serviceUrl: string | null,
+  selection: DiagramSelection | null,
+  options: { replace?: boolean } = {},
+): void {
+  const url = buildUrl(serviceUrl, selection);
+  if (options.replace) window.history.replaceState(null, "", url);
+  else window.history.pushState(null, "", url);
+}
+
+/**
+ * Put ``room`` into the address, or take it out with ``null``, keeping every other parameter.
+ * Every later address this module writes keeps it until it is taken out.
+ */
+export function setUrlRoom(room: string | null): void {
+  currentRoom = room;
+  const url = new URL(window.location.href);
+  if (room) url.searchParams.set(PARAM_ROOM, room);
+  else url.searchParams.delete(PARAM_ROOM);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+}
+
+/** ``href`` with ``room`` set: the link Copy link hands out is the page being looked at, in the room. */
+export function roomLink(href: string, room: string): string {
+  const url = new URL(href);
+  url.searchParams.set(PARAM_ROOM, room);
+  return url.toString();
 }
