@@ -102,6 +102,12 @@ export const ERD_FK_COLOUR = "#475569";
 export const ERD_TYPE_COLOUR = "#64748b";
 /** The alpha appended to a domain colour for a tinted row: 0x0f / 0xff ≈ 6 %. */
 export const ERD_ROW_TINT_ALPHA = "0f";
+/**
+ * The card of spec 029 (FR-032; the mockup of spec 028, screen 21): one rounded outline of this radius
+ * and width, shared by the header, which fills up to it with no gap.
+ */
+export const ERD_CARD_RADIUS = 9;
+export const ERD_CARD_STROKE = 1.4;
 
 /**
  * Ids of the cells the SVG post-pass looks up. Graphviz writes a cell's ``ID`` into the SVG only with a

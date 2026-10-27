@@ -12,9 +12,9 @@
  */
 
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
-import { buildDotSource, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
+import { buildDotSource, ERD_CARD_RADIUS, ERD_CARD_STROKE, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
-import { HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
+import { drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
 
 let failures = 0;
@@ -62,7 +62,7 @@ function textXOf(markup: string, id: string): number {
 
 /** The drawing the page shows for a payload: Graphviz, then the production passes. */
 function drawn(data: ErdGraphPayload): string {
-  return placeKindIcons(containNodeFills(gv.layout(buildDotSource(data, "gv-dot-lr"), "svg", "dot")), data.entities, kindGlyphSvg);
+  return placeKindIcons(drawErdCards(containNodeFills(gv.layout(buildDotSource(data, "gv-dot-lr"), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE), data.entities, kindGlyphSvg);
 }
 
 const field = (name: string, type: string, extra: Record<string, unknown> = {}) => ({ name, type, primary_key: false, foreign_key: false, ...extra });
