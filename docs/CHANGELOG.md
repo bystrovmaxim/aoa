@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-10-28] — Rooms that show one picture
+
+A room now shows everyone the same diagram from the first moment. When you open a room, the filters and layout you had become the room's, so the people you invite see exactly what you see; a value someone has already changed in the room is kept. Inside a room a page shows only the room's choices — your own settings never mix in — and when you leave, every page stays as it was in the room.
+
+Following someone now means seeing what they see. The table they point at lights up for you, their tooltip opens, their selection shows, and the filter sections and panel branches they open open for you too — for their followers only, nobody else. The view no longer jumps from place to place: it glides after theirs and stops exactly where they stop. This works between Chrome, Safari and Firefox in every direction. Pointers stay on screen for as long as their person is in the room, however long the mouse stands still, and someone who arrives on a page sees them at once. The room's buttons and circles are now the size of the rest of Maxitor, circles never touch each other, and a long name no longer pushes the buttons of a person's card into each other.
+
+Moving around changed, to work the way design tools and trackpads do. A two-finger swipe on a trackpad, or a plain mouse wheel, now moves the diagram; a pinch, or Ctrl / ⌘ with the wheel, zooms it. If you are used to zooming with the bare mouse wheel, hold Ctrl or ⌘. A swipe counts as moving yourself, so it stops following someone; zooming still does not.
+
+The entity diagram reads more easily. Tables match the new design, with the kind icon and the name on one line, and the tables of one specialization block share one width. A field's type is the name you would write — `str | None`, or the table a relation points to — and the full spelling is in its tooltip. A table always lists all of its fields; the 1-hop switch only decides which neighbouring tables come onto the diagram. The ends of every line tell an optional relation from a mandatory one, and there are no arrows any more: the dashed line from a specialization to its head ends like any other line. The field names at the ends of a line appear only while you hover it, on a small plate that keeps clear of the tables. Hovering a table dims the others; hovering a line or a key field lights only the tables it joins, and the head of a specialization lights up together with its variants. The Kinds filter offers only the kinds that are on the diagram.
+
+Maxitor can now show itself: typing Maxitor's own address into the service field opens its own diagram, rooms included, like any other AOA service. It tells Maxitor cheaply whether its diagram changed, and so does the demo built from this work.
+
+Graphs from services built with this version of AOA carry the clean type names themselves; graphs from older services are cleaned the same way in the browser, so they read the same.
+
 ## [2026-10-27] — Look at one service together, on graphs that stay fresh
 
 Maxitor now lets several people look at one AOA service at the same time. **Open room** in the row above the diagram asks for your name and gives you a link; whoever opens that link gives a name and is in. Everyone in the room sees the others' pointers on the very spot of the diagram they point at — on a phone and on a wide screen alike, whatever zoom each of them uses — and a circle for each person at the top, in a colour of their own. Filters and layout modes are shared: switch the entity diagram to another layout and everyone on that page sees it switch; someone who joins later opens the page that way. Zoom, scrolling and the left panel stay your own.
