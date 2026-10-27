@@ -33,6 +33,7 @@ import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomai
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
+import { bindRoleLabels, roleLabelSx } from "@/lib/useCaseRoleLabels";
 
 
 const GRID_SX = {
@@ -191,6 +192,14 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
   // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
   useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "node");
+  // A role's label shows only while the role is hovered (spec 029, FR-042).
+  useEffect(() => {
+    const panner = pannerRef.current;
+    if (!panner) return undefined;
+    const controller = new AbortController();
+    bindRoleLabels(panner, controller.signal);
+    return () => controller.abort();
+  }, [pannerRef, svgMarkup]);
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
@@ -351,6 +360,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                     overflow: "visible",
                     transformOrigin: "0 0",
                   },
+                  ...roleLabelSx,
                 }}
                 dangerouslySetInnerHTML={{ __html: svgMarkup }}
               />
