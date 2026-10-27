@@ -9,8 +9,9 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
-import { usePageSetting } from "@/lib/pageSettings";
+import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -202,6 +203,8 @@ export function ErdGraphvizCanvas({
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
+  // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
+  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table");
 
 
   const mergedByTabs = useMemo(

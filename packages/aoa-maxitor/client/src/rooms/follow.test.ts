@@ -80,8 +80,9 @@ describe("following", () => {
     const send = vi.fn();
     const hook = renderHook(() => useFollow({ room: roomWith({ anna: "boris" }, ERD), send, surface: null, page: ERD, navigate: vi.fn() }));
     hook.result.current.follow("vera");
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith({ type: "follow", target: "vera" });
+    // The tab's focus goes out too (spec 029); following itself is one message.
+    const follows = send.mock.calls.filter(([message]) => message.type !== "focus");
+    expect(follows).toEqual([[{ type: "follow", target: "vera" }]]);
   });
 
   it("stops on Esc", () => {

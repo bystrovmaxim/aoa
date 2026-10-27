@@ -24,7 +24,7 @@ Changes only; everything not named here is as in [spec 028's data model](../028-
 | `viewport` | `cx`, `cy`, `w`, `h` | tabs on the sender's page (unchanged; sent up to 20/s) |
 | `focus` | `page`, `hover`, `tooltip`, `selection`, `panels` | **new** — tabs of participants who follow the sender |
 
-`ElementRef = {kind: "node" | "row" | "edge" | "table", id: string}`; `panels = {sidebar: string[] (open branch ids), filter: "domains" | "kinds" | null, legend: boolean}`. Validation: `kind` from the list, `id` a string ≤ 512 chars, `sidebar` ≤ 200 ids; anything else drops the message.
+`ElementRef = {kind: "node" | "row" | "edge" | "table", id: string}`; `panels = {sidebar: string[] (open branch ids), filter: "open" | "domains" | "kinds" | null, legend: boolean}`. Validation: `kind` from the list, `id` a string ≤ 512 chars, `sidebar` ≤ 200 ids; anything else drops the message.
 
 ## Client state
 
@@ -32,7 +32,8 @@ Changes only; everything not named here is as in [spec 028's data model](../028-
 |---|---|---|
 | page setting value | `lib/pageSettings.ts` | inside a room: room value, else default (own value no longer read) |
 | follow playback | `rooms/follow.ts` | **new** — the last two viewport samples with arrival times; the drawn view is interpolated |
-| focus surface | `rooms/focusSurface.ts` | **new** — per viewer: `apply(focus)`, `onLocal(listener)` |
+| focus | `rooms/focusStore.ts` | **new** — this tab's own hover/selection/panels, every participant's last focus, the follow target; `useShownPanel` for panels |
+| Graphviz focus | `rooms/graphvizFocus.ts` | **new** — names the hovered row/line/node, holds back a follower's own mouse, replays the followed hover with `mouseenter`/`mouseleave`, shows the tooltip text in a label |
 
 ## Graph interchange (`aoa-action-machine`)
 

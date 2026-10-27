@@ -6,13 +6,22 @@
  * Who follows whom is the server's: **Follow** sends ``follow``, the room answers ``follows``, and the
  * tab follows while the links say so. It stops on your own pan (a drag; zooming does not stop it),
  * your own navigation, **Stop**, Esc, or their leaving, which the server turns into new links.
+ *
+ * While following, the follower also sees what the followed person sees — their hover, tooltip,
+ * selection and open panels (spec 029, FR-010) — through ``focusStore``; every tab in a room sends what
+ * it shows as ``focus``, at most ten times a second, and the server passes it to its followers only.
  */
 import { useCallback, useEffect } from "react";
 import type { DiagramViewport, Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { focusToSend, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
 import { subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
 import type { ClientMessage, Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
+import { throttle } from "@/rooms/throttle";
+
+/** Messages a second a focus may send (spec 029, contracts/room-protocol.md). */
+export const FOCUS_RATE = 10;
 
 /** The person this tab follows, or ``null``. */
 export function followedBy(room: RoomState | null): Participant | null {
@@ -108,6 +117,26 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     centre();
     return subscribePointers(centre);
   }, [targetId, targetPage, surface, page]);
+
+  // What the followed person sees shows here; the viewers then ignore this tab's own mouse.
+  useEffect(() => {
+    setFollowTarget(targetId);
+    return () => setFollowTarget(null);
+  }, [targetId]);
+
+  // What this tab shows goes to the people who follow it.
+  const inRoom = room !== null;
+  useEffect(() => {
+    if (!inRoom || page === null) return undefined;
+    const sender = throttle<FocusState>(FOCUS_RATE, (focus) => send({ type: "focus", ...focus }), sameFocus);
+    const offer = () => sender.push(focusToSend(page));
+    offer();
+    const unsubscribe = subscribeFocus(offer);
+    return () => {
+      unsubscribe();
+      sender.cancel();
+    };
+  }, [inRoom, page, send]);
 
   // Your own pan stops it; zooming does not.
   useEffect(() => {

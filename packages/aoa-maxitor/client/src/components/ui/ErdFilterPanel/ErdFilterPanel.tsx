@@ -9,6 +9,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { floatingLegendPanelSx, floatingLegendTitleSx, legendDiskImgSx, legendRowLabelSx, legendRowSx } from "@/lib/ui";
+import { useShownPanel, type Panels } from "@/rooms/focusStore";
 
 /** One toggle row: a domain or an entity kind. */
 export type ErdFilterRow = {
@@ -154,8 +155,20 @@ function SectionHeader({
 export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [open, setOpen] = useState<SectionId | null>("domains");
-  const [collapsed, setCollapsed] = useState(true);
+  const [ownOpen, setOpen] = useState<SectionId | null>("domains");
+  const [ownCollapsed, setCollapsed] = useState(true);
+  // While following, the panel shows as the followed person has it (spec 029, FR-010).
+  const shown = useShownPanel<Panels["filter"]>(
+    isMobile && ownCollapsed ? null : (ownOpen ?? "open"),
+    (value) => {
+      setCollapsed(value === null);
+      if (value !== null) setOpen(value === "open" ? null : value);
+    },
+    (panels) => panels.filter,
+    (value) => ({ filter: value }),
+  );
+  const collapsed = shown === null;
+  const open: SectionId | null = shown === null ? ownOpen : shown === "open" ? null : shown;
   const toggleSection = (id: SectionId) => setOpen((prev) => (prev === id ? null : id));
   // A native listener: React's synthetic stopPropagation would run after the event reached the canvas.
   const panelRef = useRef<HTMLElement | null>(null);

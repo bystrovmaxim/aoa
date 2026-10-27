@@ -14,6 +14,7 @@ import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
+import { clearFocus, putFocus } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
@@ -164,6 +165,11 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
       return;
     }
+    if (event.type === "focus") {
+      const { participant, page, hover, tooltip, selection, panels } = event;
+      putFocus(participant, { page, hover, tooltip, selection, panels });
+      return;
+    }
     if (event.type === "check") {
       const outcome = decideCheck(event, Date.now(), lastSelfReload());
       setPageNotice(checkNotice(outcome));
@@ -200,6 +206,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     dispatch({ kind: "reset" });
     setInviteOpen(false);
     clearPointers();
+    clearFocus();
     setPageNotice(null);
     if (state.code === 4422) {
       // The server refused the name: the dialog opens again with the rule.
@@ -280,6 +287,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     setPageNotice(null);
     setPointersOffPage(null);
     clearPointers();
+    clearFocus();
     dispatch({ kind: "reset" });
   }, [send]);
 
@@ -307,6 +315,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   // Another page: pointers seen on the old one do not belong here.
   useEffect(() => {
     clearPointers();
+    clearFocus();
   }, [page]);
 
   // Every page the tab opens is reported, so the room knows where its participants are (FR-013),
