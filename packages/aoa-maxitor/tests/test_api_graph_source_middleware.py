@@ -70,7 +70,7 @@ def _source_with_domain(domain: str) -> GraphEntry:
     return GraphEntry(source=f"https://{domain}.test/graph-json", graph=domain, sidebar=_SIDEBAR, last_read=0.0)
 
 
-def _store(*domains: str, calls: list[str] | None = None, clock: Any = None, idle_seconds: float = 300.0) -> GraphStore:
+def _store(*domains: str, calls: list[str] | None = None, clock: Any = None) -> GraphStore:
     """Return a store that answers one domain per source and records every build."""
     by_source = {f"https://{domain}.test/graph-json": _graph(domain) for domain in domains}
 
@@ -79,7 +79,7 @@ def _store(*domains: str, calls: list[str] | None = None, clock: Any = None, idl
             calls.append(source)
         return GraphEntry(source=source, graph=by_source[source], sidebar=_SIDEBAR, last_read=0.0)
 
-    kwargs: dict[str, Any] = {"idle_seconds": idle_seconds}
+    kwargs: dict[str, Any] = {}
     if clock is not None:
         kwargs["clock"] = clock
     return GraphStore(builder, **kwargs)
@@ -202,21 +202,20 @@ def test_a_read_for_one_source_after_another_was_loaded_answers_the_first() -> N
     assert _DOMAIN_B not in response.text
 
 
-def test_an_unread_source_is_rebuilt_after_idle_removal() -> None:
-    """After the idle timeout the next read builds again and answers 200, not an error (SC-006)."""
+def test_a_source_unread_for_hours_is_answered_without_a_new_build() -> None:
+    """A graph stays until the store's limit: three hours later the read answers from it (spec 028, FR-080)."""
     clock = FakeClock()
     calls: list[str] = []
-    store = _store(_DOMAIN_A, calls=calls, clock=clock, idle_seconds=60.0)
+    store = _store(_DOMAIN_A, calls=calls, clock=clock)
     client = _client(store)
     source = f"https://{_DOMAIN_A}.test/graph-json"
 
     assert client.get("/api/sidebar", params={"source": source}).status_code == 200
-    clock.advance(61.0)
-    clock.advance(61.0)
+    clock.advance(3 * 3600.0)
     response = client.get("/api/sidebar", params={"source": source})
 
     assert response.status_code == 200
-    assert calls == [source, source]
+    assert calls == [source]
 
 
 # ─── One request, one graph ─────────────────────────────────────────────────
@@ -260,8 +259,6 @@ def test_one_request_reads_one_graph_even_when_its_source_is_rebuilt_mid_request
     [
         ("MAXITOR_MAX_GRAPHS", "0"),
         ("MAXITOR_MAX_GRAPHS", "many"),
-        ("MAXITOR_GRAPH_IDLE_SECONDS", "-1"),
-        ("MAXITOR_GRAPH_IDLE_SECONDS", "soon"),
         ("MAXITOR_MAX_CONCURRENT_BUILDS", "2.5"),
     ],
 )
