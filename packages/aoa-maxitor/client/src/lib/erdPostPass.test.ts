@@ -166,14 +166,24 @@ describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
     expect(brightLines(root)).toEqual(["re0", "re1"]);
   });
 
-  it("an FK row: its own table and the table its line joins", () => {
+  it("scenario 1 — a table: the others dim, and every line not touching it", () => {
+    const { root } = mount();
+    focusTables(root, new Set(["Showcase"]));
+    expect(bright(root)).toEqual(["Showcase"]);
+    expect(brightLines(root)).toEqual(["re0", "re2"]);
+  });
+
+  it("scenario 2 — an FK row: its line bold, the joined table bright, the table's other lines as they are, the rest dim", () => {
     const { root } = mount();
     focusTables(root, new Set(["Player"])); // the pointer is inside Player first
     hover(root.querySelector('g[id="a_fn0_2"]')!, true);
     expect(bright(root)).toEqual(["Player", "Showcase"]);
-    expect(brightLines(root)).toEqual(["re0"]);
+    // Player's other line (re1, to Gender) stays bright and not bold; Showcase's line to Gender (re2) dims.
+    expect(brightLines(root)).toEqual(["re0", "re1"]);
+    expect([...root.querySelectorAll("g.edge.is-hovered")].map((e) => e.id)).toEqual(["re0"]);
     hover(root.querySelector('g[id="a_fn0_2"]')!, false);
     expect(bright(root)).toEqual(["Player"]);
+    expect(brightLines(root)).toEqual(["re0", "re1"]);
   });
 
   it("a PK row: every table whose lines point at it", () => {
@@ -181,6 +191,7 @@ describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
     hover(root.querySelector('g[id="a_fn2_0"]')!, true);
     expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
     expect(brightLines(root)).toEqual(["re1", "re2"]);
+    expect([...root.querySelectorAll("g.edge.is-hovered")].map((e) => e.id)).toEqual(["re1", "re2"]);
   });
 
   it("a line: the two tables it joins, and everything bright again when it is left", () => {
