@@ -25,6 +25,8 @@ import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
 import { usePointerSender } from "@/rooms/usePointerSender";
 import { useGoTo } from "@/rooms/goTo";
+import { useFollow } from "@/rooms/follow";
+import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
@@ -92,17 +94,33 @@ export function App() {
     () => (roomSettings ? { settings: roomSettings, set: setPageSetting } : null),
     [roomSettings, setPageSetting],
   );
-  /** Going to someone opens their page like any navigation: the left panel and the address follow. */
+  /**
+   * Going to someone opens their page like any navigation: the left panel and the address follow.
+   * Following replaces the history entry instead, so Back is not flooded (FR-057).
+   */
   const navigateToPage = useCallback(
-    (key: string) => {
+    (key: string, options: { replace: boolean } = { replace: false }) => {
       const selection = selectionOfPageKey(key);
       if (!selection) return;
-      pushUrlState(serviceUrl, selection);
+      pushUrlState(serviceUrl, selection, options);
       setDiagram(selection);
     },
     [serviceUrl],
   );
   const goTo = useGoTo({ surface, page, navigate: navigateToPage });
+  const { following, follow, stop: stopFollowing } = useFollow({
+    room: room.room,
+    send: room.send,
+    surface,
+    page,
+    navigate: navigateToPage,
+  });
+  const followingRef = useRef(following);
+  followingRef.current = following;
+  /** Your own navigation stops following (FR-051). */
+  const stopFollowingOnOwnMove = () => {
+    if (followingRef.current) stopFollowing();
+  };
   const pointerPeople = room.room
     ? room.room.participants.filter((p) => p.id !== room.room?.youId && p.page === page && !p.away)
     : [];
@@ -169,6 +187,7 @@ export function App() {
   // Back/forward — the browser already changed the URL for us; mirror it into state.
   useEffect(() => {
     function handlePopState() {
+      stopFollowingOnOwnMove();
       applyDeepLink(readUrlDeepLink(), serviceUrl, sidebar);
     }
     window.addEventListener("popstate", handlePopState);
@@ -182,6 +201,7 @@ export function App() {
   }, [serviceUrl, diagram]);
 
   function handleSelectDiagram(sel: DiagramSelection) {
+    stopFollowingOnOwnMove();
     pushUrlState(serviceUrl, sel);
     setDiagram(sel);
   }
@@ -241,12 +261,19 @@ export function App() {
           pageLabel={labelOfPage}
           canOpen={serviceUrl !== null}
           compact={compact}
-          onGoTo={goTo}
+          onGoTo={(participant, theirPage) => {
+            // Going to someone is your own navigation: it ends following (FR-051).
+            stopFollowingOnOwnMove();
+            goTo(participant, theirPage);
+          }}
+          onFollow={follow}
+          onStopFollowing={stopFollowing}
         />
       )}
       overlay={
         <>
           <RoomBanner banner={room.banner} onOpenRoom={room.requestOpen} onDismiss={room.dismissBanner} />
+          <FollowFrame following={following} onStop={stopFollowing} />
           <RoomBanner
             banner={room.pageNotice ? { kind: "warn", text: room.pageNotice, open: false } : null}
             onOpenRoom={room.requestOpen}
