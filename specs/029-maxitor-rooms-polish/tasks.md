@@ -10,7 +10,7 @@
 
 **The architectural rule** (spec 028, research R1): no hand-written route, no decision in a middleware, adapter or timer, no store or service reached outside a resource. Relayed messages (`pointer`, `viewport`, `focus`) are spec 028's documented exception: never run as actions, never logged.
 
-**Issue checkboxes**: issue #282 "Plan" lists 18 phases, each ticked with its sha when its commit lands (`gh issue edit 282`). Mapping (commit → issue phase): 2 → 1; 3 → 2; 4 → 3; 5 → 4; 6 → 5; 7 → 6; 8 → 7; 9 → 13; 10 → 12; 11 → 9; 12 → 8; 13 → 10; 14 → 11; 15 → 14; 16 → 15; 17 → 16; 18 → 17; 19 → 18. Commit 1 (design documents) and commit 20 (release preparation) have no issue phase.
+**Issue checkboxes**: issue #282 "Plan" lists 18 phases, each ticked with its sha when its commit lands (`gh issue edit 282`). Mapping (commit → issue phase): 2 → 1; 3 → 2; 4 → 3; 5 → 4; 6 → 5; 7 → 6; 8 → 7; 9 → 13; 10 → 12; 11 → 9; 12 → 8; 13 → 10; 14 → 11; 15 → 14; 16 → 15; 17 → 16; 18 → 17; 19 → 18. Commit 1 (design documents) has no issue phase.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -216,8 +216,8 @@
 
 ## Phase 16: The demo on the fresh adapter (commit 16) · US4
 
-- [X] T079 [US4] In `packages/aoa-demo/pyproject.toml` require `aoa-fastapi-adapter>=1.3.0` and raise the version; `uv lock`; a test in `packages/aoa-demo/tests/` that `graph-json` answers with an `ETag` and `304` (FR-061, FR-062; R16). Done: `aoa-fastapi-adapter>=1.3.0` in the demo's `fastapi` extra (the lock is unchanged — workspace packages carry no specifier there); the version rises with the other packages in T084, so the release raises all three at once. Test `tests/fastapi_mcp_services/test_graph_json_freshness.py`; break: the adapter without `ConditionalGetMiddleware` → it fails; restored, aoa-demo 80.
-- [X] T080 [US4] Acceptance: `curl` the local stand's demo (`http://127.0.0.1:8100/examples/model/graph-json`) twice → `304`; prepare commit 16: `chore(demo): serve graph-json with an ETag through the fresh adapter (#282)`. Tick issue phase 15. Publishing `aoa-demo` and redeploying `demo.aoa.run` wait for the maintainer's command (T086). Done: the local stand's demo answers with an `ETag` and `304`; committed on the standing instruction. Publishing `aoa-demo` and redeploying `demo.aoa.run` wait for the maintainer (T085, T086).
+- [X] T079 [US4] In `packages/aoa-demo/pyproject.toml` require `aoa-fastapi-adapter>=1.3.0`; `uv lock`; a test in `packages/aoa-demo/tests/` that `graph-json` answers with an `ETag` and `304` (FR-061, FR-062; R16). Done: `aoa-fastapi-adapter>=1.3.0` in the demo's `fastapi` extra (the lock is unchanged — workspace packages carry no specifier there); the version is not raised: publishing is not part of this work. Test `tests/fastapi_mcp_services/test_graph_json_freshness.py`; break: the adapter without `ConditionalGetMiddleware` → it fails; restored, aoa-demo 80.
+- [X] T080 [US4] Acceptance: `curl` the local stand's demo (`http://127.0.0.1:8100/examples/model/graph-json`) twice → `304`; prepare commit 16: `chore(demo): serve graph-json with an ETag through the fresh adapter (#282)`. Tick issue phase 15. Done: the local stand's demo answers with an `ETag` and `304`; committed on the standing instruction.
 
 ---
 
@@ -318,14 +318,6 @@
 
 ---
 
-## Phase 20: Release preparation (commit 20, on command)
-
-- [ ] T084 Raise versions and package changelogs: `aoa-action-machine` (new `field_annotation`, `optional`), `aoa-maxitor` (requires the new `aoa-action-machine`), `aoa-demo`; root README table; `uv lock`. Prepare commit 20: `chore(release): … (#282)`.
-- [ ] T085 After merge, on the maintainer's command only: tags in dependency order (`aoa-action-machine`, then `aoa-demo` and `aoa-maxitor`), check each on PyPI.
-- [ ] T086 On the maintainer's command only: redeploy `maxitor.aoa.run` and `demo.aoa.run`, and the dev stand from `main`; verify version, own graph, `ETag`/`304` and a room from outside.
-
----
-
 ## Dependencies & Execution Order
 
 - Phase 1 first. Phases 2–16 each depend only on Phase 1, except: Phase 5 (smooth follow) and Phase 6 (Firefox) build on Phase 4's follow code; Phase 13 (role labels while following) uses Phase 4's focus surfaces; Phase 9 builds on Phase 8's card; Phase 11 changes `aoa-action-machine` like Phase 10 (do them in this order to keep one schema change per commit).
@@ -344,4 +336,4 @@
 
 - **MVP**: Phases 2–4 (US1 + US2) — one picture and faithful following are the promise of a room.
 - Then smoothness and Firefox (US3), the ERD look (US6, US7), Maxitor's own graph (US4), the room controls (US5) — each accepted on the local stand before the next.
-- The tail (check run, documentation, changelog) and the release close the work.
+- The tail (check run, documentation, changelog) closes the work. Publishing to PyPI and updating the servers are not part of it.

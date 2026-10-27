@@ -92,16 +92,16 @@ Boris follows Anna while she pans and zooms quickly. His view glides with hers, 
 
 ### User Story 4 - Maxitor's own graph, and graphs that say they changed (Priority: P2)
 
-Someone types `maxitor.aoa.run` into the service field and sees Maxitor's own diagram — its rooms, its diagram reads, its actions — like any other AOA service. Maxitor and both demos tell Maxitor cheaply whether their graph changed.
+Someone types `maxitor.aoa.run` into the service field and sees Maxitor's own diagram — its rooms, its diagram reads, its actions — like any other AOA service. Maxitor and the demo built from this work tell Maxitor cheaply whether their graph changed.
 
 **Why this priority**: Maxitor is an AOA service and should show itself; the error it gives today looks like a broken site. Cheap freshness keeps held graphs current at little cost.
 
-**Independent Test**: Open `maxitor.aoa.run` as a source; ask Maxitor and both demos for `graph-json` twice, the second time with the tag from the first.
+**Independent Test**: Open `maxitor.aoa.run` as a source; ask Maxitor and the demo for `graph-json` twice, the second time with the tag from the first.
 
 **Acceptance Scenarios**:
 
 1. **Given** the service field holds Maxitor's own address, **When** the diagram opens, **Then** it shows Maxitor's own model.
-2. **Given** Maxitor, `demo.aoa.run` or `dev.demo.aoa.run`, **When** `graph-json` is asked for again with the tag of the previous answer and nothing changed, **Then** the answer is "not modified" with no body.
+2. **Given** Maxitor or the demo built from this work, **When** `graph-json` is asked for again with the tag of the previous answer and nothing changed, **Then** the answer is "not modified" with no body.
 
 ---
 
@@ -235,8 +235,8 @@ Hovering a key row or a line lights up every table it joins. A line's end labels
 **Maxitor's own graph and freshness**
 
 - **FR-060**: Maxitor MUST serve its own model's `graph-json` through an AOA action at `/examples/model/graph-json`, so its own address opens its own diagram like any service's.
-- **FR-061**: Maxitor's and both demos' `graph-json` MUST carry a tag of their content and answer "not modified", with no body, to a request that names the current tag.
-- **FR-062**: `aoa-demo` MUST be released on `aoa-fastapi-adapter` 1.3.0 or later, and `demo.aoa.run` redeployed with it; the release and the deployment happen on the maintainer's command (constitution I).
+- **FR-061**: Maxitor's and the demo's `graph-json` MUST carry a tag of their content and answer "not modified", with no body, to a request that names the current tag.
+- **FR-062**: `aoa-demo` MUST require `aoa-fastapi-adapter` 1.3.0 or later. Publishing it and redeploying `demo.aoa.run` are not part of this work (maintainer, 2026-10-27).
 
 ### Key Entities
 
@@ -259,7 +259,7 @@ Hovering a key row or a line lights up every table it joins. A line's end labels
 - **SC-007**: The ERD card matches the mockup: no gap between header and outline, the corner curve within half a pixel of the mockup's at the same scale, the icon's centre within half a pixel of the name's centre line — measured by the ERD style check.
 - **SC-008**: Every one of the 39 field types of the demo model is shown by the table of FR-030; none shows `UnionType`, `NoneType`, `Union[`, `AssociationOne[` or `Generalization[`.
 - **SC-009**: Typing `maxitor.aoa.run` into the service field opens Maxitor's own diagram.
-- **SC-010**: Maxitor, `demo.aoa.run` and `dev.demo.aoa.run` each answer a repeated `graph-json` request with "not modified" and no body (`demo.aoa.run` once it is redeployed on the maintainer's command).
+- **SC-010**: Maxitor and the demo, built from this work, each answer a repeated `graph-json` request with "not modified" and no body.
 - **SC-011**: On a diagram missing some kinds, the *Kinds* filter lists exactly the kinds present on it.
 - **SC-012**: On the reference ERD, every line's two ends match the cardinality and optionality of its relation, and every reference line has its many-end at the referring table — checked by the ERD style check.
 
@@ -272,5 +272,5 @@ Hovering a key row or a line lights up every table it joins. A line's end labels
 - Followed hover, tooltips and panels travel the same way as the viewport: relayed by the room server, never run as actions and never logged (spec 028).
 - The follower on a touch device sees the followed person's hover and tooltip even though the device cannot hover itself.
 - The clean type rule lives in `aoa-action-machine`, which builds `graph-json`; services on older versions are cleaned by Maxitor.
-- Releasing `aoa-demo` and `aoa-action-machine` and redeploying `demo.aoa.run` and `maxitor.aoa.run` need the maintainer's command; planning reserves the steps, nothing is published without it.
+- Publishing packages to PyPI and updating the servers (`maxitor.aoa.run`, `demo.aoa.run`, the dev stand) are not part of this work (maintainer, 2026-10-27).
 - The shared-settings rule of spec 028 (FR-030, FR-031, FR-033) stands; this feature fixes where values come from, not what is shared.

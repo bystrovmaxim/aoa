@@ -118,7 +118,8 @@ One phase = one commit; each ends with acceptance on the local stand (quickstart
 16. The check run to zero
 17. Documentation
 18. Changelog
-19. Release preparation (versions, package changelogs) — publishing and redeploying on command
+
+Publishing packages to PyPI and updating the servers are not part of this work (maintainer, 2026-10-27).
 
 ## Complexity Tracking
 
