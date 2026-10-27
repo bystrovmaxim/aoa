@@ -8,6 +8,11 @@ import { Avatar } from "@/rooms/Circles/Avatar";
 import type { Participant } from "@/rooms/protocol";
 import { CARD_BUTTON_QUIET_SX, CARD_BUTTON_SX, CARD_PAPER_SX, HINT_SX } from "@/rooms/roomStyles";
 
+/** A card button that may shrink to the card's width rather than run past it. */
+const FITTED_BUTTON_SX = { minWidth: 0, maxWidth: "100%", flexShrink: 1 } as const;
+/** Its label: one line, cut with … when the card is too narrow for it. */
+const FITTED_LABEL_SX = { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const;
+
 /**
  * What **Follow** can do on this card: follow, switch from someone else, stop, or nothing because it
  * would close a circle (FR-053, FR-054).
@@ -108,31 +113,41 @@ export function ParticipantCard({
             </Box>
           )}
           {!isYou && (
-            <Box sx={{ display: "flex", gap: "4px", mt: "10px", ml: "-6px" }}>
+            // The buttons wrap when they do not fit side by side, and a label too long for the card ends
+            // with … — a long name never makes them run into each other (spec 029, FR-052).
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px", mt: "10px", ml: "-6px", mr: "-6px" }}>
               <Button
-                sx={CARD_BUTTON_SX}
+                sx={{ ...CARD_BUTTON_SX, ...FITTED_BUTTON_SX }}
+                title={`Go to ${first}`}
                 disabled={participant.away || participant.page === null}
                 onClick={() => {
                   onClose();
                   onGoTo();
                 }}
               >
-                Go to {first}
+                <Box component="span" sx={FITTED_LABEL_SX}>
+                  Go to {first}
+                </Box>
               </Button>
               {followChoice.kind === "following" ? (
-                <Button sx={CARD_BUTTON_QUIET_SX} onClick={onStopFollowing}>
-                  Stop following
+                <Button sx={{ ...CARD_BUTTON_QUIET_SX, ...FITTED_BUTTON_SX }} onClick={onStopFollowing}>
+                  <Box component="span" sx={FITTED_LABEL_SX}>
+                    Stop following
+                  </Box>
                 </Button>
               ) : (
                 <Button
-                  sx={CARD_BUTTON_QUIET_SX}
+                  sx={{ ...CARD_BUTTON_QUIET_SX, ...FITTED_BUTTON_SX }}
+                  title={followChoice.kind === "instead" ? `Follow ${first} instead` : "Follow"}
                   disabled={followChoice.kind === "circle" || participant.away}
                   onClick={() => {
                     onClose();
                     onFollow();
                   }}
                 >
-                  {followChoice.kind === "instead" ? `Follow ${first} instead` : "Follow"}
+                  <Box component="span" sx={FITTED_LABEL_SX}>
+                    {followChoice.kind === "instead" ? `Follow ${first} instead` : "Follow"}
+                  </Box>
                 </Button>
               )}
             </Box>
