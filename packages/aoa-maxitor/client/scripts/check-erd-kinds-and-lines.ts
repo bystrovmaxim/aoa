@@ -160,6 +160,12 @@ const lines: ErdGraphPayload = {
       source_cardinality: "zero_many", target_cardinality: "one", source_field: "offer_request", target_field: "offers" },
     { source: "shop.RequestCoreEntity", target: "shop.ItemDetailEntity", label: "chosen_offer (one)", relationship_kind: "association",
       source_cardinality: "zero_many", target_cardinality: "one", source_field: "chosen_offer", target_field: null },
+    // Spec 029, FR-043: an optional relation (zero or one at the target), and a reference to a dictionary
+    // (many referring rows, one value).
+    { source: "shop.PlayerCoreEntity", target: "shop.RequestCoreEntity", label: "last_request", relationship_kind: "association",
+      source_cardinality: "zero_many", target_cardinality: "zero_one", source_field: "last_request", target_field: null },
+    { source: "shop.ItemDetailEntity", target: "shop.ShowcaseCoreEntity", label: "showcase", relationship_kind: "reference",
+      source_cardinality: "zero_many", target_cardinality: "one", source_field: "showcase", target_field: null },
   ],
 };
 const lineSvg = gv.layout(buildDotSource(lines, "gv-dot-lr"), "svg", "dot");
@@ -175,8 +181,12 @@ check("the edge has no label in the middle", !paired.includes("showcase (one)"))
 // Graphviz draws a tee as a bar polygon and a crow as a three-pronged polygon; both ends are drawn.
 check("both ends are drawn", (paired.match(/<polygon /g) ?? []).length >= 2, `${(paired.match(/<polygon /g) ?? []).length} shapes`);
 const dotLines = buildDotSource(lines, "gv-dot-lr");
-check("the ends follow the cardinalities (crow at the many side, bar at the one side)",
-  dotLines.includes('[id="re0" dir=both arrowtail=crow arrowhead=tee headlabel="showcase" taillabel="players" labelfontsize=9]'));
+check("the ends follow the cardinalities (crow's foot and ring at the many side, two bars at the one side)",
+  dotLines.includes('[id="re0" dir=both arrowtail=crowodot arrowhead=teetee headlabel="showcase" taillabel="players" labelfontsize=9]'));
+// Spec 029, FR-043: four distinct ends, each where its side is.
+check("an optional end is a bar and a ring, a mandatory one two bars", /id="re3" dir=both arrowtail=crowodot arrowhead=teeodot/.test(dotLines));
+check("a reference has its crow's foot at the referring table and one value at the dictionary", /id="re4" dir=both arrowtail=crowodot arrowhead=teetee/.test(dotLines));
+check("every end of the drawing is one of the four crow's-foot ends", [...dotLines.matchAll(/arrow(?:tail|head)=(\w+)/g)].every((m) => ["teetee", "teeodot", "crowtee", "crowodot", "normal"].includes(m[1]!)));
 check("a relation without an inverse has one role", dotLines.includes('headlabel="chosen_offer" labelfontsize=9]') && !/re2"[^\]]*taillabel/.test(dotLines));
 const pathOf = (k: number) => /<path[^>]* d="([^"]+)"/.exec(edgeGroup(k))?.[1] ?? "";
 check("two associations between the same tables are two distinct lines", pathOf(1) !== "" && pathOf(2) !== "" && pathOf(1) !== pathOf(2));

@@ -46,7 +46,7 @@ export type ErdRelation = {
   label?: string;
   /** `specialization` marks the line into an axis container; `generalization` marks an extension's inheritance line into its head; anything else is an ordinary link. */
   relationship_kind?: string;
-  /** Cardinality of the source end (`one` or `zero_many`), drawn as a bar or a crow's foot there. */
+  /** Cardinality of the source end — `one`, `zero_one`, `one_many` or `zero_many` — drawn as its crow's-foot end. */
   source_cardinality?: string;
   /** Cardinality of the target end. */
   target_cardinality?: string;
@@ -59,9 +59,20 @@ export type ErdRelation = {
 /** Id Graphviz writes on the ``k``-th relation's edge group, so the post-pass finds its fields. */
 export const erdEdgeId = (k: number) => `re${k}`;
 
-/** The crow's-foot end for a cardinality: a bar for one, a crow's foot for many. */
+/**
+ * The crow's-foot end for a cardinality, as Graphviz arrow shapes, the first one nearest the table
+ * (spec 029, FR-043): exactly one — two bars; zero or one — a bar and a ring; one or many — a crow's
+ * foot and a bar; zero or many — a crow's foot and a ring. An unknown value reads as zero or many.
+ */
+export const ERD_ENDS: Readonly<Record<string, string>> = {
+  one: "teetee",
+  zero_one: "teeodot",
+  one_many: "crowtee",
+  zero_many: "crowodot",
+};
+
 function erdEnd(cardinality: string | undefined): string {
-  return cardinality === "one" || cardinality === "zero_one" ? "tee" : "crow";
+  return ERD_ENDS[cardinality ?? ""] ?? ERD_ENDS.zero_many!;
 }
 
 /**

@@ -21,7 +21,8 @@ class EntityRelationIntentResolver:
     One ``BaseRelationOne`` / ``BaseRelationMany`` field on an entity host class.
 
     ``relation_type`` is the declarative arc (``composition`` / ``aggregation`` / ``association``).
-    ``cardinality`` is ``one`` or ``many``.
+    ``cardinality`` is ``one`` or ``many``. ``optional`` says the field may hold nothing: its annotation
+    admits ``None``, or it defaults to ``None``.
     """
 
     field_name: str
@@ -35,6 +36,7 @@ class EntityRelationIntentResolver:
     inverse_field: str | None = None
     deprecated: bool = False
     omit_graph_edge: bool = False
+    optional: bool = False
 
 
 def _from_descriptor(field: ResolvedEntityField) -> EntityRelationIntentResolver | None:
@@ -53,6 +55,7 @@ def _from_descriptor(field: ResolvedEntityField) -> EntityRelationIntentResolver
         inverse_field=field.inverse_field,
         deprecated=field.deprecated,
         omit_graph_edge=field.omit_graph_edge,
+        optional=field.nullable or (not field.required and field.default is None),
     )
 
 

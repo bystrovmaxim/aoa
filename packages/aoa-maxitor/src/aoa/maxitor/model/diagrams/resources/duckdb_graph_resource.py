@@ -379,7 +379,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       has_inverse BOOLEAN NOT NULL,
       deprecated BOOLEAN NOT NULL,
       inverse_entity_id VARCHAR,
-      inverse_field VARCHAR
+      inverse_field VARCHAR,
+      optional BOOLEAN NOT NULL DEFAULT FALSE
     );""",
             """CREATE TABLE entity_reference_edges (
       source_id VARCHAR NOT NULL,
@@ -645,7 +646,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT source_id, target_id, relationship, is_dag, CAST('depends_edges' AS VARCHAR) AS type, json_object('description', description, 'mode', mode) AS payload FROM depends_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key) AS payload FROM connection_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
-        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field) AS payload FROM entity_relation_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field, 'optional', optional) AS payload FROM entity_relation_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_reference_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'cardinality', cardinality) AS payload FROM entity_reference_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_specialization_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'dictionary_qualname', dictionary_qualname, 'dictionary_label', dictionary_label, 'classifier_field', classifier_field, 'classifier_value', classifier_value, 'alternative_index', alternative_index, 'alternatives', alternatives, 'labels', labels, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated) AS payload FROM entity_specialization_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('parent_entity_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'inverse_field', inverse_field, 'classifier_value', classifier_value, 'head_entity_id', head_entity_id) AS payload FROM parent_entity_edges",
@@ -1041,11 +1042,13 @@ def _fill_table_entity_relation_edges(con: duckdb.DuckDBPyConnection, rows: list
                 p["deprecated"],
                 p.get("inverse_entity_id"),
                 p.get("inverse_field"),
+                # Whether the relation may hold nothing (spec 029); an older service does not say.
+                bool(p.get("optional", False)),
             ],
         )
     _executemany(
         con,
-        "INSERT INTO entity_relation_edges (source_id, target_id, relationship, is_dag, field_name, relation_type, cardinality, description, has_inverse, deprecated, inverse_entity_id, inverse_field) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO entity_relation_edges (source_id, target_id, relationship, is_dag, field_name, relation_type, cardinality, description, has_inverse, deprecated, inverse_entity_id, inverse_field, optional) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         data,
     )
 
