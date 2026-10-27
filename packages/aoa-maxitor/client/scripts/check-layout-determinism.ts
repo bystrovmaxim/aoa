@@ -17,6 +17,11 @@
  * draw that arrow within 2 px of the same node's centre on its own screen, before and after either
  * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
  * ring centred on the same node, within the same 2 px.
+ *
+ * Last, following in every directed pair of engines (spec 029, FR-015): one browser opens a room,
+ * a browser of another engine joins and follows it. The leader drags the ERD and stops; the
+ * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
+ * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -49,6 +54,8 @@ const HASH_TIMEOUT_MS = 60_000;
 /** The largest distance between a pointer and the point it marks on another screen (SC-003). */
 const POINTER_TOLERANCE_PX = 2;
 const API_START_TIMEOUT_MS = 60_000;
+/** How soon a follower must show the leader's hover (spec 029, SC-002). */
+const FOLLOW_HOVER_MS = 500;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -386,6 +393,79 @@ async function pointerCase(engine: BrowserType, front: string, source: string): 
   }
 }
 
+/** The diagram point at the centre of a page's diagram element, and the page's pixels per diagram unit. */
+async function diagramCentre(page: Page): Promise<{ x: number; y: number; scale: number }> {
+  return page.evaluate(() => {
+    const view = document.querySelector("[data-layout-hash]")!.getBoundingClientRect();
+    const svg = document.querySelector("[data-layout-hash] svg")! as SVGSVGElement;
+    const ctm = svg.getScreenCTM()!;
+    const p = new DOMPoint(view.left + view.width / 2, view.top + view.height / 2).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y, scale: Math.hypot(ctm.a, ctm.b) };
+  });
+}
+
+/** Following, led in one engine and watched in another: how far apart the screens stop (px), and how soon the hover shows (ms). */
+async function followCase(lead: BrowserType, follow: BrowserType, front: string, source: string): Promise<{ apartPx: number; hoverMs: number }> {
+  const leadBrowser: Browser = await lead.launch();
+  const followBrowser: Browser = await follow.launch();
+  try {
+    const leader = await (await leadBrowser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+    const follower = await (await followBrowser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+    await leader.goto(`${front}/?${new URLSearchParams({ source, view: "domain-erd" }).toString()}`);
+    await nextHash(leader, null);
+    await domClick(leader, 'button:has-text("Open room")');
+    await confirmName(leader, "Leader");
+    await leader.waitForURL(/room=/, { timeout: HASH_TIMEOUT_MS });
+    await leader.locator(".MuiPopover-paper").waitFor({ timeout: HASH_TIMEOUT_MS });
+    await leader.keyboard.press("Escape");
+    await leader.locator(".MuiPopover-paper").waitFor({ state: "detached", timeout: HASH_TIMEOUT_MS });
+    await follower.goto(leader.url());
+    await confirmName(follower, "Follower");
+    await nextHash(follower, null);
+    // Enter on a circle opens its card; Follow there starts following.
+    await follower.locator('[aria-label^="Leader"]').first().focus();
+    await follower.keyboard.press("Enter");
+    await domClick(follower, 'button:has-text("Follow")');
+    await follower.getByText("Following Leader").waitFor({ timeout: HASH_TIMEOUT_MS });
+
+    const view = await leader.locator("[data-layout-hash]").first().boundingBox();
+    const start = { x: view!.x + view!.width / 2, y: view!.y + view!.height / 2 };
+    await leader.mouse.move(start.x, start.y);
+    await leader.mouse.down();
+    for (let i = 1; i <= 30; i += 1) {
+      await leader.mouse.move(start.x - i * 8, start.y - i * 3);
+      await leader.waitForTimeout(30);
+    }
+    await leader.mouse.up();
+    await follower.waitForTimeout(1000);
+    const [a, b] = [await diagramCentre(leader), await diagramCentre(follower)];
+    const apartPx = Math.hypot(a.x - b.x, a.y - b.y) * b.scale;
+
+    const node = await middleNode(leader);
+    const centre = await nodeCentre(leader, node);
+    const hoveredAt = Date.now();
+    await leader.mouse.move(centre.x, centre.y);
+    // A hover that never shows is reported, not waited for: four times the limit is enough to know.
+    const shown = await follower
+      .waitForFunction(
+        (i) => {
+          const nodes = document.querySelectorAll<HTMLElement>("[data-layout-hash] svg g.node");
+          return nodes[i]?.style.opacity === "1" && [...nodes].some((n) => n.style.opacity === "0.35");
+        },
+        node,
+        { timeout: FOLLOW_HOVER_MS * 4, polling: 20 },
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    return { apartPx, hoverMs: shown ? Date.now() - hoveredAt : Infinity };
+  } finally {
+    await leadBrowser.close();
+    await followBrowser.close();
+  }
+}
+
 /** Check every page and mode; print one line each; return whether all of them agree. */
 function report(results: Map<string, Map<string, string>>): boolean {
   const expected = ENGINES.length * VIEWPORTS.length;
@@ -428,6 +508,16 @@ async function main(): Promise<void> {
       const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
+    // Following in every directed pair of engines, one pair at a time.
+    for (const [leadName, leadEngine] of ENGINES) {
+      for (const [followName, followEngine] of ENGINES) {
+        if (leadName === followName) continue;
+        const { apartPx, hoverMs } = await followCase(leadEngine, followEngine, frontUrl, source);
+        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS;
+        ok &&= fits;
+        console.log(`${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms`);
+      }
+    }
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );
