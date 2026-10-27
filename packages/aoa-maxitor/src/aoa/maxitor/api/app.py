@@ -66,10 +66,15 @@ from aoa.maxitor.api.routes.sidebar import router as sidebar_router
 from aoa.maxitor.model.core.actions.app_info_action import AppInfoAction
 from aoa.maxitor.model.core.actions.check_due_sources_action import CheckDueSourcesAction
 from aoa.maxitor.model.core.actions.check_source_action import CheckSourceAction
+from aoa.maxitor.model.core.actions.get_own_graph_json_action import GetOwnGraphJsonAction
 from aoa.maxitor.model.core.actions.graph_fingerprint_action import GraphFingerprintAction
 from aoa.maxitor.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from aoa.maxitor.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
 from aoa.maxitor.model.core.resources.open_tabs_registry import OPEN_TABS_CONNECTION_KEY, OpenTabsRegistry
+from aoa.maxitor.model.core.resources.own_model_graph_resource import (
+    OWN_MODEL_GRAPH_CONNECTION_KEY,
+    OwnModelGraphResource,
+)
 from aoa.maxitor.model.core.resources.source_checks import SOURCE_CHECKS_CONNECTION_KEY, SourceChecks
 from aoa.maxitor.model.core.resources.static_bundle_resource import STATIC_BUNDLE_CONNECTION_KEY, StaticBundleResource
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
@@ -277,6 +282,15 @@ def create_app() -> FastAPI:
         .build()
     )
     fastapi_app.mount("/api/meta", meta_subapp)
+
+    # Maxitor's own model, at the path Maxitor adds to a bare service address (spec 029, FR-060).
+    own_model = OwnModelGraphResource(machine.graph_coordinator)
+    own_model_subapp = (
+        FastApiAdapter(machine=machine, auth_coordinator=auth, title="Maxitor model", version="1.0.0")
+        .get("/graph-json", GetOwnGraphJsonAction, connections={OWN_MODEL_GRAPH_CONNECTION_KEY: own_model})
+        .build()
+    )
+    fastapi_app.mount("/examples/model", own_model_subapp)
 
     @fastapi_app.get("/api/health", tags=["health"])
     async def health(request: Request) -> dict[str, Any]:
