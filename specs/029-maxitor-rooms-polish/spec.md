@@ -25,7 +25,7 @@
 - **ERD line ends do not show cardinality fully, and reference lines point the wrong way.** A relation in the graph states only `one` or `many` (`EntityRelationIntentResolver.cardinality`); whether it may be empty is not recorded, so `erdEnd` (`client/src/lib/buildDotSource.ts`) can draw only a bar or a crow's foot and an optional end looks like a mandatory one. Reference lines to a dictionary (`entity_reference_edges` in `list_entities_action.py`) get `one` at the referring table and `zero_many` at the dictionary — the reverse of the truth, since many rows refer to one dictionary value. Field labels follow the UML convention: a field's name stands at the far end, beside the table that plays that role.
 - **Field types are printed in Python's internal form.** A row's type is the `field_type` string the service puts in `graph-json`, built by `EntityFieldGraphNode.pretty_annotation` (`aoa-action-machine`) and shown as it comes: `str | None` becomes `UnionType[str, NoneType]`, `Optional[str]` becomes `Union[str, NoneType]`. The demo model alone carries 39 distinct types, among them `AssociationOne[CurrencyEnumEntity]` (26 fields), `Generalization[GeneralizationHeadCoreEntity]` and `Specialization[Union[GeneralizationVariantASpecEntity, GeneralizationVariantBSpecEntity], GeneralizationShapesKindEnumEntity]`.
 - **The *Kinds* filter lists every kind of the graph** (`list-entity-kinds`, `client/src/lib/loadErdDomainsBundle.ts`), while the *Domains* filter lists only the domains present on the diagram.
-- **Role labels are always shown** on the use-case diagram, under every role (actor) figure.
+- **ERD line labels are always shown.** The field names at each end of a relation line (its UML role names, `headlabel` / `taillabel`) are drawn all the time, run over the tables they meet and cannot be read (corrected 2026-10-27: remark 10 is about these, not the use-case diagram's actor names).
 - **Maxitor serves no `graph-json` of its own.** Typing `maxitor.aoa.run` into the service field ends in `AOA service returned HTTP 404 at 'https://maxitor.aoa.run/examples/model/graph-json'`. The demo serves its graph at `/examples/model/graph-json` through `GetExampleModelGraphJsonAction`.
 - **Only one demo says whether its graph changed.** `dev.demo.aoa.run` (built from `main`, adapter 1.3.0) answers `graph-json` with an `ETag` and `304` to `If-None-Match`; `demo.aoa.run` (`aoa-demo` 3.0.0, an older adapter) sends no `ETag`, so Maxitor downloads its whole body every two minutes to compare hashes.
 
@@ -139,7 +139,7 @@ An ERD table looks exactly like the mockup: the coloured header reaches the outl
 
 ### User Story 7 - Diagrams that read easily (Priority: P3)
 
-Hovering a key row or a line lights up every table it joins. Role labels appear only under the role the mouse is on. Every ERD line shows the cardinality of both ends, and its ends sit where they belong. The *Kinds* filter offers only the kinds on this diagram.
+Hovering a key row or a line lights up every table it joins. A line's end labels appear only while it is hovered, on a plate that keeps them readable. Every ERD line shows the cardinality of both ends, and its ends sit where they belong. The *Kinds* filter offers only the kinds on this diagram.
 
 **Why this priority**: Each item removes noise from a diagram people read for a long time.
 
@@ -149,7 +149,7 @@ Hovering a key row or a line lights up every table it joins. Role labels appear 
 
 1. **Given** the ERD, **When** a table is hovered, **Then** the other tables dim (as today).
 2. **Given** the ERD, **When** a PK row, an FK row or a line is hovered, **Then** every table joined by that row's lines or by that line is highlighted with the hovered table, and the rest dim.
-3. **Given** a use-case diagram, **When** nothing is hovered, **Then** no role label shows; **When** a role is hovered, **Then** its label shows.
+3. **Given** the ERD, **When** nothing is hovered, **Then** no line label shows; **When** a line (or a key row with lines) is hovered, **Then** its end labels show on white plates over whatever they cross.
 4. **Given** a relation that is optional on one end and mandatory on the other, **When** its line is drawn, **Then** the two ends look different and each shows the cardinality of its own side.
 5. **Given** a table that refers to a dictionary, **When** the line is drawn, **Then** the many-end is at the referring table and the one-end at the dictionary.
 6. **Given** a diagram on which some kinds have no entity, **When** the *Kinds* filter opens, **Then** only the kinds with at least one entity on this diagram are listed.
@@ -218,8 +218,8 @@ Hovering a key row or a line lights up every table it joins. Role labels appear 
 **Reading diagrams**
 
 - **FR-040**: Hovering an ERD table MUST dim every other table (as today).
-- **FR-041**: Hovering a PK row, an FK row or a line MUST highlight every table joined by that row's lines or that line, together with the hovered table, and dim the rest.
-- **FR-042**: Role labels on the use-case diagram MUST be hidden by default and shown for the role under the mouse.
+- **FR-041**: Hovering a PK or FK row MUST make that field's lines bold, keep bright every table those lines join, dim every other table, leave the hovered table's other lines as they are (neither bold nor dimmed) and dim every line not touching the hovered table. Hovering a table anywhere else (FR-040) dims the other tables and every line not touching it. Hovering a line keeps bright the two tables it joins and dims the rest. (Refined by the maintainer 2026-10-27.)
+- **FR-042**: The labels at the ends of ERD relation lines (field names) MUST be hidden by default and shown, on a plate that keeps them readable over a table, while the line is hovered — by the mouse on the line, on a key row it starts from, or by a followed person's hover.
 - **FR-043**: Every ERD relation line MUST show the true cardinality of both ends with crow's-foot ends — exactly one, zero or one, zero or many (and one or many where the model declares a minimum) — so that optional and mandatory ends differ and no end sits at the wrong table; the model MUST record whether a relation may be empty for this to be drawn. Field labels keep the UML convention (the field's name at the far end) and stay readable beside their end. Lines MUST be smooth, meet the table outline and carry ends in proportion to the line. Generalization lines keep their dashed style and filled arrowhead (spec 027).
 - **FR-044**: The *Kinds* filter MUST list only the kinds with at least one entity on the diagram before kinds are filtered, as the *Domains* filter does for domains.
 
@@ -264,7 +264,7 @@ Hovering a key row or a line lights up every table it joins. Role labels appear 
 
 - "Icons too large" covers the room bar, its menu, the banners, the participant circles and the participant card. Where the mockup of spec 028 is larger than FR-050, FR-050 wins.
 - The lines of the use-case diagram, the lifecycle diagram and the full graph are out of scope for FR-043.
-- "Role labels" means the labels under role (actor) figures on the use-case diagram.
+- "Role labels" means the field names at the ends of ERD relation lines (UML role names); the use-case diagram's actor names stay as they are.
 - Smoothness is reached first by drawing the follower's movement between received positions; the message rate rises only if measurement shows it is still not smooth enough. The room server only relays these messages, so a higher rate costs it almost nothing.
 - Followed hover, tooltips and panels travel the same way as the viewport: relayed by the room server, never run as actions and never logged (spec 028).
 - The follower on a touch device sees the followed person's hover and tooltip even though the device cannot hover itself.

@@ -1,7 +1,7 @@
 // src/lib/erdPostPass.test.ts
 import { afterEach, describe, expect, it } from "vitest";
 import type { ErdEntity } from "@/lib/buildDotSource";
-import { addEdgeHitAreas, bindLineHover, focusTables, markRows, type ErdLineInfo } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, END_LABEL_CLASS, erdEndLabelSx, focusTables, markRows, type ErdLineInfo } from "@/lib/erdPostPass";
 
 // Markup shaped like Graphviz's: Player (0) has id, gender and an FK row named showcase twice
 // (own row and FK row); Showcase (1) has id and players; Gender (2) has id.
@@ -191,5 +191,38 @@ describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
     expect(brightLines(root)).toEqual(["re2"]);
     hover(line, false);
     expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
+  });
+});
+
+describe("a line's end labels (spec 029, FR-042)", () => {
+  // jsdom lays nothing out: a label's box is made up here, as a browser would measure it.
+  const withBoxes = () => {
+    Object.defineProperty(SVGElement.prototype, "getBBox", {
+      configurable: true,
+      value: () => ({ x: 10, y: 20, width: 40, height: 9 }),
+    });
+  };
+
+  it("get a white plate under each label, once", () => {
+    withBoxes();
+    const { root } = mount();
+    addEndLabelBadges(root);
+    addEndLabelBadges(root);
+    const labels = root.querySelectorAll("g.edge text");
+    const plates = root.querySelectorAll(`g.edge rect.${END_LABEL_CLASS}`);
+    expect(plates).toHaveLength(labels.length);
+    expect(plates[0]!.nextElementSibling).toBe(labels[0]);
+    expect([...plates].map((p) => [p.getAttribute("x"), p.getAttribute("width"), p.getAttribute("rx")])[0]).toEqual(["7", "46", "3"]);
+  });
+
+  it("are hidden until the line is hovered — by a mouse, a row, or a follower's replayed hover", () => {
+    expect(erdEndLabelSx[`& g.edge text, & g.edge rect.${END_LABEL_CLASS}`]).toEqual({ visibility: "hidden" });
+    expect(erdEndLabelSx[`& g.edge.is-hovered text, & g.edge.is-hovered rect.${END_LABEL_CLASS}`]).toEqual({ visibility: "visible" });
+    const { root } = mount();
+    const line = root.querySelector('g[id="re0"]')!;
+    hover(line, true);
+    expect(line.classList.contains("is-hovered")).toBe(true);
+    hover(line, false);
+    expect(line.classList.contains("is-hovered")).toBe(false);
   });
 });

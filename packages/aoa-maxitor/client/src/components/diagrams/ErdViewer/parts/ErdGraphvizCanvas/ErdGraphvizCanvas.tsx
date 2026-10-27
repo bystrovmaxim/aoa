@@ -35,7 +35,7 @@ import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
-import { addEdgeHitAreas, bindLineHover, clearTableFocus, drawErdCards, focusTables, placeKindIcons } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -332,6 +332,7 @@ export function ErdGraphvizCanvas({
 
       postProcessGraphvizSvgDom(svg);
       addEdgeHitAreas(svg);
+      addEndLabelBadges(svg);
       bindLineHover(svg, drawnData.relations, drawnData.entities, ac.signal);
     }
     bindNameCopy(panner, setCopyMessage, ac.signal);
@@ -516,6 +517,8 @@ export function ErdGraphvizCanvas({
               "& g.edge.is-hovered polygon": { stroke: "#475569" },
               "& g.edge.is-hovered polygon:not([fill='none'])": { fill: "#475569" },
               "& g.edge.is-hovered text": { fill: "#334155", fontWeight: 700 },
+              // A line's end labels show only on hover, on a white plate (spec 029, FR-042).
+              ...erdEndLabelSx,
               "@media (prefers-reduced-motion: reduce)": { "& g.edge path": { transition: "none" } },
               // Names copy on click.
               "& g[id^='a_hn'] text, & g[id^='a_fn'] text": { cursor: "copy" },

@@ -151,6 +151,37 @@ export function addEdgeHitAreas(root: ParentNode): void {
   });
 }
 
+/** The class of the plate under a line's end label. */
+export const END_LABEL_CLASS = "erd-end-label";
+
+/**
+ * Put a white plate under every label of a line — the field names at its ends — so a label reads over a
+ * table it crosses (spec 029, FR-042). The labels and their plates show only while the line is hovered
+ * (``erdEndLabelSx``); a line's own hover, a row's hover and a follower's replayed hover all set it.
+ */
+export function addEndLabelBadges(root: ParentNode): void {
+  root.querySelectorAll<SVGTextElement>("g.edge text").forEach((label) => {
+    if (label.previousElementSibling?.classList.contains(END_LABEL_CLASS)) return;
+    const box = label.getBBox();
+    if (!(box.width > 0)) return;
+    const plate = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    plate.setAttribute("class", END_LABEL_CLASS);
+    plate.setAttribute("x", String(box.x - 3));
+    plate.setAttribute("y", String(box.y - 1));
+    plate.setAttribute("width", String(box.width + 6));
+    plate.setAttribute("height", String(box.height + 2));
+    plate.setAttribute("rx", "3");
+    label.parentNode!.insertBefore(plate, label);
+  });
+}
+
+/** The canvas's style for line labels: hidden, and shown on their plates while the line is hovered. */
+export const erdEndLabelSx = {
+  [`& g.edge text, & g.edge rect.${END_LABEL_CLASS}`]: { visibility: "hidden" },
+  [`& g.edge.${EDGE_HOVER_CLASS} text, & g.edge.${EDGE_HOVER_CLASS} rect.${END_LABEL_CLASS}`]: { visibility: "visible" },
+  [`& rect.${END_LABEL_CLASS}`]: { fill: "#ffffff", stroke: "#cbd5e1", strokeWidth: 0.8 },
+} as const;
+
 /** Cell ids of the rows a relation stands for, at both ends. */
 function rowsOf(line: ErdLineInfo, tables: Map<string, { index: number; fields: ErdEntity["fields"] }>): string[] {
   const cells: string[] = [];
