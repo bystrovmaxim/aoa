@@ -34,7 +34,7 @@ import { filterGraphByKinds, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
-import { addEdgeHitAreas, bindLineHover, drawErdCards, placeKindIcons } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, bindLineHover, clearTableFocus, drawErdCards, focusTables, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -333,24 +333,9 @@ export function ErdGraphvizCanvas({
 
     const onEnter = (evt: Event) => {
       const el = evt.currentTarget as Element;
-      const title = el.querySelector("title")?.textContent?.trim() || "";
-      panner.querySelectorAll("g.node").forEach((n) => {
-        (n as HTMLElement).style.opacity =
-          n.querySelector("title")?.textContent?.trim() === title ? "1" : "0.35";
-      });
-      panner.querySelectorAll("g.edge").forEach((e) => {
-        const edgeTitle = e.querySelector("title")?.textContent?.trim() || "";
-        (e as HTMLElement).style.opacity = edgeTitle.includes(title) ? "1" : "0.2";
-      });
+      focusTables(panner, new Set([el.querySelector("title")?.textContent?.trim() || ""]));
     };
-    const onLeave = () => {
-      panner.querySelectorAll("g.node").forEach((n) => {
-        (n as HTMLElement).style.opacity = "1";
-      });
-      panner.querySelectorAll("g.edge").forEach((e) => {
-        (e as HTMLElement).style.opacity = "1";
-      });
-    };
+    const onLeave = () => clearTableFocus(panner);
 
     panner.querySelectorAll("g.node").forEach((node) => {
       (node as HTMLElement).style.cursor = "pointer";

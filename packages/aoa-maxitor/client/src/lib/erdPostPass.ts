@@ -207,8 +207,36 @@ export function markRows(root: ParentNode, cells: readonly string[], on: boolean
 /**
  * Line hover in both directions. Hovering a line gives it the hovered look, raises it above the lines it
  * crosses and marks the rows of its fields in both tables; hovering a row whose field has lines does the
- * same for every one of them. ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
+ * same for every one of them. Either way the tables they join stay bright and the rest dim (spec 029). ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
  */
+/** A table's id: the text of its node's ``<title>``. */
+function tableOf(node: Element): string {
+  return node.querySelector(":scope > title")?.textContent?.trim() ?? "";
+}
+
+/**
+ * Keep ``tables`` bright and dim every other table; keep bright the lines in ``lines`` — or, when none are
+ * given, every line touching a kept table — and dim the rest. The look of a hovered table, a hovered key
+ * row and a hovered line alike (spec 029, FR-040, FR-041).
+ */
+export function focusTables(root: ParentNode, tables: ReadonlySet<string>, lines?: ReadonlySet<Element>): void {
+  root.querySelectorAll<SVGElement>("g.node").forEach((node) => {
+    node.style.opacity = tables.has(tableOf(node)) ? "1" : "0.35";
+  });
+  root.querySelectorAll<SVGElement>("g.edge").forEach((edge) => {
+    const title = edge.querySelector(":scope > title")?.textContent?.trim() ?? "";
+    const kept = lines ? lines.has(edge) : [...tables].some((table) => title.includes(table));
+    edge.style.opacity = kept ? "1" : "0.2";
+  });
+}
+
+/** Every table and line bright again. */
+export function clearTableFocus(root: ParentNode): void {
+  root.querySelectorAll<SVGElement>("g.node, g.edge").forEach((element) => {
+    element.style.opacity = "1";
+  });
+}
+
 export function bindLineHover(
   root: ParentNode,
   relations: readonly ErdLineInfo[],
@@ -226,10 +254,21 @@ export function bindLineHover(
     }
   };
   const edgesById = (ids: number[]) => ids.map((k) => root.querySelector(`g[id="re${k}"]`)).filter((e): e is Element => e !== null);
+  // The tables a set of lines joins: both ends of each.
+  const joined = (edges: Element[]) => new Set(edges.flatMap((edge) => {
+    const line = relations[Number(edge.id.slice(2))];
+    return line ? [line.source, line.target] : [];
+  }));
 
   root.querySelectorAll('g.edge[id^="re"]').forEach((edge) => {
-    edge.addEventListener("mouseenter", () => show([edge], true), { signal });
-    edge.addEventListener("mouseleave", () => show([edge], false), { signal });
+    edge.addEventListener("mouseenter", () => {
+      show([edge], true);
+      focusTables(root, joined([edge]), new Set([edge]));
+    }, { signal });
+    edge.addEventListener("mouseleave", () => {
+      show([edge], false);
+      clearTableFocus(root);
+    }, { signal });
   });
 
   // A row's lines: every line one of whose ends is this row.
@@ -243,8 +282,17 @@ export function bindLineHover(
   root.querySelectorAll('g[id^="a_fn"], g[id^="a_ft"]').forEach((cell) => {
     const lines = rowLines.get(cell.id.slice(4)) ?? [];
     if (!lines.length) return;
-    cell.addEventListener("mouseenter", () => show(edgesById(lines), true), { signal });
-    cell.addEventListener("mouseleave", () => show(edgesById(lines), false), { signal });
+    // The row's own table stays the hovered one; its lines and every table they join are lit with it.
+    const own = tableOf(cell.closest("g.node") ?? cell);
+    cell.addEventListener("mouseenter", () => {
+      const edges = edgesById(lines);
+      show(edges, true);
+      focusTables(root, new Set([own, ...joined(edges)]), new Set(edges));
+    }, { signal });
+    cell.addEventListener("mouseleave", () => {
+      show(edgesById(lines), false);
+      focusTables(root, new Set([own]));
+    }, { signal });
   });
 }
 

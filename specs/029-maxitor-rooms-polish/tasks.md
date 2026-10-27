@@ -176,10 +176,10 @@
 
 ## Phase 12: ERD hover lights joined tables (commit 12) · US7
 
-- [ ] T063 [US7] In `bindLineHover` (`erdPostPass.ts`) give the tables at both ends of the hovered line, or of every line of the hovered row, the hovered-table class, so they stay bright while the rest dims (FR-040, FR-041; R12).
-- [ ] T064 [US7] Test in `packages/aoa-maxitor/client/src/lib/erdPostPass.test.ts`: hovering a PK row, an FK row and a line brightens exactly the joined tables; table hover unchanged.
-- [ ] T065 [US7] Adversarial check: brighten only the hovered table → the test fails. Restore.
-- [ ] T066 [US7] Acceptance on the local stand (quickstart "ERD hover"); prepare commit 12: `feat(maxitor): hovering a key or a line lights every table it joins (#282)`. Tick issue phase 8.
+- [X] T063 [US7] In `bindLineHover` (`erdPostPass.ts`) give the tables at both ends of the hovered line, or of every line of the hovered row, the hovered-table class, so they stay bright while the rest dims (FR-040, FR-041; R12). Done: `focusTables(root, tables, lines?)` and `clearTableFocus` in `lib/erdPostPass.ts` are now the one rule for a hovered table (the canvas uses them instead of its own loop), a hovered key row (its table plus every table its lines join) and a hovered line (the two tables it joins; everything bright again on leave). A follower gets the same, since it replays the same `mouseenter`.
+- [X] T064 [US7] Test in `packages/aoa-maxitor/client/src/lib/erdPostPass.test.ts`: hovering a PK row, an FK row and a line brightens exactly the joined tables; table hover unchanged. Done in `src/lib/erdPostPass.test.ts`: table, FK row, PK row and line — 4 tests.
+- [X] T065 [US7] Adversarial check: brighten only the hovered table → the test fails. Restore. Done: a row lighting only its own table and a line dimming nothing — each failed exactly its own tests; restored, client 205, ERD checks pass.
+- [X] T066 [US7] Acceptance on the local stand (quickstart "ERD hover"); prepare commit 12: `feat(maxitor): hovering a key or a line lights every table it joins (#282)`. Tick issue phase 8. Done — committed on the standing instruction.
 
 ---
 
