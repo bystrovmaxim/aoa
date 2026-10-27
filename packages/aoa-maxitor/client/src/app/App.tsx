@@ -8,6 +8,8 @@ import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
 import { GraphReadError, onGraphBusy, setActiveSource } from "@/api/client";
 import { loadGraph } from "@/api/load";
+import { getGraphFingerprint } from "@/api/graphFingerprint";
+import { useFingerprintPoll, useModelRefresh } from "@/lib/freshGraph";
 import { pushServiceUrl } from "@/lib/serviceUrlHistory";
 import { firstSelectionOfKind } from "@/lib/sidebarNavigation";
 import {
@@ -68,13 +70,15 @@ export function App() {
     [serviceUrl],
   );
 
-  /** Someone in the room pressed Reload and the graph changed: read the left panel and the diagram again. */
-  const handleGraphChanged = useCallback(() => {
-    void reload().catch(() => undefined);
-    setWorkspaceKey((count) => count + 1);
-  }, [reload]);
-
   const surface = useDiagramSurface();
+  const rereadSidebar = useCallback(() => void reload().catch(() => undefined), [reload]);
+  const redraw = useCallback(() => setWorkspaceKey((count) => count + 1), []);
+  /**
+   * The model changed — the room said so, or the fingerprint poll found it: read the left panel and the
+   * diagram again in place, keeping page, settings, layout mode, zoom and centre (spec 028, FR-076).
+   */
+  const model = useModelRefresh({ surface, rereadSidebar, redraw });
+  const handleGraphChanged = model.refresh;
   const room = useRoomSession({
     initialRoom: initialLinkRef.current.room,
     source: serviceUrl,
@@ -86,6 +90,8 @@ export function App() {
   });
   // Pointers go out and come in only while connected and while this page's layout is the room's
   // (FR-045, FR-093); Hide pointers only stops drawing other people's.
+  // Outside a room a tab asks every 30 s whether its graph changed; inside one the room tells it.
+  useFingerprintPoll(!room.inRoom && serviceUrl !== null && sidebar !== null, getGraphFingerprint, sidebar?.fingerprint ?? null, handleGraphChanged);
   const pointersLive = room.inRoom && room.connection?.kind === "open" && !room.pointersOff;
   usePointerSender(surface, room.send, pointersLive);
   const roomSettings = room.room?.settings;
@@ -274,6 +280,11 @@ export function App() {
         <>
           <RoomBanner banner={room.banner} onOpenRoom={room.requestOpen} onDismiss={room.dismissBanner} />
           <FollowFrame following={following} onStop={stopFollowing} />
+          <RoomBanner
+            banner={model.updated ? { kind: "info", text: "The model was updated.", open: false } : null}
+            onOpenRoom={room.requestOpen}
+            onDismiss={model.dismiss}
+          />
           <RoomBanner
             banner={room.pageNotice ? { kind: "warn", text: room.pageNotice, open: false } : null}
             onOpenRoom={room.requestOpen}

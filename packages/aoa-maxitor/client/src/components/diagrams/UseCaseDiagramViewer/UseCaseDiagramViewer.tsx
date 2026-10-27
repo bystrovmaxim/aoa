@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { enabledKeys } from "@/lib/freshGraph";
 import { usePageSetting } from "@/lib/pageSettings";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
@@ -128,14 +129,11 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   /** The domains switched on; ``null`` until someone chooses, which means all of them. */
   const [chosenDomains, setChosenDomains] = usePageSetting<string[] | null>("domains", null);
 
-  // A chosen set that names none of this diagram's domains (its model changed) falls back to all.
-  const effectiveEnabled = useMemo(() => {
-    if (!data) return new Set<string>();
-    const keys = [...new Set(data.actions.map((a) => a.domain_id))].sort();
-    if (chosenDomains === null) return new Set(keys);
-    const chosen = keys.filter((k) => chosenDomains.includes(k));
-    return new Set(chosen.length > 0 || chosenDomains.length === 0 ? chosen : keys);
-  }, [data, chosenDomains]);
+  // A domain the model no longer has stops applying (spec 028, FR-076).
+  const effectiveEnabled = useMemo(
+    () => new Set(data ? enabledKeys([...new Set(data.actions.map((a) => a.domain_id))].sort(), chosenDomains) : []),
+    [data, chosenDomains],
+  );
 
   const filtered = useMemo(
     () => (data != null ? filterUseCaseDiagramByDomains(data, effectiveEnabled) : null),
