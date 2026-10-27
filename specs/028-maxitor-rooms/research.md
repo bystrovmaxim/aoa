@@ -29,7 +29,7 @@ Every decision below was checked against the code on 2026-10-27, on the branch `
 3. **Starting positions**: a new pure module `initialPositions.ts` places node *i* on the golden-angle spiral with `r = initialRadius · sqrt(0.5 + i)` and the angle advanced by multiplying the previous unit vector by two literal constants (cos and sin of the golden angle). Only `+ − × ÷` and `Math.sqrt` are used; every node enters the layout with `x` and `y`, so `d3-force-3d` never reaches its spiral.
 4. **Order**: nodes and edges enter in the order of the server's answer (`full_graph_action.py` orders them in SQL); nothing between the answer and the layout reorders.
 5. **Layout version**: `LAYOUT_VERSION` (an integer in `layoutSettings.ts`) joins the fingerprint payload, so arrangements remembered by older code are never replayed.
-6. **The layout hash**: SHA-256 over the positions as little-endian `Float64` pairs in payload order, hex. The same function is used by the tests, the cross-engine tool and the room's check (R9).
+6. **The layout hash**: SHA-256 over the positions as little-endian `Float64` pairs in payload order, hex (`client/src/lib/layoutHash.ts`, shared by all four viewers). The same function is used by the tests, the cross-engine tool and the room's check (R9).
 
 **Rationale**: ECMAScript requires `+ − × ÷` and `Math.sqrt` to be correctly rounded IEEE-754 double operations and forbids fusing them; `cos`, `sin` and `pow` are implementation-approximated. A computation of the first kind over the same input in the same order gives the same bits in V8, JavaScriptCore and SpiderMonkey, on x86 and ARM. Every browser on iOS is WebKit, so the three engines cover phones.
 
@@ -41,7 +41,23 @@ Every decision below was checked against the code on 2026-10-27, on the branch `
 - Compute the layout on the server — rejected: the server is Python, the picture would change, and positions would have to be trusted from one place anyway.
 - Send positions from one participant to the room — rejected: unnecessary once determinism holds, and the room must not hold graph data (FR-017).
 
-**Verified in phase 1, not assumed**: that `D3ForceLayout` passes the given `x`/`y` through to `d3-force-3d`. The guard test (FR-005) spies on `Math.cos` and `Math.sin` during the layout; if the wrapper dropped the starting positions, the spiral would call them and the test would fail.
+**Verified in commit 2, not assumed**
+- `D3ForceLayout` passes the given `x`/`y` through to `d3-force-3d`: the guard test has zero `Math.cos` / `Math.sin` calls, and removing the starting positions makes it fail.
+- `D3ForceLayout.getCenterOptions` always overrides `center.x` / `center.y` with half its viewport, and `normalizeViewport` takes `window.innerWidth` / `innerHeight` when no size is given (`@antv/layout/lib/util/viewport.js`). A centre of `{x: 0, y: 0}` alone therefore does nothing; the options carry `width: 0, height: 0`.
+- `d3-force-3d` calls `Math.pow` on every step (`collide.js:98`, `Math.pow(2, nDim)`) and once at creation (`simulation.js:30`, an overridden default). The guard checks that moving every `pow` result by one ulp leaves the hash unchanged.
+- **A #245 defect found and fixed here.** `buildGraph` in `FullGraphViewer.tsx` spread the given layout option *before* a literal `layout: { type: "d3-force", … }` key, so the literal won: G6 laid the graph out itself on every open, `PrecomputedLayout` was never executed, and the remembered arrangement was stored but never replayed (drawn and stored positions of node 0: `[652, 852]` vs `[-187, 538]`). The literal block is removed; the hash is now taken over the drawn positions, so such a mismatch cannot hide again.
+- The same fixture gives the same hash (`a07662ef…`) in Node (vitest) and in Chromium at 1024×768 and 375×812, on a first open and on a repeat open.
+
+**Measured** (`measure-full-graph.ts`, cpu1x, median of 3, the frozen reference graph):
+
+| | #245 final | Commit 2 |
+|---|---|---|
+| first open, first pixel | 775 ms | 779 ms |
+| first open, longest task | 592 ms | 353 ms |
+| repeat open, first pixel | 738 ms | 397 ms |
+| repeat open, longest task | 584 ms | 250 ms |
+
+The first open now has two tasks — Maxitor's layout (≈ 355 ms) and G6's drawing (≈ 250 ms) — instead of one; the repeat open draws without any layout, as #245 intended, and meets #245's SC-006 (< 500 ms) for the first time.
 
 ## R3 — The cross-engine tool and its place in the check run
 

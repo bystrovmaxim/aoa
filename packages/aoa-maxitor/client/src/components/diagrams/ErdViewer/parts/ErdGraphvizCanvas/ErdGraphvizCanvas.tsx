@@ -7,6 +7,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
+import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -160,6 +161,9 @@ export function ErdGraphvizCanvas({
     () => layoutByDiagramKey.get(diagramResetKey) ?? "gv-dot-lr",
   );
   const [svgMarkup, setSvgMarkup] = useState("");
+  /** Graphviz's output before the post-passes; its hash fixes every node's position (FR-005, FR-090). */
+  const [rawSvg, setRawSvg] = useState("");
+  const layoutHashValue = useSvgLayoutHash(rawSvg);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [gvBusy, setGvBusy] = useState(false);
@@ -358,12 +362,14 @@ export function ErdGraphvizCanvas({
     let cancelled = false;
     setGvBusy(true);
     setRenderError(null);
+    setRawSvg("");
     loadGraphvizWasm()
       .then((gv) => {
         if (cancelled) return;
         const engine = erdGraphvizEngine(layout) as Engine;
         const svg = gv.layout(dot, "svg", engine);
         if (cancelled) return;
+        setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
         setSvgMarkup(placeKindIcons(containNodeFills(svg), drawnData.entities, kindGlyphSvg));
@@ -575,6 +581,7 @@ export function ErdGraphvizCanvas({
 
         <Box
           ref={viewportRef}
+          data-layout-hash={layoutHashValue}
           className="erd-svg-viewport"
           sx={{
             position: "absolute",

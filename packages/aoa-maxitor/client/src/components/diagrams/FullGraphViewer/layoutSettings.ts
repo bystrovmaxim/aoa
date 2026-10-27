@@ -2,14 +2,20 @@
 /**
  * The d3-force settings that are in effect today, in one place.
  *
- * The viewer's fallback path (G6's own layout) and the worker both build their options from
- * this object, and the fingerprint reads it: a change here changes every remembered arrangement.
+ * `computeForceLayout` builds its options from this object, and the fingerprint reads it: a change
+ * here changes every remembered arrangement.
  *
  * `linkDistance` and `linkStrength` are constants although today's viewer passes functions:
  * d3 hands those functions node objects rather than ids, so their lookup never matched and
  * every edge got the "same type" values 72 and 0.82 (research R3). Writing the result of that
  * rule down as a constant is the same picture, without the dead lookup.
  */
+
+/**
+ * Version of the layout code. Raise it with any change that can move a node — a setting, the
+ * starting spiral, the centre — so arrangements remembered by older code are never replayed.
+ */
+export const LAYOUT_VERSION = 2;
 
 export type LayoutSettings = {
   iterations: number;
@@ -34,31 +40,3 @@ export const LAYOUT_SETTINGS: LayoutSettings = {
   alphaMin: 0.0015,
   velocityDecay: 0.42,
 };
-
-/**
- * Today's G6 `layout` option, built from ``LAYOUT_SETTINGS`` — the page's fallback path.
- *
- * It has the shape the viewer used before the worker existed; G6 adds ``nodeSize``, ``width``,
- * ``height`` and the centre point itself when it merges it (research R3, R4).
- */
-export function g6LayoutOptions(nodeVisualPx: number): Record<string, unknown> {
-  return {
-    type: "d3-force",
-    iterations: LAYOUT_SETTINGS.iterations,
-    animation: false,
-    link: {
-      distance: LAYOUT_SETTINGS.linkDistance,
-      strength: LAYOUT_SETTINGS.linkStrength,
-    },
-    manyBody: { ...LAYOUT_SETTINGS.manyBody },
-    collide: {
-      radius: nodeVisualPx * 0.5 + LAYOUT_SETTINGS.collide.radiusOffset,
-      strength: LAYOUT_SETTINGS.collide.strength,
-      iterations: LAYOUT_SETTINGS.collide.iterations,
-    },
-    center: { strength: LAYOUT_SETTINGS.centerStrength },
-    alphaDecay: LAYOUT_SETTINGS.alphaDecay,
-    alphaMin: LAYOUT_SETTINGS.alphaMin,
-    velocityDecay: LAYOUT_SETTINGS.velocityDecay,
-  };
-}

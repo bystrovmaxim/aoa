@@ -2,8 +2,9 @@
 /**
  * The remembered arrangement: one graph's node positions, kept in IndexedDB under its fingerprint.
  *
- * A fingerprint covers the graph's node ids and types, its edges and the layout settings, so a
- * changed graph or changed settings give a different key and are laid out afresh. Every failure
+ * A fingerprint covers the graph's node ids and types, its edges, the layout settings and the
+ * layout version, so a changed graph, changed settings or changed layout code give a different
+ * key and are laid out afresh. Every failure
  * (no IndexedDB, no `crypto.subtle`, a full quota, a damaged entry) means "not remembered" and
  * never throws: the page then simply runs the layout.
  *
@@ -12,7 +13,7 @@
  * node, which entries to evict — are exported as pure functions so the tests can pin them.
  */
 
-import { LAYOUT_SETTINGS } from "./layoutSettings";
+import { LAYOUT_SETTINGS, LAYOUT_VERSION } from "./layoutSettings";
 
 /** A node id mapped to its position. */
 export type Positions = Record<string, [number, number]>;
@@ -63,7 +64,7 @@ function canonicalJson(payload: FingerprintPayload): string {
   const edges = payload.edges
     .map((edge) => [String(edge.source), String(edge.target), String(edge.data?.edge_type ?? "")])
     .sort((left, right) => (left.join("\u0000") < right.join("\u0000") ? -1 : 1));
-  return JSON.stringify({ settings: LAYOUT_SETTINGS, nodes, edges });
+  return JSON.stringify({ version: LAYOUT_VERSION, settings: LAYOUT_SETTINGS, nodes, edges });
 }
 
 /** The graph's fingerprint, or ``null`` where ``crypto.subtle`` is unavailable (an insecure origin). */
