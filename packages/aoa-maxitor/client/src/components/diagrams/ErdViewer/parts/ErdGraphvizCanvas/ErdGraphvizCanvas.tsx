@@ -202,7 +202,7 @@ export function ErdGraphvizCanvas({
 
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
-  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup));
+  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
 
 
   const mergedByTabs = useMemo(

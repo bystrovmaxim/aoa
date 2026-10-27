@@ -112,6 +112,7 @@ class ReportPageAction(BaseAction[ReportPageParams, RoomAnswer]):
             if params.visible is not None:
                 tab.visible = params.visible
             if params.page is not None:
+                arrived = params.page != tab.page
                 tab.page = params.page
                 tab.settings_digest = params.settings_digest or ""
                 tab.build = params.build or ""
@@ -120,5 +121,7 @@ class ReportPageAction(BaseAction[ReportPageParams, RoomAnswer]):
                 entry = store.entry(room.source)
                 verdict = _verdict(params, tab, room, bundle.build(), entry.fingerprint if entry else "")
                 socket.send({"type": "check", **verdict})
+                if arrived:
+                    registry.catch_up(room, tab, participant.id)
             registry.broadcast(room, {"type": "presence", **participant.public()}, except_participant=participant.id)
         return RoomAnswer()

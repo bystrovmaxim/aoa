@@ -74,10 +74,13 @@ export type SvgPanZoomControls = {
   centreOnClient(x: number, y: number): void;
   getScale(): number;
   setScale(scale: number): void;
+  /** Bumped by every fit; each fit gives a new surface, so a view placed from outside is placed again. */
+  fitCount: number;
 };
 
 /**
- * Register a Graphviz viewer's surface while ``ready`` (its SVG is on screen). Diagram coordinates
+ * Register a Graphviz viewer's surface while ``ready`` (its SVG is on screen and fitted once, so a
+ * view the room places — going to someone, a restored view — is not undone by the fit). Diagram coordinates
  * are the SVG's user space, mapped through its screen transform, which includes the pan and zoom.
  */
 export function useSvgDiagramSurface(
@@ -85,7 +88,7 @@ export function useSvgDiagramSurface(
   controls: SvgPanZoomControls,
   ready: boolean,
 ): void {
-  const { onTransform, centreOnClient, getScale, setScale } = controls;
+  const { onTransform, centreOnClient, getScale, setScale, fitCount } = controls;
   useEffect(() => {
     const element = elementRef.current;
     if (!element || !ready) return undefined;
@@ -117,7 +120,8 @@ export function useSvgDiagramSurface(
         centreOn(view);
       },
     });
-  }, [elementRef, ready, onTransform, centreOnClient, getScale, setScale]);
+    // ``fitCount``: a refit (new data, a new size) undoes a placed view, so it is a new surface.
+  }, [elementRef, ready, onTransform, centreOnClient, getScale, setScale, fitCount]);
 }
 
 /** What the full graph's G6 instance offers the room. */

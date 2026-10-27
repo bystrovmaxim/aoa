@@ -8,7 +8,7 @@
   <a href="../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** A circle per participant in their colour with initials in a contrasting colour, yours first and ringed; more than five on a desktop (three on a phone) fold into **+N**. Pale when the participant's tab is hidden, a grey dot when they are on another page, a counter on your circle when someone follows you.
+**Role:** A circle per participant in their colour with initials in a contrasting colour, yours first and ringed; more than five on a desktop (three on a phone) fold into **+N**. Pale when the participant's tab is hidden, a grey dot when they are on another page, a counter on your circle when someone follows you. A click on someone's circle goes to them (their page, centred on them, at your zoom); hover, Enter or a long press opens the card.
 
 ## Files
 

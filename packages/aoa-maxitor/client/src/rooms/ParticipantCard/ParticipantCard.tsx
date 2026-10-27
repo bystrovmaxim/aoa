@@ -19,17 +19,19 @@ export type ParticipantCardProps = {
   onClose: () => void;
   /** **Change name**, on your own card only. */
   onRename: () => void;
+  /** **Go to**, on someone else's card. */
+  onGoTo: () => void;
   /** The pointer entered or left the card, so a hover-opened card stays while it is used. */
   onHover?: (inside: boolean) => void;
 };
 
 /**
- * The card of a circle: full name, the page they are on, and on your own card **Change name**.
- * Opens on hover, on Enter and on a long press; Esc and a click elsewhere close it. It is not modal,
- * so the diagram stays usable while it is open. **Go to** and **Follow** join it with going to
- * someone and following (spec 028, commits 13 and 14).
+ * The card of a circle: full name, the page they are on, **Go to** on someone else's card and
+ * **Change name** on your own. Opens on hover, on Enter and on a long press; Esc and a click
+ * elsewhere close it. It is not modal, so the diagram stays usable while it is open. **Follow**
+ * joins it with following (spec 028, commit 14).
  */
-export function ParticipantCard({ participant, anchor, pageLabel, isYou, followers, onClose, onRename, onHover }: ParticipantCardProps) {
+export function ParticipantCard({ participant, anchor, pageLabel, isYou, followers, onClose, onRename, onGoTo, onHover }: ParticipantCardProps) {
   const open = anchor !== null;
 
   useEffect(() => {
@@ -66,6 +68,20 @@ export function ParticipantCard({ participant, anchor, pageLabel, isYou, followe
           {isYou && followers > 0 && (
             <Box sx={{ ...HINT_SX, mt: "8px" }}>
               {followers === 1 ? "1 person follows you." : `${followers} people follow you.`}
+            </Box>
+          )}
+          {!isYou && (
+            <Box sx={{ display: "flex", gap: "4px", mt: "10px", ml: "-6px" }}>
+              <Button
+                sx={CARD_BUTTON_SX}
+                disabled={participant.away || participant.page === null}
+                onClick={() => {
+                  onClose();
+                  onGoTo();
+                }}
+              >
+                Go to {participant.name.trim().split(/\s+/)[0]}
+              </Button>
             </Box>
           )}
           {isYou && (

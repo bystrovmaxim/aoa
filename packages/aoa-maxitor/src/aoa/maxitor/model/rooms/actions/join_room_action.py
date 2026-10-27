@@ -149,7 +149,7 @@ class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
             was_away = participant.away
             participant.return_until = None
             fallback = None if params.start_page in pages else _fallback_page(room, pages)
-            registry.add_tab(room, participant, params.tab, socket, fallback or params.start_page)
+            tab = registry.add_tab(room, participant, params.tab, socket, fallback or params.start_page)
             room.empty_since = None
             socket.send(
                 {
@@ -160,6 +160,7 @@ class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
                     "fallback_page": fallback,
                 }
             )
+            registry.catch_up(room, tab, participant.id)
             if not returning:
                 registry.broadcast(room, {"type": "joined", "participant": participant.public()}, except_participant=participant.id)
             else:

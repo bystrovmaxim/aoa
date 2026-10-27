@@ -48,7 +48,7 @@ On success the server sends `welcome` to the newcomer and `joined` to everyone e
 | `setting` | `page`, `name`, `value`, `by` | a setting changed (FR-030) |
 | `follows` | the full set of follow links | after any follow change (FR-023, FR-056) |
 | `follow_refused` | `target`, `reason` | FR-054 |
-| `pointer` / `viewport` | participant id + fields | relayed; only to tabs on the same page |
+| `pointer` / `viewport` | participant id + fields | relayed; only to tabs on the same page. A tab arriving on a page (joining, or a `page` report naming another page) is also sent, at once, each participant's last `viewport` there and their mouse `pointer` if it moved in the last 10 s, so going to someone does not wait for them to move (FR-050; commit 13) |
 | `check` | `build`: ok / reload; `fingerprint`: ok / reread; `layout`: ok / off | answer to `page` (FR-091 … FR-093) |
 | `graph_changed` | `fingerprint` | the room's source was rebuilt (FR-076) |
 | `refused` | `code`, `reason` | a message action refused |
