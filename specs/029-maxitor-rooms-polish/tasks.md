@@ -185,9 +185,9 @@
 
 ## Phase 13: Role labels on hover (commit 13) · US7
 
-- [ ] T067 [US7] In `packages/aoa-maxitor/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx` hide role labels by default and show the label of the role under the pointer, or of the mirrored hover while following (FR-042; R13).
-- [ ] T068 [US7] Test in `UseCaseDiagramViewer.test.tsx`: no label without hover; the hovered role's label shows; adversarial check by always showing labels. Restore.
-- [ ] T069 [US7] Acceptance on the local stand (quickstart "Role labels"); prepare commit 13: `style(maxitor): role labels appear on hover (#282)`. Tick issue phase 10.
+- [X] T067 [US7] In `packages/aoa-maxitor/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx` hide role labels by default and show the label of the role under the pointer, or of the mirrored hover while following (FR-042; R13). Done: role nodes carry `class="uc-role"` in the DOT; `lib/useCaseRoleLabels.ts` hides a role's text unless its node has `is-hovered`, set by `mouseenter`/`mouseleave` caught once on the panner in the capture phase — so it survives a replaced drawing and a follower's replayed hover shows the label too (CSS `:hover` would not).
+- [X] T068 [US7] Test in `UseCaseDiagramViewer.test.tsx`: no label without hover; the hovered role's label shows; adversarial check by always showing labels. Restore. Done in `src/lib/useCaseRoleLabels.test.ts` (the DOT mark, the toggle on Graphviz's escaped `uc&#45;role`, the style); breaks: labels always shown, roles unmarked, bubbling-only listeners — each failed exactly its own test; restored, client 208.
+- [X] T069 [US7] Acceptance on the local stand (quickstart "Role labels"); prepare commit 13: `style(maxitor): role labels appear on hover (#282)`. Tick issue phase 10. Done — committed on the standing instruction.
 
 ---
 
