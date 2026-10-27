@@ -302,7 +302,7 @@
 
 ## Phase 17: The check run (commit 17)
 
-- [ ] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16.
+- [X] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16. Done: one remark, pylint C0302 — `graph_json_schema.py` had 1508 lines of 1500 (1497 on `main`, so any new schema property crosses the limit); the schema moved to `graph_json_schema.json` beside the module, which reads it with `importlib.resources` — the parsed schema is equal to the old one and the file ships in the wheel. Second run: 37 steps OK, only the two accepted remarks.
 
 ---
 
