@@ -261,6 +261,26 @@
 
 ---
 
+## Phase 16e: A table lists every field, 1-hop or not (commit 16e) · US7
+
+**Goal** (maintainer, 2026-10-27, `UserEventCoreEntity` with and without 1-hop): switching 1-hop off hid the relation fields whose target table was off the diagram; a table lists all its fields always (FR-045).
+
+- [X] T099 [US7] In `packages/aoa-maxitor/src/aoa/maxitor/model/diagrams/actions/list_entities_action.py` (`_slice_payload`, the `fk` rows) stop requiring the relation's target to be among the selected tables; the lines keep that requirement. Done: the `fk` rows join only the source table and read the target's name from `entity`.
+- [X] T100 [US7] Test in `packages/aoa-maxitor/tests/test_list_entities_duckdb_sql.py`: the same fields with 1-hop on and off, the target table and its line absent without 1-hop; adversarial check: the test was written first and failed on the old query (`[] == [('billed_in', 'currency', True)]`).
+- [X] T101 [US7] Prepare commit 16e: `fix(maxitor): an ERD table lists every field whether 1-hop is on or off (#282)`; record it in issue #282.
+
+---
+
+## Phase 16f: Hover joins a specialization head and its variants (commit 16f) · US7
+
+**Goal** (maintainer, 2026-10-27): hovering between a specialization head and its variants lit nothing. They are joined by the head's axis field and each variant's reverse field, but those two lines carried no field names, and the axis line points at the block's frame, not at a table (FR-046).
+
+- [ ] T102 [US7] In `list_entities_action.py` give the generalization line `source_field` (the variant's reverse field) and `target_field` (the head's axis field), the specialization line `source_field` (the axis field); mark the variant's reverse field as a foreign key.
+- [ ] T103 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` (`bindLineHover`) treat a block's frame as its variants: the tables a line to the frame joins are the head and every variant of that axis.
+- [ ] T104 [US7] Tests (server: the fields on both lines and the FK mark; client: hovering the axis row, a variant's reverse row and a generalization line light the head and the right variants); adversarial check for each; check on the stand. Prepare commit 16f: `fix(maxitor): hover joins a specialization head and its variants (#282)`; record it in issue #282.
+
+---
+
 ## Phase 17: The check run (commit 17)
 
 - [ ] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16.

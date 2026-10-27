@@ -312,10 +312,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
           SELECT id FROM domain_entity
           {neighbor_clause}
         ), fk AS (
+          -- A table lists every relation field it declares, whether its target is on screen or not.
           SELECT er.source_id AS entity_id, er.field_name AS name, target.label AS type, TRUE AS foreign_key
           FROM entity_relation_edges er
           JOIN selected_entity src ON src.id = er.source_id
-          JOIN selected_entity tgt ON tgt.id = er.target_id
           JOIN entity target ON target.id = er.target_id
           WHERE er.field_name <> ''
         ), specialization_edge_rows AS (
