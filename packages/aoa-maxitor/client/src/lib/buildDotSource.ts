@@ -11,6 +11,8 @@ export type ErdField = {
   foreign_key?: boolean;
   /** Interchange qualname of the closed dictionary this field references, when it references one. */
   reference_qualname?: string | null;
+  /** The full annotation, for the type cell's tooltip; absent from a service on an older aoa-action-machine. */
+  annotation?: string | null;
 };
 
 export type ErdEntity = {
@@ -133,6 +135,90 @@ function escHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+// ── Field types as one clean name ────────────────────────────────────────
+// A field's type as one clean name, from whatever a service sends (spec 029, FR-030, FR-031). A service
+// on the current aoa-action-machine sends the clean name already (``str | None``, ``CurrencyEnumEntity``,
+// ``X[]``) and passes through unchanged; an older one sends Python's own spelling — ``UnionType[str,
+// NoneType]``, ``Optional[str]``, ``AssociationOne[X]``, ``Generalization[X]``, ``Specialization[Union[A,
+// B], K]``, ``list[X]``, ``Literal[a, b]`` — which is rewritten by the same rules. Kept here, not in a
+// module of its own, because the drawing checks run this file in plain Node, where it imports no value.
+
+const ONE_RELATIONS = new Set(["AssociationOne", "CompositeOne", "AggregateOne", "Generalization"]);
+const MANY_RELATIONS = new Set(["AssociationMany", "CompositeMany", "AggregateMany"]);
+const COLLECTIONS = new Set(["list", "set", "frozenset", "List", "Set", "FrozenSet"]);
+const UNIONS = new Set(["Union", "UnionType"]);
+
+/** The longest label a row shows; a longer one ends with ``…`` and the tooltip holds the whole. */
+export const FIELD_TYPE_MAX_CHARS = 40;
+
+/** Split ``text`` on ``separator`` outside brackets. */
+function splitTop(text: string, separator: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "[") depth += 1;
+    else if (ch === "]") depth -= 1;
+    else if (depth === 0 && text.startsWith(separator, i)) {
+      parts.push(text.slice(start, i));
+      start = i + separator.length;
+      i += separator.length - 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts.map((part) => part.trim()).filter((part) => part !== "");
+}
+
+/** ``Name[args]`` as its name and its top-level arguments, or ``null`` when ``text`` is not one. */
+function generic(text: string): { name: string; args: string[] } | null {
+  const open = text.indexOf("[");
+  if (open <= 0 || !text.endsWith("]")) return null;
+  return { name: text.slice(0, open).trim(), args: splitTop(text.slice(open + 1, -1), ",") };
+}
+
+/** Members of a union joined by ``|``, ``None`` once and last. */
+function union(members: string[]): string {
+  const clean = members.map(cleanFieldType);
+  const others = clean.filter((member) => member !== "None");
+  return [...others, ...(others.length < clean.length ? ["None"] : [])].join(" | ");
+}
+
+/** A literal value as a value: a number as it is, anything else quoted once. */
+function literalValue(value: string): string {
+  if (/^-?\d+(\.\d+)?$/.test(value) || value === "True" || value === "False" || value === "None") return value;
+  return value.startsWith('"') ? value : `"${value.replace(/^'|'$/g, "")}"`;
+}
+
+/** The clean name for a generic, or ``null`` when no rule applies. */
+function cleanGeneric(name: string, args: string[]): string | null {
+  if (UNIONS.has(name)) return union(args);
+  if (name === "Optional" && args.length === 1) return union([args[0]!, "None"]);
+  if ((ONE_RELATIONS.has(name) || name === "Specialization") && args.length >= 1) return cleanFieldType(args[0]!);
+  if ((MANY_RELATIONS.has(name) || COLLECTIONS.has(name)) && args.length === 1) return `${cleanFieldType(args[0]!)}[]`;
+  if ((name === "tuple" || name === "Tuple") && args.length === 2 && args[1] === "...") return `${cleanFieldType(args[0]!)}[]`;
+  if (name === "Literal") return args.map(literalValue).join(" | ");
+  if (name === "Annotated" && args.length >= 1) return cleanFieldType(args[0]!);
+  return null;
+}
+
+/** One clean name for the type string ``raw``, as a row shows it. */
+export function cleanFieldType(raw: string): string {
+  const text = raw.trim();
+  if (text === "NoneType") return "None";
+  const members = splitTop(text, "|");
+  if (members.length > 1) return union(members);
+  const parsed = generic(text);
+  if (!parsed) return text;
+  const clean = cleanGeneric(parsed.name, parsed.args);
+  return clean ?? `${parsed.name}[${parsed.args.map(cleanFieldType).join(", ")}]`;
+}
+
+/** ``label`` cut to fit a row, ending with ``…`` when it was longer. */
+export function fitFieldType(label: string, max = FIELD_TYPE_MAX_CHARS): string {
+  return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
+}
+
 /**
  * Parse the axis row's type cell — ``"A (code_a) | B (code_b)"`` — into its
  * alternatives (code + short name each). Returns ``null`` for rows that are
@@ -219,15 +305,17 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
         // A specialization axis row collapses its alternatives into "Specialization N+"
         // and carries the full list as the cell's hover tooltip. The line already says what a field
         // references, so the type cell carries no "→ target" of its own.
+        // Any other type reads as one clean name, cut to the column; the tooltip holds the full annotation
+        // (spec 029, FR-030).
         const specialization = parseSpecializationType(f.type || "");
-        const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : f.type || "";
+        const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : fitFieldType(cleanFieldType(f.type || ""));
         const tooltipAttr =
           specialization !== null
             ? ` TOOLTIP="${specialization.alternatives
                 .map((alt) => `${alt.code} → ${resolveTableLabel(alt.name, entities ?? [])}`)
                 .map(escHtml)
                 .join("&#10;")}"`
-            : ` TOOLTIP="${escHtml(typeText)}"`;
+            : ` TOOLTIP="${escHtml(f.annotation || f.type || "")}"`;
         return (
           "<TR>" +
           iconTd +

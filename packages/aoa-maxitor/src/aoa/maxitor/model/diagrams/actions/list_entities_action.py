@@ -347,7 +347,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             vf.primary_key_hint AS primary_key,
             FALSE AS foreign_key,
             efe.ordinal AS ordinal,
-            vf.reference_qualname AS reference_qualname
+            vf.reference_qualname AS reference_qualname,
+            vf.field_annotation AS annotation
           FROM entity_field_edges efe
           INNER JOIN entity_field vf ON vf.id = efe.target_id
           WHERE efe.target_id NOT IN (SELECT field_node_id FROM excluded_field_nodes WHERE field_node_id IS NOT NULL)
@@ -360,10 +361,11 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             FALSE AS primary_key,
             TRUE AS foreign_key,
             rr.ordinal,
-            CAST(NULL AS VARCHAR) AS reference_qualname
+            CAST(NULL AS VARCHAR) AS reference_qualname,
+            CAST(NULL AS VARCHAR) AS annotation
           FROM rendered_rows rr
           UNION ALL
-          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal, CAST(NULL AS VARCHAR) AS reference_qualname FROM fk
+          SELECT entity_id, CAST(NULL AS VARCHAR) AS field_node_id, name, type, FALSE AS primary_key, foreign_key, 2147483647 AS ordinal, CAST(NULL AS VARCHAR) AS reference_qualname, CAST(NULL AS VARCHAR) AS annotation FROM fk
         ), ordered_field_rows AS (
           SELECT DISTINCT
                  fr.entity_id,
@@ -373,7 +375,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                  fr.primary_key,
                  fr.foreign_key,
                  fr.ordinal AS sort_key,
-                 fr.reference_qualname
+                 fr.reference_qualname,
+                 fr.annotation
           FROM field_rows fr
         )
         SELECT e.id, e.label, COALESCE(MIN(de.target_id), '') AS domain_qualname,
@@ -385,7 +388,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                    type := fr.type,
                    primary_key := fr.primary_key,
                    foreign_key := fr.foreign_key,
-                   reference_qualname := fr.reference_qualname
+                   reference_qualname := fr.reference_qualname,
+                   annotation := fr.annotation
                  ) ORDER BY fr.sort_key, fr.name) FILTER (WHERE fr.name IS NOT NULL),
                  CAST([] AS STRUCT(
                    field_id VARCHAR,
@@ -393,7 +397,8 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                    type VARCHAR,
                    primary_key BOOLEAN,
                    foreign_key BOOLEAN,
-                   reference_qualname VARCHAR
+                   reference_qualname VARCHAR,
+                   annotation VARCHAR
                  )[])
                ) AS fields
         FROM selected_entity se
