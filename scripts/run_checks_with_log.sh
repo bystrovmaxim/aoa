@@ -156,6 +156,9 @@ echo "" >>"$LOG_FILE"
 # Do not chase either one; the steps below stay green with them in the log.
 run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
 run_and_log "(cd packages/aoa-maxitor/client && npm test)" "Maxitor client: unit tests"
+# Every diagram must be laid out to the same bits in Chromium, Firefox and WebKit, on a phone and a
+# desktop screen, or pointers in a room land on the wrong nodes (spec 028, FR-006).
+run_and_log "(cd packages/aoa-maxitor/client && npx playwright install chromium firefox webkit && node scripts/check-layout-determinism.ts)" "Maxitor client: the same layout in three engines"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-card-containment.ts)" "Maxitor client: ERD card containment"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-dictionary-values.ts)" "Maxitor client: dictionary value properties"
 run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-group-label.ts)" "Maxitor client: group label composed once"

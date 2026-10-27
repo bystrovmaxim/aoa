@@ -65,6 +65,8 @@ The first open now has two tasks — Maxitor's layout (≈ 355 ms) and G6's draw
 
 **Fixture**: the frozen reference graph already used by #268 and #245 (`specs/025-graph-index-memory/data/`), copied into `packages/aoa-maxitor/tests/fixtures/` so the check does not read a spec folder.
 
+**Found while building it (commit 3)**: Graphviz's FDP in the `@hpcc-js/wasm-graphviz` build reads state that earlier layouts leave in the WebAssembly instance. The same ERD in FDP gave `9d0d010c…` when FDP was the page's second layout and a different hash on every run when Dot and Neato ran before it — at the same size, in the same engine. In Node the same instance repeats FDP exactly, and an explicit `start=1` changes nothing, so the cause is the browser instance's history, not the seed. `loadGraphvizWasmFor(engine)` (`client/src/lib/prefetch/erdGraphviz.ts`) therefore gives FDP a freshly instantiated module; every other engine shares one. With it, five different paths to FDP give the same hash. Use-case diagrams offer Neato and FDP only with Boundary off, so the tool walks those pages a second time that way.
+
 **Rationale**: the maintainer chose the mandatory check run (clarification 1). The hash on the element is read by any test and by the room (R9), so no production hook exists only for the tool.
 
 **Risk**: on Linux, `playwright install --with-deps` needs system packages and root; the check run is local today (constitution, "Final step") and runs on macOS. The plan records it; if CI ever runs the script, its image installs the dependencies.

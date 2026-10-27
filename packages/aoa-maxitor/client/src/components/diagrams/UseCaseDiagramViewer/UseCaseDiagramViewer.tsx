@@ -26,7 +26,7 @@ import {
   type DomainUseCaseRankdir,
 } from "@/lib/buildDomainUseCaseDotSource";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
-import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
+import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 
@@ -276,7 +276,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     let cancelled = false;
     setRenderError(null);
     const needsRoleImages = (filtered?.roles.length ?? 0) > 0;
-    loadGraphvizWasm()
+    loadGraphvizWasmFor(graphvizEngineForBundle)
       .then((gv) => {
         if (cancelled) return;
         const images = [

@@ -22,7 +22,7 @@ computeForceLayout(request: { nodes: string[]; edges: [string, string][]; nodeVi
 | Viewer | Hash |
 |---|---|
 | Full graph | `layoutHash(positions, nodeIds)` (`client/src/lib/layoutHash.ts`): SHA-256, hex, over `Float64Array` little-endian pairs `[x0, y0, x1, y1, …]` in payload order, taken over the positions G6 **drew** (`graph.getElementPosition`), so it can only describe the picture on screen |
-| ERD, use case, lifecycle | SHA-256, hex, of the SVG string `@hpcc-js/wasm-graphviz` returned for the page's DOT, before any post-pass |
+| ERD, use case, lifecycle | SHA-256, hex, of the SVG string `@hpcc-js/wasm-graphviz` returned for the page's DOT, before any post-pass. FDP always lays out in a freshly instantiated module (`loadGraphvizWasmFor`), because it reads state earlier layouts leave in a shared one |
 
 Every viewer writes its hash as `data-layout-hash` on its diagram element once the picture is drawn, and clears it while a new layout runs.
 
@@ -37,7 +37,7 @@ Every viewer writes its hash as `data-layout-hash` on its diagram element once t
 `node scripts/check-layout-determinism.ts` in `packages/aoa-maxitor/client`, after `npm run build`.
 
 1. Serve the built bundle and a stub Maxitor API answering from `packages/aoa-maxitor/tests/fixtures/ref-graph-2026-10-26.json.gz`.
-2. For each engine in Chromium, Firefox, WebKit; each viewport in 375×812, 1600×900; each page of the fixture (the full graph, every domain's ERD, every domain's use-case diagram, every lifecycle) and each layout mode of that page: open it, wait for `data-layout-hash`, record it.
+2. For each engine in Chromium, Firefox, WebKit; each viewport in 375×812, 1600×900; each page the left panel lists for the fixture (the full graph, the ERD of all domains and of every domain, every domain's use-case diagram, every lifecycle) and each layout mode of that page — use-case pages also with Boundary off, where Neato and FDP appear: open it, wait for `data-layout-hash`, record it. Mode buttons are clicked through the DOM, because on a phone the open left panel covers the toolbar.
 3. Print one line per page and mode: the hash, or every differing hash with its engine and size.
 4. Exit `0` when, for every page and mode, all six hashes are equal; `1` otherwise.
 
