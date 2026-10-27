@@ -314,7 +314,7 @@
 
 ## Phase 19: Changelog (commit 19)
 
-- [ ] T083 Write one article at the top of `docs/CHANGELOG.md` about what this work changed for people in a room and readers of the ERD — plain words, no technical detail, no per-file account (constitution VI.3); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 19: `docs(changelog): rooms that show one picture (#282)`. Tick issue phase 18.
+- [X] T083 Write one article at the top of `docs/CHANGELOG.md` about what this work changed for people in a room and readers of the ERD — plain words, no technical detail, no per-file account (constitution VI.3); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 19: `docs(changelog): rooms that show one picture (#282)`. Tick issue phase 18. Done: “Rooms that show one picture”, with its Russian version in `CHANGELOG.ru_draft.md`.
 
 ---
 
