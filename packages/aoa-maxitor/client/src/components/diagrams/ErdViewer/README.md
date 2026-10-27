@@ -27,7 +27,8 @@ The folder **`index.ts`** exports **`ErdViewer`**, **`ErdViewerSelection`**, and
 | `ErdViewer.tsx` | Shell + bundle loading. |
 | `parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx` | DOT layout + SVG viewport. |
 | `hooks/useGraphviz.ts` | Re-export `loadGraphvizWasm`, `loadGraphvizWasmFor` (a fresh instance for FDP) and types from `@/lib/prefetch/erdGraphviz`. |
-| `hooks/useSvgPanZoom.ts` | Pointer/wheel zoom helpers for SVG viewport; tells subscribers about every pan and zoom (`onTransform`) and centres on a point at the same zoom, for a room's pointers. |
+| `hooks/useSvgPanZoom.test.tsx` | A swipe moves the picture at the same zoom; a pinch zooms. |
+| `hooks/useSvgPanZoom.ts` | Pan / zoom for the SVG viewport: a drag or a two-finger swipe (a plain wheel) moves the picture, a pinch or Ctrl / ⌘ + wheel zooms it (`@/lib/wheelGesture`); tells subscribers about every pan and zoom (`onTransform`) and centres on a point at the same zoom, for a room's pointers. |
 
 ## What a card is
 

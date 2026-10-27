@@ -15,6 +15,7 @@
  * it shows as ``focus``, at most ten times a second, and the server passes it to its followers only.
  */
 import { useCallback, useEffect } from "react";
+import { isZoomWheel } from "@/lib/wheelGesture";
 import type { DiagramViewport, Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { focusToSend, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
@@ -100,7 +101,8 @@ export function followCentre(viewport: DiagramViewport | undefined): Point | nul
 const PAN_THRESHOLD_PX = 4;
 
 /**
- * Call ``onPan`` when the person drags the diagram with one pointer. A wheel or a two-finger pinch
+ * Call ``onPan`` when the person moves the diagram: a drag with one pointer, or a wheel that moves
+ * (a trackpad swipe, a plain mouse wheel). A pinch, Ctrl / ⌘ + wheel or a two-finger touch pinch
  * zooms and is not a pan, so it never calls it. Returns the call that stops watching.
  */
 export function watchOwnPan(element: HTMLElement, onPan: () => void): () => void {
@@ -119,12 +121,17 @@ export function watchOwnPan(element: HTMLElement, onPan: () => void): () => void
   const onUp = (event: PointerEvent) => {
     down.delete(event.pointerId);
   };
+  const onWheel = (event: WheelEvent) => {
+    if (!isZoomWheel(event) && (event.deltaX !== 0 || event.deltaY !== 0)) onPan();
+  };
   element.addEventListener("pointerdown", onDown);
+  element.addEventListener("wheel", onWheel, { passive: true });
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
   window.addEventListener("pointercancel", onUp);
   return () => {
     element.removeEventListener("pointerdown", onDown);
+    element.removeEventListener("wheel", onWheel);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onUp);

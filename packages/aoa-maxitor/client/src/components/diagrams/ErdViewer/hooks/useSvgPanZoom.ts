@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isZoomWheel, wheelPan } from "@/lib/wheelGesture";
 
 const MIN_SCALE = 0.005;
 const MAX_SCALE = 2.5;
@@ -364,6 +365,14 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
 
     const onWheel = (evt: WheelEvent) => {
       evt.preventDefault();
+      // A two-finger swipe or a plain wheel moves the picture; a pinch or Ctrl / ⌘ + wheel zooms it.
+      if (!isZoomWheel(evt)) {
+        const { dx, dy } = wheelPan(evt, vp.clientHeight);
+        panRef.current.tx -= dx;
+        panRef.current.ty -= dy;
+        applyTransform(false);
+        return;
+      }
       vp.classList.add("erd-wheel-zooming");
       if (wheelIdleTimeoutRef.current !== null) {
         window.clearTimeout(wheelIdleTimeoutRef.current);
