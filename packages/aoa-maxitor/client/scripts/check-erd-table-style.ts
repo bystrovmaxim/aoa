@@ -16,6 +16,7 @@
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
 import {
   buildDotSource,
+  buildErdDot,
   ERD_FK_COLOUR,
   ERD_CARD_RADIUS,
   ERD_CARD_STROKE,
@@ -66,7 +67,7 @@ const fixture: ErdGraphPayload = {
 };
 
 const svg = placeKindIcons(
-  drawErdCards(containNodeFills(gv.layout(buildDotSource(fixture, "gv-dot-lr"), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE),
+  drawErdCards(containNodeFills(gv.layout(buildErdDot(fixture, "gv-dot-lr", (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE),
   fixture.entities,
   kindGlyphSvg,
 );

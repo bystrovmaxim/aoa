@@ -268,7 +268,57 @@ export function erdGraphvizEngine(layout: ErdGraphvizLayout): string {
   return "dot";
 }
 
-export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout): string {
+/**
+ * The DOT that measures the tables of every specialization block: those tables alone, as they are
+ * drawn, with no lines and no blocks around them (spec 029). Laid out once, it tells each table's
+ * natural width; ``erdBlockWidths`` reads them back.
+ */
+export function buildBlockMeasureDot(data: ErdGraphPayload): string {
+  const grouped = new Set((data.groups ?? []).filter((g) => g.members.length > 1).flatMap((g) => g.members));
+  const entities = data.entities.filter((e) => grouped.has(e.id));
+  return buildDotSource({ entities, relations: [], groups: [] }, "gv-dot-lr");
+}
+
+/** The width of each table's header in a laid-out drawing, by table id (its node's ``<title>``). */
+function headerWidths(svg: string): Map<string, number> {
+  const widths = new Map<string, number>();
+  for (const node of svg.split('<g id="node').slice(1)) {
+    const title = /<title>([^<]*)<\/title>/.exec(node)?.[1];
+    const header = /<g id="a_hd\d+">[\s\S]*?points="([^"]+)"/.exec(node)?.[1];
+    if (!title || !header) continue;
+    const xs = header.trim().split(/\s+/).map((pair) => Number(pair.split(",")[0]));
+    widths.set(title.replace(/&#45;/g, "-").replace(/&amp;/g, "&"), Math.max(...xs) - Math.min(...xs));
+  }
+  return widths;
+}
+
+/**
+ * One width for every table of a specialization block — its widest table's header — read from the
+ * drawing of ``buildBlockMeasureDot``; tables outside blocks are absent, so they keep their own.
+ */
+export function erdBlockWidths(data: ErdGraphPayload, measuredSvg: string): Map<string, number> {
+  const natural = headerWidths(measuredSvg);
+  const widths = new Map<string, number>();
+  for (const group of data.groups ?? []) {
+    const members = group.members.filter((id) => natural.has(id));
+    if (members.length < 2) continue;
+    const widest = Math.ceil(Math.max(...members.map((id) => natural.get(id)!)));
+    for (const id of members) widths.set(id, widest);
+  }
+  return widths;
+}
+
+/**
+ * The DOT the page lays out: as ``buildDotSource``, with every specialization block's tables given
+ * one width. ``measure`` lays a DOT out to SVG (Graphviz's ``layout(dot, "svg", "dot")``); it runs
+ * only when the diagram has a block.
+ */
+export function buildErdDot(data: ErdGraphPayload, layout: ErdGraphvizLayout, measure: (dot: string) => string): string {
+  const hasBlock = (data.groups ?? []).some((group) => group.members.length > 1);
+  return buildDotSource(data, layout, hasBlock ? erdBlockWidths(data, measure(buildBlockMeasureDot(data))) : undefined);
+}
+
+export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout, blockWidths?: ReadonlyMap<string, number>): string {
   const { entities, relations } = data;
   const groups = data.groups ?? [];
   const isLR = layout === "gv-dot-lr";
@@ -342,7 +392,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
       // One header cell with the domain fill, flush with the frame (the card's rounding trims it);
       // inside, the kind icon slot and the name, each filled with the same colour so Graphviz emits
       // their boxes. The post-pass puts icon and name at the left, after an inset (FR-110).
-      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
+      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${blockWidths?.get(nd.id) ?? ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
       `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(nd.label || nd.id)}">` +
       `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>` +
       `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
