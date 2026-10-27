@@ -238,7 +238,8 @@ export function markRows(root: ParentNode, cells: readonly string[], on: boolean
 /**
  * Line hover in both directions. Hovering a line gives it the hovered look, raises it above the lines it
  * crosses and marks the rows of its fields in both tables; hovering a row whose field has lines does the
- * same for every one of them. Either way the tables they join stay bright and the rest dim (spec 029). ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
+ * same for every one of them. Either way the tables they join stay bright and the rest dim; on a row, the
+ * hovered table's other lines stay as they are (spec 029, FR-041). ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
  */
 /** A table's id: the text of its node's ``<title>``. */
 function tableOf(node: Element): string {
@@ -285,6 +286,9 @@ export function bindLineHover(
     }
   };
   const edgesById = (ids: number[]) => ids.map((k) => root.querySelector(`g[id="re${k}"]`)).filter((e): e is Element => e !== null);
+  // Every line one of whose ends is ``table``.
+  const touching = (table: string) =>
+    new Set(edgesById(relations.flatMap((line, k) => (line.source === table || line.target === table ? [k] : []))));
   // The tables a set of lines joins: both ends of each.
   const joined = (edges: Element[]) => new Set(edges.flatMap((edge) => {
     const line = relations[Number(edge.id.slice(2))];
@@ -317,8 +321,10 @@ export function bindLineHover(
     const own = tableOf(cell.closest("g.node") ?? cell);
     cell.addEventListener("mouseenter", () => {
       const edges = edgesById(lines);
+      // Scenario 2 (maintainer, 2026-10-27): the field's lines go bold (``show``); the tables they join
+      // stay bright; the hovered table's other lines stay as they are; every other line and table dims.
       show(edges, true);
-      focusTables(root, new Set([own, ...joined(edges)]), new Set(edges));
+      focusTables(root, new Set([own, ...joined(edges)]), touching(own));
     }, { signal });
     cell.addEventListener("mouseleave", () => {
       show(edgesById(lines), false);

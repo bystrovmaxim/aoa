@@ -245,9 +245,19 @@
 
 **Goal** (maintainer, 2026-10-27): **scenario 1** — the pointer on a table anywhere but a PK or FK field: every other table dims, and every line not connected to this table dims. **Scenario 2** — the pointer on a PK or FK field: that field's lines become bold; the tables they join stay bright; every other table dims; the hovered table's other lines stay as they are (neither bold nor dimmed); every line not connected to the hovered table dims. Phase 12 dimmed the hovered table's other lines in scenario 2.
 
-- [ ] T093 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` (`bindLineHover`, `focusTables`): on a key row, keep bright the joined tables and every line touching the hovered table, bold only the field's lines, dim the rest; leaving the row returns to scenario 1.
-- [ ] T094 [US7] Tests in `src/lib/erdPostPass.test.ts` for both scenarios line by line (which tables and lines are bright, bold, dimmed); adversarial check: dimming the table's other lines → fails. Check on the stand.
-- [ ] T095 [US7] Prepare commit 16c: `fix(maxitor): ERD hover as specified for tables and key fields (#282)`; record it in issue #282.
+- [X] T093 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` (`bindLineHover`, `focusTables`): on a key row, keep bright the joined tables and every line touching the hovered table, bold only the field's lines, dim the rest; leaving the row returns to scenario 1. Done: on a key row `focusTables` keeps bright the joined tables and every line touching the hovered table (`touching(own)`); only the field's lines get `is-hovered` (bold); leaving the row returns to scenario 1.
+- [X] T094 [US7] Tests in `src/lib/erdPostPass.test.ts` for both scenarios line by line (which tables and lines are bright, bold, dimmed); adversarial check: dimming the table's other lines → fails. Check on the stand. Done: scenario 1 (a table) and scenario 2 (an FK row, a PK row) line by line, bold included; break: the table's other lines dimmed → only scenario 2 fails; restored, 15 tests in the file.
+- [X] T095 [US7] Prepare commit 16c: `fix(maxitor): ERD hover as specified for tables and key fields (#282)`; record it in issue #282. Done — committed on the standing instruction.
+
+---
+
+## Phase 16d: Line labels never cover a table or their line (commit 16d) · US7
+
+**Goal** (maintainer, 2026-10-27, screenshot of `player` over a table's edge): a line's end label, shown on hover, stands clear of every table and beside its line, not on it.
+
+- [ ] T096 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` place each end label after layout: walk along its line from the end it names, away from the table, to the first place where the label's plate — set beside the line, off it — touches no table; a pure placement function takes the line's points and the tables' boxes.
+- [ ] T097 [US7] Tests of the placement (clear of the table it starts at, clear of other tables, off its own line); adversarial check: Graphviz's own place → the overlap test fails. Check on the stand.
+- [ ] T098 [US7] Prepare commit 16d: `style(maxitor): ERD line labels stand clear of tables and lines (#282)`; record it in issue #282.
 
 ---
 
