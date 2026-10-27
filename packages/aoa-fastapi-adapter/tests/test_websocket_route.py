@@ -102,13 +102,14 @@ class OpenAction(BaseAction["OpenAction.Params", _Empty]):
 
         room: str = Field(description="Room from the path")
         origin: str = Field(description="The Origin header")
+        host: str = Field(description="The Host header")
 
     @summary_aspect("Welcome or refuse")
     async def welcome_summary(self, params: OpenAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _Empty:
         """Refuse the room ``full``; otherwise record and welcome."""
         if params.room == "full":
             raise ConnectionRefusalError(4409, "room full")
-        connections["recorder"].events.append(("open", (params.room, params.origin)))
+        connections["recorder"].events.append(("open", (params.room, params.origin, params.host)))
         connections["socket"].send({"type": "welcome", "room": params.room})
         return _Empty()
 
@@ -201,12 +202,12 @@ class TestWebSocketRoute:
     """The route's behaviour, connection by connection."""
 
     def test_open_gets_path_and_origin(self) -> None:
-        """(1) The open action runs with the path parameter and the Origin header."""
+        """(1) The open action runs with the path parameter and the Origin and Host headers."""
         recorder, relay = Recorder(), StubRelay()
         client, _ = _client(recorder, relay)
         with client.websocket_connect("/rooms/r1/live", headers={"origin": "http://maxitor"}) as ws:
             assert ws.receive_json() == {"type": "welcome", "room": "r1"}
-        assert ("open", ("r1", "http://maxitor")) in recorder.events
+        assert ("open", ("r1", "http://maxitor", "testserver")) in recorder.events
 
     def test_message_runs_its_action(self) -> None:
         """(2) A mapped message runs its action, which answers through the socket with the connection's room."""

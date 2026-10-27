@@ -17,7 +17,7 @@ Held by `RoomRegistry` (a `BaseController` resource).
 | `empty_since` | time or none | set when the last participant leaves; the room ends 2 minutes later (FR-014) |
 | `lock` | `asyncio.Lock` | every change of the room happens under it (FR-054) |
 
-**Lifecycle**: `open` (created by `CreateRoomAction`) → `occupied` (≥ 1 participant) ⇄ `empty` (0 participants, timer running) → `ended` (timer fired: `EndRoomAction`, or the process stopped). An ended id is never reused. The process holds at most 100 rooms (FR-015).
+**Lifecycle**: `open` (created by `JoinRoomAction` for `room_id` `new`, with its first participant) → `occupied` (≥ 1 participant) ⇄ `empty` (0 participants, timer running) → `ended` (timer fired: `EndRoomAction`, or the process stopped). An ended id is never reused. The process holds at most 100 rooms (FR-015).
 
 ## Participant
 

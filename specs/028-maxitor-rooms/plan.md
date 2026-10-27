@@ -159,7 +159,7 @@ Commits 2–3, 4–7, 15 and 16 can be built in any order relative to each other
 - **nginx and WebSocket.** The stand's nginx runs on the host, outside this repository (`deploy/stand` only publishes the container port). It must forward `Upgrade`/`Connection` for `/api/v1/rooms/`, or the room never connects; the lines are recorded in tasks.md (T056) and documented in commit 18, and the maintainer applies them on the host.
 - **Memory without the idle timeout.** The process stays at its peak; `MAXITOR_MAX_GRAPHS` for the stand must fit the machine (R7).
 - **#278's phase 3 is taken here.** `LoadAOAServiceAction` downloads through `GraphSourceGateway` from commit 6 on, so the new validators and content hash never come from `httpx` inside an aspect; #278 records that its phase 3 is done by #271.
-- **`/api/v1` and the legacy middleware.** Until #278, every `/api/v1` HTTP path demands `source`; `POST /api/v1/rooms` and `GET /api/v1/graph-fingerprint` take it anyway, and the source-less `AppInfoAction` lives under `/api/meta` (R8).
+- **`/api/v1` and the legacy middleware.** Until #278, every `/api/v1` HTTP path demands `source`; `GET /api/v1/graph-fingerprint` takes it anyway (rooms are opened over the room connection, not by `POST`), and the source-less `AppInfoAction` lives under `/api/meta` (R8).
 
 ## Complexity Tracking
 
