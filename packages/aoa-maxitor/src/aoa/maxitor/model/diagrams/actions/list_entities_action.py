@@ -271,7 +271,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
                CASE WHEN COALESCE(pe.classifier_value, '') = '' THEN pe.field_name ELSE pe.classifier_value END AS label,
                'generalization' AS relationship_kind,
                'zero_many' AS source_cardinality,
-               'one' AS target_cardinality
+               'one' AS target_cardinality,
+               -- The two declared fields that join a variant to its head: its reverse field, the head's axis.
+               pe.field_name AS source_field,
+               pe.inverse_field AS target_field
         FROM parent_entity_edges pe
         JOIN selected_entity src ON src.id = pe.source_id
         JOIN selected_entity tgt ON tgt.id = pe.target_id
@@ -350,7 +353,10 @@ class ListEntitiesAction(BaseAction["ListEntitiesAction.Params", "ListEntitiesAc
             vf.label AS name,
             vf.field_type AS type,
             vf.primary_key_hint AS primary_key,
-            FALSE AS foreign_key,
+            -- A variant's reverse field is the key that points at its specialization head.
+            EXISTS (
+              SELECT 1 FROM parent_entity_edges pe WHERE pe.source_id = efe.source_id AND pe.field_name = vf.label
+            ) AS foreign_key,
             efe.ordinal AS ordinal,
             vf.reference_qualname AS reference_qualname,
             vf.field_annotation AS annotation
