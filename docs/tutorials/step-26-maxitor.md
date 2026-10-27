@@ -18,6 +18,8 @@
 - [Dictionaries in the entity diagram](#dictionaries-in-the-entity-diagram)
 - [Specialization: the variants in one frame](#specialization-the-variants-in-one-frame)
 - [Maxitor as an AOA application](#maxitor-as-an-aoa-application)
+- [Looking at one service together](#looking-at-one-service-together)
+- [Graphs that follow their services](#graphs-that-follow-their-services)
 - [How to run it](#how-to-run-it)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
@@ -337,6 +339,52 @@ One protection moved rather than disappeared. A primary key used to refuse a gra
 
 [03_graph_memory.py](../../examples/step_26_maxitor/03_graph_memory.py) and its [notebook](../../examples/step_26_maxitor/03_graph_memory.ipynb) show the cost by memory tag, the refusal, the cross-table case and an empty graph, with the output they print. On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`aoa-maxitor` README](../../packages/aoa-maxitor/README.md#backend) says what that means for the fifty-graph limit.
 
+## Looking at one service together
+
+A **room** lets several people look at one service at once. It changes nothing in the service and copies no graph: the people in it see the same diagrams, each other's pointers, and one set of filters.
+
+**Opening and joining.** **Open room** in the row above the diagram asks for a name and opens a room for the service on screen; the address gains `room=<id>` and a card offers the link. The id is 128 random bits, so the link is the invitation. Whoever opens the link is asked for a name — *Everyone with the link sees your name and your pointer* — and joins. Each person gets a colour of their own; the row shows a circle per person, yours first and ringed, and folds the rest into **+N** beyond five (three on a phone). **Copy link** hands out the page you are on, not the one the room was opened on; **Leave room** keeps that page, its filters and its zoom.
+
+**What is shared, and what is not.** Every filter and layout mode of a page is the room's: switch the ERD to Neato and everyone on that page sees Neato; a later joiner opens it that way. A change travels as the new value, never as a toggle, so two people clicking at once end in the same last value. Zoom, scroll, hover and the left panel stay yours.
+
+**Pointers.** Each pointer is sent in the diagram's own coordinates — the SVG's user space, or G6's canvas — and every screen places it at its own zoom, so it lands on the same table on a phone and on a desktop. A mouse is an arrow with a name; a touch is a ring that fades after a second; a pointer still for ten seconds fades until it moves. One outside your view is an arrow at the edge with the person's initials; a click on it centres the view there. **Hide pointers** hides other people's pointers on your screen only. This works only because every engine and screen lays a diagram out to the same bits — [the check run proves it](#the-same-layout-everywhere) in Chromium, Firefox and WebKit, on a phone and a desktop.
+
+### The same layout everywhere
+
+A pointer at "the header of `PlayerCoreEntity`" is only useful if that header is at the same diagram point on every screen. So every diagram is laid out to the same bits in every browser engine and at every screen size. Maxitor lays the full graph out itself — centred at the origin rather than at the window's middle, from starting positions computed without `cos`/`sin`, for a fixed number of steps — and hands G6 the finished positions; a layout remembered before this change is laid out once more. Graphviz's FDP runs in a fresh WebAssembly instance, because it reads state earlier layouts leave behind. Every viewer writes a hash of what it drew on its diagram element (`data-layout-hash`), and a step of the check run opens every page in every layout mode in Chromium, Firefox and WebKit, at 375×812 and 1600×900, and requires the hashes to be equal; then it opens a real room in each engine and requires a desktop's pointer and a phone's tap to land within 2 px of the same node on the other screen.
+
+**Going to someone and following.** A click on someone's circle opens the page they are on, centred on their pointer, or on the centre of their screen when they have none — at your own zoom. **Follow** in their card keeps your screen where theirs is, page after page, again at your zoom; a frame in their colour says *Following Boris · Stop*. Your own pan, your own navigation, **Stop**, Esc, or their leaving end it; zooming does not. **Follow Vera instead** switches in one step. Following never closes a circle: if Anna follows Boris, Boris cannot follow Anna — nor anyone who follows Anna — and his card says why; the server decides it under the room's lock, so two crossing requests cannot both succeed.
+
+**When something goes wrong.** Each refusal closes the connection with a code the page turns into one sentence:
+
+| Code | When | The page says |
+|---|---|---|
+| `4404` | the room has ended — two minutes after its last person left, or the server restarted | *This room has ended. You are looking at the diagram on your own.*, with **Open room** |
+| `4409` | the room already has 20 people | *Can't join: this room already has 20 people.* |
+| `4422` | the name is empty or longer than 40 characters | the name dialog shows the rule |
+| `4403` | the page comes from another site (its `Origin` is neither Maxitor's host nor listed in `MAXITOR_ROOM_ORIGINS`) | *This page cannot join the room.* |
+| `4503` | the process already holds 100 rooms | *Too many rooms are open on this server; try again later.* |
+| `4413`, `4429`, `4008` | a message over 4 KB, over 40 messages a second, or a tab too slow to keep up | *The connection was closed: …*, and the page connects again |
+
+A lost connection is not leaving: the row says *Reconnecting…*, the page connects again after 1, 2, 4, 8 and then every 15 seconds, and a return within two minutes keeps your colour and is announced to nobody. After every draw a tab tells the room what it drew; a tab left open over a deploy reloads itself (at most once in five minutes, keeping zoom and centre), and a page whose layout differs from the room's turns pointers off there with *Pointers are off on this page: your diagram is laid out differently from the room's.*
+
+**Rooms are AOA too.** Every room operation — joining, leaving, a setting, a follow, a lost tab — is an AOA action run once per WebSocket message by `FastApiAdapter.websocket(...)`, over a `RoomRegistry` resource; the log names rooms and participants by id, never by name. Pointers are the exception: the adapter relays them as they come, never runs an action for them and never logs them. [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) and its [notebook](../../examples/step_26_maxitor/08_rooms.ipynb) open a room, share a setting, relay a pointer, refuse a circle and a full room, with the output they print.
+
+## Graphs that follow their services
+
+A built graph used to be removed after an hour unread, so the first visitor after a quiet hour waited for a download and a build. Now a built graph **stays until the store is full** (`MAXITOR_MAX_GRAPHS`, 50 by default; then the one read longest ago leaves) — and stays current.
+
+While someone looks at a graph — a person in a room of that service, or a tab outside a room that asked about it in the last 75 seconds — Maxitor asks the service whether it changed:
+
+- **with `ETag` or `Last-Modified`**, every 30 seconds, sending them back; an unchanged service answers `304` and costs a header;
+- **without them**, every 2 minutes, downloading the body and comparing its SHA-256 with the one the held graph was built from — nothing is required of the service.
+
+A changed service is rebuilt in the background, and the new graph replaces the old one only when its build succeeded. A service that does not answer, or a body that does not build, keeps the graph everyone already has. Checks of one source never overlap. A graph nobody watches is not checked on the clock; its next read answers from memory at once and checks in the background.
+
+Open pages follow. A tab outside a room asks `GET /api/v1/graph-fingerprint` every 30 seconds while it is visible; a tab in a room is told by the room. Either way the page reads the left panel and its diagram again in place — page, filters, layout mode, zoom and centre stay — a filter that names something no longer in the model stops applying, and *The model was updated.* shows for a few seconds. **Reload** in the left panel still rebuilds at once; inside a room it rebuilds for everyone, and nobody leaves.
+
+Maxitor's own answers are conditional too: every successful `GET` of a `FastApiAdapter` app carries an `ETag` of its body, and a request that sends it back gets `304` with no body. [09_fresh_graphs.py](../../examples/step_26_maxitor/09_fresh_graphs.py) and its [notebook](../../examples/step_26_maxitor/09_fresh_graphs.ipynb) show the `ETag` and `304`, an unchanged service, a changed one rebuilt and a service that is down.
+
 ## How to run it
 
 ```bash
@@ -347,11 +395,21 @@ uv run task maxitor-api
 cd packages/aoa-maxitor/client && npm install && npm run dev
 ```
 
-Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs, builds at most four at once, and removes a graph unread for an hour — all three are settings, listed in the [`aoa-maxitor` package README](../../packages/aoa-maxitor/README.md).
+Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`aoa-maxitor` package README](../../packages/aoa-maxitor/README.md).
 
-A runnable tour of the whole request contract — two sources side by side, a cold read, `400`, `422`, `503`, an explicit reload, a failed reload, idle removal, eviction and a burst — is [02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
+A runnable tour of the whole request contract — two sources side by side, a cold read, `400`, `422`, `503`, an explicit reload, a failed reload, a graph held for hours, eviction and a burst — is [02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
 
-The package dependencies are `aoa-action-machine`, `fastapi`, `uvicorn`, `duckdb`.
+Rooms run over a WebSocket. A reverse proxy in front of Maxitor must pass the upgrade through and keep the page's `Host` — otherwise a browser is refused with `4403`. For nginx, in the `location` that proxies Maxitor:
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_set_header Host $host;
+proxy_read_timeout 1h;
+```
+
+The package dependencies are `aoa-action-machine`, `fastapi`, `uvicorn`, `duckdb`, `websockets`.
 
 ## Invariants
 
@@ -360,6 +418,8 @@ The package dependencies are `aoa-action-machine`, `fastapi`, `uvicorn`, `duckdb
 - **The same graph as the machine's.** Maxitor displays the `NodeGraphCoordinator` graph, which is checked at startup and feeds access.
 - **Four projections.** Full graph, ERD, use case, lifecycle — from one code.
 - **Maxitor is AOA.** The backend is operations through `FastApiAdapter`; the JSON endpoints are embeddable.
+- **A room shares a view, not a copy.** Pointers travel in diagram coordinates and every screen draws them at its own zoom; nobody's zoom is ever copied.
+- **A held graph is never older than its service lets it be.** A changed service is rebuilt and swapped in only after a successful build; a failing one keeps the graph everyone has.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md).
 
@@ -384,6 +444,9 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 8. What is the dashed frame, and why does it not imply an additional entity or database table?
 9. Why are dictionary values rows inside one card rather than separate entities?
 10. Why does a single alternative have no frame while its reverse relation remains?
+11. Why does a pointer travel in diagram coordinates rather than in screen pixels — and what has to be true of every engine for it to land on the same table?
+12. What keeps two people who press **Follow** on each other at the same moment from both succeeding?
+13. A service gives no `ETag`. How does Maxitor still notice it changed, and how often?
 
 > **Exercise.** In [01_graph.py](../../examples/step_26_maxitor/01_graph.py) add a second `Action` with a compensator (`@compensate`) and a handler (`@on_error`) and print the node-type breakdown again — find `Compensator` and `ErrorHandler` among them. Then add a new relation to the entities and confirm the number of `entity_relation` edges grew.
 
@@ -426,9 +489,9 @@ The kind distinction does not change what is drawn on its own: associative entit
 
 **The filter panel.** The ERD has one panel at its top left with two sections, **Domains** and **Kinds**. They fold like an accordion: one is open at a time, Domains when the diagram opens. A row is a coloured disk with a name; clicking it hides or shows those tables, and a switched-off row is dimmed. Kinds lists the answer of `list-entity-kinds` and appears only when the graph has more than one kind; its disks are grey with the kind's icon, because colour on this diagram means the domain. The panel is 148 px wide and never widens: a name that does not fit ends with an ellipsis and shows in full on hover. On a narrow screen the panel starts as a **Filter** pill.
 
-**The table.** A table's header shows its kind's white icon beside its name, in the domain colour: a small table for Core, a chain link for Association, a branch off its owner for Detail, layers for Specialization, a list for Enumeration, a target for State, a question mark for a row that states no kind, and the word's first two letters for a kind Maxitor does not know. A table is at least as wide as a short card, so a two-field table is not a stub. Types sit at the right edge of the row. A relation field's type is the name of the table it points to — the old `FK -> ` prefix and the `→` after a dictionary type are gone, because the line already says it.
+**The table.** A table's header shows its kind's white icon beside its name, in the domain colour: a small table for Core, a chain link for Association, a branch off its owner for Detail, layers for Specialization, a list for Enumeration, a target for State, a question mark for a row that states no kind, and the word's first two letters for a kind Maxitor does not know. The header is 30 units high, flush with the frame and its rounded top corners, and icon and name sit at its left. A table is at least as wide as a short card, so a two-field table is not a stub. Every second row is tinted faintly with the domain colour; `PK` is bold rust-red and `FK` bold slate, in a column of their own before the field name; the type is smaller and grey, at the right edge of the row. A relation field's type is the name of the table it points to — the old `FK -> ` prefix and the `→` after a dictionary type are gone, because the line already says it.
 
-**The lines.** A line is drawn whenever both of its tables are on screen, whatever brought each there: the domain itself, a 1-hop neighbour, or another domain shown in the same view. A relation field and its declared inverse are one association, so they are one line, not two. Each end shows its cardinality the ERD way — a bar for one, a crow's foot for many — and the name of the field on that side, which is that end's role. A relation without an inverse is a line with one role. A specialization head has a line to the dictionary its axis is classified by, and an extension keeps its generalization line to its head. The specialization container is a little darker than the canvas, with a border 1 px thicker, so it reads as a frame.
+**The lines.** A line is drawn whenever both of its tables are on screen, whatever brought each there: the domain itself, a 1-hop neighbour, or another domain shown in the same view. A relation field and its declared inverse are one association, so they are one line, not two. Each end shows its cardinality the ERD way — a bar for one, a crow's foot for many — and the name of the field on that side, which is that end's role. A relation without an inverse is a line with one role. A specialization head has a line to the dictionary its axis is classified by, and an extension keeps its generalization line to its head, dashed and with a filled arrowhead. The specialization container is a little darker than the canvas, with a border 1 px thicker, so it reads as a frame.
 
 [The lines example](../../examples/step_26_maxitor/07_erd_lines.py) ([notebook](../../examples/step_26_maxitor/07_erd_lines.ipynb)) reads these lines from `GET /api/v1/list-entities`:
 

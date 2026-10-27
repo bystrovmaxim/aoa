@@ -102,7 +102,7 @@ async def test_a_held_graph_is_never_downloaded_again_on_a_timer() -> None:
     """An hour later the same source answers from the held graph: no new download (SC-002, FR-012)."""
     clock = FakeClock()
     builder = CountingBuilder(_graph())
-    store = GraphStore(builder, idle_seconds=7200.0, clock=clock)
+    store = GraphStore(builder, clock=clock)
     app = _application(store)
 
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)

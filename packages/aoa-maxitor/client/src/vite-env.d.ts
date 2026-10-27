@@ -9,3 +9,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** The id of the client build this page runs, written by ``vite.config.ts`` (spec 028, FR-090). */
+declare const __MAXITOR_BUILD__: string;

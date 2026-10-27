@@ -26,6 +26,11 @@ services:
     build:
       context: ../..
       dockerfile: packages/aoa-maxitor/Dockerfile
+    environment:
+      # Built graphs stay in memory until this many are held; then the one read longest ago leaves.
+      # One graph of the reference service costs about 22 MiB of the process after #268, so 50 graphs
+      # keep the process near 1.1 GiB at its peak. Lower it on a smaller machine.
+      MAXITOR_MAX_GRAPHS: "${MAXITOR_MAX_GRAPHS:-50}"
     ports:
       - "127.0.0.1:${MAXITOR_PORT:-8101}:8101"
     healthcheck:

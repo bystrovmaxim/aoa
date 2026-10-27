@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] – 2026-10-27
+
+### Added
+
+- **Rooms: look at one service together.** **Open room** gives a link; whoever opens it gives a name and joins. Everyone sees the others' pointers on the same spot of the diagram at any zoom, filters and layout modes are shared per page, a click on someone's circle goes to them, and **Follow** keeps your screen where theirs is, at your own zoom and never in a circle. The link is the invitation and names are not verified; a room holds 20 people and ends two minutes after its last person leaves. Rooms run over the WebSocket route `/api/v1/rooms/{room_id}/live`; a proxy in front of Maxitor must pass WebSockets through and keep the page's `Host` (README, *Production*). ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
+- **Held graphs stay current.** While someone looks at a graph, Maxitor asks its service whether it changed — every 30 seconds with `ETag` or `Last-Modified`, every 2 minutes by the body's SHA-256 — rebuilds a changed one in the background and swaps it in only after a successful build; a service that is down keeps the graph. Open pages redraw in place. `GET /api/v1/graph-fingerprint` and `GET /api/meta/app-info` are new. ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
+- **The same layout everywhere**, proven in the check run across Chromium, Firefox and WebKit and two screen sizes; a remembered full-graph arrangement is laid out once more. ERD tables take the new style, and the left panel shows a project link and the running version. ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
+### Changed
+
+- **A built graph stays until `MAXITOR_MAX_GRAPHS` is reached.** The idle removal and `MAXITOR_GRAPH_IDLE_SECONDS` are gone. `MAXITOR_ROOM_ORIGINS` lists extra browser origins allowed to join a room. Requires `aoa-fastapi-adapter` 1.3.0 or later. ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
 ## [2.2.0] – 2026-10-27
 
 ### Added

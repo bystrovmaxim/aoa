@@ -44,6 +44,18 @@ day the renderer changes either. The check lives in
 closing check run; its printed `info` line says how many cards in the fixtures still show the defect
 before the pass, which is a measurement, not an assertion.
 
+## The table style
+
+A table looks as on screen 21 of the rooms mockup (spec 028, FR-110 … FR-115): a header 30 high in the
+domain colour, flush with the frame and sharing its rounded top corners, with the kind icon and the
+entity name white, bold and at the left; the frame in the domain colour around a white body; rows 20
+high, every second one tinted with the domain colour at 6 %; `PK` bold rust-red and `FK` bold slate in a
+column of their own before the field name; the type smaller and grey on the right; grey lines, a
+generalization dashed with a filled arrowhead. Associations keep their crow's-foot and bar ends: they
+carry the cardinality. `buildDotSource` writes the style, `placeKindIcons` places icon and name, and
+**`packages/aoa-maxitor/client/scripts/check-erd-table-style.ts`** asserts each rule on the real WASM
+Graphviz output in the closing check run.
+
 ## A dictionary's values, and a field that references one
 
 A closed dictionary is an ordinary entity node whose payload carries two extra things: `entity_kind`

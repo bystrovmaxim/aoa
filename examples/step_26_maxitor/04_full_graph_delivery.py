@@ -32,7 +32,7 @@ Output:
        body: the file's own 933 bytes: True
 
     3. The page
-       GET / -> 200 cache-control: no-cache, etag "0b10de7f73088e2aa31960be071ff898"
+       GET / -> 200 cache-control: no-cache, etag "67acc46961d35a79e11aed9209c6d667"
        GET / with that etag -> 304
        GET /index.html -> 200 cache-control: no-cache
 

@@ -5,6 +5,9 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { usePageSetting } from "@/lib/pageSettings";
 import { fetchLifecycleFiniteAutomaton } from "@/api/lifecycleFiniteAutomaton";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
@@ -24,8 +27,6 @@ const GRID_SX = {
   backgroundSize: "20px 20px",
 };
 
-const lifecycleFsmRankdirByNodeId = new Map<string, LifecycleFsmRankdir>();
-
 export type LifecycleFsmViewerProps = {
   lifecycleGraphNodeId: string;
 };
@@ -34,17 +35,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const load = useCallback(() => fetchLifecycleFiniteAutomaton(lifecycleGraphNodeId), [lifecycleGraphNodeId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
 
-  const [rankdir, setRankdir] = useState<LifecycleFsmRankdir>(
-    () => lifecycleFsmRankdirByNodeId.get(lifecycleGraphNodeId) ?? "LR",
-  );
-
-  useEffect(() => {
-    setRankdir(lifecycleFsmRankdirByNodeId.get(lifecycleGraphNodeId) ?? "LR");
-  }, [lifecycleGraphNodeId]);
-
-  useEffect(() => {
-    lifecycleFsmRankdirByNodeId.set(lifecycleGraphNodeId, rankdir);
-  }, [lifecycleGraphNodeId, rankdir]);
+  // A page setting: shared inside a room (spec 028, FR-030).
+  const [rankdir, setRankdir] = usePageSetting<LifecycleFsmRankdir>("rankdir", "LR");
 
   const dot = useMemo(
     () => (data != null ? buildLifecycleFsmDotSource(data, rankdir) : ""),
@@ -53,13 +45,19 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
 
   // Reserve space for the floating zoom + rankdir toolbar (bottom: 10 + ~36px button row)
   // so vertical fit doesn't push the diagram under the controls in TB mode.
-  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } =
-    useSvgPanZoom({ fitBottomInset: 56 });
+  const panZoom = useSvgPanZoom({ fitBottomInset: 56 });
+  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } = panZoom;
 
   const [svgMarkup, setSvgMarkup] = useState("");
+  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090).
+  const layoutHashValue = useSvgLayoutHash(svgMarkup);
+  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
+  const layoutInputDigest = useSvgLayoutHash(svgMarkup ? `dot\n${dot}` : "");
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
+  // Registered after the second fit (one frame after the first), so a placed view is not undone.
+  useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
@@ -171,6 +169,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
             )}
             <Box
               ref={viewportRef}
+              data-layout-hash={layoutHashValue}
+              data-layout-input={layoutInputDigest}
               sx={{
                 position: "absolute",
                 inset: 0,

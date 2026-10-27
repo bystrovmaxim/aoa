@@ -1,25 +1,28 @@
 // src/components/diagrams/FullGraphViewer/forceLayout.ts
 /**
- * The full graph's layout, computed by the same `D3ForceLayout` of `@antv/layout` G6 would run.
+ * The full graph's layout, computed by Maxitor with the `D3ForceLayout` of `@antv/layout`, so the
+ * same graph gets bit-identical positions in every browser and on every screen size.
  *
- * Only the worker and the unit tests import this module: the viewer itself must not, or the
- * layout code and `@antv/layout` would enter the chunk every view loads (research R2).
+ * The viewer imports this module lazily, together with G6, so the layout code never enters the
+ * chunk every view loads (spec 026, research R2). Three things make the result the same
+ * everywhere (spec 028, research R2): the centre is the origin, never the canvas or window
+ * middle; every node starts where ``initialPositions`` puts it, so `d3-force-3d` never reaches
+ * its own `Math.cos` / `Math.sin` spiral; and nodes enter in the order of the server's answer.
  *
  * The options are one explicit nested object built from ``LAYOUT_SETTINGS`` — never a shallow
- * spread, which would drop ``center.strength`` and leave d3's default of 1 (research R4).
+ * spread, which would drop ``center.strength`` and leave d3's default of 1 (spec 026, research R4).
  */
 
 import { D3ForceLayout } from "@antv/layout";
 
+import { initialPositions } from "./initialPositions";
 import { LAYOUT_SETTINGS } from "./layoutSettings";
 
-/** One layout request, structured-clonable so it can cross a worker boundary. */
+/** One layout request; no canvas size enters it, so the screen cannot change the result. */
 export type LayoutRequest = {
   nodes: string[];
   edges: [string, string][];
   nodeVisualPx: number;
-  width: number;
-  height: number;
 };
 
 /** The worker's answer: the position of every node, or why there is none. */
@@ -54,18 +57,19 @@ export function validatePositions(
 }
 
 /**
- * Run the layout exactly as G6 does — ``execute``, ``stop``, ``tick`` — and return the positions.
- *
- * The options are the ones G6's ``initGraphLayout`` would merge from today's viewer, given as
- * one object so no merge can drop a field.
+ * Run the layout the way G6 does — ``execute``, ``stop``, ``tick`` — around the origin, from the
+ * starting spiral, and return the positions.
  */
 export function computeForceLayout(request: LayoutRequest): Record<string, [number, number]> {
-  const { nodeVisualPx, width, height } = request;
+  const { nodeVisualPx } = request;
   const options = {
     nodeSize: nodeVisualPx,
-    width,
-    height,
-    center: { x: width / 2, y: height / 2, z: 0, strength: LAYOUT_SETTINGS.centerStrength },
+    // `D3ForceLayout` always sets the centre to half its viewport, overriding ``center.x`` /
+    // ``center.y``, and without a size it takes the browser window's. A fixed size of zero puts
+    // the centre at the origin on every screen.
+    width: 0,
+    height: 0,
+    center: { x: 0, y: 0, z: 0, strength: LAYOUT_SETTINGS.centerStrength },
     link: { distance: LAYOUT_SETTINGS.linkDistance, strength: LAYOUT_SETTINGS.linkStrength },
     manyBody: { ...LAYOUT_SETTINGS.manyBody },
     collide: {
@@ -78,8 +82,9 @@ export function computeForceLayout(request: LayoutRequest): Record<string, [numb
     velocityDecay: LAYOUT_SETTINGS.velocityDecay,
   };
   const layout = new D3ForceLayout(options as never);
+  const start = initialPositions(request.nodes);
   const data = {
-    nodes: request.nodes.map((id) => ({ id })),
+    nodes: request.nodes.map((id) => ({ id, x: start[id][0], y: start[id][1] })),
     edges: request.edges.map(([source, target]) => ({ source, target })),
   };
   // G6 does not await execute either: it runs the simulation into existence, stops the timer,

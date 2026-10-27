@@ -92,6 +92,18 @@ export const ERD_TABLE_MIN_WIDTH_PT = 210;
 export const ERD_KIND_SLOT_PT = 13;
 
 /**
+ * The table style of spec 028 (FR-110 … FR-115; mockup screen 21), in diagram units: the header 30 and a
+ * row 20 high, the key words in their colours, every second row tinted with the domain colour at 6 %.
+ */
+export const ERD_HEADER_HEIGHT_PT = 30;
+export const ERD_ROW_HEIGHT_PT = 20;
+export const ERD_PK_COLOUR = "#b45309";
+export const ERD_FK_COLOUR = "#475569";
+export const ERD_TYPE_COLOUR = "#64748b";
+/** The alpha appended to a domain colour for a tinted row: 0x0f / 0xff ≈ 6 %. */
+export const ERD_ROW_TINT_ALPHA = "0f";
+
+/**
  * Ids of the cells the SVG post-pass looks up. Graphviz writes a cell's ``ID`` into the SVG only with a
  * ``TOOLTIP`` (or ``HREF``), as ``<g id="a_<ID>">`` around the cell's fill and text — the node name is
  * not part of it — so every id carries the table's index and is unique across the drawing.
@@ -191,11 +203,13 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
     const rows = (nd.fields || [])
       .map((f, row) => {
-        const bg = f.primary_key ? "#fef9c3" : f.foreign_key ? "#dbeafe" : "#ffffff";
+        // Every second row carries the domain colour faintly; keys are told by their word, not by a fill.
+        const bg = row % 2 === 1 ? `${color}${ERD_ROW_TINT_ALPHA}` : "#ffffff";
         const icon = f.primary_key ? "PK" : f.foreign_key ? "FK" : "";
+        const iconColour = f.primary_key ? ERD_PK_COLOUR : ERD_FK_COLOUR;
         const iconTd = icon
-          ? `<TD BGCOLOR="${bg}" ALIGN="CENTER" WIDTH="28"><FONT POINT-SIZE="9"><B>${icon}</B></FONT></TD>`
-          : `<TD BGCOLOR="${bg}" WIDTH="28"></TD>`;
+          ? `<TD BGCOLOR="${bg}" ALIGN="LEFT" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"><FONT POINT-SIZE="8.5" COLOR="${iconColour}"><B>${icon}</B></FONT></TD>`
+          : `<TD BGCOLOR="${bg}" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"></TD>`;
         // A specialization axis row collapses its alternatives into "Specialization N+"
         // and carries the full list as the cell's hover tooltip. The line already says what a field
         // references, so the type cell carries no "→ target" of its own.
@@ -212,7 +226,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
           "<TR>" +
           iconTd +
           `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="Click to copy">${escHtml(f.name)}</TD>` +
-          `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="#64748b"><I>${escHtml(typeText)}</I></FONT></TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="${ERD_TYPE_COLOUR}" POINT-SIZE="10">${escHtml(typeText)}</FONT></TD>` +
           "</TR>"
         );
       })
@@ -220,17 +234,17 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
 
     return (
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
-      // One header cell with the domain fill (the card's rounding trims it); inside, the kind icon slot
-      // and the name, each filled with the same colour so Graphviz emits their boxes. Graphviz spreads
-      // the header's extra width over these cells, so the post-pass centres icon and name together.
-      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="CENTER" WIDTH="${ERD_TABLE_MIN_WIDTH_PT}" ` +
+      // One header cell with the domain fill, flush with the frame (the card's rounding trims it);
+      // inside, the kind icon slot and the name, each filled with the same colour so Graphviz emits
+      // their boxes. The post-pass puts icon and name at the left, after an inset (FR-110).
+      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
       `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(nd.label || nd.id)}">` +
       `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>` +
       `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
       `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
       `<TD WIDTH="4"></TD>` +
       `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="Click to copy" BGCOLOR="${color}">` +
-      `<FONT COLOR="white" POINT-SIZE="12"><B>${escHtml(nd.label || nd.id)}</B></FONT></TD>` +
+      `<FONT COLOR="white" POINT-SIZE="12.5"><B>${escHtml(nd.label || nd.id)}</B></FONT></TD>` +
       `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
     );
   };
@@ -267,9 +281,10 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     if (ed.relationship_kind === "specialization") return;
     const id = `id="${erdEdgeId(k)}" `;
     if (ed.relationship_kind === "generalization" || !ed.source_field) {
-      // A generalization keeps its hollow triangle; a row from an older server keeps its middle label.
+      // A generalization is dashed with a filled arrowhead (FR-115); a row from an older server keeps
+      // its middle label and gets the plain filled arrowhead.
       const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-      const arrow = ed.relationship_kind === "generalization" ? "arrowhead=empty " : "";
+      const arrow = ed.relationship_kind === "generalization" ? "style=dashed arrowhead=normal " : "arrowhead=normal ";
       lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${arrow}`.trim()}]`);
       return;
     }

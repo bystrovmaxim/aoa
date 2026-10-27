@@ -5,6 +5,16 @@ All notable changes to `aoa-fastapi-adapter` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] – 2026-10-27
+
+### Added
+
+- **WebSocket routes that run an action per message.** `FastApiAdapter.websocket(path, on_open=…, messages={…}, on_close=…)` turns one connection into action runs: `on_open` can refuse with a close code (`ConnectionRefusalError`), each message type runs its action, `SocketChannel` sends durable and volatile events, and chosen message types can be relayed without an action. Size, rate and slow-client limits close the connection with their own codes. ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
+### Changed
+
+- **Every successful `GET` carries an `ETag`** of its body, and a request whose `If-None-Match` names it gets `304` with no body. ([#271](https://github.com/bystrovmaxim/aoa/issues/271))
+
 ## [1.2.1] – 2026-10-26
 
 ### Changed

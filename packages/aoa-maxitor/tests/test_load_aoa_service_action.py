@@ -1,11 +1,11 @@
 # tests/maxitor/test_load_aoa_service_action.py
-"""Tests for LoadAOAServiceAction: Pydantic validation, aspect logic, httpx mocking."""
+"""Tests for LoadAOAServiceAction: Pydantic validation, aspect logic, downloads through a stub gateway."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -15,6 +15,7 @@ from aoa.maxitor.model.core.actions.load_aoa_service_action import (
     LoadAOAServiceParams,
     LoadAOAServiceResult,
 )
+from aoa.maxitor.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, Document, Unreachable
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -134,63 +135,63 @@ async def test_normalize_leaves_full_endpoint_url_with_trailing_slash() -> None:
 _URL = f"http://127.0.0.1:8001{_ENDPOINT}"
 
 
-def _mock_response(status_code: int, json_body: Any) -> MagicMock:
-    resp = MagicMock()
-    resp.status_code = status_code
-    resp.json.return_value = json_body
-    if status_code >= 400:
-        from httpx import HTTPStatusError, Request, Response
+class _StubGateway:
+    """Stands in for ``GraphSourceGateway``: returns one prepared answer and records the URL asked."""
 
-        resp.raise_for_status.side_effect = HTTPStatusError(
-            message=str(status_code),
-            request=MagicMock(spec=Request),
-            response=MagicMock(spec=Response, status_code=status_code),
-        )
-    else:
-        resp.raise_for_status.return_value = None
-    return resp
+    def __init__(self, answer: Document | Unreachable) -> None:
+        self.answer = answer
+        self.urls: list[str] = []
+
+    async def fetch(self, url: str) -> Document | Unreachable:
+        """Record ``url`` and return the prepared answer."""
+        self.urls.append(url)
+        return self.answer
+
+
+def _document(json_body: Any, *, etag: str | None = None) -> Document:
+    """A 2xx answer whose body is ``json_body`` serialized."""
+    body = json.dumps(json_body).encode()
+    return Document(body=body, sha256=hashlib.sha256(body).hexdigest(), etag=etag, last_modified=None)
+
+
+def _connections(answer: Document | Unreachable) -> dict[str, Any]:
+    """Connections carrying a stub gateway that returns ``answer``."""
+    return {GRAPH_SOURCE_CONNECTION_KEY: _StubGateway(answer)}
 
 
 async def test_validate_service_raises_on_http_error() -> None:
     state = _state(service_graph_json_url=_URL)
-    mock_resp = _mock_response(404, {})
-    with patch("httpx.AsyncClient") as mock_client_cls:
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        with pytest.raises(ValueError, match="HTTP 404"):
-            await _ACTION.validate_service_aspect(None, state, None, {})  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="HTTP 404"):
+        await _ACTION.validate_service_aspect(None, state, None, _connections(Unreachable("HTTP 404", status=404)))  # type: ignore[arg-type]
+
+
+async def test_validate_service_raises_when_unreachable() -> None:
+    state = _state(service_graph_json_url=_URL)
+    with pytest.raises(ValueError, match=r"Cannot reach AOA service .*connection refused"):
+        await _ACTION.validate_service_aspect(None, state, None, _connections(Unreachable("connection refused")))  # type: ignore[arg-type]
 
 
 async def test_validate_service_raises_when_coordinator_json_missing() -> None:
     state = _state(service_graph_json_url=_URL)
-    mock_resp = _mock_response(200, {"other_field": "value"})
-    with patch("httpx.AsyncClient") as mock_client_cls:
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        with pytest.raises(ValueError, match="coordinator_json"):
-            await _ACTION.validate_service_aspect(None, state, None, {})  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="coordinator_json"):
+        await _ACTION.validate_service_aspect(None, state, None, _connections(_document({"other_field": "value"})))  # type: ignore[arg-type]
 
 
 async def test_validate_service_raises_when_coordinator_json_not_string() -> None:
     state = _state(service_graph_json_url=_URL)
-    mock_resp = _mock_response(200, {"coordinator_json": {"already": "parsed"}})
-    with patch("httpx.AsyncClient") as mock_client_cls:
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        with pytest.raises(ValueError, match="coordinator_json"):
-            await _ACTION.validate_service_aspect(None, state, None, {})  # type: ignore[arg-type]
+    answer = _document({"coordinator_json": {"already": "parsed"}})
+    with pytest.raises(ValueError, match="coordinator_json"):
+        await _ACTION.validate_service_aspect(None, state, None, _connections(answer))  # type: ignore[arg-type]
 
 
-async def test_validate_service_returns_raw_coordinator_json_string() -> None:
+async def test_validate_service_returns_raw_coordinator_json_and_the_source_identity() -> None:
     state = _state(service_graph_json_url=_URL)
     raw = json.dumps(_MINIMAL_COORDINATOR)
-    mock_resp = _mock_response(200, {"coordinator_json": raw})
-    with patch("httpx.AsyncClient") as mock_client_cls:
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        result = await _ACTION.validate_service_aspect(None, state, None, {})  # type: ignore[arg-type]
+    answer = _document({"coordinator_json": raw}, etag='"abc"')
+    result = await _ACTION.validate_service_aspect(None, state, None, _connections(answer))  # type: ignore[arg-type]
     assert result["coordinator_json_raw"] == raw
     assert result["service_graph_json_url"] == _URL
+    assert result["source_identity"] == {"sha256": answer.sha256, "etag": '"abc"', "last_modified": ""}
 
 
 # ─── parse_service_graph_aspect ──────────────────────────────────────────────
@@ -218,10 +219,12 @@ async def test_parse_raises_when_edges_missing() -> None:
 
 async def test_parse_returns_service_graph_data() -> None:
     raw = json.dumps(_MINIMAL_COORDINATOR)
-    state = _state(service_graph_json_url=_URL, coordinator_json_raw=raw)
+    identity = {"sha256": "0" * 64, "etag": "", "last_modified": ""}
+    state = _state(service_graph_json_url=_URL, coordinator_json_raw=raw, source_identity=identity)
     result = await _ACTION.parse_service_graph_aspect(None, state, None, {})  # type: ignore[arg-type]
     assert result["service_graph_data"] == _MINIMAL_COORDINATOR
     assert result["service_graph_json_url"] == _URL
+    assert result["source_identity"] == identity
 
 
 # ─── build_duckdb_graph_summary ──────────────────────────────────────────────
@@ -237,17 +240,19 @@ async def test_build_summary_returns_correct_counts() -> None:
             {"source_id": "d.child", "target_id": "d.parent", "type": "parent_domain", "relationship": "Generalization", "is_dag": False},
         ],
     }
-    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator)
+    identity = {"sha256": "a" * 64, "etag": '"v1"', "last_modified": ""}
+    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity=identity)
     result = await _ACTION.build_duckdb_graph_summary(None, state, None, {})  # type: ignore[arg-type]
     assert isinstance(result, LoadAOAServiceResult)
     assert result.node_count == 2
     assert result.edge_count == 1
     assert result.service_graph_json_url == _URL
+    assert (result.content_sha256, result.etag, result.last_modified) == ("a" * 64, '"v1"', "")
 
 
 async def test_build_summary_empty_graph() -> None:
     coordinator = {"nodes": [], "edges": []}
-    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator)
+    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity={"sha256": "0" * 64, "etag": "", "last_modified": ""})
     result = await _ACTION.build_duckdb_graph_summary(None, state, None, {})  # type: ignore[arg-type]
     assert result.node_count == 0
     assert result.edge_count == 0
