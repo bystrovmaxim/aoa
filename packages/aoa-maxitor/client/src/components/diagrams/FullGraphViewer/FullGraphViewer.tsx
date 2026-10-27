@@ -12,6 +12,7 @@ import { layoutHash } from "@/lib/layoutHash";
 import { useCurrentPage } from "@/lib/pageSettings";
 import { registerG6DiagramSurface } from "@/rooms/diagramSurface";
 import { isFollowing, mirroredFocus, reportHover, subscribeFocus } from "@/rooms/focusStore";
+import { isZoomWheel } from "@/lib/wheelGesture";
 import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
 import { PrecomputedLayout } from "./precomputedLayout";
 
@@ -220,14 +221,20 @@ function buildGraph(
         },
       },
     },
+    // A two-finger swipe or a plain wheel moves the graph; a pinch or Ctrl / ⌘ + wheel zooms it, in
+    // the viewer's own wheel handler: G6's zoom-canvas ignores the wheel while it sees Ctrl held.
     behaviors: [
-      { type: "zoom-canvas", key: "zoom-canvas", enable: true },
+      { type: "scroll-canvas", key: "scroll-canvas", enable: (event: WheelEvent) => !isZoomWheel(event) },
       "drag-canvas",
     ],
     plugins,
   });
 }
 
+
+/** The zoom the toolbar and the wheel keep the graph within. */
+const ZOOM_MIN = 0.15;
+const ZOOM_MAX = 4;
 /**
  * Full graph viewer — G6 circle + glyph icons, d3-force, bubble plugins, MUI-positioned
  * legend / zoom chrome, neighbor glow, and hover labels in ``#graph-hover-labels`` (sibling layer
@@ -683,6 +690,16 @@ export function FullGraphViewer() {
     graph.on("canvas:pointerleave", onCanvasLeave);
     graph.on("aftertransform", onAfterTransform);
     canvas.addEventListener("wheel", onWheel, { passive: true });
+    // A pinch or Ctrl / ⌘ + wheel zooms at the pointer, a step of at most half the zoom per event.
+    const onZoomWheel = (event: WheelEvent) => {
+      if (!isZoomWheel(event)) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const ratio = 1 + Math.max(-50, Math.min(50, -event.deltaY)) / 100;
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, graph.getZoom() * ratio));
+      void graph.zoomTo(next, false, [event.clientX - rect.left, event.clientY - rect.top]);
+    };
+    canvas.addEventListener("wheel", onZoomWheel, { passive: false });
 
     const ro = new ResizeObserver(() => {
       const w = canvas.clientWidth;
@@ -727,6 +744,7 @@ export function FullGraphViewer() {
       unregisterSurface?.();
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("wheel", onZoomWheel);
       graph.off("node:pointerenter", onNodeOver);
       graph.off("node:pointermove", onPointerMove);
       graph.off("node:pointerout", onNodeOut);
@@ -746,7 +764,7 @@ export function FullGraphViewer() {
     const g = graphRef.current;
     if (!g) return;
     const cur = g.getZoom();
-    const next = Math.min(4, Math.max(0.15, cur * factor));
+    const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cur * factor));
     await g.zoomTo(next, false);
     try {
       setZoomPct(Math.round(g.getZoom() * 100));

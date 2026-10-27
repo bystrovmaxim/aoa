@@ -290,6 +290,16 @@
 
 ---
 
+## Phase 16h: A swipe moves the picture, a pinch zooms it (commit 16h) · US7
+
+**Goal** (maintainer, 2026-10-27): the wheel and the trackpad's two-finger swipe zoomed every diagram. Design tools and the platforms' trackpads move the picture on a swipe and zoom on a pinch; Maxitor follows that standard (FR-053).
+
+- [X] T107 [US7] `packages/aoa-maxitor/client/src/lib/wheelGesture.ts`: `isZoomWheel` (a pinch arrives as a wheel with `ctrlKey`; Ctrl or ⌘ with the wheel) and `wheelPan` (lines and pages to pixels, Shift turns a vertical wheel sideways). `useSvgPanZoom` (ERD, use case, lifecycle) pans on a moving wheel and zooms as before on a zooming one; the full graph pans with G6's `scroll-canvas` and zooms in its own wheel handler (G6's `zoom-canvas` ignores the wheel while it sees Ctrl held), within the toolbar's limits; `watchOwnPan` counts a moving wheel as your own pan. Done.
+- [X] T108 [US7] Tests: `wheelGesture.test.ts`; `useSvgPanZoom.test.tsx` (a swipe moves the picture at the same zoom, a pinch zooms); `follow.test.ts` (a swipe stops following, a pinch and Ctrl / ⌘ + wheel do not). Adversarial checks: the wheel always zooming in the hook → only the swipe test fails; the wheel never stopping following → only that test fails. On the stand in Chromium, Firefox and WebKit: on the ERD a swipe moves the picture 40 / 60 px at the same zoom and Ctrl + wheel zooms; on the full graph a swipe moves the picture at 15 % and Ctrl + wheel takes it to 22 %. A real trackpad pinch is left to the maintainer's hands.
+- [X] T109 [US7] Prepare commit 16h: `feat(maxitor): a swipe moves the diagram, a pinch zooms it (#282)`; record it in issue #282.
+
+---
+
 ## Phase 17: The check run (commit 17)
 
 - [ ] T081 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 17: `chore: take the check run to zero (#282)`. Tick issue phase 16.

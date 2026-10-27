@@ -104,11 +104,21 @@ describe("your own moves", () => {
     expect(onPan).toHaveBeenCalledTimes(1);
   });
 
-  it("do not stop it on a zoom: the wheel or a two-finger pinch", () => {
+  it("stop following on a wheel that moves the view: a trackpad swipe or a plain wheel (FR-053)", () => {
     const element = document.createElement("div");
     const onPan = vi.fn();
     const stop = watchOwnPan(element, onPan);
-    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -120 }));
+    element.dispatchEvent(new WheelEvent("wheel", { deltaX: 14, deltaY: -3 }));
+    stop();
+    expect(onPan).toHaveBeenCalledTimes(1);
+  });
+
+  it("do not stop it on a zoom: a pinch, Ctrl or ⌘ with the wheel, or a two-finger touch pinch", () => {
+    const element = document.createElement("div");
+    const onPan = vi.fn();
+    const stop = watchOwnPan(element, onPan);
+    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -3, ctrlKey: true }));
+    element.dispatchEvent(new WheelEvent("wheel", { deltaY: -120, metaKey: true }));
     element.dispatchEvent(pointer("pointerdown", 1, 100));
     element.dispatchEvent(pointer("pointerdown", 2, 200));
     window.dispatchEvent(pointer("pointermove", 1, 80));

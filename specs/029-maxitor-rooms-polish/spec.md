@@ -230,6 +230,7 @@ Hovering a key row or a line lights up every table it joins. A line's end labels
 - **FR-050**: The room controls MUST use the sizes Maxitor used before rooms: icons in menus and rows 16 px; icon buttons 32 × 32 px with a glyph of about 18 px; participant circles 22 px (in the room bar; the participant card and lists may use a smaller circle). The room bar's 44 × 44 px menu button and 18 px banner icons come down to these sizes.
 - **FR-051**: Participant circles MUST never touch each other or each other's rings; every ring MUST fit inside the space its circle takes, leaving a visible gap between neighbours.
 - **FR-052**: Switching whom you follow MUST leave no element overlapping another, during or after the switch.
+- **FR-053**: On every diagram a two-finger swipe on a trackpad, or a plain mouse wheel, MUST move the picture, and a pinch, or Ctrl / ⌘ with the wheel, MUST zoom it at the pointer — the convention of design tools and of the platforms' trackpads. Shift with a vertical wheel moves sideways. A wheel that moves the picture is your own pan and stops following; a zoom does not. (Maintainer, 2026-10-27.)
 
 **Maxitor's own graph and freshness**
 
