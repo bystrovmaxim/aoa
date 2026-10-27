@@ -160,19 +160,79 @@ export const END_LABEL_CLASS = "erd-end-label";
  * (``erdEndLabelSx``); a line's own hover, a row's hover and a follower's replayed hover all set it.
  */
 export function addEndLabelBadges(root: ParentNode): void {
+  const tables = [...root.querySelectorAll<SVGGraphicsElement>("g.node")].map((node) => node.getBBox());
   root.querySelectorAll<SVGTextElement>("g.edge text").forEach((label) => {
     if (label.previousElementSibling?.classList.contains(END_LABEL_CLASS)) return;
     const box = label.getBBox();
     if (!(box.width > 0)) return;
+    const size = { width: box.width + 6, height: box.height + 2 };
+    let place: Box = { x: box.x - 3, y: box.y - 1, ...size };
+    // Graphviz sets a label at its line's end, often on the table there; it moves along the line, clear.
+    const line = label.closest("g.edge")?.querySelector<SVGPathElement>("path:not(.erd-hit)");
+    if (line && typeof line.getTotalLength === "function") {
+      const length = line.getTotalLength();
+      const start = line.getPointAtLength(0);
+      const end = line.getPointAtLength(length);
+      const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      const atEnd = Math.hypot(centre.x - end.x, centre.y - end.y) < Math.hypot(centre.x - start.x, centre.y - start.y);
+      place = placeEndLabel((d) => line.getPointAtLength(atEnd ? length - d : d), length, size, tables);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("x", String(place.x + place.width / 2));
+      // The baseline that centres the text on its plate: the middle plus a third of the font size.
+      const fontSize = Number(label.getAttribute("font-size")) || box.height * 0.8;
+      label.setAttribute("y", String(place.y + place.height / 2 + fontSize * 0.35));
+    }
     const plate = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     plate.setAttribute("class", END_LABEL_CLASS);
-    plate.setAttribute("x", String(box.x - 3));
-    plate.setAttribute("y", String(box.y - 1));
-    plate.setAttribute("width", String(box.width + 6));
-    plate.setAttribute("height", String(box.height + 2));
+    plate.setAttribute("x", String(place.x));
+    plate.setAttribute("y", String(place.y));
+    plate.setAttribute("width", String(place.width));
+    plate.setAttribute("height", String(place.height));
     plate.setAttribute("rx", "3");
     label.parentNode!.insertBefore(plate, label);
   });
+}
+
+/** A box in the drawing's units. */
+export type Box = { x: number; y: number; width: number; height: number };
+
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** Space between a label's plate and its line, and the step it moves along the line, in drawing units. */
+const LABEL_OFFSET = 4;
+const LABEL_STEP = 3;
+
+/**
+ * Where an end label's plate goes (spec 029, FR-042): walking along its line from the end it names
+ * (``pointAt(0)`` is that end, ``pointAt(length)`` the other), the first place where the plate — set
+ * beside the line, off it, on whichever side is clear — touches none of ``tables``. Not past the line's
+ * middle; when nowhere is clear, the last place tried.
+ */
+export function placeEndLabel(
+  pointAt: (distance: number) => { x: number; y: number },
+  length: number,
+  plate: { width: number; height: number },
+  tables: readonly Box[],
+): Box {
+  const half = Math.max(plate.width, plate.height) / 2 + LABEL_OFFSET;
+  let last: Box | null = null;
+  for (let along = half; along <= Math.max(half, length / 2); along += LABEL_STEP) {
+    const p = pointAt(along);
+    const q = pointAt(Math.min(length, along + 1));
+    const dx = q.x - p.x;
+    const dy = q.y - p.y;
+    const norm = Math.hypot(dx, dy) || 1;
+    // Off the line: the plate's centre moved across it by half the plate's extent plus a gap.
+    const across = Math.abs((plate.width / 2) * (dy / norm)) + Math.abs((plate.height / 2) * (dx / norm)) + LABEL_OFFSET;
+    for (const side of [1, -1]) {
+      const cx = p.x + side * (-dy / norm) * across;
+      const cy = p.y + side * (dx / norm) * across;
+      const box = { x: cx - plate.width / 2, y: cy - plate.height / 2, width: plate.width, height: plate.height };
+      last = box;
+      if (!tables.some((table) => overlaps(box, table))) return box;
+    }
+  }
+  return last ?? { x: pointAt(0).x - plate.width / 2, y: pointAt(0).y - plate.height / 2, ...plate };
 }
 
 /** The canvas's style for line labels: hidden, and shown on their plates while the line is hovered. */

@@ -255,9 +255,9 @@
 
 **Goal** (maintainer, 2026-10-27, screenshot of `player` over a table's edge): a line's end label, shown on hover, stands clear of every table and beside its line, not on it.
 
-- [ ] T096 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` place each end label after layout: walk along its line from the end it names, away from the table, to the first place where the label's plate — set beside the line, off it — touches no table; a pure placement function takes the line's points and the tables' boxes.
-- [ ] T097 [US7] Tests of the placement (clear of the table it starts at, clear of other tables, off its own line); adversarial check: Graphviz's own place → the overlap test fails. Check on the stand.
-- [ ] T098 [US7] Prepare commit 16d: `style(maxitor): ERD line labels stand clear of tables and lines (#282)`; record it in issue #282.
+- [X] T096 [US7] In `packages/aoa-maxitor/client/src/lib/erdPostPass.ts` place each end label after layout: walk along its line from the end it names, away from the table, to the first place where the label's plate — set beside the line, off it — touches no table; a pure placement function takes the line's points and the tables' boxes. Done: `placeEndLabel` (pure) and `addEndLabelBadges` — the label moves along its line from the end it names, in 3-unit steps, up to the line's middle, to the first place where its plate, set beside the line, touches no table; the text is centred on the plate. Also from the maintainer's next screenshot: every crow's-foot end now starts with `none` (`noneteetee` …), so the bar nearest a table stands 4 units off its outline instead of merging with it (`check-erd-kinds-and-lines.ts` asserts ≥ 3).
+- [X] T097 [US7] Tests of the placement (clear of the table it starts at, clear of other tables, off its own line); adversarial check: Graphviz's own place → the overlap test fails. Check on the stand. Done: 3 placement tests (clear of the table it leaves and off its line; past another table in the way; a line leaving downwards); breaks: the label at the line's end, the label on its line — each failed all three; restored, client 213. On the stand: 0 of 281 labels visible with nothing hovered; plates over a table 1 of 281 (no clear place within the first half of that line), the hovered `audit_log` beside its line and clear of the table.
+- [X] T098 [US7] Prepare commit 16d: `style(maxitor): ERD line labels stand clear of tables and lines (#282)`; record it in issue #282. Done — committed on the standing instruction.
 
 ---
 
