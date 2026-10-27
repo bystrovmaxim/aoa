@@ -477,3 +477,20 @@ def test_a_seed_over_the_message_limit_closes_with_4413(client: TestClient, sour
         code, _ = _closed(anna)
 
     assert code == 4413
+
+
+def test_fifty_messages_a_second_pass_and_more_than_eighty_close(client: TestClient, source: str) -> None:
+    """(029 FR-016) Pointer 20 + screen 20 + focus 10 a second fit the rooms route; a flood is closed with 4429."""
+    with ExitStack() as stack:
+        anna, _ = _open(stack, client, source)
+        for i in range(50):
+            anna.send_json({"type": "pointer", "kind": "mouse", "x": float(i), "y": 0.0})
+        anna.send_json({"type": "rename", "name": "Anna"})
+        assert "renamed" in _until(anna, "renamed")
+        time.sleep(1.1)
+        for i in range(90):
+            anna.send_json({"type": "pointer", "kind": "mouse", "x": float(i), "y": 0.0})
+        with pytest.raises(WebSocketDisconnect) as closed:
+            while True:
+                anna.receive_json()
+    assert closed.value.code == 4429

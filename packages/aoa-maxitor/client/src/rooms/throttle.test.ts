@@ -32,7 +32,7 @@ describe("throttle", () => {
 });
 
 describe("a tab moving its pointer and panning at once", () => {
-  it("sends at most 30 messages in any one second (FR-043)", () => {
+  it("sends at most 40 messages in any one second: pointer 20 + screen 20 (spec 029, FR-016)", () => {
     const element = document.createElement("div");
     element.getBoundingClientRect = () => ({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300 }) as DOMRect;
     let pan = 0;
@@ -62,7 +62,7 @@ describe("a tab moving its pointer and panning at once", () => {
     stop();
     const busiest = Math.max(...times.map((t) => times.filter((u) => u >= t && u < t + 1000).length));
     expect(times.length).toBeGreaterThan(60);
-    expect(busiest).toBeLessThanOrEqual(30);
+    expect(busiest).toBeLessThanOrEqual(40);
   });
 });
 

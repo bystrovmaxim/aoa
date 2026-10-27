@@ -257,6 +257,8 @@ def create_app() -> FastAPI:
             on_close=DisconnectTabAction,
             relay=frozenset({"pointer", "viewport", "focus"}),
             relay_key=ROOM_REGISTRY_KEY,
+            # Pointer 20 + screen 20 + focus 10 a second at most (spec 029, R3), with room to spare.
+            max_messages_per_second=80,
             connections={
                 ROOM_REGISTRY_KEY: rooms,
                 GRAPH_STORE_CONNECTION_KEY: graphs,
