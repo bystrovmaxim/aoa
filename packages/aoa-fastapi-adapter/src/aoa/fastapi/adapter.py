@@ -101,6 +101,18 @@ See ``BaseAdapter`` module docstring (ADAPTER TESTING CONTRACT) for the full
 adapter-level picture.
 
 ═══════════════════════════════════════════════════════════════════════════════
+WEBSOCKET ROUTES
+═══════════════════════════════════════════════════════════════════════════════
+
+``websocket(path, on_open=…, messages={type: Action}, on_close=…, relay=…)``
+registers a route that runs an action when a connection opens, one action per
+message type, and one when it ends; relayed message types run no action and go to
+the resource named by ``relay_key``. Every action receives the connection's
+``SocketChannel`` as ``connections["socket"]`` besides the route's own
+connections, filtered to exactly the keys it declares. See
+:mod:`aoa.fastapi.websocket_route`.
+
+═══════════════════════════════════════════════════════════════════════════════
 HEALTH CHECK
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -138,6 +150,7 @@ from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.route_record import FastApiRouteRecord
+from aoa.fastapi.websocket_route import SOCKET_KEY, FastApiWebSocketRoute, make_websocket_endpoint
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
@@ -598,6 +611,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         self._title: str = title
         self._version: str = version
         self._description: str = description
+        self._websocket_routes: list[FastApiWebSocketRoute] = []
 
     # ─────────────────────────────────────────────────────────────────────
     # Properties
@@ -794,6 +808,75 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
             operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
         )
 
+    def websocket(
+        self,
+        path: str,
+        *,
+        on_open: type[BaseAction[Any, Any]],
+        messages: Mapping[str, type[BaseAction[Any, Any]]],
+        on_close: type[BaseAction[Any, Any]] | None = None,
+        relay: frozenset[str] = frozenset(),
+        relay_key: str | None = None,
+        connections: Mapping[str, ConnectionValue] | None = None,
+        max_message_bytes: int = 4096,
+        max_messages_per_second: int = 40,
+        tags: list[str] | None = None,
+        description: str = "",
+        auth_coordinator: AuthCoordinatorProtocol | None = None,
+    ) -> Self:
+        """Register a WebSocket route that runs an action per message. Returns self for fluent chain."""
+        self._websocket_routes.append(
+            FastApiWebSocketRoute(
+                path=path,
+                on_open=on_open,
+                messages=dict(messages),
+                on_close=on_close,
+                relay=frozenset(relay),
+                relay_key=relay_key,
+                connections=dict(connections or {}),
+                max_message_bytes=max_message_bytes,
+                max_messages_per_second=max_messages_per_second,
+                tags=tuple(tags or ()),
+                description=description,
+                auth_coordinator=auth_coordinator,
+            )
+        )
+        return self
+
+    @property
+    def websocket_routes(self) -> list[FastApiWebSocketRoute]:
+        """Registered WebSocket routes."""
+        return self._websocket_routes
+
+    def _declared_connection_keys(self, action_class: type[BaseAction[Any, Any]]) -> frozenset[str]:
+        """Connection keys ``action_class`` declares: from the node graph, or from ``@connection`` itself."""
+        try:
+            node = self.graph_coordinator.get_node_by_id(
+                TypeIntrospection.full_qualname(action_class),
+                ActionGraphNode.NODE_TYPE,
+            )
+        except (LookupError, RuntimeError):
+            node = None
+        if isinstance(node, ActionGraphNode):
+            return node.connection_keys()
+        return frozenset(info.key for info in getattr(action_class, "_connection_info", ()))
+
+    def _register_websocket_route(self, app: FastAPI, route: FastApiWebSocketRoute) -> None:
+        """Check that every action can get exactly its declared connections, then register the endpoint."""
+        available = {*route.connections, SOCKET_KEY}
+        declared: dict[type, frozenset[str]] = {}
+        for action_class in route.action_classes():
+            keys = self._declared_connection_keys(action_class)
+            missing = keys - available
+            if missing:
+                raise ValueError(
+                    f"WebSocket {route.path}: {action_class.__name__} declares connections "
+                    f"{sorted(missing)} the route does not provide."
+                )
+            declared[action_class] = keys
+        auth = route.auth_coordinator if route.auth_coordinator is not None else self.auth_coordinator
+        app.add_api_websocket_route(route.path, make_websocket_endpoint(route, self.machine, auth, declared))
+
     # ─────────────────────────────────────────────────────────────────────
     # FastAPI application build
     # ─────────────────────────────────────────────────────────────────────
@@ -808,6 +891,7 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
         3. Register exception handlers.
         4. Register health check endpoint ``GET /health``.
         5. Generate/register endpoint for each route.
+        6. Register every WebSocket route, checking each action's declared connections.
 
         Args:
             lifespan: the application's own startup/shutdown context manager — where a
@@ -834,6 +918,9 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
 
         for record in self._routes:
             self._register_endpoint(app, record)
+
+        for websocket_route in self._websocket_routes:
+            self._register_websocket_route(app, websocket_route)
 
         return app
 
