@@ -4,7 +4,7 @@
  * look like in the SVG the page shows.
  *
  * It renders a fixture through the same WASM Graphviz build the client loads, runs the production
- * passes (`containNodeFills`, `placeKindIcons`) over the drawing, and asserts each rule: the header in
+ * passes (`containNodeFills`, `drawErdCards`, `placeKindIcons`) over the drawing, and asserts each rule: the header in
  * the domain colour, flush with the frame and as high as the mockup's, its name white, bold and at the
  * left; the frame in the domain colour around a white body; every second row tinted at 6 %; PK and FK
  * in their colours in a column of their own; the type smaller, grey and on the right; grey lines, a
@@ -17,6 +17,8 @@ import { Graphviz } from "@hpcc-js/wasm-graphviz";
 import {
   buildDotSource,
   ERD_FK_COLOUR,
+  ERD_CARD_RADIUS,
+  ERD_CARD_STROKE,
   ERD_HEADER_HEIGHT_PT,
   ERD_PK_COLOUR,
   ERD_ROW_HEIGHT_PT,
@@ -24,7 +26,7 @@ import {
   type ErdGraphPayload,
 } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
-import { HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
+import { drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
 
 let failures = 0;
@@ -63,7 +65,11 @@ const fixture: ErdGraphPayload = {
   relations: [{ source: "shop.PlayerCoreEntity", target: "shop.BaseEntity", label: "", relationship_kind: "generalization" }],
 };
 
-const svg = placeKindIcons(containNodeFills(gv.layout(buildDotSource(fixture, "gv-dot-lr"), "svg", "dot")), fixture.entities, kindGlyphSvg);
+const svg = placeKindIcons(
+  drawErdCards(containNodeFills(gv.layout(buildDotSource(fixture, "gv-dot-lr"), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE),
+  fixture.entities,
+  kindGlyphSvg,
+);
 const table = svg.slice(svg.indexOf("<title>shop.PlayerCoreEntity</title>"), svg.indexOf("<!-- shop.BaseEntity -->"));
 
 /** The y-extent of a ``points`` polygon. */
@@ -81,21 +87,37 @@ function cell(id: string): string {
 // ── FR-110: header ───────────────────────────────────────────────────────────
 const header = /<g id="a_hd0">[\s\S]*?<polygon clip-path="url\(#[^"]+\)" fill="([^"]+)"[^>]* points="([^"]+)"/.exec(table);
 check("FR-110 header is filled with the domain colour and trimmed to the frame's rounded corners", header?.[1] === COLOUR);
-check(`FR-110 header is ${ERD_HEADER_HEIGHT_PT} high`, header !== null && Math.abs(heightOf(header[2]!) - ERD_HEADER_HEIGHT_PT) < 0.6, header ? `${heightOf(header[2]!)}` : "no header");
+// The header band is 30 high and, since spec 029, also fills the unit under the outline above it.
+check(`FR-110 header is ${ERD_HEADER_HEIGHT_PT} high`, header !== null && Math.abs(heightOf(header[2]!) - (ERD_HEADER_HEIGHT_PT + 1)) < 0.6, header ? `${heightOf(header[2]!)}` : "no header");
 const headerLeft = header ? Math.min(...header[2]!.trim().split(/\s+/).map((pair) => Number(pair.split(",")[0]))) : NaN;
-const frameLeft = Number(/<path fill="none" stroke="[^"]+" d="M([-\d.]+),/.exec(table)?.[1]) - 12;
-check("FR-110 header is flush with the frame", Math.abs(headerLeft - (frameLeft + 1)) < 0.6, `header ${headerLeft}, frame ${frameLeft}`);
+const frame = new RegExp(`<rect fill="none" stroke="${COLOUR}" stroke-width="([\\d.]+)" x="([-\\d.]+)" y="([-\\d.]+)" width="([\\d.]+)" height="([\\d.]+)" rx="([\\d.]+)"/>`).exec(table);
+const frameLeft = Number(frame?.[2]);
+const frameTop = Number(frame?.[3]);
+const headerTop = header ? Math.min(...header[2]!.trim().split(/\s+/).map((pair) => Number(pair.split(",")[1]))) : NaN;
+// Spec 029, FR-032 / SC-007: the header fills right up to the outline — no gap at the side or the top.
+check("029 FR-032 header reaches the outline with no gap", Math.abs(headerLeft - frameLeft) < 0.01 && Math.abs(headerTop - frameTop) < 0.01, `header ${headerLeft},${headerTop}, frame ${frameLeft},${frameTop}`);
 const name = /<g id="a_hn0">[\s\S]*?<text[^>]* x="([-\d.]+)"[^>]*font-weight="bold"[^>]*fill="white">PlayerCoreEntity<\/text>/.exec(table);
 check("FR-110 entity name is white and bold", name !== null);
 const icon = Number(/class="erd-kind-icon"[^>]*translate\(([-\d.]+),/.exec(table)?.[1]);
 check("FR-110 entity name is left-aligned, after the kind icon", Math.abs(icon - (headerLeft + HEADER_INSET_PT)) < 0.6 && name !== null && Number(name[1]) < headerLeft + 40, `icon ${icon}, name ${name?.[1]}`);
 
 // ── FR-111: frame and body ───────────────────────────────────────────────────
-check("FR-111 frame is drawn in the domain colour with rounded corners", new RegExp(`<path fill="none" stroke="${COLOUR}" d="M[^"]*C`).test(table));
-check("FR-111 body is white", /<path fill="white" stroke="none"/.test(table));
+check(`029 FR-032 the outline is the mockup's: radius ${ERD_CARD_RADIUS}, ${ERD_CARD_STROKE} wide, in the domain colour`, frame !== null && Number(frame[6]) === ERD_CARD_RADIUS && Number(frame[1]) === ERD_CARD_STROKE, frame ? `rx ${frame[6]}, width ${frame[1]}` : "no outline");
+const body = /<rect fill="white" stroke="none" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)"\/>/.exec(table);
+check("FR-111 body is white, the card's own shape", body !== null && Number(body[1]) === frameLeft && Number(body[5]) === ERD_CARD_RADIUS);
+const clipId = /<g id="a_hd0">[\s\S]*?<polygon clip-path="url\(#([^)]+)\)"/.exec(table)?.[1] ?? "";
+const clip = new RegExp(`<clipPath id="${clipId}"><rect x="([-\\d.]+)" y="([-\\d.]+)" width="([\\d.]+)" height="([\\d.]+)" rx="([\\d.]+)"/></clipPath>`).exec(svg);
+// The header is trimmed by the very rounded rectangle the outline draws, so both corners are one curve (SC-007).
+check(
+  "029 SC-007 the header's corners follow the outline's curve",
+  clip !== null && frame !== null && clip.slice(1, 6).every((value, i) => Math.abs(Number(value) - Number([frame[2], frame[3], frame[4], frame[5], frame[6]][i])) < 0.5),
+  clip ? `clip ${clip.slice(1).join(" ")}` : "no clip",
+);
+check("029 FR-032 every fill of the card is trimmed to it", [...table.matchAll(/<polygon\b[^>]*>/g)].every((m) => m[0].includes("clip-path=")), "a polygon is not clipped");
+check("029 FR-032 Graphviz's own rounded outline is gone", !/<path fill="none" stroke="[^"]+" d="M[^"]*C/.test(table));
 
 // ── FR-112: row tint ─────────────────────────────────────────────────────────
-const rowFills = [0, 1, 2, 3].map((row) => /<polygon fill="([^"]+)"( fill-opacity="([\d.]+)")?/.exec(cell(`fn0_${row}`)));
+const rowFills = [0, 1, 2, 3].map((row) => /<polygon(?: clip-path="[^"]+")? fill="([^"]+)"( fill-opacity="([\d.]+)")?/.exec(cell(`fn0_${row}`)));
 check("FR-112 rows 1 and 3 are white", rowFills[0]?.[1] === "#ffffff" && rowFills[2]?.[1] === "#ffffff");
 check(
   "FR-112 rows 2 and 4 are tinted with the domain colour at 6 %",

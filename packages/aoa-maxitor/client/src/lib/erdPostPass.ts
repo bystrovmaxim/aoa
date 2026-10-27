@@ -228,3 +228,80 @@ export function bindLineHover(
     cell.addEventListener("mouseleave", () => show(edgesById(lines), false), { signal });
   });
 }
+
+// ── The card as designed ─────────────────────────────────────────────────
+
+/** A node's markup: from its ``<g id="node…" class="node">`` to the next node or edge group. */
+const NODE_START = /<g id="node\d+" class="node"[^>]*>/g;
+const BACKDROP = /<path fill="white" stroke="none" d="([^"]+)"\/?>(?:<\/path>)?/;
+const GROUP_START = /<g id="[^"]+" class="(?:node|edge|cluster)"/g;
+const NUMBER = /-?\d+(?:\.\d+)?/g;
+
+/** A number as the markup writes it: at most two decimals. */
+function fixed(value: number): string {
+  return String(Number(value.toFixed(2)));
+}
+
+/** The rectangle a Graphviz rounded outline spans, from its path. */
+function spanOf(d: string): { x0: number; y0: number; x1: number; y1: number } | null {
+  const values = (d.match(NUMBER) ?? []).map(Number);
+  const xs = values.filter((_, i) => i % 2 === 0);
+  const ys = values.filter((_, i) => i % 2 === 1);
+  if (!xs.length || !ys.length) return null;
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+}
+
+/** Move a fill's edges that stop just inside the card onto the card's edges, so nothing is left between them. */
+function reachEdges(points: string, span: { x0: number; y0: number; x1: number; y1: number }, inset: number): string {
+  const near = (value: number, edge: number) => Math.abs(value - edge) <= inset + 0.01;
+  const values = (points.match(NUMBER) ?? []).map(Number);
+  return values
+    .map((value, i) => {
+      if (i % 2 === 0) return fixed(near(value, span.x0) ? span.x0 : near(value, span.x1) ? span.x1 : value);
+      return fixed(near(value, span.y0) ? span.y0 : near(value, span.y1) ? span.y1 : value);
+    })
+    .reduce<string[]>((pairs, value, i, all) => (i % 2 === 0 ? [...pairs, `${value},${all[i + 1]}`] : pairs), [])
+    .join(" ");
+}
+
+/** One node's markup drawn as the designed card, or as it was when it is not a card. */
+function drawCard(node: string, radius: number, stroke: number): string {
+  const backdrop = BACKDROP.exec(node);
+  const span = backdrop ? spanOf(backdrop[1]!) : null;
+  if (!backdrop || !span) return node;
+  const d = backdrop[1]!;
+  const box = `x="${fixed(span.x0)}" y="${fixed(span.y0)}" width="${fixed(span.x1 - span.x0)}" height="${fixed(span.y1 - span.y0)}" rx="${radius}"`;
+  // Graphviz keeps its fills one unit inside its own outline.
+  const inset = 1;
+  let out = node.replace(backdrop[0], `<rect fill="white" stroke="none" ${box}/>`);
+  out = out.replace(/(<clipPath id="[^"]+">)<rect [^>]*\/>/, `$1<rect ${box}/>`);
+  const clip = /<clipPath id="([^"]+)">/.exec(out)?.[1];
+  out = out.replace(/<polygon\b([^>]*)\bpoints="([^"]+)"/g, (_whole, attributes: string, points: string) => {
+    const clipped = clip && !attributes.includes("clip-path") ? ` clip-path="url(#${clip})"` : "";
+    return `<polygon${clipped}${attributes}points="${reachEdges(points, span, inset)}"`;
+  });
+  const outline = new RegExp(`<path fill="none" stroke="([^"]+)" d="${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"\\/?>(?:<\\/path>)?`);
+  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}" ${box}/>`);
+}
+
+/**
+ * Draw every ERD table as the card of spec 029 (FR-032): Graphviz's rounded outline and backdrop give
+ * way to one rounded rectangle of ``radius`` (the mockup's 9) with a ``stroke``-wide outline in the
+ * domain colour; the header and the row tints reach the card's edge and are trimmed to the same
+ * rounded shape, so the header fills right up to the outline with no gap. Graphviz's layout — every
+ * cell's place and size — is left as it is. Run after ``containNodeFills``.
+ */
+export function drawErdCards(svg: string, radius: number, stroke: number): string {
+  const starts = [...svg.matchAll(NODE_START)].map((m) => m.index ?? 0);
+  if (!starts.length) return svg;
+  let out = svg.slice(0, starts[0]);
+  starts.forEach((start, i) => {
+    const next = starts[i + 1] ?? svg.length;
+    // A card ends where the next group of the drawing begins — a line (``re<k>``), a cluster or a node.
+    GROUP_START.lastIndex = start + 1;
+    const following = GROUP_START.exec(svg)?.index ?? svg.length;
+    const end = Math.min(following, next);
+    out += drawCard(svg.slice(start, end), radius, stroke) + svg.slice(end, next);
+  });
+  return out;
+}

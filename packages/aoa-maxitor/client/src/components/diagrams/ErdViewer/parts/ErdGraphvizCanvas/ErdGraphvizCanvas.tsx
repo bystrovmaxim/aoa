@@ -19,6 +19,8 @@ import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
 import {
   buildDotSource,
+  ERD_CARD_RADIUS,
+  ERD_CARD_STROKE,
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
@@ -32,7 +34,7 @@ import { filterGraphByKinds, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
-import { addEdgeHitAreas, bindLineHover, placeKindIcons } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, bindLineHover, drawErdCards, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -285,7 +287,7 @@ export function ErdGraphvizCanvas({
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(placeKindIcons(containNodeFills(svg), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
