@@ -1,5 +1,5 @@
 // src/app/App.tsx
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DiagramWorkspacePage } from "@/components/pages/DiagramWorkspacePage";
 import { LeftSidebar } from "@/components/navigation/LeftSidebar";
@@ -19,6 +19,7 @@ import {
   syncUrlToState,
   type UrlDeepLink,
 } from "@/lib/urlState";
+import { PageSettingsProvider, type RoomSettings } from "@/lib/pageSettings";
 import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
@@ -84,6 +85,12 @@ export function App() {
   // (FR-045, FR-093); Hide pointers only stops drawing other people's.
   const pointersLive = room.inRoom && room.connection?.kind === "open" && !room.pointersOff;
   usePointerSender(surface, room.send, pointersLive);
+  const roomSettings = room.room?.settings;
+  const { setPageSetting } = room;
+  const sharedSettings = useMemo<RoomSettings | null>(
+    () => (roomSettings ? { settings: roomSettings, set: setPageSetting } : null),
+    [roomSettings, setPageSetting],
+  );
   const pointerPeople = room.room
     ? room.room.participants.filter((p) => p.id !== room.room?.youId && p.page === page && !p.away)
     : [];
@@ -243,7 +250,9 @@ export function App() {
         />
       }
     >
-      <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+      <PageSettingsProvider page={page} room={sharedSettings}>
+        <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+      </PageSettingsProvider>
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}

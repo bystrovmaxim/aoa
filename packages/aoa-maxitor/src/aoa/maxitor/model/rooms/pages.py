@@ -84,13 +84,12 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "domain-erd": {
         "layout": _one_of("gv-dot-lr", "gv-dot-tb", "gv-neato", "gv-fdp", "gv-circo"),
         "domains": _strings,
-        "entities": _strings,
+        "disabled_entities": _strings,
         "disabled_kinds": _strings,
         "one_hop": _boolean,
     },
     "use-case": {
         "layout": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
-        "rankdir": _one_of("LR", "TB"),
         "domains": _strings,
         "boundary": _boolean,
     },

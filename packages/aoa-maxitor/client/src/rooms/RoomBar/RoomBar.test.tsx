@@ -44,6 +44,7 @@ function session(overrides: Partial<RoomSession> = {}): RoomSession {
     closeInvite: vi.fn(),
     openInvite: vi.fn(),
     dismissBanner: vi.fn(),
+    setPageSetting: vi.fn(),
     dismissPageNotice: vi.fn(),
     ...overrides,
   };

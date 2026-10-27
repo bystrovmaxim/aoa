@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { usePageSetting } from "@/lib/pageSettings";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
@@ -31,7 +32,6 @@ import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 
-const useCaseEnabledDomainsByViewKey = new Map<string, string[]>();
 
 const GRID_SX = {
   flex: 1,
@@ -45,12 +45,6 @@ const GRID_SX = {
 
 type UseCaseDiagramLayoutPreset = "dot_lr" | "dot_tb" | "neato" | "fdp";
 
-const useCaseRankdirByDomainId = new Map<string, DomainUseCaseRankdir>();
-
-/** LR/TB + Neato/FDP when Boundary off; persisted per domain together with Boundary. */
-const useCaseLayoutPresetByDomainId = new Map<string, UseCaseDiagramLayoutPreset>();
-
-const useCaseBoundaryByDomainId = new Map<string, boolean>();
 
 const USE_CASE_LAYOUT_TOOL_ROW: {
   preset: UseCaseDiagramLayoutPreset;
@@ -62,13 +56,6 @@ const USE_CASE_LAYOUT_TOOL_ROW: {
   { preset: "neato", title: "Neato (spring)", Glyph: LayoutGlyphNeato },
   { preset: "fdp", title: "FDP (force)", Glyph: LayoutGlyphFdp },
 ];
-
-function readStoredLayoutPreset(domainId: string): UseCaseDiagramLayoutPreset {
-  const preset = useCaseLayoutPresetByDomainId.get(domainId);
-  if (preset) return preset;
-  const legacyRd = useCaseRankdirByDomainId.get(domainId);
-  return legacyRd === "TB" ? "dot_tb" : "dot_lr";
-}
 
 function presetToRankdir(preset: UseCaseDiagramLayoutPreset): DomainUseCaseRankdir {
   return preset === "dot_tb" ? "TB" : "LR";
@@ -99,32 +86,11 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const load = useCallback(() => fetchDomainUseCaseDiagram(domainId), [domainId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
 
-  const [layoutPreset, setLayoutPreset] = useState<UseCaseDiagramLayoutPreset>(() =>
-    readStoredLayoutPreset(domainId),
-  );
-
-  useEffect(() => {
-    setLayoutPreset(readStoredLayoutPreset(domainId));
-  }, [domainId]);
-
-  useEffect(() => {
-    useCaseLayoutPresetByDomainId.set(domainId, layoutPreset);
-    if (layoutPreset === "dot_lr" || layoutPreset === "dot_tb") {
-      useCaseRankdirByDomainId.set(domainId, presetToRankdir(layoutPreset));
-    }
-  }, [domainId, layoutPreset]);
-
-  const [boundary, setBoundary] = useState(
-    () => useCaseBoundaryByDomainId.get(domainId) ?? true,
-  );
-
-  useEffect(() => {
-    setBoundary(useCaseBoundaryByDomainId.get(domainId) ?? true);
-  }, [domainId]);
-
-  useEffect(() => {
-    useCaseBoundaryByDomainId.set(domainId, boundary);
-  }, [domainId, boundary]);
+  // Page settings: the person's own outside a room, the room's inside one (spec 028, FR-030). The
+  // direction is part of the layout preset (``dot_lr`` / ``dot_tb``), so it needs no setting of its own.
+  const [layoutPreset, setLayoutPreset] = usePageSetting<UseCaseDiagramLayoutPreset>("layout", "dot_lr");
+  /** LR/TB + Neato/FDP when Boundary is off; Boundary on keeps the preset for when it goes off again. */
+  const [boundary, setBoundary] = usePageSetting("boundary", true);
 
   /** Boundary on forces hierarchical dot ranks; preserve neato/fdp in ``layoutPreset`` for when Boundary turns off. */
   const layoutForBundler = useMemo((): UseCaseDiagramLayoutPreset => {
@@ -159,49 +125,17 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     return m;
   }, [data]);
 
-  const [enabledDomains, setEnabledDomains] = useState<Set<string> | undefined>(undefined);
-  const lastDomainIdRef = useRef<string | null>(null);
+  /** The domains switched on; ``null`` until someone chooses, which means all of them. */
+  const [chosenDomains, setChosenDomains] = usePageSetting<string[] | null>("domains", null);
 
-  useLayoutEffect(() => {
-    if (!data) return;
-    const keys = [...new Set(data.actions.map((a) => a.domain_id))].sort();
-    if (keys.length === 0) {
-      setEnabledDomains(new Set());
-      lastDomainIdRef.current = domainId;
-      return;
-    }
-
-    if (lastDomainIdRef.current !== domainId) {
-      lastDomainIdRef.current = domainId;
-      const saved = useCaseEnabledDomainsByViewKey.get(domainId);
-      if (saved?.length) {
-        const restored = new Set(keys.filter((k) => saved.includes(k)));
-        setEnabledDomains(restored.size > 0 ? restored : new Set(keys));
-      } else {
-        setEnabledDomains(new Set(keys));
-      }
-      return;
-    }
-
-    setEnabledDomains((prev) => {
-      if (prev === undefined) return new Set(keys);
-      const merged = new Set(keys.filter((k) => prev.has(k)));
-      return merged.size > 0 ? merged : new Set(keys);
-    });
-  }, [data, domainId]);
-
-  useEffect(() => {
-    if (!data || enabledDomains === undefined) return;
-    useCaseEnabledDomainsByViewKey.set(domainId, [...enabledDomains].sort());
-  }, [domainId, data, enabledDomains]);
-
+  // A chosen set that names none of this diagram's domains (its model changed) falls back to all.
   const effectiveEnabled = useMemo(() => {
     if (!data) return new Set<string>();
-    const all = new Set(data.actions.map((a) => a.domain_id));
-    if (all.size === 0) return new Set<string>();
-    if (enabledDomains === undefined) return all;
-    return enabledDomains;
-  }, [data, enabledDomains]);
+    const keys = [...new Set(data.actions.map((a) => a.domain_id))].sort();
+    if (chosenDomains === null) return new Set(keys);
+    const chosen = keys.filter((k) => chosenDomains.includes(k));
+    return new Set(chosen.length > 0 || chosenDomains.length === 0 ? chosen : keys);
+  }, [data, chosenDomains]);
 
   const filtered = useMemo(
     () => (data != null ? filterUseCaseDiagramByDomains(data, effectiveEnabled) : null),
@@ -228,17 +162,15 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
 
   const dot = bundle?.dot ?? "";
 
+  // Each change is sent as the whole new set, never as a toggle (FR-031).
   const toggleDomain = useCallback(
     (key: string) => {
-      setEnabledDomains((prev) => {
-        const base = prev ?? new Set(domainKeyList);
-        const next = new Set(base);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        return next;
-      });
+      const next = new Set(effectiveEnabled);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      setChosenDomains([...next].sort());
     },
-    [domainKeyList],
+    [effectiveEnabled, setChosenDomains],
   );
 
   const panZoom = useSvgPanZoom({
