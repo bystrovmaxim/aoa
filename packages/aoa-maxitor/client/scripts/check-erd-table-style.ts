@@ -26,7 +26,7 @@ import {
   type ErdGraphPayload,
 } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
-import { drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
+import { CAP_HALF_EM, drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
 
 let failures = 0;
@@ -100,6 +100,27 @@ const name = /<g id="a_hn0">[\s\S]*?<text[^>]* x="([-\d.]+)"[^>]*font-weight="bo
 check("FR-110 entity name is white and bold", name !== null);
 const icon = Number(/class="erd-kind-icon"[^>]*translate\(([-\d.]+),/.exec(table)?.[1]);
 check("FR-110 entity name is left-aligned, after the kind icon", Math.abs(icon - (headerLeft + HEADER_INSET_PT)) < 0.6 && name !== null && Number(name[1]) < headerLeft + 40, `icon ${icon}, name ${name?.[1]}`);
+
+// ── 029 FR-033: the kind icon and the name on one axis ───────────────────────
+// For every table: the glyph's centre, the middle of the name's capitals and the middle of the header
+// band stand on one line. The placement is exact, so a tenth of a unit is left for rounding only —
+// far inside the half pixel of SC-007, and tight enough to see the old glyph's 0.2 offset.
+for (const [index, entity] of fixture.entities.entries()) {
+  const start = svg.indexOf(`<g id="a_hd${index}">`);
+  const headerCell = svg.slice(start, svg.indexOf(`<g id="a_fn${index}_`, start) > 0 ? svg.indexOf(`<g id="a_fn${index}_`, start) : start + 6000);
+  const band = /<polygon[^>]* points="([^"]+)"/.exec(headerCell)?.[1] ?? "";
+  const ys = band.trim().split(/\s+/).map((pair) => Number(pair.split(",")[1]));
+  const bandMiddle = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const glyph = /class="erd-kind-icon"[^>]*translate\(([-\d.]+),([-\d.]+)\) scale\(([\d.]+)\)/.exec(headerCell);
+  const glyphMiddle = glyph ? Number(glyph[2]) + (Number(glyph[3]) * 24) / 2 : NaN;
+  const text = /<text[^>]* y="([-\d.]+)"[^>]* font-size="([\d.]+)"[^>]*>/.exec(headerCell.slice(headerCell.indexOf(`a_hn${index}`)));
+  const nameMiddle = text ? Number(text[1]) - CAP_HALF_EM * Number(text[2]) : NaN;
+  check(
+    `029 FR-033 ${entity.label}: the kind icon and the name stand on the header's middle line`,
+    Math.abs(glyphMiddle - nameMiddle) <= 0.1 && Math.abs(glyphMiddle - bandMiddle) <= 0.1,
+    `icon ${glyphMiddle.toFixed(2)}, name ${nameMiddle.toFixed(2)}, band ${bandMiddle.toFixed(2)}`,
+  );
+}
 
 // ── FR-111: frame and body ───────────────────────────────────────────────────
 check(`029 FR-032 the outline is the mockup's: radius ${ERD_CARD_RADIUS}, ${ERD_CARD_STROKE} wide, in the domain colour`, frame !== null && Number(frame[6]) === ERD_CARD_RADIUS && Number(frame[1]) === ERD_CARD_STROKE, frame ? `rx ${frame[6]}, width ${frame[1]}` : "no outline");
