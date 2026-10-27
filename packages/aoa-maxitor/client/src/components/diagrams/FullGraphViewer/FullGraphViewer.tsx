@@ -9,7 +9,10 @@ import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import type { InterchangeGraphEdgeData, InterchangeGraphG6Payload, InterchangeGraphNodeData } from "@/model/fullGraph";
 import { NodeTypeLegend } from "@/components/ui/NodeTypeLegend";
 import { layoutHash } from "@/lib/layoutHash";
+import { useCurrentPage } from "@/lib/pageSettings";
 import { registerG6DiagramSurface } from "@/rooms/diagramSurface";
+import { isFollowing, mirroredFocus, reportHover, subscribeFocus } from "@/rooms/focusStore";
+import { isZoomWheel } from "@/lib/wheelGesture";
 import { fingerprintGraph, readArrangement, writeArrangement } from "./arrangementStore";
 import { PrecomputedLayout } from "./precomputedLayout";
 
@@ -218,14 +221,20 @@ function buildGraph(
         },
       },
     },
+    // A two-finger swipe or a plain wheel moves the graph; a pinch or Ctrl / ⌘ + wheel zooms it, in
+    // the viewer's own wheel handler: G6's zoom-canvas ignores the wheel while it sees Ctrl held.
     behaviors: [
-      { type: "zoom-canvas", key: "zoom-canvas", enable: true },
+      { type: "scroll-canvas", key: "scroll-canvas", enable: (event: WheelEvent) => !isZoomWheel(event) },
       "drag-canvas",
     ],
     plugins,
   });
 }
 
+
+/** The zoom the toolbar and the wheel keep the graph within. */
+const ZOOM_MIN = 0.15;
+const ZOOM_MAX = 4;
 /**
  * Full graph viewer — G6 circle + glyph icons, d3-force, bubble plugins, MUI-positioned
  * legend / zoom chrome, neighbor glow, and hover labels in ``#graph-hover-labels`` (sibling layer
@@ -235,6 +244,9 @@ function buildGraph(
  */
 export function FullGraphViewer() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  /** The page key, read by the graph's effect for the followed person's hover. */
+  const pageRef = useRef<string | null>(null);
+  pageRef.current = useCurrentPage();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   /** HTML overlay for hover cards — must sit above G6’s internal canvas/WebGL stack, not inside it. */
   const hoverOverlayRef = useRef<HTMLDivElement | null>(null);
@@ -547,6 +559,7 @@ export function FullGraphViewer() {
       glowClearTimer = setTimeout(() => {
         clearNeighborGlow();
         hoverLabelNodeId = null;
+        reportHover(null);
         hoverPointerOutPending = false;
         scheduleHoverOverlaySync();
         glowClearTimer = null;
@@ -554,7 +567,37 @@ export function FullGraphViewer() {
       }, HOVER_CLEAR_DELAY_MS);
     };
 
+    /** Show ``nodeId``'s hover — its card, its neighbours' cards and the glow — or clear it. */
+    const showHover = (nodeId: string | null) => {
+      hoverPointerOutPending = false;
+      clearViewportQuietTimer();
+      if (glowClearTimer) {
+        clearTimeout(glowClearTimer);
+        glowClearTimer = null;
+      }
+      if (nodeId === hoverLabelNodeId) return;
+      if (nodeId === null) clearNeighborGlow();
+      hoverLabelNodeId = nodeId;
+      syncHoverLabels();
+      if (nodeId !== null) applyNeighborGlow(nodeId);
+    };
+
+    // The followed person's hover, while this tab follows them (spec 029, FR-010).
+    const showMirroredHover = () => {
+      if (!isFollowing()) return;
+      const focus = mirroredFocus();
+      const hover = focus && focus.page === pageRef.current && focus.hover?.kind === "node" ? focus.hover.id : null;
+      showHover(hover !== null && nodeById.has(hover) ? hover : null);
+    };
+    let wasFollowing = isFollowing();
+    const unsubscribeFocus = subscribeFocus(() => {
+      if (wasFollowing && !isFollowing()) showHover(null);
+      wasFollowing = isFollowing();
+      showMirroredHover();
+    });
+
     const onNodeOver = (evt: unknown) => {
+      if (isFollowing()) return;
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -567,20 +610,25 @@ export function FullGraphViewer() {
       hoverLabelNodeId = sid;
       syncHoverLabels();
       applyNeighborGlow(sid);
+      reportHover({ kind: "node", id: sid });
     };
 
     const onPointerMove = (evt: unknown) => {
+      if (isFollowing()) return;
       const sid = nodeIdFromPointerEvt(evt);
       if (sid == null || sid === hoverLabelNodeId) return;
       onNodeOver(evt);
     };
 
     const onNodeOut = () => {
+      if (isFollowing()) return;
       hoverPointerOutPending = true;
       armHoverClearDeferred();
     };
 
     const onCanvasClick = () => {
+      if (isFollowing()) return;
+      reportHover(null);
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -593,6 +641,8 @@ export function FullGraphViewer() {
     };
 
     const onCanvasLeave = () => {
+      if (isFollowing()) return;
+      reportHover(null);
       hoverPointerOutPending = false;
       clearViewportQuietTimer();
       if (glowClearTimer) {
@@ -640,6 +690,16 @@ export function FullGraphViewer() {
     graph.on("canvas:pointerleave", onCanvasLeave);
     graph.on("aftertransform", onAfterTransform);
     canvas.addEventListener("wheel", onWheel, { passive: true });
+    // A pinch or Ctrl / ⌘ + wheel zooms at the pointer, a step of at most half the zoom per event.
+    const onZoomWheel = (event: WheelEvent) => {
+      if (!isZoomWheel(event)) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const ratio = 1 + Math.max(-50, Math.min(50, -event.deltaY)) / 100;
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, graph.getZoom() * ratio));
+      void graph.zoomTo(next, false, [event.clientX - rect.left, event.clientY - rect.top]);
+    };
+    canvas.addEventListener("wheel", onZoomWheel, { passive: false });
 
     const ro = new ResizeObserver(() => {
       const w = canvas.clientWidth;
@@ -656,6 +716,7 @@ export function FullGraphViewer() {
         await graph.fitView();
         syncZoom();
         scheduleHoverOverlaySync();
+        showMirroredHover();
         if (layout.fresh && layout.fingerprint && !cancelled) {
           void writeArrangement(layout.fingerprint, layout.positions);
         }
@@ -679,9 +740,11 @@ export function FullGraphViewer() {
 
     return () => {
       cancelled = true;
+      unsubscribeFocus();
       unregisterSurface?.();
       ro.disconnect();
       canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("wheel", onZoomWheel);
       graph.off("node:pointerenter", onNodeOver);
       graph.off("node:pointermove", onPointerMove);
       graph.off("node:pointerout", onNodeOut);
@@ -701,7 +764,7 @@ export function FullGraphViewer() {
     const g = graphRef.current;
     if (!g) return;
     const cur = g.getZoom();
-    const next = Math.min(4, Math.max(0.15, cur * factor));
+    const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cur * factor));
     await g.zoomTo(next, false);
     try {
       setZoomPct(Math.round(g.getZoom() * 100));

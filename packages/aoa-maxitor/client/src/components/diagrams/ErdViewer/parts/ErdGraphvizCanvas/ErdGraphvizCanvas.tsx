@@ -9,8 +9,9 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
-import { usePageSetting } from "@/lib/pageSettings";
+import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -18,6 +19,9 @@ import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
 import {
   buildDotSource,
+  buildErdDot,
+  ERD_CARD_RADIUS,
+  ERD_CARD_STROKE,
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
@@ -27,11 +31,11 @@ import {
 } from "@/lib/buildDotSource";
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
-import { filterGraphByKinds, pruneGraphToEntities } from "@/lib/erdKindFilter";
+import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
-import { addEdgeHitAreas, bindLineHover, placeKindIcons } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -202,6 +206,8 @@ export function ErdGraphvizCanvas({
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
+  // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
+  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table");
 
 
   const mergedByTabs = useMemo(
@@ -229,12 +235,15 @@ export function ErdGraphvizCanvas({
     [entityQualList, disabledEntityList],
   );
 
-  const mergedData = useMemo(() => {
-    // A table is on screen only when its domain (or qualifier) and its kind are both on.
-    if (multiTab) return filterGraphByKinds(mergedByTabs, disabledKinds);
+  // The tables the diagram shows before kinds are filtered: its domains (or qualifiers) and one-hop.
+  const beforeKinds = useMemo(() => {
+    if (multiTab) return mergedByTabs;
     if (enabledEntityQualifiers.size === 0) return { entities: [], relations: [] };
-    return filterGraphByKinds(filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual), disabledKinds);
-  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual, disabledKinds]);
+    return filterGraphByEntityQuals(mergedByTabs, enabledEntityQualifiers, fallbackQual);
+  }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual]);
+
+  // A table is on screen only when its domain (or qualifier) and its kind are both on.
+  const mergedData = useMemo(() => filterGraphByKinds(beforeKinds, disabledKinds), [beforeKinds, disabledKinds]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -277,12 +286,13 @@ export function ErdGraphvizCanvas({
     loadGraphvizWasmFor(engine)
       .then((gv) => {
         if (cancelled) return;
-        const svg = gv.layout(dot, "svg", engine);
+        // Every table of a specialization block as wide as its widest table (spec 029): measured first.
+        const svg = gv.layout(buildErdDot(drawnData, layout, (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", engine);
         if (cancelled) return;
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(placeKindIcons(containNodeFills(svg), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
@@ -322,30 +332,16 @@ export function ErdGraphvizCanvas({
 
       postProcessGraphvizSvgDom(svg);
       addEdgeHitAreas(svg);
+      addEndLabelBadges(svg);
       bindLineHover(svg, drawnData.relations, drawnData.entities, ac.signal);
     }
     bindNameCopy(panner, setCopyMessage, ac.signal);
 
     const onEnter = (evt: Event) => {
       const el = evt.currentTarget as Element;
-      const title = el.querySelector("title")?.textContent?.trim() || "";
-      panner.querySelectorAll("g.node").forEach((n) => {
-        (n as HTMLElement).style.opacity =
-          n.querySelector("title")?.textContent?.trim() === title ? "1" : "0.35";
-      });
-      panner.querySelectorAll("g.edge").forEach((e) => {
-        const edgeTitle = e.querySelector("title")?.textContent?.trim() || "";
-        (e as HTMLElement).style.opacity = edgeTitle.includes(title) ? "1" : "0.2";
-      });
+      focusTables(panner, new Set([el.querySelector("title")?.textContent?.trim() || ""]));
     };
-    const onLeave = () => {
-      panner.querySelectorAll("g.node").forEach((n) => {
-        (n as HTMLElement).style.opacity = "1";
-      });
-      panner.querySelectorAll("g.edge").forEach((e) => {
-        (e as HTMLElement).style.opacity = "1";
-      });
-    };
+    const onLeave = () => clearTableFocus(panner);
 
     panner.querySelectorAll("g.node").forEach((node) => {
       (node as HTMLElement).style.cursor = "pointer";
@@ -435,7 +431,8 @@ export function ErdGraphvizCanvas({
         on: enabledEntityQualifiers.has(qual),
       }));
 
-  const kindRows: ErdFilterRow[] = (bundle.entity_kinds ?? []).map((row) => ({
+  // Only the kinds this diagram has (spec 029, FR-044).
+  const kindRows: ErdFilterRow[] = kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row) => ({
     key: row.entity_kind,
     label: row.label,
     iconSrc: kindLegendDiskUri(row.entity_kind),
@@ -520,6 +517,8 @@ export function ErdGraphvizCanvas({
               "& g.edge.is-hovered polygon": { stroke: "#475569" },
               "& g.edge.is-hovered polygon:not([fill='none'])": { fill: "#475569" },
               "& g.edge.is-hovered text": { fill: "#334155", fontWeight: 700 },
+              // A line's end labels show only on hover, on a white plate (spec 029, FR-042).
+              ...erdEndLabelSx,
               "@media (prefers-reduced-motion: reduce)": { "& g.edge path": { transition: "none" } },
               // Names copy on click.
               "& g[id^='a_hn'] text, & g[id^='a_fn'] text": { cursor: "copy" },

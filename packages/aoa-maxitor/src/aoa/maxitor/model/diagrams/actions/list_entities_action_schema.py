@@ -126,6 +126,13 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                                         "references; null for a scalar field."
                                                     ),
                                                 },
+                                                "annotation": {
+                                                    "type": ["string", "null"],
+                                                    "description": (
+                                                        "The field's full annotation, for the row's tooltip; null "
+                                                        "from a service on an older aoa-action-machine (spec 029)."
+                                                    ),
+                                                },
                                             },
                                             "required": [
                                                 "name",

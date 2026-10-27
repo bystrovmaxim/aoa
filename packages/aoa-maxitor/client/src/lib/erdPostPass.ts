@@ -25,6 +25,11 @@ const HEADER_GLYPH_STROKE = 2.4;
 const HEADER_GLYPH_GAP = 4;
 /** Space between the header's left edge and the glyph, in points (the mockup's 12 of a 250 card). */
 export const HEADER_INSET_PT = 10;
+/**
+ * Half the height of a capital of Helvetica, as a share of the font size (its cap height is 0.718 em):
+ * how far above its baseline a name's visual middle stands.
+ */
+export const CAP_HALF_EM = 0.359;
 
 /**
  * The box of a cell's ``points`` polygon inside its ``<g id="a_<id>">``, or ``null``. A cell that holds a
@@ -34,7 +39,7 @@ function cellBox(
   markup: string,
   cellId: string,
   outer = false,
-): { x: number; y: number; right: number; size: number; end: number } | null {
+): { x: number; y: number; right: number; bottom: number; size: number; end: number } | null {
   const start = markup.indexOf(`<g id="a_${cellId}">`);
   if (start < 0) return null;
   const close = markup.indexOf("</a>", start);
@@ -53,22 +58,32 @@ function cellBox(
   const x = Math.min(...xs);
   const y = Math.min(...ys);
   const size = Math.min(Math.max(...xs) - x, Math.max(...ys) - y);
-  return { x, y, right: Math.max(...xs), size, end: close };
+  return { x, y, right: Math.max(...xs), bottom: Math.max(...ys), size, end: close };
 }
 
-/** The text start ``x`` of the first ``<text>`` inside ``<g id="a_<id>">``, and where that attribute sits. */
-function textStart(markup: string, cellId: string): { x: number; at: number; length: number } | null {
+type Attribute = { at: number; length: number };
+
+/** The first ``<text>`` inside ``<g id="a_<id>">``: where its ``x`` and ``y`` attributes sit, and its font size. */
+function textPlace(markup: string, cellId: string): { x: Attribute; y: Attribute; fontSize: number } | null {
   const start = markup.indexOf(`<g id="a_${cellId}">`);
   if (start < 0) return null;
-  const match = /<text[^>]* x="([-\d.]+)"/.exec(markup.slice(start));
-  if (!match) return null;
-  const attr = ` x="${match[1]}"`;
-  return { x: Number(match[1]), at: start + match.index + match[0].lastIndexOf(attr), length: attr.length };
+  const tag = /<text\b[^>]*>/.exec(markup.slice(start));
+  if (!tag) return null;
+  const find = (name: string): Attribute | null => {
+    const attr = new RegExp(` ${name}="[-\\d.]+"`).exec(tag[0]);
+    return attr ? { at: start + tag.index + attr.index, length: attr[0].length } : null;
+  };
+  const x = find("x");
+  const y = find("y");
+  const fontSize = Number(/ font-size="([\d.]+)"/.exec(tag[0])?.[1]);
+  return x && y && fontSize > 0 ? { x, y, fontSize } : null;
 }
 
 /**
- * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it.
- * ``entities`` is the list the DOT was built from (its order gives the cell ids).
+ * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it,
+ * both on one axis — the middle of the header band: the glyph's centre on it, and the name's capitals
+ * centred on it (spec 029, FR-033). ``entities`` is the list the DOT was built from (its order gives the
+ * cell ids).
  */
 export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer): string {
   const edits: Array<{ at: number; remove: number; text: string }> = [];
@@ -76,17 +91,21 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
     const slot = cellBox(markup, `ks${table}`);
     const header = cellBox(markup, `hd${table}`, true);
     const nameCell = cellBox(markup, `hn${table}`, true);
-    const name = textStart(markup, `hn${table}`);
+    const name = textPlace(markup, `hn${table}`);
     if (!slot || slot.size <= 0 || !header || !nameCell || !name) return;
     const iconX = header.x + HEADER_INSET_PT;
     const textX = iconX + slot.size + HEADER_GLYPH_GAP;
+    const axis = (header.y + header.bottom) / 2;
+    const iconY = axis - slot.size / 2;
+    const textY = axis + CAP_HALF_EM * name.fontSize;
     const kind = entity.entity_kind?.trim() || "unknown";
-    edits.push({ at: name.at, remove: name.length, text: ` x="${textX.toFixed(2)}"` });
+    edits.push({ at: name.y.at, remove: name.y.length, text: ` y="${textY.toFixed(2)}"` });
+    edits.push({ at: name.x.at, remove: name.x.length, text: ` x="${textX.toFixed(2)}"` });
     edits.push({
       at: slot.end,
       remove: 0,
       text:
-        `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${slot.y}) ` +
+        `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${iconY.toFixed(2)}) ` +
         `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, "#ffffff", HEADER_GLYPH_STROKE)}</g>`,
     });
   });
@@ -131,6 +150,97 @@ export function addEdgeHitAreas(root: ParentNode): void {
     path.parentNode!.insertBefore(hit, path);
   });
 }
+
+/** The class of the plate under a line's end label. */
+export const END_LABEL_CLASS = "erd-end-label";
+
+/**
+ * Put a white plate under every label of a line — the field names at its ends — so a label reads over a
+ * table it crosses (spec 029, FR-042). The labels and their plates show only while the line is hovered
+ * (``erdEndLabelSx``); a line's own hover, a row's hover and a follower's replayed hover all set it.
+ */
+export function addEndLabelBadges(root: ParentNode): void {
+  const tables = [...root.querySelectorAll<SVGGraphicsElement>("g.node")].map((node) => node.getBBox());
+  root.querySelectorAll<SVGTextElement>("g.edge text").forEach((label) => {
+    if (label.previousElementSibling?.classList.contains(END_LABEL_CLASS)) return;
+    const box = label.getBBox();
+    if (!(box.width > 0)) return;
+    const size = { width: box.width + 6, height: box.height + 2 };
+    let place: Box = { x: box.x - 3, y: box.y - 1, ...size };
+    // Graphviz sets a label at its line's end, often on the table there; it moves along the line, clear.
+    const line = label.closest("g.edge")?.querySelector<SVGPathElement>("path:not(.erd-hit)");
+    if (line && typeof line.getTotalLength === "function") {
+      const length = line.getTotalLength();
+      const start = line.getPointAtLength(0);
+      const end = line.getPointAtLength(length);
+      const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      const atEnd = Math.hypot(centre.x - end.x, centre.y - end.y) < Math.hypot(centre.x - start.x, centre.y - start.y);
+      place = placeEndLabel((d) => line.getPointAtLength(atEnd ? length - d : d), length, size, tables);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("x", String(place.x + place.width / 2));
+      // The baseline that centres the text on its plate: the middle plus a third of the font size.
+      const fontSize = Number(label.getAttribute("font-size")) || box.height * 0.8;
+      label.setAttribute("y", String(place.y + place.height / 2 + fontSize * 0.35));
+    }
+    const plate = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    plate.setAttribute("class", END_LABEL_CLASS);
+    plate.setAttribute("x", String(place.x));
+    plate.setAttribute("y", String(place.y));
+    plate.setAttribute("width", String(place.width));
+    plate.setAttribute("height", String(place.height));
+    plate.setAttribute("rx", "3");
+    label.parentNode!.insertBefore(plate, label);
+  });
+}
+
+/** A box in the drawing's units. */
+export type Box = { x: number; y: number; width: number; height: number };
+
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** Space between a label's plate and its line, and the step it moves along the line, in drawing units. */
+const LABEL_OFFSET = 4;
+const LABEL_STEP = 3;
+
+/**
+ * Where an end label's plate goes (spec 029, FR-042): walking along its line from the end it names
+ * (``pointAt(0)`` is that end, ``pointAt(length)`` the other), the first place where the plate — set
+ * beside the line, off it, on whichever side is clear — touches none of ``tables``. Not past the line's
+ * middle; when nowhere is clear, the last place tried.
+ */
+export function placeEndLabel(
+  pointAt: (distance: number) => { x: number; y: number },
+  length: number,
+  plate: { width: number; height: number },
+  tables: readonly Box[],
+): Box {
+  const half = Math.max(plate.width, plate.height) / 2 + LABEL_OFFSET;
+  let last: Box | null = null;
+  for (let along = half; along <= Math.max(half, length / 2); along += LABEL_STEP) {
+    const p = pointAt(along);
+    const q = pointAt(Math.min(length, along + 1));
+    const dx = q.x - p.x;
+    const dy = q.y - p.y;
+    const norm = Math.hypot(dx, dy) || 1;
+    // Off the line: the plate's centre moved across it by half the plate's extent plus a gap.
+    const across = Math.abs((plate.width / 2) * (dy / norm)) + Math.abs((plate.height / 2) * (dx / norm)) + LABEL_OFFSET;
+    for (const side of [1, -1]) {
+      const cx = p.x + side * (-dy / norm) * across;
+      const cy = p.y + side * (dx / norm) * across;
+      const box = { x: cx - plate.width / 2, y: cy - plate.height / 2, width: plate.width, height: plate.height };
+      last = box;
+      if (!tables.some((table) => overlaps(box, table))) return box;
+    }
+  }
+  return last ?? { x: pointAt(0).x - plate.width / 2, y: pointAt(0).y - plate.height / 2, ...plate };
+}
+
+/** The canvas's style for line labels: hidden, and shown on their plates while the line is hovered. */
+export const erdEndLabelSx = {
+  [`& g.edge text, & g.edge rect.${END_LABEL_CLASS}`]: { visibility: "hidden" },
+  [`& g.edge.${EDGE_HOVER_CLASS} text, & g.edge.${EDGE_HOVER_CLASS} rect.${END_LABEL_CLASS}`]: { visibility: "visible" },
+  [`& rect.${END_LABEL_CLASS}`]: { fill: "#ffffff", stroke: "#cbd5e1", strokeWidth: 0.8 },
+} as const;
 
 /** Cell ids of the rows a relation stands for, at both ends. */
 function rowsOf(line: ErdLineInfo, tables: Map<string, { index: number; fields: ErdEntity["fields"] }>): string[] {
@@ -188,8 +298,37 @@ export function markRows(root: ParentNode, cells: readonly string[], on: boolean
 /**
  * Line hover in both directions. Hovering a line gives it the hovered look, raises it above the lines it
  * crosses and marks the rows of its fields in both tables; hovering a row whose field has lines does the
- * same for every one of them. ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
+ * same for every one of them. Either way the tables they join stay bright and the rest dim; on a row, the
+ * hovered table's other lines stay as they are (spec 029, FR-041). ``relations[k]`` is the line Graphviz wrote as ``<g id="re<k>">``.
  */
+/** A table's id: the text of its node's ``<title>``. */
+function tableOf(node: Element): string {
+  return node.querySelector(":scope > title")?.textContent?.trim() ?? "";
+}
+
+/**
+ * Keep ``tables`` bright and dim every other table; keep bright the lines in ``lines`` — or, when none are
+ * given, every line touching a kept table — and dim the rest. The look of a hovered table, a hovered key
+ * row and a hovered line alike (spec 029, FR-040, FR-041).
+ */
+export function focusTables(root: ParentNode, tables: ReadonlySet<string>, lines?: ReadonlySet<Element>): void {
+  root.querySelectorAll<SVGElement>("g.node").forEach((node) => {
+    node.style.opacity = tables.has(tableOf(node)) ? "1" : "0.35";
+  });
+  root.querySelectorAll<SVGElement>("g.edge").forEach((edge) => {
+    const title = edge.querySelector(":scope > title")?.textContent?.trim() ?? "";
+    const kept = lines ? lines.has(edge) : [...tables].some((table) => title.includes(table));
+    edge.style.opacity = kept ? "1" : "0.2";
+  });
+}
+
+/** Every table and line bright again. */
+export function clearTableFocus(root: ParentNode): void {
+  root.querySelectorAll<SVGElement>("g.node, g.edge").forEach((element) => {
+    element.style.opacity = "1";
+  });
+}
+
 export function bindLineHover(
   root: ParentNode,
   relations: readonly ErdLineInfo[],
@@ -207,10 +346,24 @@ export function bindLineHover(
     }
   };
   const edgesById = (ids: number[]) => ids.map((k) => root.querySelector(`g[id="re${k}"]`)).filter((e): e is Element => e !== null);
+  // Every line one of whose ends is ``table``.
+  const touching = (table: string) =>
+    new Set(edgesById(relations.flatMap((line, k) => (line.source === table || line.target === table ? [k] : []))));
+  // The tables a set of lines joins: both ends of each.
+  const joined = (edges: Element[]) => new Set(edges.flatMap((edge) => {
+    const line = relations[Number(edge.id.slice(2))];
+    return line ? [line.source, line.target] : [];
+  }));
 
   root.querySelectorAll('g.edge[id^="re"]').forEach((edge) => {
-    edge.addEventListener("mouseenter", () => show([edge], true), { signal });
-    edge.addEventListener("mouseleave", () => show([edge], false), { signal });
+    edge.addEventListener("mouseenter", () => {
+      show([edge], true);
+      focusTables(root, joined([edge]), new Set([edge]));
+    }, { signal });
+    edge.addEventListener("mouseleave", () => {
+      show([edge], false);
+      clearTableFocus(root);
+    }, { signal });
   });
 
   // A row's lines: every line one of whose ends is this row.
@@ -224,7 +377,95 @@ export function bindLineHover(
   root.querySelectorAll('g[id^="a_fn"], g[id^="a_ft"]').forEach((cell) => {
     const lines = rowLines.get(cell.id.slice(4)) ?? [];
     if (!lines.length) return;
-    cell.addEventListener("mouseenter", () => show(edgesById(lines), true), { signal });
-    cell.addEventListener("mouseleave", () => show(edgesById(lines), false), { signal });
+    // The row's own table stays the hovered one; its lines and every table they join are lit with it.
+    const own = tableOf(cell.closest("g.node") ?? cell);
+    cell.addEventListener("mouseenter", () => {
+      const edges = edgesById(lines);
+      // Scenario 2 (maintainer, 2026-10-27): the field's lines go bold (``show``); the tables they join
+      // stay bright; the hovered table's other lines stay as they are; every other line and table dims.
+      show(edges, true);
+      focusTables(root, new Set([own, ...joined(edges)]), touching(own));
+    }, { signal });
+    cell.addEventListener("mouseleave", () => {
+      show(edgesById(lines), false);
+      focusTables(root, new Set([own]));
+    }, { signal });
   });
+}
+
+// ── The card as designed ─────────────────────────────────────────────────
+
+/** A node's markup: from its ``<g id="node…" class="node">`` to the next node or edge group. */
+const NODE_START = /<g id="node\d+" class="node"[^>]*>/g;
+const BACKDROP = /<path fill="white" stroke="none" d="([^"]+)"\/?>(?:<\/path>)?/;
+const GROUP_START = /<g id="[^"]+" class="(?:node|edge|cluster)"/g;
+const NUMBER = /-?\d+(?:\.\d+)?/g;
+
+/** A number as the markup writes it: at most two decimals. */
+function fixed(value: number): string {
+  return String(Number(value.toFixed(2)));
+}
+
+/** The rectangle a Graphviz rounded outline spans, from its path. */
+function spanOf(d: string): { x0: number; y0: number; x1: number; y1: number } | null {
+  const values = (d.match(NUMBER) ?? []).map(Number);
+  const xs = values.filter((_, i) => i % 2 === 0);
+  const ys = values.filter((_, i) => i % 2 === 1);
+  if (!xs.length || !ys.length) return null;
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+}
+
+/** Move a fill's edges that stop just inside the card onto the card's edges, so nothing is left between them. */
+function reachEdges(points: string, span: { x0: number; y0: number; x1: number; y1: number }, inset: number): string {
+  const near = (value: number, edge: number) => Math.abs(value - edge) <= inset + 0.01;
+  const values = (points.match(NUMBER) ?? []).map(Number);
+  return values
+    .map((value, i) => {
+      if (i % 2 === 0) return fixed(near(value, span.x0) ? span.x0 : near(value, span.x1) ? span.x1 : value);
+      return fixed(near(value, span.y0) ? span.y0 : near(value, span.y1) ? span.y1 : value);
+    })
+    .reduce<string[]>((pairs, value, i, all) => (i % 2 === 0 ? [...pairs, `${value},${all[i + 1]}`] : pairs), [])
+    .join(" ");
+}
+
+/** One node's markup drawn as the designed card, or as it was when it is not a card. */
+function drawCard(node: string, radius: number, stroke: number): string {
+  const backdrop = BACKDROP.exec(node);
+  const span = backdrop ? spanOf(backdrop[1]!) : null;
+  if (!backdrop || !span) return node;
+  const d = backdrop[1]!;
+  const box = `x="${fixed(span.x0)}" y="${fixed(span.y0)}" width="${fixed(span.x1 - span.x0)}" height="${fixed(span.y1 - span.y0)}" rx="${radius}"`;
+  // Graphviz keeps its fills one unit inside its own outline.
+  const inset = 1;
+  let out = node.replace(backdrop[0], `<rect fill="white" stroke="none" ${box}/>`);
+  out = out.replace(/(<clipPath id="[^"]+">)<rect [^>]*\/>/, `$1<rect ${box}/>`);
+  const clip = /<clipPath id="([^"]+)">/.exec(out)?.[1];
+  out = out.replace(/<polygon\b([^>]*)\bpoints="([^"]+)"/g, (_whole, attributes: string, points: string) => {
+    const clipped = clip && !attributes.includes("clip-path") ? ` clip-path="url(#${clip})"` : "";
+    return `<polygon${clipped}${attributes}points="${reachEdges(points, span, inset)}"`;
+  });
+  const outline = new RegExp(`<path fill="none" stroke="([^"]+)" d="${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"\\/?>(?:<\\/path>)?`);
+  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}" ${box}/>`);
+}
+
+/**
+ * Draw every ERD table as the card of spec 029 (FR-032): Graphviz's rounded outline and backdrop give
+ * way to one rounded rectangle of ``radius`` (the mockup's 9) with a ``stroke``-wide outline in the
+ * domain colour; the header and the row tints reach the card's edge and are trimmed to the same
+ * rounded shape, so the header fills right up to the outline with no gap. Graphviz's layout — every
+ * cell's place and size — is left as it is. Run after ``containNodeFills``.
+ */
+export function drawErdCards(svg: string, radius: number, stroke: number): string {
+  const starts = [...svg.matchAll(NODE_START)].map((m) => m.index ?? 0);
+  if (!starts.length) return svg;
+  let out = svg.slice(0, starts[0]);
+  starts.forEach((start, i) => {
+    const next = starts[i + 1] ?? svg.length;
+    // A card ends where the next group of the drawing begins — a line (``re<k>``), a cluster or a node.
+    GROUP_START.lastIndex = start + 1;
+    const following = GROUP_START.exec(svg)?.index ?? svg.length;
+    const end = Math.min(following, next);
+    out += drawCard(svg.slice(start, end), radius, stroke) + svg.slice(end, next);
+  });
+  return out;
 }

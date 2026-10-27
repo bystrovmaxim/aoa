@@ -19,6 +19,7 @@ from aoa.maxitor.model.rooms.actions.leave_room_action import LeaveRoomAction
 from aoa.maxitor.model.rooms.actions.reload_source_for_room_action import ReloadSourceForRoomAction
 from aoa.maxitor.model.rooms.actions.rename_participant_action import RenameParticipantAction
 from aoa.maxitor.model.rooms.actions.report_page_action import ReportPageAction
+from aoa.maxitor.model.rooms.actions.seed_page_settings_action import SeedPageSettingsAction
 from aoa.maxitor.model.rooms.actions.set_page_setting_action import SetPageSettingAction
 from aoa.maxitor.model.rooms.actions.stop_following_action import StopFollowingAction
 
@@ -32,6 +33,7 @@ __all__ = [
     "ReloadSourceForRoomAction",
     "RenameParticipantAction",
     "ReportPageAction",
+    "SeedPageSettingsAction",
     "SetPageSettingAction",
     "StopFollowingAction",
 ]

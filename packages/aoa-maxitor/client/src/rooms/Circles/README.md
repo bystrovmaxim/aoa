@@ -15,4 +15,5 @@
 | File | Responsibility |
 |------|----------------|
 | `Circles.tsx` | The circles as buttons labelled with name and page; hover, Enter or a long press opens the card; the +N list. |
-| `Avatar.tsx` | One circle: colour, initials, ring, pale, grey dot. |
+| `Avatar.tsx` | One circle: colour, initials, ring, pale, grey dot; `ringedBox` — the 29 px box a 22 px circle and its ring take, so no ring reaches a neighbour (spec 029). |
+| `Circles.test.tsx` | Sizes, rings inside the box, the follower count inside it, the pill stepping aside while a card is open. |

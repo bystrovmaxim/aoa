@@ -8,8 +8,9 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
+import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
-import { usePageSetting } from "@/lib/pageSettings";
+import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
@@ -188,6 +189,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const [firstFitDone, setFirstFitDone] = useState(false);
   // Registered after the second fit (one frame after the first), so a placed view is not undone.
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
+  // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
+  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "node");
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {

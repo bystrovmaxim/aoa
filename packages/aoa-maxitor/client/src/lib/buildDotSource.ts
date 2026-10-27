@@ -11,6 +11,8 @@ export type ErdField = {
   foreign_key?: boolean;
   /** Interchange qualname of the closed dictionary this field references, when it references one. */
   reference_qualname?: string | null;
+  /** The full annotation, for the type cell's tooltip; absent from a service on an older aoa-action-machine. */
+  annotation?: string | null;
 };
 
 export type ErdEntity = {
@@ -44,7 +46,7 @@ export type ErdRelation = {
   label?: string;
   /** `specialization` marks the line into an axis container; `generalization` marks an extension's inheritance line into its head; anything else is an ordinary link. */
   relationship_kind?: string;
-  /** Cardinality of the source end (`one` or `zero_many`), drawn as a bar or a crow's foot there. */
+  /** Cardinality of the source end — `one`, `zero_one`, `one_many` or `zero_many` — drawn as its crow's-foot end. */
   source_cardinality?: string;
   /** Cardinality of the target end. */
   target_cardinality?: string;
@@ -57,9 +59,23 @@ export type ErdRelation = {
 /** Id Graphviz writes on the ``k``-th relation's edge group, so the post-pass finds its fields. */
 export const erdEdgeId = (k: number) => `re${k}`;
 
-/** The crow's-foot end for a cardinality: a bar for one, a crow's foot for many. */
+/**
+ * The crow's-foot end for a cardinality, as Graphviz arrow shapes, the first one nearest the table
+ * (spec 029, FR-043): exactly one — two bars; zero or one — a bar and a ring; one or many — a crow's
+ * foot and a bar; zero or many — a crow's foot and a ring; each a little way off the table. An unknown
+ * value reads as zero or many.
+ */
+export const ERD_ENDS: Readonly<Record<string, string>> = {
+  // ``none`` first leaves a few points between the table's outline and the end, so the bar nearest the
+  // table does not merge with its outline (maintainer, 2026-10-27).
+  one: "noneteetee",
+  zero_one: "noneteeodot",
+  one_many: "nonecrowtee",
+  zero_many: "nonecrowodot",
+};
+
 function erdEnd(cardinality: string | undefined): string {
-  return cardinality === "one" || cardinality === "zero_one" ? "tee" : "crow";
+  return ERD_ENDS[cardinality ?? ""] ?? ERD_ENDS.zero_many!;
 }
 
 /**
@@ -102,6 +118,12 @@ export const ERD_FK_COLOUR = "#475569";
 export const ERD_TYPE_COLOUR = "#64748b";
 /** The alpha appended to a domain colour for a tinted row: 0x0f / 0xff ≈ 6 %. */
 export const ERD_ROW_TINT_ALPHA = "0f";
+/**
+ * The card of spec 029 (FR-032; the mockup of spec 028, screen 21): one rounded outline of this radius
+ * and width, shared by the header, which fills up to it with no gap.
+ */
+export const ERD_CARD_RADIUS = 9;
+export const ERD_CARD_STROKE = 1.4;
 
 /**
  * Ids of the cells the SVG post-pass looks up. Graphviz writes a cell's ``ID`` into the SVG only with a
@@ -125,6 +147,90 @@ function escHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+// ── Field types as one clean name ────────────────────────────────────────
+// A field's type as one clean name, from whatever a service sends (spec 029, FR-030, FR-031). A service
+// on the current aoa-action-machine sends the clean name already (``str | None``, ``CurrencyEnumEntity``,
+// ``X[]``) and passes through unchanged; an older one sends Python's own spelling — ``UnionType[str,
+// NoneType]``, ``Optional[str]``, ``AssociationOne[X]``, ``Generalization[X]``, ``Specialization[Union[A,
+// B], K]``, ``list[X]``, ``Literal[a, b]`` — which is rewritten by the same rules. Kept here, not in a
+// module of its own, because the drawing checks run this file in plain Node, where it imports no value.
+
+const ONE_RELATIONS = new Set(["AssociationOne", "CompositeOne", "AggregateOne", "Generalization"]);
+const MANY_RELATIONS = new Set(["AssociationMany", "CompositeMany", "AggregateMany"]);
+const COLLECTIONS = new Set(["list", "set", "frozenset", "List", "Set", "FrozenSet"]);
+const UNIONS = new Set(["Union", "UnionType"]);
+
+/** The longest label a row shows; a longer one ends with ``…`` and the tooltip holds the whole. */
+export const FIELD_TYPE_MAX_CHARS = 40;
+
+/** Split ``text`` on ``separator`` outside brackets. */
+function splitTop(text: string, separator: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "[") depth += 1;
+    else if (ch === "]") depth -= 1;
+    else if (depth === 0 && text.startsWith(separator, i)) {
+      parts.push(text.slice(start, i));
+      start = i + separator.length;
+      i += separator.length - 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts.map((part) => part.trim()).filter((part) => part !== "");
+}
+
+/** ``Name[args]`` as its name and its top-level arguments, or ``null`` when ``text`` is not one. */
+function generic(text: string): { name: string; args: string[] } | null {
+  const open = text.indexOf("[");
+  if (open <= 0 || !text.endsWith("]")) return null;
+  return { name: text.slice(0, open).trim(), args: splitTop(text.slice(open + 1, -1), ",") };
+}
+
+/** Members of a union joined by ``|``, ``None`` once and last. */
+function union(members: string[]): string {
+  const clean = members.map(cleanFieldType);
+  const others = clean.filter((member) => member !== "None");
+  return [...others, ...(others.length < clean.length ? ["None"] : [])].join(" | ");
+}
+
+/** A literal value as a value: a number as it is, anything else quoted once. */
+function literalValue(value: string): string {
+  if (/^-?\d+(\.\d+)?$/.test(value) || value === "True" || value === "False" || value === "None") return value;
+  return value.startsWith('"') ? value : `"${value.replace(/^'|'$/g, "")}"`;
+}
+
+/** The clean name for a generic, or ``null`` when no rule applies. */
+function cleanGeneric(name: string, args: string[]): string | null {
+  if (UNIONS.has(name)) return union(args);
+  if (name === "Optional" && args.length === 1) return union([args[0]!, "None"]);
+  if ((ONE_RELATIONS.has(name) || name === "Specialization") && args.length >= 1) return cleanFieldType(args[0]!);
+  if ((MANY_RELATIONS.has(name) || COLLECTIONS.has(name)) && args.length === 1) return `${cleanFieldType(args[0]!)}[]`;
+  if ((name === "tuple" || name === "Tuple") && args.length === 2 && args[1] === "...") return `${cleanFieldType(args[0]!)}[]`;
+  if (name === "Literal") return args.map(literalValue).join(" | ");
+  if (name === "Annotated" && args.length >= 1) return cleanFieldType(args[0]!);
+  return null;
+}
+
+/** One clean name for the type string ``raw``, as a row shows it. */
+export function cleanFieldType(raw: string): string {
+  const text = raw.trim();
+  if (text === "NoneType") return "None";
+  const members = splitTop(text, "|");
+  if (members.length > 1) return union(members);
+  const parsed = generic(text);
+  if (!parsed) return text;
+  const clean = cleanGeneric(parsed.name, parsed.args);
+  return clean ?? `${parsed.name}[${parsed.args.map(cleanFieldType).join(", ")}]`;
+}
+
+/** ``label`` cut to fit a row, ending with ``…`` when it was longer. */
+export function fitFieldType(label: string, max = FIELD_TYPE_MAX_CHARS): string {
+  return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
 }
 
 /**
@@ -165,7 +271,57 @@ export function erdGraphvizEngine(layout: ErdGraphvizLayout): string {
   return "dot";
 }
 
-export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout): string {
+/**
+ * The DOT that measures the tables of every specialization block: those tables alone, as they are
+ * drawn, with no lines and no blocks around them (spec 029). Laid out once, it tells each table's
+ * natural width; ``erdBlockWidths`` reads them back.
+ */
+export function buildBlockMeasureDot(data: ErdGraphPayload): string {
+  const grouped = new Set((data.groups ?? []).filter((g) => g.members.length > 1).flatMap((g) => g.members));
+  const entities = data.entities.filter((e) => grouped.has(e.id));
+  return buildDotSource({ entities, relations: [], groups: [] }, "gv-dot-lr");
+}
+
+/** The width of each table's header in a laid-out drawing, by table id (its node's ``<title>``). */
+function headerWidths(svg: string): Map<string, number> {
+  const widths = new Map<string, number>();
+  for (const node of svg.split('<g id="node').slice(1)) {
+    const title = /<title>([^<]*)<\/title>/.exec(node)?.[1];
+    const header = /<g id="a_hd\d+">[\s\S]*?points="([^"]+)"/.exec(node)?.[1];
+    if (!title || !header) continue;
+    const xs = header.trim().split(/\s+/).map((pair) => Number(pair.split(",")[0]));
+    widths.set(title.replace(/&#45;/g, "-").replace(/&amp;/g, "&"), Math.max(...xs) - Math.min(...xs));
+  }
+  return widths;
+}
+
+/**
+ * One width for every table of a specialization block — its widest table's header — read from the
+ * drawing of ``buildBlockMeasureDot``; tables outside blocks are absent, so they keep their own.
+ */
+export function erdBlockWidths(data: ErdGraphPayload, measuredSvg: string): Map<string, number> {
+  const natural = headerWidths(measuredSvg);
+  const widths = new Map<string, number>();
+  for (const group of data.groups ?? []) {
+    const members = group.members.filter((id) => natural.has(id));
+    if (members.length < 2) continue;
+    const widest = Math.ceil(Math.max(...members.map((id) => natural.get(id)!)));
+    for (const id of members) widths.set(id, widest);
+  }
+  return widths;
+}
+
+/**
+ * The DOT the page lays out: as ``buildDotSource``, with every specialization block's tables given
+ * one width. ``measure`` lays a DOT out to SVG (Graphviz's ``layout(dot, "svg", "dot")``); it runs
+ * only when the diagram has a block.
+ */
+export function buildErdDot(data: ErdGraphPayload, layout: ErdGraphvizLayout, measure: (dot: string) => string): string {
+  const hasBlock = (data.groups ?? []).some((group) => group.members.length > 1);
+  return buildDotSource(data, layout, hasBlock ? erdBlockWidths(data, measure(buildBlockMeasureDot(data))) : undefined);
+}
+
+export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout, blockWidths?: ReadonlyMap<string, number>): string {
   const { entities, relations } = data;
   const groups = data.groups ?? [];
   const isLR = layout === "gv-dot-lr";
@@ -213,15 +369,17 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
         // A specialization axis row collapses its alternatives into "Specialization N+"
         // and carries the full list as the cell's hover tooltip. The line already says what a field
         // references, so the type cell carries no "→ target" of its own.
+        // Any other type reads as one clean name, cut to the column; the tooltip holds the full annotation
+        // (spec 029, FR-030).
         const specialization = parseSpecializationType(f.type || "");
-        const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : f.type || "";
+        const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : fitFieldType(cleanFieldType(f.type || ""));
         const tooltipAttr =
           specialization !== null
             ? ` TOOLTIP="${specialization.alternatives
                 .map((alt) => `${alt.code} → ${resolveTableLabel(alt.name, entities ?? [])}`)
                 .map(escHtml)
                 .join("&#10;")}"`
-            : ` TOOLTIP="${escHtml(typeText)}"`;
+            : ` TOOLTIP="${escHtml(f.annotation || f.type || "")}"`;
         return (
           "<TR>" +
           iconTd +
@@ -237,7 +395,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
       // One header cell with the domain fill, flush with the frame (the card's rounding trims it);
       // inside, the kind icon slot and the name, each filled with the same colour so Graphviz emits
       // their boxes. The post-pass puts icon and name at the left, after an inset (FR-110).
-      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
+      `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${blockWidths?.get(nd.id) ?? ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
       `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(nd.label || nd.id)}">` +
       `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>` +
       `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
@@ -281,11 +439,15 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout)
     if (ed.relationship_kind === "specialization") return;
     const id = `id="${erdEdgeId(k)}" `;
     if (ed.relationship_kind === "generalization" || !ed.source_field) {
-      // A generalization is dashed with a filled arrowhead (FR-115); a row from an older server keeps
-      // its middle label and gets the plain filled arrowhead.
+      // ERD notation has no arrows (spec 029, FR-043). A generalization is dashed and ends like any
+      // other line — zero or one at the variant, exactly one at the head; a row from an older server
+      // keeps its middle label and is a plain line.
       const label = ed.label ? `label="${escHtml(ed.label)}" fontsize=9 ` : "";
-      const arrow = ed.relationship_kind === "generalization" ? "style=dashed arrowhead=normal " : "arrowhead=normal ";
-      lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${arrow}`.trim()}]`);
+      const ends =
+        ed.relationship_kind === "generalization"
+          ? `style=dashed dir=both arrowtail=${erdEnd(ed.source_cardinality)} arrowhead=${erdEnd(ed.target_cardinality)} `
+          : "arrowhead=none ";
+      lines.push(`  "${ed.source}" -> "${ed.target}" [${`${id}${label}${ends}`.trim()}]`);
       return;
     }
     // One association, read the ERD way: each end shows how many of the table it touches, and the

@@ -29,6 +29,7 @@ from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.field_type_label import field_type_label
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 
@@ -80,7 +81,7 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for one scalar ``BaseEntity`` model field (non-relation).
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(entity_type) + ':' + field_name``; :attr:`NODE_TYPE` ``EntityField``; :meth:`to_dict` exposes ``field_type`` and ``primary_key_hint`` only (no ``ordinal`` on the node).
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(entity_type) + ':' + field_name``; :attr:`NODE_TYPE` ``EntityField``; :meth:`to_dict` exposes ``field_type`` (the clean label of ``field_type_label``), ``field_annotation`` (the full annotation) and ``primary_key_hint`` (no ``ordinal`` on the node).
     AI-CORE-END
     """
 
@@ -88,14 +89,7 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
 
     @classmethod
     def pretty_annotation(cls, annotation: Any) -> str:
-        """
-        Return a stable display string for a Python type annotation (unwraps ``Annotated``).
-
-        AI-CORE-BEGIN
-        ROLE: Serialize annotations for interchange ``field_type`` strings on entity field vertices.
-        CONTRACT: Unwraps ``typing.Annotated`` to the inner type; uses ``__qualname__`` for simple types.
-        AI-CORE-END
-        """
+        """The full annotation as Python spells it, ``Annotated`` unwrapped: the field's ``field_annotation``."""
         ann = annotation
         while get_origin(ann) is Annotated:
             args = get_args(ann)
@@ -115,11 +109,12 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
             raise TypeError(msg)
 
         stripped = field_name.strip()
-        field_type = type(self).pretty_annotation(annotation)
+        field_type = field_type_label(annotation)
         primary_key_hint = stripped == "id"
         dictionary = declared_dictionary(annotation)
         properties: dict[str, Any] = {
             "field_type": field_type,
+            "field_annotation": type(self).pretty_annotation(annotation),
             "primary_key_hint": primary_key_hint,
         }
         if dictionary is not None:
@@ -141,6 +136,7 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
     def to_dict(self) -> dict[str, Any]:
         properties: dict[str, Any] = {
             "field_type": str(self.properties["field_type"]),
+            "field_annotation": str(self.properties["field_annotation"]),
             "primary_key_hint": bool(self.properties["primary_key_hint"]),
         }
         if "reference_qualname" in self.properties:

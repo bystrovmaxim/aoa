@@ -12,9 +12,14 @@ The cases, with the real output at the bottom:
   1. a 1-hop slice: two neighbours of the domain are joined, as one association with two roles;
   2. a relation without an inverse is its own line, with one role;
   3. a specialization head is joined to the dictionary its axis is classified by;
-  4. an extension keeps its generalization line to its head;
+  4. an extension keeps its generalization line to its head; the line names the two fields that join
+     them — the extension's reverse field and the head's axis — and ends the ERD way, zero or one at
+     the extension and exactly one at the head (spec 029);
   5. two domains in one request: a line whose ends come from two different slices exists only in
-     the request-wide list.
+     the request-wide list;
+  6. 1-hop decides which extra tables come in, never which fields a table lists: with 1-hop off a
+     table still lists every relation field, while the lines to tables off the diagram wait;
+  7. a relation that may hold nothing ends in zero or one, a mandatory one in exactly one.
 
 Output:
 
@@ -24,11 +29,17 @@ Output:
        Offer [zero_many] —— player [one] Player
     3. The specialization head and its axis dictionary
        UserEvent [zero_many] —— kind [one] EventKind
-    4. A generalization
-       LoginSpec —generalization→ UserEvent
+    4. A generalization, read like any other line
+       generalization: LoginSpec [zero_one] kind —— user_event [one] UserEvent
     5. Players + Showcases: the cross-slice line
        in the Players slice: False, in the Showcases slice: False, in the request list: True
        Offer [zero_many] —— industry [one] Industry
+    6. Events with 1-hop off: UserEvent still lists every field
+       tables: ['EventKind', 'LoginSpec', 'ProfileSpec', 'UserEvent']
+       UserEvent fields: ['kind', 'player', 'referrer', 'showcase']
+       a line to Player: False
+    7. A relation that may hold nothing
+       UserEvent [zero_many] —— referrer [zero_one] Player
 
 Run: uv run python examples/step_26_maxitor/07_erd_lines.py
 """
@@ -61,9 +72,10 @@ def _edge(source: str, target: str, kind: str, **properties: Any) -> dict[str, A
     return {"source_id": source, "target_id": target, "type": kind, "relationship": "Association", "is_dag": False, "properties": properties}
 
 
-def _relation(source: str, field: str, cardinality: str, target: str, inverse: str | None = None) -> dict[str, Any]:
-    """A relation field, with its declared inverse when it has one."""
-    extra = {"inverse_entity_id": _id(target), "inverse_field": inverse} if inverse else {}
+def _relation(source: str, field: str, cardinality: str, target: str, inverse: str | None = None, *, optional: bool = False) -> dict[str, Any]:
+    """A relation field, with its declared inverse when it has one; ``optional`` when it may hold nothing."""
+    extra: dict[str, Any] = {"inverse_entity_id": _id(target), "inverse_field": inverse} if inverse else {}
+    extra["optional"] = optional
     return _edge(_id(source), _id(target), "entity_relation", field_name=field, cardinality=cardinality, relation_type="association",
                  description="", has_inverse=inverse is not None, deprecated=False, **extra)
 
@@ -80,6 +92,7 @@ def _graph() -> dict[str, Any]:
         _relation("Offer", "player", "one", "Player"),
         _relation("Offer", "industry", "one", "Industry"),
         _relation("Showcase", "industry", "one", "Industry"),
+        _relation("UserEvent", "referrer", "one", "Player", optional=True),
     ]
     members = ["LoginSpec", "ProfileSpec"]
     for index, member in enumerate(members):
@@ -103,9 +116,9 @@ app.state.graph_store = GraphStore(_builder)
 client = TestClient(app, raise_server_exceptions=False)
 
 
-def _read(*domains: str) -> dict[str, Any]:
-    """``GET /api/v1/list-entities`` for the named domains, with 1-hop neighbours."""
-    params: list[tuple[str, str]] = [("source", _SOURCE), ("include_one_hop_neighbors", "true")]
+def _read(*domains: str, one_hop: bool = True) -> dict[str, Any]:
+    """``GET /api/v1/list-entities`` for the named domains, with 1-hop neighbours unless switched off."""
+    params: list[tuple[str, str]] = [("source", _SOURCE), ("include_one_hop_neighbors", str(one_hop).lower())]
     params += [("domain_qualnames", _DOMAINS[d]) for d in domains]
     return client.get("/api/v1/list-entities", params=params).json()
 
@@ -137,12 +150,23 @@ print("  ", _line(_find(players_alone, "Offer", "Player")))
 print("3. The specialization head and its axis dictionary")
 print("  ", _line(_find(events, "UserEvent", "EventKind")))
 
-print("4. A generalization")
+print("4. A generalization, read like any other line")
 generalization = _find(events, "LoginSpec", "UserEvent")
-print(f"   {_short(generalization['source'])} —{generalization['relationship_kind']}→ {_short(generalization['target'])}")
+print(f"   {generalization['relationship_kind']}: {_line(generalization)}")
 
 print("5. Players + Showcases: the cross-slice line")
 both = _read("players", "showcases")
 in_slices = [_find(s["list_entities"]["relations"], "Offer", "Industry") is not None for s in both["domain_slices"]]
 print(f"   in the Players slice: {in_slices[0]}, in the Showcases slice: {in_slices[1]}, in the request list: {_find(both['relations'], 'Offer', 'Industry') is not None}")
 print("  ", _line(_find(both["relations"], "Offer", "Industry")))
+
+print("6. Events with 1-hop off: UserEvent still lists every field")
+alone = _read("events", one_hop=False)["domain_slices"][0]["list_entities"]
+user_event = next(e for e in alone["entities"] if _short(e["id"]) == "UserEvent")
+print(f"   tables: {sorted(_short(e['id']) for e in alone['entities'])}")
+print(f"   UserEvent fields: {[f['name'] for f in user_event['fields']]}")
+print(f"   a line to Player: {_find(alone['relations'], 'UserEvent', 'Player') is not None}")
+
+print("7. A relation that may hold nothing")
+referrer = next(r for r in events if r["source_field"] == "referrer")
+print("  ", _line(referrer))

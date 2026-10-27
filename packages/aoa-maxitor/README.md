@@ -53,7 +53,7 @@ The graph shows nodes of different types, each with a color label:
 - **Role** — access roles
 - **Params / Result / Field** — contract of each Action
 
-The left panel filters by groups: Applications, Domains, Roles, Actions, Entities, Resources. The graph is interactive — zoom, pan, isolate a cluster.
+The left panel filters by groups: Applications, Domains, Roles, Actions, Entities, Resources. The graph is interactive — zoom, pan, isolate a cluster. On every diagram a drag, a two-finger swipe or a plain mouse wheel moves the picture, and a pinch or Ctrl / ⌘ + wheel zooms it, as design tools do.
 
 **Key effect**: a new developer understands system structure in five minutes without reading code. A reviewer sees what changed without diffs across dozens of files.
 
@@ -75,11 +75,11 @@ The left panel navigates domains. For each domain:
 On the diagram you see:
 
 - Which entities belong to the domain
-- Their fields and types
-- How entities are linked (`AssociationOne/Many`, `AggregateOne/Many`, `CompositeOne/Many`): one line per association, every line whose two tables are on screen, each end with its cardinality (a bar for one, a crow's foot for many) and its role — the field on that side
+- Their fields — all of them, whatever 1-hop shows — and their types as one clean name (`str | None`, a relation by its target, `X[]` for many), the full annotation in the row's tooltip ([example](../../examples/step_26_maxitor/10_field_types.py), [notebook](../../examples/step_26_maxitor/10_field_types.ipynb))
+- How entities are linked (`AssociationOne/Many`, `AggregateOne/Many`, `CompositeOne/Many`): one line per association, every line whose two tables are on screen, each end with its cardinality — exactly one, zero or one (a relation that may hold nothing), zero or many — and its role, the field on that side, shown while the line is hovered; a specialization's extensions keep a dashed line to their head, ending the same way, with no arrows
 - Header color — domain membership; the white icon beside the name — the entity's kind
 
-One filter panel, with **Domains** and **Kinds** folding like an accordion, hides or shows tables by domain and by kind; Kinds comes from `GET /api/v1/list-entity-kinds` and is shown when the graph has more than one kind. Hovering a line marks the fields at both its ends; hovering a field marks its lines; clicking a table or field name copies it. The whole walk-through is [Step 26 — Read and filter the ERD](../../docs/tutorials/step-26-maxitor.md#read-and-filter-the-erd).
+One filter panel, with **Domains** and **Kinds** folding like an accordion, hides or shows tables by domain and by kind; Kinds lists the kinds of the tables on this diagram and is shown when there are at least two. Hovering a table dims the others; hovering a line or a key field marks the fields it joins and keeps bright only the tables it joins; clicking a table or field name copies it. The whole walk-through is [Step 26 — Read and filter the ERD](../../docs/tutorials/step-26-maxitor.md#read-and-filter-the-erd).
 
 The ERD is built from classes inheriting an entity kind base and their relation fields. Each exported Entity node carries `properties.entity_kind` and the kind's name, `properties.entity_kind_label`; Maxitor preserves both in the `entity` table and keeps no list of kinds of its own, so a graph from another producer shows its own kinds. A row with no kind loads as `unknown`; a kind word without a name is named by the word capitalised ([example](../../examples/step_26_maxitor/06_entity_kinds.py), [notebook](../../examples/step_26_maxitor/06_entity_kinds.ipynb)). This distinguishes independent objects, technical associations, owned parts, specializations and reference values. State types are excluded from ordinary Entity nodes and belong to lifecycle diagrams instead.
 
@@ -190,6 +190,8 @@ POST /api/load  {"service_url": "<url>"} — rebuild that one source
 
 Every successful `GET` carries an `ETag` of its content; a request that sends it back in `If-None-Match` gets `304` with no body.
 
+Maxitor serves its own model too, as any AOA service does: `GET /examples/model/graph-json` is an AOA action, so Maxitor's own address typed into the service field opens Maxitor's own diagram.
+
 `source` is the AOA service's `graph-json` URL, URL-encoded. A read that names no source answers `400` and says which parameter is missing; a source that cannot be built answers `422` with the reason; a server with no free build slot answers `503` with `Retry-After` and the client retries. A read whose source is not built yet builds it on the spot — it never answers "not loaded".
 
 `POST /api/load` is not "load into the slot" any more: it rebuilds the source it names and leaves every other source alone. In the SPA the same action is the **"Reload from service"** button next to the open source; a deep link only reads and never reloads.
@@ -206,7 +208,7 @@ JSON from endpoints can be embedded in your portal, CI pipeline, or documentatio
 
 **Held graphs stay current.** While someone looks at a graph, Maxitor asks its service whether it changed — every 30 seconds when the service gives `ETag` or `Last-Modified` (an unchanged one answers `304`), every 2 minutes when it does not (the body's SHA-256 is compared). A changed service is rebuilt in the background and replaces the old graph only when the build succeeded; a service that is down keeps the graph everyone has. Open pages redraw by themselves, keeping page, filters, zoom and centre. A built graph stays until `MAXITOR_MAX_GRAPHS` is reached. Tour: [09_fresh_graphs.py](../../examples/step_26_maxitor/09_fresh_graphs.py) · [notebook](../../examples/step_26_maxitor/09_fresh_graphs.ipynb).
 
-**Rooms.** **Open room** in the top row gives a link; whoever opens it joins after giving a name. Everyone in the room sees the others' pointers on the same spot of the diagram, filters and layout modes are shared per page, a click on someone's circle goes to them, and **Follow** keeps your screen where theirs is — always at your own zoom. A room holds 20 people and a process 100 rooms; a room ends two minutes after its last person leaves, and its link then opens the page on its own. Every room operation is an AOA action; pointers are relayed without one and never logged. Tour: [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) · [notebook](../../examples/step_26_maxitor/08_rooms.ipynb).
+**Rooms.** **Open room** in the top row gives a link; whoever opens it joins after giving a name. Everyone in the room sees the others' pointers on the same spot of the diagram, filters and layout modes are shared per page — the opener's own become the room's, and inside a room only the room's values show — a click on someone's circle goes to them, and **Follow** keeps your screen where theirs is, gliding rather than jumping, always at your own zoom, and shows you what they hover, select and open. A pointer stays while its person is in the room, however long it stands still. A room holds 20 people and a process 100 rooms; a room ends two minutes after its last person leaves, and its link then opens the page on its own. Every room operation is an AOA action; pointers are relayed without one and never logged. Tour: [08_rooms.py](../../examples/step_26_maxitor/08_rooms.py) · [notebook](../../examples/step_26_maxitor/08_rooms.ipynb).
 
 ---
 

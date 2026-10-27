@@ -12,9 +12,9 @@
  */
 
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
-import { buildDotSource, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
+import { buildDotSource, buildErdDot, ERD_CARD_RADIUS, ERD_CARD_STROKE, ERD_TABLE_MIN_WIDTH_PT, type ErdGraphPayload } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
-import { HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
+import { drawErdCards, HEADER_INSET_PT, placeKindIcons } from "../src/lib/erdPostPass.ts";
 import { kindGlyphSvg } from "../src/lib/icons/entity_kind_glyphs.ts";
 
 let failures = 0;
@@ -62,11 +62,12 @@ function textXOf(markup: string, id: string): number {
 
 /** The drawing the page shows for a payload: Graphviz, then the production passes. */
 function drawn(data: ErdGraphPayload): string {
-  return placeKindIcons(containNodeFills(gv.layout(buildDotSource(data, "gv-dot-lr"), "svg", "dot")), data.entities, kindGlyphSvg);
+  return placeKindIcons(drawErdCards(containNodeFills(gv.layout(buildErdDot(data, "gv-dot-lr", (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE), data.entities, kindGlyphSvg);
 }
 
 const field = (name: string, type: string, extra: Record<string, unknown> = {}) => ({ name, type, primary_key: false, foreign_key: false, ...extra });
-const longType = "Union[AssociationOne[GenderEnumEntity], NoneType]";
+// A type long even as a clean name (spec 029 shows `X | None`, cut to the column), so the table stays wide.
+const longType = "Union[AssociationOne[BillingChargebackIngestCorrelateCoreEntity], NoneType]";
 
 const fixture: ErdGraphPayload = {
   entities: [
@@ -79,7 +80,8 @@ const fixture: ErdGraphPayload = {
     { id: "shop.LegacyEntity", label: "LegacyEntity", color: "#3b82f6", fields: [{ ...field("id", "str"), primary_key: true }] },
     // A specialization container with two members.
     { id: "shop.CardSpecEntity", label: "CardSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }] },
-    { id: "shop.BankSpecEntity", label: "BankSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }] },
+    // One member wider than the minimum, so the block's shared width (spec 029) is its width, not the floor.
+    { id: "shop.BankSpecEntity", label: "BankSpecEntity", color: "#3b82f6", entity_kind: "spec", fields: [{ ...field("id", "str"), primary_key: true }, field("correspondent_routing_reference", "CorrespondentRoutingReferenceCoreEntity")] },
   ],
   relations: [{ source: "shop.PlayerCoreEntity", target: "shop.GenderEnumEntity", label: "gender", relationship_kind: "reference" }],
   groups: [{ group_id: "shop.PaymentCoreEntity:kind", label: "kind (by PaymentKindEnumEntity)", members: ["shop.CardSpecEntity", "shop.BankSpecEntity"] }],
@@ -140,6 +142,19 @@ check("type cells are aligned to the right edge", rightX.length > 0 && rightX.ev
 
 // ── Specialization container ─────────────────────────────────────────────────
 const cluster = svg.slice(svg.indexOf('<g id="clust1"'), svg.indexOf("</g>", svg.indexOf('<g id="clust1"')));
+// Spec 029: every table of a block is as wide as its widest table.
+const cardWidth = (id: string) => {
+  const node = svg.slice(svg.indexOf(`<title>${id}</title>`));
+  return Number(/<rect fill="none" stroke="[^"]+" stroke-width="[\d.]+" x="[-\d.]+" y="[-\d.]+" width="([\d.]+)"/.exec(node)?.[1]);
+};
+const blockWidths = ["shop.CardSpecEntity", "shop.BankSpecEntity"].map(cardWidth);
+const naturalBank = natural.get("shop.BankSpecEntity")!.width;
+check(
+  "029 every table of a specialization block is as wide as the widest",
+  blockWidths[0] === blockWidths[1] && Math.abs(blockWidths[1]! - naturalBank) < 1.5 && naturalBank > ERD_TABLE_MIN_WIDTH_PT + 10,
+  `Card ${blockWidths[0]}, Bank ${blockWidths[1]}, Bank alone ${naturalBank.toFixed(1)}`,
+);
+check("029 a table outside a block keeps its own width", cardWidth("shop.OrderAggregateEntity") < blockWidths[0]!, `${cardWidth("shop.OrderAggregateEntity")}`);
 check("the container is see-through and half a tone darker", /fill="#0f172a" fill-opacity="0\.05\d*"/.test(cluster), cluster.slice(0, 160));
 check("the container outline is one point wider", cluster.includes('stroke-width="2"'));
 
@@ -159,6 +174,12 @@ const lines: ErdGraphPayload = {
       source_cardinality: "zero_many", target_cardinality: "one", source_field: "offer_request", target_field: "offers" },
     { source: "shop.RequestCoreEntity", target: "shop.ItemDetailEntity", label: "chosen_offer (one)", relationship_kind: "association",
       source_cardinality: "zero_many", target_cardinality: "one", source_field: "chosen_offer", target_field: null },
+    // Spec 029, FR-043: an optional relation (zero or one at the target), and a reference to a dictionary
+    // (many referring rows, one value).
+    { source: "shop.PlayerCoreEntity", target: "shop.RequestCoreEntity", label: "last_request", relationship_kind: "association",
+      source_cardinality: "zero_many", target_cardinality: "zero_one", source_field: "last_request", target_field: null },
+    { source: "shop.ItemDetailEntity", target: "shop.ShowcaseCoreEntity", label: "showcase", relationship_kind: "reference",
+      source_cardinality: "zero_many", target_cardinality: "one", source_field: "showcase", target_field: null },
   ],
 };
 const lineSvg = gv.layout(buildDotSource(lines, "gv-dot-lr"), "svg", "dot");
@@ -174,8 +195,23 @@ check("the edge has no label in the middle", !paired.includes("showcase (one)"))
 // Graphviz draws a tee as a bar polygon and a crow as a three-pronged polygon; both ends are drawn.
 check("both ends are drawn", (paired.match(/<polygon /g) ?? []).length >= 2, `${(paired.match(/<polygon /g) ?? []).length} shapes`);
 const dotLines = buildDotSource(lines, "gv-dot-lr");
-check("the ends follow the cardinalities (crow at the many side, bar at the one side)",
-  dotLines.includes('[id="re0" dir=both arrowtail=crow arrowhead=tee headlabel="showcase" taillabel="players" labelfontsize=9]'));
+check("the ends follow the cardinalities (crow's foot and ring at the many side, two bars at the one side)",
+  dotLines.includes('[id="re0" dir=both arrowtail=nonecrowodot arrowhead=noneteetee headlabel="showcase" taillabel="players" labelfontsize=9]'));
+// Spec 029, FR-043: four distinct ends, each where its side is.
+check("an optional end is a bar and a ring, a mandatory one two bars", /id="re3" dir=both arrowtail=nonecrowodot arrowhead=noneteeodot/.test(dotLines));
+check("a reference has its crow's foot at the referring table and one value at the dictionary", /id="re4" dir=both arrowtail=nonecrowodot arrowhead=noneteetee/.test(dotLines));
+// The end nearest a table stands off its outline, so a bar never merges with it (maintainer, 2026-10-27).
+{
+  const re0 = edgeGroup(0);
+  const showcaseLeft = (() => {
+    const node = lineSvg.slice(lineSvg.indexOf("<title>shop.ShowcaseCoreEntity</title>"));
+    const pts = /<path fill="none" stroke="[^"]+" d="([^"]+)"/.exec(node)?.[1] ?? "";
+    return Math.min(...(pts.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number).filter((_, i) => i % 2 === 0));
+  })();
+  const nearest = Math.max(...[...re0.matchAll(/<polygon[^>]*points="([^"]+)"/g)].flatMap((m) => m[1]!.trim().split(/\s+/).map((p) => Number(p.split(",")[0]))));
+  check("an end stands at least 3 points off the table it meets", showcaseLeft - nearest >= 3, `table ${showcaseLeft.toFixed(1)}, end ${nearest.toFixed(1)}`);
+}
+check("every end of the drawing is one of the four crow's-foot ends", [...dotLines.matchAll(/arrow(?:tail|head)=(\w+)/g)].every((m) => ["noneteetee", "noneteeodot", "nonecrowtee", "nonecrowodot", "normal"].includes(m[1]!)));
 check("a relation without an inverse has one role", dotLines.includes('headlabel="chosen_offer" labelfontsize=9]') && !/re2"[^\]]*taillabel/.test(dotLines));
 const pathOf = (k: number) => /<path[^>]* d="([^"]+)"/.exec(edgeGroup(k))?.[1] ?? "";
 check("two associations between the same tables are two distinct lines", pathOf(1) !== "" && pathOf(2) !== "" && pathOf(1) !== pathOf(2));

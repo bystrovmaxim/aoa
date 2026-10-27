@@ -11,9 +11,12 @@ This script drives the real Maxitor application through FastAPI's test client, w
 The service is the AOA demo model, served as ``graph-json`` from a local port:
 
   1. Anna opens a room; Boris joins by its id — each is welcomed with the whole room;
-  2. Boris switches the ERD to Neato — the setting reaches Anna, and later joiners get it too;
-  3. Anna's pointer reaches Boris in diagram coordinates, and nothing is run for it;
-  4. Anna follows Boris, so Boris cannot follow Anna: the room refuses the circle;
+  2. Boris switches the ERD to Neato — the setting reaches Anna, and later joiners get it too; Anna's
+     own filters, sent as the room's seed, fill only what the room does not hold yet (spec 029);
+  3. Anna's pointer reaches Boris in diagram coordinates, and nothing is run for it; an hour later it
+     still reaches Vera when she comes to that page — a pointer stays while its person is in the room;
+  4. Anna follows Boris: what he hovers reaches her and nobody else; and Boris cannot follow Anna,
+     because the room refuses the circle;
   5. a room holds 20 people — the 21st is refused with close code 4409;
   6. an ended room's link is refused with 4404, and the page opens on its own.
 
@@ -23,34 +26,40 @@ Room ids and the port are random; the indented lines without an arrow are Maxito
 which names rooms and participants by id only:
 
     1. Anna opens a room; Boris joins
-      Room WyIjCKaNKUE6mfLymJRvpw created for http://127.0.0.1:58537/graph-json
-      Participant anna joined room WyIjCKaNKUE6mfLymJRvpw
+      Room dPPUfS2wLJRwtj8Cog8MLQ created for http://127.0.0.1:53937/graph-json
+      Participant anna joined room dPPUfS2wLJRwtj8Cog8MLQ
        Anna   <- welcome: room of 1, created by anna
-      Participant boris joined room WyIjCKaNKUE6mfLymJRvpw
+      Participant boris joined room dPPUfS2wLJRwtj8Cog8MLQ
        Boris  <- welcome: room of 2: anna, boris
        Anna   <- joined: Boris
 
     2. Boris sets the ERD's layout to Neato
-      Setting layout changed in room WyIjCKaNKUE6mfLymJRvpw
+      Setting layout changed in room dPPUfS2wLJRwtj8Cog8MLQ
        Anna   <- setting: view=domain-erd layout = gv-neato (by boris)
-      Participant vera joined room WyIjCKaNKUE6mfLymJRvpw
-       Vera   <- welcome with settings {'view=domain-erd': {'layout': 'gv-neato'}}
+      Room dPPUfS2wLJRwtj8Cog8MLQ seeded with 1 settings of a page
+       Boris  <- setting from Anna's seed: one_hop = False (the layout stays gv-neato)
+      Participant vera joined room dPPUfS2wLJRwtj8Cog8MLQ
+       Vera   <- welcome with settings {'view=domain-erd': {'layout': 'gv-neato', 'one_hop': False}}
 
     3. Anna's pointer reaches Boris
        Boris  <- pointer: anna at (120.5, -40.0), mouse
+       Vera   <- an hour later, on the ERD: anna's pointer at (120.5, -40.0)
 
-    4. A follow that would close a circle is refused
-      Participant anna follows boris in room WyIjCKaNKUE6mfLymJRvpw
+    4. Anna follows Boris; a follow that would close a circle is refused
+      Participant anna follows boris in room dPPUfS2wLJRwtj8Cog8MLQ
        Anna   -> follow boris: the room's links {'anna': 'boris', 'boris': None}
-      Follow refused in room WyIjCKaNKUE6mfLymJRvpw: boris to anna
+       Anna   <- focus: boris hovers Orders, filter panel open at kinds
+      Participant vera renamed in room dPPUfS2wLJRwtj8Cog8MLQ
+       Vera   <- focus events before her rename comes back: 0
+      Follow refused in room dPPUfS2wLJRwtj8Cog8MLQ: boris to anna
        Boris  <- follow_refused: they already follow you, directly or through others
 
     5. A room holds 20 people
-      Room join refused: WyIjCKaNKUE6mfLymJRvpw is full
+      Room join refused: dPPUfS2wLJRwtj8Cog8MLQ is full
        the 21st -> closed 4409: room full
 
     6. An ended room's link
-      Room join refused: wTQRpfc1VRYub-ESEujaFg has ended
+      Room join refused: AKxdLAwnObUU_chh2nIUxQ has ended
        a room nobody is in any more -> closed 4404: room ended
 
 Tutorial: ../../docs/tutorials/step-26-maxitor.md  ·  topic: Maxitor (rooms)
@@ -116,6 +125,14 @@ def next_event(ws: Any, kind: str) -> dict[str, Any]:
             return event
 
 
+def events_until(ws: Any, kind: str) -> list[dict[str, Any]]:
+    """Every event on ``ws`` up to and including the next one of ``kind``."""
+    events = [ws.receive_json()]
+    while events[-1]["type"] != kind:
+        events.append(ws.receive_json())
+    return events
+
+
 def closed(ws: Any) -> str:
     """How the server closed a refused connection."""
     try:
@@ -144,30 +161,49 @@ def case_1_open_and_join() -> tuple[str, Any, Any]:
     return room_id, anna, boris
 
 
-def case_2_shared_setting(room_id: str, anna: Any, boris: Any) -> None:
-    """A setting is sent as the new value and reaches everyone, now and later."""
+def case_2_shared_setting(room_id: str, anna: Any, boris: Any) -> Any:
+    """A setting is sent as the new value and reaches everyone, now and later; a seed only fills gaps."""
     print("\n2. Boris sets the ERD's layout to Neato")
     boris.send_json({"type": "setting", "page": ERD, "name": "layout", "value": "gv-neato"})
     heard = next_event(anna, "setting")
     print(f"   Anna   <- setting: {heard['page']} {heard['name']} = {heard['value']} (by {heard['by']})")
+    # The opener's own filters seed the room; the layout Boris chose stays, 1-hop off is new.
+    anna.send_json({"type": "seed", "page": ERD, "settings": {"layout": "gv-dot-lr", "one_hop": False}})
+    heard = next_event(boris, "setting")
+    while heard["by"] != "anna":  # his own layout comes back to him first
+        heard = next_event(boris, "setting")
+    print(f"   Boris  <- setting from Anna's seed: {heard['name']} = {heard['value']} (the layout stays gv-neato)")
     vera = stack.enter_context(connect(client, room_id, "vera", page="view=full-graph"))
     print(f"   Vera   <- welcome with settings {next_event(vera, 'welcome')['room']['settings']}")
+    return vera
 
 
-def case_3_pointer(anna: Any, boris: Any) -> None:
-    """A pointer travels in diagram coordinates, to the tabs on the same page only."""
+def case_3_pointer(room_id: str, anna: Any, boris: Any, vera: Any) -> None:
+    """A pointer travels in diagram coordinates, to the tabs on the same page only, and stays."""
     print("\n3. Anna's pointer reaches Boris")
     anna.send_json({"type": "pointer", "kind": "mouse", "x": 120.5, "y": -40.0})
     seen = next_event(boris, "pointer")
     print(f"   Boris  <- pointer: {seen['participant']} at ({seen['x']}, {seen['y']}), {seen['kind']}")
+    # An hour passes with Anna's mouse still; Vera then comes to the ERD.
+    client.app.state.rooms.room(room_id).participants["anna"].active_tab.last_activity -= 3600
+    vera.send_json({"type": "page", "page": ERD})
+    seen = next_event(vera, "pointer")
+    print(f"   Vera   <- an hour later, on the ERD: {seen['participant']}'s pointer at ({seen['x']}, {seen['y']})")
 
 
-def case_4_refused_circle(anna: Any, boris: Any) -> None:
-    """Following never closes a circle: the room checks it under its lock."""
-    print("\n4. A follow that would close a circle is refused")
+def case_4_follow(anna: Any, boris: Any, vera: Any) -> None:
+    """A follower sees what the followed person looks at; following never closes a circle."""
+    print("\n4. Anna follows Boris; a follow that would close a circle is refused")
     anna.send_json({"type": "follow", "target": "boris"})
     links = next_event(anna, "follows")["follows"]
     print(f"   Anna   -> follow boris: the room's links { {k: links[k] for k in ('anna', 'boris')} }")
+    # Boris hovers a table: the hover, its tooltip and his open panels go to his followers only.
+    boris.send_json({"type": "focus", "page": ERD, "hover": {"kind": "table", "id": "Orders"}, "tooltip": None,
+                     "selection": None, "panels": {"sidebar": [], "filter": "kinds", "legend": False}})
+    seen = next_event(anna, "focus")
+    print(f"   Anna   <- focus: {seen['participant']} hovers {seen['hover']['id']}, filter panel open at {seen['panels']['filter']}")
+    vera.send_json({"type": "rename", "name": "Vera"})
+    print(f"   Vera   <- focus events before her rename comes back: {sum(e['type'] == 'focus' for e in events_until(vera, 'renamed'))}")
     boris.send_json({"type": "follow", "target": "anna"})
     print(f"   Boris  <- follow_refused: {next_event(boris, 'follow_refused')['reason']}")
 
@@ -196,9 +232,9 @@ def case_6_ended_room() -> None:
 def main() -> None:
     """Run every case in order."""
     room_id, anna, boris = case_1_open_and_join()
-    case_2_shared_setting(room_id, anna, boris)
-    case_3_pointer(anna, boris)
-    case_4_refused_circle(anna, boris)
+    vera = case_2_shared_setting(room_id, anna, boris)
+    case_3_pointer(room_id, anna, boris, vera)
+    case_4_follow(anna, boris, vera)
     case_5_full_room(room_id)
     case_6_ended_room()
     with redirect_stdout(io.StringIO()):

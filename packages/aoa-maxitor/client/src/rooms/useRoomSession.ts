@@ -7,12 +7,14 @@
  * settings and layout mode, only taking ``room`` out of the address (spec 028, FR-019 … FR-028).
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { keepRoomSettings } from "@/lib/pageSettings";
+import { keepRoomSettings, ownSettingsByPage } from "@/lib/pageSettings";
+import { seedMessages } from "@/rooms/seed";
 import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
+import { clearFocus, putFocus } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
@@ -142,6 +144,17 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
 
   const send = useCallback((message: ClientMessage) => socket.current?.send(message), []);
 
+  /** Send this tab's own settings to the room it just opened, and show them before the echo. */
+  const seedRoom = useCallback((you: string) => {
+    for (const message of seedMessages(ownSettingsByPage())) {
+      socket.current?.send(message);
+      if (message.type !== "seed") continue;
+      for (const [name, value] of Object.entries(message.settings)) {
+        dispatch({ kind: "event", event: { type: "setting", page: message.page, name, value, by: you } });
+      }
+    }
+  }, []);
+
   const onEvent = useCallback((event: ServerEvent) => {
     // Pointers and screens change many times a second: they bypass React state.
     if (event.type === "pointer") {
@@ -150,6 +163,11 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     }
     if (event.type === "viewport") {
       putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
+      return;
+    }
+    if (event.type === "focus") {
+      const { participant, page, hover, tooltip, selection, panels } = event;
+      putFocus(participant, { page, hover, tooltip, selection, panels });
       return;
     }
     if (event.type === "check") {
@@ -167,11 +185,15 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       target.current = event.room.id;
       setUrlRoom(event.room.id);
       if (opening.current) setInviteOpen(true);
-      opening.current = false;
       if (event.fallback_page) callbacks.current.onFallbackPage(event.fallback_page);
     }
     dispatch({ kind: "event", event });
-  }, []);
+    if (event.type === "welcome") {
+      // A room this tab opened starts as its picture: its own settings, shown at once, confirmed by the echo.
+      if (opening.current) seedRoom(event.you.id);
+      opening.current = false;
+    }
+  }, [seedRoom]);
 
   const roomRef = useRef(room);
   roomRef.current = room;
@@ -184,6 +206,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     dispatch({ kind: "reset" });
     setInviteOpen(false);
     clearPointers();
+    clearFocus();
     setPageNotice(null);
     if (state.code === 4422) {
       // The server refused the name: the dialog opens again with the rule.
@@ -264,6 +287,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     setPageNotice(null);
     setPointersOffPage(null);
     clearPointers();
+    clearFocus();
     dispatch({ kind: "reset" });
   }, [send]);
 
@@ -291,6 +315,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   // Another page: pointers seen on the old one do not belong here.
   useEffect(() => {
     clearPointers();
+    clearFocus();
   }, [page]);
 
   // Every page the tab opens is reported, so the room knows where its participants are (FR-013),

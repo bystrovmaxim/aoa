@@ -49,7 +49,7 @@ export function RoomBanner({ banner, onOpenRoom, onDismiss }: RoomBannerProps) {
         ...LOOK[banner.kind],
       }}
     >
-      <Icon sx={{ fontSize: 18, flexShrink: 0 }} />
+      <Icon sx={{ fontSize: 16, flexShrink: 0 }} />
       <span>{banner.text}</span>
       {banner.open && (
         <Button

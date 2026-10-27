@@ -1,12 +1,15 @@
 // src/rooms/rooms.test.ts
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearLocalPageSettings, keepRoomSettings } from "@/lib/pageSettings";
 import { roomLink } from "@/lib/urlState";
 import { closeSentence, isFinalClose } from "@/rooms/closeCodes";
 import { RECONNECT_DELAYS, RoomConnection, type ConnectionState } from "@/rooms/connection";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import type { Participant, ServerEvent, WelcomeEvent } from "@/rooms/protocol";
 import { followerCount, reduceRoom, youFirst, type RoomState } from "@/rooms/roomStore";
-import { nameIsValid } from "@/rooms/useRoomSession";
+import { currentPointers } from "@/rooms/pointerStore";
+import { nameIsValid, useRoomSession } from "@/rooms/useRoomSession";
 
 const anna: Participant = { id: "anna", name: "Anna", colour: "#2563eb", page: "view=full-graph", visible: true, away: false };
 const boris: Participant = { id: "boris", name: "Boris", colour: "#dc2626", page: "view=domain-erd", visible: true, away: false };
@@ -213,5 +216,66 @@ describe("the room connection", () => {
     FakeSocket.instances[1].serverCloses(1000, "left the room");
     vi.advanceTimersByTime(60_000);
     expect(FakeSocket.instances).toHaveLength(2);
+  });
+});
+
+describe("seeding a room (spec 029, FR-001)", () => {
+  const ERD = "view=domain-erd";
+
+  beforeEach(() => {
+    FakeSocket.instances = [];
+    vi.stubGlobal("WebSocket", FakeSocket);
+    keepRoomSettings({ [ERD]: { layout: "gv-neato", one_hop: false } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearLocalPageSettings();
+  });
+
+  /** A session on ``initialRoom`` (``null`` to open one) that has just been welcomed. */
+  function welcomed(initialRoom: string | null) {
+    const options = { initialRoom, source: "https://svc/graph-json", page: ERD, onFallbackPage: vi.fn(), onGraphChanged: vi.fn(), surface: null, fingerprint: null };
+    const session = renderHook(() => useRoomSession(options));
+    if (!initialRoom) act(() => session.result.current.requestOpen());
+    act(() => session.result.current.confirmName("Anna"));
+    const socket = FakeSocket.instances.at(-1)!;
+    act(() => socket.serverSends({ ...welcome, you: { id: "anna", colour: anna.colour } }));
+    const seeds = socket.sent.map((data) => JSON.parse(data)).filter((message) => message.type === "seed");
+    return { session, seeds };
+  }
+
+  it("sends the opener's own settings, one per message, and shows them at once", () => {
+    const { session, seeds } = welcomed(null);
+    expect(seeds).toEqual([
+      { type: "seed", page: ERD, settings: { layout: "gv-neato" } },
+      { type: "seed", page: ERD, settings: { one_hop: false } },
+    ]);
+    expect(session.result.current.room?.settings[ERD]).toEqual({ layout: "gv-neato", one_hop: false });
+  });
+
+  it("sends nothing from a tab that joins someone else's room", () => {
+    expect(welcomed("r1").seeds).toEqual([]);
+  });
+});
+
+describe("a pointer and its person (spec 029, FR-020)", () => {
+  beforeEach(() => {
+    FakeSocket.instances = [];
+    vi.stubGlobal("WebSocket", FakeSocket);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("goes when its person leaves the room", () => {
+    const options = { initialRoom: "r1", source: "https://svc/graph-json", page: "view=full-graph", onFallbackPage: vi.fn(), onGraphChanged: vi.fn(), surface: null, fingerprint: null };
+    const session = renderHook(() => useRoomSession(options));
+    act(() => session.result.current.confirmName("Boris"));
+    const socket = FakeSocket.instances.at(-1)!;
+    act(() => socket.serverSends(welcome));
+    act(() => socket.serverSends({ type: "pointer", participant: "anna", x: 1, y: 2, kind: "mouse" }));
+    expect(currentPointers().has("anna")).toBe(true);
+    act(() => socket.serverSends({ type: "left", participant: anna }));
+    expect(currentPointers().has("anna")).toBe(false);
   });
 });

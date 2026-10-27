@@ -53,3 +53,23 @@ def test_generalization_rows_carry_each_extension(slice_payload: dict[str, Any])
         ("RepressSpecEntity", "VinylRecordCoreEntity", "repress"),
         ("TestPressSpecEntity", "VinylRecordCoreEntity", "test"),
     }
+
+
+def test_a_head_and_its_variants_are_joined_by_their_declared_fields(slice_payload: dict[str, Any]) -> None:
+    """(029 FR-046) Each line names the fields it joins, so hovering either field lights both tables."""
+    rows = [r for r in slice_payload["relations"] if r["relationship_kind"] == "generalization"]
+    assert {(r["source_field"], r["target_field"]) for r in rows} == {("record", "pressing")}
+
+
+def test_a_variants_reverse_field_is_a_foreign_key(slice_payload: dict[str, Any]) -> None:
+    """(029 FR-046) The field that points a variant at its head carries the FK mark; its other fields do not."""
+    variant = next(e for e in slice_payload["entities"] if e["id"].endswith("FirstPressSpecEntity"))
+    marks = {f["name"]: f["foreign_key"] for f in variant["fields"]}
+    assert marks["record"] is True
+    assert marks["id"] is False
+
+
+def test_a_generalization_ends_zero_or_one_at_the_variant_and_one_at_the_head(slice_payload: dict[str, Any]) -> None:
+    """(029 FR-043) A head row has at most one row of each variant; a variant row has exactly one head."""
+    rows = [r for r in slice_payload["relations"] if r["relationship_kind"] == "generalization"]
+    assert {(r["source_cardinality"], r["target_cardinality"]) for r in rows} == {("zero_one", "one")}

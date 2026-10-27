@@ -22,7 +22,8 @@ export const ROW_BUTTON_SX = {
   fontWeight: 500,
   textTransform: "none",
   whiteSpace: "nowrap",
-  "& svg": { fontSize: 14 },
+  // Icons as in the left panel's rows (spec 029, FR-050).
+  "& svg": { fontSize: 16 },
   "&:hover": { bgcolor: "rgba(15, 23, 42, 0.08)", color: "#0f172a" },
 } as const;
 

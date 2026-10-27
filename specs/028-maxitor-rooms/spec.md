@@ -300,7 +300,7 @@ At the bottom of the left panel the user finds the GitHub mark linking to Maxito
 
 - **FR-030**: Inside a room, every filter of every viewer that exists (ERD domains and entity kinds, use-case domains, one-hop, and any filter added later) and the layout mode MUST be read from and written to the room, per page.
 - **FR-031**: A setting change MUST be sent as "set on" or "set off" (or "set to"), never as "toggle"; the last change MUST win.
-- **FR-032**: Zoom, scroll, hover cards, highlights, collapsed panels and the left panel MUST stay personal.
+- **FR-032**: Zoom, scroll, hover cards, highlights, collapsed panels and the left panel MUST stay personal. *(Changed by spec 029, FR-013: they stay personal except while following — a follower sees the followed person's hover, tooltip, selection and open panels.)*
 - **FR-033**: A person who opens a page MUST get the room's current settings for it.
 
 **Pointers (issue §8)**
