@@ -58,4 +58,6 @@ async def get_sidebar() -> dict[str, Any]:
     entry = current_graph_entry()
     if entry is None:
         raise HandleError("No graph is bound to this sidebar read: name the source in the query.")
-    return sidebar_payload(entry.sidebar)
+    # The fingerprint of the graph this answer was read from: a tab reports it in a room, so the room can
+    # tell a tab that drew an older graph to re-read it (spec 028, FR-090).
+    return {**sidebar_payload(entry.sidebar), "fingerprint": entry.fingerprint}

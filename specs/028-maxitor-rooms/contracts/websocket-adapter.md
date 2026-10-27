@@ -26,7 +26,7 @@ Returns the adapter for chaining, like `get` / `post`. `build()` registers the r
 ## One connection
 
 1. **Accept**, then create `SocketChannel` (below) for this connection.
-2. **Open**: ask the auth coordinator for a context (none → close `4401`, `authentication required`); run `on_open` with params built from the connection's values — query parameters, path parameters, and `origin` (the request's `Origin` header, or empty) — and connections `{**connections, "socket": channel}`, each action receiving exactly the keys it declares. Params that do not validate close `4422`, `invalid parameters`. Whether an origin is acceptable is the action's decision, not the adapter's.
+2. **Open**: ask the auth coordinator for a context (none → close `4401`, `authentication required`); run `on_open` with params built from the connection's values — query parameters, path parameters, `origin` (the request's `Origin` header, or empty) and `host` (the request's `Host` header, or empty) — and connections `{**connections, "socket": channel}`, each action receiving exactly the keys it declares. Params that do not validate close `4422`, `invalid parameters`. Whether an origin is acceptable is the action's decision, not the adapter's.
 3. **Loop**: each text frame must be a JSON object with a string `type`.
    - Over `max_message_bytes`: close `4413`, reason `message too large`.
    - More than `max_messages_per_second` in any one-second window: close `4429`, reason `too many messages`.

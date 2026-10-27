@@ -14,18 +14,11 @@ The tag is taken over the body after the endpoint and before compression, so a g
 
 ## New Maxitor endpoints
 
-All run actions through `FastApiAdapter` (contracts/room-actions.md). Until #278, every `/api/v1` path passes `GraphSourceMiddleware`, so these two take `source` like every graph read.
+All run actions through `FastApiAdapter` (contracts/room-actions.md). Until #278, every `/api/v1` path passes `GraphSourceMiddleware`, so `graph-fingerprint` takes `source` like every graph read.
 
-### `POST /api/v1/rooms?source=<graph-json URL>`
+### Opening a room — no HTTP endpoint
 
-Body: `{"participant": "<id>", "name": "<1–40 characters>", "page": "<page key>"}`
-
-| Status | Body |
-|---|---|
-| 200 | `{"room": "<id>", "link": "<current address with room=…>"}` |
-| 422 | `{"detail": "Name must be 1 to 40 characters."}` |
-| 503 | `{"detail": "Too many rooms are open on this server; try again later."}`, `Retry-After: 30` |
-| 400 / 422 / 503 of the middleware | unchanged (no source, unbuildable, busy) |
+A room is opened by connecting to `GET /api/v1/rooms/new/live?source=<graph-json URL>&…` (contracts/room-protocol.md): `JoinRoomAction` builds the source, opens the room and answers `welcome` with its id, and the page puts `room=<id>` into its address. One action and one connection instead of a `POST` followed by a connect, so a room never exists without its first participant (commit 8). Its refusals are close codes: `4422` invalid name, `4503` too many rooms, `4502` the source cannot be built now.
 
 ### `GET /api/v1/graph-fingerprint?source=<graph-json URL>`
 

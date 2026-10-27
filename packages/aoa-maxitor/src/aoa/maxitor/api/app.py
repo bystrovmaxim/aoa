@@ -23,6 +23,13 @@ Each diagram route reads the in-process DuckDB graph of the source it names in
 process-wide :class:`~aoa.maxitor.api.graph_store.GraphStore`, building it on the first read.
 One process therefore holds one graph per source, not one graph for every user (#214).
 
+Rooms (#271) run over one WebSocket route of the same adapter,
+``/api/v1/rooms/{room_id}/live``: every message is an action over the process-wide
+``RoomRegistry``. ``/api/meta/app-info`` answers the running version and client build
+from a second adapter app, outside the paths ``GraphSourceMiddleware`` guards.
+``MAXITOR_ROOM_ORIGINS`` lists extra browser origins allowed to join a room (comma
+separated), for a client served from another address, such as the Vite dev server.
+
 Set ``AOA_SERVICE_URL`` env var to override the default AOA examples service URL.
 """
 
@@ -50,7 +57,10 @@ from aoa.maxitor.api.graph_source_middleware import GraphSourceMiddleware
 from aoa.maxitor.api.graph_store import GraphStore, build_graph_entry
 from aoa.maxitor.api.routes.load import router as load_router
 from aoa.maxitor.api.routes.sidebar import router as sidebar_router
+from aoa.maxitor.model.core.actions.app_info_action import AppInfoAction
 from aoa.maxitor.model.core.resources.graph_source_gateway import GraphSourceGateway
+from aoa.maxitor.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from aoa.maxitor.model.core.resources.static_bundle_resource import STATIC_BUNDLE_CONNECTION_KEY, StaticBundleResource
 from aoa.maxitor.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from aoa.maxitor.model.diagrams.actions.full_graph_action import FullGraphAction
 from aoa.maxitor.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
@@ -59,6 +69,18 @@ from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntities
 from aoa.maxitor.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
 from aoa.maxitor.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+from aoa.maxitor.model.rooms.actions import (
+    DisconnectTabAction,
+    FollowAction,
+    JoinRoomAction,
+    LeaveRoomAction,
+    ReloadSourceForRoomAction,
+    RenameParticipantAction,
+    ReportPageAction,
+    SetPageSettingAction,
+    StopFollowingAction,
+)
+from aoa.maxitor.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"
 
@@ -77,6 +99,11 @@ def _positive_int_env(name: str, default: int) -> int:
     return value
 
 
+def _origins_env(name: str) -> tuple[str, ...]:
+    """Read a comma-separated list of origins, ignoring blanks."""
+    return tuple(origin.strip() for origin in os.environ.get(name, "").split(",") if origin.strip())
+
+
 def create_app() -> FastAPI:
     """
     Create the Maxitor FastAPI application.
@@ -89,12 +116,16 @@ def create_app() -> FastAPI:
     machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
     auth = NoAuthCoordinator(context=Context())
     graph_source = GraphSourceGateway()
+    rooms = RoomRegistry(allowed_origins=_origins_env("MAXITOR_ROOM_ORIGINS"))
+    rooms.bind(machine)
+    bundle = StaticBundleResource(_STATIC_DIR)
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         application.state.machine = machine
         application.state.graph_store = store
         yield
+        await rooms.close()
         await graph_source.aclose()
 
     fastapi_app = FastAPI(title="Maxitor API", lifespan=lifespan)
@@ -105,6 +136,8 @@ def create_app() -> FastAPI:
         max_concurrent_builds=_positive_int_env("MAXITOR_MAX_CONCURRENT_BUILDS", 4),
     )
     fastapi_app.state.graph_store = store
+    fastapi_app.state.rooms = rooms
+    graphs = GraphStoreController(store)
 
     duckdb_graph = DuckDBGraphHolder()
 
@@ -173,9 +206,39 @@ def create_app() -> FastAPI:
             GetDomainUseCaseDiagramAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
+        .websocket(
+            "/rooms/{room_id}/live",
+            on_open=JoinRoomAction,
+            messages={
+                "page": ReportPageAction,
+                "activity": ReportPageAction,
+                "setting": SetPageSettingAction,
+                "rename": RenameParticipantAction,
+                "follow": FollowAction,
+                "stop_following": StopFollowingAction,
+                "leave": LeaveRoomAction,
+                "reload": ReloadSourceForRoomAction,
+            },
+            on_close=DisconnectTabAction,
+            relay=frozenset({"pointer", "viewport"}),
+            relay_key=ROOM_REGISTRY_KEY,
+            connections={
+                ROOM_REGISTRY_KEY: rooms,
+                GRAPH_STORE_CONNECTION_KEY: graphs,
+                STATIC_BUNDLE_CONNECTION_KEY: bundle,
+            },
+            description="A room: everyone looking at one service together",
+        )
         .build()
     )
     fastapi_app.mount("/api/v1", action_subapp)
+
+    meta_subapp = (
+        FastApiAdapter(machine=machine, auth_coordinator=auth, title="Maxitor meta", version="1.0.0")
+        .get("/app-info", AppInfoAction, connections={STATIC_BUNDLE_CONNECTION_KEY: bundle})
+        .build()
+    )
+    fastapi_app.mount("/api/meta", meta_subapp)
 
     @fastapi_app.get("/api/health", tags=["health"])
     async def health(request: Request) -> dict[str, Any]:

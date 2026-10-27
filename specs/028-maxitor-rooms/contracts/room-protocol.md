@@ -1,12 +1,14 @@
 # Contract: the room connection
 
-`wss://<maxitor>/api/v1/rooms/{room_id}/live?participant=<id>&tab=<id>&name=<name>&page=<page key>`
+`wss://<maxitor>/api/v1/rooms/{room_id}/live?participant=<id>&tab=<id>&participant_name=<name>&start_page=<page key>[&source=<graph-json URL>]`
+
+`room_id` `new` opens a room for `source` (required then) with the connecting participant as its creator; any other id joins that room and ignores `source`. The name and page are `participant_name` and `start_page` because a message's own fields `name` (`rename`, `setting`) and `page` (`page`, `setting`) must not collide with connection values.
 
 Every message is one JSON object with a `type`. Coordinates are diagram coordinates (data-model.md). Names in messages are the participants' own; they never reach the log.
 
 ## Opening
 
-The query runs `JoinRoomAction`. It refuses with a close code the page turns into one sentence:
+The query runs `JoinRoomAction`. An origin is accepted when it is empty, listed in `MAXITOR_ROOM_ORIGINS`, or has the same host as the request's `Host` header. It refuses with a close code the page turns into one sentence:
 
 | Code | Reason | Page says |
 |---|---|---|
@@ -14,6 +16,8 @@ The query runs `JoinRoomAction`. It refuses with a close code the page turns int
 | `4409` | `room full` | *This room is full (20 people)* (FR-063) |
 | `4422` | `invalid name` | the name dialog shows the rule (FR-011) |
 | `4403` | `origin not allowed` | *This page cannot join the room* (FR-016) |
+| `4503` | `too many rooms` | *Too many rooms are open on this server; try again later* (FR-015) |
+| `4502` | `the service's graph cannot be built now` | the same sentence; only when opening a room (**Reload** in a room answers `refused` 4502 and keeps the connection, FR-065) |
 | `4413`, `4429`, `4008` | adapter limits (size, rate, slow client) | *The connection was closed: <reason>* (FR-015) |
 
 On success the server sends `welcome` to the newcomer and `joined` to everyone else (or nothing, when it is a return within two minutes, FR-062).

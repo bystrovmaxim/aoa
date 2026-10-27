@@ -15,7 +15,7 @@ twenty times a second) to the resource that owns them. Every decision — who ma
 join, what a message means — is made in an action.
 
 A connection's identity comes from the connection, never from a message: the path
-and query parameters and the ``Origin`` header fill the params fields of the same
+and query parameters and the ``Origin`` and ``Host`` headers fill the params fields of the same
 name in every action of the route, and a message that carries one of those names is
 refused. A client therefore cannot speak for another room or another participant.
 
@@ -168,10 +168,11 @@ class FastApiWebSocketRoute:
 
 
 def _connection_values(websocket: WebSocket) -> dict[str, str]:
-    """The values a connection speaks with: query parameters, then path parameters, and ``origin``."""
+    """The values a connection speaks with: query parameters, then path parameters, ``origin`` and ``host``."""
     values: dict[str, str] = dict(websocket.query_params.items())
     values.update({key: str(value) for key, value in websocket.path_params.items()})
     values["origin"] = websocket.headers.get("origin", "")
+    values["host"] = websocket.headers.get("host", "")
     return values
 
 

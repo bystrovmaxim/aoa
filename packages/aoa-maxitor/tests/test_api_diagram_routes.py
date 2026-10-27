@@ -182,7 +182,7 @@ def test_a_cold_read_builds_once_and_repeat_reads_reuse_it() -> None:
 
 
 def test_the_sidebar_answers_for_the_named_source() -> None:
-    """The sidebar route serves the sidebar built with that source's graph."""
+    """The sidebar route serves the sidebar built with that source's graph, and that graph's fingerprint."""
     client, _, _ = _client({_SOURCE_A: _graph()})
 
     response = client.get("/api/sidebar", params={"source": _SOURCE_A})
@@ -193,6 +193,7 @@ def test_the_sidebar_answers_for_the_named_source() -> None:
         "level2_diagrams": [],
         "level2_nodes": [],
         "level3_diagrams": [],
+        "fingerprint": "",
     }
 
 
