@@ -1,0 +1,13 @@
+# gnomon.toml — the graphs of this repository, each saved in a file that changes with every merge.
+# `gnomon write` builds them and updates the files; `gnomon check` fails when a file is stale.
+gnomon = "1.0"
+
+[[graph]]
+name = "demo"
+build = "uv run --extra dev python -m aoa.demo.graph_json"
+file = "packages/aoa-demo/graph.json"
+
+[[graph]]
+name = "maxitor"
+build = "uv run --extra dev python -m aoa.maxitor.graph_json"
+file = "packages/aoa-maxitor/graph.json"
