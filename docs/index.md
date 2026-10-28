@@ -118,6 +118,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 - **[Choosing compatible relationship roles](how-to/relationship-role-compatibility.md)** — endpoint matrix, direction markers, migration and executable scenarios
 - **[Selecting dictionary members](how-to/dictionary-references.md)** — six ordinary containers, One/Many transport and verified boundaries
 - **[Diagnosing a specialization declaration](how-to/specialization-declaration-fails.md)** — one mistake per experiment, its actual error, and a verified repair
+- **[Running the checks](how-to/run-the-checks.md)** — the one command that finishes a change: what runs together, the limit, reading the log, failures and stopping
 
 ### Reference materials
 
