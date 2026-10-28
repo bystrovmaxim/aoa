@@ -12,6 +12,10 @@ in today's order — runs them, times each one, prints ``OK`` or ``FAIL`` with t
 duration, and writes ``archive/logs/check-all.txt``. The run exits 1 if any step
 failed and 0 otherwise; a failing step never stops the others.
 
+Each step writes into its own file; when every step has ended, the log is joined
+from those files in the table's order, so it never depends on which step ended
+first and two steps' output never mix.
+
 Each step also states its group, the steps it waits for and the steps it must
 not overlap. This revision still runs the table in order, one step at a time.
 
@@ -24,9 +28,10 @@ ARCHITECTURE / DATA FLOW
     run_checks_with_log.sh  ──exec──►  check_run.py
                                            │
                        STEPS (table order) ▼
-                 bash -c <command>  ──output──►  archive/logs/check-all.txt
-                       │
-                       └──► console: > name / OK|FAIL name (exit N, s)
+                 bash -c <command>  ──output──►  <temporary folder>/<NN>.out
+                       │                                     │ all steps ended
+                       └──► console: > name / OK|FAIL        ▼ table order
+                                                  archive/logs/check-all.txt
 
 Python's standard library only: the runner starts before anything is installed
 or built, and must not depend on what it checks.
@@ -37,6 +42,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -200,13 +206,14 @@ STEPS: tuple[Step, ...] = (
 class Result:
     """
     AI-CORE-BEGIN
-    ROLE: What one step left behind: its exit code and how long it took.
-    CONTRACT: ``exit_code`` 0 is ``OK``, anything else ``FAIL``; ``seconds`` is wall time from a monotonic clock.
+    ROLE: What one step left behind: its exit code, how long it took and where its output is.
+    CONTRACT: ``exit_code`` 0 is ``OK``, anything else ``FAIL``; ``seconds`` is wall time from a monotonic clock; ``output`` holds everything the step wrote.
     AI-CORE-END
     """
 
     exit_code: int
     seconds: float
+    output: Path
 
     @property
     def ok(self) -> bool:
@@ -224,28 +231,25 @@ def _say(colour: str, text: str) -> None:
     print(f"{colour}{text}{NC}", flush=True)
 
 
-def _write_header(log: Path) -> None:
-    """Start the log with today's header."""
+def _header() -> str:
+    """The log's header, as it always read."""
     now = datetime.now().astimezone()
-    log.write_text(
+    return (
         "==================================================\n"
         "ActionMachine project checks\n"
         f"Date: {now.strftime('%a %b %d %H:%M:%S %Z %Y')}\n"
         f"Time: {now.strftime('%H:%M:%S')}\n"
         f"Repository: {REPO_ROOT}\n"
         "==================================================\n"
-        "\n",
-        encoding="utf-8",
+        "\n"
     )
 
 
-def _run_step(step: Step, log: Path) -> Result:
-    """Run one step from the repository root, appending its block to the log."""
+def _run_step(step: Step, output: Path) -> Result:
+    """Run one step from the repository root, writing everything it prints into ``output``."""
     _say(YELLOW, f"> {step.name}")
-    with log.open("a", encoding="utf-8") as handle:
-        handle.write(f"=== {step.name} ===\n$ {step.log_command}\n\n")
     started = time.monotonic()
-    with log.open("ab") as handle:
+    with output.open("wb") as handle:
         exit_code = subprocess.run(
             ["bash", "-c", step.command],
             cwd=REPO_ROOT,
@@ -253,12 +257,27 @@ def _run_step(step: Step, log: Path) -> Result:
             stderr=subprocess.STDOUT,
             check=False,
         ).returncode
-    result = Result(exit_code=exit_code, seconds=time.monotonic() - started)
+    result = Result(exit_code=exit_code, seconds=time.monotonic() - started, output=output)
     _say(GREEN if result.ok else RED, result.line(step.name))
-    with log.open("a", encoding="utf-8") as handle:
-        gap = "\n" if step.blank_before_result else ""
-        handle.write(f"{gap}{result.line(step.name)}\n\n")
     return result
+
+
+def _write_log(header: str, results: list[tuple[Step, Result]], wall: float) -> None:
+    """Join the steps' blocks in table order between the header and the footer."""
+    with LOG_FILE.open("wb") as log:
+        log.write(header.encode())
+        for step, result in results:
+            log.write(f"=== {step.name} ===\n$ {step.log_command}\n\n".encode())
+            log.write(result.output.read_bytes())
+            gap = "\n" if step.blank_before_result else ""
+            log.write(f"{gap}{result.line(step.name)}\n\n".encode())
+        log.write(
+            "==================================================\n"
+            "All steps finished (see FAIL lines above or in the log if anything failed)\n"
+            f"Wall time: {wall:.1f} s\n"
+            f"Log: {LOG_FILE}\n"
+            "==================================================\n".encode()
+        )
 
 
 def main() -> int:
@@ -266,24 +285,18 @@ def main() -> int:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
-    _write_header(LOG_FILE)
+    header = _header()
     _say(YELLOW, f"Full check run (cwd={REPO_ROOT})...")
     print()
     started = time.monotonic()
-    results = [_run_step(step, LOG_FILE) for step in STEPS]
-    wall = time.monotonic() - started
-    with LOG_FILE.open("a", encoding="utf-8") as handle:
-        handle.write(
-            "==================================================\n"
-            "All steps finished (see FAIL lines above or in the log if anything failed)\n"
-            f"Wall time: {wall:.1f} s\n"
-            f"Log: {LOG_FILE}\n"
-            "==================================================\n"
-        )
+    with tempfile.TemporaryDirectory(prefix="check-run-") as folder:
+        results = [(step, _run_step(step, Path(folder) / f"{index:02d}.out")) for index, step in enumerate(STEPS)]
+        wall = time.monotonic() - started
+        _write_log(header, results, wall)
     print()
     _say(YELLOW, f"Wall time: {wall:.1f} s")
     _say(GREEN, f"Log: {LOG_FILE}")
-    return 0 if all(result.ok for result in results) else 1
+    return 0 if all(result.ok for _, result in results) else 1
 
 
 if __name__ == "__main__":
