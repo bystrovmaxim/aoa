@@ -117,6 +117,35 @@ No diagram was drawn by hand — this is the running system's own graph.
 
 You can see how each declared intent became a node or an edge: the domain and the role, the `@depends` resource, both aspects and the checker, two entities with five fields and a relation, the order automaton with states and transitions. This is exactly what Maxitor unfolds into four projections.
 
+## Every edge has an id
+
+A node has always had an id: the qualified name of the code that declares it. An edge has one too, so two versions of a graph can be compared edge by edge — what was added, what was removed, what changed. The id is built from fields the edge already exports:
+
+- by default, `<source_id>|<type>|<target_id>`;
+- a relation is named by its field instead of its target, `<source_id>|entity_relation|<field_name>`: an entity can hold two relations to the same entity, and a relation that starts pointing at another entity is still the same relation — it changed, it was not removed and added;
+- a lifecycle transition appends the state it leaves, `…|<target_id>|<from_state>`: a state can be entered from two states.
+
+The two special rules are declared on their edge classes (`EDGE_TYPE` and `ID_RULE`), and one public function, `edge_id(row)` in `aoa.action_machine.graph.edge_identity`, computes the id from an exported edge row. The graph build refuses what would make an id ambiguous: two edges with one id fail with `DuplicateEdgeError`, which names both, and a `|` inside a node id or inside a property used in an id fails with `InvalidGraphError`. An edge type that can repeat between the same two nodes therefore has to say what tells the repeats apart before the graph builds.
+
+For a reader, the export's format is now `1.1`: every edge carries `id`, edges come in `id` order, and the published JSON schema requires the field. A reader that takes edge fields by name needs nothing; Maxitor draws every diagram exactly as before. A file of format `1.0` has no `id` and does not pass the `1.1` schema; read it by computing each edge's id with `edge_id(row)` — the same function the export uses, so the ids are the same. [11_edge_ids.py](../../examples/step_26_maxitor/11_edge_ids.py) ([notebook](../../examples/step_26_maxitor/11_edge_ids.ipynb)) shows every case on the demo graph:
+
+```text
+2. A relation is named by its field
+   AssuranceDelegatedWorkTicketCoreEntity|entity_relation|assignee_actor
+   AssuranceDelegatedWorkTicketCoreEntity|entity_relation|delegator_actor
+   pointing at another entity, the same id: True
+3. A transition appends the state it leaves
+   DiscountApplicationCoreEntity:lifecycle:lifecycle:cancelled|new
+   DiscountApplicationCoreEntity:lifecycle:lifecycle:cancelled|payment_pending
+4. Two edges with one id
+   DuplicateEdgeError: Edge id conflict 'shop.Order|uses|shop.Stock':
+     first edge:  shop.Order -[uses]-> shop.Stock
+     second edge: shop.Order -[uses]-> shop.Stock
+   Declare an ID_RULE on the edge class that tells these edges apart.
+6. A file of format 1.0
+   4841 edges without id, ids computed: 4841, equal to the written ones: True
+```
+
 ## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.

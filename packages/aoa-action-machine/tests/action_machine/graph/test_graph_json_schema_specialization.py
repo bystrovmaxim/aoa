@@ -61,6 +61,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.edge_identity import edge_id
 from aoa.action_machine.graph.edges.entity_specialization_graph_edge import (
     EntitySpecializationGraphEdge,
 )
@@ -180,7 +181,7 @@ def _payload(
         *(_specialization_rows() if specialization_rows is None else specialization_rows),
         *(_generalization_rows() if generalization_rows is None else generalization_rows),
     ]
-    return {"schema_version": "1.0", "nodes": nodes, "edges": edges}
+    return {"schema_version": "1.1", "nodes": nodes, "edges": [{**edge, "id": edge_id(edge)} for edge in edges]}
 
 
 def _rejects(payload: dict[str, Any]) -> None:
