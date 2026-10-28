@@ -110,3 +110,4 @@ def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> Non
     text = capsys.readouterr().out
     assert text.startswith("---\nname: gnomon-setup\ndescription: ")
     assert "## Setup" in text and "## If you read this from a link" in text
+    assert "uvx --from maxitor gnomon" in text and "maxitor-gnomon" not in text

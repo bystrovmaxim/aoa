@@ -5,7 +5,7 @@ description: Connect a project to the Open Gnomon Protocol, the shared language 
 
 # gnomon-setup
 
-The [Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/protocol/README.md) is a shared language for describing a project's model: its domains, entities, actions and how they relate, as a graph — a JSON document with `schema_version`, `nodes` and `edges` that passes the protocol's schema. A person, a viewer or another agent can read that description without importing the project's code.
+The [Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/main/packages/open-gnomon-protocol/README.md) is a shared language for describing a project's model: its domains, entities, actions and how they relate, as a graph — a JSON document with `schema_version`, `nodes` and `edges` that passes the protocol's schema. A person, a viewer or another agent can read that description without importing the project's code.
 
 This skill connects a project to that language. It is the project's initiation: it gets a description of each service's model, saves it, and keeps it current. When it is done, the repository has:
 
@@ -23,13 +23,13 @@ Save this file, unchanged, as `SKILL.md` in a folder `gnomon-setup` inside the s
 
 ## Running gnomon
 
-`gnomon` is the command of the `maxitor-gnomon` package on PyPI. Run it without installing, with [uv](https://docs.astral.sh/uv/):
+`gnomon` is the command of the `maxitor` package on PyPI — its base install, with no extra and nothing of AOA. Run it without installing, with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uvx --from maxitor-gnomon gnomon --version
+uvx --from maxitor gnomon --version
 ```
 
-Below, `gnomon` means that whole command — or plain `gnomon` when the project's own environment already has `maxitor-gnomon` installed (then run it the way the project runs its tools, e.g. `uv run gnomon`), or after `pip install maxitor-gnomon`. In CI, pin the version — `uvx --from "maxitor-gnomon==0.1.0" gnomon check` — so a check never changes under the project's feet.
+Below, `gnomon` means that whole command — or plain `gnomon` when the project's own environment already has `maxitor` installed (then run it the way the project runs its tools, e.g. `uv run gnomon`), or after `pip install maxitor`. In CI, pin the version — `uvx --from "maxitor==3.0.0" gnomon check` — so a check never changes under the project's feet.
 
 | Command | What it does | Exit |
 |---|---|---|
