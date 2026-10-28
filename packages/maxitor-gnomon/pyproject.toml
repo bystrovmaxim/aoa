@@ -12,7 +12,15 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
-dependencies = ["jsonschema>=4.17,<5"]
+dependencies = [
+    # jsonschema-rs decides whether a document is a graph (the demo's in 0.06 s, not 24 s);
+    # jsonschema explains a refusal on the one element jsonschema-rs stopped at.
+    "jsonschema>=4.17,<5",
+    "jsonschema-rs>=0.60,<1",
+]
+
+[project.scripts]
+gnomon = "maxitor_gnomon.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/bystrovmaxim/aoa"

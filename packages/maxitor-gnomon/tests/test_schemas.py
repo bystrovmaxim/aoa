@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -101,3 +102,26 @@ def test_a_published_version_never_changes(version: str) -> None:
     assert schema.pop("$id").endswith(f"/schemas/graph/{version}.json")
     assert hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest() == PUBLISHED[version]
     assert set(PUBLISHED) == set(SCHEMA_VERSIONS)
+
+
+def test_a_large_graph_is_checked_in_moments() -> None:
+    """A graph the size of the demo's is checked in well under a second, not the tens a pure-Python check takes."""
+    sample = _sample("1.1")
+    copies = range(100)
+    document = {
+        "schema_version": "1.1",
+        "nodes": [{**node, "id": f"{node['id']}#{n}"} for n in copies for node in sample["nodes"]],
+        "edges": [{**edge, "id": f"{edge['id']}#{n}"} for n in copies for edge in sample["edges"]],
+    }
+    started = time.monotonic()
+    check_graph(document)
+    assert time.monotonic() - started < 2
+
+
+def test_a_repeated_node_is_refused_without_its_whole_value() -> None:
+    """The same node twice: the refusal names the array, not every node in it."""
+    document = _sample("1.1")
+    document["nodes"].append(document["nodes"][0])
+    with pytest.raises(GraphRefused) as refused:
+        check_graph(document)
+    assert (refused.value.path, refused.value.reason) == ("nodes", "holds the same element twice")
