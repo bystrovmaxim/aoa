@@ -44,7 +44,7 @@ Do these steps in order. Change nothing before step 6, and never commit.
    - one per service: a package or application that registers its own model and builds or serves a graph of it. Libraries that only provide building blocks (adapters, plugins, the graph builder itself) are not services.
    The schema is the only test of "this is a graph": nothing else about the producer matters.
    A graph found here may already have a file (`graph.json` beside the service, say); note it, and in step 5 check it with `gnomon validate <file>`.
-4. **Prove a build command for each** new graph, and a fixed one for each broken graph. Write a shell command that prints the graph to standard output and nothing else — usually `python -m <package>.print_graph` with a module of a few lines that imports the service's model and prints the graph. Name that module with a verb, `print_graph.py`, so it is never mistaken for the graph file it feeds; a module the project already has for this keeps its name. Run it in a process of its own, from the folder it will run in, and pipe it into `gnomon validate -`. A command that has not printed `ok` is not proven. Build each service's graph in its own process: importing two services in one process mixes their nodes.
+4. **Prove a build command for each** new graph, and a fixed one for each broken graph. Write a shell command that prints the graph to standard output and nothing else — usually `python -m <package>.build_graph` with a module of a few lines that imports the service's model and prints the graph. Name that module with a verb, `build_graph.py`, so it is never mistaken for the graph file it feeds; a module the project already has for this keeps its name. Run it in a process of its own, from the folder it will run in, and pipe it into `gnomon validate -`. A command that has not printed `ok` is not proven. Build each service's graph in its own process: importing two services in one process mixes their nodes.
 5. **Propose where each file goes.** A configured graph keeps its file unless the user wants it moved. For each new graph, in this order:
    - a place that follows the repository's own conventions — a folder that already holds generated or exported files, an existing graph file, the service's own folder;
    - the standard place, `<service folder>/graph.json`;
@@ -53,7 +53,7 @@ Do these steps in order. Change nothing before step 6, and never commit.
 
    | Service | Service folder | Build command (cwd) | Proof | File (alternatives) | State |
    |---|---|---|---|---|---|
-   | game-back | `packages/game-back` | `uv run python -m game_back.print_graph` (`.`) | `ok 1.1: 517 nodes, 646 edges` | `packages/game-back/graph.json` | new |
+   | game-back | `packages/game-back` | `uv run python -m game_back.build_graph` (`.`) | `ok 1.1: 517 nodes, 646 edges` | `packages/game-back/graph.json` | new |
 
    States of a configured graph: current, stale, missing, broken, refused (step 2). A graph not configured yet is **new**; when a file for it already exists, say so in the File column and whether it holds a graph (`gnomon validate <file>`) — once it is configured, `gnomon check` tells whether it is current.
 6. **Apply what the user chose.** Write `gnomon.toml` (example below); run `gnomon write`; add `gnomon check` to the CI the project uses (ask which, if there are several; GitHub Actions example below); run `gnomon check` and show that it passes.
@@ -73,7 +73,7 @@ gnomon = "1.0"                      # the config's own format version
 [[graph]]
 name  = "game-back"                 # unique; names the graph in every message
 cwd   = "packages/game-back"        # optional, default "." — relative to this file
-build = "uv run python -m game_back.print_graph"   # prints the graph to standard output
+build = "uv run python -m game_back.build_graph"   # prints the graph to standard output
 file  = "packages/game-back/graph.json"           # unique — relative to this file
 ```
 

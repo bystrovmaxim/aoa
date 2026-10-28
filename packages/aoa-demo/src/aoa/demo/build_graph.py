@@ -1,12 +1,12 @@
-# packages/aoa-demo/src/aoa/demo/print_graph.py
+# packages/aoa-demo/src/aoa/demo/build_graph.py
 """
-Print the demo's graph — the build command of the demo's entry in ``gnomon.toml``.
+Build the demo's graph and write it to standard output — the build command of the demo's entry in ``gnomon.toml``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``gnomon write`` runs ``python -m aoa.demo.print_graph`` and saves what it prints
+``gnomon write`` runs ``python -m aoa.demo.build_graph`` and saves what it prints
 in ``packages/aoa-demo/graph.json``, so every change to the demo's model carries
 the graph it produces.
 

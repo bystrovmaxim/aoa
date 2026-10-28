@@ -1,13 +1,13 @@
-# packages/aoa-maxitor/src/aoa/maxitor/print_graph.py
+# packages/aoa-maxitor/src/aoa/maxitor/build_graph.py
 """
-Print Maxitor's own graph — the build command of Maxitor's entry in ``gnomon.toml``.
+Build Maxitor's own graph and write it to standard output — the build command of Maxitor's entry in ``gnomon.toml``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Maxitor is itself an AOA service. ``gnomon write`` runs
-``python -m aoa.maxitor.print_graph`` and saves what it prints in
+``python -m aoa.maxitor.build_graph`` and saves what it prints in
 ``packages/aoa-maxitor/graph.json``, so every change to Maxitor carries its graph.
 
 ═══════════════════════════════════════════════════════════════════════════════
