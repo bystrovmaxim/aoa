@@ -68,13 +68,13 @@
 
 ## Phase 7: The check run (commit 6) · #298 phase 6
 
-- [ ] T016 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 6: `chore: take the check run to zero (#298)`. If the first run is already clean there is nothing to commit; record that here.
+- [X] T016 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 6: `chore: take the check run to zero (#298)`. If the first run is already clean there is nothing to commit; record that here. Done: the check run of 14:31–14:32 on the code now committed as `f262df4b` (the first run of the second series of ten, started after the tests' 20 s limit was set; `scripts/` and `packages/` unchanged since) is clean — 37 `OK` in 57.0 s, Ruff and mypy without findings, pylint 10.00/10, only the two accepted remarks. Nothing to commit; a waiting re-run for a charged battery was stopped at the maintainer's question.
 
 ---
 
 ## Phase 8: Documentation (commit 7) · #298 phase 6
 
-- [ ] T017 Update `docs/how-to/run-the-checks.md`: the longest chain and the run's time with the new numbers, and one paragraph on the layout step — its three parts, what each checks, and that they run at the same time — with the step's real output lines (the part times and the summary). No `examples/` script or notebook (as for #279). Update the Russian draft beside it. Prepare commit 7: `docs(how-to): the faster layout step (#298)`.
+- [X] T017 Update `docs/how-to/run-the-checks.md`: the longest chain and the run's time with the new numbers, and one paragraph on the layout step — its three parts, what each checks, and that they run at the same time — with the step's real output lines (the part times and the summary). No `examples/` script or notebook (as for #279). Update the Russian draft beside it. Prepare commit 7: `docs(how-to): the faster layout step (#298)`. Done: `docs/how-to/run-the-checks.md` — the run now about 57 s instead of 220; the normal-run console, the log's header and footer from the green run of 14:31 (57.0 s); the longest chain is now two chains of about the same length (the client and its layout step, about 22 + 30 s, and `aoa-action-machine`'s tests, about 50 s); a new subsection on the three-engine layout step — its three parts, what each checks, what runs at once and why the following pairs wait, and its real output lines with the part times; "one step at a time takes several times longer" in place of a figure not measured on this code. The failure example keeps its real output from #279. The Russian draft updated the same way.
 
 ---
 
