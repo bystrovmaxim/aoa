@@ -1,158 +1,147 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
+  <a href="https://pypi.org/project/maxitor-gnomon/"><img src="https://img.shields.io/pypi/v/maxitor-gnomon?label=PyPI" alt="PyPI"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
+  <a href="https://github.com/bystrovmaxim/aoa/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/tests-61-brightgreen" alt="61 tests">
+  <a href="https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/protocol/README.md"><img src="https://img.shields.io/badge/Open_Gnomon_Protocol-1.1-informational" alt="Open Gnomon Protocol 1.1"></a>
+</p>
+
 # maxitor-gnomon
 
-A service that can print its own graph keeps that graph in one file in its repository. The file changes in the same pull request as the code that changed the graph, so git holds the graph's whole history — no registry to keep by hand, nothing to drift from the code. `maxitor-gnomon` is the format of that file and the small command that keeps it current: `gnomon`.
+**See every change to your system's model in the pull request that makes it.**
 
-The package knows nothing about AOA. Any producer whose output passes the graph schema can use it; AOA is the first.
-
-*Gnomon* is the rod of a sundial: its shadow marks the hour. The graph file marks where a service's graph stood at each commit.
-
-## The graph document
-
-A JSON object with three fields:
-
-| Field | Meaning |
-|---|---|
-| `schema_version` | the schema it follows: `1.0` or `1.1` |
-| `nodes` | objects, each with an `id` |
-| `edges` | objects, each with an `id` from `1.1` on |
-
-Nodes and edges are matched by `id` wherever they sit in the file, so two versions of a graph compare element by element: what was added, what was removed, what changed.
-
-A runnable tour of every case — the config, a saved graph against its schema, a rebuild equal to the file, a stale copy, another indent, an unknown version — is [examples/step_26_maxitor/12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)).
-
-## Schema versions
-
-The format is a standard of its own, the **[Open Gnomon Protocol](protocol/README.md)**: each version is one JSON Schema file, [`protocol/graph/<version>.json`](protocol/graph/), and **a published version never changes** — a new shape of the graph is a new version. This package is one implementation of it; it ships the protocol inside its wheel and reads it from there.
-
-| Version | What it is |
-|---|---|
-| `1.0` | the first shape; edges have no `id` |
-| `1.1` | every edge has an `id` |
-
-```python
-from maxitor_gnomon.schemas import SCHEMA_VERSIONS, check_graph, graph_schema
-
-SCHEMA_VERSIONS        # ("1.0", "1.1")
-graph_schema("1.1")    # the JSON Schema, as a dict
-check_graph(document)  # None, or GraphRefused naming the version, the place and the reason
-```
-
-A refusal names the place: `graph 1.1 at edges/3: 'id' is a required property`.
-
-## `gnomon.toml`
-
-At the repository root, one `[[graph]]` per graph:
-
-```toml
-gnomon = "1.0"                      # the config's own format version
-
-[[graph]]
-name  = "demo"                      # unique; names the graph in every message
-cwd   = "."                         # optional, default "." — the folder the build runs in
-build = "uv run python -m aoa.demo.build_graph"   # prints the graph to standard output
-file  = "packages/aoa-demo/graph.json"           # unique — where the graph is saved
-```
-
-Paths are relative to the config's folder. The build prints the graph and nothing else; each graph is built in a process of its own, so two services never mix their nodes.
-
-## The commands
-
-```text
-gnomon write [--config gnomon.toml]   build every graph, write each file whose bytes changed
-gnomon check [--config gnomon.toml]   build every graph, write nothing, fail if a file is stale
-gnomon validate <file | ->            say whether one document is a graph
-gnomon skill                          print the gnomon-setup skill for coding agents
-```
-
-A file holds the graph with sorted keys, indented by two spaces, one newline at the end — the same graph always gives the same bytes, and a file whose graph did not change is not touched.
-
-This repository's own run, after a change to one demo entity:
+A diff shows which lines of code changed. It does not show what that did to the system: a new dependency, a renamed domain, an action wired into another application. `maxitor-gnomon` makes CI say it. Here is `gnomon check` on the AOA demo whose saved graph is one change behind its code:
 
 ```text
 $ gnomon check
 stale demo: packages/aoa-demo/graph.json
-  nodes[id=aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity].properties.description: Inbound partner lot keyed to SKU and packing posture (suppl… → Inbound partner lot keyed to SKU
-ok maxitor
+  edges[id=aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPipelineDomain|application|aoa.action_machine.application.application.Application]: added
+  nodes[id=aoa.demo.model.store.store_domain.StoreDomain].label: Shop → StoreDomain
 run: gnomon write --config gnomon.toml, and commit the graph files
-$ gnomon write
-ok demo (written)
-ok maxitor (unchanged)
-$ gnomon validate packages/aoa-demo/graph.json
-ok 1.1: 3213 nodes, 4841 edges
 ```
 
-| Exit | `write` | `check` |
-|---|---|---|
-| 0 | every graph built and its file current | every file is what its build prints |
-| 1 | a build failed, or printed something that is not a graph | a file is stale or missing, or a build failed |
-| 2 | the config was refused | the config was refused |
+Each service exports its model — domains, entities, actions and their dependencies — in the [Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/protocol/README.md), and keeps it in one file, `graph.json`, beside its code. `gnomon` rebuilds those files from the code and fails CI when one is stale. So:
 
-## How a graph travels with a pull request
+- **reviewers see the model change**, element by element, next to the code that changed it;
+- **the model never drifts**: the code produces it, nobody draws it by hand;
+- **git holds the model's history** — `git log -p graph.json` is how the system grew;
+- **any tool reads the project without running it** — a viewer such as [Maxitor](https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-maxitor/README.md), an architecture check, a coding agent.
 
-1. You change the code.
-2. You run `gnomon write` (or your check run does it as its last step).
-3. You commit the changed `graph.json` together with the code.
-4. CI runs `gnomon check`: it builds the graph again and compares. It only checks — it never writes.
-5. Merged, the pull request carries the graph as it now is; `git log -p graph.json` is the graph's history.
+`maxitor-gnomon` knows nothing about any framework. [AOA](https://github.com/bystrovmaxim/aoa) services export the protocol out of the box; any service that can print a graph by its schema works the same way.
 
-Forgot step 2? CI fails and says what changed, by id. Run `gnomon write`, commit, push: one more commit to the same pull request, no new one.
-
-## Three ways to start
-
-Until `maxitor-gnomon` is on PyPI, `gnomon` runs from this repository with [uv](https://docs.astral.sh/uv/):
+## Installation
 
 ```bash
-uvx --from "git+https://github.com/bystrovmaxim/aoa@main#subdirectory=packages/maxitor-gnomon" gnomon --version
+pip install maxitor-gnomon
 ```
 
-In CI pin a commit instead of `main`. Below, `gnomon` means that command.
+or run it without installing, with [uv](https://docs.astral.sh/uv/): `uvx --from maxitor-gnomon gnomon --version`. Python 3.12+.
 
-### 1. By hand
+## Get started
 
-1. **Make each service print its graph.** For an AOA service, a module of a few lines that imports the service's model and prints its graph:
+### The fastest way: one sentence to your coding agent
 
-   ```python
-   # my_service/build_graph.py
-   import importlib
-   import sys
+> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
 
-   from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+The agent installs the `gnomon-setup` skill and runs it. The skill finds every service, proves how each one's model is exported — writing a small exporter where a service has a model but nothing prints it — and shows you one table: each service, its build, its proof, where its file goes. Nothing changes until you answer. Then it writes `gnomon.toml`, saves the graphs and adds the CI check, and leaves the result for you to review and commit.
 
-   importlib.import_module("my_service.app")   # registers the service's actions
-   sys.stdout.write(create_node_graph_coordinator().to_json())
-   ```
+Already have the package? `gnomon skill > .claude/skills/gnomon-setup/SKILL.md` (or `.cursor/skills/…`), then ask the agent to *run gnomon-setup*. Run it again any time: on a configured project it is an audit.
 
-   Prove it: `uv run python -m my_service.build_graph | gnomon validate -` prints `ok 1.1: …`.
-2. **List the graphs** in `gnomon.toml` at the repository root, one `[[graph]]` each. The usual place for a file is the service's own folder, `<service>/graph.json`.
-3. **Write them:** `gnomon write`, then commit `gnomon.toml` and the graph files.
-4. **Check them in CI** — for GitHub Actions:
+### By hand, in four steps
 
-   ```yaml
-   graph-files:
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v4
-       - uses: astral-sh/setup-uv@v5
-       - run: uv sync
-       - name: The graph files are current
-         run: uvx --from "git+https://github.com/bystrovmaxim/aoa@<commit sha>#subdirectory=packages/maxitor-gnomon" gnomon check
-   ```
+**1. Export each service's model** — a command that prints its graph and nothing else. For an AOA service:
 
-An old hand-kept history — folders of numbered snapshots — is not migrated: git is the history from the first `graph.json` on.
+```python
+# my_service/build_graph.py
+import importlib
+import sys
 
-### 2. From the command line, with a coding agent
+from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 
-Install the skill into your agent's skills folder, then ask the agent to run it:
 
-```bash
-mkdir -p .claude/skills/gnomon-setup
-gnomon skill > .claude/skills/gnomon-setup/SKILL.md
+def main() -> None:
+    importlib.import_module("my_service.app")   # registers the service's actions, entities and resources
+    sys.stdout.write(create_node_graph_coordinator().to_json())
+
+
+if __name__ == "__main__":
+    main()
 ```
 
-(`.cursor/skills/` for Cursor.) Then: *"Run gnomon-setup."* The skill finds every service that produces a graph, proves a build command for each, asks where each file goes, and — once you answer — writes `gnomon.toml`, runs `gnomon write` and adds `gnomon check` to your CI. It never commits. Run it again later: on a configured repository it is an audit.
+**2. List the graphs** in `gnomon.toml` at the repository root:
 
-### 3. One sentence to an agent
+```toml
+gnomon = "1.0"
 
-> Set up graph history in this repository with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
+[[graph]]
+name  = "my-service"
+build = "uv run python -m my_service.build_graph"
+file  = "my_service/graph.json"
+```
 
-The skill saves itself into the agent's skills folder and goes on with the setup.
+**3. Write them** — `gnomon write` — and commit `gnomon.toml` with the graph files.
+
+**4. Check them in CI:**
+
+```yaml
+- uses: astral-sh/setup-uv@v5
+- run: uv sync
+- name: The model graphs are current
+  run: uvx --from "maxitor-gnomon==0.1.0" gnomon check
+```
+
+## Day to day
+
+1. Change the code.
+2. Run `gnomon write` — or let your check run do it as its last step.
+3. Commit the changed `graph.json` with the code.
+4. CI runs `gnomon check`. It rebuilds every graph, writes nothing, and fails on a stale file — naming what changed and the command that fixes it.
+
+Forgot step 2? Run `gnomon write`, commit, push: one more commit to the same pull request.
+
+## Commands
+
+| Command | |
+|---|---|
+| `gnomon write` | Rebuild every graph; write each file whose content changed. An unchanged graph leaves its file untouched. |
+| `gnomon check` | Rebuild every graph; write nothing; fail if a file is stale or missing, or a build fails. |
+| `gnomon validate <file \| ->` | Say whether a document is a graph of the version it declares: `ok 1.1: 3213 nodes, 4841 edges`. |
+| `gnomon skill` | Print the `gnomon-setup` skill for coding agents. |
+
+`write` and `check` take `--config FILE` (default `gnomon.toml`). Each graph is built in a process of its own, with a 300-second limit. Exit codes: `0` all good · `1` a graph is stale, missing or broken · `2` the config is refused.
+
+The same graph always gives the same bytes, so a file changes only when the model does. Differences are matched by `id` and read *what the file holds → what the code builds*; when only a file's layout differs, `check` says `only the formatting differs`.
+
+## Configuration
+
+| Key in `[[graph]]` | |
+|---|---|
+| `name` | Unique; names the graph in every message. |
+| `build` | Shell command that prints the graph, and only it. |
+| `file` | Unique; where the graph is kept. |
+| `cwd` | Optional, default `.`; where the build runs. |
+
+Paths are relative to `gnomon.toml`. A wrong config is refused by graph and field — `graph 'demo', file: required` — before anything is built.
+
+## From Python
+
+```python
+from maxitor_gnomon.schemas import check_graph, graph_schema
+from maxitor_gnomon.config import read_config
+
+check_graph(document)       # None, or GraphRefused("graph 1.1 at edges/3: 'id' is a required property")
+graph_schema("1.1")         # the JSON Schema of a protocol version
+read_config("gnomon.toml")  # the repository's graphs, or ConfigRefused
+```
+
+A graph of thousands of elements is checked in a fraction of a second.
+
+## Learn more
+
+- **[Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/protocol/README.md)** — the language itself: the document, its vocabulary, versions, identity and conformance
+- **[gnomon-setup](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md)** — the skill an agent follows
+- **[Every case, runnable](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/examples/step_26_maxitor/12_graph_file.py)** — a saved graph, a rebuild, a stale copy, an unknown version
+- [Changelog](https://github.com/bystrovmaxim/aoa/blob/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/CHANGELOG.md) · [Source](https://github.com/bystrovmaxim/aoa/tree/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon) · [Issues](https://github.com/bystrovmaxim/aoa/issues)
+
+Apache License 2.0.
