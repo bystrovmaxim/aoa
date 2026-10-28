@@ -1,7 +1,8 @@
 // packages/aoa-maxitor/client/scripts/check-layout-determinism.ts
 /**
  * check-layout-determinism — prove that every diagram is laid out to the same bits in Chromium,
- * Firefox and WebKit, on a phone-sized and a desktop-sized screen (spec 028, FR-006).
+ * Firefox and WebKit, on a phone-sized and a desktop-sized screen (spec 028, FR-006). The engines,
+ * and both screen sizes within each engine, lay out at the same time.
  *
  * The check run runs it after the client's build. It serves the built client and the frozen
  * reference graph, proxies the API to a real Maxitor started for the purpose, opens every page
@@ -244,7 +245,16 @@ async function hashesOfPage(page: Page, url: string): Promise<Record<string, str
   return result;
 }
 
-/** Lay out every page in one engine at every viewport, keyed "page | mode" → "engine viewport" → hash. */
+/** The name of one engine's run at one viewport, as the report shows it: "firefox 1600x900". */
+function runName(engine: string, viewport: { name: string }): string {
+  return `${engine} ${viewport.name}`;
+}
+
+/**
+ * Lay out every page in one engine at every viewport — both viewports at once, each in its own
+ * fresh context — keyed "page | mode" → run → hash. ``seen`` records, per run and per page, the
+ * keys in the order the page listed its modes, so the report's order never depends on timing.
+ */
 async function runEngine(
   name: string,
   engine: BrowserType,
@@ -252,30 +262,38 @@ async function runEngine(
   source: string,
   targets: Target[],
   results: Map<string, Map<string, string>>,
+  seen: Map<string, string[][]>,
 ): Promise<void> {
   const browser: Browser = await engine.launch();
   try {
-    for (const viewport of VIEWPORTS) {
-      // A fresh context per viewport: no remembered arrangement, so every full graph is laid out.
-      const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
-      const page = await context.newPage();
-      for (const target of targets) {
-        const query = new URLSearchParams({ source, ...target.query });
-        const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`);
-        for (const [mode, hash] of Object.entries(hashes)) {
-          const key = `${target.label} | ${mode}`;
-          if (!results.has(key)) results.set(key, new Map());
-          results.get(key)!.set(`${name} ${viewport.name}`, hash);
+    await allEnded(
+      VIEWPORTS.map(async (viewport) => {
+        // A fresh context per viewport: no remembered arrangement, so every full graph is laid out.
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
+        const page = await context.newPage();
+        const run = runName(name, viewport);
+        const keysByTarget: string[][] = [];
+        seen.set(run, keysByTarget);
+        for (const target of targets) {
+          const query = new URLSearchParams({ source, ...target.query });
+          const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`);
+          const keys: string[] = [];
+          for (const [mode, hash] of Object.entries(hashes)) {
+            const key = `${target.label} | ${mode}`;
+            keys.push(key);
+            if (!results.has(key)) results.set(key, new Map());
+            results.get(key)!.set(run, hash);
+          }
+          keysByTarget.push(keys);
         }
-      }
-      await context.close();
-    }
+        await context.close();
+      }),
+    );
   } finally {
     await browser.close();
   }
 }
 
-/** Enter a name in the room dialog and confirm it. */
 async function confirmName(page: Page, name: string): Promise<void> {
   await page.locator("#room-name-input").fill(name);
   await domClick(page, 'form button[type="submit"]');
@@ -523,19 +541,30 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
 }
 
 /** Check every page and mode; print one line each; return whether all of them agree. */
-function report(results: Map<string, Map<string, string>>): boolean {
-  const expected = ENGINES.length * VIEWPORTS.length;
+/**
+ * Print one line per page and mode — pages in the left panel's order, modes in the order the
+ * page lists them — and, for a difference, every run in engine-then-viewport order.
+ */
+function report(results: Map<string, Map<string, string>>, seen: Map<string, string[][]>, targetCount: number): boolean {
+  const runs = ENGINES.flatMap(([name]) => VIEWPORTS.map((viewport) => runName(name, viewport)));
+  const keys: string[] = [];
+  for (let target = 0; target < targetCount; target++) {
+    for (const run of runs) {
+      for (const key of seen.get(run)?.[target] ?? []) if (!keys.includes(key)) keys.push(key);
+    }
+  }
   let ok = true;
-  for (const [key, byRun] of results) {
+  for (const key of keys) {
+    const byRun = results.get(key)!;
     const distinct = new Set(byRun.values());
-    if (distinct.size === 1 && byRun.size === expected) {
+    if (distinct.size === 1 && byRun.size === runs.length) {
       console.log(`ok    ${key}  ${[...distinct][0].slice(0, 16)}`);
       continue;
     }
     ok = false;
     console.log(`DIFF  ${key}`);
-    for (const [run, hash] of byRun) console.log(`        ${run}: ${hash.slice(0, 16)}`);
-    if (byRun.size !== expected) console.log(`        ${expected - byRun.size} run(s) gave no hash`);
+    for (const run of runs) if (byRun.has(run)) console.log(`        ${run}: ${byRun.get(run)!.slice(0, 16)}`);
+    if (byRun.size !== runs.length) console.log(`        ${runs.length - byRun.size} run(s) gave no hash`);
   }
   return ok;
 }
@@ -569,9 +598,10 @@ async function main(): Promise<void> {
     const source = `${frontUrl}/graph-json`;
     const targets = await listTargets(frontUrl, source);
     const results = new Map<string, Map<string, string>>();
+    const seen = new Map<string, string[][]>();
     const partA = Date.now();
-    await Promise.all(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results)));
-    ok = report(results);
+    await allEnded(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results, seen)));
+    ok = report(results, seen, targets.length);
     const partASeconds = seconds(partA);
     const partB = Date.now();
     const offsets = await Promise.all(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source)));
