@@ -365,6 +365,9 @@ external = ["V107"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_undecided.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
+# ``maxitor_gnomon`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
+# above: the caller learns "this is not a graph", not that something broke, so the verdict's word is the name.
+"packages/maxitor-gnomon/src/maxitor_gnomon/**" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).

@@ -12,7 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
-dependencies = []
+dependencies = ["jsonschema>=4.17,<5"]
 
 [project.urls]
 Homepage = "https://github.com/bystrovmaxim/aoa"
