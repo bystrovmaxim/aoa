@@ -41,7 +41,7 @@ gnomon = "1.0"                      # the config's own version
 [[graph]]
 name  = "demo"                      # unique; names the graph
 cwd   = "."                         # optional, default "." — where the build runs
-build = "python -m my_service.graph_json"   # prints the graph document to standard output
+build = "python -m my_service.print_graph"   # prints the graph document to standard output
 file  = "my_service/graph.json"             # unique — where the graph is kept
 ```
 

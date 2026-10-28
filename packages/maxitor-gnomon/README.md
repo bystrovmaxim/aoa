@@ -49,7 +49,7 @@ gnomon = "1.0"                      # the config's own format version
 [[graph]]
 name  = "demo"                      # unique; names the graph in every message
 cwd   = "."                         # optional, default "." — the folder the build runs in
-build = "uv run python -m aoa.demo.graph_json"   # prints the graph to standard output
+build = "uv run python -m aoa.demo.print_graph"   # prints the graph to standard output
 file  = "packages/aoa-demo/graph.json"           # unique — where the graph is saved
 ```
 
@@ -112,7 +112,7 @@ In CI pin a commit instead of `main`. Below, `gnomon` means that command.
 1. **Make each service print its graph.** For an AOA service, a module of a few lines that imports the service's model and prints its graph:
 
    ```python
-   # my_service/graph_json.py
+   # my_service/print_graph.py
    import importlib
    import sys
 
@@ -122,7 +122,7 @@ In CI pin a commit instead of `main`. Below, `gnomon` means that command.
    sys.stdout.write(create_node_graph_coordinator().to_json())
    ```
 
-   Prove it: `uv run python -m my_service.graph_json | gnomon validate -` prints `ok 1.1: …`.
+   Prove it: `uv run python -m my_service.print_graph | gnomon validate -` prints `ok 1.1: …`.
 2. **List the graphs** in `gnomon.toml` at the repository root, one `[[graph]]` each. The usual place for a file is the service's own folder, `<service>/graph.json`.
 3. **Write them:** `gnomon write`, then commit `gnomon.toml` and the graph files.
 4. **Check them in CI** — for GitHub Actions:

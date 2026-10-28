@@ -12,14 +12,14 @@ DEMO = """
 [[graph]]
 name = "demo"
 cwd = "packages/aoa-demo"
-build = "uv run python -m aoa.demo.graph_json"
+build = "uv run python -m aoa.demo.print_graph"
 file = "packages/aoa-demo/graph.json"
 """
 
 MAXITOR = """
 [[graph]]
 name = "maxitor"
-build = "uv run python -m aoa.maxitor.graph_json"
+build = "uv run python -m aoa.maxitor.print_graph"
 file = "packages/aoa-maxitor/graph.json"
 """
 
@@ -37,11 +37,11 @@ def test_a_valid_config_gives_its_graphs_in_order(tmp_path: Path) -> None:
     path = _config(tmp_path, MAXITOR + DEMO)
     repo = path.parent.resolve()
     assert read_config(path) == [
-        Graph("maxitor", repo, "uv run python -m aoa.maxitor.graph_json", repo / "packages/aoa-maxitor/graph.json"),
+        Graph("maxitor", repo, "uv run python -m aoa.maxitor.print_graph", repo / "packages/aoa-maxitor/graph.json"),
         Graph(
             "demo",
             repo / "packages/aoa-demo",
-            "uv run python -m aoa.demo.graph_json",
+            "uv run python -m aoa.demo.print_graph",
             repo / "packages/aoa-demo/graph.json",
         ),
     ]
@@ -60,7 +60,7 @@ def test_paths_are_relative_to_the_config_not_to_the_caller(tmp_path: Path, monk
     ("text", "graph", "field", "reason"),
     [
         (DEMO.replace('name = "demo"\n', ""), "#1", "name", "required"),
-        (DEMO.replace('build = "uv run python -m aoa.demo.graph_json"\n', ""), "demo", "build", "required"),
+        (DEMO.replace('build = "uv run python -m aoa.demo.print_graph"\n', ""), "demo", "build", "required"),
         (DEMO.replace('file = "packages/aoa-demo/graph.json"\n', ""), "demo", "file", "required"),
         (DEMO.replace("build =", "bild ="), "demo", "bild", "not a field of the config"),
         (DEMO.replace('name = "demo"', "name = 5"), "#1", "name", "5 is not of type 'string'"),
