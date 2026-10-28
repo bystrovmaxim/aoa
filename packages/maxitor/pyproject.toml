@@ -12,8 +12,13 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
-# Every part's code is in the wheel; an extra brings one part's dependencies.
-dependencies = []
+# Every part's code is in the wheel; an extra brings one part's dependencies. The base install is
+# the ``gnomon`` command: jsonschema-rs decides whether a document is a graph (the demo's in 0.06 s,
+# not 24 s); jsonschema explains a refusal on the one element jsonschema-rs stopped at.
+dependencies = [
+    "jsonschema>=4.17,<5",
+    "jsonschema-rs>=0.60,<1",
+]
 
 [project.optional-dependencies]
 # The viewer: Maxitor's server and its built front.
@@ -37,6 +42,7 @@ Documentation = "https://action-machine.readthedocs.io"
 Repository = "https://github.com/action-machine/action-machine"
 
 [project.scripts]
+gnomon = "maxitor.gnomon.cli:main"
 maxitor-api = "maxitor.launch:viewer"
 
 [tool.hatch.build.targets.wheel]

@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/tests/test_writer.py
+# packages/maxitor/tests/gnomon/test_writer.py
 """``write`` and ``check`` on tiny graphs printed by ``cat``: the same bytes, untouched files, named failures."""
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from maxitor_gnomon.config import Graph
-from maxitor_gnomon.writer import check, render, write
+from maxitor.gnomon.config import Graph
+from maxitor.gnomon.writer import check, render, write
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

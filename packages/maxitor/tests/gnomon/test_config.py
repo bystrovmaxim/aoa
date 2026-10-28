@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/tests/test_config.py
+# packages/maxitor/tests/gnomon/test_config.py
 """``gnomon.toml``: a valid config gives its graphs in order, and every refusal names the graph and the field."""
 
 from __future__ import annotations
@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from maxitor_gnomon.config import ConfigRefused, Graph, read_config
+from maxitor.gnomon.config import ConfigRefused, Graph, read_config
 
 DEMO = """
 [[graph]]

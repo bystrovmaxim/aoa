@@ -21,7 +21,6 @@ members = [
     "aoa-otel",
     "aoa-run",
     "maxitor",
-    "maxitor-gnomon",
 ]
 
 [[package]]
@@ -307,7 +306,6 @@ all = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
-    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -332,7 +330,6 @@ dev = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
-    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -388,7 +385,6 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
     { name = "maxitor", extras = ["all"], editable = "packages/maxitor" },
-    { name = "maxitor-gnomon", marker = "extra == 'dev'", editable = "packages/maxitor-gnomon" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
     { name = "pylint", marker = "extra == 'dev'", specifier = ">=3.0,<4.0" },
@@ -2086,6 +2082,10 @@ wheels = [
 name = "maxitor"
 version = "3.0.0"
 source = { editable = "packages/maxitor" }
+dependencies = [
+    { name = "jsonschema" },
+    { name = "jsonschema-rs" },
+]
 
 [package.optional-dependencies]
 all = [
@@ -2117,6 +2117,8 @@ requires-dist = [
     { name = "aoa-fastapi-adapter", marker = "extra == 'viewer'", editable = "packages/aoa-fastapi-adapter" },
     { name = "duckdb", marker = "extra == 'viewer'", specifier = ">=1.5,<2" },
     { name = "httpx", marker = "extra == 'viewer'", specifier = ">=0.28,<1.0" },
+    { name = "jsonschema", specifier = ">=4.17,<5" },
+    { name = "jsonschema-rs", specifier = ">=0.60,<1" },
     { name = "maxitor", extras = ["viewer"], marker = "extra == 'all'", editable = "packages/maxitor" },
     { name = "uvicorn", marker = "extra == 'viewer'", specifier = ">=0.30" },
     { name = "websockets", marker = "extra == 'viewer'", specifier = ">=15" },
@@ -2128,29 +2130,6 @@ dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
-
-[[package]]
-name = "maxitor-gnomon"
-version = "0.1.0"
-source = { editable = "packages/maxitor-gnomon" }
-dependencies = [
-    { name = "jsonschema" },
-    { name = "jsonschema-rs" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "jsonschema", specifier = ">=4.17,<5" },
-    { name = "jsonschema-rs", specifier = ">=0.60,<1" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
 
 [[package]]
 name = "mccabe"

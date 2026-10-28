@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `aoa-maxitor` are documented in this file.
+All notable changes to `maxitor` (until 2.3.0 published as `aoa-maxitor`) are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -133,3 +133,16 @@ The frontend is built with `--base=/maxitor/` and `VITE_MAXITOR_API_BASE_URL=htt
 ### Changed
 
 - **`GetLeftMenuSidebarDataAction` rewritten as a four-aspect DuckDB pipeline; `networkx` dependency removed.** The action no longer depends on `networkx`. Four `@regular_aspect` methods build sidebar `NodeEntity` lists in stages — level-1 root bucket nodes → level-2 fixed diagram rows → level-2 interchange nodes from DuckDB → level-3 per-domain ERD and per-entity class/lifecycle rows — with a `@summary_aspect` assembling the final `Result`. String helpers `_diagram_view_label` and `_lifecycle_state_machine_row_title` are `@staticmethod` methods on the class; aspect-level unit tests added. Deleted files: `api/session.py`, `node_build.py`, `interchange_demo_coordinator.py`, `model/diagrams/actions/load_graph_action.py`. ([#78](https://github.com/bystrovmaxim/aoa/issues/78))
+
+## maxitor-gnomon
+
+`maxitor-gnomon` joined `maxitor` in 3.0.0 as its `gnomon` part. Its one release, kept here as it was written:
+
+### [0.1.0] – 2026-10-28
+
+#### Added
+
+- **The Open Gnomon Protocol, versions 1.0 and 1.1** — a shared language for describing a project's model as a graph, one JSON Schema per version in `protocol/`; a published version never changes. ([#301](https://github.com/bystrovmaxim/aoa/issues/301))
+- **`gnomon write` and `gnomon check`** — each service's model kept in one `graph.json`, rebuilt from the code and checked in CI; a stale file fails with its differences, matched by `id`. **`gnomon validate`** tells a graph from anything else; **`gnomon skill`** prints the setup skill. ([#301](https://github.com/bystrovmaxim/aoa/issues/301))
+- **`gnomon.toml`**, the repository's list of graphs, with refusals that name the graph and the field. ([#301](https://github.com/bystrovmaxim/aoa/issues/301))
+- **The `gnomon-setup` skill** — connects a project to the protocol: surveys every service, proves its export (adding an exporter where needed), asks, then writes the config, the graphs and the CI check; never commits. ([#301](https://github.com/bystrovmaxim/aoa/issues/301))

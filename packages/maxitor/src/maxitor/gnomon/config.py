@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/src/maxitor_gnomon/config.py
+# packages/maxitor/src/maxitor/gnomon/config.py
 """
 Read ``gnomon.toml``: the graphs of one repository.
 
@@ -72,7 +72,7 @@ class ConfigRefused(ValueError):
 @cache
 def _config_schema() -> dict[str, Any]:
     """The JSON Schema of the config, version ``1.0``, read once."""
-    text = files("maxitor_gnomon").joinpath("config_schema.json").read_text(encoding="utf-8")
+    text = files("maxitor.gnomon").joinpath("config_schema.json").read_text(encoding="utf-8")
     schema: dict[str, Any] = json.loads(text)
     return schema
 

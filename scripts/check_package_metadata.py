@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # scripts/check_package_metadata.py
 """
-Validate ``pyproject.toml`` dependency metadata for the publishable workspace members (``aoa-*`` and ``maxitor-gnomon``).
+Validate ``pyproject.toml`` dependency metadata for the publishable workspace members (``aoa-*`` and ``maxitor``).
 
 Ensures declared pip dependencies match the repository ``aoa-*`` dependency matrix (see each package ``pyproject.toml``).
 """
@@ -25,7 +25,6 @@ MEMBERS = (
     "aoa-otel",
     "maxitor",
     "aoa-demo",
-    "maxitor-gnomon",
 )
 
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
@@ -38,7 +37,6 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-otel": "aoa-otel",
     "maxitor": "maxitor",
     "aoa-demo": "aoa-demo",
-    "maxitor-gnomon": "maxitor-gnomon",
 }
 
 # Normalized distribution names (hyphenated).
@@ -51,12 +49,11 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-otel": frozenset({"aoa-action-machine"}),
     "maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
     "aoa-demo": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
-    "maxitor-gnomon": frozenset(),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     # The graph schema is AOA's own copy of the protocol's; AOA never depends on Maxitor's tools.
-    "aoa-action-machine": frozenset({"maxitor", "aoa-demo", "maxitor-gnomon"}),
+    "aoa-action-machine": frozenset({"maxitor", "aoa-demo"}),
     "aoa-fastapi-adapter": frozenset({"maxitor", "aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-mcp-adapter": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-langgraph": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
@@ -64,8 +61,6 @@ FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     "aoa-otel": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
     "maxitor": frozenset({"aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-demo": frozenset({"maxitor", "aoa-langgraph"}),
-    # The graph format stands outside AOA: no ``aoa-*`` distribution at all.
-    "maxitor-gnomon": frozenset(d for d in MEMBERS if d.startswith("aoa-")),
 }
 
 # Packages whose base install must stay free of ``aoa-*``: AOA comes only with the named extra.

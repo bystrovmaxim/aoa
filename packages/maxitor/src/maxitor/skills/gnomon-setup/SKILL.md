@@ -132,7 +132,7 @@ graph-files:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v5
     - name: The graph files are current
-      run: uvx --from "git+https://github.com/bystrovmaxim/aoa@<commit sha>#subdirectory=packages/maxitor-gnomon" gnomon check
+      run: uvx --from "git+https://github.com/bystrovmaxim/aoa@<commit sha>#subdirectory=packages/maxitor" gnomon check
 ```
 
 If the builds need the project's own environment (they usually do), install it first in the same job, the way the project's other jobs do.

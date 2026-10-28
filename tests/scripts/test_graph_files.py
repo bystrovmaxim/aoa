@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 
 import pytest
-from maxitor_gnomon.config import read_config
-from maxitor_gnomon.schemas import check_graph
+from maxitor.gnomon.config import read_config
+from maxitor.gnomon.schemas import check_graph
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

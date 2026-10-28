@@ -51,9 +51,9 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-from maxitor_gnomon.config import read_config
-from maxitor_gnomon.schemas import GraphRefused, check_graph
-from maxitor_gnomon.writer import build, check, render
+from maxitor.gnomon.config import read_config
+from maxitor.gnomon.schemas import GraphRefused, check_graph
+from maxitor.gnomon.writer import build, check, render
 
 # The repository root: the folder that holds gnomon.toml, wherever this runs from.
 REPO_ROOT = next(path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "gnomon.toml").is_file())
