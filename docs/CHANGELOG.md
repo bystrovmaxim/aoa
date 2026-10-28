@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-28] — The check run's slowest step takes half the time
+
+The check run is shorter again: about a minute instead of a minute and a half. Its slowest step — the one that lays every diagram out in Chromium, Firefox and WebKit and checks that they agree — now takes about half a minute instead of a full one. It still checks every page in every layout mode, in all three browsers, on a phone-sized and a desktop-sized screen, and it still checks pointers and following between browsers with the same tolerances. What changed is that the parts of that step which never needed to wait for each other no longer do: both screen sizes are laid out at once, the pointer checks run beside them, and the six pairs of browsers that check following run together.
+
+The step now says how long each of its parts took, so the next slow part is easy to spot. Two of the client's unit tests, which lay out the whole reference graph, now have room beyond the default five seconds: they check the layout's result, not its speed, and on a busy or battery-starved machine they had run out of time.
+
+The run is now held by two chains of about the same length — the client and its layout step, and the tests of `aoa-action-machine` — so shortening only one of them would gain little. The how-to page *Running the checks* describes the layout step's parts and shows what it prints.
+
 ## [2026-10-28] — A check run that shows its time and finishes sooner
 
 The check run that finishes every change in this repository — `bash scripts/run_checks_with_log.sh` — now takes about a minute and a half instead of nearly four. It checks exactly what it checked before, step for step; what changed is that steps which do not depend on each other now run at the same time. On the machine this was measured on, a run went from about 220 seconds to about 85.
