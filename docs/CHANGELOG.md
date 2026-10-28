@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-28] — Each service keeps its graph in a file that every change carries
+
+The graph of a service — the map Maxitor draws of its operations, entities and dependencies — is now kept in the repository, in one file beside the service, and that file changes in the same pull request as the code that changed the graph. Git therefore holds the graph's whole history: what the system looked like at any commit, and which change moved what. In this repository the demo and Maxitor itself do it, in `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`.
+
+Nobody has to remember to do it by hand. The check run builds both graphs as its last step and updates their files — only when every other step passed, so no graph is written for a change that is not ready; you commit the updated file with your change. CI checks that the files are current and, if one is not, fails the pull request and says what changed, element by element: a node added, a field of an edge changed. One more commit to the same pull request fixes it. A file whose graph did not change is not touched, and the same graph always gives the same file.
+
+The format of these files is a new package, `maxitor-gnomon`, and it knows nothing about AOA: any project whose services can print a graph by its schema can use it. It holds the schema by version — the first format, `1.0`, and the current one, `1.1`, where every edge has an id — and a published version never changes; AOA now reads its schema from there. Its command, `gnomon`, writes the files, checks them, and tells whether a document is a graph at all. Checking a graph the size of the demo's now takes a fraction of a second.
+
+To set up another project there are three ways, described in the package's README: by hand, in four short steps; by installing a setup skill for your coding agent with `gnomon skill`; or by giving an agent one sentence with the skill's link. The skill finds every service that produces a graph, proves how to build it, asks where each file should go, and adds the check to CI — it never commits. Run again later, it audits the setup. Until the package is on PyPI, it runs straight from this repository with `uvx`. Old hand-kept snapshot folders are not carried over: the history starts with the first saved file.
+
 ## [2026-10-28] — The check run's slowest step takes half the time
 
 The check run is shorter again: about a minute instead of a minute and a half. Its slowest step — the one that lays every diagram out in Chromium, Firefox and WebKit and checks that they agree — now takes about half a minute instead of a full one. It still checks every page in every layout mode, in all three browsers, on a phone-sized and a desktop-sized screen, and it still checks pointers and following between browsers with the same tolerances. What changed is that the parts of that step which never needed to wait for each other no longer do: both screen sizes are laid out at once, the pointer checks run beside them, and the six pairs of browsers that check following run together.
