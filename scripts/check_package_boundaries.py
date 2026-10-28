@@ -4,7 +4,7 @@
 Enforce import boundaries for production packages.
 
 Production: ``packages/*/src/aoa/`` trees and ``[packages.*]`` in ``scripts/package_boundaries.toml``.
-Standalone: the roots of ``[standalone.*]`` import nothing from ``aoa``.
+Standalone: the roots of ``[standalone.*]`` import nothing from ``aoa``, nor any module their ``forbid`` lists.
 """
 
 from __future__ import annotations
@@ -84,9 +84,12 @@ def _owner_for_file(rel_posix: str, roots: dict[str, list[str]]) -> str | None:
 
 
 def _import_prefixes(cfg: dict) -> dict[str, str]:
-    """Every ``import_prefixes`` entry of the canonical packages, mapped to its package."""
+    """Every ``import_prefixes`` entry of the canonical and standalone packages, mapped to its package."""
     packages = _packages_table(cfg)
-    return {str(prefix): name for name in CANONICAL for prefix in packages[name].get("import_prefixes") or []}
+    prefixes = {str(prefix): name for name in CANONICAL for prefix in packages[name].get("import_prefixes") or []}
+    for name, table in (cfg.get("standalone") or {}).items():
+        prefixes.update({str(prefix): name for prefix in table.get("import_prefixes") or []})
+    return prefixes
 
 
 def _target_from_module(module: str, prefixes: dict[str, str]) -> str | None:
@@ -212,7 +215,7 @@ def _imported_modules(path: Path) -> list[tuple[int, str]]:
 
 
 def check_standalone(cfg: dict) -> list[Violation]:
-    """Imports of ``aoa`` from a package that must stand without it."""
+    """Imports of ``aoa``, or of a module listed in ``forbid``, from a package that must stand without them."""
     standalone = cfg.get("standalone", {})
     if not isinstance(standalone, dict):
         raise SystemExit("'standalone' must be a table of tables")
@@ -221,10 +224,12 @@ def check_standalone(cfg: dict) -> list[Violation]:
         roots = [str(r).rstrip("/") for r in table.get("roots") or []]
         if not roots:
             raise SystemExit(f"[standalone.{owner}].roots must be non-empty")
+        banned = ["aoa", *(str(prefix) for prefix in table.get("forbid") or [])]
         for path in _collect_py_files_from_roots(roots):
             for lineno, module in _imported_modules(path):
-                if module == "aoa" or module.startswith("aoa."):
-                    violations.append(Violation(path, lineno, owner, "aoa", module))
+                hit = next((ban for ban in banned if module == ban or module.startswith(ban + ".")), None)
+                if hit is not None:
+                    violations.append(Violation(path, lineno, owner, hit, module))
     return violations
 
 

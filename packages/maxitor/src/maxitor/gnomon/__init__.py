@@ -1,26 +1,22 @@
-# packages/maxitor-gnomon/src/maxitor_gnomon/__init__.py
+# packages/maxitor/src/maxitor/gnomon/__init__.py
 """
-maxitor-gnomon — the graph format of Maxitor.
+maxitor.gnomon — the ``gnomon`` command: a repository's graphs, kept in files.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Give a service's graph a home that depends on no framework: the graph schema by
-version, the config that lists a repository's graphs, and the ``gnomon`` command
-that keeps each graph in one file. A gnomon is the rod of a sundial whose shadow
-marks the hour; this package marks where a service's graph stood at each commit.
+Keep each service's graph in one file, checked against the Open Gnomon Protocol
+by version: the config that lists a repository's graphs, the writer and the
+check, and the differences between a file and what its build prints. A gnomon is
+the rod of a sundial whose shadow marks the hour; this part marks where a
+service's graph stood at each commit.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-The package imports nothing from ``aoa``; ``scripts/check_package_boundaries.py``
-enforces it. AOA reads its graph schema from here, never the other way round.
+The part imports nothing from ``aoa`` and nothing of ``maxitor.viewer``;
+``scripts/check_package_boundaries.py`` enforces both, so ``pip install maxitor``
+with no extra is enough to run it.
 """
-
-from __future__ import annotations
-
-__version__ = "0.1.0"
-
-__all__ = ["__version__"]

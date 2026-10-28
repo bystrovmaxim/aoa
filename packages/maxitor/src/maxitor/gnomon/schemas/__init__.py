@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/src/maxitor_gnomon/schemas/__init__.py
+# packages/maxitor/src/maxitor/gnomon/schemas/__init__.py
 """
 The graph schema, by version.
 

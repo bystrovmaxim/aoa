@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/src/maxitor_gnomon/differences.py
+# packages/maxitor/src/maxitor/gnomon/differences.py
 """
 Name what changed between two graph documents, by ``id``.
 

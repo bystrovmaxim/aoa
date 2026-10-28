@@ -86,7 +86,6 @@ PACKAGES = (
     "packages/aoa-langgraph",
     "packages/maxitor",
     "packages/aoa-demo",
-    "packages/maxitor-gnomon",
 )
 
 
@@ -217,7 +216,6 @@ STEPS: tuple[Step, ...] = (
             "aoa-fastapi-adapter",
             "aoa-mcp-adapter",
             "aoa-action-machine",
-            "maxitor-gnomon",
         )
     ),
     _after_fix("Pytest tests/scripts (check run, graph files)", "uv run --extra dev pytest tests/scripts -v", "tests"),

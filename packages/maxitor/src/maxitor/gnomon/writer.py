@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/src/maxitor_gnomon/writer.py
+# packages/maxitor/src/maxitor/gnomon/writer.py
 """
 Build a repository's graphs and keep each one in its file.
 
@@ -29,9 +29,9 @@ import subprocess
 from dataclasses import dataclass
 from typing import Any
 
-from maxitor_gnomon.config import Graph
-from maxitor_gnomon.differences import differences
-from maxitor_gnomon.schemas import GraphRefused, check_graph
+from maxitor.gnomon.config import Graph
+from maxitor.gnomon.differences import differences
+from maxitor.gnomon.schemas import GraphRefused, check_graph
 
 TIMEOUT_SECONDS = 300.0
 TAIL_LINES = 20

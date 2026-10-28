@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/tests/test_cli.py
+# packages/maxitor/tests/gnomon/test_cli.py
 """The ``gnomon`` command: its lines, its fixing command and its exit codes."""
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
-from maxitor_gnomon.cli import main
+from maxitor.gnomon.cli import main
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

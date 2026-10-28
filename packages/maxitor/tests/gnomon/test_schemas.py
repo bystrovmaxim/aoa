@@ -1,4 +1,4 @@
-# packages/maxitor-gnomon/tests/test_schemas.py
+# packages/maxitor/tests/gnomon/test_schemas.py
 """The graph schema by version: what passes, what is refused and why, and that a published version never changes."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from maxitor_gnomon.schemas import SCHEMA_VERSIONS, GraphRefused, check_graph, graph_schema
+from maxitor.gnomon.schemas import SCHEMA_VERSIONS, GraphRefused, check_graph, graph_schema
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
