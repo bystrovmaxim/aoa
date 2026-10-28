@@ -1,72 +1,29 @@
 #!/usr/bin/env bash
-# run_checks_with_log.sh - run project checks and append output to archive/logs/ (repo root).
+# run_checks_with_log.sh - run the project checks and write archive/logs/check-all.txt (repo root).
 # Usage: bash /path/to/repo/scripts/run_checks_with_log.sh
 #        or from any directory: bash ~/.../run_checks_with_log.sh
+#
+# The steps, their order and the log are kept by scripts/check_run.py; this script finds the
+# repository, holds the two shell guards and hands over. `--guard <name>` runs one guard and exits
+# with its result; the runner uses it.
 
 set -u
 
 # Directory containing this script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)" || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)" || exit 2
 
 # Repository root (where pyproject.toml lives)
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$REPO_ROOT" ]]; then
   echo "Error: script directory is not inside a git repository."
-  exit 1
+  exit 2
 fi
-cd "$REPO_ROOT" || exit 1
+cd "$REPO_ROOT" || exit 2
 
 # --- everything below is relative to repo root ---
 
 RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m'
-
-mkdir -p archive/logs
-LOG_FILE="$REPO_ROOT/archive/logs/check-all.txt"
-FAILED=0
-
-echo -e "${YELLOW}Log file: ${LOG_FILE}${NC}"
-echo ""
-
-{
-  echo "=================================================="
-  echo "ActionMachine project checks"
-  echo "Date: $(date)"
-  echo "Time: $(date +%H:%M:%S)"
-  echo "Repository: $REPO_ROOT"
-  echo "=================================================="
-  echo ""
-} > "$LOG_FILE"
-
-run_and_log() {
-  local cmd="$1"
-  local name="$2"
-
-  echo -e "${YELLOW}> ${name}${NC}"
-
-  {
-    echo "=== $name ==="
-    echo "\$ $cmd"
-    echo ""
-  } >> "$LOG_FILE"
-
-  # shellcheck disable=SC2086
-  eval "$cmd" >>"$LOG_FILE" 2>&1
-  local exit_code=$?
-  echo "" >>"$LOG_FILE"
-
-  if [[ $exit_code -eq 0 ]]; then
-    echo -e "${GREEN}OK ${name} (exit 0)${NC}"
-    echo "OK ${name} (exit 0)" >>"$LOG_FILE"
-  else
-    echo -e "${RED}FAIL ${name} (exit $exit_code)${NC}"
-    echo "FAIL ${name} (exit $exit_code)" >>"$LOG_FILE"
-    FAILED=1
-  fi
-  echo "" >>"$LOG_FILE"
-}
 
 check_no_lazy_init_getattr() {
   local matches
@@ -105,103 +62,17 @@ check_maxitor_client_component_readmes() {
   return "$fail"
 }
 
+if [[ "${1:-}" == "--guard" ]]; then
+  case "${2:-}" in
+    lazy-init-getattr) check_no_lazy_init_getattr; exit $? ;;
+    client-component-readmes) check_maxitor_client_component_readmes; exit $? ;;
+    *) echo "Unknown guard: ${2:-}"; exit 2 ;;
+  esac
+fi
+
 if [[ ! -f "$REPO_ROOT/pyproject.toml" ]]; then
   echo -e "${RED}FAIL pyproject.toml not found in $REPO_ROOT${NC}"
-  exit 1
+  exit 2
 fi
 
-echo -e "${YELLOW}Full check run (cwd=$REPO_ROOT)...${NC}"
-echo ""
-
-step_name="Ban __getattr__ in package __init__.py"
-echo -e "${YELLOW}> ${step_name}${NC}"
-{
-  echo "=== ${step_name} ==="
-  echo "\$ check_no_lazy_init_getattr (shell function)"
-  echo ""
-} >>"$LOG_FILE"
-if check_no_lazy_init_getattr >>"$LOG_FILE" 2>&1; then
-  echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
-  echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
-else
-  echo -e "${RED}FAIL ${step_name} (non-zero exit)${NC}"
-  echo "FAIL ${step_name} (non-zero exit)" >>"$LOG_FILE"
-  FAILED=1
-fi
-echo "" >>"$LOG_FILE"
-
-step_name="Maxitor client: README beside components/*/ index.ts"
-echo -e "${YELLOW}> ${step_name}${NC}"
-{
-  echo "=== ${step_name} ==="
-  echo "\$ check_maxitor_client_component_readmes (shell function)"
-  echo ""
-} >>"$LOG_FILE"
-if check_maxitor_client_component_readmes >>"$LOG_FILE" 2>&1; then
-  echo -e "${GREEN}OK ${step_name} (exit 0)${NC}"
-  echo "OK ${step_name} (exit 0)" >>"$LOG_FILE"
-else
-  echo -e "${RED}FAIL ${step_name} (non-zero exit)${NC}"
-  echo "FAIL ${step_name} (non-zero exit)" >>"$LOG_FILE"
-  FAILED=1
-fi
-echo "" >>"$LOG_FILE"
-
-# Two remarks in this log are known, accepted and not to be acted on — they belong to tools,
-# not to this repository's code:
-#   * the Vite build's "Some chunks are larger than 500 kB" — the viewer's weight is the graph
-#     engine and the Graphviz wasm behind layout, and the advisory is about their size;
-#   * LangGraph's `LangChainPendingDeprecationWarning` while its cache module is imported —
-#     raised inside the library, and this repository never builds that cache.
-# Do not chase either one; the steps below stay green with them in the log.
-run_and_log "(cd packages/aoa-maxitor/client && npm ci && npm run build)" "Maxitor client: npm ci and Vite build"
-run_and_log "(cd packages/aoa-maxitor/client && npm test)" "Maxitor client: unit tests"
-# Every diagram must be laid out to the same bits in Chromium, Firefox and WebKit, on a phone and a
-# desktop screen, or pointers in a room land on the wrong nodes (spec 028, FR-006). The same step
-# then opens a room in each engine and proves a pointer lands within 2 px of its node (SC-003).
-run_and_log "(cd packages/aoa-maxitor/client && npx playwright install chromium firefox webkit && node scripts/check-layout-determinism.ts)" "Maxitor client: the same layout in three engines"
-run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-card-containment.ts)" "Maxitor client: ERD card containment"
-run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-dictionary-values.ts)" "Maxitor client: dictionary value properties"
-run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-group-label.ts)" "Maxitor client: group label composed once"
-run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-kinds-and-lines.ts)" "Maxitor client: ERD kinds, tables and lines"
-run_and_log "(cd packages/aoa-maxitor/client && node scripts/check-erd-table-style.ts)" "Maxitor client: ERD table style"
-
-# The auto-fix step takes the same scope as the lint target below (`task lint`), so that the two
-# agree on what this repository lints. `examples/` and its notebooks are tutorial material and sit
-# outside that scope; while the step scanned everything (`.`) it reported 207 findings inside
-# `examples/` — 162 fixable (import order, unused imports) and 45 `module-import-not-at-top` — none
-# of them introduced by the change that found this and all of them predating it. Widening the scope
-# back to `.` is one line, and it re-opens that debt deliberately.
-run_and_log "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/" "Ruff auto-fix"
-run_and_log "uv run --extra dev task lint" "Ruff lint"
-run_and_log "uv run --extra dev task typecheck" "Mypy typecheck"
-run_and_log "uv run --extra dev task pylint" "Pylint"
-run_and_log "uv run --extra dev python scripts/check_package_boundaries.py" "Package import boundaries (production)"
-run_and_log "uv run --extra dev python scripts/check_package_metadata.py" "Package metadata (pyproject dependency matrix)"
-for pkg_dir in packages/aoa-action-machine packages/aoa-ocel packages/aoa-otel packages/aoa-fastapi-adapter packages/aoa-mcp-adapter packages/aoa-langgraph packages/aoa-maxitor packages/aoa-demo; do
-  run_and_log "uv run --group dev python -m build \"${REPO_ROOT}/${pkg_dir}\"" "Build wheel/sdist (${pkg_dir})"
-done
-run_and_log "uv run --extra dev pytest tests/packaging -v" "Packaging wheel install smoke"
-run_and_log "uv run --extra dev task dead" "Vulture dead code"
-run_and_log "uv run --extra dev task samples-public-api" "Maxitor samples: action_machine public API"
-run_and_log "uv run --extra dev pytest packages/aoa-maxitor/tests/ -v" "Pytest aoa-maxitor"
-run_and_log "uv run --extra dev pytest packages/aoa-demo/tests/ -v" "Pytest aoa-demo"
-run_and_log "uv run --extra dev pytest packages/aoa-otel/tests/ -v" "Pytest aoa-otel"
-run_and_log "uv run --extra dev pytest packages/aoa-langgraph/tests/ -v" "Pytest aoa-langgraph"
-run_and_log "uv run --extra dev pytest packages/aoa-ocel/tests/ -v" "Pytest aoa-ocel"
-run_and_log "uv run --extra dev pytest packages/aoa-fastapi-adapter/tests/ -v" "Pytest aoa-fastapi-adapter"
-run_and_log "uv run --extra dev pytest packages/aoa-mcp-adapter/tests/ -v" "Pytest aoa-mcp-adapter"
-run_and_log "uv run --extra dev pytest packages/aoa-action-machine/tests/ -v" "Pytest aoa-action-machine"
-run_and_log "uv run --extra dev task cc" "Radon cyclomatic complexity"
-run_and_log "uv run --extra dev task mi" "Radon maintainability index"
-
-{
-  echo "=================================================="
-  echo "All steps finished (see FAIL lines above or in the log if anything failed)"
-  echo "Log: $LOG_FILE"
-  echo "=================================================="
-} >>"$LOG_FILE"
-
-echo ""
-echo -e "${GREEN}Log: ${LOG_FILE}${NC}"
-exit "$FAILED"
+exec uv run --extra dev python scripts/check_run.py "$@"
