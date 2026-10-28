@@ -72,13 +72,13 @@
 
 ## Phase 3: The check run (commit 3)
 
-- [ ] T022 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay (the Vite chunk-size advisory, LangGraph's pending-deprecation warning); prepare commit 3: `chore: take the check run to zero (#285)`. If the first run is already clean there is nothing to commit; record that here.
+- [X] T022 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay (the Vite chunk-size advisory, LangGraph's pending-deprecation warning); prepare commit 3: `chore: take the check run to zero (#285)`. If the first run is already clean there is nothing to commit; record that here. Done: the first run on `50396ef1` is clean — 37 steps OK (ruff, mypy on 892 files, pylint 10.00/10, vulture, radon, wheels, every package's tests: action-machine 3102, Maxitor 327 + 1 skipped, demo 82, client 223), only the two accepted remarks (Vite chunk size, LangGraph pending deprecation); nothing to commit.
 
 ---
 
 ## Phase 4: Documentation (commit 4)
 
-- [ ] T023 A new section of `docs/tutorials/step-26-maxitor.md`, after "It's the same graph the machine builds": how an edge is named by default; a relation named by its field, which keeps its id when it points at another entity; a lifecycle transition with the state it leaves; the two refusals; computing ids for a file of format 1.0; what format 1.1 changes for a reader (the `id` field, the id order, the version, the stricter schema). Every case runnable in `examples/step_26_maxitor/11_edge_ids.py` and its executed notebook `examples/step_26_maxitor/11_edge_ids.ipynb`; the Russian draft beside the page (`docs/tutorials/step-26-maxitor.ru_draft.md`, not committed). Prepare commit 4: `docs(graph): edge ids, with runnable examples (#285)`.
+- [X] T023 A new section of `docs/tutorials/step-26-maxitor.md`, after "It's the same graph the machine builds": how an edge is named by default; a relation named by its field, which keeps its id when it points at another entity; a lifecycle transition with the state it leaves; the two refusals; computing ids for a file of format 1.0; what format 1.1 changes for a reader (the `id` field, the id order, the version, the stricter schema). Every case runnable in `examples/step_26_maxitor/11_edge_ids.py` and its executed notebook `examples/step_26_maxitor/11_edge_ids.ipynb`; the Russian draft beside the page (`docs/tutorials/step-26-maxitor.ru_draft.md`, not committed). Prepare commit 4: `docs(graph): edge ids, with runnable examples (#285)`. Done: the section "Every edge has an id" after "It's the same graph the machine builds"; `11_edge_ids.py` shows seven cases on the demo graph (default rule, relation by field and retarget, transition by the state it leaves, both refusals, a 1.0 file, what 1.1 changes) with its real output in the docstring; the notebook has 19 cells, executed, and its output equals the script's; the Russian section appended to `step-26-maxitor.ru_draft.md`.
 
 ---
 
