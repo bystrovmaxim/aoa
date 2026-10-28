@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-28] — Every edge of the graph has a name
+
+The graph AOA builds from your code has always named its nodes — each entity, action or role by the qualified name of the class that declares it. Now every line between them has a name too, so two versions of a graph can be compared line by line: what appeared, what disappeared, what changed. This is the first step of graph history in Maxitor.
+
+A line is named by where it starts, what kind of line it is and where it ends. Two cases needed more than that. An entity can hold two relations to the same entity, so a relation is named by its field; this also means that a relation which starts pointing at another table is the same relation, shown as changed rather than as one removed and another added. A lifecycle state can be entered from two different states, so a transition is also named by the state it leaves. If you add a kind of line that can repeat between the same two nodes without saying what tells the repeats apart, the graph refuses to build and names both lines, instead of quietly producing a graph whose versions can no longer be compared.
+
+The graph file is now format 1.1: every line carries its name, and lines are listed in the order of their names, so the same code always writes the same file. Nothing changes in what Maxitor shows. Graph files written before this version have no names on their lines, and they do not need any: the names are computed from what each line already carries, by the same function the new files use, so an old file and a new one compare with each other. If your own tests check graph files against the published schema, those files now need the format 1.1 and a name on each line.
+
 ## [2026-10-28] — Rooms that show one picture
 
 A room now shows everyone the same diagram from the first moment. When you open a room, the filters and layout you had become the room's, so the people you invite see exactly what you see; a value someone has already changed in the room is kept. Inside a room a page shows only the room's choices — your own settings never mix in — and when you leave, every page stays as it was in the room.

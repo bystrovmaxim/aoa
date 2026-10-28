@@ -7,6 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
+from aoa.action_machine.graph.edge_identity import edge_id
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
@@ -14,7 +15,7 @@ _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 
 def _base_doc(*, edges: list[dict]) -> dict:
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "nodes": [
             {
                 "id": "fixture.actions.ChildAction",
@@ -53,7 +54,7 @@ def _base_doc(*, edges: list[dict]) -> dict:
                 "properties": {"name": "parent", "description": "p"},
             },
         ],
-        "edges": edges,
+        "edges": [{**edge, "id": edge_id(edge)} for edge in edges],
     }
 
 

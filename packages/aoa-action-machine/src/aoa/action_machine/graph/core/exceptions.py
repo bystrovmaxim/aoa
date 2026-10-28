@@ -26,7 +26,8 @@ ARCHITECTURE / DATA FLOW
             │
             └─ phase-2 validation
                  ├─ invalid payload shape -----> PayloadValidationError
-                 └─ broken graph integrity ----> InvalidGraphError
+                 ├─ broken graph integrity ----> InvalidGraphError
+                 └─ two edges with one id -----> DuplicateEdgeError
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERROR-HANDLING PHILOSOPHY
@@ -67,6 +68,29 @@ class DuplicateNodeError(ValueError):
             f"Node key conflict '{key}':\n"
             f"  created by:    {first_inspector}\n"
             f"  conflict with: {second_inspector}"
+        )
+
+
+class DuplicateEdgeError(ValueError):
+    """
+    AI-CORE-BEGIN
+    ROLE: Build failure: two edges of one graph get the same edge id, so versions of the graph could not be compared edge by edge.
+    CONTRACT: ``ValueError`` subclass; ``edge_id``, ``first``, ``second`` on the instance; ``str()`` names the id and both edges.
+    INVARIANTS: Configuration / edge-type conflict only (not end-user input).
+    FAILURES: An edge type that repeats between the same two nodes without an ``ID_RULE`` that tells the repeats apart.
+    AI-CORE-END
+    """
+
+    def __init__(self, edge_id: str, first: str, second: str) -> None:
+        """Set the shared id and the descriptions of the two edges that share it."""
+        self.edge_id: str = edge_id
+        self.first: str = first
+        self.second: str = second
+        super().__init__(
+            f"Edge id conflict '{edge_id}':\n"
+            f"  first edge:  {first}\n"
+            f"  second edge: {second}\n"
+            "Declare an ID_RULE on the edge class that tells these edges apart."
         )
 
 

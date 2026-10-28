@@ -31,8 +31,10 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 **JSON export:** :meth:`NodeGraphCoordinator.to_json` assembles a JSON object with
 ``schema_version``, ``nodes``, and ``edges`` (each node includes ``id``, ``type``,
 ``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
-``type``, ``relationship``, ``is_dag``, ``properties``) suitable for rebuilding a
-``networkx.DiGraph`` keyed by node ``id``. Callers may still pass ``export_json_schema`` to
+``type``, ``relationship``, ``is_dag``, ``properties`` and its ``id`` from
+:func:`~aoa.action_machine.graph.edge_identity.edge_id`) suitable for rebuilding a
+``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.1``;
+nodes come in ``id`` order and edges in edge ``id`` order. Callers may still pass ``export_json_schema`` to
 :meth:`build` for API compatibility; it is not used by :meth:`to_json`.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -51,6 +53,8 @@ ARCHITECTURE / DATA FLOW
               │
               ├─ duplicate id  -> DuplicateNodeError
               ├─ missing target_node_id  -> InvalidGraphError
+              ├─ ``|`` in a node id or edge id part  -> InvalidGraphError
+              ├─ two edges with one edge id  -> DuplicateEdgeError
               ├─ is_dag cycle  -> InvalidGraphError
               v
     indexes  ->  get_all_nodes / by-type accessors / :meth:`to_json`
@@ -77,7 +81,9 @@ from aoa.action_machine.graph.core import _dag
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
-from aoa.action_machine.graph.core.exceptions import DuplicateNodeError, InvalidGraphError
+from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
+from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
+from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
 from aoa.action_machine.graph.validators import (
     entity_field_validator,
     entity_inverse_validator,
@@ -87,6 +93,16 @@ from aoa.action_machine.graph.validators import (
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
+
+
+def _describe_edge(row: dict[str, Any]) -> str:
+    """Return ``<source_id> -[<type>]-> <target_id>`` plus the property its id rule uses."""
+    text = f"{row['source_id']} -[{row['type']}]-> {row['target_id']}"
+    rule = EDGE_ID_RULES.get(row["type"])
+    name = None if rule is None else (rule.member or rule.suffix)
+    if name is not None:
+        text += f" ({name}={row.get('properties', {}).get(name)!r})"
+    return text
 
 
 class NodeGraphCoordinator(BaseCoordinator):
@@ -142,7 +158,10 @@ class NodeGraphCoordinator(BaseCoordinator):
 
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
-            InvalidGraphError: missing ``target_node_id`` or a cycle among ``is_dag`` edges.
+            InvalidGraphError: missing ``target_node_id``, a cycle among ``is_dag`` edges, a node id
+                containing ``|``, or an edge whose id part (its rule's property) is missing, empty,
+                not a string or contains ``|``.
+            DuplicateEdgeError: two edges get the same edge id.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -161,6 +180,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
+        self._validate_edge_identity(nodes)
         entity_specialization_validator.validate_entity_specializations()
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
@@ -208,16 +228,15 @@ class NodeGraphCoordinator(BaseCoordinator):
         if not self._built or self._nodes is None or self._edges is None:
             raise RuntimeError(_BUILD_REQUIRED_MSG)
         nodes = sorted(self._nodes.values(), key=lambda n: n.node_id)
-        edge_dicts: list[dict[str, Any]] = [
-            edge.to_dict(source_id=source_id) for source_id, _target_id, edge in self._edges
-        ]
+        edge_dicts: list[dict[str, Any]] = []
+        for source_id, _target_id, edge in self._edges:
+            row = edge.to_dict(source_id=source_id)
+            row["id"] = edge_id(row)
+            edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "nodes": [node.to_dict() for node in nodes],
-            "edges": sorted(
-                edge_dicts,
-                key=lambda e: (e["source_id"], e["type"], e["target_id"]),
-            ),
+            "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }
         return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
@@ -384,6 +403,24 @@ class NodeGraphCoordinator(BaseCoordinator):
                     dag_adjacency.setdefault(source_id, []).append(target_id)
 
         return dag_adjacency
+
+    def _validate_edge_identity(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        """Refuse ``|`` in a node id, an edge without a computable id, and two edges with one id."""
+        for node_id in nodes:
+            if EDGE_SEPARATOR in node_id:
+                raise InvalidGraphError(f"Node id {node_id!r} contains {EDGE_SEPARATOR!r}, which separates edge id parts.")
+        seen: dict[str, str] = {}
+        for source_id, node in nodes.items():
+            for edge in node.get_all_edges():
+                row = edge.to_dict(source_id=source_id)
+                described = _describe_edge(row)
+                try:
+                    key = edge_id(row)
+                except ValueError as exc:
+                    raise InvalidGraphError(f"Edge {described} has no valid id: {exc}") from exc
+                if key in seen:
+                    raise DuplicateEdgeError(key, seen[key], described)
+                seen[key] = described
 
     def _validate_dag_acyclicity(
         self,
