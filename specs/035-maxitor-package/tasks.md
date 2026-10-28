@@ -1,0 +1,145 @@
+# Tasks: The Protocol in a Folder with No Code; Maxitor as One Package with Extras
+
+**Input**: Design documents from `specs/035-maxitor-package/`
+
+**Prerequisites**: plan.md, spec.md (US1–US5), research.md (R1–R10), data-model.md, contracts/ (install.md, boundaries.md, ci-action.md), quickstart.md
+
+**Tests**: Required. Every new test is verified adversarially: break the code the way the test must catch, confirm that test fails and no other does, restore.
+
+**Organization**: one phase = one commit. Commit 1 holds the design documents; commits 2–7 are #286's phases 1–6; #286's phase 7 is three commits (check run, documentation, changelog), commits 8–10. A commit is made only on the maintainer's instruction (constitution I).
+
+**Issue checkboxes**: #286 "Phases" has seven. Commit 2 → phase 1; 3 → 2; 4 → 3; 5 → 4; 6 → 5; 7 → 6; commits 8–10 → phase 7 (ticked after commit 10). Commit 9 holds T039–T041. Every tick carries its sha (`gh issue edit 286`, the body fetched and checked for length before it is written back).
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel (different files, no dependency on an unfinished task)
+- **[Story]**: the user story of spec.md (US1–US5)
+- Every new or moved Python module opens with its path on line 1 — which changes with the move — a title line and `PURPOSE` / `ARCHITECTURE / DATA FLOW` (constitution III); every new public function carries an AI-CORE block (IV); every class, function and method a one-line docstring (V).
+- Moves are `git mv`, so history follows the files.
+- Shorthand: `P` = `packages/open-gnomon-protocol`; `M` = `packages/maxitor`; `MS` = `packages/maxitor/src/maxitor`; `G` = `packages/maxitor-gnomon`; `GS` = `packages/maxitor-gnomon/src/maxitor_gnomon`.
+- Old specs under `specs/` and the past entries of every changelog — `docs/CHANGELOG.md` and each package's `CHANGELOG.md` — stay as written: they are history. `archive/` is outside git.
+
+---
+
+## Phase 1: Setup — design documents (commit 1)
+
+- [ ] T001 Prepare commit 1 with `specs/035-maxitor-package/` only (spec, plan, research, data model, contracts, quickstart, `checklists/requirements.md`, tasks; `tasks.ru_draft.md` stays out): `docs(spec): specify the protocol folder and the maxitor package (#286)`. `.claude/launch.json` stays out; `.specify/feature.json` is ignored by `.specify/.gitignore`.
+
+---
+
+## Phase 2: Preview servers use the dev environment (commit 2) — #286 phase 1
+
+**Goal**: starting the viewer's preview server keeps the dev tools in `.venv` (FR-018).
+
+- [ ] T002 Baseline: on `feature/issue-286-maxitor-package` (off `feature/issue-273-graph-history` at `03076a54`) run `bash scripts/run_checks_with_log.sh`; record the number of `OK` steps and the wall time here.
+- [ ] T003 In `.claude/launch.json` set the `maxitor-api` configuration's `runtimeArgs` to `["run", "--extra", "dev", "uvicorn", "aoa.maxitor.api.app:app", "--host", "127.0.0.1", "--port", "8000"]`; leave `design-preview` and `maxitor-client` as they are (the import and the client path change in commit 4).
+- [ ] T004 Verify: start `maxitor-api` from the preview config, then `uv run --extra dev python -c "import pytest"` succeeds and `GET http://127.0.0.1:8000/` answers. Adversarial: drop `"--extra", "dev"`, start it again → `.venv/bin/python -c "import pytest"` fails (the dev extras were stripped); restore and `uv sync --all-extras`. Record here. Prepare commit 2: `chore(preview): run the Maxitor API with the dev extras (#286)`; tick #286 phase 1.
+
+---
+
+## Phase 3: The protocol folder (commit 3) · US2 — #286 phase 2
+
+**Goal**: the protocol is a folder with no code; every Python copy of a schema is byte for byte its source; AOA no longer depends on `maxitor-gnomon` (FR-001 – FR-004).
+
+**Independent test**: quickstart §1–2; a clean install of the `aoa-action-machine` wheel alone loads `GRAPH_JSON_SCHEMA`.
+
+- [ ] T005 [US2] `git mv G/protocol/graph P/graph` and `git mv G/protocol/README.md P/README.md`. In `P/graph/1.0.json` and `P/graph/1.1.json` set `$id` to `https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/<version>.json`; nothing else in either file changes (check with `git diff -M` that each diff is the `$id` line only).
+- [ ] T006 [US2] Cut `P/README.md` to the graph document — Why, What it looks like, Specification §1 document, §2 vocabulary, §3 versions and compatibility, §4 identity, and the conformance of a producer and a consumer — and add a line that a release is the git tag `open-gnomon-protocol-v<version>` and that any JSON Schema 2020-12 validator checks a graph by its `$id`. Move §5 (the graph file), §6 (the project config) and the repository's conformance, word for word, into `G/README.md` under a heading "Keeping graphs in a repository" (it travels to `M/README.md` in commit 5). Update the Implementations table's links. Create `P/CHANGELOG.md` with entries `1.1` (every edge has an `id`) and `1.0` (the first shape).
+- [ ] T007 [US2] The command's own copies (research R1): `git mv G/protocol/config/1.0.json GS/config_schema.json`; add `GS/schemas/1.0.json` and `GS/schemas/1.1.json`, byte for byte `P/graph/1.0.json` and `P/graph/1.1.json`; `GS/schemas/__init__.py` and `GS/config.py` read them with `importlib.resources.files("maxitor_gnomon…")`, not `shipped_text`; remove `"protocol" = "maxitor_gnomon/protocol"` from `G/pyproject.toml`'s `force-include`; `GS/shipped.py` keeps only the skills (it goes in commit 5).
+- [ ] T008 [US2] AOA's copy: add `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json`, byte for byte `P/graph/1.1.json`; `graph_json_schema.py` loads it with `importlib.resources` and `json.loads` into `GRAPH_JSON_SCHEMA`, its header says the file is a copy of the protocol's `graph/1.1.json`, kept identical by `tests/scripts/test_schema_copies.py`; remove `maxitor-gnomon>=0.1.0` and its `[tool.uv.sources]` entry from `packages/aoa-action-machine/pyproject.toml`; `uv lock`. In `tests/packaging/test_wheel_install_smoke.py`, `test_clean_install_action_machine_provides_graph` installs the `aoa-action-machine` wheel alone.
+- [ ] T009 [P] [US2] `tests/scripts/test_schema_copies.py`: (1) each copy of data-model.md's table — AOA's `graph_json_schema.json` ← `P/graph/1.1.json`, the command's `schemas/1.0.json` ← `P/graph/1.0.json`, `schemas/1.1.json` ← `P/graph/1.1.json` — is byte for byte its source, and a failure names both paths; (2) `P` holds exactly `README.md`, `CHANGELOG.md`, `graph/1.0.json`, `graph/1.1.json` (SC-003); (3) each schema's `$id` is the raw address of its own file.
+- [ ] T010 [US2] The hash guard of a published version (`G/tests/test_schemas.py::test_a_published_version_never_changes`) hashes `P/graph/<version>.json` apart from `$id`, so a change to the source is caught there and a drifted copy by T009; AOA's `test_graph_json_schema_source.py` checks its copy against `P/graph/1.1.json`. Run every suite.
+- [ ] T011 [US2] Adversarial, full check run each time: (1) one byte of `GS/schemas/1.1.json` → only `test_schema_copies` fails, naming the copy and `P/graph/1.1.json`; (2) a file `P/tool.py` → only the SC-003 test fails; (3) one character of `P/graph/1.1.json`'s title → the hash guard and the copy test fail, nothing else; (4) put `maxitor_gnomon` back into AOA's `graph_json_schema.py` import → the clean-install smoke test of `aoa-action-machine` fails. Restore each byte for byte. Record here.
+- [ ] T012 [US2] Check run green; prepare commit 3: `feat(protocol): the Open Gnomon Protocol in a folder with no code (#286)`; tick #286 phase 2.
+
+---
+
+## Phase 4: The viewer becomes `maxitor` (commit 4) · US3 — #286 phase 3
+
+**Goal**: `aoa-maxitor` becomes the package `maxitor` with the part `maxitor.viewer` and the extra `viewer`; it works as before (FR-005, FR-007, FR-008, FR-010 – FR-012, FR-017).
+
+**Independent test**: quickstart §4; `maxitor-api` without the extra names it.
+
+- [ ] T013 [US3] `git mv packages/aoa-maxitor M`; `git mv M/src/aoa/maxitor MS/viewer` (remove the then empty `M/src/aoa`); `git mv M/graph.json M/graphs/viewer.json`; create `MS/__init__.py` (module header, `__version__ = "3.0.0"`, nothing imported) and `MS/py.typed` (move the viewer's).
+- [ ] T014 [US3] Rename in every tracked file except `specs/` and the past entries of every `CHANGELOG.md` (`docs/`, `packages/*/`): `aoa.maxitor` → `maxitor.viewer`, `aoa/maxitor` → `maxitor/viewer`, `packages/aoa-maxitor` → `packages/maxitor`, the dist name `aoa-maxitor` → `maxitor` where it names this package; line 1 of every moved module. Covers the viewer's code and tests, `M/client` (build output to `../src/maxitor/viewer/static`), `M/Dockerfile`, `M/collect_python_files.py`, `deploy/stand/docker-compose.yml`, `.claude/launch.json` (`maxitor.viewer.api.app:app`, `--prefix packages/maxitor/client`), `.vscode/launch.json`, `.gitignore`, `README.md`, `docs/**`, `examples/**` (`.py` and the notebooks' source cells; outputs are re-run in commit 9). Then `git grep` per quickstart §6 for these patterns, with `specs/` and every `CHANGELOG.md` excluded, returns nothing.
+- [ ] T015 [US3] `M/pyproject.toml`: `name = "maxitor"`, `version = "3.0.0"`, description "Maxitor: the AOA system viewer and its tools, one package with extras."; `dependencies = []` (the command's arrive in commit 5); `[project.optional-dependencies] viewer = ["aoa-action-machine>=1.0.1a0", "aoa-fastapi-adapter>=1.3.0", "duckdb>=1.5,<2", "httpx>=0.28,<1.0", "uvicorn>=0.30", "websockets>=15"]`, `all = ["maxitor[viewer]"]`; `[project.scripts] maxitor-api = "maxitor.launch:viewer"`; wheel `packages = ["src/maxitor"]`, `artifacts = ["src/maxitor/viewer/static/**/*"]`; sdist excludes `graphs/` as it excluded `graph.json`.
+- [ ] T016 [US3] `MS/launch.py`: `viewer()` imports `maxitor.viewer.api.main` inside the function and calls its `run()`; on `ModuleNotFoundError` whose `name`'s top-level module is one the extra brings (`aoa`, `fastapi`, `uvicorn`, `duckdb`, `httpx`, `websockets`, `starlette`) it writes `maxitor-api needs the viewer: pip install "maxitor[viewer]"` to standard error and exits 2; any other error propagates. Nothing heavy at module level.
+- [ ] T017 [US3] Root `pyproject.toml`: workspace member `packages/maxitor`, `maxitor = { workspace = true }`, the root `dev` extra names `maxitor[all]` in place of `aoa-maxitor`, pytest `pythonpath`, mypy `files`/`mypy_path`, the override `module = "maxitor.viewer.model.diagrams.*"`, vulture `paths`, the `maxitor-api`, `build-packages` and `typecheck` tasks; `uv lock`.
+- [ ] T018 [US3] Scripts and workflows: `scripts/check_run.py` (`CLIENT`, `PACKAGES`, the viewer's pytest step and build entry, `not_during`), `scripts/run_checks_with_log.sh`, `scripts/check_maxitor_samples_public_api.py`, the client-README check, `scripts/check_package_metadata.py` (`maxitor`; no `aoa-*` dependency outside the `viewer` extra); `scripts/package_boundaries.toml` `[packages.maxitor]` with `current_roots = future_roots = ["packages/maxitor/src/maxitor/viewer"]`, `import_prefixes = ["maxitor.viewer"]`, `may_import = ["action_machine"]`; `scripts/check_package_boundaries.py` resolves an import by its longest matching prefix (contracts/boundaries.md rule 1); `.github/workflows/ci.yml` client paths; `.github/workflows/publish.yml` job `publish-maxitor` (tag `maxitor-v*`, client built into `../src/maxitor/viewer/static`, option `maxitor`) in place of `publish-aoa-maxitor`; `tests/packaging/test_wheel_install_smoke.py` `_DIST_TREE["maxitor"] = "maxitor/"`; `gnomon.toml` entry `name = "viewer"`, `build = "uv run --extra dev python -m maxitor.viewer.build_graph"`, `file = "packages/maxitor/graphs/viewer.json"`; `MS/viewer/build_graph.py`'s header; `tests/scripts/test_graph_files.py`.
+- [ ] T019 [P] [US3] Tests: in the smoke test, `test_clean_install_maxitor_viewer_names_its_extra` installs the `maxitor` wheel alone and runs `maxitor-api` → exit 2, stderr names `maxitor[viewer]`; `M/tests/test_launch.py` covers the same with a stubbed import and that an unrelated `ModuleNotFoundError` propagates. Run `uv run --extra dev pytest M/tests` — every viewer test passes (SC-005).
+- [ ] T020 [US3] `uv run --extra dev gnomon write`, then quickstart §4: the old graph with `aoa.maxitor` replaced by `maxitor.viewer` equals `M/graphs/viewer.json` (SC-004); record the result here.
+- [ ] T021 [US3] Adversarial, full check run each time: (1) move `launch.py`'s import of the viewer to module level → only the missing-extra smoke test fails; (2) add `from maxitor.viewer.api import app` to a demo module → the boundary check names it (`examples` may not import `maxitor`); (3) leave one `aoa.maxitor` in an example → the quickstart §6 grep shows it (add that grep as a test in `tests/scripts/test_check_run.py` or a new `tests/scripts/test_no_old_names.py` so the check run catches it). Restore. Record here.
+- [ ] T022 [US3] Check run green; prepare commit 4: `feat(maxitor): the viewer becomes the maxitor package (#286)`; tick #286 phase 3.
+
+---
+
+## Phase 5: `gnomon` joins `maxitor` (commit 5) · US1, US4 — #286 phase 4
+
+**Goal**: `pip install maxitor` with no extra gives the `gnomon` command and nothing of AOA or the viewer; inside the package, `gnomon` can never import the viewer or AOA (FR-006, FR-009, FR-013, FR-014).
+
+**Independent test**: quickstart §3 and §5.
+
+- [ ] T023 [US1] `git mv GS MS/gnomon` (cli, config, config_schema.json, differences, writer, schemas/ with `1.0.json`, `1.1.json`, `py.typed` merged with `MS`'s), `git mv G/skills MS/skills` (content changes in commit 6), `git mv G/tests M/tests/gnomon` (fixtures included); delete `shipped.py` — `cli._skill` reads `importlib.resources.files("maxitor.skills").joinpath("gnomon-setup", "SKILL.md")`; rename `maxitor_gnomon` → `maxitor.gnomon` in every tracked file except `specs/` and the past entries of every `CHANGELOG.md` (code, tests, `examples/step_26_maxitor/12_graph_file.*`, docs).
+- [ ] T024 [US1] `M/pyproject.toml`: `dependencies = ["jsonschema>=4.17,<5", "jsonschema-rs>=0.60,<1"]` with the comment why both; `gnomon = "maxitor.gnomon.cli:main"`; `gnomon --version` prints `gnomon <maxitor version>`. Merge `G/README.md` (with "Keeping graphs in a repository" from T006) into `M/README.md` and `G/CHANGELOG.md`'s `0.1.0` entry into `M/CHANGELOG.md` under a line that `maxitor-gnomon` joined `maxitor` in 3.0.0; remove `G`.
+- [ ] T025 [US1] Remove `packages/maxitor-gnomon` from the root `pyproject.toml` (workspace, sources, dev extra, pytest path, mypy, vulture, `build-packages`, `typecheck`), the ruff `per-file-ignores` path becomes `packages/maxitor/src/maxitor/gnomon/**`; `scripts/check_run.py` loses the `maxitor-gnomon` build and pytest steps (the `maxitor` pytest step runs `M/tests`, gnomon's included); `scripts/check_package_metadata.py` and `.github/workflows/publish.yml` lose `maxitor-gnomon` (job, tag, option); `uv lock`.
+- [ ] T026 [US4] Boundaries (contracts/boundaries.md): `[standalone.gnomon] roots = ["packages/maxitor/src/maxitor/gnomon"]`, new key `forbid = ["maxitor.viewer"]`; `[packages.maxitor].may_import = ["action_machine", "gnomon"]`; `gnomon` joins the checker's canonical names with prefix `maxitor.gnomon`; `check_package_boundaries.py` reports a `forbid` import like an `aoa` one (file, line, owner, module).
+- [ ] T027 [P] [US1] Smoke test `test_clean_install_maxitor_brings_no_aoa`: a clean venv with the `maxitor` wheel alone has no distribution named `aoa-*` and none of `fastapi`, `uvicorn`, `duckdb`, `httpx`, `websockets` (`importlib.metadata.distributions()`); `gnomon check --config` on a temporary config whose build prints `M/tests/gnomon/fixtures/graph-1.1.json` passes; `gnomon validate` on it prints `ok 1.1: …`. Replace the old `maxitor-gnomon` smoke tests.
+- [ ] T028 [P] [US4] `tests/scripts/test_package_boundaries.py`: on a temporary tree and config, `maxitor.gnomon` importing `maxitor.viewer` → one violation naming file, line, `gnomon`, `maxitor.viewer`; importing `aoa.action_machine` → one violation; `maxitor.viewer` importing `maxitor.gnomon` → none; an `aoa.demo` module importing `maxitor.gnomon` → one violation naming `gnomon` (resolved by the longest prefix, not by `maxitor`).
+- [ ] T029 [US1] Adversarial, full check run each time: (1) `import maxitor.viewer` in `MS/gnomon/cli.py` → `Package import boundaries (production)` fails naming it (and the boundary test stays green — it tests the checker, not the tree); (2) `"httpx>=0.28,<1.0"` in the base `dependencies` → only the no-AOA smoke test fails, naming `httpx`; (3) restore `[standalone.gnomon]` without `forbid` and keep break (1) → the boundary step passes, proving `forbid` is what catches it; (4) prefix resolution: add `from maxitor.gnomon.schemas import graph_schema` to a demo module → a violation naming `gnomon` (`examples` may not import it); then make the checker resolve an import by its first component only, as before T018 → the same import passes silently, proving the longest-prefix rule is what catches it. Restore. Record here.
+- [ ] T030 [US1] Check run green; prepare commit 5: `feat(maxitor): the gnomon command joins maxitor (#286)`; tick #286 phase 4.
+
+---
+
+## Phase 6: The skills (commit 6) · US5 — #286 phase 5
+
+**Goal**: the skill lives in Maxitor and names the new package (FR-015).
+
+**Independent test**: `gnomon skill` from a clean install prints the skill, which installs with `maxitor`.
+
+- [ ] T031 [US5] `MS/skills/gnomon-setup/SKILL.md`: the protocol link → `https://github.com/bystrovmaxim/aoa/blob/main/packages/open-gnomon-protocol/README.md`; every `uvx --from maxitor-gnomon` → `uvx --from maxitor`, the pinned CI form → `maxitor==3.0.0`; "the `maxitor-gnomon` package" → "the `maxitor` package"; nothing else changes (the CI example changes in commit 7).
+- [ ] T032 [P] [US5] Tests: `M/tests/gnomon/test_cli.py` — `gnomon skill` starts with `---\nname: gnomon-setup\n` and contains `uvx --from maxitor gnomon`; the smoke test runs `gnomon skill` in the clean venv. Adversarial: drop `skills` from what the wheel ships (exclude `src/maxitor/skills` in `M/pyproject.toml`) → only the smoke test fails; restore. Record here.
+- [ ] T033 [US5] Check run green; prepare commit 6: `feat(maxitor): the gnomon-setup skill lives in maxitor (#286)`; tick #286 phase 5.
+
+---
+
+## Phase 7: The CI action (commit 7) · US1 — #286 phase 6
+
+**Goal**: a project adds the graph check with one `uses:` step (FR-016, SC-008).
+
+**Independent test**: this repository's CI runs the action; a stale graph fails it.
+
+- [ ] T034 [US1] `M/action.yml` per contracts/ci-action.md: composite; inputs `config` (default `gnomon.toml`), `sync` (default `uv sync --all-extras`, empty skips), `gnomon` (default empty → `uvx --from "maxitor==<version>" gnomon`, the version read from `${{ github.action_path }}/pyproject.toml`); steps `astral-sh/setup-uv@v5`, the `sync` command, `<gnomon> check --config <config>`; `name`, `description`, a `branding` block.
+- [ ] T035 [US1] `.github/workflows/ci.yml`: the hand-written `gnomon check` step becomes `uses: ./packages/maxitor` with `gnomon: uv run --extra dev gnomon` and `sync: uv sync --all-extras`; `M/README.md` and the skill's CI example show the one step.
+- [ ] T036 [US1] Verify locally: run the action's commands in order (`uv sync --all-extras`, the version read as the action reads it, `uv run --extra dev gnomon check --config gnomon.toml`) → passes; adversarial: change one label in `packages/aoa-demo/graph.json` → the same sequence fails naming the difference; restore. Lint the file: `uvx actionlint-py packages/maxitor/action.yml` (or `actionlint` if installed) → no finding; adversarial: rename one input where it is used (`inputs.confg`) → actionlint names it; restore. The action itself is proved by the pull request's CI. Record here.
+- [ ] T037 [US1] Check run green; prepare commit 7: `ci(maxitor): the graph check as one action step (#286)`; tick #286 phase 6.
+
+---
+
+## Phase 8: Closing — check run, documentation, changelog (commits 8–10) — #286 phase 7
+
+- [ ] T038 Closing check run: `bash scripts/run_checks_with_log.sh` taken to zero (only the two accepted remarks stay); record the step count and wall time against T002. Prepare commit 8 with whatever the run fixed: `chore(checks): the closing check run of #286 (#286)` (skip the commit if the run changed nothing, and say so here).
+- [ ] T039 Documentation (Principle VI: every case, script and notebook, examples executed): `P/README.md` final; `M/README.md` — install table (no extra, `viewer`, `all`), the missing-extra message, Get started (one sentence to an agent with the skill link, `gnomon skill`, by hand in four steps), the CI action, commands, configuration, keeping graphs in a repository, from Python — and `M/README.ru_draft.md`; the root `README.md` package table (`maxitor`, the protocol folder; no `aoa-maxitor`, no `maxitor-gnomon`); `docs/tutorials/step-26-maxitor.md` and its `.ru_draft.md`, with a section on the new example; `docs/how-to/run-the-checks.md` (the steps' new names); `examples/step_26_maxitor/12_graph_file.py` and `.ipynb` re-executed (`scratchpad/make_nb12.py` adapted), plus every notebook whose source cells changed in T014/T023 re-executed so its outputs show the new names.
+- [ ] T040 The new cases as an example (Principle VI, items 4–6): `examples/step_26_maxitor/13_maxitor_parts.py` and `13_maxitor_parts.ipynb`, each case named and executed: (1) a clean venv with the `maxitor` wheel and no extra — `gnomon --version`, `gnomon validate packages/maxitor/graphs/viewer.json` → `ok 1.1: …`, and the list of installed distributions without `aoa-*`; (2) in the same venv, `maxitor-api` → exit 2 and `maxitor-api needs the viewer: pip install "maxitor[viewer]"`; (3) any language: plain `jsonschema` (no `maxitor` imported) validates `packages/aoa-demo/graph.json` against `packages/open-gnomon-protocol/graph/1.1.json`, and a copy with one edge's `id` removed is refused; (4) the import `maxitor.viewer` in place of `aoa.maxitor` (`from maxitor.viewer.api.app import app`). The notebook shows each case's output between the steps; both are executed with the repository's environment, and what the reader sees is what they printed.
+- [ ] T041 The maintainer's walk-through (SC-009, US5 scenario 2): the maintainer follows only `M/README.md` — or asks an agent to run the skill `gnomon skill` prints — on gameoffer (`/Users/bystrovmaxim/PythonDev/ivm`), connecting its two services with the workspace's `maxitor` (built wheel or `uvx --from <path to M>`, since `maxitor` is not on PyPI yet). Every place where they stop is fixed in `M/README.md` or the skill, not worked around; nothing in gameoffer is committed by this task. Record here what stopped them and what changed. Prepare commit 9 with T039–T041: `docs(maxitor): the protocol folder and the maxitor package (#286)`.
+- [ ] T042 Changelog: one article in `docs/CHANGELOG.md` — the protocol is a folder any language follows; Maxitor is one package, `pip install maxitor` for the check, `maxitor[viewer]` for the viewer; what a user of `aoa-maxitor` or `maxitor-gnomon` changes (the install name, the import `aoa.maxitor` → `maxitor.viewer`, `maxitor_gnomon` → `maxitor.gnomon`). Plain words, no per-file account. Prepare commit 10: `docs(changelog): the protocol folder and the maxitor package (#286)`; tick #286 phase 7.
+---
+
+## Dependencies & Execution Order
+
+- Commit order is fixed: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10. Each commit leaves the check run green.
+- US2 (commit 3) first: it removes AOA's dependency on `maxitor-gnomon`, so the later moves never touch `aoa-action-machine`.
+- US3 (commit 4) before US1/US4 (commit 5): `maxitor` must exist before `gnomon` joins it.
+- US5 (commit 6) needs the skills already moved (T023).
+- US1's CI action (commit 7) needs the package and its command (commit 5).
+
+## Parallel Opportunities
+
+- T009 (copy test) beside T007/T008 once the protocol files exist.
+- T019 (launch tests) beside T017/T018.
+- T027 (smoke) and T028 (boundary test) beside each other and beside T026.
+- T032 beside T031.
+- Within T039, the protocol README, `maxitor`'s README and the tutorial are separate files; T040 (the example) beside them. T041 comes after T039–T040: the walk-through reads the finished README.
+
+## Implementation Strategy
+
+No MVP cut: the issue ships whole (one release), commit by commit in the order above; every commit is a working repository with a green check run, so the work can stop safely between any two.
