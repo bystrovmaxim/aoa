@@ -6,7 +6,7 @@ No change in this repository is finished until the check run is green. It is one
 bash scripts/run_checks_with_log.sh
 ```
 
-It runs 37 steps — two repository guards, the Maxitor client's build and its tests (including the layout in three browser engines), Ruff, mypy, pylint, the package-boundary and package-metadata checkers, a wheel and sdist build of every package and a smoke test that installs them, vulture, the samples public-API check, the tests of every package, and Radon — and writes everything they print into one log, `archive/logs/check-all.txt`. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them: on an Apple M3 Max with 14 cores, **about 85 s instead of about 220 s**.
+It runs 37 steps — two repository guards, the Maxitor client's build and its tests (including the layout in three browser engines), Ruff, mypy, pylint, the package-boundary and package-metadata checkers, a wheel and sdist build of every package and a smoke test that installs them, vulture, the samples public-API check, the tests of every package, and Radon — and writes everything they print into one log, `archive/logs/check-all.txt`. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them: on an Apple M3 Max with 14 cores, **about 57 s instead of about 220 s**.
 
 This page shows each case as the command and what it really printed.
 
@@ -28,13 +28,13 @@ OK Ruff auto-fix (exit 0, 0.1 s)
 > Maxitor client: npm ci and Vite build
 > Ruff lint
 …
-OK Maxitor client: unit tests (exit 0, 9.1 s)
-OK Packaging wheel install smoke (exit 0, 2.9 s)
-OK Pytest aoa-maxitor (exit 0, 33.7 s)
-OK Pytest aoa-action-machine (exit 0, 44.4 s)
-OK Maxitor client: the same layout in three engines (exit 0, 63.0 s)
+OK Maxitor client: unit tests (exit 0, 13.5 s)
+OK Packaging wheel install smoke (exit 0, 7.7 s)
+OK Pytest aoa-maxitor (exit 0, 39.0 s)
+OK Maxitor client: the same layout in three engines (exit 0, 30.1 s)
+OK Pytest aoa-action-machine (exit 0, 49.8 s)
 
-Wall time: 86.0 s
+Wall time: 57.0 s
 Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 ```
 
@@ -47,8 +47,8 @@ The log is written when the run ends. Whatever ran at the same time, it lists ev
 ```text
 ==================================================
 ActionMachine project checks
-Date: Wed Oct 28 12:42:32 MSK 2026
-Time: 12:42:32
+Date: Wed Oct 28 14:31:33 MSK 2026
+Time: 14:31:33
 Repository: /Users/bystrovmaxim/PythonDev/aoa
 ==================================================
 
@@ -64,7 +64,7 @@ OK Ruff lint (exit 0, 0.1 s)
 …
 ==================================================
 All steps finished (see FAIL lines above or in the log if anything failed)
-Wall time: 86.0 s
+Wall time: 57.0 s
 Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 ==================================================
 ```
@@ -83,7 +83,32 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | Packaging | eight package builds, then the packaging smoke test | the auto-fix; the Maxitor package build never runs during the client build, because its source archive packs the client folder; the smoke test waits for all eight builds |
 | Tests | the tests of each of the eight packages, one run per package | the auto-fix |
 
-The run is as long as its longest chain. Today that is the auto-fix, the client build and the three-engine layout step — about 0.1 + 22 + 62 s; every other step finishes beside it.
+The run is as long as its longest chain. Today two chains are almost equal: the client build and then the three-engine layout step (about 22 + 30 s), and the tests of `aoa-action-machine` (about 50 s). Every other step finishes beside them, so making one of these two shorter alone gains only a few seconds.
+
+### The three-engine layout step
+
+"Maxitor client: the same layout in three engines" serves the built client and a frozen reference graph, starts a Maxitor API of its own, and checks three things in Chromium, Firefox and WebKit:
+
+- **layout hashes** — every page the left panel lists, in every layout mode (56 page-modes), gets the same layout hash in all three engines on a phone-sized (375×812) and a desktop-sized (1600×900) screen;
+- **pointer in a room** — in each engine a desktop and a phone page in one room: a resting pointer and a tap land within 2 px of the same node, before and after zooming;
+- **following** — in each of the six directed pairs of engines, the follower's screen is centred on the leader's point within 2 px and shows the leader's hover within 500 ms.
+
+The layout hashes run with both screen sizes at once in every engine, and the pointer cases run beside them; the six following pairs then run at once, each in its own room. The following pairs wait for the rest because their 500 ms hover limit was missed when every browser was open together. The step's output ends with the time of each part:
+
+```text
+ok    ERD, all domains | gv-dot-lr  59ddb92209f38108
+…
+ok    pointer in a room | chromium  largest offset 0.009 px (0.007 / 0.005 / 0.005 / 0.009)
+…
+ok    following | chromium → firefox  screens apart 0.000 px, hover after 13 ms, circles 4.0 px apart, card buttons overrun 0.0 px
+…
+part A (layout hashes) 19.3 s
+part B (pointer in a room) 12.2 s
+part C (following) 7.1 s
+56 page-modes × 3 engines × 2 sizes in 28 s
+```
+
+Its lines always come in the same order — pages in the left panel's order, then the pointer cases, then the pairs — whichever part or engine finishes first.
 
 ## The limit, and running one step at a time
 
@@ -109,7 +134,7 @@ OK Maxitor client: unit tests (exit 0, 7.1 s)
 …
 ```
 
-One step at a time takes about 220 s. Use it when the machine is busy with something else, or to see a step's speed without others beside it.
+One step at a time takes several times longer. Use it when the machine is busy with something else, or to see a step's speed without others beside it.
 
 A limit that is not a positive whole number stops the run before any step, with exit code 2:
 
