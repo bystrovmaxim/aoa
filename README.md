@@ -129,6 +129,7 @@ Hello, World!
 | [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
 | [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.3.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
+| [maxitor-gnomon](packages/maxitor-gnomon/README.md) | 0.1.0 | Graph format: a service keeps its current graph in one file, checked in CI; independent of AOA |
 
 ---
 
