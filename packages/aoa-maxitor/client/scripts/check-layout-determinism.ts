@@ -539,6 +539,11 @@ function report(results: Map<string, Map<string, string>>): boolean {
   return ok;
 }
 
+/** Seconds since ``since``, to a tenth. */
+function seconds(since: number): string {
+  return ((Date.now() - since) / 1000).toFixed(1);
+}
+
 /** Serve, start Maxitor, lay out everywhere, compare. */
 async function main(): Promise<void> {
   const started = Date.now();
@@ -552,9 +557,13 @@ async function main(): Promise<void> {
     const source = `${frontUrl}/graph-json`;
     const targets = await listTargets(frontUrl, source);
     const results = new Map<string, Map<string, string>>();
+    const partA = Date.now();
     await Promise.all(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results)));
     ok = report(results);
+    const partASeconds = seconds(partA);
+    const partB = Date.now();
     const offsets = await Promise.all(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source)));
+    const partBSeconds = seconds(partB);
     // Steps: arrow; arrow after the phone zooms; arrow after the desktop zooms; the phone's tap.
     ENGINES.forEach(([name], i) => {
       const largest = Math.max(...offsets[i]);
@@ -564,6 +573,7 @@ async function main(): Promise<void> {
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
     // Following in every directed pair of engines, one pair at a time.
+    const partC = Date.now();
     for (const [leadName, leadEngine] of ENGINES) {
       for (const [followName, followEngine] of ENGINES) {
         if (leadName === followName) continue;
@@ -575,6 +585,10 @@ async function main(): Promise<void> {
         );
       }
     }
+    const partCSeconds = seconds(partC);
+    console.log(`part A (layout hashes) ${partASeconds} s`);
+    console.log(`part B (pointer in a room) ${partBSeconds} s`);
+    console.log(`part C (following) ${partCSeconds} s`);
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );
