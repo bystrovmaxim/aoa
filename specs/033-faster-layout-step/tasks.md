@@ -80,7 +80,7 @@
 
 ## Phase 9: Changelog (commit 8) · #298 phase 6
 
-- [ ] T018 One article at the top of `docs/CHANGELOG.md`: the check run is shorter again, because its slowest step does its parts together — and it still checks every page in all three browsers at both sizes. Plain words, no technical detail; its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 8: `docs(changelog): <title> (#298)`; tick #298 phase 6.
+- [X] T018 One article at the top of `docs/CHANGELOG.md`: the check run is shorter again, because its slowest step does its parts together — and it still checks every page in all three browsers at both sizes. Plain words, no technical detail; its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 8: `docs(changelog): <title> (#298)`; tick #298 phase 6. Done: "The check run's slowest step takes half the time", with its Russian version in `CHANGELOG.ru_draft.md`.
 
 ---
 
