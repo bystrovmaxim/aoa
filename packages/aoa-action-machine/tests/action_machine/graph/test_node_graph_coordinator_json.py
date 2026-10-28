@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from typing import Any
 
 import networkx as nx
@@ -16,6 +17,8 @@ from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.graph.edge_identity import edge_id
+from aoa.action_machine.graph.edges.entity_graph_edge import EntityGraphEdge
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 
 
@@ -77,7 +80,7 @@ def test_to_json_empty_graph_round_trip() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_EmptyInspector()], export_json_schema=GRAPH_JSON_SCHEMA)
     raw = coord.to_json()
-    assert json.loads(raw) == {"edges": [], "nodes": [], "schema_version": "1.0"}
+    assert json.loads(raw) == {"edges": [], "nodes": [], "schema_version": "1.1"}
 
 
 def test_to_json_minimal_params_graph_shape() -> None:
@@ -92,7 +95,7 @@ def test_to_json_minimal_params_graph_shape() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_HarnessInspector(left)], export_json_schema=GRAPH_JSON_SCHEMA)
     payload = json.loads(coord.to_json())
-    assert payload["schema_version"] == "1.0"
+    assert payload["schema_version"] == "1.1"
     assert {n["id"] for n in payload["nodes"]} == {"pkg.left", "pkg.right"}
     assert len(payload["edges"]) == 1
     assert payload["edges"][0]["type"] == "field"
@@ -190,7 +193,7 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
     )
     raw = coord.to_json()
     payload = json.loads(raw)
-    assert payload["schema_version"] == "1.0"
+    assert payload["schema_version"] == "1.1"
     assert any(n.get("type") == "Action" for n in payload["nodes"])
     assert any(n.get("type") == "Domain" for n in payload["nodes"])
     assert any(n.get("type") == "Params" for n in payload["nodes"])
@@ -204,11 +207,11 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
 def test_graph_json_schema_rejects_invalid_payload() -> None:
     validator = Draft202012Validator(GRAPH_JSON_SCHEMA)
     with pytest.raises(ValidationError):
-        validator.validate({"schema_version": "1.0"})
+        validator.validate({"schema_version": "1.1"})
     with pytest.raises(ValidationError):
         validator.validate(
             {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "nodes": [
                     {
                         "id": "x",
@@ -268,3 +271,94 @@ def test_networkx_payload_supports_type_filters() -> None:
     assert len(action_nodes) >= 1
     depends_edges = [(u, v) for u, v, data in graph.edges(data=True) if data.get("type") == "@depends"]
     assert depends_edges == []
+
+
+# ─── Edge ids in the export ──────────────────────────────────────────────────
+
+
+def _full_export() -> dict[str, Any]:
+    """Return the export of the graph of everything loaded."""
+    from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+
+    return json.loads(create_node_graph_coordinator().to_json())
+
+
+def test_every_exported_edge_carries_a_unique_id_in_id_order() -> None:
+    """Every edge has an id, no id repeats, edges come in id order, and the format is 1.1."""
+    payload = _full_export()
+    ids = [edge["id"] for edge in payload["edges"]]
+
+    assert payload["schema_version"] == "1.1"
+    assert ids
+    assert len(set(ids)) == len(ids)
+    assert ids == sorted(ids)
+
+
+def test_the_written_id_is_the_id_a_reader_computes() -> None:
+    """For every edge, the id computed from its row without ``id`` is the id the export wrote."""
+    for edge in _full_export()["edges"]:
+        row = {key: value for key, value in edge.items() if key != "id"}
+        assert edge_id(row) == edge["id"]
+
+
+def test_two_builds_export_the_same_string() -> None:
+    """The same code exports the same bytes."""
+    from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+
+    assert create_node_graph_coordinator().to_json() == create_node_graph_coordinator().to_json()
+
+
+def test_the_schema_requires_an_edge_id() -> None:
+    """The export validates, and the same export with one edge's id removed does not."""
+    validator = Draft202012Validator(GRAPH_JSON_SCHEMA)
+    payload = _full_export()
+    validator.validate(payload)
+
+    del payload["edges"][0]["id"]
+    with pytest.raises(ValidationError, match="is not valid under any of the given schemas"):
+        validator.validate(payload)
+
+
+def _relation(**overrides: Any) -> SimpleNamespace:
+    """Return a stand-in for one declared relation field."""
+    values: dict[str, Any] = {
+        "field_name": "items",
+        "relation_type": "association",
+        "cardinality": "many",
+        "optional": False,
+        "description": "Items of the offer.",
+        "has_inverse": False,
+        "deprecated": False,
+        "inverse_entity": None,
+        "inverse_field": None,
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+def _relation_export(target: str, **overrides: Any) -> dict[str, Any]:
+    """Return the one edge row of a graph whose host has one relation to ``target``."""
+    other = _ParamsNode(target)
+    edge = EntityGraphEdge(target_node_id=target, relation=_relation(**overrides), target_node=other)
+    coord = NodeGraphCoordinator()
+    coord.build([_HarnessInspector(_ParamsHarnessNode(host_id="pkg.offer", companion=other, edge=edge))])
+    (row,) = json.loads(coord.to_json())["edges"]
+    return row
+
+
+def test_a_relation_keeps_its_id_when_it_points_at_another_entity() -> None:
+    """Two builds that differ only in the relation's target entity give the relation one id."""
+    before = _relation_export("pkg.item")
+    after = _relation_export("pkg.other_item")
+
+    assert before["target_id"] != after["target_id"]
+    assert before["id"] == after["id"] == "pkg.offer|entity_relation|items"
+
+
+def test_an_edge_keeps_its_id_when_its_properties_change() -> None:
+    """Two builds that differ only in an edge's properties give the edge one id."""
+    before = _relation_export("pkg.item")
+    after = _relation_export("pkg.item", description="Changed.", optional=True)
+
+    assert before["properties"] != after["properties"]
+    assert before["id"] == after["id"]
