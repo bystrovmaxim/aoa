@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-28] — A check run that shows its time and finishes sooner
+
+The check run that finishes every change in this repository — `bash scripts/run_checks_with_log.sh` — now takes about a minute and a half instead of nearly four. It checks exactly what it checked before, step for step; what changed is that steps which do not depend on each other now run at the same time. On the machine this was measured on, a run went from about 220 seconds to about 85.
+
+Every step now says how long it took, both on screen and in the log, and the run ends with its total time, so a step that suddenly becomes slow is easy to spot. The log reads as it always did: every step in the same fixed order, each with its full output, and the output of two steps never mixed, whatever ran beside what. A failing step still does not stop the others — every step reports, and the run fails if any of them did.
+
+A few things are worth knowing. Some steps still wait for others for a reason: the automatic Ruff fixes run first and alone, because they may rewrite files the other steps read, and the client is built before anything that uses it. How many steps may run at once is limited to the number of cores; `AOA_CHECK_JOBS=1` runs them one at a time, with the same log, when the machine is busy with something else. Ctrl+C now stops the whole run cleanly, browsers and servers included, and the log says the run was interrupted. The new how-to page, *Running the checks*, shows every case with what it prints.
+
 ## [2026-10-28] — Rooms that show one picture
 
 A room now shows everyone the same diagram from the first moment. When you open a room, the filters and layout you had become the room's, so the people you invite see exactly what you see; a value someone has already changed in the room is kept. Inside a room a page shows only the room's choices — your own settings never mix in — and when you leave, every page stays as it was in the room.
