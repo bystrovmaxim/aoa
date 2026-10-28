@@ -26,7 +26,7 @@ Each service exports its model — domains, entities, actions and their dependen
 - **reviewers see the model change**, element by element, next to the code that changed it;
 - **the model never drifts**: the code produces it, nobody draws it by hand;
 - **git holds the model's history** — `git log -p graph.json` is how the system grew;
-- **any tool reads the project without running it** — a viewer such as [Maxitor](https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-maxitor/README.md), an architecture check, a coding agent.
+- **any tool reads the project without running it** — a viewer such as [Maxitor](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/README.md), an architecture check, a coding agent.
 
 `maxitor-gnomon` knows nothing about any framework. [AOA](https://github.com/bystrovmaxim/aoa) services export the protocol out of the box; any service that can print a graph by its schema works the same way.
 
@@ -42,7 +42,7 @@ or run it without installing, with [uv](https://docs.astral.sh/uv/): `uvx --from
 
 ### The fastest way: one sentence to your coding agent
 
-> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/maxitor-gnomon-v0.1.0/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
+> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/maxitor/viewer-gnomon-v0.1.0/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
 
 The agent installs the `gnomon-setup` skill and runs it. The skill finds every service, proves how each one's model is exported — writing a small exporter where a service has a model but nothing prints it — and shows you one table: each service, its build, its proof, where its file goes. Nothing changes until you answer. Then it writes `gnomon.toml`, saves the graphs and adds the CI check, and leaves the result for you to review and commit.
 

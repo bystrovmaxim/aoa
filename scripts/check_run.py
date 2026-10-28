@@ -69,7 +69,7 @@ GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 NC = "\033[0m"
 
-CLIENT = "cd packages/aoa-maxitor/client"
+CLIENT = "cd packages/maxitor/client"
 AUTO_FIX = "Ruff auto-fix"
 LAZY_GUARD = "Ban __getattr__ in package __init__.py"
 README_GUARD = "Maxitor client: README beside components/*/ index.ts"
@@ -84,7 +84,7 @@ PACKAGES = (
     "packages/aoa-fastapi-adapter",
     "packages/aoa-mcp-adapter",
     "packages/aoa-langgraph",
-    "packages/aoa-maxitor",
+    "packages/maxitor",
     "packages/aoa-demo",
     "packages/maxitor-gnomon",
 )
@@ -139,7 +139,7 @@ def _build(package: str) -> Step:
         command=f'uv run --group dev python -m build "{REPO_ROOT}/{package}"',
         group="packaging",
         after=(AUTO_FIX,),
-        not_during=(CLIENT_BUILD,) if package == "packages/aoa-maxitor" else (),
+        not_during=(CLIENT_BUILD,) if package == "packages/maxitor" else (),
     )
 
 
@@ -209,7 +209,7 @@ STEPS: tuple[Step, ...] = (
     *(
         _after_fix(f"Pytest {package}", f"uv run --extra dev pytest packages/{package}/tests/ -v", "tests")
         for package in (
-            "aoa-maxitor",
+            "maxitor",
             "aoa-demo",
             "aoa-otel",
             "aoa-langgraph",

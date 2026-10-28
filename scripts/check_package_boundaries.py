@@ -83,15 +83,16 @@ def _owner_for_file(rel_posix: str, roots: dict[str, list[str]]) -> str | None:
     return best
 
 
-def _target_from_module(module: str) -> str | None:
-    parts = module.split(".")
-    if not parts:
-        return None
-    if parts[0] == "aoa" and len(parts) >= 2 and parts[1] in CANONICAL:
-        return parts[1]
-    if parts[0] in CANONICAL:
-        return parts[0]
-    return None
+def _import_prefixes(cfg: dict) -> dict[str, str]:
+    """Every ``import_prefixes`` entry of the canonical packages, mapped to its package."""
+    packages = _packages_table(cfg)
+    return {str(prefix): name for name in CANONICAL for prefix in packages[name].get("import_prefixes") or []}
+
+
+def _target_from_module(module: str, prefixes: dict[str, str]) -> str | None:
+    """The package an import belongs to: the one whose prefix is the longest match, so ``maxitor.viewer`` never swallows a sibling."""
+    matches = [prefix for prefix in prefixes if module == prefix or module.startswith(prefix + ".")]
+    return prefixes[max(matches, key=len)] if matches else None
 
 
 def _load_allows(cfg: dict) -> list[tuple[str, frozenset[str]]]:
@@ -122,7 +123,7 @@ def _allowed_by_allowlist(
     return False
 
 
-def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list[Violation]:
+def _iter_import_violations(path: Path, owner: str, may: frozenset[str], prefixes: dict[str, str]) -> list[Violation]:
     text = path.read_text(encoding="utf-8")
     try:
         tree = ast.parse(text, filename=str(path))
@@ -135,7 +136,7 @@ def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list
         if isinstance(node, ast.Import):
             for alias in node.names:
                 mod = alias.name
-                tgt = _target_from_module(mod)
+                tgt = _target_from_module(mod, prefixes)
                 if tgt is None or tgt == owner:
                     continue
                 if tgt in may:
@@ -145,7 +146,7 @@ def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list
             if node.module is None:
                 continue
             mod = node.module
-            tgt = _target_from_module(mod)
+            tgt = _target_from_module(mod, prefixes)
             if tgt is None or tgt == owner:
                 continue
             if tgt in may:
@@ -180,6 +181,7 @@ def _collect_py_files(roots: dict[str, list[str]]) -> list[Path]:
 def check_production(cfg: dict) -> list[Violation]:
     roots = _package_roots(cfg)
     may_by_pkg = {p: _may_import(cfg, p) for p in CANONICAL}
+    prefixes = _import_prefixes(cfg)
     allows = _load_allows(cfg)
     violations: list[Violation] = []
     for path in _collect_py_files(roots):
@@ -187,7 +189,7 @@ def check_production(cfg: dict) -> list[Violation]:
         owner = _owner_for_file(rel, roots)
         if owner is None:
             continue
-        for v in _iter_import_violations(path, owner, may_by_pkg[owner]):
+        for v in _iter_import_violations(path, owner, may_by_pkg[owner], prefixes):
             if _allowed_by_allowlist(rel, v.target, allows):
                 continue
             violations.append(v)

@@ -1,0 +1,221 @@
+# packages/maxitor/src/maxitor/viewer/model/diagrams/actions/list_entities_action_schema.py
+"""
+list_entities_action_schema — JSON Schema for ``ListEntitiesAction.Result.domain_slices``.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from aoa.action_machine.model import JsonSchemaValue
+
+# One line of the ERD between two tables: a relation, a dictionary reference, a generalization or a container link.
+_RELATION_ROW: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "source": {"type": "string"},
+        "target": {"type": "string"},
+        "label": {"type": "string"},
+        "relationship_kind": {"type": "string"},
+        "source_field": {
+            "type": ["string", "null"],
+            "description": "The field on the source table that points at the target; written at the target's end.",
+        },
+        "target_field": {
+            "type": ["string", "null"],
+            "description": "Its declared inverse on the target table, or null; written at the source's end.",
+        },
+        "source_cardinality": {
+            "type": "string",
+            "enum": ["one", "zero_one", "one_many", "zero_many"],
+        },
+        "target_cardinality": {
+            "type": "string",
+            "enum": ["one", "zero_one", "one_many", "zero_many"],
+        },
+    },
+    "required": [
+        "source",
+        "target",
+        "label",
+        "relationship_kind",
+        "source_cardinality",
+        "target_cardinality",
+    ],
+    "additionalProperties": False,
+}
+
+# One slice per requested domain: label, qualname, and ``list_entities`` (entities + relations).
+ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
+    name="ListEntitiesDomainSlicesJson",
+    schema={
+        "type": "array",
+        "minItems": 0,
+        "items": {
+            "type": "object",
+            "properties": {
+                "domain_label": {"type": "string", "minLength": 1},
+                "domain_qualname": {"type": "string", "minLength": 1},
+                "list_entities": {
+                    "type": "object",
+                    "properties": {
+                        "entities": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "string"},
+                                    "label": {"type": "string"},
+                                    "domain_qualname": {
+                                        "type": "string",
+                                        "description": (
+                                            "Interchange qualname of the BaseDomain owning this entity "
+                                            "(for accent coloring)."
+                                        ),
+                                    },
+                                    "entity_kind": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "Kind of the entity row; 'enum' marks a closed dictionary.",
+                                    },
+                                    "values": {
+                                        "type": "array",
+                                        "description": (
+                                            "The values a closed dictionary declares, each one its reference "
+                                            "object; empty for every other kind."
+                                        ),
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {"type": "string", "minLength": 1},
+                                                "display_name": {"type": "string", "minLength": 1},
+                                                "properties": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {"name": {"type": "string"}, "value": {"type": "string"}},
+                                                        "required": ["name", "value"],
+                                                        "additionalProperties": False,
+                                                    },
+                                                },
+                                            },
+                                            "required": ["code", "display_name", "properties"],
+                                            "additionalProperties": False,
+                                        },
+                                    },
+                                    "fields": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "field_id": {
+                                                    "type": ["string", "null"],
+                                                    "description": (
+                                                        "Interchange node id of the EntityField vertex when the row is a "
+                                                        "scalar field (null for synthetic relation/FK rows)."
+                                                    ),
+                                                },
+                                                "name": {"type": "string"},
+                                                "type": {"type": "string"},
+                                                "primary_key": {"type": "boolean"},
+                                                "foreign_key": {"type": "boolean"},
+                                                "reference_qualname": {
+                                                    "type": ["string", "null"],
+                                                    "description": (
+                                                        "Interchange qualname of the closed dictionary this field "
+                                                        "references; null for a scalar field."
+                                                    ),
+                                                },
+                                                "annotation": {
+                                                    "type": ["string", "null"],
+                                                    "description": (
+                                                        "The field's full annotation, for the row's tooltip; null "
+                                                        "from a service on an older aoa-action-machine (spec 029)."
+                                                    ),
+                                                },
+                                            },
+                                            "required": [
+                                                "name",
+                                                "type",
+                                                "primary_key",
+                                                "foreign_key",
+                                            ],
+                                            "additionalProperties": False,
+                                        },
+                                    },
+                                },
+                                "required": [
+                                    "id",
+                                    "label",
+                                    "domain_qualname",
+                                    "entity_kind",
+                                    "values",
+                                    "fields",
+                                ],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "relations": {
+                            "type": "array",
+                            "items": _RELATION_ROW,
+                        },
+                        "groups": {
+                            "type": "array",
+                            "description": (
+                                "One entry per specialization axis, drawn as a container around its alternatives. "
+                                "ERD-only: no other diagram reads this, and a member keeps its own node, columns and "
+                                "outside relations."
+                            ),
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "group_id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": (
+                                            "The axis's own identifier, `<head qualname>:<field name>`; the relation "
+                                            "into the container points at it."
+                                        ),
+                                    },
+                                    "label": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "description": "`<field> (by <classifier>)` — what the container's boundary says.",
+                                    },
+                                    "classifier_field": {
+                                        "type": ["string", "null"],
+                                        "description": (
+                                            "The head's field whose value selects among the members; "
+                                            "null when a closed dictionary classifies the axis."
+                                        ),
+                                    },
+                                    "members": {
+                                        "type": "array",
+                                        "minItems": 2,
+                                        "items": {"type": "string", "minLength": 1},
+                                        "description": (
+                                            "Qualified names of the alternative entities. At least two, because an axis "
+                                            "with one alternative is a plain relation and is emitted as one."
+                                        ),
+                                    },
+                                },
+                                "required": ["group_id", "label", "classifier_field", "members"],
+                                "additionalProperties": False,
+                            },
+                        },
+                    },
+                    "required": ["entities", "relations", "groups"],
+                    "additionalProperties": False,
+                },
+            },
+            "required": ["domain_label", "domain_qualname", "list_entities"],
+            "additionalProperties": False,
+        },
+    },
+)
+
+# Every line between two tables of the request, over all its slices at once (the merged ERD draws these).
+ListEntitiesRelationsJson = JsonSchemaValue.define(
+    name="ListEntitiesRelationsJson",
+    schema={"type": "array", "items": _RELATION_ROW},
+)
