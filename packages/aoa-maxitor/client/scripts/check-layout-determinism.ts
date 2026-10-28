@@ -18,14 +18,15 @@
  * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
  * ring centred on the same node, within the same 2 px.
  *
- * Last, following in every directed pair of engines (spec 029, FR-015): one browser opens a room,
- * a browser of another engine joins and follows it. The leader drags the ERD and stops; the
- * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
- * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
- * There, too, the leader's circles must not touch (spec 029, FR-051): its own ring, the count of
- * its follower and a focus ring on the follower's circle all drawn at once. The leader's name is
- * 40 characters, the longest a name may be, and the follower's card for it must keep its buttons
- * inside the card without one running into another (FR-052).
+ * Last, following in every directed pair of engines (spec 029, FR-015), all six pairs at once, each
+ * in its own room: one browser opens a room, a browser of another engine joins and follows it. The
+ * leader drags the ERD and stops; the follower's screen must then be centred on the leader's
+ * diagram point within 2 px. The leader rests the mouse on a table; the follower must light the
+ * same table within half a second (SC-002). There, too, the leader's circles must not touch (spec
+ * 029, FR-051): its own ring, the count of its follower and a focus ring on the follower's circle
+ * all drawn at once. The leader's name is 40 characters, the longest a name may be, and the
+ * follower's card for it must keep its buttons inside the card without one running into another
+ * (FR-052).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -539,6 +540,17 @@ function report(results: Map<string, Map<string, string>>): boolean {
   return ok;
 }
 
+/**
+ * Wait until every promise has settled, then return their values in order — or throw the first
+ * failure. Nothing is left running when the step stops on an error.
+ */
+async function allEnded<T>(promises: Promise<T>[]): Promise<T[]> {
+  const settled = await Promise.allSettled(promises);
+  const failed = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (failed) throw failed.reason;
+  return settled.map((result) => (result as PromiseFulfilledResult<T>).value);
+}
+
 /** Seconds since ``since``, to a tenth. */
 function seconds(since: number): string {
   return ((Date.now() - since) / 1000).toFixed(1);
@@ -572,20 +584,26 @@ async function main(): Promise<void> {
       const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
-    // Following in every directed pair of engines, one pair at a time.
+    // Following in every directed pair of engines, all pairs at once — each opens its own room.
+    // Their lines are printed afterwards, in the pairs' fixed order.
     const partC = Date.now();
-    for (const [leadName, leadEngine] of ENGINES) {
-      for (const [followName, followEngine] of ENGINES) {
-        if (leadName === followName) continue;
-        const { apartPx, hoverMs, gapPx, cardPx } = await followCase(leadEngine, followEngine, frontUrl, source);
-        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
-        ok &&= fits;
-        console.log(
-          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
-        );
-      }
-    }
+    const pairs = ENGINES.flatMap(([leadName, leadEngine]) =>
+      ENGINES.filter(([followName]) => followName !== leadName).map(([followName, followEngine]) => ({
+        leadName,
+        followName,
+        outcome: followCase(leadEngine, followEngine, frontUrl, source),
+      })),
+    );
+    const outcomes = await allEnded(pairs.map((pair) => pair.outcome));
     const partCSeconds = seconds(partC);
+    pairs.forEach(({ leadName, followName }, i) => {
+      const { apartPx, hoverMs, gapPx, cardPx } = outcomes[i];
+      const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
+      ok &&= fits;
+      console.log(
+        `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
+      );
+    });
     console.log(`part A (layout hashes) ${partASeconds} s`);
     console.log(`part B (pointer in a room) ${partBSeconds} s`);
     console.log(`part C (following) ${partCSeconds} s`);

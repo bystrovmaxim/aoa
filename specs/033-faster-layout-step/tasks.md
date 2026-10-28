@@ -38,9 +38,9 @@
 
 ## Phase 3: The six pairs side by side (commit 3) · US2 — #298 phase 2
 
-- [ ] T006 [US2] Part C: start all six `followCase` calls at once (each still opens its own new room), wait for all, then print their lines in today's pair order (research R2).
-- [ ] T007 [US2] Verify: twice alone, once in the check run, green; output as before apart from times; part C's time before and after. Break (R5): add 3 px to one pair's `apartPx` → only that pair's line is `DIFF`, exit 1; restore. If part C is not faster or a run fails: revert, record why, and try the fallback of R2 (three groups by leading engine) under the same checks.
-- [ ] T008 [US2] Prepare commit 3: `perf(maxitor): run the following pairs of the layout step together (#298)`; tick #298 phase 2 — or, if reverted, record "no change" and tick it so.
+- [X] T006 [US2] Part C: start all six `followCase` calls at once (each still opens its own new room), wait for all, then print their lines in today's pair order (research R2). Done: the six `followCase` calls start at once (each still opens its own room through "Open room"); `allEnded` waits for every one to settle and throws the first failure only after all have ended, so no pair is left running; the lines are printed afterwards in the fixed pair order. The header comment says the pairs run at once.
+- [X] T007 [US2] Verify: twice alone, once in the check run, green; output as before apart from times; part C's time before and after. Break (R5): add 3 px to one pair's `apartPx` → only that pair's line is `DIFF`, exit 1; restore. If part C is not faster or a run fails: revert, record why, and try the fallback of R2 (three groups by leading engine) under the same checks. Done. Alone: part C 7.2 / 6.7 s (was 27.4 / 27.3), the step 39 / 38 s (was 59 / 59); parts A and B unchanged (23.7 / 23.4 s, 7.2 / 7.1 s); hovers 10–30 ms against the 500 ms limit. With times stripped, the output equals `layout.before.txt`. Inside the check run (green, 37 `OK`): the step 43.1 s (was 63.1), part C 7.0 s, the run's wall time **68.6 s (was 86.3)**. Break: 3 px added to `firefox → webkit`'s distance → exit 1, only that line `DIFF` (`screens apart 3.000 px`), the other 64 lines `ok`; restored. No fallback needed.
+- [X] T008 [US2] Prepare commit 3: `perf(maxitor): run the following pairs of the layout step together (#298)`; tick #298 phase 2 — or, if reverted, record "no change" and tick it so. Done: committed as commit 3; #298 phase 2 ticked.
 
 ---
 
