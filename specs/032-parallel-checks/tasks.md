@@ -97,7 +97,7 @@
 
 ## Phase 9: Changelog (commit 8) · #279 phase 6
 
-- [ ] T019 One article at the top of `docs/CHANGELOG.md` about what this work gives: the check run shows where its time goes and finishes sooner, its log reads as before, and the limit can be set — plain words, no technical detail (constitution VI); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 8: `docs(changelog): a check run that shows its time and finishes sooner (#279)`; tick #279 phase 6.
+- [X] T019 One article at the top of `docs/CHANGELOG.md` about what this work gives: the check run shows where its time goes and finishes sooner, its log reads as before, and the limit can be set — plain words, no technical detail (constitution VI); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 8: `docs(changelog): a check run that shows its time and finishes sooner (#279)`; tick #279 phase 6. Done: "A check run that shows its time and finishes sooner", with its Russian version in `CHANGELOG.ru_draft.md`.
 
 ---
 
