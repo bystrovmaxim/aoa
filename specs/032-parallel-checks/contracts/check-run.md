@@ -10,7 +10,7 @@ AOA_CHECK_JOBS=1 bash scripts/run_checks_with_log.sh
 ```
 
 - Runs from any directory; works from the repository root found through git, as today.
-- `AOA_CHECK_JOBS`: how many steps may run at once. Unset → the number of cores. `1` → the steps run one after another, in the table's order.
+- `AOA_CHECK_JOBS`: how many steps may run at once. Unset → the number of cores. `1` → the steps run one after another — the guards and the auto-fix first, then the rest in the table's order — and the log is the same as with any other limit.
 - `bash scripts/run_checks_with_log.sh --guard <name>` runs one shell guard and exits with its result; the runner uses it, a person does not need it. Names: `lazy-init-getattr`, `client-component-readmes`.
 
 ## Exit codes

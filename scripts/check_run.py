@@ -16,8 +16,14 @@ Each step writes into its own file; when every step has ended, the log is joined
 from those files in the table's order, so it never depends on which step ended
 first and two steps' output never mix.
 
-Each step also states its group, the steps it waits for and the steps it must
-not overlap. This revision still runs the table in order, one step at a time.
+Steps run side by side where nothing forbids it. The two shell guards and
+``ruff check --fix`` run first, in order and alone, because the auto-fix rewrites
+files every later Python step reads; then every step starts as soon as the steps
+it waits for (``after``) have ended and none it must not overlap (``not_during``)
+is running, as long as fewer than the limit are running. The limit is
+``AOA_CHECK_JOBS`` (default: the number of cores); ``AOA_CHECK_JOBS=1`` runs one
+step at a time with the same log. Ctrl+C stops every running step: each one runs
+in its own process group, so the signal reaches what it started too.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -27,7 +33,8 @@ ARCHITECTURE / DATA FLOW
 
     run_checks_with_log.sh  ──exec──►  check_run.py
                                            │
-                       STEPS (table order) ▼
+             STEPS ── after / not_during / AOA_CHECK_JOBS ──► ready steps
+                                           ▼
                  bash -c <command>  ──output──►  <temporary folder>/<NN>.out
                        │                                     │ all steps ended
                        └──► console: > name / OK|FAIL        ▼ table order
@@ -40,6 +47,7 @@ or built, and must not depend on what it checks.
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -58,6 +66,11 @@ NC = "\033[0m"
 
 CLIENT = "cd packages/aoa-maxitor/client"
 AUTO_FIX = "Ruff auto-fix"
+LAZY_GUARD = "Ban __getattr__ in package __init__.py"
+README_GUARD = "Maxitor client: README beside components/*/ index.ts"
+JOBS_VARIABLE = "AOA_CHECK_JOBS"
+STOP_GRACE_SECONDS = 5.0
+POLL_SECONDS = 0.05
 CLIENT_BUILD = "Maxitor client: npm ci and Vite build"
 PACKAGES = (
     "packages/aoa-action-machine",
@@ -95,12 +108,13 @@ class Step:
         return self.shown or self.command
 
 
-def _guard(name: str, guard: str, function: str) -> Step:
+def _guard(name: str, guard: str, function: str, after: tuple[str, ...] = ()) -> Step:
     """A shell guard, run by the entry script and logged as it always was: no blank line before its result."""
     return Step(
         name=name,
         command=f"bash scripts/run_checks_with_log.sh --guard {guard}",
         group="first",
+        after=after,
         shown=f"{function} (shell function)",
         blank_before_result=False,
     )
@@ -128,12 +142,8 @@ def _after_fix(name: str, command: str, group: str) -> Step:
 
 
 STEPS: tuple[Step, ...] = (
-    _guard("Ban __getattr__ in package __init__.py", "lazy-init-getattr", "check_no_lazy_init_getattr"),
-    _guard(
-        "Maxitor client: README beside components/*/ index.ts",
-        "client-component-readmes",
-        "check_maxitor_client_component_readmes",
-    ),
+    _guard(LAZY_GUARD, "lazy-init-getattr", "check_no_lazy_init_getattr"),
+    _guard(README_GUARD, "client-component-readmes", "check_maxitor_client_component_readmes", after=(LAZY_GUARD,)),
     # Two remarks in this log are known, accepted and not to be acted on — they belong to tools,
     # not to this repository's code:
     #   * the Vite build's "Some chunks are larger than 500 kB" — the viewer's weight is the graph
@@ -161,7 +171,12 @@ STEPS: tuple[Step, ...] = (
     # `examples/` — 162 fixable (import order, unused imports) and 45 `module-import-not-at-top` — none
     # of them introduced by the change that found this and all of them predating it. Widening the scope
     # back to `.` is one line, and it re-opens that debt deliberately.
-    Step(AUTO_FIX, "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/", "first"),
+    Step(
+        AUTO_FIX,
+        "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/",
+        "first",
+        after=(README_GUARD,),
+    ),
     _after_fix("Ruff lint", "uv run --extra dev task lint", "static"),
     _after_fix("Mypy typecheck", "uv run --extra dev task typecheck", "static"),
     _after_fix("Pylint", "uv run --extra dev task pylint", "static"),
@@ -245,58 +260,159 @@ def _header() -> str:
     )
 
 
-def _run_step(step: Step, output: Path) -> Result:
-    """Run one step from the repository root, writing everything it prints into ``output``."""
+@dataclass
+class _Running:
+    """A step that has started and not yet ended."""
+
+    step: Step
+    process: subprocess.Popen[bytes]
+    output: Path
+    started: float
+
+
+def _start(step: Step, output: Path) -> _Running:
+    """Start one step from the repository root in its own process group, its output going into ``output``."""
     _say(YELLOW, f"> {step.name}")
-    started = time.monotonic()
     with output.open("wb") as handle:
-        exit_code = subprocess.run(
+        process = subprocess.Popen(
             ["bash", "-c", step.command],
             cwd=REPO_ROOT,
             stdout=handle,
             stderr=subprocess.STDOUT,
-            check=False,
-        ).returncode
-    result = Result(exit_code=exit_code, seconds=time.monotonic() - started, output=output)
-    _say(GREEN if result.ok else RED, result.line(step.name))
-    return result
+            start_new_session=True,
+        )
+    return _Running(step=step, process=process, output=output, started=time.monotonic())
 
 
-def _write_log(header: str, results: list[tuple[Step, Result]], wall: float) -> None:
-    """Join the steps' blocks in table order between the header and the footer."""
+def _ready(step: Step, ended: set[str], running: list[_Running]) -> bool:
+    """Whether ``step`` may start now: what it waits for has ended, and nothing it must not overlap is running."""
+    running_names = {item.step.name for item in running}
+    if not set(step.after) <= ended:
+        return False
+    if running_names & set(step.not_during):
+        return False
+    return not any(step.name in item.step.not_during for item in running)
+
+
+def _stop(running: list[_Running]) -> None:
+    """Stop every running step and whatever it started: terminate, wait a little, then kill."""
+    for item in running:
+        _signal_group(item.process, signal.SIGTERM)
+    deadline = time.monotonic() + STOP_GRACE_SECONDS
+    while any(item.process.poll() is None for item in running) and time.monotonic() < deadline:
+        time.sleep(POLL_SECONDS)
+    for item in running:
+        _signal_group(item.process, signal.SIGKILL)
+        item.process.wait()
+
+
+def _signal_group(process: subprocess.Popen[bytes], sig: signal.Signals) -> None:
+    """Send ``sig`` to the process group of ``process``, if it still exists."""
+    try:
+        os.killpg(process.pid, sig)
+    except ProcessLookupError:
+        pass
+
+
+def _run_all(folder: Path, jobs: int, results: dict[str, Result]) -> None:
+    """Run every step under the limit, recording in ``results`` each step as it ends."""
+    pending = list(STEPS)
+    running: list[_Running] = []
+    try:
+        while pending or running:
+            for step in list(pending):
+                if len(running) >= jobs:
+                    break
+                if _ready(step, set(results), running):
+                    pending.remove(step)
+                    running.append(_start(step, folder / f"{STEPS.index(step):02d}.out"))
+            for item in list(running):
+                exit_code = item.process.poll()
+                if exit_code is None:
+                    continue
+                running.remove(item)
+                result = Result(exit_code=exit_code, seconds=time.monotonic() - item.started, output=item.output)
+                results[item.step.name] = result
+                _say(GREEN if result.ok else RED, result.line(item.step.name))
+            time.sleep(POLL_SECONDS)
+    except KeyboardInterrupt:
+        _stop(running)
+        raise
+
+
+def _jobs() -> int:
+    """The limit from ``AOA_CHECK_JOBS``, or the number of cores; refuse anything but a positive whole number."""
+    raw = os.environ.get(JOBS_VARIABLE)
+    if raw is None:
+        return os.cpu_count() or 1
+    if not raw.isdigit() or int(raw) < 1:
+        raise ValueError(f"{JOBS_VARIABLE} must be a positive whole number, got {raw!r}.")
+    return int(raw)
+
+
+def _write_log(header: str, results: dict[str, Result], wall: float, interrupted: bool) -> None:
+    """Join the blocks of the steps that ended, in table order, between the header and the footer."""
     with LOG_FILE.open("wb") as log:
         log.write(header.encode())
-        for step, result in results:
+        for step in STEPS:
+            result = results.get(step.name)
+            if result is None:
+                continue
             log.write(f"=== {step.name} ===\n$ {step.log_command}\n\n".encode())
             log.write(result.output.read_bytes())
             gap = "\n" if step.blank_before_result else ""
             log.write(f"{gap}{result.line(step.name)}\n\n".encode())
+        ending = (
+            "Run interrupted"
+            if interrupted
+            else "All steps finished (see FAIL lines above or in the log if anything failed)"
+        )
         log.write(
             "==================================================\n"
-            "All steps finished (see FAIL lines above or in the log if anything failed)\n"
+            f"{ending}\n"
             f"Wall time: {wall:.1f} s\n"
             f"Log: {LOG_FILE}\n"
             "==================================================\n".encode()
         )
 
 
+def _raise_interrupt(signum: int, frame: object) -> None:
+    """Turn a termination signal into the same stop as Ctrl+C."""
+    del signum, frame
+    raise KeyboardInterrupt
+
+
 def main() -> int:
-    """Run every step in table order and return the run's exit code."""
+    """Run every step under the limit and return the run's exit code."""
+    try:
+        jobs = _jobs()
+    except ValueError as refusal:
+        _say(RED, f"FAIL {refusal}")
+        return 2
+    signal.signal(signal.SIGTERM, _raise_interrupt)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
     header = _header()
-    _say(YELLOW, f"Full check run (cwd={REPO_ROOT})...")
+    _say(YELLOW, f"Full check run (cwd={REPO_ROOT}, up to {jobs} steps at once)...")
     print()
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix="check-run-") as folder:
-        results = [(step, _run_step(step, Path(folder) / f"{index:02d}.out")) for index, step in enumerate(STEPS)]
+    interrupted = False
+    results: dict[str, Result] = {}
+    with tempfile.TemporaryDirectory(prefix="check-run-") as name:
+        try:
+            _run_all(Path(name), jobs, results)
+        except KeyboardInterrupt:
+            interrupted = True
         wall = time.monotonic() - started
-        _write_log(header, results, wall)
+        _write_log(header, results, wall, interrupted)
     print()
     _say(YELLOW, f"Wall time: {wall:.1f} s")
     _say(GREEN, f"Log: {LOG_FILE}")
-    return 0 if all(result.ok for _, result in results) else 1
+    if interrupted:
+        _say(RED, "Run interrupted")
+        return 130
+    return 0 if all(result.ok for result in results.values()) else 1
 
 
 if __name__ == "__main__":
