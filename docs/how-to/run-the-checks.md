@@ -80,8 +80,11 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, vulture, samples public API, Radon | the auto-fix |
-| Packaging | eight package builds, then the packaging smoke test | the auto-fix; the Maxitor package build never runs during the client build, because its source archive packs the client folder; the smoke test waits for all eight builds |
-| Tests | the tests of each of the eight packages, one run per package | the auto-fix |
+| Packaging | nine package builds, then the packaging smoke test | the auto-fix; the Maxitor package build never runs during the client build, because its source archive packs the client folder; the smoke test waits for all nine builds |
+| Tests | the tests of each of the nine packages, one run per package, and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Last, only on a green run | `Graph files (gnomon write)`: builds the repository's graphs and updates their files ([maxitor-gnomon](../../packages/maxitor-gnomon/README.md)) | every other step; if any failed, it does not run and its block reads `SKIPPED Graph files (gnomon write): N step(s) failed` — neither `OK` nor `FAIL` |
+
+The last step may change `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. CI only checks them with `gnomon check`.
 
 The run is as long as its longest chain. Today two chains are almost equal: the client build and then the three-engine layout step (about 22 + 30 s), and the tests of `aoa-action-machine` (about 50 s). Every other step finishes beside them, so making one of these two shorter alone gains only a few seconds.
 
