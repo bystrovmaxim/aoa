@@ -8,6 +8,6 @@ build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
 
 [[graph]]
-name = "viewer"
+name = "maxitor"
 build = "uv run --extra dev python -m maxitor.viewer.build_graph"
-file = "packages/maxitor/graphs/viewer.json"
+file = "packages/maxitor/app/graph.json"

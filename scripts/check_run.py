@@ -69,7 +69,7 @@ GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 NC = "\033[0m"
 
-CLIENT = "cd packages/maxitor/client"
+CLIENT = "cd packages/maxitor/app/client"
 AUTO_FIX = "Ruff auto-fix"
 LAZY_GUARD = "Ban __getattr__ in package __init__.py"
 README_GUARD = "Maxitor client: README beside components/*/ index.ts"
@@ -208,7 +208,8 @@ STEPS: tuple[Step, ...] = (
     *(
         _after_fix(f"Pytest {package}", f"uv run --extra dev pytest packages/{package}/tests/ -v", "tests")
         for package in (
-            "maxitor",
+            "maxitor/app",
+            "maxitor/tools/gnomon",
             "aoa-demo",
             "aoa-otel",
             "aoa-langgraph",

@@ -237,7 +237,7 @@ Memory after a graph is dropped depends on the system. On Linux the process retu
 ### Frontend (dev)
 
 ```bash
-cd packages/maxitor/client
+cd packages/maxitor/app/client
 npm install
 npm run dev
 ```
@@ -379,11 +379,11 @@ file  = "my_service/graph.json"
 **4. Check them in CI:**
 
 ```yaml
-- uses: astral-sh/setup-uv@v5
-- run: uv sync
-- name: The model graphs are current
-  run: uvx --from "maxitor==3.0.0" gnomon check
+- uses: actions/checkout@v4
+- uses: bystrovmaxim/aoa/packages/maxitor/tools/gnomon@maxitor-v3.0.0
 ```
+
+One step: it installs uv and the project's environment (`uv sync --all-extras`, or the input `sync`), then runs `gnomon check` from that `maxitor` release. Inputs: `config` (default `gnomon.toml`), `sync`, `gnomon`.
 
 ### Day to day
 
@@ -430,7 +430,7 @@ The [Open Gnomon Protocol](../open-gnomon-protocol/README.md) defines the graph 
 
 #### The project configuration
 
-A repository lists its graphs in `gnomon.toml` at its root ([its schema](src/maxitor/gnomon/config_schema.json)):
+A repository lists its graphs in `gnomon.toml` at its root ([its schema](tools/gnomon/src/maxitor/gnomon/config_schema.json)):
 
 ```toml
 gnomon = "1.0"                         # the configuration's own version

@@ -464,7 +464,7 @@ Maxitor's own answers are conditional too: every successful `GET` of a `FastApiA
 uv run task maxitor-api
 
 # frontend (Vite SPA, :5173; proxies /api to :8000)
-cd packages/maxitor/client && npm install && npm run dev
+cd packages/maxitor/app/client && npm install && npm run dev
 ```
 
 Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](../../packages/maxitor/README.md).
@@ -629,7 +629,7 @@ The page opens faster than it did, and a second visit barely downloads anything.
 
 **What the layout engine does on a first open.** G6 still computes the arrangement on the main thread and draws it; a web worker was built and measured, and it did not pay: it changed the longest frozen stretch by nothing measurable and made the first pixel 350–450 ms later. The measurement and the decision are in [research R13](../../specs/026-full-graph-fast-open/research.md). What ships from that work is the precomputed-layout adapter the remembered arrangement uses.
 
-**How it is measured.** `packages/maxitor/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
+**How it is measured.** `packages/maxitor/app/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
 
 | Criterion | Before | After | Target |
 |---|---|---|---|

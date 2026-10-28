@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Each graph is built in a process of its own; one that imported the other's package would carry its nodes.
 # Each service's own nodes start with its package; the other's must not appear.
-OWN = {"demo": "aoa.demo.", "viewer": "maxitor.viewer."}
-FOREIGN = {"demo": OWN["viewer"], "viewer": OWN["demo"]}
+OWN = {"demo": "aoa.demo.", "maxitor": "maxitor.viewer."}
+FOREIGN = {"demo": OWN["maxitor"], "maxitor": OWN["demo"]}
 
 
 @pytest.mark.parametrize("name", sorted(FOREIGN))

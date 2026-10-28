@@ -135,7 +135,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     ).stdout.split()
     brought = [d for d in installed if d.startswith("aoa") or d in {"fastapi", "uvicorn", "duckdb", "httpx", "websockets"}]
     assert brought == [], f"the base install brought {brought}"
-    fixture = REPO_ROOT / "packages" / "maxitor" / "tests" / "gnomon" / "fixtures" / "graph-1.1.json"
+    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "gnomon" / "tests" / "fixtures" / "graph-1.1.json"
     (tmp_path / "gnomon.toml").write_text(
         f'gnomon = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
     )
@@ -157,7 +157,7 @@ def test_clean_install_maxitor_viewer_names_its_extra(tmp_path: Path) -> None:
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
     _uv_pip_install(vpy, [_latest_wheel("maxitor")])
-    _run_in_venv(vpy, "import importlib.util as u; import maxitor; assert maxitor.__version__; assert u.find_spec('aoa') is None")
+    _run_in_venv(vpy, "import importlib.util as u; import importlib.metadata as m; assert m.version('maxitor'); assert u.find_spec('aoa') is None")
     started = subprocess.run(
         [str(venv / "bin" / "maxitor-api")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
     )

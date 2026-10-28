@@ -106,7 +106,7 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 - **A command is run without its extra.** It names the extra instead of raising an import error.
 - **The viewer's graph changes.** Its ids change in their prefix only; any other difference is a regression.
 - **A path to the old folders survives.** Every tracked file outside old specs and past changelog entries is free of `packages/aoa-maxitor` and `packages/maxitor-gnomon` after the change; old specs and the past entries of every changelog keep their names as history.
-- **A second service appears in the package later.** Each service's graph is built from its own subpackages and kept in its own file under the package's `graphs/` folder; the package as a whole has no single graph.
+- **A second service appears in the package later.** Each service's graph is built from its own subpackages and kept as `graph.json` in that service's own folder (`app/`, later `tools/gateway/`); the package as a whole has no single graph.
 - **The preview config.** Starting the viewer's preview server must not strip the dev tools from the environment.
 
 ## Requirements *(mandatory)*
@@ -122,13 +122,13 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 
 **One package**
 
-- **FR-005**: `aoa-maxitor` and `maxitor-gnomon` MUST become one package, `maxitor`, in `packages/maxitor`, with the parts `gnomon` (the command), `viewer` (Maxitor's server and built front, formerly `aoa.maxitor`) and `skills`.
+- **FR-005**: `aoa-maxitor` and `maxitor-gnomon` MUST become one package, `maxitor`, in `packages/maxitor`, laid out by kind: `app/` (the application — front, server `maxitor.viewer`, its graph, its Dockerfile, its tests), `tools/<name>/` (each tool with its own `src/` and `tests/`; today `tools/gnomon/`), `skills/` (the skills, apart from the code), and later `core/` (shared code the application and tools both use, #288). `maxitor` is a namespace package assembled from these folders.
 - **FR-006**: Installing `maxitor` with no extra MUST give a working `gnomon` command and MUST NOT install AOA or any dependency of the viewer.
 - **FR-007**: The extra `viewer` MUST bring everything Maxitor's server needs; the extra `all` MUST bring everything.
 - **FR-008**: A command whose extra is not installed MUST say which extra to install.
 - **FR-009**: `maxitor` MUST ship copies of the protocol's graph schemas, byte for byte the protocol folder's files; the check run MUST fail when any copy differs from its source.
 - **FR-010**: The viewer MUST work as before: the same pages, diagrams, rooms and command `maxitor-api`.
-- **FR-011**: Each service in the package MUST have its own graph file under `packages/maxitor/graphs/`, built from its own subpackages only; today that is the viewer's, `graphs/viewer.json`.
+- **FR-011**: Each service in the package MUST keep its graph as `graph.json` in its own folder, built from its own code only; today that is the application's, `packages/maxitor/app/graph.json`.
 - **FR-012**: The front's source MUST move with the viewer, into the package's folder.
 
 **Boundaries**
@@ -158,7 +158,7 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 - **`maxitor` package**: one installable unit with parts; its version and changelog cover every part.
 - **Part**: a subpackage of `maxitor` — `gnomon`, `viewer`, `skills` — with its own allowed imports.
 - **Extra**: a named choice at install time that brings one part's dependencies: none (the command), `viewer`, `all`.
-- **Service graph file**: one per service in the package, under `graphs/`, built from that service's subpackages.
+- **Service graph file**: `graph.json` in the folder of each service (a process with actions of its own), built from that service's code.
 
 ## Success Criteria *(mandatory)*
 

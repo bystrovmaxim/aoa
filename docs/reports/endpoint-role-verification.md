@@ -109,7 +109,7 @@ The retry returned `3 passed`. Thus all 3045 package tests passed across the ini
 The focused role/matrix/dictionary/completeness suite separately passed 121 tests. The full Maxitor package command returned `154 passed, 1 skipped, 1 xfailed`:
 
 ```sh
-.venv/bin/python -m pytest --import-mode=importlib packages/maxitor/tests -q
+.venv/bin/python -m pytest --import-mode=importlib packages/maxitor/app/tests -q
 ```
 
 All 113 numbered scripts in the two dictionary/relationship tutorial directories passed. Nine changed/new script/notebook pairs were executed in fresh processes: six coherent role scenarios and three earlier selection scenarios whose exact diagnostics changed. Every notebook has real outputs and execution counts, with stdout equal to its script. Cells were executed directly as Python, not through a Jupyter kernel; the kernel dependencies were unavailable.
