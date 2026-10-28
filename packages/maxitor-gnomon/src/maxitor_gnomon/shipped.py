@@ -1,22 +1,21 @@
 # packages/maxitor-gnomon/src/maxitor_gnomon/shipped.py
 """
-Read a file the package ships beside its code: the protocol or a skill.
+Read a file the package ships beside its code: a skill.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The Open Gnomon Protocol (``protocol/``) and the skills (``skills/``) sit at the
-package's top level, not inside the code: the standard comes first, and this
-package is one implementation of it. The code reads them through this module.
+The skills (``skills/``) sit at the package's top level, not inside the code;
+the code reads them through this module.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-An installed wheel carries both folders inside ``maxitor_gnomon/`` (hatch's
+An installed wheel carries the folder inside ``maxitor_gnomon/`` (hatch's
 ``force-include``); an editable install, as in this repository's workspace,
-points at ``src/`` and leaves them where they are, two folders up. A file is
+points at ``src/`` and leaves it where it is, two folders up. A file is
 read from the first of those two places that has it.
 """
 
@@ -32,7 +31,7 @@ _SOURCE_ROOT = Path(__file__).resolve().parents[2]
 def shipped_text(*parts: str) -> str:
     """
     AI-CORE-BEGIN
-    ROLE: The text of a shipped file, e.g. ``shipped_text("protocol", "graph", "1.1.json")``.
+    ROLE: The text of a shipped file, e.g. ``shipped_text("skills", "gnomon-setup", "SKILL.md")``.
     CONTRACT: Reads the installed copy inside ``maxitor_gnomon/``, else the source tree's; raises ``FileNotFoundError`` when neither has it.
     AI-CORE-END
     """

@@ -124,6 +124,38 @@ The same graph always gives the same bytes, so a file changes only when the mode
 
 Paths are relative to `gnomon.toml`. A wrong config is refused by graph and field — `graph 'demo', file: required` — before anything is built.
 
+## Keeping graphs in a repository
+
+The [Open Gnomon Protocol](../open-gnomon-protocol/README.md) defines the graph document. How a repository keeps its graphs — one file per service, listed in `gnomon.toml`, checked in CI — is this command's convention, below.
+
+### The graph file
+
+- A service keeps its graph in one file, conventionally `graph.json` in the service's folder.
+- The file MUST hold the document and nothing else, in UTF-8, with object keys sorted, an indent of two spaces, non-ASCII characters as they are, and one newline at the end — `json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + "\n"`. The same document therefore always gives the same bytes. The formatting MUST NOT reorder `nodes` or `edges`.
+- The file MUST be written by the service's build, never edited by hand. It SHOULD change in the same pull request as the code that changed the model, and CI SHOULD check that it is current.
+
+### The project configuration
+
+A repository lists its graphs in `gnomon.toml` at its root ([its schema](src/maxitor_gnomon/config_schema.json)):
+
+```toml
+gnomon = "1.0"                         # the configuration's own version
+
+[[graph]]
+name  = "shop"                         # unique
+cwd   = "."                            # optional, default "."
+build = "python -m shop.build_graph"   # prints the graph document, and only it
+file  = "shop/graph.json"              # unique
+```
+
+- Relative paths start at the configuration's folder; absolute paths are allowed.
+- A build MUST exit with 0 and print exactly one graph document; otherwise it produced no graph and nothing is written. Each graph MUST be built in a process of its own, so that two services' models never mix.
+- The configuration's version is independent of the graph's.
+
+### A conforming repository
+
+A repository conforms when it lists its graphs in `gnomon.toml`, keeps each file as above, and checks in CI that every file is current.
+
 ## From Python
 
 ```python

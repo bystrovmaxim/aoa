@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor-gnomon/protocol/config/1.0.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor-gnomon/src/maxitor_gnomon/config_schema.json",
   "title": "Gnomon config",
   "description": "gnomon.toml: the graphs of one repository, each built by a command and saved in a file.",
   "type": "object",

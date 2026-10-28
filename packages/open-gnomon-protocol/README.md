@@ -98,7 +98,9 @@ The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model
 | [`1.0`](graph/1.0.json) | The first shape: nodes have an `id`; edges do not. |
 | [`1.1`](graph/1.1.json) | Every edge has an `id`, so two revisions compare edge by edge. |
 
-- A published version MUST NOT change. A new shape is a new version and a new schema file; each schema's `$id` is its address in this folder.
+A release of the protocol is the git tag `open-gnomon-protocol-v<version>`; its history is [CHANGELOG.md](CHANGELOG.md).
+
+- A published version MUST NOT change. A new shape is a new version and a new schema file; each schema's `$id` is its address in this folder. That address returns the schema itself, so any JSON Schema 2020-12 validator, in any language, checks a graph by fetching the schema its `$id` names — no code of the protocol's own is needed, and the protocol has none.
 - A consumer MUST check a document against the version it declares and MUST refuse a version it does not know, rather than guess. It SHOULD read every published version.
 
 ### 4. Identity
@@ -107,42 +109,17 @@ The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model
 - Two revisions MUST be compared by `id`, never by position: an element that only moved within its array is unchanged. Their difference is the elements added, removed, and changed under the same `id`.
 - An `id` is opaque to consumers; the protocol does not prescribe its format.
 
-### 5. The graph file
-
-- A service keeps its graph in one file, conventionally `graph.json` in the service's folder.
-- The file MUST hold the document and nothing else, in UTF-8, with object keys sorted, an indent of two spaces, non-ASCII characters as they are, and one newline at the end — `json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + "\n"`. The same document therefore always gives the same bytes. The formatting MUST NOT reorder `nodes` or `edges`.
-- The file MUST be written by the service's build, never edited by hand. It SHOULD change in the same pull request as the code that changed the model, and CI SHOULD check that it is current.
-
-### 6. The project configuration
-
-A repository lists its graphs in `gnomon.toml` at its root ([config/1.0.json](config/1.0.json)):
-
-```toml
-gnomon = "1.0"                         # the configuration's own version
-
-[[graph]]
-name  = "shop"                         # unique
-cwd   = "."                            # optional, default "."
-build = "python -m shop.build_graph"   # prints the graph document, and only it
-file  = "shop/graph.json"              # unique
-```
-
-- Relative paths start at the configuration's folder; absolute paths are allowed.
-- A build MUST exit with 0 and print exactly one graph document; otherwise it produced no graph and nothing is written. Each graph MUST be built in a process of its own, so that two services' models never mix.
-- The configuration's version is independent of the graph's.
-
-### 7. Conformance
+### 5. Conformance
 
 | Role | Conforms when it… |
 |---|---|
 | **Producer** | prints valid graphs of the version it declares, with ids derived from the model (§4). |
 | **Consumer** | checks each document against its declared version, refuses unknown versions, and compares revisions by `id`. |
-| **Repository** | lists its graphs in `gnomon.toml`, keeps each as §5 requires, and checks in CI that every file is current. |
 
 ## Implementations
 
 | | Role |
 |---|---|
-| **[maxitor-gnomon](../README.md)** | Reference implementation: the `gnomon` command that writes and checks a repository's graph files, and the `gnomon-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
+| **[maxitor-gnomon](../maxitor-gnomon/README.md)** | Reference implementation: the `gnomon` command that writes and checks a repository's graph files, and the `gnomon-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
 | **[AOA](https://github.com/bystrovmaxim/aoa)** | Producer: every AOA service exports its model in this format. |
-| **[Maxitor](../../aoa-maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |
+| **[Maxitor](../aoa-maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |
