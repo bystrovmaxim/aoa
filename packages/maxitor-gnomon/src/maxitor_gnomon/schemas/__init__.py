@@ -14,7 +14,8 @@ graph from something else without knowing who produced it.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-The schemas are files beside this module, ``graph/<version>.json``. A published
+The schemas are the Open Gnomon Protocol's files, ``protocol/graph/<version>.json``
+at the package's top level (``protocol/README.md`` is the standard's text). A published
 version never changes; a new shape of the graph is a new file and a new entry in
 ``SCHEMA_VERSIONS``. ``1.0`` is the first shape; ``1.1`` gave every edge an ``id``.
 
@@ -29,12 +30,13 @@ from __future__ import annotations
 
 import json
 from functools import cache
-from importlib.resources import files
 from typing import Any
 
 import jsonschema_rs
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
+
+from maxitor_gnomon.shipped import shipped_text
 
 SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1")
 SHOWN_CHARACTERS = 200
@@ -68,7 +70,7 @@ def graph_schema(version: str) -> dict[str, Any]:
     if version not in SCHEMA_VERSIONS:
         known = ", ".join(SCHEMA_VERSIONS)
         raise GraphRefused(version, "", f"unknown schema version {version!r}; known: {known}")
-    text = files(__package__).joinpath("graph", f"{version}.json").read_text(encoding="utf-8")
+    text = shipped_text("protocol", "graph", f"{version}.json")
     schema: dict[str, Any] = json.loads(text)
     return schema
 

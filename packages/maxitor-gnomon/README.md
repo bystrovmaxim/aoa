@@ -22,7 +22,7 @@ A runnable tour of every case — the config, a saved graph against its schema, 
 
 ## Schema versions
 
-Each version is one JSON Schema file inside the package, `maxitor_gnomon/schemas/graph/<version>.json`. **A published version never changes**: a new shape of the graph is a new version.
+The format is a standard of its own, the **[Open Gnomon Protocol](protocol/README.md)**: each version is one JSON Schema file, [`protocol/graph/<version>.json`](protocol/graph/), and **a published version never changes** — a new shape of the graph is a new version. This package is one implementation of it; it ships the protocol inside its wheel and reads it from there.
 
 | Version | What it is |
 |---|---|
@@ -153,6 +153,6 @@ gnomon skill > .claude/skills/gnomon-setup/SKILL.md
 
 ### 3. One sentence to an agent
 
-> Set up graph history in this repository with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor-gnomon/src/maxitor_gnomon/skills/gnomon-setup/SKILL.md
+> Set up graph history in this repository with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
 
 The skill saves itself into the agent's skills folder and goes on with the setup.

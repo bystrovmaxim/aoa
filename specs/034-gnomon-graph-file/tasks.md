@@ -113,6 +113,10 @@
 
 ---
 
+## After review: the protocol at the package's top level (commit 11)
+
+- [x] T041 The maintainer's decision after the tail: the schemas are the standard and the package implements it, so they move out of the code. `G/protocol/` is the **Open Gnomon Protocol** — `README.md` (the document, the versions, comparing by `id`, the graph file, the config), `graph/1.0.json`, `graph/1.1.json`, `config/1.0.json`, each `$id` now `…/packages/maxitor-gnomon/protocol/…`; the skill moves to `G/skills/gnomon-setup/SKILL.md`, so its raw link is shorter. Hatch's `force-include` carries both folders into the wheel under `maxitor_gnomon/`; an editable install does not see them there, so `GS/shipped.py` reads the installed copy, else the source tree's. Links fixed in both READMEs and AOA's schema module. Adversarial, full check run: `protocol` dropped from `force-include` → only `Packaging wheel install smoke` fails (`test_clean_install_action_machine_provides_graph`: no schema in a clean install). Restored; **41 `OK`, 64.7 s**. Commit: `refactor(gnomon): the Open Gnomon Protocol at the package's top level (#301)`.
+
 ## Dependencies & Execution Order
 
 - Phases in order. Phase 3 needs the package (2); Phase 5 needs the schema (3) and the config (4); Phase 6 needs the commands (5); Phase 7 needs the commands (5) and is checked on Phase 6's files; the tail (8–10) comes last.
