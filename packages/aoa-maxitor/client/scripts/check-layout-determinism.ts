@@ -13,21 +13,21 @@
  *
  * Nothing is added to the client for it: the hash on the element is the one the room reads.
  *
- * It then proves SC-003 in a real room: in each engine a desktop page opens a room on the ERD of all
- * domains and a phone page joins it. The desktop's mouse rests on a node's centre, and the phone must
- * draw that arrow within 2 px of the same node's centre on its own screen, before and after either
- * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
- * ring centred on the same node, within the same 2 px.
+ * Beside it, it proves SC-003 in a real room: in each engine a desktop page opens a room on the ERD
+ * of all domains and a phone page joins it. The desktop's mouse rests on a node's centre, and the
+ * phone must draw that arrow within 2 px of the same node's centre on its own screen, before and
+ * after either page zooms. A phone has no cursor, only touches: its tap on a node must show on the
+ * desktop as a ring centred on the same node, within the same 2 px.
  *
- * Last, following in every directed pair of engines (spec 029, FR-015), all six pairs at once, each
- * in its own room: one browser opens a room, a browser of another engine joins and follows it. The
- * leader drags the ERD and stops; the follower's screen must then be centred on the leader's
- * diagram point within 2 px. The leader rests the mouse on a table; the follower must light the
- * same table within half a second (SC-002). There, too, the leader's circles must not touch (spec
- * 029, FR-051): its own ring, the count of its follower and a focus ring on the follower's circle
- * all drawn at once. The leader's name is 40 characters, the longest a name may be, and the
- * follower's card for it must keep its buttons inside the card without one running into another
- * (FR-052).
+ * After both, following in every directed pair of engines (spec 029, FR-015), all six pairs at
+ * once, each in its own room: one browser opens a room, a browser of another engine joins and
+ * follows it. The leader drags the ERD and stops; the follower's screen must then be centred on the
+ * leader's diagram point within 2 px. The leader rests the mouse on a table; the follower must
+ * light the same table within half a second (SC-002). There, too, the leader's circles must not
+ * touch (spec 029, FR-051): its own ring, the count of its follower and a focus ring on the
+ * follower's circle all drawn at once. The leader's name is 40 characters, the longest a name may
+ * be, and the follower's card for it must keep its buttons inside the card without one running into
+ * another (FR-052).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -580,6 +580,13 @@ async function allEnded<T>(promises: Promise<T>[]): Promise<T[]> {
   return settled.map((result) => (result as PromiseFulfilledResult<T>).value);
 }
 
+/** Run ``work`` and return its value with how long it took, in seconds to a tenth. */
+async function timed<T>(work: () => Promise<T>): Promise<{ value: T; seconds: string }> {
+  const since = Date.now();
+  const value = await work();
+  return { value, seconds: seconds(since) };
+}
+
 /** Seconds since ``since``, to a tenth. */
 function seconds(since: number): string {
   return ((Date.now() - since) / 1000).toFixed(1);
@@ -599,13 +606,30 @@ async function main(): Promise<void> {
     const targets = await listTargets(frontUrl, source);
     const results = new Map<string, Map<string, string>>();
     const seen = new Map<string, string[][]>();
-    const partA = Date.now();
-    await allEnded(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results, seen)));
+    // Layout hashes and the pointer cases run at once; following runs after them, because its 500 ms
+    // hover limit was missed with every part's browsers open together. Each part opens its own
+    // browsers and rooms, and all print afterwards in their fixed order.
+    const pairs = ENGINES.flatMap(([leadName, leadEngine]) =>
+      ENGINES.filter(([followName]) => followName !== leadName).map(([followName, followEngine]) => ({
+        leadName,
+        followName,
+        leadEngine,
+        followEngine,
+      })),
+    );
+    const layoutRun = timed(() =>
+      allEnded(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results, seen))),
+    );
+    const pointerRun = timed(() => allEnded(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source))));
+    await allEnded<unknown>([layoutRun, pointerRun]);
+    const [layout, pointers] = [await layoutRun, await pointerRun];
+    // Following in every directed pair of engines, all pairs at once — each opens its own room.
+    const following = await timed(() =>
+      allEnded(pairs.map((pair) => followCase(pair.leadEngine, pair.followEngine, frontUrl, source))),
+    );
+    const [partASeconds, partBSeconds, partCSeconds] = [layout.seconds, pointers.seconds, following.seconds];
     ok = report(results, seen, targets.length);
-    const partASeconds = seconds(partA);
-    const partB = Date.now();
-    const offsets = await Promise.all(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source)));
-    const partBSeconds = seconds(partB);
+    const offsets = pointers.value;
     // Steps: arrow; arrow after the phone zooms; arrow after the desktop zooms; the phone's tap.
     ENGINES.forEach(([name], i) => {
       const largest = Math.max(...offsets[i]);
@@ -614,18 +638,7 @@ async function main(): Promise<void> {
       const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
-    // Following in every directed pair of engines, all pairs at once — each opens its own room.
-    // Their lines are printed afterwards, in the pairs' fixed order.
-    const partC = Date.now();
-    const pairs = ENGINES.flatMap(([leadName, leadEngine]) =>
-      ENGINES.filter(([followName]) => followName !== leadName).map(([followName, followEngine]) => ({
-        leadName,
-        followName,
-        outcome: followCase(leadEngine, followEngine, frontUrl, source),
-      })),
-    );
-    const outcomes = await allEnded(pairs.map((pair) => pair.outcome));
-    const partCSeconds = seconds(partC);
+    const outcomes = following.value;
     pairs.forEach(({ leadName, followName }, i) => {
       const { apartPx, hoverMs, gapPx, cardPx } = outcomes[i];
       const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;

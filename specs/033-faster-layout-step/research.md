@@ -25,6 +25,7 @@ Decisions for [spec.md](spec.md), checked against `packages/aoa-maxitor/client/s
 - **Decision**: `main` starts part A, part B and part C at once and waits for all three; it then prints part A's report, part B's lines and part C's lines, in that order, and the part times.
 - **Rationale**: FR-006, FR-003, FR-007 — every part prints and every `DIFF` counts, whichever part ends first.
 - **Risk**: the most browsers at once (part A's three browsers with two contexts each, part B's three, part C's twelve). Phase 4 is measured on its own and reverted if it does not help (FR-008).
+- **Outcome (2026-10-28)**: all three at once missed the 500 ms hover limit once (516 ms) and was dropped; parts A and B run at once and part C after them — part B no longer waits for part A, and the following pairs keep their margin (hovers at most 87 ms in the check run).
 
 ## R5. The deliberate breaks
 
