@@ -1,150 +1,148 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
+  <img src="https://img.shields.io/badge/version-1.1-informational" alt="Version 1.1">
+  <img src="https://img.shields.io/badge/status-stable-brightgreen" alt="Stable">
+  <a href="https://json-schema.org/draft/2020-12"><img src="https://img.shields.io/badge/JSON_Schema-2020--12-blue" alt="JSON Schema 2020-12"></a>
+  <a href="https://github.com/bystrovmaxim/aoa/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
+</p>
+
 # Open Gnomon Protocol
 
-**Describe a project's model in a shared language, then make that description part of the project.**
+**One open language for what a software project *is* — its domains, entities, actions and the dependencies between them — produced by the code itself, checked by a schema, and kept in the repository next to the code it describes.**
 
-Imagine opening an unfamiliar service and finding a description of its model: which domains it contains, which entities it works with, which actions it exposes and how those parts relate. A person can inspect that description; a viewer or coding agent can read the same document. They share the meaning of an entity, an action and a dependency because the format defines those concepts.
+## Why
 
-Open Gnomon Protocol gives that description a standard form: a graph. Model elements are nodes, relationships are edges, and their types and properties say what each element means. For example, “placing an order requires checking stock” becomes two `Action` nodes connected by a `@depends` edge.
+Every team carries a model of its system: which actions exist, what they depend on, which entities they touch, who may call them. Today that model lives in people's heads, in wiki pages and in diagrams drawn by hand — and all three drift from the code the day after they are written. Every tool that wants the model — a visualiser, an architecture check, a coding agent — has to reverse-engineer it from source again, each in its own way.
 
-We are building two things:
+The Open Gnomon Protocol makes the model a first-class artifact:
 
-1. **A standard for describing models.** The protocol defines the vocabulary and JSON format that producers and consumers agree on. A project exports its model once in that format; tools can read the description without importing the project's code. The versioned JSON Schemas in this folder define the accepted documents.
-2. **A first skill for project initiation: [`gnomon-setup`](../skills/gnomon-setup/SKILL.md).** The skill helps a coding agent put that standard to work in a repository: find its model export, establish a repeatable build, save the model description and connect a check that keeps it current.
+- **The code produces it.** A service exports its own model; nobody draws or maintains it by hand, so it cannot drift.
+- **Everyone reads the same thing.** A person, a viewer and an agent read one document and agree on what an entity, an action or a dependency is, because the protocol defines those words. None of them has to import or run the project.
+- **It changes where the code changes.** The description is a file in the repository. A pull request that adds a dependency also adds an edge, and the reviewer sees both. Git holds the model's whole history.
+- **It is checked, not trusted.** Every version has a JSON Schema. A document is a graph of that version if and only if it passes it.
 
-The standard answers **“How do we describe the model?”** The skill answers **“How do we set this up in our project?”** Once configured, the project follows this workflow:
+## What it looks like
 
-```text
-Project model → build command → graph.json → review alongside the code
-                                    ↑
-                         CI checks that it is current
-```
-
-The saved document becomes a common input for tools that understand the protocol. Keeping it beside the code also makes changes visible: when an action gains a dependency, the exported graph gains an edge. The code and the updated model description can be reviewed in the same pull request, and Git records the model's history.
-
-[`maxitor-gnomon`](../README.md) implements the protocol through the `gnomon` command. AOA is the first producer. Other producers can participate by exporting documents that pass the same schemas.
-
-## Get started
-
-### 1. Ask your coding agent to set up the project
-
-Open the repository you want to configure and give your agent this request:
-
-> Set up this project's model graph and graph history using the gnomon-setup skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor-gnomon/skills/gnomon-setup/SKILL.md
-
-The skill works with a project that can export its model as a graph document. It inspects the repository, proves a build command for each graph and asks you which graphs to include and where to save them. Project initiation here means setting up model export and its checks in your repository; the project needs a model and a producer capable of exporting it.
-
-If your agent already has the skill installed, ask it to **run `gnomon-setup`**. For installation commands or setup by hand, see the [implementation's getting-started guide](../README.md#three-ways-to-start).
-
-### 2. Review the setup
-
-After you confirm the graphs and their locations, the skill prepares:
-
-| Result | Purpose |
-|---|---|
-| `gnomon.toml` at the repository root | Lists each graph, its build command and its output file. |
-| A `graph.json` for each selected service | Stores that service's model description in the standard format. |
-| A CI step running `gnomon check` | Rebuilds the graphs and fails if the saved files are stale or missing, or a build fails validation. |
-
-Setup ends with a passing `gnomon check`. The skill leaves the changes for you to review and commit. Running it again audits the existing setup.
-
-### 3. Keep the model current as you work
-
-With `gnomon` available through your project's tool environment:
-
-```bash
-gnomon write   # Rebuild the graphs and update their saved files.
-gnomon check   # Verify that the saved files match; write nothing.
-```
-
-Review the graph changes with the code changes and commit them together. CI runs `gnomon check` on subsequent changes, and Git holds the model's history.
-
-## What a model description looks like
-
-Here is a small model: `PlaceOrder` depends on `CheckStock`. Both actions are nodes; the dependency is an edge with its own identity.
+"Placing an order requires checking stock" — two actions and the dependency between them:
 
 ```json
 {
   "schema_version": "1.1",
   "nodes": [
-    {
-      "id": "shop.PlaceOrder",
-      "type": "Action",
-      "label": "Place order",
-      "properties": {"description": "Place a customer order."}
-    },
-    {
-      "id": "shop.CheckStock",
-      "type": "Action",
-      "label": "Check stock",
-      "properties": {"description": "Check that ordered items are available."}
-    }
+    {"id": "shop.PlaceOrder", "type": "Action", "label": "Place order",
+     "properties": {"description": "Place a customer order."}},
+    {"id": "shop.CheckStock", "type": "Action", "label": "Check stock",
+     "properties": {"description": "Check that ordered items are available."}}
   ],
   "edges": [
-    {
-      "id": "shop.PlaceOrder.depends.CheckStock",
-      "source_id": "shop.PlaceOrder",
-      "target_id": "shop.CheckStock",
-      "type": "@depends",
-      "relationship": "Serving",
-      "is_dag": true,
-      "properties": {"description": "Check availability before placing the order."}
-    }
+    {"id": "shop.PlaceOrder|@depends|shop.CheckStock",
+     "source_id": "shop.PlaceOrder", "target_id": "shop.CheckStock",
+     "type": "@depends", "relationship": "Serving", "is_dag": true,
+     "properties": {"description": "Check availability before placing the order."}}
   ]
 }
 ```
 
-Save this illustration as `model.json` and validate it:
+A real service is the same document at scale: the AOA demo describes itself in 3 213 nodes and 4 841 edges. When its model changes, the difference between two revisions is precise and readable:
 
 ```text
-$ gnomon validate model.json
-ok 1.1: 2 nodes, 1 edges
+nodes[id=aoa.demo.model.store.store_domain.StoreDomain].label: Shop → StoreDomain
+edges[id=aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPipelineDomain|application|aoa.action_machine.application.application.Application]: added
 ```
 
-In a configured project, the build command produces the document and `gnomon write` saves it. The schema defines the supported node and edge types and the properties required for each; adding arbitrary objects with an `id` is not enough.
+## Specification
 
-## Protocol reference
+| | |
+|---|---|
+| **Version** | `1.1` — [graph/1.1.json](graph/1.1.json) |
+| **Status** | Stable. A published version never changes. |
+| **Normative schema** | JSON Schema 2020-12, one file per version in [graph/](graph/) |
 
-### Graph document
+The key words **MUST**, **MUST NOT**, **SHOULD** and **MAY** are to be read as in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119). The schema is normative; the tables below summarise it.
 
-A graph document is one JSON object:
+### 1. The graph document
 
-| Field | Required | Meaning |
-|---|---|---|
-| `schema_version` | yes | The graph schema version, such as `"1.1"`. |
-| `nodes` | yes | Model elements, each with an `id` unique among nodes, a `type`, a `label` and `properties`. |
-| `edges` | yes | Relationships between nodes, with source and target IDs, a type and properties; from `1.1` onward, each also has an `id` unique among edges. |
+One JSON object with exactly three members:
 
-The exact shape of each version is its [JSON Schema](graph/). A document declares `"schema_version": "V"` and must pass `graph/V.json`.
+| Member | Requirement |
+|---|---|
+| `schema_version` | The protocol version the document follows. It MUST name a published version. |
+| `nodes` | The model's elements. Each MUST have an `id` unique among the nodes. |
+| `edges` | The relationships between them. From `1.1` on, each MUST have an `id` unique among the edges. |
 
-### Versions
+| A node has | Meaning | | An edge has | Meaning |
+|---|---|---|---|---|
+| `id` | its stable identity | | `id` | its stable identity (from `1.1`) |
+| `type` | its kind (§2) | | `source_id`, `target_id` | the nodes it joins |
+| `label` | a human-readable name | | `type` | its kind (§2) |
+| `properties` | facts about it, by `type` | | `relationship` | its nature (§2) |
+| | | | `is_dag` | `true` for the acyclic slice: those edges MUST form no cycle |
+| | | | `properties` | facts about it, by `type` |
 
-| Version | Schema | What changed |
-|---|---|---|
-| `1.0` | [graph/1.0.json](graph/1.0.json) | The first shape: nodes have an `id`, edges do not. |
-| `1.1` | [graph/1.1.json](graph/1.1.json) | Every edge has an `id`, so two versions of a graph compare edge by edge. |
+A document is a graph of version *V* if and only if it declares `"schema_version": "V"` and is valid against [graph/*V*.json](graph/).
 
-**A published version never changes.** A new shape requires a new version and a new schema file; readers keep reading the old ones. Each schema's `$id` is its address in this folder.
+### 2. Vocabulary of version 1.1
 
-### Comparing model revisions
+| | Kinds |
+|---|---|
+| **Node types** (23) | Structure: `Application` `Domain` `Resource` `Role` · Behaviour: `Action` `Params` `Result` `Field` `PropertyField` `RegularAspect` `SummaryAspect` `Compensator` `AccessDecide` `ErrorHandler` `Checker` `RequiredContext` · Data: `Entity` `EntityField` `Sensitive` · Lifecycle: `Lifecycle` `StateInitial` `StateIntermediate` `StateFinal` |
+| **Edge types** (31) | Containment: `application` `domain` `field` `property` `entity_field` `entity_schema` `generic:params` `generic:result` `state` `sensitive` · Behaviour: `@regular_aspect` `@summary_aspect` `@compensate` `@access_decide` `@on_error` `@result_checker` `@check_roles` `@required_context` · Dependencies: `@depends` `@connection` · Data: `entity_relation` `entity_reference` `entity_specialization` `entity_view` · Generalization: `parent_action` `parent_role` `parent_domain` `parent_entity` · Lifecycle: `lifecycle` `lifecycle_contains_state` `lifecycle_transition` |
+| **Relationships** (11) | `Access` `Aggregation` `Assignment` `Association` `Composition` `Flow` `Generalization` `Realization` `Serving` `Specialization` `Triggering` |
 
-Elements are matched by `id`, never by position: moving a node or an edge within its array does not change that element. Two documents differ by the elements added, removed or changed under the same `id`. Stable IDs let a reviewer follow an element across model revisions.
+The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model, the protocol's first producer. A producer built on another framework conforms by mapping its elements onto these kinds; a model that needs new kinds is a new version.
 
-### Graph file
+### 3. Versions and compatibility
 
-The saved graph is the document encoded as UTF-8, with sorted object keys, an indent of two spaces, non-ASCII characters preserved and one newline at the end. The file contains only the graph. The same document produces the same bytes; this formatting does not reorder the node or edge arrays.
+| Version | Change |
+|---|---|
+| [`1.0`](graph/1.0.json) | The first shape: nodes have an `id`; edges do not. |
+| [`1.1`](graph/1.1.json) | Every edge has an `id`, so two revisions compare edge by edge. |
 
-### Project config
+- A published version MUST NOT change. A new shape is a new version and a new schema file; each schema's `$id` is its address in this folder.
+- A consumer MUST check a document against the version it declares and MUST refuse a version it does not know, rather than guess. It SHOULD read every published version.
 
-A repository lists its graphs in `gnomon.toml`, whose shape is [config/1.0.json](config/1.0.json):
+### 4. Identity
+
+- A producer SHOULD derive every `id` from the code that declares the element, so the same model always yields the same ids and a changed element keeps its id.
+- Two revisions MUST be compared by `id`, never by position: an element that only moved within its array is unchanged. Their difference is the elements added, removed, and changed under the same `id`.
+- An `id` is opaque to consumers; the protocol does not prescribe its format.
+
+### 5. The graph file
+
+- A service keeps its graph in one file, conventionally `graph.json` in the service's folder.
+- The file MUST hold the document and nothing else, in UTF-8, with object keys sorted, an indent of two spaces, non-ASCII characters as they are, and one newline at the end — `json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + "\n"`. The same document therefore always gives the same bytes. The formatting MUST NOT reorder `nodes` or `edges`.
+- The file MUST be written by the service's build, never edited by hand. It SHOULD change in the same pull request as the code that changed the model, and CI SHOULD check that it is current.
+
+### 6. The project configuration
+
+A repository lists its graphs in `gnomon.toml` at its root ([config/1.0.json](config/1.0.json)):
 
 ```toml
-gnomon = "1.0"                              # The config's own version.
+gnomon = "1.0"                         # the configuration's own version
 
 [[graph]]
-name  = "shop"                              # Unique graph name.
-cwd   = "."                                 # Optional; defaults to ".".
-build = "python -m shop.build_graph"         # Prints only the graph document.
-file  = "shop/graph.json"                    # Unique output file path.
+name  = "shop"                         # unique
+cwd   = "."                            # optional, default "."
+build = "python -m shop.build_graph"   # prints the graph document, and only it
+file  = "shop/graph.json"              # unique
 ```
 
-The config version is independent of the graph schema version: this `1.0` config can point to a build that emits a `1.1` graph. Paths are relative to the config's folder. Each graph is built in a separate process.
+- Relative paths start at the configuration's folder; absolute paths are allowed.
+- A build MUST exit with 0 and print exactly one graph document; otherwise it produced no graph and nothing is written. Each graph MUST be built in a process of its own, so that two services' models never mix.
+- The configuration's version is independent of the graph's.
+
+### 7. Conformance
+
+| Role | Conforms when it… |
+|---|---|
+| **Producer** | prints valid graphs of the version it declares, with ids derived from the model (§4). |
+| **Consumer** | checks each document against its declared version, refuses unknown versions, and compares revisions by `id`. |
+| **Repository** | lists its graphs in `gnomon.toml`, keeps each as §5 requires, and checks in CI that every file is current. |
+
+## Implementations
+
+| | Role |
+|---|---|
+| **[maxitor-gnomon](../README.md)** | Reference implementation: the `gnomon` command that writes and checks a repository's graph files, and the `gnomon-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
+| **[AOA](https://github.com/bystrovmaxim/aoa)** | Producer: every AOA service exports its model in this format. |
+| **[Maxitor](../../aoa-maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |
