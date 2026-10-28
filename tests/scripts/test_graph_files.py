@@ -13,7 +13,9 @@ from maxitor_gnomon.schemas import check_graph
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Each graph is built in a process of its own; one that imported the other's package would carry its nodes.
-FOREIGN = {"demo": "aoa.maxitor.", "maxitor": "aoa.demo."}
+# Each service's own nodes start with its package; the other's must not appear.
+OWN = {"demo": "aoa.demo.", "viewer": "maxitor.viewer."}
+FOREIGN = {"demo": OWN["viewer"], "viewer": OWN["demo"]}
 
 
 @pytest.mark.parametrize("name", sorted(FOREIGN))
@@ -24,4 +26,4 @@ def test_a_saved_graph_holds_only_its_own_service(name: str) -> None:
     check_graph(document)
     foreign = [node["id"] for node in document["nodes"] if node["id"].startswith(FOREIGN[name])]
     assert foreign == [], f"{name}: {len(foreign)} node(s) of another service, e.g. {foreign[:3]}"
-    assert any(node["id"].startswith(f"aoa.{name}.") for node in document["nodes"])
+    assert any(node["id"].startswith(OWN[name]) for node in document["nodes"])

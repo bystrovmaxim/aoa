@@ -4,16 +4,16 @@
 The page is drawn by AntV G6, and what a user feels — the bytes on the wire, the arrangement,
 the frozen stretches, the canvas — can only be read from a real browser. This script starts a
 production build of Maxitor and the frozen reference graph, and runs the measurement tool
-(``packages/aoa-maxitor/client/scripts/measure-full-graph.ts``) once per case:
+(``packages/maxitor/client/scripts/measure-full-graph.ts``) once per case:
 
   1. the same picture as before the change — the settled canvas against the reference;
   2. the remembered arrangement — the repeat open reports its own bytes and first pixel;
   3. storage disabled — the page still draws both opens and logs no error;
   4. a dragged node does not move — the hover card appears, the drag leaves the canvas as it was.
 
-Requirements, one time: ``cd packages/aoa-maxitor/client && npm ci && npx playwright install chromium``,
-and a production build copied into ``packages/aoa-maxitor/src/aoa/maxitor/static`` as
-``quickstart.md`` §2–§3 does (``npm run build`` and ``cp -R dist ../src/aoa/maxitor/static``).
+Requirements, one time: ``cd packages/maxitor/client && npm ci && npx playwright install chromium``,
+and a production build copied into ``packages/maxitor/src/maxitor/viewer/static`` as
+``quickstart.md`` §2–§3 does (``npm run build`` and ``cp -R dist ../src/maxitor/viewer/static``).
 
 Output:
 
@@ -44,9 +44,9 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CLIENT = ROOT / "packages/aoa-maxitor/client"
+CLIENT = ROOT / "packages/maxitor/client"
 DATA = ROOT / "specs/026-full-graph-fast-open/data"
-STATIC = ROOT / "packages/aoa-maxitor/src/aoa/maxitor/static"
+STATIC = ROOT / "packages/maxitor/src/maxitor/viewer/static"
 FROZEN = ROOT / "specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz"
 GRAPH_PORT = 8765
 API_PORT = 8102

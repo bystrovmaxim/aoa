@@ -53,9 +53,9 @@ from fastapi.testclient import TestClient
 from aoa.action_machine.domain.relation_containers import AggregateMany, AssociationOne
 from aoa.action_machine.graph.field_type_label import field_type_label
 from aoa.demo.model.services.graph_json_service import ExampleModelGraphJsonService
-from aoa.maxitor.api.app import create_app
-from aoa.maxitor.api.graph_store import GraphEntry, GraphStore
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+from maxitor.viewer.api.app import create_app
+from maxitor.viewer.api.graph_store import GraphEntry, GraphStore
+from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 class Currency:

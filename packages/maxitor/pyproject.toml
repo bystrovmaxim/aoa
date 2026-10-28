@@ -1,0 +1,62 @@
+# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package, parts chosen by extras.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "maxitor"
+version = "3.0.0"
+description = "Maxitor: the AOA system viewer and its tools, one package with extras."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md"]
+requires-python = ">=3.12"
+authors = [{ name = "@Bystrov.Maxim" }]
+# Every part's code is in the wheel; an extra brings one part's dependencies.
+dependencies = []
+
+[project.optional-dependencies]
+# The viewer: Maxitor's server and its built front.
+viewer = [
+    "aoa-action-machine>=1.0.1a0",
+    "aoa-fastapi-adapter>=1.3.0",
+    "duckdb>=1.5,<2",
+    "httpx>=0.28,<1.0",
+    "uvicorn>=0.30",
+    "websockets>=15",
+]
+all = ["maxitor[viewer]"]
+
+[tool.uv.sources]
+aoa-action-machine = { workspace = true }
+aoa-fastapi-adapter = { workspace = true }
+
+[project.urls]
+Homepage = "https://github.com/action-machine/action-machine"
+Documentation = "https://action-machine.readthedocs.io"
+Repository = "https://github.com/action-machine/action-machine"
+
+[project.scripts]
+maxitor-api = "maxitor.launch:viewer"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/maxitor"]
+artifacts = ["src/maxitor/viewer/static/**/*"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "client/node_modules",
+  "client/node_modules/**",
+  "client/.vite",
+  "client/.vite/**",
+  # The saved graphs are the repository's history, not the package's (gnomon.toml).
+  "graphs",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]

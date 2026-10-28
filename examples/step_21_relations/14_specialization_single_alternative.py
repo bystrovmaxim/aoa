@@ -72,8 +72,8 @@ def main() -> None:
     """Run this one learning experiment."""
     import json
 
-    from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
-    from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+    from maxitor.viewer.model.diagrams.actions.list_entities_action import ListEntitiesAction
+    from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
     machine = ActionProductMachine(loggers=[])
     store = DuckDBGraphResource.build_from_json(json.loads(machine.graph_coordinator.to_json()))

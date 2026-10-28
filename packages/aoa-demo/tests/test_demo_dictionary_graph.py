@@ -6,9 +6,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from maxitor.viewer.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+
 from aoa.demo.model.interchange_demo_coordinator import build_registered_interchange_coordinator
-from aoa.maxitor.model.diagrams.actions.list_entities_action import ListEntitiesAction
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 def _graph() -> dict[str, Any]:

@@ -22,10 +22,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/aoa-maxitor/client/package-lock.json
+          cache-dependency-path: packages/maxitor/client/package-lock.json
 
       - name: Maxitor client — build
-        working-directory: packages/aoa-maxitor/client
+        working-directory: packages/maxitor/client
         run: |
           npm ci
           npm run build

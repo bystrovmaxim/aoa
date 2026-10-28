@@ -19,8 +19,8 @@ file = "packages/aoa-demo/graph.json"
 MAXITOR = """
 [[graph]]
 name = "maxitor"
-build = "uv run python -m aoa.maxitor.build_graph"
-file = "packages/aoa-maxitor/graph.json"
+build = "uv run python -m maxitor.viewer.build_graph"
+file = "packages/maxitor/graph.json"
 """
 
 
@@ -37,7 +37,7 @@ def test_a_valid_config_gives_its_graphs_in_order(tmp_path: Path) -> None:
     path = _config(tmp_path, MAXITOR + DEMO)
     repo = path.parent.resolve()
     assert read_config(path) == [
-        Graph("maxitor", repo, "uv run python -m aoa.maxitor.build_graph", repo / "packages/aoa-maxitor/graph.json"),
+        Graph("maxitor", repo, "uv run python -m maxitor.viewer.build_graph", repo / "packages/maxitor/graph.json"),
         Graph(
             "demo",
             repo / "packages/aoa-demo",
@@ -71,7 +71,7 @@ def test_paths_are_relative_to_the_config_not_to_the_caller(tmp_path: Path, monk
             "another graph has this name",
         ),
         (
-            DEMO + MAXITOR.replace("aoa-maxitor/graph.json", "aoa-demo/graph.json"),
+            DEMO + MAXITOR.replace("maxitor/graph.json", "aoa-demo/graph.json"),
             "maxitor",
             "file",
             "graph 'demo' is saved in this file too",
@@ -90,7 +90,7 @@ def test_a_wrong_graph_is_refused_by_graph_and_field(
 
 def test_two_paths_to_one_file_are_one_file(tmp_path: Path) -> None:
     """``./a/../graph.json`` and ``graph.json`` are the same file."""
-    text = MAXITOR.replace("packages/aoa-maxitor/graph.json", "graph.json") + DEMO.replace(
+    text = MAXITOR.replace("packages/maxitor/graph.json", "graph.json") + DEMO.replace(
         "packages/aoa-demo/graph.json", "./packages/../graph.json"
     )
     with pytest.raises(ConfigRefused, match="graph 'maxitor' is saved in this file too"):

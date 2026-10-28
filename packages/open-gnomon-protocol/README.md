@@ -122,4 +122,4 @@ A release of the protocol is the git tag `open-gnomon-protocol-v<version>`; its 
 |---|---|
 | **[maxitor-gnomon](../maxitor-gnomon/README.md)** | Reference implementation: the `gnomon` command that writes and checks a repository's graph files, and the `gnomon-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
 | **[AOA](https://github.com/bystrovmaxim/aoa)** | Producer: every AOA service exports its model in this format. |
-| **[Maxitor](../aoa-maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |
+| **[Maxitor](../maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |

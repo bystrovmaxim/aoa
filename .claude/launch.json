@@ -19,7 +19,7 @@
         "--extra",
         "dev",
         "uvicorn",
-        "aoa.maxitor.api.app:app",
+        "maxitor.viewer.api.app:app",
         "--host",
         "127.0.0.1",
         "--port",
@@ -34,7 +34,7 @@
         "run",
         "dev",
         "--prefix",
-        "packages/aoa-maxitor/client"
+        "packages/maxitor/client"
       ],
       "port": 5173
     }

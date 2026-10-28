@@ -23,7 +23,7 @@ MEMBERS = (
     "aoa-langgraph",
     "aoa-ocel",
     "aoa-otel",
-    "aoa-maxitor",
+    "maxitor",
     "aoa-demo",
     "maxitor-gnomon",
 )
@@ -36,7 +36,7 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-langgraph": "aoa-langgraph",
     "aoa-ocel": "aoa-ocel",
     "aoa-otel": "aoa-otel",
-    "aoa-maxitor": "aoa-maxitor",
+    "maxitor": "maxitor",
     "aoa-demo": "aoa-demo",
     "maxitor-gnomon": "maxitor-gnomon",
 }
@@ -49,23 +49,28 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-langgraph": frozenset({"aoa-action-machine"}),
     "aoa-ocel": frozenset({"aoa-action-machine"}),
     "aoa-otel": frozenset({"aoa-action-machine"}),
-    "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
+    "maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
     "aoa-demo": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
     "maxitor-gnomon": frozenset(),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     # The graph schema is AOA's own copy of the protocol's; AOA never depends on Maxitor's tools.
-    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-demo", "maxitor-gnomon"}),
-    "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-langgraph": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
-    "aoa-ocel": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-otel"}),
-    "aoa-otel": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
-    "aoa-maxitor": frozenset({"aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
-    "aoa-demo": frozenset({"aoa-maxitor", "aoa-langgraph"}),
+    "aoa-action-machine": frozenset({"maxitor", "aoa-demo", "maxitor-gnomon"}),
+    "aoa-fastapi-adapter": frozenset({"maxitor", "aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-mcp-adapter": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-langgraph": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),
+    "aoa-ocel": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-otel"}),
+    "aoa-otel": frozenset({"maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
+    "maxitor": frozenset({"aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
+    "aoa-demo": frozenset({"maxitor", "aoa-langgraph"}),
     # The graph format stands outside AOA: no ``aoa-*`` distribution at all.
     "maxitor-gnomon": frozenset(d for d in MEMBERS if d.startswith("aoa-")),
+}
+
+# Packages whose base install must stay free of ``aoa-*``: AOA comes only with the named extra.
+AOA_ONLY_IN_EXTRA: dict[str, str] = {
+    "maxitor": "viewer",
 }
 
 _NAME_RE = re.compile(r"^([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")
@@ -150,6 +155,10 @@ def check_all() -> list[str]:
         bad = sorted(aoa_deps & forbidden)
         if bad:
             errors.append(f"{dist}: forbidden dependency(ies): {bad}")
+        if dist in AOA_ONLY_IN_EXTRA:
+            base = _aoa_distribution_names([str(x) for x in project.get("dependencies") or []])
+            if base:
+                errors.append(f"{dist}: {sorted(base)} must come only with the extra {AOA_ONLY_IN_EXTRA[dist]!r}")
         extra = sorted(aoa_deps - required - forbidden)
         # Any other ``aoa-*`` (e.g. typos) should fail; ``aoa`` bare is also suspicious.
         suspicious = [x for x in extra if x.startswith("aoa-") or x == "aoa"]

@@ -21,9 +21,9 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
-future_roots = ["packages/aoa-maxitor/src/aoa/maxitor"]
-import_prefixes = ["maxitor", "aoa.maxitor"]
+current_roots = ["packages/maxitor/src/maxitor/viewer"]
+future_roots = ["packages/maxitor/src/maxitor/viewer"]
+import_prefixes = ["maxitor.viewer"]
 may_import = ["action_machine"]
 
 [packages.examples]
