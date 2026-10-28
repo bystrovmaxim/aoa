@@ -71,7 +71,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the full graph's layout is the same everywhere", () => {
+/**
+ * These tests lay out the whole reference graph, which takes a few seconds alone and longer when the
+ * check run keeps the machine busy. They check the layout's result, not its speed, so they get room
+ * beyond vitest's default 5 s limit.
+ */
+const WHOLE_GRAPH_TIMEOUT_MS = 20_000;
+
+describe("the full graph's layout is the same everywhere", { timeout: WHOLE_GRAPH_TIMEOUT_MS }, () => {
   it("(a) calls no Math.cos, Math.sin or Math.random", () => {
     const spies = [vi.spyOn(Math, "cos"), vi.spyOn(Math, "sin"), vi.spyOn(Math, "random")];
     computeForceLayout(REQUEST);
