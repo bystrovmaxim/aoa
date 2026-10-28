@@ -45,9 +45,9 @@
 
 **Independent Test**: quickstart §2 against the log of phase 2.
 
-- [ ] T007 [US2] In `scripts/check_run.py`: each step writes its output into its own file in a temporary folder; when all steps have ended, the log is written in the table's order — today's header, one block per step (`=== <name> ===`, `$ <command>`, blank, output, blank, `OK`/`FAIL` line with duration), today's footer with `Wall time` — exactly the format of contracts/check-run.md. The console keeps printing `> <name>` and the result line as each step starts and ends. The temporary folder is removed at the end.
-- [ ] T008 [US2] Verify: a clean run's log matches phase 2's apart from times; a step that prints nothing still has its block in place (check with a guard, which prints nothing when it passes). Record here.
-- [ ] T009 [US2] Prepare commit 3: `refactor(scripts): keep each step's output apart, join the log in order (#279)`; tick #279 phase 2.
+- [X] T007 [US2] In `scripts/check_run.py`: each step writes its output into its own file in a temporary folder; when all steps have ended, the log is written in the table's order — today's header, one block per step (`=== <name> ===`, `$ <command>`, blank, output, blank, `OK`/`FAIL` line with duration), today's footer with `Wall time` — exactly the format of contracts/check-run.md. The console keeps printing `> <name>` and the result line as each step starts and ends. The temporary folder is removed at the end. Done: each step writes into `<temporary folder>/<NN>.out`; `_write_log` joins header, blocks in table order and footer when every step has ended; the temporary folder goes with the run.
+- [X] T008 [US2] Verify: a clean run's log matches phase 2's apart from times; a step that prints nothing still has its block in place (check with a guard, which prints nothing when it passes). Record here. Done: green, 37 `OK`, wall 226.1 s. The log has the same 5436 lines as phase 2's (dates and times stripped); all 68 differing lines are changed lines of self-varying output (build hashes, gzip sizes, test and benchmark timings), none added or missing. The first guard prints nothing when it passes and its block stands in place, exactly as before. No `check-run-*` folder is left in the temporary directory.
+- [X] T009 [US2] Prepare commit 3: `refactor(scripts): keep each step's output apart, join the log in order (#279)`; tick #279 phase 2. Done: committed as commit 3; #279 phase 2 ticked.
 
 ---
 
