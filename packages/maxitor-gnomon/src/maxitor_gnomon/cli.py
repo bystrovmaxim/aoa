@@ -26,6 +26,7 @@ import json
 import os
 import sys
 from collections.abc import Callable, Sequence
+from importlib.resources import files
 from pathlib import Path
 
 from maxitor_gnomon import __version__
@@ -97,9 +98,9 @@ def _validate(source: str) -> int:
 
 
 def _skill() -> int:
-    """Print the setup skill for coding agents."""
-    print("no skill is shipped with this version of maxitor-gnomon yet", file=sys.stderr)
-    return 1
+    """Print the setup skill for coding agents, to be saved as ``<skills folder>/gnomon-setup/SKILL.md``."""
+    sys.stdout.write(files("maxitor_gnomon").joinpath("skills", "gnomon-setup", "SKILL.md").read_text(encoding="utf-8"))
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
