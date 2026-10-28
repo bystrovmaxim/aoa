@@ -1,9 +1,9 @@
-# Contract: the CI action `packages/maxitor/action.yml`
+# Contract: the CI action `packages/maxitor/tools/gnomon/action.yml`
 
 A composite GitHub Action. A project adds it with one step:
 
 ```yaml
-- uses: bystrovmaxim/aoa/packages/maxitor@<ref>
+- uses: bystrovmaxim/aoa/packages/maxitor/tools/gnomon@<ref>
 ```
 
 | Input | Default | Meaning |

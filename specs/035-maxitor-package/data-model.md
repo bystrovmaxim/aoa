@@ -15,8 +15,8 @@
 | Copy | Source | Used by |
 |---|---|---|
 | `packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json` | `graph/1.1.json` | `GRAPH_JSON_SCHEMA` — the export check |
-| `packages/maxitor/src/maxitor/gnomon/schemas/1.0.json` | `graph/1.0.json` | `graph_schema("1.0")`, `check_graph` |
-| `packages/maxitor/src/maxitor/gnomon/schemas/1.1.json` | `graph/1.1.json` | `graph_schema("1.1")`, `check_graph` |
+| `packages/maxitor/tools/gnomon/src/maxitor/gnomon/schemas/1.0.json` | `graph/1.0.json` | `graph_schema("1.0")`, `check_graph` |
+| `packages/maxitor/tools/gnomon/src/maxitor/gnomon/schemas/1.1.json` | `graph/1.1.json` | `graph_schema("1.1")`, `check_graph` |
 
 Invariant: every copy is byte for byte its source; `tests/scripts/test_schema_copies.py` fails otherwise, naming the copy and the source.
 
@@ -37,23 +37,23 @@ Invariant: every copy is byte for byte its source; `tests/scripts/test_schema_co
 | `gnomon` | the command, config and its schema, differences, writer, schema copies | standard library, `jsonschema`, `jsonschema_rs` | `aoa.*`, `maxitor.viewer` |
 | `viewer` | API, model (core, diagrams, rooms), samples, built front, `build_graph` | AOA (`action_machine`), `maxitor.gnomon` | — |
 | `skills` | `gnomon-setup/SKILL.md` | no code | — |
-| `launch` | `viewer()` entry | standard library at import time | — |
+| `viewer.launch` | `viewer()`, the `maxitor-api` entry | standard library at import time | — |
 
 ## Service graph file
 
 | Service | Build | File |
 |---|---|---|
-| viewer | `uv run --extra dev python -m maxitor.viewer.build_graph` | `packages/maxitor/graphs/viewer.json` |
+| maxitor (the application) | `uv run --extra dev python -m maxitor.viewer.build_graph` | `packages/maxitor/app/graph.json` |
 | demo (unchanged) | `uv run --extra dev python -m aoa.demo.build_graph` | `packages/aoa-demo/graph.json` |
 
-`gnomon.toml` names them `viewer` and `demo`. The viewer's graph after the move = the graph before, with every `aoa.maxitor` in an id or a reference replaced by `maxitor.viewer`, and nothing else.
+`gnomon.toml` names them `maxitor` and `demo`. The viewer's graph after the move = the graph before, with every `aoa.maxitor` in an id or a reference replaced by `maxitor.viewer`, and nothing else.
 
 ## Boundary rule (in `scripts/package_boundaries.toml`)
 
 | Key | Meaning |
 |---|---|
-| `[packages.maxitor]` `current_roots` | `packages/maxitor/src/maxitor/viewer` |
+| `[packages.maxitor]` `current_roots` | `packages/maxitor/app/src/maxitor/viewer` |
 | `[packages.maxitor]` `import_prefixes` | `maxitor.viewer` |
 | `[packages.maxitor]` `may_import` | `action_machine`, `gnomon` |
-| `[standalone.gnomon]` `roots` | `packages/maxitor/src/maxitor/gnomon` |
+| `[standalone.gnomon]` `roots` | `packages/maxitor/tools/gnomon/src/maxitor/gnomon` |
 | `[standalone.gnomon]` `forbid` (new) | `maxitor.viewer` — in addition to the existing ban on `aoa` |

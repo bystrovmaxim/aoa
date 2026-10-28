@@ -1,4 +1,4 @@
-# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package, parts chosen by extras.
+# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package from app/, tools/ and skills/, parts chosen by extras.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -43,26 +43,31 @@ Repository = "https://github.com/action-machine/action-machine"
 
 [project.scripts]
 gnomon = "maxitor.gnomon.cli:main"
-maxitor-api = "maxitor.launch:viewer"
+maxitor-api = "maxitor.viewer.launch:viewer"
 
+# One package from several folders: the application (app/), the tools (tools/<name>/) and the
+# skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
 [tool.hatch.build.targets.wheel]
-packages = ["src/maxitor"]
-artifacts = ["src/maxitor/viewer/static/**/*"]
+only-include = ["app/src/maxitor", "tools/gnomon/src/maxitor"]
+artifacts = ["app/src/maxitor/viewer/static/**/*"]
+dev-mode-dirs = ["app/src", "tools/gnomon/src"]
+
+[tool.hatch.build.targets.wheel.sources]
+"app/src" = ""
+"tools/gnomon/src" = ""
+
+[tool.hatch.build.targets.wheel.force-include]
+"skills" = "maxitor/skills"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-  "client/node_modules",
-  "client/node_modules/**",
-  "client/.vite",
-  "client/.vite/**",
-  # The saved graphs are the repository's history, not the package's (gnomon.toml).
-  "graphs",
+  "app/client/node_modules",
+  "app/client/node_modules/**",
+  "app/client/.vite",
+  "app/client/.vite/**",
+  # A service's saved graph is the repository's history, not the package's (gnomon.toml).
+  "app/graph.json",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-asyncio_mode = "auto"
-pythonpath = ["src"]

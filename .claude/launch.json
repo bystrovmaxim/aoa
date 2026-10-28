@@ -34,7 +34,7 @@
         "run",
         "dev",
         "--prefix",
-        "packages/maxitor/client"
+        "packages/maxitor/app/client"
       ],
       "port": 5173
     }

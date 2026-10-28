@@ -20,7 +20,7 @@ Decisions taken while planning #286. Each one: what was chosen, why, and what wa
 
 ## R3. The package's layout and the import rename
 
-**Decision**: `packages/maxitor/` with `src/maxitor/{__init__.py, gnomon/, viewer/, skills/}`, `client/`, `graphs/viewer.json`, `action.yml`, `tests/{gnomon,viewer}/`. `aoa.maxitor` → `maxitor.viewer` and `aoa/maxitor` → `maxitor/viewer` everywhere outside old specs; `maxitor_gnomon` → `maxitor.gnomon`. The move is done with `git mv` so history follows the files.
+**Decision**: `packages/maxitor/` with `src/maxitor/{__init__.py, gnomon/, viewer/, skills/}`, `client/`, `app/graph.json`, `action.yml`, `tests/{gnomon,viewer}/`. `aoa.maxitor` → `maxitor.viewer` and `aoa/maxitor` → `maxitor/viewer` everywhere outside old specs; `maxitor_gnomon` → `maxitor.gnomon`. The move is done with `git mv` so history follows the files.
 
 **Rationale**: the issue (1.2). 1 366 mentions of `aoa.maxitor` inside the viewer and about 40 files outside it (examples, docs evidence, `.vscode/launch.json`, `.claude/launch.json`, `gnomon.toml`, workflows) are a mechanical rename; doing it in one commit per part keeps each commit testable.
 
@@ -46,8 +46,8 @@ Commands: `gnomon = "maxitor.gnomon.cli:main"`, `maxitor-api = "maxitor.launch:v
 
 **Decision**: `scripts/package_boundaries.toml` describes the parts by their roots:
 
-- `[packages.maxitor]` — roots `packages/maxitor/src/maxitor/viewer`, import prefixes `maxitor.viewer`, `may_import = ["action_machine", "gnomon"]`;
-- `[standalone.gnomon]` — roots `packages/maxitor/src/maxitor/gnomon`, and a new key `forbid = ["maxitor.viewer"]` beside the existing ban on `aoa`;
+- `[packages.maxitor]` — roots `packages/maxitor/app/src/maxitor/viewer`, import prefixes `maxitor.viewer`, `may_import = ["action_machine", "gnomon"]`;
+- `[standalone.gnomon]` — roots `packages/maxitor/tools/gnomon/src/maxitor/gnomon`, and a new key `forbid = ["maxitor.viewer"]` beside the existing ban on `aoa`;
 - `gnomon` joins the canonical names so `maxitor.gnomon` imports from the viewer resolve.
 
 `check_package_boundaries.py` learns `forbid` and the nested import prefix (`maxitor.viewer`, `maxitor.gnomon`, today it resolves only `aoa.<name>` and `<name>`).
@@ -58,7 +58,7 @@ Commands: `gnomon = "maxitor.gnomon.cli:main"`, `maxitor-api = "maxitor.launch:v
 
 ## R6. One graph per service
 
-**Decision**: `graphs/viewer.json`, built by `python -m maxitor.viewer.build_graph`, which imports `maxitor.viewer.api.app` only. `gnomon.toml`'s Maxitor entry is renamed `viewer` and points there.
+**Decision**: `app/graph.json`, built by `python -m maxitor.viewer.build_graph`, which imports `maxitor.viewer.api.app` only. `gnomon.toml`'s Maxitor entry is renamed `viewer` and points there.
 
 **Rationale**: FR-011; the offers constitution's rule 60 (a service's graph comes from its own code). The viewer is today the package's only service; `repo_graph_port` (#288) will run inside it and join its graph.
 
@@ -70,7 +70,7 @@ Commands: `gnomon = "maxitor.gnomon.cli:main"`, `maxitor-api = "maxitor.launch:v
 
 ## R8. The CI action
 
-**Decision**: a composite action, `packages/maxitor/action.yml`, used as `uses: bystrovmaxim/aoa/packages/maxitor@<ref>`. Inputs: `config` (default `gnomon.toml`), `sync` (default `uv sync --all-extras`: the command that installs the project's environment, since builds run in it), `version` (default: the action's own ref's `maxitor`). Steps: `astral-sh/setup-uv`, the `sync` command, `uvx --from "maxitor==<version>" gnomon check --config <config>` — or, in this repository, the workspace's own `gnomon`.
+**Decision**: a composite action, `packages/maxitor/tools/gnomon/action.yml`, used as `uses: bystrovmaxim/aoa/packages/maxitor/tools/gnomon@<ref>`. Inputs: `config` (default `gnomon.toml`), `sync` (default `uv sync --all-extras`: the command that installs the project's environment, since builds run in it), `version` (default: the action's own ref's `maxitor`). Steps: `astral-sh/setup-uv`, the `sync` command, `uvx --from "maxitor==<version>" gnomon check --config <config>` — or, in this repository, the workspace's own `gnomon`.
 
 **Rationale**: FR-016; GitHub runs an action from a repository subfolder by `owner/repo/path@ref`. Builds need the project's environment, which only the project knows how to install, hence the `sync` input.
 
@@ -83,3 +83,9 @@ Commands: `gnomon = "maxitor.gnomon.cli:main"`, `maxitor-api = "maxitor.launch:v
 ## R10. Rules the code is written by
 
 The maintainer decided (2026-10-29) that Maxitor follows the AOA development rules of the offers project's constitution, rules 41–66, beside this repository's own constitution. For this change, which moves code rather than writing new actions, the ones that bite are 54 (a file named after its class — the new `launch.py` holds functions, no class) and 60 (R6). Rules 41–53 and 55–66 are untouched: no action, resource, adapter or context changes here.
+
+## R11. The layout by kind (the maintainer's correction, 2026-10-29)
+
+**Decision**: one pip package, `maxitor`, whose folder is laid out by kind, not by Python's needs: `app/` holds the application and only it (front, server `maxitor.viewer`, `graph.json`, Dockerfile, tests); `tools/<name>/` holds each tool with its own `src/` and `tests/` (`tools/gnomon/`, with its CI `action.yml`; `tools/gateway/` later, with its own `graph.json`); `skills/` holds the skills, apart from the code; `core/` will hold the code the application and the tools share (`core/repo_graph_port`, #288). `maxitor` is a namespace package: hatch's `sources` maps `app/src` and `tools/gnomon/src` onto the wheel's root, `force-include` puts `skills/` at `maxitor/skills`, and `dev-mode-dirs` lists both `src` folders for the editable install. A service keeps `graph.json` in its own folder. This supersedes the single `src/maxitor/` of R3, `graphs/viewer.json` of R6, and the action's path in R8.
+
+**Rationale**: commits 4–6 had made the application's folder the package's folder, so the command, the skill and the CI action ended up inside the application. A new tool now means one folder under `tools/`, one line in `pyproject.toml`, and its boundary rule; the application is not touched. Tried in a scratch project before the move: the wheel built through the sdist holds `maxitor/viewer`, `maxitor/gnomon` and `maxitor/skills`; the editable install imports both parts and carries a copy of the skills (it is refreshed by `uv sync --reinstall-package maxitor`).

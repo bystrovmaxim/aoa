@@ -22,10 +22,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/maxitor/client/package-lock.json
+          cache-dependency-path: packages/maxitor/app/client/package-lock.json
 
       - name: Maxitor client — build
-        working-directory: packages/maxitor/client
+        working-directory: packages/maxitor/app/client
         run: |
           npm ci
           npm run build
@@ -34,11 +34,13 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       # The graph files (gnomon.toml) must be what the code builds: CI only checks, the
-      # developer runs `gnomon write` and commits the files with the change.
+      # developer runs `gnomon write` and commits the files with the change. The step is
+      # maxitor's own action, the one other projects use; here it runs this checkout's gnomon.
       - name: Graph files are current (gnomon check)
-        run: |
-          uv sync --all-extras
-          uv run --extra dev gnomon check
+        uses: ./packages/maxitor/tools/gnomon
+        with:
+          sync: uv sync --all-extras
+          gnomon: uv run --extra dev gnomon
 
       - name: Check for uncommitted changes
         run: |
@@ -55,8 +57,9 @@ jobs:
           git log -1 --oneline
 
       - name: Check branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
         run: |
-          BRANCH="${{ github.head_ref }}"
           echo "🌿 Branch: $BRANCH"
           if [[ "$BRANCH" == "main" ]]; then
             echo "❌ Cannot PR directly from main"

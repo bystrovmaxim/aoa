@@ -14,7 +14,7 @@ Expect only `README.md`, `CHANGELOG.md`, `graph/1.0.json`, `graph/1.1.json`.
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest tests/scripts/test_schema_copies.py -q
 ```
-Adversarial: change one byte in `packages/maxitor/src/maxitor/gnomon/schemas/1.1.json` → this test fails naming the copy and its source, no other test fails; restore.
+Adversarial: change one byte in `packages/maxitor/tools/gnomon/src/maxitor/gnomon/schemas/1.1.json` → this test fails naming the copy and its source, no other test fails; restore.
 
 ## 3. A light install (SC-001)
 
@@ -29,12 +29,12 @@ Expect: a clean venv with only the `maxitor` wheel runs `gnomon check` on this r
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest packages/maxitor/tests -q
 ```
 ```bash
-cd /Users/bystrovmaxim/PythonDev/aoa && git show 03076a54:packages/aoa-maxitor/graph.json | sed 's/aoa\.maxitor/maxitor.viewer/g' | diff - packages/maxitor/graphs/viewer.json && echo "only the prefix changed"
+cd /Users/bystrovmaxim/PythonDev/aoa && git show 03076a54:packages/aoa-maxitor/graph.json | sed 's/aoa\.maxitor/maxitor.viewer/g' | diff - packages/maxitor/app/graph.json && echo "only the prefix changed"
 ```
 
 ## 5. Boundaries (SC-007)
 
-Add `import maxitor.viewer` to `packages/maxitor/src/maxitor/gnomon/cli.py`, then:
+Add `import maxitor.viewer` to `packages/maxitor/tools/gnomon/src/maxitor/gnomon/cli.py`, then:
 
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev python scripts/check_package_boundaries.py

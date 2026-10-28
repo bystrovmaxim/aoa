@@ -21,8 +21,8 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/maxitor/src/maxitor/viewer"]
-future_roots = ["packages/maxitor/src/maxitor/viewer"]
+current_roots = ["packages/maxitor/app/src/maxitor/viewer"]
+future_roots = ["packages/maxitor/app/src/maxitor/viewer"]
 import_prefixes = ["maxitor.viewer"]
 may_import = ["action_machine", "gnomon"]
 
@@ -39,6 +39,6 @@ allow = []
 # ``maxitor.gnomon`` is Maxitor's graph-file command, installed by ``pip install maxitor`` with no extra:
 # it imports nothing from ``aoa`` and nothing of the viewer, whose dependencies come only with ``[viewer]``.
 [standalone.gnomon]
-roots = ["packages/maxitor/src/maxitor/gnomon"]
+roots = ["packages/maxitor/tools/gnomon/src/maxitor/gnomon"]
 import_prefixes = ["maxitor.gnomon"]
 forbid = ["maxitor.viewer"]
