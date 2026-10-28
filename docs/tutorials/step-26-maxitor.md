@@ -155,11 +155,11 @@ gnomon = "1.0"
 
 [[graph]]
 name = "demo"
-build = "uv run --extra dev python -m aoa.demo.print_graph"
+build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
 ```
 
-`build` prints the graph — `aoa.demo.print_graph` is a few lines that register the demo's model and write `to_json()` — and `gnomon write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format and the command belong to [maxitor-gnomon](../../packages/maxitor-gnomon/README.md), which knows nothing about AOA; `GRAPH_JSON_SCHEMA` is read from there, schema version `1.1`.
+`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `gnomon write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format and the command belong to [maxitor-gnomon](../../packages/maxitor-gnomon/README.md), which knows nothing about AOA; `GRAPH_JSON_SCHEMA` is read from there, schema version `1.1`.
 
 How the graph travels with a pull request: you change the code; the check run's last step runs `gnomon write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `gnomon check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
 
