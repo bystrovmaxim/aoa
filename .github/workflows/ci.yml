@@ -2,8 +2,11 @@ name: CI
 
 on:
   pull_request:
+    # main, and the feature branches that sub-issues merge into before main
+    # (e.g. feature/issue-273-graph-history), so every step is checked on its way.
     branches:
       - main
+      - "feature/**"
 
 jobs:
   checks:
