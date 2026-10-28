@@ -109,7 +109,7 @@
 
 ## Phase 10: Changelog (commit 10) · #301 phase 7
 
-- [ ] T040 One article at the top of `docs/CHANGELOG.md`: a service now keeps its graph in a file that changes with every merge, a new package `maxitor-gnomon` holds the graph's format and works for any project, and three ways to set a project up — plain words, no technical detail; its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 10: `docs(changelog): <title> (#301)`; tick #301 phase 7.
+- [x] T040 One article at the top of `docs/CHANGELOG.md`: a service now keeps its graph in a file that changes with every merge, a new package `maxitor-gnomon` holds the graph's format and works for any project, and three ways to set a project up — plain words, no technical detail; its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 10: `docs(changelog): <title> (#301)`; tick #301 phase 7.
 
 ---
 
