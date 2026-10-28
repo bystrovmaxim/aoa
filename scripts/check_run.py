@@ -394,7 +394,8 @@ def main() -> int:
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
     header = _header()
-    _say(YELLOW, f"Full check run (cwd={REPO_ROOT}, up to {jobs} steps at once)...")
+    steps = "step" if jobs == 1 else "steps"
+    _say(YELLOW, f"Full check run (cwd={REPO_ROOT}, up to {jobs} {steps} at once)...")
     print()
     started = time.monotonic()
     interrupted = False

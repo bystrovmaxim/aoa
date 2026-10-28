@@ -70,8 +70,8 @@
 
 **Independent Test**: quickstart §6.
 
-- [ ] T014 [US4] Ten parallel runs in a row on a clean tree; record each run's result and wall time here. For every test that fails only in a parallel run: find what it shares (a fixed port, a shared file, a shared database, a time limit under load) and fix the test in its package's `tests/`; break-check the fix (restore the shared resource → that test fails again beside the others, and only it). A test that cannot be fixed here: its package's step gets `not_during` every other test step in `scripts/check_run.py`, with the reason in a comment.
-- [ ] T015 [US4] Prepare commit 5 with the test fixes: `test: let package suites run side by side (#279)`; tick #279 phase 4. If ten runs were green with no fix, there is nothing to commit: record that here and tick phase 4 with "no change needed".
+- [X] T014 [US4] Ten parallel runs in a row on a clean tree; record each run's result and wall time here. For every test that fails only in a parallel run: find what it shares (a fixed port, a shared file, a shared database, a time limit under load) and fix the test in its package's `tests/`; break-check the fix (restore the shared resource → that test fails again beside the others, and only it). A test that cannot be fixed here: its package's step gets `not_during` every other test step in `scripts/check_run.py`, with the reason in a comment. Done on `45530cf1`: ten parallel runs in a row, all green, 37 `OK` each — 86.3, 83.7, 84.6, 85.5, 84.0, 85.3, 85.7, 84.8, 85.0, 85.1 s (min 83.7, median 85.0, max 86.3). No test failed beside the others, so no test was changed and no package runs alone.
+- [X] T015 [US4] Prepare commit 5 with the test fixes: `test: let package suites run side by side (#279)`; tick #279 phase 4. If ten runs were green with no fix, there is nothing to commit: record that here and tick phase 4 with "no change needed". Done: ten green runs with no fix, nothing to commit; #279 phase 4 ticked "no change needed".
 
 ---
 
@@ -79,19 +79,19 @@
 
 **Goal**: the parallel run ships only if it is green and faster (FR-012, SC-002).
 
-- [ ] T016 Two parallel runs on the same clean tree and machine as T005; record per-step and wall times beside the baseline here. If both are green and faster: post the comparison on #279 when the maintainer says so, and tick #279 phase 5. If not: write here what stood in the way and stop for the maintainer's decision — FR-012 then keeps only phases 2–3 (timing and the joined log) and drops phase 4's scheduling.
+- [X] T016 Two parallel runs on the same clean tree and machine as T005; record per-step and wall times beside the baseline here. If both are green and faster: post the comparison on #279 when the maintainer says so, and tick #279 phase 5. If not: write here what stood in the way and stop for the maintainer's decision — FR-012 then keeps only phases 2–3 (timing and the joined log) and drops phase 4's scheduling. Done on `45530cf1`: both green — 85.5 s and 85.1 s against the baseline's 220.7 s and 218.2 s, 2.6× faster (134 s less per run). Longest chain: auto-fix 0.1 s, client build 22.0 s, three-engine layout 62.4 s. Decision (FR-012): ships. Comparison posted on #279 (https://github.com/bystrovmaxim/aoa/issues/279#issuecomment-6465639404); #279 phase 5 ticked.
 
 ---
 
 ## Phase 7: The check run (commit 6) · #279 phase 6
 
-- [ ] T017 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 6: `chore: take the check run to zero (#279)`. If the first run is already clean there is nothing to commit; record that here.
+- [X] T017 Run `bash scripts/run_checks_with_log.sh` and take it to zero — only the two accepted remarks stay; prepare commit 6: `chore: take the check run to zero (#279)`. If the first run is already clean there is nothing to commit; record that here. Done: the first run on `45530cf1` is clean — 37 `OK` in 86.0 s (Ruff twice, mypy on 890 files, pylint 10.00/10, every package's tests); the auto-fix changed nothing; the log holds only the two accepted remarks (the Vite chunk-size advisory and LangGraph's pending-deprecation warning). Nothing to commit.
 
 ---
 
 ## Phase 8: Documentation (commit 7) · #279 phase 6
 
-- [ ] T018 Write `docs/how-to/run-the-checks.md` — the maintainer's decision: the page alone, no `examples/` script and no notebook (plan, VI.5). It shows, each as the command and what it really printed: a normal run and how its log is laid out; the groups and what waits for what; the limit, its default and `AOA_CHECK_JOBS=1`; an invalid limit; a failing step and how to find it in the log; an interrupt. Link it from `docs/index.md` where the how-to pages are listed. The Russian draft beside it (`docs/how-to/run-the-checks.ru_draft.md`, not committed). Prepare commit 7: `docs(how-to): run the checks (#279)`.
+- [X] T018 Write `docs/how-to/run-the-checks.md` — the maintainer's decision: the page alone, no `examples/` script and no notebook (plan, VI.5). It shows, each as the command and what it really printed: a normal run and how its log is laid out; the groups and what waits for what; the limit, its default and `AOA_CHECK_JOBS=1`; an invalid limit; a failing step and how to find it in the log; an interrupt. Link it from `docs/index.md` where the how-to pages are listed. The Russian draft beside it (`docs/how-to/run-the-checks.ru_draft.md`, not committed). Prepare commit 7: `docs(how-to): run the checks (#279)`. Done: `docs/how-to/run-the-checks.md` — a normal run, how the log reads, what runs together and what waits, the limit and `AOA_CHECK_JOBS=1`, an invalid limit, a failing step and finding it with `grep -n "^FAIL"`, stopping a run, exit codes — every output taken from real runs on this branch; linked from `docs/index.md` (and the Russian index draft). While capturing the outputs, the console's "up to 1 steps at once" became "up to 1 step at once" in `scripts/check_run.py`. The Russian draft beside the page.
 
 ---
 
