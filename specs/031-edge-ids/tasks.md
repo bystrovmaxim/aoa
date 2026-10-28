@@ -84,7 +84,7 @@
 
 ## Phase 5: Changelog (commit 5)
 
-- [ ] T024 One article at the top of `docs/CHANGELOG.md` about what this work gives: the edges of a graph have names, so two versions can be compared edge by edge, and what changes for whoever reads graph files (format 1.1, files of 1.0 still readable) — plain words, no technical detail, no per-file account (constitution VI); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 5: `docs(changelog): every edge of the graph has a name (#285)`. Tick issue phase 2.
+- [X] T024 One article at the top of `docs/CHANGELOG.md` about what this work gives: the edges of a graph have names, so two versions can be compared edge by edge, and what changes for whoever reads graph files (format 1.1, files of 1.0 still readable) — plain words, no technical detail, no per-file account (constitution VI); its Russian version in `docs/CHANGELOG.ru_draft.md`. Prepare commit 5: `docs(changelog): every edge of the graph has a name (#285)`. Tick issue phase 2. Done: "Every edge of the graph has a name", with its Russian version in `CHANGELOG.ru_draft.md`.
 
 ---
 
