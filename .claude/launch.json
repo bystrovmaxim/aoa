@@ -4,13 +4,38 @@
     {
       "name": "design-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8899"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8899"
+      ],
       "port": 8899
+    },
+    {
+      "name": "maxitor-api",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "--extra",
+        "dev",
+        "uvicorn",
+        "aoa.maxitor.api.app:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
+      "port": 8000
     },
     {
       "name": "maxitor-client",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "packages/aoa-maxitor/client"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "packages/aoa-maxitor/client"
+      ],
       "port": 5173
     }
   ]
