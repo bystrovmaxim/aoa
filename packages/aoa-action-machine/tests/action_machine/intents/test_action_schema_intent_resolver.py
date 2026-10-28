@@ -23,3 +23,22 @@ def test_resolve_schema_types_raise_without_action_generic() -> None:
         ActionSchemaIntentResolver.resolve_params_type(NoActionSchema)
     with pytest.raises(ActionResultDeclarationError, match="Failed to resolve result type"):
         ActionSchemaIntentResolver.resolve_result_type(NoActionSchema)
+
+
+def test_string_generic_arguments_resolve_on_python_3_12_3(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``BaseAction["X.Params", "X.Result"]`` resolves where ``ForwardRef._evaluate`` has no ``type_params`` (3.12.0–3.12.3)."""
+    import typing
+
+    from aoa.action_machine.intents.action_schema import action_schema_intent_resolver as resolver
+
+    from ..adapters.json_schema_adapter_fixtures import AdapterTestAction
+
+    current = typing.ForwardRef._evaluate
+
+    def evaluate_before_3_12_4(self, globalns, localns, recursive_guard):  # the signature 3.12.0–3.12.3 had
+        return current(self, globalns, localns, (), recursive_guard=recursive_guard)
+
+    monkeypatch.setattr(typing.ForwardRef, "_evaluate", evaluate_before_3_12_4)
+    monkeypatch.setattr(resolver, "_EVALUATE_TAKES_TYPE_PARAMS", False)
+    assert ActionSchemaIntentResolver.resolve_params_type(AdapterTestAction) is AdapterTestAction.Params
+    assert ActionSchemaIntentResolver.resolve_result_type(AdapterTestAction) is AdapterTestAction.Result
