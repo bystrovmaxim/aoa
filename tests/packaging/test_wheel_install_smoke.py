@@ -105,12 +105,14 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
-    _uv_pip_install(vpy, [_latest_wheel("aoa-action-machine")])
+    _uv_pip_install(vpy, [_latest_wheel("aoa-action-machine"), _latest_wheel("maxitor-gnomon")])
     _run_in_venv(
         vpy,
         "import importlib.util as u; import aoa.action_machine; "
         "from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode; "
         "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
+        "from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA; "
+        "assert GRAPH_JSON_SCHEMA['properties']['schema_version'] == {'const': '1.1'}; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.otel') is None; "
@@ -140,6 +142,7 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         vpy,
         [
             _latest_wheel("aoa-action-machine"),
+            _latest_wheel("maxitor-gnomon"),
             _latest_wheel("aoa-ocel"),
             _latest_wheel("aoa-demo"),
         ],
