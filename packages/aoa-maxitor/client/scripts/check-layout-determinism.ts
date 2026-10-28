@@ -1,7 +1,8 @@
 // packages/aoa-maxitor/client/scripts/check-layout-determinism.ts
 /**
  * check-layout-determinism — prove that every diagram is laid out to the same bits in Chromium,
- * Firefox and WebKit, on a phone-sized and a desktop-sized screen (spec 028, FR-006).
+ * Firefox and WebKit, on a phone-sized and a desktop-sized screen (spec 028, FR-006). The engines,
+ * and both screen sizes within each engine, lay out at the same time.
  *
  * The check run runs it after the client's build. It serves the built client and the frozen
  * reference graph, proxies the API to a real Maxitor started for the purpose, opens every page
@@ -12,20 +13,21 @@
  *
  * Nothing is added to the client for it: the hash on the element is the one the room reads.
  *
- * It then proves SC-003 in a real room: in each engine a desktop page opens a room on the ERD of all
- * domains and a phone page joins it. The desktop's mouse rests on a node's centre, and the phone must
- * draw that arrow within 2 px of the same node's centre on its own screen, before and after either
- * page zooms. A phone has no cursor, only touches: its tap on a node must show on the desktop as a
- * ring centred on the same node, within the same 2 px.
+ * Beside it, it proves SC-003 in a real room: in each engine a desktop page opens a room on the ERD
+ * of all domains and a phone page joins it. The desktop's mouse rests on a node's centre, and the
+ * phone must draw that arrow within 2 px of the same node's centre on its own screen, before and
+ * after either page zooms. A phone has no cursor, only touches: its tap on a node must show on the
+ * desktop as a ring centred on the same node, within the same 2 px.
  *
- * Last, following in every directed pair of engines (spec 029, FR-015): one browser opens a room,
- * a browser of another engine joins and follows it. The leader drags the ERD and stops; the
- * follower's screen must then be centred on the leader's diagram point within 2 px. The leader
- * rests the mouse on a table; the follower must light the same table within half a second (SC-002).
- * There, too, the leader's circles must not touch (spec 029, FR-051): its own ring, the count of
- * its follower and a focus ring on the follower's circle all drawn at once. The leader's name is
- * 40 characters, the longest a name may be, and the follower's card for it must keep its buttons
- * inside the card without one running into another (FR-052).
+ * After both, following in every directed pair of engines (spec 029, FR-015), all six pairs at
+ * once, each in its own room: one browser opens a room, a browser of another engine joins and
+ * follows it. The leader drags the ERD and stops; the follower's screen must then be centred on the
+ * leader's diagram point within 2 px. The leader rests the mouse on a table; the follower must
+ * light the same table within half a second (SC-002). There, too, the leader's circles must not
+ * touch (spec 029, FR-051): its own ring, the count of its follower and a focus ring on the
+ * follower's circle all drawn at once. The leader's name is 40 characters, the longest a name may
+ * be, and the follower's card for it must keep its buttons inside the card without one running into
+ * another (FR-052).
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -243,7 +245,16 @@ async function hashesOfPage(page: Page, url: string): Promise<Record<string, str
   return result;
 }
 
-/** Lay out every page in one engine at every viewport, keyed "page | mode" → "engine viewport" → hash. */
+/** The name of one engine's run at one viewport, as the report shows it: "firefox 1600x900". */
+function runName(engine: string, viewport: { name: string }): string {
+  return `${engine} ${viewport.name}`;
+}
+
+/**
+ * Lay out every page in one engine at every viewport — both viewports at once, each in its own
+ * fresh context — keyed "page | mode" → run → hash. ``seen`` records, per run and per page, the
+ * keys in the order the page listed its modes, so the report's order never depends on timing.
+ */
 async function runEngine(
   name: string,
   engine: BrowserType,
@@ -251,30 +262,38 @@ async function runEngine(
   source: string,
   targets: Target[],
   results: Map<string, Map<string, string>>,
+  seen: Map<string, string[][]>,
 ): Promise<void> {
   const browser: Browser = await engine.launch();
   try {
-    for (const viewport of VIEWPORTS) {
-      // A fresh context per viewport: no remembered arrangement, so every full graph is laid out.
-      const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
-      const page = await context.newPage();
-      for (const target of targets) {
-        const query = new URLSearchParams({ source, ...target.query });
-        const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`);
-        for (const [mode, hash] of Object.entries(hashes)) {
-          const key = `${target.label} | ${mode}`;
-          if (!results.has(key)) results.set(key, new Map());
-          results.get(key)!.set(`${name} ${viewport.name}`, hash);
+    await allEnded(
+      VIEWPORTS.map(async (viewport) => {
+        // A fresh context per viewport: no remembered arrangement, so every full graph is laid out.
+        const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
+        const page = await context.newPage();
+        const run = runName(name, viewport);
+        const keysByTarget: string[][] = [];
+        seen.set(run, keysByTarget);
+        for (const target of targets) {
+          const query = new URLSearchParams({ source, ...target.query });
+          const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`);
+          const keys: string[] = [];
+          for (const [mode, hash] of Object.entries(hashes)) {
+            const key = `${target.label} | ${mode}`;
+            keys.push(key);
+            if (!results.has(key)) results.set(key, new Map());
+            results.get(key)!.set(run, hash);
+          }
+          keysByTarget.push(keys);
         }
-      }
-      await context.close();
-    }
+        await context.close();
+      }),
+    );
   } finally {
     await browser.close();
   }
 }
 
-/** Enter a name in the room dialog and confirm it. */
 async function confirmName(page: Page, name: string): Promise<void> {
   await page.locator("#room-name-input").fill(name);
   await domClick(page, 'form button[type="submit"]');
@@ -522,21 +541,55 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
 }
 
 /** Check every page and mode; print one line each; return whether all of them agree. */
-function report(results: Map<string, Map<string, string>>): boolean {
-  const expected = ENGINES.length * VIEWPORTS.length;
+/**
+ * Print one line per page and mode — pages in the left panel's order, modes in the order the
+ * page lists them — and, for a difference, every run in engine-then-viewport order.
+ */
+function report(results: Map<string, Map<string, string>>, seen: Map<string, string[][]>, targetCount: number): boolean {
+  const runs = ENGINES.flatMap(([name]) => VIEWPORTS.map((viewport) => runName(name, viewport)));
+  const keys: string[] = [];
+  for (let target = 0; target < targetCount; target++) {
+    for (const run of runs) {
+      for (const key of seen.get(run)?.[target] ?? []) if (!keys.includes(key)) keys.push(key);
+    }
+  }
   let ok = true;
-  for (const [key, byRun] of results) {
+  for (const key of keys) {
+    const byRun = results.get(key)!;
     const distinct = new Set(byRun.values());
-    if (distinct.size === 1 && byRun.size === expected) {
+    if (distinct.size === 1 && byRun.size === runs.length) {
       console.log(`ok    ${key}  ${[...distinct][0].slice(0, 16)}`);
       continue;
     }
     ok = false;
     console.log(`DIFF  ${key}`);
-    for (const [run, hash] of byRun) console.log(`        ${run}: ${hash.slice(0, 16)}`);
-    if (byRun.size !== expected) console.log(`        ${expected - byRun.size} run(s) gave no hash`);
+    for (const run of runs) if (byRun.has(run)) console.log(`        ${run}: ${byRun.get(run)!.slice(0, 16)}`);
+    if (byRun.size !== runs.length) console.log(`        ${runs.length - byRun.size} run(s) gave no hash`);
   }
   return ok;
+}
+
+/**
+ * Wait until every promise has settled, then return their values in order — or throw the first
+ * failure. Nothing is left running when the step stops on an error.
+ */
+async function allEnded<T>(promises: Promise<T>[]): Promise<T[]> {
+  const settled = await Promise.allSettled(promises);
+  const failed = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (failed) throw failed.reason;
+  return settled.map((result) => (result as PromiseFulfilledResult<T>).value);
+}
+
+/** Run ``work`` and return its value with how long it took, in seconds to a tenth. */
+async function timed<T>(work: () => Promise<T>): Promise<{ value: T; seconds: string }> {
+  const since = Date.now();
+  const value = await work();
+  return { value, seconds: seconds(since) };
+}
+
+/** Seconds since ``since``, to a tenth. */
+function seconds(since: number): string {
+  return ((Date.now() - since) / 1000).toFixed(1);
 }
 
 /** Serve, start Maxitor, lay out everywhere, compare. */
@@ -552,9 +605,31 @@ async function main(): Promise<void> {
     const source = `${frontUrl}/graph-json`;
     const targets = await listTargets(frontUrl, source);
     const results = new Map<string, Map<string, string>>();
-    await Promise.all(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results)));
-    ok = report(results);
-    const offsets = await Promise.all(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source)));
+    const seen = new Map<string, string[][]>();
+    // Layout hashes and the pointer cases run at once; following runs after them, because its 500 ms
+    // hover limit was missed with every part's browsers open together. Each part opens its own
+    // browsers and rooms, and all print afterwards in their fixed order.
+    const pairs = ENGINES.flatMap(([leadName, leadEngine]) =>
+      ENGINES.filter(([followName]) => followName !== leadName).map(([followName, followEngine]) => ({
+        leadName,
+        followName,
+        leadEngine,
+        followEngine,
+      })),
+    );
+    const layoutRun = timed(() =>
+      allEnded(ENGINES.map(([name, engine]) => runEngine(name, engine, frontUrl, source, targets, results, seen))),
+    );
+    const pointerRun = timed(() => allEnded(ENGINES.map(([, engine]) => pointerCase(engine, frontUrl, source))));
+    await allEnded<unknown>([layoutRun, pointerRun]);
+    const [layout, pointers] = [await layoutRun, await pointerRun];
+    // Following in every directed pair of engines, all pairs at once — each opens its own room.
+    const following = await timed(() =>
+      allEnded(pairs.map((pair) => followCase(pair.leadEngine, pair.followEngine, frontUrl, source))),
+    );
+    const [partASeconds, partBSeconds, partCSeconds] = [layout.seconds, pointers.seconds, following.seconds];
+    ok = report(results, seen, targets.length);
+    const offsets = pointers.value;
     // Steps: arrow; arrow after the phone zooms; arrow after the desktop zooms; the phone's tap.
     ENGINES.forEach(([name], i) => {
       const largest = Math.max(...offsets[i]);
@@ -563,18 +638,18 @@ async function main(): Promise<void> {
       const steps = offsets[i].map((o) => o.toFixed(3)).join(" / ");
       console.log(`${fits ? "ok  " : "DIFF"}  pointer in a room | ${name}  largest offset ${largest.toFixed(3)} px (${steps})`);
     });
-    // Following in every directed pair of engines, one pair at a time.
-    for (const [leadName, leadEngine] of ENGINES) {
-      for (const [followName, followEngine] of ENGINES) {
-        if (leadName === followName) continue;
-        const { apartPx, hoverMs, gapPx, cardPx } = await followCase(leadEngine, followEngine, frontUrl, source);
-        const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
-        ok &&= fits;
-        console.log(
-          `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
-        );
-      }
-    }
+    const outcomes = following.value;
+    pairs.forEach(({ leadName, followName }, i) => {
+      const { apartPx, hoverMs, gapPx, cardPx } = outcomes[i];
+      const fits = apartPx <= POINTER_TOLERANCE_PX && hoverMs <= FOLLOW_HOVER_MS && gapPx > 0 && cardPx <= 0.5;
+      ok &&= fits;
+      console.log(
+        `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
+      );
+    });
+    console.log(`part A (layout hashes) ${partASeconds} s`);
+    console.log(`part B (pointer in a room) ${partBSeconds} s`);
+    console.log(`part C (following) ${partCSeconds} s`);
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );
