@@ -70,7 +70,14 @@ function runLibrary(layoutOptions: Record<string, unknown>): Map<string, [number
   return positions;
 }
 
-describe("the full graph's layout", () => {
+/**
+ * These tests lay out the whole reference graph, which takes a few seconds alone and longer when the
+ * check run keeps the machine busy. They check the layout's result, not its speed, so they get room
+ * beyond vitest's default 5 s limit.
+ */
+const WHOLE_GRAPH_TIMEOUT_MS = 20_000;
+
+describe("the full graph's layout", { timeout: WHOLE_GRAPH_TIMEOUT_MS }, () => {
   it("equals the library's own merge of the settings for every node", () => {
     const reference = runLibrary(literalLayout());
     const actual = computeForceLayout({ nodes: NODE_IDS, edges: EDGES, nodeVisualPx: NODE_VISUAL_PX });
