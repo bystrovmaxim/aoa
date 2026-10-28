@@ -1,0 +1,1476 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor-gnomon/protocol/graph/1.0.json",
+  "title": "Gnomon node graph JSON schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/vertex"
+      },
+      "uniqueItems": true
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    }
+  },
+  "$defs": {
+    "json_value": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json_value"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json_value"
+          }
+        }
+      ]
+    },
+    "base_properties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/json_value"
+      }
+    },
+    "vertex": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/action"
+        },
+        {
+          "$ref": "#/$defs/application"
+        },
+        {
+          "$ref": "#/$defs/domain"
+        },
+        {
+          "$ref": "#/$defs/entity"
+        },
+        {
+          "$ref": "#/$defs/entity_field"
+        },
+        {
+          "$ref": "#/$defs/resource"
+        },
+        {
+          "$ref": "#/$defs/params"
+        },
+        {
+          "$ref": "#/$defs/result"
+        },
+        {
+          "$ref": "#/$defs/field"
+        },
+        {
+          "$ref": "#/$defs/property_field"
+        },
+        {
+          "$ref": "#/$defs/regular_aspect"
+        },
+        {
+          "$ref": "#/$defs/summary_aspect"
+        },
+        {
+          "$ref": "#/$defs/compensator"
+        },
+        {
+          "$ref": "#/$defs/access_decide"
+        },
+        {
+          "$ref": "#/$defs/error_handler"
+        },
+        {
+          "$ref": "#/$defs/checker"
+        },
+        {
+          "$ref": "#/$defs/required_context_vertex"
+        },
+        {
+          "$ref": "#/$defs/lifecycle_vertex"
+        },
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "$ref": "#/$defs/sensitive"
+        },
+        {
+          "$ref": "#/$defs/role"
+        }
+      ]
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "label",
+        "properties"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "$ref": "#/$defs/base_properties"
+        }
+      }
+    },
+    "action": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Action"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "application": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Application"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "description"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "domain": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Domain"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "description"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Entity"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description",
+                "entity_kind"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "entity_kind": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[a-z][a-z0-9_]*$",
+                  "description": "The kind word of the kind base class the entity inherits, taken from that class's name: BaseCoreEntity -> core. AOA's own model declares six; the value is open so that a graph from any producer can state a kind this engine does not know. AOA checks the declaration of a kind at class creation, not here."
+                },
+                "entity_kind_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The display name the kind base class declares for its kind: BaseAssocEntity -> Association. Optional on the wire, so that a producer with no names stays valid; AOA always writes it."
+                },
+                "values": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "The values a closed dictionary declares; required for the enum kind and absent for every other kind.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code",
+                      "display_name",
+                      "properties"
+                    ],
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "properties": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "if": {
+            "required": [
+              "properties"
+            ],
+            "properties": {
+              "properties": {
+                "required": [
+                  "entity_kind"
+                ],
+                "properties": {
+                  "entity_kind": {
+                    "const": "enum"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "properties": {
+                "required": [
+                  "values"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_field": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "EntityField"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_type",
+                "primary_key_hint"
+              ],
+              "properties": {
+                "field_type": {
+                  "type": "string",
+                  "description": "The type as one clean name a diagram shows (str | None, X, X[])."
+                },
+                "field_annotation": {
+                  "type": "string",
+                  "description": "The full annotation as Python spells it, for a tooltip."
+                },
+                "primary_key_hint": {
+                  "type": "boolean",
+                  "description": "Heuristic (field name == id); not database or schema authority."
+                },
+                "reference_qualname": {
+                  "type": "string",
+                  "description": "Interchange qualname of the closed dictionary this field references; absent for a scalar field."
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "resource": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Resource"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "params": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Params"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Result"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "field": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Field"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "required",
+                "description",
+                "json_schema_value",
+                "entity_schema"
+              ],
+              "properties": {
+                "required": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "json_schema_value": {
+                  "type": "boolean"
+                },
+                "entity_schema": {
+                  "type": "boolean"
+                },
+                "json_schema_name": {
+                  "type": "string"
+                },
+                "json_schema": {
+                  "$ref": "#/$defs/json_value"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "property_field": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "PropertyField"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "required",
+                "entity_schema"
+              ],
+              "properties": {
+                "required": {
+                  "type": "boolean"
+                },
+                "entity_schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "regular_aspect": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "RegularAspect"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "summary_aspect": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "SummaryAspect"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "compensator": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Compensator"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "target_aspect_name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "access_decide": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "AccessDecide"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "error_handler": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "ErrorHandler"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "exception_types": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "checker": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Checker"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/json_value"
+              },
+              "required": [
+                "TypeChecker",
+                "required"
+              ],
+              "properties": {
+                "TypeChecker": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "required_context_vertex": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "RequiredContext"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle_vertex": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Lifecycle"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "state": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "StateInitial",
+                "StateIntermediate",
+                "StateFinal"
+              ]
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lifecycle_class_id",
+                "state_key"
+              ],
+              "properties": {
+                "lifecycle_class_id": {
+                  "type": "string"
+                },
+                "state_key": {
+                  "type": "string"
+                },
+                "attributes": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sensitive": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Sensitive"
+            },
+            "properties": {
+              "$ref": "#/$defs/base_properties"
+            }
+          }
+        }
+      ]
+    },
+    "role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Role"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role_mode"
+              ],
+              "properties": {
+                "role_mode": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "relationship": {
+      "type": "string",
+      "enum": [
+        "Access",
+        "Aggregation",
+        "Assignment",
+        "Association",
+        "Composition",
+        "Flow",
+        "Generalization",
+        "Realization",
+        "Serving",
+        "Specialization",
+        "Triggering"
+      ]
+    },
+    "link_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "target_id",
+        "type",
+        "relationship",
+        "is_dag",
+        "properties"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relationship": {
+          "$ref": "#/$defs/relationship"
+        },
+        "is_dag": {
+          "type": "boolean"
+        },
+        "properties": {
+          "$ref": "#/$defs/base_properties"
+        }
+      }
+    },
+    "link": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/empty_properties"
+        },
+        {
+          "$ref": "#/$defs/parent_action"
+        },
+        {
+          "$ref": "#/$defs/parent_role"
+        },
+        {
+          "$ref": "#/$defs/parent_domain"
+        },
+        {
+          "$ref": "#/$defs/depends"
+        },
+        {
+          "$ref": "#/$defs/connection"
+        },
+        {
+          "$ref": "#/$defs/required_context_binding"
+        },
+        {
+          "$ref": "#/$defs/entity_relation"
+        },
+        {
+          "$ref": "#/$defs/entity_reference"
+        },
+        {
+          "$ref": "#/$defs/entity_specialization"
+        },
+        {
+          "$ref": "#/$defs/parent_entity"
+        },
+        {
+          "$ref": "#/$defs/entity_view"
+        },
+        {
+          "$ref": "#/$defs/entity_field_link"
+        },
+        {
+          "$ref": "#/$defs/lifecycle_binding"
+        },
+        {
+          "$ref": "#/$defs/lifecycle_state"
+        },
+        {
+          "$ref": "#/$defs/lifecycle_transition"
+        },
+        {
+          "$ref": "#/$defs/sensitive_or_state"
+        }
+      ]
+    },
+    "empty_properties": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "application",
+                "domain",
+                "generic:params",
+                "generic:result",
+                "@check_roles",
+                "@regular_aspect",
+                "@summary_aspect",
+                "@compensate",
+                "@access_decide",
+                "@on_error",
+                "@result_checker",
+                "entity_schema",
+                "field",
+                "property"
+              ]
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_action": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_action"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_role": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_role"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "parent_domain": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_domain"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "depends": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "@depends"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "include",
+                    "extend"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "connection": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "@connection"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "required_context_binding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "@required_context"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_relation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_relation"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "relation_type",
+                "cardinality",
+                "description",
+                "has_inverse",
+                "deprecated"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string"
+                },
+                "relation_type": {
+                  "type": "string"
+                },
+                "cardinality": {
+                  "type": "string"
+                },
+                "optional": {
+                  "type": "boolean",
+                  "description": "Whether the relation may hold nothing: its annotation admits None, or it defaults to None."
+                },
+                "description": {
+                  "type": "string"
+                },
+                "has_inverse": {
+                  "type": "boolean"
+                },
+                "deprecated": {
+                  "type": "boolean"
+                },
+                "inverse_entity_id": {
+                  "type": "string"
+                },
+                "inverse_field": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_reference": {
+      "allOf": [{"$ref": "#/$defs/link_row"}, {
+        "properties": {
+          "type": {"const": "entity_reference"},
+          "properties": {"type": "object", "additionalProperties": false, "required": ["field_name", "cardinality"],
+            "properties": {"field_name": {"type": "string"}, "cardinality": {"type": "string"}}}
+        }
+      }]
+    },
+    "entity_specialization": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_specialization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "classifier_value",
+                "alternative_index",
+                "alternatives",
+                "labels",
+                "relation_type",
+                "cardinality",
+                "description",
+                "has_inverse",
+                "deprecated"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The head's field; the key a consumer groups the cluster by."
+                },
+                "classifier_field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The field whose value selects among the alternatives; absent on an axis classified by a dictionary, because the head has no classifier field."
+                },
+                "dictionary_qualname": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Interchange qualname of the closed dictionary the axis borrows its codes from."
+                },
+                "dictionary_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The dictionary's label, so a consumer can caption the axis without resolving the qualname."
+                },
+                "classifier_value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The code that selects this edge's own target."
+                },
+                "alternative_index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Position of this alternative in the declared order."
+                },
+                "alternatives": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "\"<code> -> <entity qualname>\" for every alternative, in declaration order, repeated on each edge so one row carries the whole declaration."
+                },
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Display name per alternative, same order as `alternatives`: \"Class (code)\", the shared `Entity` suffix dropped. Display only — nothing resolves a class from it."
+                },
+                "relation_type": {
+                  "const": "specialization"
+                },
+                "cardinality": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "\"one\": exactly one of the cluster applies to a row."
+                },
+                "description": {
+                  "type": "string"
+                },
+                "has_inverse": {
+                  "type": "boolean"
+                },
+                "deprecated": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "parent_entity": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "parent_entity"
+            },
+            "relationship": {
+              "const": "Generalization"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "inverse_field",
+                "classifier_value",
+                "head_entity_id"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The extension's own field that points at its head."
+                },
+                "inverse_field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The head's field this extension is an alternative of."
+                },
+                "classifier_value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The code this extension declares for the axis."
+                },
+                "head_entity_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Interchange id of the head entity this extension continues."
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_view": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_view"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entity_field_link": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_field"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ordinal",
+                "field_name"
+              ],
+              "properties": {
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Scalar field order on the entity (filtered model fields, id synthetic when absent)."
+                },
+                "field_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Same as the target EntityField vertex label."
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle_binding": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "lifecycle"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle_state": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "lifecycle_contains_state"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_key"
+              ],
+              "properties": {
+                "state_key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle_transition": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "lifecycle_transition"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from_state",
+                "to_state"
+              ],
+              "properties": {
+                "from_state": {
+                  "type": "string"
+                },
+                "to_state": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sensitive_or_state": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "sensitive",
+                "state"
+              ]
+            },
+            "properties": {
+              "$ref": "#/$defs/base_properties"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # scripts/check_package_metadata.py
 """
-Validate ``pyproject.toml`` dependency metadata for publishable ``aoa-*`` workspace members.
+Validate ``pyproject.toml`` dependency metadata for the publishable workspace members (``aoa-*`` and ``maxitor-gnomon``).
 
 Ensures declared pip dependencies match the repository ``aoa-*`` dependency matrix (see each package ``pyproject.toml``).
 """
@@ -25,6 +25,7 @@ MEMBERS = (
     "aoa-otel",
     "aoa-maxitor",
     "aoa-demo",
+    "maxitor-gnomon",
 )
 
 # ``packages/<folder>/pyproject.toml`` for each distribution name.
@@ -37,6 +38,7 @@ _PACKAGE_DIR: dict[str, str] = {
     "aoa-otel": "aoa-otel",
     "aoa-maxitor": "aoa-maxitor",
     "aoa-demo": "aoa-demo",
+    "maxitor-gnomon": "maxitor-gnomon",
 }
 
 # Normalized distribution names (hyphenated).
@@ -49,6 +51,7 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
     "aoa-otel": frozenset({"aoa-action-machine"}),
     "aoa-maxitor": frozenset({"aoa-action-machine", "aoa-fastapi-adapter"}),
     "aoa-demo": frozenset({"aoa-action-machine", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel"}),
+    "maxitor-gnomon": frozenset(),
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
@@ -60,6 +63,8 @@ FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
     "aoa-otel": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel"}),
     "aoa-maxitor": frozenset({"aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-demo": frozenset({"aoa-maxitor", "aoa-langgraph"}),
+    # The graph format stands outside AOA: no ``aoa-*`` distribution at all.
+    "maxitor-gnomon": frozenset(d for d in MEMBERS if d.startswith("aoa-")),
 }
 
 _NAME_RE = re.compile(r"^([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")

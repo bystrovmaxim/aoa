@@ -2,8 +2,11 @@ name: CI
 
 on:
   pull_request:
+    # main, and the feature branches that sub-issues merge into before main
+    # (e.g. feature/issue-273-graph-history), so every step is checked on its way.
     branches:
       - main
+      - "feature/**"
 
 jobs:
   checks:
@@ -26,6 +29,16 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      # The graph files (gnomon.toml) must be what the code builds: CI only checks, the
+      # developer runs `gnomon write` and commits the files with the change.
+      - name: Graph files are current (gnomon check)
+        run: |
+          uv sync --all-extras
+          uv run --extra dev gnomon check
 
       - name: Check for uncommitted changes
         run: |

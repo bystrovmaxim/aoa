@@ -25,6 +25,11 @@ is running, as long as fewer than the limit are running. The limit is
 step at a time with the same log. Ctrl+C stops every running step: each one runs
 in its own process group, so the signal reaches what it started too.
 
+One step may be marked ``only_if_all_passed``: it starts after every other step
+has ended, and only if all of them passed; otherwise it is ``SKIPPED`` — neither
+``OK`` nor ``FAIL`` — and its block says how many steps failed. The graph files
+are written this way: no graph is built for a run that already failed.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -81,6 +86,7 @@ PACKAGES = (
     "packages/aoa-langgraph",
     "packages/aoa-maxitor",
     "packages/aoa-demo",
+    "packages/maxitor-gnomon",
 )
 
 
@@ -90,7 +96,7 @@ class Step:
     AI-CORE-BEGIN
     ROLE: One step of the check run: what it is called, what it runs, and what it must wait for.
     CONTRACT: ``command`` runs through ``bash -c`` from the repository root; ``shown`` is the command line the log prints, ``command`` when empty.
-    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; the table's order is the log's order.
+    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; the table's order is the log's order; ``only_if_all_passed`` waits for every other step and runs only when all passed.
     AI-CORE-END
     """
 
@@ -101,6 +107,7 @@ class Step:
     not_during: tuple[str, ...] = ()
     shown: str = ""
     blank_before_result: bool = True
+    only_if_all_passed: bool = False
 
     @property
     def log_command(self) -> str:
@@ -210,10 +217,21 @@ STEPS: tuple[Step, ...] = (
             "aoa-fastapi-adapter",
             "aoa-mcp-adapter",
             "aoa-action-machine",
+            "maxitor-gnomon",
         )
     ),
+    _after_fix("Pytest tests/scripts (check run, graph files)", "uv run --extra dev pytest tests/scripts -v", "tests"),
     _after_fix("Radon cyclomatic complexity", "uv run --extra dev task cc", "static"),
     _after_fix("Radon maintainability index", "uv run --extra dev task mi", "static"),
+    # Last, and only on a green run: build this repository's graphs and update their files
+    # (gnomon.toml). Like the auto-fix, it may change files and the run stays green; the
+    # changed files go into the same commit as the change that changed the graph.
+    Step(
+        "Graph files (gnomon write)",
+        "uv run --extra dev gnomon write",
+        "graphs",
+        only_if_all_passed=True,
+    ),
 )
 
 
@@ -229,14 +247,22 @@ class Result:
     exit_code: int
     seconds: float
     output: Path
+    skipped: str = ""
 
     @property
     def ok(self) -> bool:
-        """Whether the step passed."""
-        return self.exit_code == 0
+        """Whether the step ran and passed."""
+        return self.exit_code == 0 and not self.skipped
+
+    @property
+    def failed(self) -> bool:
+        """Whether the step ran and failed; a skipped step did neither."""
+        return self.exit_code != 0
 
     def line(self, name: str) -> str:
-        """The step's ``OK``/``FAIL`` line, with its exit code and duration."""
+        """The step's ``OK``/``FAIL`` line, with its exit code and duration, or why it was skipped."""
+        if self.skipped:
+            return f"SKIPPED {name}: {self.skipped}"
         word = "OK" if self.ok else "FAIL"
         return f"{word} {name} (exit {self.exit_code}, {self.seconds:.1f} s)"
 
@@ -284,8 +310,10 @@ def _start(step: Step, output: Path) -> _Running:
     return _Running(step=step, process=process, output=output, started=time.monotonic())
 
 
-def _ready(step: Step, ended: set[str], running: list[_Running]) -> bool:
+def _ready(step: Step, ended: set[str], running: list[_Running], steps: tuple[Step, ...]) -> bool:
     """Whether ``step`` may start now: what it waits for has ended, and nothing it must not overlap is running."""
+    if step.only_if_all_passed:
+        return not running and {other.name for other in steps if other is not step} <= ended
     running_names = {item.step.name for item in running}
     if not set(step.after) <= ended:
         return False
@@ -314,18 +342,31 @@ def _signal_group(process: subprocess.Popen[bytes], sig: signal.Signals) -> None
         pass
 
 
-def _run_all(folder: Path, jobs: int, results: dict[str, Result]) -> None:
+def _skip(step: Step, output: Path, failed: int) -> Result:
+    """Record a last step that does not run because ``failed`` steps failed."""
+    output.write_bytes(b"")
+    result = Result(exit_code=0, seconds=0.0, output=output, skipped=f"{failed} step(s) failed")
+    _say(YELLOW, result.line(step.name))
+    return result
+
+
+def _run_all(folder: Path, jobs: int, results: dict[str, Result], steps: tuple[Step, ...] = STEPS) -> None:
     """Run every step under the limit, recording in ``results`` each step as it ends."""
-    pending = list(STEPS)
+    pending = list(steps)
     running: list[_Running] = []
     try:
         while pending or running:
             for step in list(pending):
                 if len(running) >= jobs:
                     break
-                if _ready(step, set(results), running):
+                if _ready(step, set(results), running, steps):
                     pending.remove(step)
-                    running.append(_start(step, folder / f"{STEPS.index(step):02d}.out"))
+                    output = folder / f"{steps.index(step):02d}.out"
+                    failed = sum(result.failed for result in results.values())
+                    if step.only_if_all_passed and failed:
+                        results[step.name] = _skip(step, output, failed)
+                        continue
+                    running.append(_start(step, output))
             for item in list(running):
                 exit_code = item.process.poll()
                 if exit_code is None:
@@ -333,7 +374,7 @@ def _run_all(folder: Path, jobs: int, results: dict[str, Result]) -> None:
                 running.remove(item)
                 result = Result(exit_code=exit_code, seconds=time.monotonic() - item.started, output=item.output)
                 results[item.step.name] = result
-                _say(GREEN if result.ok else RED, result.line(item.step.name))
+                _say(RED if result.failed else GREEN, result.line(item.step.name))
             time.sleep(POLL_SECONDS)
     except KeyboardInterrupt:
         _stop(running)
@@ -413,7 +454,7 @@ def main() -> int:
     if interrupted:
         _say(RED, "Run interrupted")
         return 130
-    return 0 if all(result.ok for result in results.values()) else 1
+    return 1 if any(result.failed for result in results.values()) else 0
 
 
 if __name__ == "__main__":

@@ -146,6 +146,45 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
    4841 edges without id, ids computed: 4841, equal to the written ones: True
 ```
 
+## The graph saved with every change
+
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`, listed in `gnomon.toml` at the root:
+
+```toml
+gnomon = "1.0"
+
+[[graph]]
+name = "demo"
+build = "uv run --extra dev python -m aoa.demo.build_graph"
+file = "packages/aoa-demo/graph.json"
+```
+
+`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `gnomon write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format and the command belong to [maxitor-gnomon](../../packages/maxitor-gnomon/README.md), which knows nothing about AOA; `GRAPH_JSON_SCHEMA` is read from there, schema version `1.1`.
+
+How the graph travels with a pull request: you change the code; the check run's last step runs `gnomon write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `gnomon check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
+
+```text
+stale demo: packages/aoa-demo/graph.json
+  nodes[id=aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity].properties.description: Inbound partner lot keyed to SKU and packing posture (suppl… → Inbound partner lot keyed to SKU
+ok maxitor
+run: gnomon write --config gnomon.toml, and commit the graph files
+```
+
+Merged, the pull request carries the graph as it now is; `git log -p packages/aoa-demo/graph.json` is the demo's graph history. [12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)) shows every case:
+
+```text
+3. Built again
+   the same bytes as the file: True
+4. A stale copy
+   stale
+     edges[id=aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPipelineDomain|application|aoa.action_machine.application.application.Application]: added
+     nodes[id=aoa.demo.model.store.store_domain.StoreDomain].label: Shop → StoreDomain
+5. Another indent
+   stale: only the formatting differs
+6. An unknown version
+   GraphRefused: graph 9.9: unknown schema version '9.9'; known: 1.0, 1.1
+```
+
 ## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.

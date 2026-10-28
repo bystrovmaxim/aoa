@@ -20,15 +20,14 @@ came through, the head's field it answers to, the code it declares, and the head
 alternative; ``alternatives`` repeats the whole ordered declaration on every edge of the cluster, so a
 consumer holding one row has the set without a second lookup and without re-sorting what was written.
 
-The schema itself is ``graph_json_schema.json`` beside this module; this module only reads it.
+The schema itself lives in ``maxitor-gnomon``, the graph format's own package, by version
+(``packages/maxitor-gnomon/protocol/graph/<version>.json``, the Open Gnomon Protocol); this module names the version AOA writes, ``1.1``.
 """
 
 from __future__ import annotations
 
-import json
-from importlib.resources import files
 from typing import Any
 
-GRAPH_JSON_SCHEMA: dict[str, Any] = json.loads(
-    files(__package__).joinpath("graph_json_schema.json").read_text(encoding="utf-8")
-)
+from maxitor_gnomon.schemas import graph_schema
+
+GRAPH_JSON_SCHEMA: dict[str, Any] = graph_schema("1.1")
