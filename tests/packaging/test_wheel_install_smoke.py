@@ -1,6 +1,6 @@
 # tests/packaging/test_wheel_install_smoke.py
 """
-Wheel layout and clean-venv install smoke for publishable ``aoa-*`` distributions.
+Wheel layout and clean-venv install smoke for the publishable distributions (``aoa-*`` and ``maxitor-gnomon``).
 
 Requires prior ``python -m build packages/<pkg>`` (``run_checks_with_log.sh`` runs builds before pytest).
 """
@@ -19,8 +19,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Single source of truth: every publishable distribution → its own ``aoa/`` namespace.
-_DIST_NAMESPACE: dict[str, str] = {
+# Single source of truth: every publishable distribution → the one top-level tree its wheel ships.
+# ``aoa-*`` share the ``aoa/`` namespace; ``maxitor-gnomon`` stands outside it.
+_DIST_TREE: dict[str, str] = {
     "aoa-action-machine": "aoa/action_machine/",
     "aoa-ocel": "aoa/ocel/",
     "aoa-otel": "aoa/otel/",
@@ -29,17 +30,17 @@ _DIST_NAMESPACE: dict[str, str] = {
     "aoa-langgraph": "aoa/langgraph/",
     "aoa-maxitor": "aoa/maxitor/",
     "aoa-demo": "aoa/demo/",
+    "maxitor-gnomon": "maxitor_gnomon/",
 }
 
-_PACKAGE_DIRS: dict[str, str] = {dist: dist for dist in _DIST_NAMESPACE}
+_PACKAGE_DIRS: dict[str, str] = {dist: dist for dist in _DIST_TREE}
 
-# Wheel must ship its own prefix under ``aoa/`` (namespace); ``*.dist-info`` etc. are ignored.
-_REQUIRED_AOA_PREFIXES: dict[str, tuple[str, ...]] = {dist: (ns,) for dist, ns in _DIST_NAMESPACE.items()}
-
-# A wheel must vendor ONLY its own namespace — every other ``aoa.*`` subtree is forbidden
-# (cross-package code arrives as a declared pip dependency, never bundled in the wheel).
-_FORBIDDEN_AOA_PREFIXES: dict[str, tuple[str, ...]] = {
-    dist: tuple(other for d, other in _DIST_NAMESPACE.items() if d != dist) for dist in _DIST_NAMESPACE
+# A wheel must vendor ONLY its own tree — every other package's tree is forbidden (cross-package
+# code arrives as a declared pip dependency, never bundled in the wheel), and a package outside
+# the ``aoa`` namespace ships nothing under ``aoa/`` at all.
+_FORBIDDEN_PREFIXES: dict[str, tuple[str, ...]] = {
+    dist: tuple(other for d, other in _DIST_TREE.items() if d != dist) + (() if own.startswith("aoa/") else ("aoa/",))
+    for dist, own in _DIST_TREE.items()
 }
 
 
@@ -68,21 +69,18 @@ def _wheel_member_paths(whl: Path) -> list[str]:
         return zf.namelist()
 
 
-def _aoa_paths(names: Iterable[str]) -> list[str]:
-    return [n for n in names if n.startswith("aoa/")]
+def _code_paths(names: Iterable[str]) -> list[str]:
+    return [n for n in names if ".dist-info/" not in n]
 
 
 @pytest.mark.parametrize("dist_key", sorted(_PACKAGE_DIRS))
-def test_wheel_contains_only_expected_aoa_namespace(dist_key: str) -> None:
+def test_wheel_contains_only_its_own_tree(dist_key: str) -> None:
     whl = _latest_wheel(dist_key)
-    names = _wheel_member_paths(whl)
-    aoa = _aoa_paths(names)
-    assert aoa, f"{whl.name}: expected at least one aoa/ path, got {names[:20]!r}…"
-    required = _REQUIRED_AOA_PREFIXES[dist_key]
-    for prefix in required:
-        assert any(n.startswith(prefix) for n in aoa), f"{whl.name}: missing prefix {prefix!r} in {aoa[:30]}"
-    for bad in _FORBIDDEN_AOA_PREFIXES[dist_key]:
-        hits = [n for n in aoa if n.startswith(bad)]
+    code = _code_paths(_wheel_member_paths(whl))
+    own = _DIST_TREE[dist_key]
+    assert any(n.startswith(own) for n in code), f"{whl.name}: missing prefix {own!r} in {code[:30]}"
+    for bad in _FORBIDDEN_PREFIXES[dist_key]:
+        hits = [n for n in code if n.startswith(bad)]
         assert not hits, f"{whl.name}: forbidden prefix {bad!r}: {hits[:5]}"
 
 
@@ -118,6 +116,19 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "assert u.find_spec('aoa.otel') is None; "
         "assert u.find_spec('aoa.maxitor') is None; "
         "assert u.find_spec('aoa.demo') is None",
+    )
+
+
+def test_clean_install_gnomon_brings_no_aoa(tmp_path: Path) -> None:
+    venv = tmp_path / "venv"
+    subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
+    vpy = _venv_python(venv)
+    _uv_pip_install(vpy, [_latest_wheel("maxitor-gnomon")])
+    _run_in_venv(
+        vpy,
+        "import importlib.util as u; import maxitor_gnomon; "
+        "assert maxitor_gnomon.__version__; "
+        "assert u.find_spec('aoa') is None",
     )
 
 

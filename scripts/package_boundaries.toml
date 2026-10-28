@@ -34,3 +34,8 @@ may_import = ["action_machine", "ocel"]
 
 # Production-only import exceptions (rare). Each row must include path, imports, reason, expires.
 allow = []
+
+# Standalone packages live outside the ``aoa`` namespace and may import nothing from ``aoa``.
+# maxitor-gnomon holds the graph format; AOA reads it from there, never the other way round.
+[standalone.gnomon]
+roots = ["packages/maxitor-gnomon/src/maxitor_gnomon"]

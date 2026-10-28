@@ -81,6 +81,7 @@ PACKAGES = (
     "packages/aoa-langgraph",
     "packages/aoa-maxitor",
     "packages/aoa-demo",
+    "packages/maxitor-gnomon",
 )
 
 
@@ -210,6 +211,7 @@ STEPS: tuple[Step, ...] = (
             "aoa-fastapi-adapter",
             "aoa-mcp-adapter",
             "aoa-action-machine",
+            "maxitor-gnomon",
         )
     ),
     _after_fix("Radon cyclomatic complexity", "uv run --extra dev task cc", "static"),

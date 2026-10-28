@@ -21,6 +21,7 @@ members = [
     "aoa-ocel",
     "aoa-otel",
     "aoa-run",
+    "maxitor-gnomon",
 ]
 
 [[package]]
@@ -341,6 +342,7 @@ all = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
+    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -365,6 +367,7 @@ dev = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
+    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -420,6 +423,7 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
+    { name = "maxitor-gnomon", marker = "extra == 'dev'", editable = "packages/maxitor-gnomon" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
     { name = "pylint", marker = "extra == 'dev'", specifier = ">=3.0,<4.0" },
@@ -2078,6 +2082,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d3/34/117fe35a8d05054b4b34d2d29287099927c24c3841d36e06d9fa2f20c1cf/matplotlib-3.11.2-cp315-cp315t-win_amd64.whl", hash = "sha256:a6939df7567114b6bac7f4c5e06c84a67f197c1b2f2e4b234d4eecb3bfec9482", size = 9551204, upload-time = "2026-09-11T19:05:16.48Z" },
     { url = "https://files.pythonhosted.org/packages/63/5a/9f440e7bec8b80d0af2a65d1165b2f4e718982dad785531f62255d9ff19b/matplotlib-3.11.2-cp315-cp315t-win_arm64.whl", hash = "sha256:d480038c83691532ed52ff3147db51fa902fc78cb2d8349993a1cdb684435bff", size = 9233946, upload-time = "2026-09-11T19:05:19.063Z" },
 ]
+
+[[package]]
+name = "maxitor-gnomon"
+version = "0.1.0"
+source = { editable = "packages/maxitor-gnomon" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.0" }]
 
 [[package]]
 name = "mccabe"
