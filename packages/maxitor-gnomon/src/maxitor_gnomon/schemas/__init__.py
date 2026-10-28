@@ -17,6 +17,12 @@ ARCHITECTURE / DATA FLOW
 The schemas are files beside this module, ``graph/<version>.json``. A published
 version never changes; a new shape of the graph is a new file and a new entry in
 ``SCHEMA_VERSIONS``. ``1.0`` is the first shape; ``1.1`` gave every edge an ``id``.
+
+Two validators share the work. ``jsonschema-rs`` decides whether a document is a
+graph — a union of 21 node shapes and 17 edge shapes makes a pure-Python check of
+a large graph take tens of seconds. When it refuses, ``jsonschema`` explains why
+on the one node or edge it stopped at, narrowed to the shape that node or edge
+was meant to have.
 """
 
 from __future__ import annotations
@@ -26,10 +32,12 @@ from functools import cache
 from importlib.resources import files
 from typing import Any
 
+import jsonschema_rs
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
 
 SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1")
+SHOWN_CHARACTERS = 200
 
 
 class GraphRefused(ValueError):
@@ -65,6 +73,18 @@ def graph_schema(version: str) -> dict[str, Any]:
     return schema
 
 
+@cache
+def _deciding(version: str) -> jsonschema_rs.Validator:
+    """The fast validator of one version, built once."""
+    return jsonschema_rs.validator_for(graph_schema(version))
+
+
+@cache
+def _explaining(version: str) -> Draft202012Validator:
+    """The validator that explains a refusal, built once."""
+    return Draft202012Validator(graph_schema(version))
+
+
 def _narrowed(error: ValidationError) -> ValidationError:
     """
     The error inside the one branch of a ``oneOf`` / ``anyOf`` the value was meant for.
@@ -96,10 +116,37 @@ def check_graph(document: object) -> None:
         raise GraphRefused(None, "", "the document has no schema_version")
     if not isinstance(version, str):
         raise GraphRefused(None, "schema_version", f"schema_version must be a string, got {version!r}")
-    error = best_match(Draft202012Validator(graph_schema(version)).iter_errors(document))
-    if error is not None:
-        error = _narrowed(error)
-        path = "/".join(str(part) for part in error.absolute_path)
+    stop = next(iter(_deciding(version).iter_errors(document)), None)
+    if stop is None:
+        return
+    raise _explained(version, document, list(stop.instance_path), stop.message)
+
+
+def _explained(version: str, document: dict[str, Any], stop: list[str | int], message: str) -> GraphRefused:
+    """
+    Why ``document`` is refused, said at the place the fast validator stopped.
+
+    A node or an edge is checked alone — a document holding only that element — so the explanation costs
+    one element, not the graph; its path is then put back at the element's real index.
+    """
+    element = len(stop) >= 2 and stop[0] in ("nodes", "edges") and isinstance(stop[1], int)
+    if element:
+        array, index = str(stop[0]), int(stop[1])
+        alone = {**document, "nodes": [], "edges": [], array: [document[array][index]]}
+        error = best_match(_explaining(version).iter_errors(alone))
+    else:
+        error = best_match(_explaining(version).iter_errors(document))
+    if error is None:
+        return GraphRefused(version, "/".join(map(str, stop)), message[:SHOWN_CHARACTERS])
+    error = _narrowed(error)
+    path = list(error.absolute_path)
+    if element:
+        path[1] = index
+    if error.validator in ("oneOf", "anyOf"):
         # A union's own message repeats the whole value; the path already says which one it is.
-        reason = "matches none of the shapes allowed here" if error.validator in ("oneOf", "anyOf") else error.message
-        raise GraphRefused(version, path, reason)
+        reason = "matches none of the shapes allowed here"
+    elif error.validator == "uniqueItems":
+        reason = "holds the same element twice"
+    else:
+        reason = error.message[:SHOWN_CHARACTERS]
+    return GraphRefused(version, "/".join(map(str, path)), reason)
