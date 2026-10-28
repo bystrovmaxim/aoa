@@ -7,6 +7,7 @@ The check run that finishes every change in this repository — `bash scripts/ru
 Every step now says how long it took, both on screen and in the log, and the run ends with its total time, so a step that suddenly becomes slow is easy to spot. The log reads as it always did: every step in the same fixed order, each with its full output, and the output of two steps never mixed, whatever ran beside what. A failing step still does not stop the others — every step reports, and the run fails if any of them did.
 
 A few things are worth knowing. Some steps still wait for others for a reason: the automatic Ruff fixes run first and alone, because they may rewrite files the other steps read, and the client is built before anything that uses it. How many steps may run at once is limited to the number of cores; `AOA_CHECK_JOBS=1` runs them one at a time, with the same log, when the machine is busy with something else. Ctrl+C now stops the whole run cleanly, browsers and servers included, and the log says the run was interrupted. The new how-to page, *Running the checks*, shows every case with what it prints.
+
 ## [2026-10-28] — Every edge of the graph has a name
 
 The graph AOA builds from your code has always named its nodes — each entity, action or role by the qualified name of the class that declares it. Now every line between them has a name too, so two versions of a graph can be compared line by line: what appeared, what disappeared, what changed. This is the first step of graph history in Maxitor.
