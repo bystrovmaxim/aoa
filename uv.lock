@@ -61,7 +61,6 @@ version = "1.0.1a6"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
-    { name = "maxitor-gnomon" },
     { name = "pydantic" },
     { name = "simpleeval" },
 ]
@@ -85,7 +84,6 @@ dev = [
 requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "jsonschema", specifier = ">=4.17" },
-    { name = "maxitor-gnomon", editable = "packages/maxitor-gnomon" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'jwt'", specifier = ">=2.8,<3" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },

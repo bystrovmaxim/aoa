@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 from pathlib import Path
@@ -13,13 +12,6 @@ import pytest
 from maxitor_gnomon.schemas import SCHEMA_VERSIONS, GraphRefused, check_graph, graph_schema
 
 FIXTURES = Path(__file__).parent / "fixtures"
-
-# SHA-256 of each published schema without its ``$id``, as ``json.dumps(..., sort_keys=True)``.
-# A published version never changes: a new shape of the graph is a new version, not an edit.
-PUBLISHED = {
-    "1.0": "77f1a7960a09dcb63b31d75e9d08467dd34c28e563281f959beb087c615b9bb4",
-    "1.1": "4d5e7bbe4efadbbba63a03a598a8784c240db5d81322cd0fd794d726c2b5adde",
-}
 
 
 def _sample(version: str) -> dict[str, Any]:
@@ -96,12 +88,9 @@ def test_something_that_is_not_an_object_is_refused(document: object) -> None:
 
 
 @pytest.mark.parametrize("version", SCHEMA_VERSIONS)
-def test_a_published_version_never_changes(version: str) -> None:
-    """Every known version is published, its ``$id`` names it, and its content has the hash it was published with."""
-    schema = dict(graph_schema(version))
-    assert schema.pop("$id").endswith(f"/maxitor-gnomon/protocol/graph/{version}.json")
-    assert hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest() == PUBLISHED[version]
-    assert set(PUBLISHED) == set(SCHEMA_VERSIONS)
+def test_each_version_is_the_protocols(version: str) -> None:
+    """Every known version is the protocol's own, named by its raw ``$id`` (its bytes are proved by ``tests/scripts``)."""
+    assert graph_schema(version)["$id"].endswith(f"/packages/open-gnomon-protocol/graph/{version}.json")
 
 
 def test_a_large_graph_is_checked_in_moments() -> None:

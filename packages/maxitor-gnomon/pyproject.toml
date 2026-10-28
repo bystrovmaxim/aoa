@@ -29,10 +29,9 @@ Repository = "https://github.com/bystrovmaxim/aoa"
 [tool.hatch.build.targets.wheel]
 packages = ["src/maxitor_gnomon"]
 
-# The protocol and the skills live at the package's top level — the standard comes first, the code
-# implements it — and travel inside the wheel, next to the code that reads them.
+# The skills live at the package's top level and travel inside the wheel, next to the code that reads
+# them. The graph schemas are copies of the protocol's (packages/open-gnomon-protocol), kept in src.
 [tool.hatch.build.targets.wheel.force-include]
-"protocol" = "maxitor_gnomon/protocol"
 "skills" = "maxitor_gnomon/skills"
 
 [dependency-groups]

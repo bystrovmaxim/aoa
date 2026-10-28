@@ -55,7 +55,8 @@ REQUIRED_MAIN: dict[str, frozenset[str]] = {
 }
 
 FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
-    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-demo"}),
+    # The graph schema is AOA's own copy of the protocol's; AOA never depends on Maxitor's tools.
+    "aoa-action-machine": frozenset({"aoa-maxitor", "aoa-demo", "maxitor-gnomon"}),
     "aoa-fastapi-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-mcp-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-mcp-adapter": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-langgraph", "aoa-ocel", "aoa-otel"}),
     "aoa-langgraph": frozenset({"aoa-maxitor", "aoa-demo", "aoa-fastapi-adapter", "aoa-mcp-adapter", "aoa-ocel", "aoa-otel"}),

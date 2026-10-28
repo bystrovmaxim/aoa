@@ -16,7 +16,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 TOML → the config's own version (``gnomon = "1.0"``) → its JSON Schema
-(``protocol/config/<version>.json``) → the rules a schema cannot say: names and
+(``config_schema.json`` beside this module, the one config version there is) → the rules a schema cannot say: names and
 files unique → ``Graph`` values with paths resolved against the config's folder.
 """
 
@@ -26,13 +26,12 @@ import json
 import tomllib
 from dataclasses import dataclass
 from functools import cache
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
-
-from maxitor_gnomon.shipped import shipped_text
 
 CONFIG_VERSIONS: tuple[str, ...] = ("1.0",)
 
@@ -71,9 +70,9 @@ class ConfigRefused(ValueError):
 
 
 @cache
-def _config_schema(version: str) -> dict[str, Any]:
-    """The JSON Schema of one config version, read once."""
-    text = shipped_text("protocol", "config", f"{version}.json")
+def _config_schema() -> dict[str, Any]:
+    """The JSON Schema of the config, version ``1.0``, read once."""
+    text = files("maxitor_gnomon").joinpath("config_schema.json").read_text(encoding="utf-8")
     schema: dict[str, Any] = json.loads(text)
     return schema
 
@@ -121,7 +120,7 @@ def read_config(path: str | Path) -> list[Graph]:
     if version not in CONFIG_VERSIONS:
         known = ", ".join(CONFIG_VERSIONS)
         raise ConfigRefused(None, "gnomon", f"unknown config version {version!r}; known: {known}")
-    error = best_match(Draft202012Validator(_config_schema(version)).iter_errors(document))
+    error = best_match(Draft202012Validator(_config_schema()).iter_errors(document))
     if error is not None:
         raise _refusal(document, error)
     base = config.resolve().parent
