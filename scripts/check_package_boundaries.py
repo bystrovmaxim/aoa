@@ -4,6 +4,7 @@
 Enforce import boundaries for production packages.
 
 Production: ``packages/*/src/aoa/`` trees and ``[packages.*]`` in ``scripts/package_boundaries.toml``.
+Standalone: the roots of ``[standalone.*]`` import nothing from ``aoa``.
 """
 
 from __future__ import annotations
@@ -193,11 +194,43 @@ def check_production(cfg: dict) -> list[Violation]:
     return violations
 
 
+def _imported_modules(path: Path) -> list[tuple[int, str]]:
+    """Every absolute module a file imports, with the line it is imported on."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except SyntaxError as exc:
+        raise SystemExit(f"{path}: syntax error: {exc}") from exc
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.extend((node.lineno, alias.name) for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
+            found.append((node.lineno, node.module))
+    return found
+
+
+def check_standalone(cfg: dict) -> list[Violation]:
+    """Imports of ``aoa`` from a package that must stand without it."""
+    standalone = cfg.get("standalone", {})
+    if not isinstance(standalone, dict):
+        raise SystemExit("'standalone' must be a table of tables")
+    violations: list[Violation] = []
+    for owner, table in standalone.items():
+        roots = [str(r).rstrip("/") for r in table.get("roots") or []]
+        if not roots:
+            raise SystemExit(f"[standalone.{owner}].roots must be non-empty")
+        for path in _collect_py_files_from_roots(roots):
+            for lineno, module in _imported_modules(path):
+                if module == "aoa" or module.startswith("aoa."):
+                    violations.append(Violation(path, lineno, owner, "aoa", module))
+    return violations
+
+
 def main() -> int:
     argparse.ArgumentParser(description=__doc__).parse_args()
     cfg = _load_config()
 
-    violations = check_production(cfg)
+    violations = check_production(cfg) + check_standalone(cfg)
 
     if violations:
         for v in sorted(violations, key=lambda x: (str(x.path), x.lineno)):

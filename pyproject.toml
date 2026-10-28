@@ -63,6 +63,7 @@ dev = [
     "aoa-langgraph",
     "aoa-ocel",
     "aoa-demo[fastapi,mcp]",
+    "maxitor-gnomon",
     "types-jsonschema>=4.19,<5",
     "types-networkx>=3.2,<4",
     "pm4py>=2.7.22.3",
@@ -89,6 +90,7 @@ members = [
     "packages/aoa-mcp-adapter",
     "packages/aoa-ocel",
     "packages/aoa-otel",
+    "packages/maxitor-gnomon",
 ]
 
 # Map distribution names used in member ``dependencies`` to workspace paths.
@@ -101,6 +103,7 @@ aoa-fastapi-adapter = { workspace = true }
 aoa-mcp-adapter = { workspace = true }
 aoa-ocel = { workspace = true }
 aoa-otel = { workspace = true }
+maxitor-gnomon = { workspace = true }
 
 # ============================================================================
 # HATCHLING — meta wheel ``aoa-run`` (workspace root; ``aoa.*`` live in member packages)
@@ -124,6 +127,7 @@ pythonpath = [
     "packages/aoa-mcp-adapter/src",
     "packages/aoa-ocel/src",
     "packages/aoa-otel/src",
+    "packages/maxitor-gnomon/src",
     ".",
 ]
 addopts = [
@@ -164,7 +168,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/aoa-maxitor/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src:packages/maxitor-gnomon/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -361,6 +365,9 @@ external = ["V107"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_undecided.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
+# ``maxitor_gnomon`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
+# above: the caller learns "this is not a graph", not that something broke, so the verdict's word is the name.
+"packages/maxitor-gnomon/src/maxitor_gnomon/**" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
@@ -404,6 +411,7 @@ paths = [
     "packages/aoa-langgraph/src/aoa/langgraph",
     "packages/aoa-maxitor/src/aoa/maxitor",
     "packages/aoa-demo/src/aoa/demo",
+    "packages/maxitor-gnomon/src/maxitor_gnomon",
 ]
 min_confidence = 80
 exclude = ["tests/"]
@@ -418,7 +426,7 @@ ignore_names = ["event_type", "jurisdiction"]
 [tool.taskipy.tasks]
 maxitor-api = "uv run uvicorn aoa.maxitor.api.app:app --reload --host 127.0.0.1 --port 8000"
 packaging-smoke = "pytest tests/packaging -v"
-build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-demo"
+build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/aoa-maxitor && uv run --group dev python -m build packages/aoa-demo && uv run --group dev python -m build packages/maxitor-gnomon"
 cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
 lint = "ruff check packages/ tests/ scripts/ aoa_run/"
@@ -430,7 +438,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/aoa-maxitor/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src packages/maxitor-gnomon/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"

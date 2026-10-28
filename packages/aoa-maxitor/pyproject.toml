@@ -43,6 +43,8 @@ exclude = [
   "client/node_modules/**",
   "client/.vite",
   "client/.vite/**",
+  # The saved graph is the repository's history, not the package's (gnomon.toml).
+  "graph.json",
 ]
 
 [dependency-groups]
