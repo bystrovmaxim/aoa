@@ -27,6 +27,16 @@ jobs:
           npm ci
           npm run build
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      # The graph files (gnomon.toml) must be what the code builds: CI only checks, the
+      # developer runs `gnomon write` and commits the files with the change.
+      - name: Graph files are current (gnomon check)
+        run: |
+          uv sync --all-extras
+          uv run --extra dev gnomon check
+
       - name: Check for uncommitted changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then

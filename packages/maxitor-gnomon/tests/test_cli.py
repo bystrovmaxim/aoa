@@ -102,3 +102,11 @@ def test_validate_refuses_what_is_not_json(monkeypatch: pytest.MonkeyPatch, caps
     monkeypatch.setattr("sys.stdin", io.StringIO("oops"))
     assert main(["validate", "-"]) == 1
     assert capsys.readouterr().out.startswith("refused: not JSON")
+
+
+def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> None:
+    """``gnomon skill`` prints a skill file an agent can save as it is."""
+    assert main(["skill"]) == 0
+    text = capsys.readouterr().out
+    assert text.startswith("---\nname: gnomon-setup\ndescription: ")
+    assert "## Setup" in text and "## If you read this from a link" in text

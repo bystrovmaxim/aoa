@@ -132,6 +132,10 @@ def test_clean_install_gnomon_brings_no_aoa(tmp_path: Path) -> None:
         "assert maxitor_gnomon.__version__; "
         "assert u.find_spec('aoa') is None",
     )
+    skill = subprocess.run(
+        [str(venv / "bin" / "gnomon"), "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
+    ).stdout
+    assert skill.startswith("---\nname: gnomon-setup\n")
 
 
 def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
