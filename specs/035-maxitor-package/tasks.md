@@ -100,9 +100,9 @@
 
 **Independent test**: `gnomon skill` from a clean install prints the skill, which installs with `maxitor`.
 
-- [ ] T031 [US5] `MS/skills/gnomon-setup/SKILL.md`: the protocol link → `https://github.com/bystrovmaxim/aoa/blob/main/packages/open-gnomon-protocol/README.md`; every `uvx --from maxitor-gnomon` → `uvx --from maxitor`, the pinned CI form → `maxitor==3.0.0`; "the `maxitor-gnomon` package" → "the `maxitor` package"; nothing else changes (the CI example changes in commit 7).
-- [ ] T032 [P] [US5] Tests: `M/tests/gnomon/test_cli.py` — `gnomon skill` starts with `---\nname: gnomon-setup\n` and contains `uvx --from maxitor gnomon`; the smoke test runs `gnomon skill` in the clean venv. Adversarial: drop `skills` from what the wheel ships (exclude `src/maxitor/skills` in `M/pyproject.toml`) → only the smoke test fails; restore. Record here.
-- [ ] T033 [US5] Check run green; prepare commit 6: `feat(maxitor): the gnomon-setup skill lives in maxitor (#286)`; tick #286 phase 5.
+- [x] T031 [US5] `MS/skills/gnomon-setup/SKILL.md`: the protocol link → `https://github.com/bystrovmaxim/aoa/blob/main/packages/open-gnomon-protocol/README.md`; every `uvx --from maxitor-gnomon` → `uvx --from maxitor`, the pinned CI form → `maxitor==3.0.0`; "the `maxitor-gnomon` package" → "the `maxitor` package"; nothing else changes (the CI example changes in commit 7).
+- [x] T032 [P] [US5] Tests: `M/tests/gnomon/test_cli.py` — `gnomon skill` starts with `---\nname: gnomon-setup\n` and contains `uvx --from maxitor gnomon`; the smoke test runs `gnomon skill` in the clean venv. Adversarial: drop `skills` from what the wheel ships (exclude `src/maxitor/skills` in `M/pyproject.toml`) → only the smoke test fails; restore. Record here. **Done:** `gnomon skill` must contain `uvx --from maxitor gnomon` and no `maxitor-gnomon` (`test_cli.py`, 9 passed); the clean run: 39 `OK`, 68.2 s. Adversarial: `exclude = ["src/maxitor/skills"]` in the wheel target → 37 `OK`, only `Packaging wheel install smoke` fails (`test_clean_install_maxitor_brings_no_aoa`: `gnomon skill` finds no file in the installed package); restored.
+- [x] T033 [US5] Check run green (39 `OK`); prepare commit 6: `feat(maxitor): the gnomon-setup skill lives in maxitor (#286)`; tick #286 phase 5.
 
 ---
 
