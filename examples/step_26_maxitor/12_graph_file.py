@@ -22,8 +22,8 @@ Everything this example writes goes into a temporary folder.
 Output:
 
     1. The repository's graphs
-       demo     uv run --extra dev python -m aoa.demo.graph_json  →  packages/aoa-demo/graph.json
-       maxitor  uv run --extra dev python -m aoa.maxitor.graph_json  →  packages/aoa-maxitor/graph.json
+       demo     uv run --extra dev python -m aoa.demo.print_graph  →  packages/aoa-demo/graph.json
+       maxitor  uv run --extra dev python -m aoa.maxitor.print_graph  →  packages/aoa-maxitor/graph.json
     2. A saved graph against its schema
        packages/aoa-demo/graph.json: 1.1, 3213 nodes, 4841 edges — a graph
     3. Built again

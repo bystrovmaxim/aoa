@@ -4,10 +4,10 @@ gnomon = "1.0"
 
 [[graph]]
 name = "demo"
-build = "uv run --extra dev python -m aoa.demo.graph_json"
+build = "uv run --extra dev python -m aoa.demo.print_graph"
 file = "packages/aoa-demo/graph.json"
 
 [[graph]]
 name = "maxitor"
-build = "uv run --extra dev python -m aoa.maxitor.graph_json"
+build = "uv run --extra dev python -m aoa.maxitor.print_graph"
 file = "packages/aoa-maxitor/graph.json"
