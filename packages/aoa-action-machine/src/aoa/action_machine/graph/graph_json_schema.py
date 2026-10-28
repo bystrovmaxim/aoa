@@ -21,7 +21,7 @@ alternative; ``alternatives`` repeats the whole ordered declaration on every edg
 consumer holding one row has the set without a second lookup and without re-sorting what was written.
 
 The schema itself lives in ``maxitor-gnomon``, the graph format's own package, by version
-(``maxitor_gnomon/schemas/graph/<version>.json``); this module names the version AOA writes, ``1.1``.
+(``packages/maxitor-gnomon/protocol/graph/<version>.json``, the Open Gnomon Protocol); this module names the version AOA writes, ``1.1``.
 """
 
 from __future__ import annotations

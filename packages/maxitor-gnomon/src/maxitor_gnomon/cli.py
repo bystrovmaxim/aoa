@@ -26,12 +26,12 @@ import json
 import os
 import sys
 from collections.abc import Callable, Sequence
-from importlib.resources import files
 from pathlib import Path
 
 from maxitor_gnomon import __version__
 from maxitor_gnomon.config import ConfigRefused, Graph, read_config
 from maxitor_gnomon.schemas import GraphRefused, check_graph
+from maxitor_gnomon.shipped import shipped_text
 from maxitor_gnomon.writer import Outcome, check, write
 
 DEFAULT_CONFIG = "gnomon.toml"
@@ -99,7 +99,7 @@ def _validate(source: str) -> int:
 
 def _skill() -> int:
     """Print the setup skill for coding agents, to be saved as ``<skills folder>/gnomon-setup/SKILL.md``."""
-    sys.stdout.write(files("maxitor_gnomon").joinpath("skills", "gnomon-setup", "SKILL.md").read_text(encoding="utf-8"))
+    sys.stdout.write(shipped_text("skills", "gnomon-setup", "SKILL.md"))
     return 0
 
 

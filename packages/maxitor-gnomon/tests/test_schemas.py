@@ -99,7 +99,7 @@ def test_something_that_is_not_an_object_is_refused(document: object) -> None:
 def test_a_published_version_never_changes(version: str) -> None:
     """Every known version is published, its ``$id`` names it, and its content has the hash it was published with."""
     schema = dict(graph_schema(version))
-    assert schema.pop("$id").endswith(f"/schemas/graph/{version}.json")
+    assert schema.pop("$id").endswith(f"/maxitor-gnomon/protocol/graph/{version}.json")
     assert hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest() == PUBLISHED[version]
     assert set(PUBLISHED) == set(SCHEMA_VERSIONS)
 

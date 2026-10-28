@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor-gnomon/src/maxitor_gnomon/schemas/graph/1.0.json",
+  "$id": "https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor-gnomon/protocol/graph/1.0.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,

@@ -16,7 +16,7 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 TOML → the config's own version (``gnomon = "1.0"``) → its JSON Schema
-(``schemas/config/<version>.json``) → the rules a schema cannot say: names and
+(``protocol/config/<version>.json``) → the rules a schema cannot say: names and
 files unique → ``Graph`` values with paths resolved against the config's folder.
 """
 
@@ -26,12 +26,13 @@ import json
 import tomllib
 from dataclasses import dataclass
 from functools import cache
-from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
+
+from maxitor_gnomon.shipped import shipped_text
 
 CONFIG_VERSIONS: tuple[str, ...] = ("1.0",)
 
@@ -72,7 +73,7 @@ class ConfigRefused(ValueError):
 @cache
 def _config_schema(version: str) -> dict[str, Any]:
     """The JSON Schema of one config version, read once."""
-    text = files("maxitor_gnomon.schemas").joinpath("config", f"{version}.json").read_text(encoding="utf-8")
+    text = shipped_text("protocol", "config", f"{version}.json")
     schema: dict[str, Any] = json.loads(text)
     return schema
 
