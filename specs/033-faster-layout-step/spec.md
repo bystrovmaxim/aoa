@@ -107,7 +107,7 @@ More browsers at once put more load on the machine. The step must stay green run
 - **FR-007**: Any `DIFF` in any part MUST make the step exit 1, after every part has ended and printed its lines.
 - **FR-008**: Each of FR-004, FR-005 and FR-006 MUST be measured before and after it lands, and MUST be reverted if it does not make the step faster or if it makes the step fail where it passed.
 - **FR-009**: Ten check runs in a row on a clean tree MUST be green before the change ships.
-- **FR-010**: Only the step's script changes; Maxitor, its client and its tests do not.
+- **FR-010**: Only the step's script changes; Maxitor, its client and its tests do not — with one exception decided by the maintainer on 2026-10-28: the two client test files that lay out the whole reference graph (`forceLayout.test.ts`, `layoutDeterminism.test.ts`) get their own time limit, because with the faster step running beside them they twice crossed vitest's default 5 s limit in ten check runs. They check the layout's result, not its speed; nothing they assert changes.
 - **FR-011**: The change MUST end with the check run taken to zero, the documentation and the changelog, in that order (Principle VI); the documentation is the how-to page of the check run, whose description of the longest chain is updated.
 
 ### Key Entities

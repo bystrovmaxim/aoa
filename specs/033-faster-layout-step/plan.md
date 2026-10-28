@@ -62,6 +62,7 @@ specs/033-faster-layout-step/
 
 ```text
 packages/aoa-maxitor/client/scripts/check-layout-determinism.ts   # part times; pairs, sizes and part B side by side; explicit report order
+packages/aoa-maxitor/client/src/components/diagrams/FullGraphViewer/{forceLayout,layoutDeterminism}.test.ts   # their own time limit (FR-010's exception)
 docs/how-to/run-the-checks.md                                      # the longest chain and the layout step's parts
 docs/CHANGELOG.md                                                  # one article
 ```
