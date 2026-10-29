@@ -55,7 +55,7 @@ Maxitor asks for a service's history and gets its versions, oldest first: one pe
 
 ### User Story 3 - A private repository opens by read key, a public one by its link (Priority: P1)
 
-The owner of a private repository gives a colleague a read key; the key opens that one history in Maxitor and nothing else of the repository. A public repository's history opens from a link to its graph file, with no key.
+The owner of a private repository gives a colleague a read key; the key opens that one history at the port and nothing else of the repository. A public repository's history opens from a link to its graph file, with no key.
 
 **Why this priority**: Most services' repositories are private; the history must open without opening the repository.
 
@@ -88,17 +88,17 @@ A pull request is merged, a tag is pushed, a pull request's description is edite
 
 ### User Story 5 - The port runs on the stand with live access to real repositories (Priority: P1)
 
-The maintainer opens Maxitor on the stand and reads the history of each of their chosen repositories — the private ones by their keys, the public ones by their links. They merge a pull request into one of them, and the new version is in its history at once.
+The maintainer asks the port at `https://repo-graph-port.aoa.run` for the history of each of their chosen repositories — the private ones by their keys, the public ones by their links. They merge a pull request into one of them, and the new version is in its history at once.
 
 **Why this priority**: The issue is done when the port serves real repositories, not only tests.
 
-**Independent Test**: On the stand, ask each configured history for its versions and one version; push to one repository and ask again.
+**Independent Test**: At `https://repo-graph-port.aoa.run`, ask each configured history for its versions and one version; push to one repository and ask again; push a change that touches no graph file and ask again.
 
 **Acceptance Scenarios**:
 
-1. **Given** the stand with the maintainer's repositories configured, **When** each history is asked for, **Then** it answers with its versions — a private one only with its key, a public one by its link.
-2. **Given** a merge into one of them, **When** its history is asked for next, **Then** the new version is there, without waiting for the fallback interval.
-3. **Given** the server, **When** its files, logs and the mirrors' git configs are searched, **Then** the App's token and private key are in none of them; the private key and webhook secret come only from the server's environment.
+1. **Given** the port on the stand with the maintainer's repositories configured, **When** each history is asked for, **Then** it answers with its versions — a private one only with its key, a public one by its link.
+2. **Given** a merge into one of them, **When** its history is asked for next, **Then** the new version is there, without waiting for the fallback interval; another history of the same repository whose file the merge did not touch has no new version.
+3. **Given** the server, **When** its files, logs and the mirrors' git configs are searched, **Then** the App's token and private key are in none of them; the private key and webhook secret come only from the environment of the port's container, and Maxitor's container has neither.
 
 ### Edge Cases
 
@@ -123,39 +123,40 @@ The maintainer opens Maxitor on the stand and reads the history of each of their
 
 **The history**
 
-- **FR-004**: The core `maxitor.repo_graph_port` MUST live in `packages/maxitor/core/repo_graph_port/`, installed with its own extra, which the `front` extra includes.
-- **FR-005**: A history MUST be one graph file on one branch of one repository, named in Maxitor's configuration with its host and its read keys.
+- **FR-004**: The port `maxitor.repo_graph_port` MUST live in `packages/maxitor/core/repo_graph_port/`, installed with its own extra and run as a service of its own by its own command, `repo-graph-port`; it MUST be the only part of Maxitor that talks to a host.
+- **FR-005**: A history MUST be one graph file on one branch of one repository, named in the port's configuration with its host and its read keys.
 - **FR-006**: The versions of a history MUST be the commits of its branch, by first parent, that changed its graph file, oldest first.
 - **FR-007**: Each version MUST carry its commit, its date, its pull request's number, title, description and link (or its commit's message when it has none), the repository's tags placed on it with their releases' title and link, and its graph's node and edge counts.
 - **FR-008**: A tag on a commit that did not change the graph MUST belong to the version before it; tags MUST be read again, since they can come later.
 - **FR-009**: A version's graph MUST come back byte for byte as committed; a graph that does not pass the protocol's schema of the version it declares MUST be marked refused with the reason.
-- **FR-010**: Three actions MUST serve it: `describe` (name, repository, branch, path, number of versions, newest), `history` (the versions, with `after` returning only those after a commit, and "not modified" for an unchanged answer) and `version` (one version's graph, never changing).
+- **FR-010**: Three actions, routes of the port's own server, MUST serve it: `describe` (name, repository, branch, path, number of versions, newest), `history` (the versions, with `after` returning only those after a commit, and "not modified" for an unchanged answer) and `version` (one version's graph, never changing).
 
 **Access**
 
 - **FR-011**: A read key MUST open exactly one history; the configuration MUST keep only its hash, name and expiry; issuing, revoking, listing and checking keys MUST be commands, not web endpoints.
 - **FR-012**: An unknown, revoked or expired key and a missing version MUST get the same "not found"; wrong keys from one client MUST be limited per minute.
-- **FR-013**: A public repository's history MUST open from a link to its graph file, with no key and no app.
-- **FR-014**: No key or token MAY appear in Maxitor's log, its error texts or its telemetry.
+- **FR-013**: A public repository's history MUST open from a link to its graph file given in the request, with no key, no app and no entry in the configuration.
+- **FR-014**: No key or token MAY appear in the port's log, its error texts or its telemetry.
 
 **The host and the cache**
 
 - **FR-015**: A private repository MUST be read through an app installed on it with read-only rights to code and pull requests; its token MUST be short-lived and never written to disk or log.
 - **FR-016**: Each repository MUST be read through a partial mirror holding its commits and only the files asked for; one repository MUST never be fetched twice at once.
 - **FR-017**: What never changes — a version's graph, its counts — MUST be kept forever by commit; tags and pull request descriptions MUST be refreshed.
-- **FR-018**: The host's notifications of a push, a tag or an edited pull request MUST refresh the history at once, verified by the host's signature; without them, a history older than a set interval MUST be fetched before it is answered.
+- **FR-018**: The host's notifications of a push, a tag or an edited pull request MUST be sent to the port and MUST refresh at once the histories they change, verified by the host's signature; without them, a history older than a set interval MUST be fetched before it is answered.
+- **FR-018a**: A notification MUST change only the histories it concerns: a push gives a history new versions only when, by git, its graph file changed on its branch between the push's old and new commits; a pull request refreshes a version only when its merge commit is one; a push or pull request that touches no graph file changes no history.
 
 **Boundaries and rules**
 
-- **FR-019**: The core MUST NOT import the web part or a tool; it MUST have no graph file of its own — its actions belong to the graph of the service that runs them.
+- **FR-019**: The port MUST NOT import the web part or a tool, and the web part MUST NOT import the port (it reads the port over HTTP); being a service, the port MUST keep its own graph file, built from its own code.
 - **FR-020**: The core MUST be written by the AOA development rules 41–66 the maintainer adopted for Maxitor: actions with frozen inputs and results, logic in aspects, resources with meaningful methods only, environment through declared context, sensitive values never shown.
 
 **The stand**
 
-- **FR-022**: Maxitor's image MUST carry `git`; the histories config, the mirrors and the version cache MUST live on the server outside the image (the config by `MAXITOR_HISTORIES`, the cache by `MAXITOR_HISTORY_CACHE`, in a volume).
-- **FR-023**: The App's private key and webhook secret MUST come only from the server's environment, put there by the maintainer; they MUST NOT be in the repository, the image or a log.
+- **FR-022**: The port MUST run on the stand as its own container beside Maxitor's, at `https://repo-graph-port.aoa.run`; its image MUST carry `git`; the histories config, the mirrors and the version cache MUST live on the server outside the image (the config by `MAXITOR_HISTORIES`, the cache by `MAXITOR_HISTORY_CACHE`, in a volume).
+- **FR-023**: The App's private key and webhook secret MUST come only from the environment of the port's container, put there by the maintainer; they MUST NOT be in the repository, an image, a log, or Maxitor's container.
 - **FR-024**: The App's token MUST be passed to git per call in a request header, never in a remote URL, so it is never written to a mirror's config.
-- **FR-025**: On the stand, every repository the maintainer chose MUST answer `history` and `version` live, and the App's webhook MUST point at the stand.
+- **FR-025**: On the stand, every repository the maintainer chose MUST answer `history` and `version` live, and the App's webhook MUST point at the port, `https://repo-graph-port.aoa.run/api/v1/history/events/github`.
 
 **The tail**
 
@@ -183,7 +184,7 @@ The maintainer opens Maxitor on the stand and reads the history of each of their
 - **SC-007**: A push, a tag or an edited pull request appears in the next history within one notification, without waiting for the fallback interval.
 - **SC-008**: After the rename, 0 tracked files outside history name `viewer` as Maxitor's part, and Maxitor starts with `maxitor` after installing `maxitor[front]`.
 - **SC-009**: The check run passes, every step.
-- **SC-010**: On the stand, 100% of the configured repositories answer their history; a push shows in the next history within one webhook.
+- **SC-010**: At `https://repo-graph-port.aoa.run`, 100% of the configured repositories answer their history; a push shows in the next history within one webhook, and a push that touches no graph file adds 0 versions.
 - **SC-011**: The App's token is found in 0 files, logs or mirror configs on the server.
 
 ## Assumptions
@@ -191,6 +192,6 @@ The maintainer opens Maxitor on the stand and reads the history of each of their
 - The host is GitHub; GitLab and others come later, one resource each.
 - A history follows one branch; its graph file's path is fixed in the configuration.
 - `#303`'s digest is added to each version when #303 lands; until then a version carries no digest.
-- The standalone gateway — the same core behind its own adapter with signed requests, in `tools/gateway/` — is out of scope.
+- Maxitor's server as a signed client of the port (a key pair, a short JWT per request) is out of scope; today every reader, Maxitor's browser included, presents a history's read key.
 - Showing a history (#289) and comparing versions (#290) are out of scope; gameoffer is not touched.
-- Tests use a stand-in host; the stand reads the real repositories. The maintainer creates the GitHub App, installs it on their private repositories, and puts its private key and webhook secret on the server; they choose which repositories the stand serves.
+- Tests use a stand-in host; the stand reads the real repositories. The maintainer creates the GitHub App, installs it on their private repositories, and puts its private key and webhook secret on the server; they add the DNS name `repo-graph-port.aoa.run` and its route in the host's front end, and choose which repositories the port serves.

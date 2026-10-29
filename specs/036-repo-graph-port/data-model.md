@@ -4,7 +4,7 @@
 
 | Field | Required | Meaning |
 |---|---|---|
-| `id` | yes | Unique; names the history in logs and in Maxitor's address. |
+| `id` | yes | Unique; names the history in the port's routes and logs. |
 | `host` | yes | `github` today; `local` for a path (tests, local runs). |
 | `repository` | yes | `owner/name` on the host, or a local path. |
 | `branch` | yes | The branch whose first parents are the versions. |
@@ -19,7 +19,7 @@
 | `sha256` | SHA-256 of the key; the key itself is never stored. |
 | `expires` | Optional date; after it the key is refused like an unknown one. |
 
-A key: 256 random bits, base64url, printed once by `maxitor history key new`.
+A key: 256 random bits, base64url, printed once by `repo-graph-port history key new`.
 
 ## Version
 
