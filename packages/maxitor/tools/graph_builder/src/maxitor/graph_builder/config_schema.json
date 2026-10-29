@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/config_schema.json",
+  "title": "graph-builder config",
+  "description": "graph-builder.toml: the graphs of one repository, each built by a command and saved in a file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph_builder", "graph"],
+  "properties": {
+    "graph_builder": {
+      "const": "1.0"
+    },
+    "graph": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "build", "file"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "cwd": {"type": "string", "minLength": 1},
+          "build": {"type": "string", "minLength": 1},
+          "file": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

@@ -29,7 +29,7 @@ SCOPE (IN / OUT)
 **Out of scope**
     Refusing a field that states no reference — that belongs to
     :func:`~aoa.action_machine.graph.validators.entity_field_validator.validate_entity_fields`;
-    the ERD projection — that belongs to ``aoa-maxitor``.
+    the ERD projection — that belongs to ``maxitor``.
 """
 
 from __future__ import annotations

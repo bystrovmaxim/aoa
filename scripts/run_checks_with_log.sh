@@ -40,9 +40,9 @@ check_no_lazy_init_getattr() {
   fi
 }
 
-# packages/aoa-maxitor/client — each components/<zone>/<Component>/ with index.ts must have README.md (plan 018 section 9.1).
+# packages/maxitor/app/client — each components/<zone>/<Component>/ with index.ts must have README.md (plan 018 section 9.1).
 check_maxitor_client_component_readmes() {
-  local client_src="$REPO_ROOT/packages/aoa-maxitor/client/src"
+  local client_src="$REPO_ROOT/packages/maxitor/app/client/src"
   local dir
   local fail=0
 

@@ -16,12 +16,11 @@ members = [
     "aoa-demo",
     "aoa-fastapi-adapter",
     "aoa-langgraph",
-    "aoa-maxitor",
     "aoa-mcp-adapter",
     "aoa-ocel",
     "aoa-otel",
     "aoa-run",
-    "maxitor-gnomon",
+    "maxitor",
 ]
 
 [[package]]
@@ -61,7 +60,6 @@ version = "1.0.1a6"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
-    { name = "maxitor-gnomon" },
     { name = "pydantic" },
     { name = "simpleeval" },
 ]
@@ -85,7 +83,6 @@ dev = [
 requires-dist = [
     { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.29,<1.0" },
     { name = "jsonschema", specifier = ">=4.17" },
-    { name = "maxitor-gnomon", editable = "packages/maxitor-gnomon" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'jwt'", specifier = ">=2.8,<3" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
@@ -202,41 +199,6 @@ dev = [
 ]
 
 [[package]]
-name = "aoa-maxitor"
-version = "2.3.0"
-source = { editable = "packages/aoa-maxitor" }
-dependencies = [
-    { name = "aoa-action-machine" },
-    { name = "aoa-fastapi-adapter" },
-    { name = "duckdb" },
-    { name = "httpx" },
-    { name = "uvicorn" },
-    { name = "websockets" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aoa-action-machine", editable = "packages/aoa-action-machine" },
-    { name = "aoa-fastapi-adapter", editable = "packages/aoa-fastapi-adapter" },
-    { name = "duckdb", specifier = ">=1.5,<2" },
-    { name = "httpx", specifier = ">=0.28,<1.0" },
-    { name = "uvicorn", specifier = ">=0.30" },
-    { name = "websockets", specifier = ">=15" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-]
-
-[[package]]
 name = "aoa-mcp-adapter"
 version = "1.2.1"
 source = { editable = "packages/aoa-mcp-adapter" }
@@ -328,8 +290,8 @@ source = { editable = "." }
 dependencies = [
     { name = "aoa-action-machine" },
     { name = "aoa-demo" },
-    { name = "aoa-maxitor" },
     { name = "aoa-ocel" },
+    { name = "maxitor", extra = ["all"] },
 ]
 
 [package.optional-dependencies]
@@ -344,7 +306,6 @@ all = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
-    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -369,7 +330,6 @@ dev = [
     { name = "black" },
     { name = "httpx" },
     { name = "isort" },
-    { name = "maxitor-gnomon" },
     { name = "mypy" },
     { name = "pm4py" },
     { name = "pylint" },
@@ -416,7 +376,6 @@ requires-dist = [
     { name = "aoa-demo", extras = ["mcp"], marker = "extra == 'mcp'", editable = "packages/aoa-demo" },
     { name = "aoa-fastapi-adapter", marker = "extra == 'dev'", editable = "packages/aoa-fastapi-adapter" },
     { name = "aoa-langgraph", marker = "extra == 'dev'", editable = "packages/aoa-langgraph" },
-    { name = "aoa-maxitor", editable = "packages/aoa-maxitor" },
     { name = "aoa-mcp-adapter", marker = "extra == 'dev'", editable = "packages/aoa-mcp-adapter" },
     { name = "aoa-ocel", editable = "packages/aoa-ocel" },
     { name = "aoa-ocel", marker = "extra == 'dev'", editable = "packages/aoa-ocel" },
@@ -425,7 +384,7 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
-    { name = "maxitor-gnomon", marker = "extra == 'dev'", editable = "packages/maxitor-gnomon" },
+    { name = "maxitor", extras = ["all"], editable = "packages/maxitor" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
     { name = "pylint", marker = "extra == 'dev'", specifier = ">=3.0,<4.0" },
@@ -2120,27 +2079,57 @@ wheels = [
 ]
 
 [[package]]
-name = "maxitor-gnomon"
-version = "0.1.0"
-source = { editable = "packages/maxitor-gnomon" }
+name = "maxitor"
+version = "3.0.0"
+source = { editable = "packages/maxitor" }
 dependencies = [
     { name = "jsonschema" },
     { name = "jsonschema-rs" },
 ]
 
+[package.optional-dependencies]
+all = [
+    { name = "aoa-action-machine" },
+    { name = "aoa-fastapi-adapter" },
+    { name = "duckdb" },
+    { name = "httpx" },
+    { name = "uvicorn" },
+    { name = "websockets" },
+]
+viewer = [
+    { name = "aoa-action-machine" },
+    { name = "aoa-fastapi-adapter" },
+    { name = "duckdb" },
+    { name = "httpx" },
+    { name = "uvicorn" },
+    { name = "websockets" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aoa-action-machine", marker = "extra == 'viewer'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-fastapi-adapter", marker = "extra == 'viewer'", editable = "packages/aoa-fastapi-adapter" },
+    { name = "duckdb", marker = "extra == 'viewer'", specifier = ">=1.5,<2" },
+    { name = "httpx", marker = "extra == 'viewer'", specifier = ">=0.28,<1.0" },
     { name = "jsonschema", specifier = ">=4.17,<5" },
     { name = "jsonschema-rs", specifier = ">=0.60,<1" },
+    { name = "maxitor", extras = ["viewer"], marker = "extra == 'all'", editable = "packages/maxitor" },
+    { name = "uvicorn", marker = "extra == 'viewer'", specifier = ">=0.30" },
+    { name = "websockets", marker = "extra == 'viewer'", specifier = ">=15" },
 ]
+provides-extras = ["viewer", "all"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.0" }]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24" },
+]
 
 [[package]]
 name = "mccabe"

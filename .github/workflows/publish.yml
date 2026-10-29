@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'aoa-*-v*'
-      - 'maxitor-gnomon-v*'
+      - 'maxitor-v*'
   workflow_dispatch:
     inputs:
       package:
@@ -18,9 +18,8 @@ on:
           - aoa-langgraph
           - aoa-otel
           - aoa-ocel
-          - aoa-maxitor
+          - maxitor
           - aoa-demo
-          - maxitor-gnomon
 
 jobs:
   publish-aoa-action-machine:
@@ -119,12 +118,12 @@ jobs:
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
-  publish-aoa-maxitor:
-    name: Publish aoa-maxitor
+  publish-maxitor:
+    name: Publish maxitor
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.ref, 'refs/tags/aoa-maxitor-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'aoa-maxitor')
+      startsWith(github.ref, 'refs/tags/maxitor-v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.package == 'maxitor')
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -132,17 +131,17 @@ jobs:
         with:
           node-version: '20'
       - name: Build frontend
-        working-directory: packages/aoa-maxitor/client
+        working-directory: packages/maxitor/app/client
         run: |
           npm ci
           npx vite build \
             --base=/ \
-            --outDir ../src/aoa/maxitor/static \
+            --outDir ../src/maxitor/viewer/static \
             --emptyOutDir
       - name: Build
-        run: uv build --package aoa-maxitor --out-dir packages/aoa-maxitor/dist
+        run: uv build --package maxitor --out-dir packages/maxitor/dist
       - name: Publish
-        run: uv publish packages/aoa-maxitor/dist/*
+        run: uv publish packages/maxitor/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
@@ -159,21 +158,5 @@ jobs:
         run: uv build --package aoa-demo --out-dir packages/aoa-demo/dist
       - name: Publish
         run: uv publish packages/aoa-demo/dist/*
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-
-  publish-maxitor-gnomon:
-    name: Publish maxitor-gnomon
-    runs-on: ubuntu-latest
-    if: >-
-      startsWith(github.ref, 'refs/tags/maxitor-gnomon-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'maxitor-gnomon')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - name: Build
-        run: uv build --package maxitor-gnomon --out-dir packages/maxitor-gnomon/dist
-      - name: Publish
-        run: uv publish packages/maxitor-gnomon/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}

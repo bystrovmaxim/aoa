@@ -89,15 +89,15 @@ from typing import Any
 import httpx
 from fastapi.testclient import TestClient
 
-from aoa.maxitor.api.app import create_app
-from aoa.maxitor.api.graph_store import (
+from maxitor.viewer.api.app import create_app
+from maxitor.viewer.api.graph_store import (
     BUSY_DETAIL,
     GraphBuildError,
     GraphEntry,
     GraphStore,
     GraphStoreBusyError,
 )
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 SOURCE_A = "https://a.aoa.run/graph-json"
 SOURCE_B = "https://b.aoa.run/graph-json"

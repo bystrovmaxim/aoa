@@ -30,7 +30,8 @@ OK Ruff auto-fix (exit 0, 0.1 s)
 …
 OK Maxitor client: unit tests (exit 0, 13.5 s)
 OK Packaging wheel install smoke (exit 0, 7.7 s)
-OK Pytest aoa-maxitor (exit 0, 39.0 s)
+OK Pytest maxitor/app (exit 0, 39.4 s)
+OK Pytest maxitor/tools/graph_builder (exit 0, 6.4 s)
 OK Maxitor client: the same layout in three engines (exit 0, 30.1 s)
 OK Pytest aoa-action-machine (exit 0, 49.8 s)
 
@@ -81,10 +82,10 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, vulture, samples public API, Radon | the auto-fix |
 | Packaging | nine package builds, then the packaging smoke test | the auto-fix; the Maxitor package build never runs during the client build, because its source archive packs the client folder; the smoke test waits for all nine builds |
-| Tests | the tests of each of the nine packages, one run per package, and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
-| Last, only on a green run | `Graph files (gnomon write)`: builds the repository's graphs and updates their files ([maxitor-gnomon](../../packages/maxitor-gnomon/README.md)) | every other step; if any failed, it does not run and its block reads `SKIPPED Graph files (gnomon write): N step(s) failed` — neither `OK` nor `FAIL` |
+| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/app` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Last, only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 
-The last step may change `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. CI only checks them with `gnomon check`.
+The last step may change `packages/aoa-demo/graph.json` and `packages/maxitor/app/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. CI only checks them with `graph-builder check`.
 
 The run is as long as its longest chain. Today two chains are almost equal: the client build and then the three-engine layout step (about 22 + 30 s), and the tests of `aoa-action-machine` (about 50 s). Every other step finishes beside them, so making one of these two shorter alone gains only a few seconds.
 

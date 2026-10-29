@@ -1,0 +1,13 @@
+# graph-builder.toml — the graphs of this repository, each saved in a file that changes with every merge.
+# `graph-builder write` builds them and updates the files; `graph-builder check` fails when a file is stale.
+graph_builder = "1.0"
+
+[[graph]]
+name = "demo"
+build = "uv run --extra dev python -m aoa.demo.build_graph"
+file = "packages/aoa-demo/graph.json"
+
+[[graph]]
+name = "maxitor"
+build = "uv run --extra dev python -m maxitor.viewer.build_graph"
+file = "packages/maxitor/app/graph.json"

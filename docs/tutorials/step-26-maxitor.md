@@ -148,10 +148,10 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
 
 ## The graph saved with every change
 
-Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`, listed in `gnomon.toml` at the root:
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/app/graph.json`, listed in `graph-builder.toml` at the root:
 
 ```toml
-gnomon = "1.0"
+graph_builder = "1.0"
 
 [[graph]]
 name = "demo"
@@ -159,16 +159,18 @@ build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
 ```
 
-`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `gnomon write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format and the command belong to [maxitor-gnomon](../../packages/maxitor-gnomon/README.md), which knows nothing about AOA; `GRAPH_JSON_SCHEMA` is read from there, schema version `1.1`.
+`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `graph-builder write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md) — JSON Schemas with no code, which any language can follow; AOA keeps its own copy of version `1.1` as `GRAPH_JSON_SCHEMA`. The command is [`graph-builder`](../../packages/maxitor/tools/graph_builder/README.md), part of the `maxitor` package (`pip install maxitor`, no extra): it knows nothing about AOA — it runs each `build`, checks what it prints against the protocol's schema, and keeps the file. A service in another language plugs in the same way, with a `build` in its own language.
 
-How the graph travels with a pull request: you change the code; the check run's last step runs `gnomon write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `gnomon check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
+How the graph travels with a pull request: you change the code; the check run's last step runs `graph-builder write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `graph-builder check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
 
 ```text
 stale demo: packages/aoa-demo/graph.json
   nodes[id=aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity].properties.description: Inbound partner lot keyed to SKU and packing posture (suppl… → Inbound partner lot keyed to SKU
 ok maxitor
-run: gnomon write --config gnomon.toml, and commit the graph files
+run: graph-builder write --config graph-builder.toml, and commit the graph files
 ```
+
+Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[viewer]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.viewer`.
 
 Merged, the pull request carries the graph as it now is; `git log -p packages/aoa-demo/graph.json` is the demo's graph history. [12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)) shows every case:
 
@@ -407,7 +409,7 @@ The build now creates neither. The reference graph takes 13.4 MiB instead of 43.
 
 One protection moved rather than disappeared. A primary key used to refuse a graph that lists the same node id twice in one table; the build now checks for that after loading and names the id and the table. A repeated id in two *different* tables is still accepted, as it always was.
 
-[03_graph_memory.py](../../examples/step_26_maxitor/03_graph_memory.py) and its [notebook](../../examples/step_26_maxitor/03_graph_memory.ipynb) show the cost by memory tag, the refusal, the cross-table case and an empty graph, with the output they print. On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`aoa-maxitor` README](../../packages/aoa-maxitor/README.md#backend) says what that means for the fifty-graph limit.
+[03_graph_memory.py](../../examples/step_26_maxitor/03_graph_memory.py) and its [notebook](../../examples/step_26_maxitor/03_graph_memory.ipynb) show the cost by memory tag, the refusal, the cross-table case and an empty graph, with the output they print. On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`maxitor` README](../../packages/maxitor/README.md#backend) says what that means for the fifty-graph limit.
 
 ## Looking at one service together
 
@@ -464,10 +466,10 @@ Maxitor's own answers are conditional too: every successful `GET` of a `FastApiA
 uv run task maxitor-api
 
 # frontend (Vite SPA, :5173; proxies /api to :8000)
-cd packages/aoa-maxitor/client && npm install && npm run dev
+cd packages/maxitor/app/client && npm install && npm run dev
 ```
 
-Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`aoa-maxitor` package README](../../packages/aoa-maxitor/README.md).
+Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](../../packages/maxitor/README.md).
 
 A runnable tour of the whole request contract — two sources side by side, a cold read, `400`, `422`, `503`, an explicit reload, a failed reload, a graph held for hours, eviction and a burst — is [02_api_graph_per_source.py](../../examples/step_26_maxitor/02_api_graph_per_source.py) and its [notebook](../../examples/step_26_maxitor/02_api_graph_per_source.ipynb).
 
@@ -629,7 +631,7 @@ The page opens faster than it did, and a second visit barely downloads anything.
 
 **What the layout engine does on a first open.** G6 still computes the arrangement on the main thread and draws it; a web worker was built and measured, and it did not pay: it changed the longest frozen stretch by nothing measurable and made the first pixel 350–450 ms later. The measurement and the decision are in [research R13](../../specs/026-full-graph-fast-open/research.md). What ships from that work is the precomputed-layout adapter the remembered arrangement uses.
 
-**How it is measured.** `packages/aoa-maxitor/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
+**How it is measured.** `packages/maxitor/app/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
 
 | Criterion | Before | After | Target |
 |---|---|---|---|

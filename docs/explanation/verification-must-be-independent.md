@@ -203,7 +203,7 @@ The engineer does not disappear; the engineer stops being a **constructor** and 
 
 **The shape of a proposal** — a change-set over the graph rather than a diff over files: nodes to add or remove, edges to rewire, contracts to attach, and the constraints it claims to satisfy. It is a graph object, so it can be checked before anything is written; it is small, so a person can read it.
 
-**Where it fails, and it fails precisely here.** JARVIS errs confidently: he will propose a suit that formally flies. A solver checks **admissibility, not meaning** — it cannot tell a legal but pointless architecture from the intended one. The person is therefore not optional in B; the person is the only carrier of intent. Direct consequence: **B without [Maxitor](../../packages/aoa-maxitor/README.md) is incomplete**, because the blueprint becomes the only acceptance interface. And a second trap: the temptation to let the machine modify the solver itself. That is leaving phase 3 for phase 1 under a better name.
+**Where it fails, and it fails precisely here.** JARVIS errs confidently: he will propose a suit that formally flies. A solver checks **admissibility, not meaning** — it cannot tell a legal but pointless architecture from the intended one. The person is therefore not optional in B; the person is the only carrier of intent. Direct consequence: **B without [Maxitor](../../packages/maxitor/README.md) is incomplete**, because the blueprint becomes the only acceptance interface. And a second trap: the temptation to let the machine modify the solver itself. That is leaving phase 3 for phase 1 under a better name.
 
 ### Variant C — the graph as the agent's environment
 
@@ -420,7 +420,7 @@ The practical consequence: the more capable the generator becomes, the **more** 
 
 A machine gate answers *"is this admissible?"*. It does not answer *"is this the system we meant to build?"* — and no engine can, because that question is about intent, and intent lives with people.
 
-That is the second half of verification, and it is the reason [Maxitor](../../packages/aoa-maxitor/README.md) exists. Maxitor renders the same graph — the one the engine already built and already executes — as interactive diagrams in a browser. Not diagrams drawn by hand. Diagrams generated from the code that runs, so they cannot go stale and do not need to be maintained:
+That is the second half of verification, and it is the reason [Maxitor](../../packages/maxitor/README.md) exists. Maxitor renders the same graph — the one the engine already built and already executes — as interactive diagrams in a browser. Not diagrams drawn by hand. Diagrams generated from the code that runs, so they cannot go stale and do not need to be maintained:
 
 | View | What a reviewer sees |
 |---|---|
@@ -520,4 +520,4 @@ Case 5 is the one worth reading twice. The violating step is not merely reported
 - [The formal model: open questions](../reference/formal-model.md) — an operation as a tuple, and which questions become well-posed.
 - [The AOA Architectural Constitution](architectural-constitution.md) — the nine primitives and the algorithm for choosing between them.
 - [Comparison with other frameworks](comparison.md) — where AOA sits next to FastAPI, Django, Clean/DDD, CQRS, and workflow engines.
-- [Maxitor](../../packages/aoa-maxitor/README.md) — the blueprint view of the same graph.
+- [Maxitor](../../packages/maxitor/README.md) — the blueprint view of the same graph.
