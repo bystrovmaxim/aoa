@@ -209,7 +209,7 @@ STEPS: tuple[Step, ...] = (
         _after_fix(f"Pytest {package}", f"uv run --extra dev pytest packages/{package}/tests/ -v", "tests")
         for package in (
             "maxitor/app",
-            "maxitor/tools/gnomon",
+            "maxitor/tools/graph_builder",
             "aoa-demo",
             "aoa-otel",
             "aoa-langgraph",
@@ -223,11 +223,11 @@ STEPS: tuple[Step, ...] = (
     _after_fix("Radon cyclomatic complexity", "uv run --extra dev task cc", "static"),
     _after_fix("Radon maintainability index", "uv run --extra dev task mi", "static"),
     # Last, and only on a green run: build this repository's graphs and update their files
-    # (gnomon.toml). Like the auto-fix, it may change files and the run stays green; the
+    # (graph-builder.toml). Like the auto-fix, it may change files and the run stays green; the
     # changed files go into the same commit as the change that changed the graph.
     Step(
-        "Graph files (gnomon write)",
-        "uv run --extra dev gnomon write",
+        "Graph files (graph-builder write)",
+        "uv run --extra dev graph-builder write",
         "graphs",
         only_if_all_passed=True,
     ),

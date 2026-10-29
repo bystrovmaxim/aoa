@@ -148,10 +148,10 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
 
 ## The graph saved with every change
 
-Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/graph.json`, listed in `gnomon.toml` at the root:
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/app/graph.json`, listed in `graph-builder.toml` at the root:
 
 ```toml
-gnomon = "1.0"
+graph_builder = "1.0"
 
 [[graph]]
 name = "demo"
@@ -159,16 +159,18 @@ build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
 ```
 
-`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `gnomon write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format and the command belong to [maxitor](../../packages/maxitor/README.md), which knows nothing about AOA; `GRAPH_JSON_SCHEMA` is read from there, schema version `1.1`.
+`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `graph-builder write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md) — JSON Schemas with no code, which any language can follow; AOA keeps its own copy of version `1.1` as `GRAPH_JSON_SCHEMA`. The command is [`graph-builder`](../../packages/maxitor/tools/graph_builder/README.md), part of the `maxitor` package (`pip install maxitor`, no extra): it knows nothing about AOA — it runs each `build`, checks what it prints against the protocol's schema, and keeps the file. A service in another language plugs in the same way, with a `build` in its own language.
 
-How the graph travels with a pull request: you change the code; the check run's last step runs `gnomon write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `gnomon check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
+How the graph travels with a pull request: you change the code; the check run's last step runs `graph-builder write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `graph-builder check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
 
 ```text
 stale demo: packages/aoa-demo/graph.json
   nodes[id=aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity].properties.description: Inbound partner lot keyed to SKU and packing posture (suppl… → Inbound partner lot keyed to SKU
 ok maxitor
-run: gnomon write --config gnomon.toml, and commit the graph files
+run: graph-builder write --config graph-builder.toml, and commit the graph files
 ```
+
+Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[viewer]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.viewer`.
 
 Merged, the pull request carries the graph as it now is; `git log -p packages/aoa-demo/graph.json` is the demo's graph history. [12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)) shows every case:
 

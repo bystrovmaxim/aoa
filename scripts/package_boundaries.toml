@@ -24,7 +24,7 @@ may_import = ["action_machine"]
 current_roots = ["packages/maxitor/app/src/maxitor/viewer"]
 future_roots = ["packages/maxitor/app/src/maxitor/viewer"]
 import_prefixes = ["maxitor.viewer"]
-may_import = ["action_machine", "gnomon"]
+may_import = ["action_machine", "graph_builder"]
 
 [packages.examples]
 current_roots = ["packages/aoa-demo/src/aoa/demo"]
@@ -36,9 +36,9 @@ may_import = ["action_machine", "ocel"]
 allow = []
 
 # Standalone packages live outside the ``aoa`` namespace and may import nothing from ``aoa``.
-# ``maxitor.gnomon`` is Maxitor's graph-file command, installed by ``pip install maxitor`` with no extra:
+# ``maxitor.graph_builder`` is Maxitor's graph-file command, installed by ``pip install maxitor`` with no extra:
 # it imports nothing from ``aoa`` and nothing of the viewer, whose dependencies come only with ``[viewer]``.
-[standalone.gnomon]
-roots = ["packages/maxitor/tools/gnomon/src/maxitor/gnomon"]
-import_prefixes = ["maxitor.gnomon"]
+[standalone.graph_builder]
+roots = ["packages/maxitor/tools/graph_builder/src/maxitor/graph_builder"]
+import_prefixes = ["maxitor.graph_builder"]
 forbid = ["maxitor.viewer"]

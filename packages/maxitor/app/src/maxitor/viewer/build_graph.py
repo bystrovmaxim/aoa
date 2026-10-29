@@ -1,12 +1,12 @@
 # packages/maxitor/app/src/maxitor/viewer/build_graph.py
 """
-Build the viewer's own graph and write it to standard output — the build command of the ``viewer`` entry in ``gnomon.toml``.
+Build the viewer's own graph and write it to standard output — the build command of the ``viewer`` entry in ``graph-builder.toml``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Maxitor is itself an AOA service. ``gnomon write`` runs
+Maxitor is itself an AOA service. ``graph-builder write`` runs
 ``python -m maxitor.viewer.build_graph`` and saves what it prints in
 ``packages/maxitor/app/graph.json``, so every change to the viewer carries its graph.
 The graph comes from ``maxitor.viewer`` alone: another service of the package, when there

@@ -1,11 +1,12 @@
 """
 12_graph_file.py — a service keeps its current graph in one file, and every merge carries it
 
-The demo and Maxitor each print their graph, and ``gnomon write`` saves it in a file beside the
-package — ``packages/aoa-demo/graph.json``, ``packages/maxitor/graph.json`` — listed in
-``gnomon.toml`` at the repository root. The file changes in the same pull request as the code that
-changed the graph, so git holds the graph's whole history; CI runs ``gnomon check`` and fails when a
-file is stale. The format belongs to ``maxitor-gnomon``, a package that knows nothing about AOA.
+The demo and Maxitor each print their graph, and ``graph-builder write`` saves it in a file beside the
+package — ``packages/aoa-demo/graph.json``, ``packages/maxitor/app/graph.json`` — listed in
+``graph-builder.toml`` at the repository root. The file changes in the same pull request as the code that
+changed the graph, so git holds the graph's whole history; CI runs ``graph-builder check`` and fails when a
+file is stale. The format is the Open Gnomon Protocol; ``graph-builder``, of the ``maxitor`` package,
+knows nothing about AOA: it runs each build, checks what it prints, and keeps the file.
 
 The cases, with the real output at the bottom:
 
@@ -23,7 +24,7 @@ Output:
 
     1. The repository's graphs
        demo     uv run --extra dev python -m aoa.demo.build_graph  →  packages/aoa-demo/graph.json
-       maxitor  uv run --extra dev python -m maxitor.viewer.build_graph  →  packages/maxitor/graph.json
+       maxitor  uv run --extra dev python -m maxitor.viewer.build_graph  →  packages/maxitor/app/graph.json
     2. A saved graph against its schema
        packages/aoa-demo/graph.json: 1.1, 3213 nodes, 4841 edges — a graph
     3. Built again
@@ -51,16 +52,16 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-from maxitor.gnomon.config import read_config
-from maxitor.gnomon.schemas import GraphRefused, check_graph
-from maxitor.gnomon.writer import build, check, render
+from maxitor.graph_builder.config import read_config
+from maxitor.graph_builder.schemas import GraphRefused, check_graph
+from maxitor.graph_builder.writer import build, check, render
 
-# The repository root: the folder that holds gnomon.toml, wherever this runs from.
-REPO_ROOT = next(path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "gnomon.toml").is_file())
+# The repository root: the folder that holds graph-builder.toml, wherever this runs from.
+REPO_ROOT = next(path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "graph-builder.toml").is_file())
 os.chdir(REPO_ROOT)
 
 print("1. The repository's graphs")
-GRAPHS = read_config("gnomon.toml")
+GRAPHS = read_config("graph-builder.toml")
 for graph in GRAPHS:
     print(f"   {graph.name:<8} {graph.build}  →  {graph.file.relative_to(REPO_ROOT)}")
 DEMO = next(graph for graph in GRAPHS if graph.name == "demo")

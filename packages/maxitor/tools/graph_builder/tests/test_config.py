@@ -1,12 +1,12 @@
-# packages/maxitor/tools/gnomon/tests/test_config.py
-"""``gnomon.toml``: a valid config gives its graphs in order, and every refusal names the graph and the field."""
+# packages/maxitor/tools/graph_builder/tests/test_config.py
+"""``graph-builder.toml``: a valid config gives its graphs in order, and every refusal names the graph and the field."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-from maxitor.gnomon.config import ConfigRefused, Graph, read_config
+from maxitor.graph_builder.config import ConfigRefused, Graph, read_config
 
 DEMO = """
 [[graph]]
@@ -24,9 +24,9 @@ file = "packages/maxitor/graph.json"
 """
 
 
-def _config(tmp_path: Path, text: str, header: str = 'gnomon = "1.0"\n') -> Path:
+def _config(tmp_path: Path, text: str, header: str = 'graph_builder = "1.0"\n') -> Path:
     """Write a config into a folder of its own and return its path."""
-    path = tmp_path / "repo" / "gnomon.toml"
+    path = tmp_path / "repo" / "graph-builder.toml"
     path.parent.mkdir()
     path.write_text(header + text, encoding="utf-8")
     return path
@@ -51,7 +51,7 @@ def test_paths_are_relative_to_the_config_not_to_the_caller(tmp_path: Path, monk
     """Read from another folder, the paths still start at the config's folder."""
     path = _config(tmp_path, DEMO)
     monkeypatch.chdir(tmp_path)
-    (graph,) = read_config(Path("repo") / "gnomon.toml")
+    (graph,) = read_config(Path("repo") / "graph-builder.toml")
     assert graph.cwd == (tmp_path / "repo" / "packages/aoa-demo").resolve()
     assert graph.file == path.parent.resolve() / "packages/aoa-demo/graph.json"
 
@@ -100,11 +100,11 @@ def test_two_paths_to_one_file_are_one_file(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("header", "text", "field", "reason"),
     [
-        ("", DEMO, "gnomon", "required"),
-        ('gnomon = "2.0"\n', DEMO, "gnomon", "unknown config version '2.0'; known: 1.0"),
-        ('gnomon = "1.0"\n', "", "graph", "required"),
-        ('gnomon = "1.0"\n', "graph = []\n", "graph", "[] should be non-empty"),
-        ('gnomon = "1.0"\n', "[[graph]\n", "", "not TOML"),
+        ("", DEMO, "graph_builder", "required"),
+        ('graph_builder = "2.0"\n', DEMO, "graph_builder", "unknown config version '2.0'; known: 1.0"),
+        ('graph_builder = "1.0"\n', "", "graph", "required"),
+        ('graph_builder = "1.0"\n', "graph = []\n", "graph", "[] should be non-empty"),
+        ('graph_builder = "1.0"\n', "[[graph]\n", "", "not TOML"),
     ],
     ids=["no-version", "unknown-version", "no-graphs", "empty-graphs", "not-toml"],
 )
@@ -119,7 +119,7 @@ def test_a_wrong_config_is_refused_by_field(tmp_path: Path, header: str, text: s
 def test_a_missing_config_is_refused(tmp_path: Path) -> None:
     """No file, no graphs: the refusal says where it looked."""
     with pytest.raises(ConfigRefused, match="no config at"):
-        read_config(tmp_path / "gnomon.toml")
+        read_config(tmp_path / "graph-builder.toml")
 
 
 def test_a_refusal_reads_as_one_line(tmp_path: Path) -> None:

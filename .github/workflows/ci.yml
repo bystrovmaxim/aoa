@@ -33,14 +33,17 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
-      # The graph files (gnomon.toml) must be what the code builds: CI only checks, the
-      # developer runs `gnomon write` and commits the files with the change. The step is
-      # maxitor's own action, the one other projects use; here it runs this checkout's gnomon.
-      - name: Graph files are current (gnomon check)
-        uses: ./packages/maxitor/tools/gnomon
+      # The graph files (graph-builder.toml) must be what the code builds: CI only checks, the
+      # developer runs `graph-builder write` and commits the files with the change. The builds run
+      # in the project's environment, prepared first; the check is maxitor's own action, the one
+      # other projects use, here running this checkout's graph-builder.
+      - name: Project environment for the graph builds
+        run: uv sync --all-extras
+
+      - name: Graph files are current (graph-builder check)
+        uses: ./packages/maxitor/tools/graph_builder
         with:
-          sync: uv sync --all-extras
-          gnomon: uv run --extra dev gnomon
+          graph-builder: uv run --extra dev graph-builder
 
       - name: Check for uncommitted changes
         run: |

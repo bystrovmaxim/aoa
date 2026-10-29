@@ -1,5 +1,5 @@
 # tests/scripts/test_package_boundaries.py
-"""The boundary check inside ``maxitor``: ``gnomon`` stands alone; an import belongs to its longest prefix."""
+"""The boundary check inside ``maxitor``: ``graph-builder`` stands alone; an import belongs to its longest prefix."""
 
 from __future__ import annotations
 
@@ -26,16 +26,16 @@ def _checker() -> ModuleType:
 CONFIG = {
     "packages": {
         "action_machine": {"current_roots": ["aoa/action_machine"], "import_prefixes": ["aoa.action_machine"], "may_import": []},
-        "maxitor": {"current_roots": ["maxitor/viewer"], "import_prefixes": ["maxitor.viewer"], "may_import": ["action_machine", "gnomon"]},
+        "maxitor": {"current_roots": ["maxitor/viewer"], "import_prefixes": ["maxitor.viewer"], "may_import": ["action_machine", "graph_builder"]},
         "examples": {"current_roots": ["aoa/demo"], "import_prefixes": ["aoa.demo"], "may_import": ["action_machine"]},
     },
-    "standalone": {"gnomon": {"roots": ["maxitor/gnomon"], "import_prefixes": ["maxitor.gnomon"], "forbid": ["maxitor.viewer"]}},
+    "standalone": {"graph_builder": {"roots": ["maxitor/graph_builder"], "import_prefixes": ["maxitor.graph_builder"], "forbid": ["maxitor.viewer"]}},
 }
 
 
 def _violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner_folder: str, source: str) -> list[str]:
     """Check a tree whose one module, in ``owner_folder``, holds ``source``; every other root is empty."""
-    for folder in ("aoa/action_machine", "maxitor/viewer", "aoa/demo", "maxitor/gnomon"):
+    for folder in ("aoa/action_machine", "maxitor/viewer", "aoa/demo", "maxitor/graph_builder"):
         (tmp_path / folder).mkdir(parents=True, exist_ok=True)
     (tmp_path / owner_folder / "module.py").write_text(source, encoding="utf-8")
     checker = _checker()
@@ -43,24 +43,24 @@ def _violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner_folder: s
     return [v.format() for v in checker.check_production(CONFIG) + checker.check_standalone(CONFIG)]
 
 
-def test_gnomon_importing_the_viewer_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """``maxitor.gnomon`` must not import the viewer: one violation, naming file, line, owner and module."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/gnomon", "import json\nfrom maxitor.viewer.api import app\n")
-    assert found == ["maxitor/gnomon/module.py:2: context 'gnomon' must not import package 'maxitor.viewer' via 'maxitor.viewer.api'"]
+def test_graph_builder_importing_the_viewer_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``maxitor.graph_builder`` must not import the viewer: one violation, naming file, line, owner and module."""
+    found = _violations(tmp_path, monkeypatch, "maxitor/graph_builder", "import json\nfrom maxitor.viewer.api import app\n")
+    assert found == ["maxitor/graph_builder/module.py:2: context 'graph_builder' must not import package 'maxitor.viewer' via 'maxitor.viewer.api'"]
 
 
-def test_gnomon_importing_aoa_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """``maxitor.gnomon`` must not import AOA."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/gnomon", "import aoa.action_machine\n")
-    assert found == ["maxitor/gnomon/module.py:1: context 'gnomon' must not import package 'aoa' via 'aoa.action_machine'"]
+def test_graph_builder_importing_aoa_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``maxitor.graph_builder`` must not import AOA."""
+    found = _violations(tmp_path, monkeypatch, "maxitor/graph_builder", "import aoa.action_machine\n")
+    assert found == ["maxitor/graph_builder/module.py:1: context 'graph_builder' must not import package 'aoa' via 'aoa.action_machine'"]
 
 
-def test_the_viewer_may_use_gnomon(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_viewer_may_use_graph_builder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The viewer imports the command's schemas: allowed."""
-    assert _violations(tmp_path, monkeypatch, "maxitor/viewer", "from maxitor.gnomon.schemas import graph_schema\n") == []
+    assert _violations(tmp_path, monkeypatch, "maxitor/viewer", "from maxitor.graph_builder.schemas import graph_schema\n") == []
 
 
 def test_an_import_belongs_to_its_longest_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The demo importing ``maxitor.gnomon`` is a violation against ``gnomon``, not lost and not charged to ``maxitor``."""
-    found = _violations(tmp_path, monkeypatch, "aoa/demo", "from maxitor.gnomon.schemas import graph_schema\n")
-    assert found == ["aoa/demo/module.py:1: context 'examples' must not import package 'gnomon' via 'maxitor.gnomon.schemas'"]
+    """The demo importing ``maxitor.graph_builder`` is a violation against ``graph-builder``, not lost and not charged to ``maxitor``."""
+    found = _violations(tmp_path, monkeypatch, "aoa/demo", "from maxitor.graph_builder.schemas import graph_schema\n")
+    assert found == ["aoa/demo/module.py:1: context 'examples' must not import package 'graph_builder' via 'maxitor.graph_builder.schemas'"]

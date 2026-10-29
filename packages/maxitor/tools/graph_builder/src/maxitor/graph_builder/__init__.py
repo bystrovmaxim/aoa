@@ -1,6 +1,6 @@
-# packages/maxitor/tools/gnomon/src/maxitor/gnomon/__init__.py
+# packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/__init__.py
 """
-maxitor.gnomon — the ``gnomon`` command: a repository's graphs, kept in files.
+maxitor.graph_builder — the ``graph-builder`` command: a repository's graphs, kept in files.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,9 +8,7 @@ PURPOSE
 
 Keep each service's graph in one file, checked against the Open Gnomon Protocol
 by version: the config that lists a repository's graphs, the writer and the
-check, and the differences between a file and what its build prints. A gnomon is
-the rod of a sundial whose shadow marks the hour; this part marks where a
-service's graph stood at each commit.
+check, and the differences between a file and what its build prints.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW

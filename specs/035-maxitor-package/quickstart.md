@@ -14,14 +14,14 @@ Expect only `README.md`, `CHANGELOG.md`, `graph/1.0.json`, `graph/1.1.json`.
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest tests/scripts/test_schema_copies.py -q
 ```
-Adversarial: change one byte in `packages/maxitor/tools/gnomon/src/maxitor/gnomon/schemas/1.1.json` → this test fails naming the copy and its source, no other test fails; restore.
+Adversarial: change one byte in `packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/schemas/1.1.json` → this test fails naming the copy and its source, no other test fails; restore.
 
 ## 3. A light install (SC-001)
 
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest tests/packaging/test_wheel_install_smoke.py -q -k maxitor
 ```
-Expect: a clean venv with only the `maxitor` wheel runs `gnomon check` on this repository, has no `aoa-*` distribution and no viewer dependency; `maxitor-api` exits 2 naming `maxitor[viewer]`.
+Expect: a clean venv with only the `maxitor` wheel runs `graph-builder check` on this repository, has no `aoa-*` distribution and no viewer dependency; `maxitor-api` exits 2 naming `maxitor[viewer]`.
 
 ## 4. The viewer works as before (SC-004, SC-005)
 
@@ -34,12 +34,12 @@ cd /Users/bystrovmaxim/PythonDev/aoa && git show 03076a54:packages/aoa-maxitor/g
 
 ## 5. Boundaries (SC-007)
 
-Add `import maxitor.viewer` to `packages/maxitor/tools/gnomon/src/maxitor/gnomon/cli.py`, then:
+Add `import maxitor.viewer` to `packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/cli.py`, then:
 
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev python scripts/check_package_boundaries.py
 ```
-Expect exit 1 and a line naming `cli.py`, the line, `gnomon` and `maxitor.viewer`. Remove the import: exit 0.
+Expect exit 1 and a line naming `cli.py`, the line, `graph-builder` and `maxitor.viewer`. Remove the import: exit 0.
 
 ## 6. No old names left (SC-006)
 
@@ -57,7 +57,7 @@ On the pull request, the CI job's step from `./packages/maxitor` passes. Adversa
 ```bash
 cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev python examples/step_26_maxitor/13_maxitor_parts.py
 ```
-Expect the four cases, each named, with what it printed: `gnomon` from a no-extra install, `maxitor-api` exit 2 with its message, plain `jsonschema` accepting the demo's graph and refusing it without one edge's `id`, `maxitor.viewer` imported.
+Expect the four cases, each named, with what it printed: `graph-builder` from a no-extra install, `maxitor-api` exit 2 with its message, plain `jsonschema` accepting the demo's graph and refusing it without one edge's `id`, `maxitor.viewer` imported.
 
 ## 9. The walk-through on gameoffer (SC-009)
 

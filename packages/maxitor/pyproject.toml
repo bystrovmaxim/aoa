@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 # Every part's code is in the wheel; an extra brings one part's dependencies. The base install is
-# the ``gnomon`` command: jsonschema-rs decides whether a document is a graph (the demo's in 0.06 s,
+# the ``graph-builder`` command: jsonschema-rs decides whether a document is a graph (the demo's in 0.06 s,
 # not 24 s); jsonschema explains a refusal on the one element jsonschema-rs stopped at.
 dependencies = [
     "jsonschema>=4.17,<5",
@@ -42,19 +42,19 @@ Documentation = "https://action-machine.readthedocs.io"
 Repository = "https://github.com/action-machine/action-machine"
 
 [project.scripts]
-gnomon = "maxitor.gnomon.cli:main"
+graph-builder = "maxitor.graph_builder.cli:main"
 maxitor-api = "maxitor.viewer.launch:viewer"
 
 # One package from several folders: the application (app/), the tools (tools/<name>/) and the
 # skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
 [tool.hatch.build.targets.wheel]
-only-include = ["app/src/maxitor", "tools/gnomon/src/maxitor"]
+only-include = ["app/src/maxitor", "tools/graph_builder/src/maxitor"]
 artifacts = ["app/src/maxitor/viewer/static/**/*"]
-dev-mode-dirs = ["app/src", "tools/gnomon/src"]
+dev-mode-dirs = ["app/src", "tools/graph_builder/src"]
 
 [tool.hatch.build.targets.wheel.sources]
 "app/src" = ""
-"tools/gnomon/src" = ""
+"tools/graph_builder/src" = ""
 
 [tool.hatch.build.targets.wheel.force-include]
 "skills" = "maxitor/skills"
@@ -65,7 +65,7 @@ exclude = [
   "app/client/node_modules/**",
   "app/client/.vite",
   "app/client/.vite/**",
-  # A service's saved graph is the repository's history, not the package's (gnomon.toml).
+  # A service's saved graph is the repository's history, not the package's (graph-builder.toml).
   "app/graph.json",
 ]
 
