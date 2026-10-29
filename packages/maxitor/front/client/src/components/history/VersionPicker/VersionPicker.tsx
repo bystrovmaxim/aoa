@@ -1,14 +1,14 @@
 // src/components/history/VersionPicker/VersionPicker.tsx
 import Box from "@mui/material/Box";
-import ButtonBase from "@mui/material/ButtonBase";
 import Drawer from "@mui/material/Drawer";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import Tooltip from "@mui/material/Tooltip";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import type { HistoryVersion } from "@/api/history";
 import { VersionTrack } from "@/components/history/VersionTrack";
+import { TrackLegend } from "./TrackLegend";
 import { pickerSubtitle } from "@/model/historyMode";
 
 /** Width of the picker card and of its track — the mockup's 760 and 718. */
@@ -16,8 +16,8 @@ const WIDTH = 760;
 const TRACK_WIDTH = 718;
 
 export type VersionPickerProps = {
-  /** The button the picker opens under; ``null`` keeps it closed. */
-  anchor: HTMLElement | null;
+  /** The button the picker opens under, as a ref: it is asked where it stands each time, so a button drawn anew still holds the picker; ``null`` keeps it closed. */
+  anchor: RefObject<HTMLElement | null> | null;
   onClose: () => void;
   title: string;
   versions: readonly HistoryVersion[];
@@ -28,8 +28,6 @@ export type VersionPickerProps = {
   proposals?: readonly HistoryVersion[];
   value: string | null;
   onChange: (b: string) => void;
-  /** The link **Copy link** hands out: this version, the key after ``#key=``. */
-  link: string;
   /** Under the track: the chosen version's message. */
   children?: ReactNode;
   /** On a phone the picker is a sheet from the bottom, its track as wide as the screen (FR-031). */
@@ -121,23 +119,12 @@ function ModeSwitch() {
  * The picker (spec 037, FR-014, FR-015), laid out as the mockup lays it out: a card under the version
  * button at the left of the top row; the service's name and how many versions it has on the left of the
  * head, the mode switch on the right — One on, Diff and Side by side greyed out, "comes later" — with
- * **Copy link** as a small link icon before it; then the track, then the chosen version's message. It
+ * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message. The
+ * link to share is the address bar itself, which keeps a private history's key after ``#key=``. It
  * starts closed, a click outside or Escape closes it, and choosing a version leaves it open. On a phone
  * it is a sheet from the bottom with the same head, track and message, every point a 44 px touch target.
  */
-export function VersionPicker({ anchor, onClose, title, versions, live, liveIs = null, proposals = [], value, onChange, link, children, phone = false }: VersionPickerProps) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard unavailable: nothing to confirm.
-    }
-  }
-
+export function VersionPicker({ anchor, onClose, title, versions, live, liveIs = null, proposals = [], value, onChange, children, phone = false }: VersionPickerProps) {
   useEffect(() => {
     if (!anchor || phone) return;
     const onKey = (event: KeyboardEvent) => {
@@ -150,7 +137,7 @@ export function VersionPicker({ anchor, onClose, title, versions, live, liveIs =
   // The button moves when the sidebar collapses or opens: the card follows it.
   const popper = useRef<{ update(): unknown } | null>(null);
   useEffect(() => {
-    const row = anchor?.parentElement;
+    const row = anchor?.current?.parentElement;
     if (!row || phone) return;
     const follow = new ResizeObserver(() => void popper.current?.update());
     follow.observe(row);
@@ -163,23 +150,12 @@ export function VersionPicker({ anchor, onClose, title, versions, live, liveIs =
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: "12px" }}>
         <Box sx={{ minWidth: 0 }}>
           <Box sx={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{title}</Box>
-          <Box sx={{ fontSize: 11.5, color: "#64748b", mt: "1px" }}>{pickerSubtitle(versions.length, Boolean(live), proposals.length)}</Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "5px", fontSize: 11.5, lineHeight: "16px", color: "#64748b", mt: "1px" }}>
+            <span>{pickerSubtitle(versions.length, Boolean(live), proposals.length)}</span>
+          </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Tooltip title={copied ? "Link copied" : "Copy link"}>
-            <ButtonBase
-              onClick={() => void copy()}
-              aria-label={copied ? "Link copied" : "Copy link"}
-              sx={{ width: 28, height: 28, borderRadius: "8px", color: "#64748b", "&:hover": { bgcolor: "rgba(15, 23, 42, 0.06)", color: "#0f172a" } }}
-            >
-              <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden>
-                <g fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round">
-                  <path d="M10 13.5a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.2 1.2" />
-                  <path d="M14 10.5a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.2-1.2" />
-                </g>
-              </svg>
-            </ButtonBase>
-          </Tooltip>
+          <TrackLegend />
           <ModeSwitch />
         </Box>
       </Box>
@@ -201,12 +177,12 @@ export function VersionPicker({ anchor, onClose, title, versions, live, liveIs =
   // sidebar. A click on the diagram, or Escape, closes it.
   const onClickAway = (event: MouseEvent | TouchEvent) => {
     const target = event.target as Element | null;
-    if (target?.closest(".MuiDrawer-root, .MuiTooltip-popper") || (anchor && target && anchor.contains(target))) return;
+    if (target?.closest(".MuiDrawer-root, .MuiTooltip-popper") || (anchor?.current && target && anchor.current.contains(target))) return;
     onClose();
   };
 
   return (
-    <Popper popperRef={(instance) => void (popper.current = instance)} open={anchor !== null} anchorEl={anchor} placement="bottom-start" modifiers={[{ name: "offset", options: { offset: [0, 11] } }]} sx={{ zIndex: 1300 }}>
+    <Popper popperRef={(instance) => void (popper.current = instance)} open={anchor !== null} anchorEl={() => anchor?.current ?? document.body} placement="bottom-start" modifiers={[{ name: "offset", options: { offset: [0, 11] } }]} sx={{ zIndex: 1300 }}>
       <ClickAwayListener onClickAway={onClickAway}>
         <Paper
           role="dialog"

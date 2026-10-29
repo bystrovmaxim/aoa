@@ -1,12 +1,11 @@
 // src/lib/historyKey.ts
 /**
- * A tab's read keys — kept out of every address the browser keeps.
+ * A tab's read keys.
  *
- * A link Maxitor hands out (**Copy link**, a room's link) carries a private history's key after
- * ``#key=``, which no browser sends to a server. Once the page has read it, the key moves to this
- * tab's ``sessionStorage`` — gone when the tab closes — and the fragment is removed from the address
- * bar without a new history entry, so neither the address bar, nor the browser's history, nor a
- * synced history ever holds it (spec 037, FR-010a). Beyond the tab, a key remains only in Recent.
+ * A link to a private history carries its key after ``#key=``, which no browser sends to a server. The
+ * page keeps the key in this tab's ``sessionStorage`` and leaves it in the address bar, so the address
+ * bar is the link to share: copied as it is, it opens the same history at the same version elsewhere
+ * (spec 037, FR-010a, the maintainer, 2026-10-30).
  */
 
 import { parseHistory } from "@/lib/historyAddress";
@@ -42,15 +41,11 @@ export function keyFor(name: string): string {
   return "";
 }
 
-/**
- * Take a ``#key=`` from the page's address: keep it for the history its ``history`` parameter names
- * and take it out of the address bar, replacing the entry rather than adding one.
- */
+/** Take a ``#key=`` from the page's address and keep it for the history its ``history`` parameter names; the address keeps it too. */
 export function adoptKeyFromLocation(): void {
-  const { hash, search, pathname } = window.location;
+  const { hash, search } = window.location;
   if (!hash.startsWith("#key=")) return;
   const name = new URLSearchParams(search).get("history");
   const key = decodeURIComponent(hash.slice("#key=".length)).trim();
   if (name && key) rememberKey(name, key);
-  window.history.replaceState(window.history.state, "", `${pathname}${search}`);
 }

@@ -101,7 +101,17 @@ function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null)
   }
   if (currentRoom) params.set(PARAM_ROOM, currentRoom);
   const qs = params.toString();
-  return qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  return withHistoryKey(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+}
+
+/**
+ * ``address`` with the read key of the history it names after ``#key=``, when this tab holds one: the address
+ * bar is the link to share, so copying it opens the same private history elsewhere (spec 037, FR-010a). No
+ * browser sends what follows ``#`` to a server.
+ */
+function withHistoryKey(address: string): string {
+  const history = new URL(address, window.location.origin).searchParams.get("history");
+  return withKey(address, history ? keyFor(history) : "");
 }
 
 /**
@@ -138,7 +148,7 @@ export function setUrlRoom(room: string | null): void {
   const url = new URL(window.location.href);
   if (room) url.searchParams.set(PARAM_ROOM, room);
   else url.searchParams.delete(PARAM_ROOM);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  window.history.replaceState(null, "", withHistoryKey(`${url.pathname}${url.search}`));
 }
 
 /**

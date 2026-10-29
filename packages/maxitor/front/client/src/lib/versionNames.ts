@@ -8,7 +8,8 @@
  * is ``#<pr>``. A version with no pull request — a direct commit — is named by its place in the history,
  * the oldest version being 1 (``0.8.0 · #57``, or ``#57`` before any release): a number that is easy to
  * say aloud and never changes as newer versions come. A commit's hash means nothing to a reader and is
- * never a name. Live is ``Live``. Every tag is a flag above its point, a release's tag included. A version
+ * never a name. Live is ``Live``. A flag above a point marks a release: a tag published as a GitHub Release, or a tag named
+ * ``release…``; any other tag is only in the point's card. A version
  * is still named in the address and in a room by the first 12 hex characters of its commit.
  */
 
@@ -29,34 +30,34 @@ export function releaseName(tag: string): string {
   return /^v\d/.test(tag) ? tag.slice(1) : tag;
 }
 
-/** The day of an ISO ``date`` in the reader's own time, as a track names it: ``Oct 22``. */
-export function dayLabel(date: string): string {
-  const at = new Date(date);
-  return `${MONTHS[at.getMonth()]} ${at.getDate()}`;
-}
-
-/** The month of an ISO ``date`` in the reader's own time: ``Oct``, or ``Oct 2026`` when a track spans years. */
-export function monthLabel(date: string, withYear: boolean): string {
-  const at = new Date(date);
-  return withYear ? `${MONTHS[at.getMonth()]} ${at.getFullYear()}` : MONTHS[at.getMonth()];
-}
-
 /** A tag that is a version number: ``v0.8.0``, ``0.8.0``, ``v2.1``. */
 const VERSION_TAG = /^v?\d+\.\d+(\.\d+)?([-+.][\w.]+)?$/;
 
-/** Whether ``tag`` makes a release: a release on its host, or a version number. */
-function isRelease(tag: HistoryVersion["tags"][number]): boolean {
-  return tag.release !== null || VERSION_TAG.test(tag.name);
+/** A tag that marks a release by its name, in a repository with no host to publish releases: ``release``, ``release-1.4``, ``release/2026-10-30``. */
+const RELEASE_TAG = /^release($|[-_/.])/i;
+
+type Tag = HistoryVersion["tags"][number];
+
+/** Whether ``tag`` marks a release: published as a release on its host (a GitHub Release), or named ``release…``. */
+function marksRelease(tag: Tag): boolean {
+  return tag.release !== null || RELEASE_TAG.test(tag.name);
 }
 
-/** The tag of the release ``version`` carries, or ``null``. */
+/** The version-number tag ``version`` carries (``v0.8.0``), or ``null``: it names the point under the track. */
 export function releaseOf(version: HistoryVersion): string | null {
-  return version.tags.find(isRelease)?.name ?? null;
+  return version.tags.find((tag) => VERSION_TAG.test(tag.name))?.name ?? null;
 }
 
-/** The tags of ``version``, each a small flag above its point — a release's tag too, as the mockup draws it. */
+/** The tags of ``version`` that make it a release, each a flag above its point; any other tag is only in its card. */
 export function flagsOf(version: HistoryVersion): string[] {
-  return version.tags.map((tag) => tag.name);
+  return version.tags.filter(marksRelease).map((tag) => tag.name);
+}
+
+/** The release ``version`` became, for its card: the GitHub Release's title and link, or a ``release…`` tag's name; ``null`` when it is none. */
+export function releaseNoteOf(version: HistoryVersion): { title: string; url: string } | null {
+  const tag = version.tags.find(marksRelease);
+  if (!tag) return null;
+  return tag.release ? { title: tag.release.title || tag.name, url: tag.release.url } : { title: tag.name, url: "" };
 }
 
 /**
@@ -76,6 +77,24 @@ export function numbersOf(versions: readonly HistoryVersion[]): (string | null)[
     if (own) release = releaseName(own);
     return release;
   });
+}
+
+/**
+ * How the version button and the chosen point's chip write the version a short sha or ``live`` names: its version
+ * number and its name (``0.11.0 · #147``) where the history has a number, its name alone otherwise (``#147``), an
+ * open pull request by its number; ``null`` when none of them has it.
+ */
+export function shownNameOf(versions: readonly HistoryVersion[], b: string | null, proposals: readonly HistoryVersion[] = []): string | null {
+  if (b === "live") return "Live";
+  if (!b) return null;
+  const index = versions.findIndex((version) => version.sha.startsWith(b));
+  if (index >= 0) {
+    const number = numbersOf(versions)[index];
+    const name = versionNames(versions)[index];
+    return number ? `${number} · ${name}` : name;
+  }
+  const proposal = proposals.find((each) => each.sha.startsWith(b));
+  return proposal?.pr ? `#${proposal.pr.number}` : null;
 }
 
 /** The name of the version a short sha or ``live`` names, or ``null`` when the list has none. */
