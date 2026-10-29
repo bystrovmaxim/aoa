@@ -1,4 +1,4 @@
-# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package from app/, tools/ and skills/, parts chosen by extras.
+# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package from front/, core/, tools/ and skills/, parts chosen by extras.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -21,8 +21,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The core that reads a graph's history from its repository; the front serves it.
+repo-graph-port = [
+    "aoa-action-machine>=1.0.1a0",
+    "PyJWT[crypto]>=2.8,<3",
+    "httpx>=0.28,<1.0",
+]
 # The front: Maxitor's server and its built web client.
 front = [
+    "maxitor[repo-graph-port]",
     "aoa-action-machine>=1.0.1a0",
     "aoa-fastapi-adapter>=1.3.0",
     "duckdb>=1.5,<2",
@@ -45,15 +52,16 @@ Repository = "https://github.com/action-machine/action-machine"
 graph-builder = "maxitor.graph_builder.cli:main"
 maxitor = "maxitor.front.launch:main"
 
-# One package from several folders: the web part (front/), the tools (tools/<name>/) and the
-# skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
+# One package from several folders: the web part (front/), the shared core (core/<name>/), the tools
+# (tools/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
 [tool.hatch.build.targets.wheel]
-only-include = ["front/src/maxitor", "tools/graph_builder/src/maxitor"]
+only-include = ["front/src/maxitor", "core/repo_graph_port/src/maxitor", "tools/graph_builder/src/maxitor"]
 artifacts = ["front/src/maxitor/front/static/**/*"]
-dev-mode-dirs = ["front/src", "tools/graph_builder/src"]
+dev-mode-dirs = ["front/src", "core/repo_graph_port/src", "tools/graph_builder/src"]
 
 [tool.hatch.build.targets.wheel.sources]
 "front/src" = ""
+"core/repo_graph_port/src" = ""
 "tools/graph_builder/src" = ""
 
 [tool.hatch.build.targets.wheel.force-include]

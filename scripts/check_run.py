@@ -209,6 +209,7 @@ STEPS: tuple[Step, ...] = (
         _after_fix(f"Pytest {package}", f"uv run --extra dev pytest packages/{package}/tests/ -v", "tests")
         for package in (
             "maxitor/front",
+            "maxitor/core/repo_graph_port",
             "maxitor/tools/graph_builder",
             "aoa-demo",
             "aoa-otel",
