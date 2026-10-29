@@ -17,6 +17,8 @@ const LIVE_GAP = 36;
 const AXIS_Y = 38;
 /** The least distance between two points (FR-023). */
 export const MIN_STEP = 24;
+/** The least distance, and the touch target, on a phone (FR-031). */
+export const TOUCH_STEP = 44;
 /** How wide the fades are where more is hidden. */
 const FADE = 28;
 
@@ -29,16 +31,18 @@ export type VersionTrackProps = {
   onChange: (b: string) => void;
   /** Width of the visible part of the track. */
   width: number;
+  /** On a phone: points 44 px apart, each a 44 px touch target. */
+  touch?: boolean;
 };
 
 type Point = { b: string; x: number; name: string; release: boolean; refused: boolean; flags: string[]; tooltip: string };
 
 /** Where each version and Live stand, oldest left, at least ``MIN_STEP`` apart, Live last after a dashed gap. */
-export function layOut(versions: readonly HistoryVersion[], live: string | null, width: number): { points: Point[]; length: number } {
+export function layOut(versions: readonly HistoryVersion[], live: string | null, width: number, minStep: number = MIN_STEP): { points: Point[]; length: number } {
   const names = versionNames(versions);
-  const gap = live ? LIVE_GAP : 0;
+  const gap = live ? Math.max(LIVE_GAP, minStep) : 0;
   const room = width - 2 * PAD - gap;
-  const step = versions.length > 1 ? Math.max(MIN_STEP, room / (versions.length - 1)) : 0;
+  const step = versions.length > 1 ? Math.max(minStep, room / (versions.length - 1)) : 0;
   const lastX = versions.length > 1 ? PAD + (versions.length - 1) * step : PAD + (versions.length === 1 ? room / 2 : 0);
   const points: Point[] = versions.map((version, index) => ({
     b: shortSha(version),
@@ -63,8 +67,9 @@ export function layOut(versions: readonly HistoryVersion[], live: string | null,
  * versions out of view, and a handle out of view is pinned to its edge. The track is a slider: ← → step,
  * Home and End jump to the ends.
  */
-export function VersionTrack({ versions, live, value, onChange, width }: VersionTrackProps) {
-  const { points, length } = layOut(versions, live, width);
+export function VersionTrack({ versions, live, value, onChange, width, touch = false }: VersionTrackProps) {
+  const { points, length } = layOut(versions, live, width, touch ? TOUCH_STEP : MIN_STEP);
+  const hitRadius = (touch ? TOUCH_STEP : MIN_STEP) / 2;
   const maxOffset = Math.max(0, length - width);
   const index = points.findIndex((point) => point.b === value);
   const chosen = index >= 0 ? points[index] : null;
@@ -166,7 +171,7 @@ export function VersionTrack({ versions, live, value, onChange, width }: Version
                 }}
                 style={{ cursor: "pointer" }}
               >
-                <circle cx={point.x} cy={AXIS_Y} r={12} fill="transparent" />
+                <circle data-testid={`target-${point.b}`} cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
                 <circle
                   cx={point.x}
                   cy={AXIS_Y}

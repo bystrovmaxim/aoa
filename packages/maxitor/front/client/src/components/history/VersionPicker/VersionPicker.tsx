@@ -1,6 +1,7 @@
 // src/components/history/VersionPicker/VersionPicker.tsx
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Drawer from "@mui/material/Drawer";
 import Popover from "@mui/material/Popover";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -24,17 +25,20 @@ export type VersionPickerProps = {
   onChange: (b: string) => void;
   /** The link **Copy link** hands out: this version, the key after ``#key=``. */
   link: string;
-  /** Under the track: the chosen version's message (a later step fills it). */
+  /** Under the track: the chosen version's message. */
   children?: ReactNode;
+  /** On a phone the picker is a sheet from the bottom, its track as wide as the screen (FR-031). */
+  phone?: boolean;
 };
 
 /**
  * The picker (spec 037, FR-014, FR-015): over the diagram, under the version button; it starts
  * closed, a click outside or Escape closes it, and choosing a version leaves it open. The head names
  * the service, counts its versions, offers **Copy link**, and shows the mode switch — One active,
- * Diff and Side by side greyed out, "comes later".
+ * Diff and Side by side greyed out, "comes later". On a phone it is a sheet from the bottom with the
+ * same head, track and message, every point a 44 px touch target.
  */
-export function VersionPicker({ anchor, onClose, title, versions, live, value, onChange, link, children }: VersionPickerProps) {
+export function VersionPicker({ anchor, onClose, title, versions, live, value, onChange, link, children, phone = false }: VersionPickerProps) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -47,15 +51,9 @@ export function VersionPicker({ anchor, onClose, title, versions, live, value, o
     }
   }
 
-  return (
-    <Popover
-      open={anchor !== null}
-      anchorEl={anchor}
-      onClose={onClose}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      transformOrigin={{ vertical: "top", horizontal: "right" }}
-      slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", sx: { width: WIDTH + 32, maxWidth: "calc(100% - 24px)", p: 2, mt: "6px" } } }}
-    >
+  const trackWidth = phone ? Math.max(240, window.innerWidth - 32) : WIDTH;
+  const content = (
+    <>
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 1.5 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ fontSize: 14, fontWeight: 600, color: "rgb(30, 41, 59)" }}>{title}</Box>
@@ -79,8 +77,29 @@ export function VersionPicker({ anchor, onClose, title, versions, live, value, o
           ))}
         </ToggleButtonGroup>
       </Box>
-      <VersionTrack versions={versions} live={live} value={value} onChange={onChange} width={WIDTH} />
+      <VersionTrack versions={versions} live={live} value={value} onChange={onChange} width={trackWidth} touch={phone} />
       {children}
+    </>
+  );
+
+  if (phone) {
+    return (
+      <Drawer anchor="bottom" open={anchor !== null} onClose={onClose} slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", sx: { p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12 } } }}>
+        {content}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Popover
+      open={anchor !== null}
+      anchorEl={anchor}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
+      slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", sx: { width: WIDTH + 32, maxWidth: "calc(100% - 24px)", p: 2, mt: "6px" } } }}
+    >
+      {content}
     </Popover>
   );
 }

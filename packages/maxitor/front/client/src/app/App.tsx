@@ -7,6 +7,8 @@ import { useSidebarPayload } from "@/components/navigation/LeftSidebar/hooks/use
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
 import Box from "@mui/material/Box";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { GraphReadError, onGraphBusy, setActiveHistoryKey, setActiveSource } from "@/api/client";
 import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
 import { VersionButton } from "@/components/history/VersionButton";
@@ -78,6 +80,8 @@ export function App() {
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
   const shownName = shown ? nameOf(shown.versions, shown.b) : null;
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
+  // On a phone the picker is a sheet from the bottom (FR-031), at the width MainLayout calls a phone.
+  const phone = useMediaQuery(useTheme().breakpoints.down("sm"));
   /** When Live was last read, or since when it cannot be: its closing line under the track (FR-030). */
   const [liveState, setLiveState] = useState<{ ok: boolean; at: number } | null>(null);
 
@@ -441,6 +445,7 @@ export function App() {
           value={shown.b}
           onChange={pickVersion}
           link={withKey(window.location.href, shown.key)}
+          phone={phone}
         >
           <VersionMessage version={shownVersion} repository={shown.host === "github" ? shown.repository : null} liveLine={liveLine(shown.versions, liveState)} />
         </VersionPicker>
