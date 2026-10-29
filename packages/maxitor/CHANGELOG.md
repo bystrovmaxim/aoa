@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`repo-graph-port`**, a service that reads a graph's history from its repository: versions with their pull requests, tags and releases, and any version's graph; read keys for private repositories through a GitHub App, links for public ones, GitHub's webhooks. `pip install "maxitor[repo-graph-port]"`, command `repo-graph-port`.
+- **`repo-graph-port`**, a service that reads a graph's history from its repository: versions with their pull requests, tags and releases, and any version's graph; read keys for private repositories through a GitHub App, links for public ones, GitHub's webhooks, and without them a fetch on read once ten minutes have passed. `pip install "maxitor[repo-graph-port]"`, command `repo-graph-port`.
 
 ### Changed — breaking
 
