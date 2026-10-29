@@ -10,9 +10,11 @@ import Box from "@mui/material/Box";
 import { GraphReadError, onGraphBusy, setActiveHistoryKey, setActiveSource } from "@/api/client";
 import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
 import { VersionButton } from "@/components/history/VersionButton";
+import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "@/components/history/VersionPicker";
 import { withKey } from "@/lib/historyAddress";
 import { keyFor } from "@/lib/historyKey";
+import { liveLine } from "@/lib/liveLine";
 import { nameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
 import { sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
@@ -76,6 +78,8 @@ export function App() {
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
   const shownName = shown ? nameOf(shown.versions, shown.b) : null;
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
+  /** When Live was last read, or since when it cannot be: its closing line under the track (FR-030). */
+  const [liveState, setLiveState] = useState<{ ok: boolean; at: number } | null>(null);
 
   /** The server opened this tab on a page other than its link's: go there, without a history entry. */
   const handleFallbackPage = useCallback(
@@ -167,9 +171,11 @@ export function App() {
     try {
       await reload();
       if (!inHistory) pushServiceUrl(source);
+      if (inHistory && source === shown?.live) setLiveState({ ok: true, at: Date.now() });
       setBusy(false);
     } catch (e) {
       if (inHistory) {
+        if (source === shown?.live) setLiveState((current) => (current && !current.ok ? current : { ok: false, at: Date.now() }));
         // Live that cannot be reached leaves the history open: another version can still be picked (FR-021).
         opened.setNotice("Live cannot be reached; pick a version");
         return;
@@ -435,7 +441,9 @@ export function App() {
           value={shown.b}
           onChange={pickVersion}
           link={withKey(window.location.href, shown.key)}
-        />
+        >
+          <VersionMessage version={shownVersion} repository={shown.host === "github" ? shown.repository : null} liveLine={liveLine(shown.versions, liveState)} />
+        </VersionPicker>
       )}
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
       <NameDialog
@@ -467,3 +475,4 @@ function WorkspaceNote({ text }: { text: string }) {
     </Box>
   );
 }
+

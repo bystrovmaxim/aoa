@@ -15,3 +15,4 @@
 | File | Responsibility |
 |------|----------------|
 | `VersionTrack.tsx` | SVG drawing; `role="slider"` handle with `aria-valuetext`. |
+| `thinLabels.ts` | Which names stay under the track: the chosen, the oldest, the newest and Live always; releases newest first where they overlap none. |
