@@ -1,0 +1,18 @@
+# deploy/stand/repo-graph-port/histories.toml — the example the port starts on in a local stand run.
+#
+# On the host the real file is /etc/aoa-repo-graph-port/histories.toml, outside the repository:
+# copy this one there and fill it in. Keys are never written by hand — `repo-graph-port history
+# key new` adds each key's hash. Secrets never go here: GITHUB_APP_PRIVATE_KEY and
+# GITHUB_WEBHOOK_SECRET go into /etc/aoa-repo-graph-port/secrets.env beside it.
+#
+# [github]
+# app_id = 123456
+# private_key_env = "GITHUB_APP_PRIVATE_KEY"
+# webhook_secret_env = "GITHUB_WEBHOOK_SECRET"
+#
+# [[history]]
+# id = "orders"
+# host = "github"
+# repository = "owner/repo"
+# branch = "main"
+# graph_file = "services/orders/graph.json"

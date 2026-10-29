@@ -21,6 +21,7 @@ ARCHITECTURE / DATA FLOW
 
     App id + private key ──JWT (RS256, 9 min)──► GET /repos/{r}/installation ──► POST /app/installations/{i}/access_tokens
                                                                                      └─► token, kept in memory, renewed 5 min before its hour ends
+    public_token()        ──► GET /app/installations ──► the first installation's token, for public repositories' reads
     git_auth(r)            ──► {"http.https://github.com/.extraheader": "AUTHORIZATION: basic <x-access-token:token>"}
     pull_request_of(r, sha) ──► GET /repos/{r}/commits/{sha}/pulls ──► the merged one whose merge commit is sha, or the first
     release_of(r, tag)      ──► GET /repos/{r}/releases/tags/{tag} ──► title and link, or None
@@ -35,6 +36,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import os
 import time
 from datetime import datetime
 from typing import Any
@@ -52,7 +54,7 @@ class GitHubHost(BaseGateway):
     """
     AI-CORE-BEGIN
     ROLE: Read from GitHub what git does not hold, and authenticate the port to it.
-    CONTRACT: ``token_for`` gives an installation token for a repository the App is installed on (``None`` without an App); ``git_auth`` turns it into git configuration for one call; ``pull_request_of`` and ``release_of`` answer ``None`` when there is none; ``verify_webhook`` is false without a secret.
+    CONTRACT: ``token_for`` gives an installation token for a repository the App is installed on, ``public_token`` one of any installation for reading public repositories (both ``None`` without an App); ``git_auth`` turns it into git configuration for one call; ``pull_request_of`` and ``release_of`` answer ``None`` when there is none; ``verify_webhook`` is false without a secret.
     INVARIANTS: The private key, the webhook secret and every token stay in memory; ``repr`` shows none of them.
     AI-CORE-END
     """
@@ -72,6 +74,18 @@ class GitHubHost(BaseGateway):
         self._tokens: dict[str, tuple[str, float]] = {}
         self._client: httpx.AsyncClient | None = None
 
+    @classmethod
+    def from_settings(cls, settings: tuple[int, str, str] | None) -> GitHubHost:
+        """
+        The host as the config's ``[github]`` names it: the App's id, and its private key and webhook secret read
+        from the environment variables the config names. A key kept on one line has its newlines written ``\\n``.
+        """
+        if settings is None:
+            return cls()
+        app_id, key_variable, secret_variable = settings
+        private_key = os.environ.get(key_variable, "").replace("\\n", "\n") or None
+        return cls(app_id, private_key, os.environ.get(secret_variable) or None)
+
     def __repr__(self) -> str:
         """Say whether an App is set, never its secrets."""
         return f"GitHubHost(app_id={self._app_id!r}, private_key={'set' if self._private_key else 'none'})"
@@ -86,18 +100,32 @@ class GitHubHost(BaseGateway):
 
     async def token_for(self, repository: str) -> str | None:
         """An installation token that reads ``repository``, or ``None`` when no App is set."""
+        return await self._installation_token(repository, f"/repos/{repository}/installation")
+
+    async def public_token(self) -> str | None:
+        """
+        A token of any installation of the App, for the REST API's reads of public repositories.
+
+        Anonymous calls get 60 an hour per address; an installation's token reads any public
+        repository with that installation's far larger limit. ``None`` when no App is set.
+        """
+        return await self._installation_token("", "/app/installations")
+
+    async def _installation_token(self, kept_as: str, find: str) -> str | None:
+        """An installation's token, found through ``find`` and kept under ``kept_as`` until 5 minutes before it ends."""
         if self._app_id is None or not self._private_key:
             return None
-        kept = self._tokens.get(repository)
+        kept = self._tokens.get(kept_as)
         if kept is not None and kept[1] - time.time() > 300:
             return kept[0]
         now = int(time.time())
         app = jwt.encode({"iat": now - 60, "exp": now + 540, "iss": str(self._app_id)}, self._private_key, algorithm="RS256")
         headers = {"Authorization": f"Bearer {app}", "Accept": "application/vnd.github+json"}
-        installation = await self._call("GET", f"/repos/{repository}/installation", headers)
+        found = await self._call("GET", find, headers)
+        installation = found[0] if isinstance(found, list) else found
         granted = await self._call("POST", f"/app/installations/{installation['id']}/access_tokens", headers)
         expires = datetime.fromisoformat(granted["expires_at"].replace("Z", "+00:00")).timestamp()
-        self._tokens[repository] = (granted["token"], expires)
+        self._tokens[kept_as] = (granted["token"], expires)
         return str(granted["token"])
 
     @staticmethod

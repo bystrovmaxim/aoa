@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # scripts/deploy_demonstrator_stand.sh — one-command deployment for the demonstrator stand.
 #
-# The stand is accepted by opening two URLs and by running one command — this
-# script is that command. In order: DNS and TLS-terminator gates, build both
-# images, start both containers, poll their health, verify both domains, and
-# roll back to the previously running images on any failure. On nginx, every run
+# The stand is accepted by opening its URLs and by running one command — this
+# script is that command. In order: DNS and TLS-terminator gates, build the
+# images (demo, Maxitor, repo-graph-port), start the containers, poll their health,
+# verify every domain, and roll back to the previously running images on any failure. On nginx, every run
 # also makes sure Maxitor's vhost passes room WebSockets (spec 028), including a
 # vhost an earlier run wrote.
 #
@@ -57,13 +57,16 @@ DEMO_DOMAIN="${DEMO_DOMAIN:-dev.demo.aoa.run}"
 MAXITOR_DOMAIN="${MAXITOR_DOMAIN:-dev.maxitor.aoa.run}"
 DEMO_PORT="${DEMO_PORT:-8100}"
 MAXITOR_PORT="${MAXITOR_PORT:-8101}"
+REPO_GRAPH_PORT_DOMAIN="${REPO_GRAPH_PORT_DOMAIN:-repo-graph-port.aoa.run}"
+REPO_GRAPH_PORT_PORT="${REPO_GRAPH_PORT_PORT:-8103}"
+SERVICES=(demo maxitor repo-graph-port)
 
 say() { printf '%s\n' "$*"; }
 fail() { say "FAIL: $*"; exit 1; }
 rollback() {
     say "ROLLBACK: $*"
     say "restoring the previous images and containers..."
-    for service in demo maxitor; do
+    for service in "${SERVICES[@]}"; do
         if docker image inspect "stand-${service}:backup" >/dev/null 2>&1; then
             docker image tag "stand-${service}:backup" "stand-${service}:latest"
         fi
@@ -74,12 +77,12 @@ rollback() {
 
 gate_dns() {
     [[ $LOCAL_MODE -eq 1 ]] && return 0
-    for domain in "$DEMO_DOMAIN" "$MAXITOR_DOMAIN"; do
+    for domain in "$DEMO_DOMAIN" "$MAXITOR_DOMAIN" "$REPO_GRAPH_PORT_DOMAIN"; do
         if ! python3 -c "import socket, sys; socket.getaddrinfo(sys.argv[1], None)" "$domain" >/dev/null 2>&1; then
             fail "DNS gate: '$domain' does not resolve — create the A record before deploying."
         fi
     done
-    say "DNS gate: both domains resolve"
+    say "DNS gate: every domain resolves"
 }
 
 detect_terminator() {
@@ -205,7 +208,7 @@ install_vhosts() {
             # Phase A — the certificate-free :80 blocks with the acme-challenge location.
             local entry domain upstream internal_port
             local need_reload=0
-            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101"; do
+            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101" "$REPO_GRAPH_PORT_DOMAIN:dev_aoa_repo_graph_port:8102"; do
                 domain="${entry%%:*}"
                 upstream="$(printf '%s' "$entry" | cut -d: -f2)"
                 internal_port="${entry##*:}"
@@ -255,24 +258,55 @@ fi
 HOOK
                 chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh
             fi
+            # The port has a certificate of its own: its domain is not a dev.* name of the stand.
+            if certbot certificates 2>/dev/null | grep -q "$REPO_GRAPH_PORT_DOMAIN"; then
+                say "certificate step: ${REPO_GRAPH_PORT_DOMAIN} already issued — renewed by the host's certbot timer."
+            else
+                certbot certonly --webroot -w "$webroot" -d "$REPO_GRAPH_PORT_DOMAIN" \
+                    --non-interactive --agree-tos --register-unsafely-without-email \
+                    || fail "certificate step: certbot could not issue the certificate of ${REPO_GRAPH_PORT_DOMAIN}."
+            fi
+            if [[ ! -f "${ssl_dir}/${REPO_GRAPH_PORT_DOMAIN}.fullchain.pem" ]]; then
+                cp "/etc/letsencrypt/live/${REPO_GRAPH_PORT_DOMAIN}/fullchain.pem" "${ssl_dir}/${REPO_GRAPH_PORT_DOMAIN}.fullchain.pem"
+                cp "/etc/letsencrypt/live/${REPO_GRAPH_PORT_DOMAIN}/privkey.pem" "${ssl_dir}/${REPO_GRAPH_PORT_DOMAIN}.privkey.pem"
+                mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+                cat > /etc/letsencrypt/renewal-hooks/deploy/aoa-repo-graph-port.sh <<HOOK
+#!/bin/sh
+# Copy the renewed repo-graph-port certificate into the front end's ssl mount and reload nginx-proxy.
+set -e
+if [ "\$RENEWED_LINEAGE" = "/etc/letsencrypt/live/${REPO_GRAPH_PORT_DOMAIN}" ]; then
+    cp "/etc/letsencrypt/live/${REPO_GRAPH_PORT_DOMAIN}/fullchain.pem" "${ssl_dir}/${REPO_GRAPH_PORT_DOMAIN}.fullchain.pem"
+    cp "/etc/letsencrypt/live/${REPO_GRAPH_PORT_DOMAIN}/privkey.pem" "${ssl_dir}/${REPO_GRAPH_PORT_DOMAIN}.privkey.pem"
+    docker exec nginx-proxy nginx -s reload
+fi
+HOOK
+                chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-repo-graph-port.sh
+            fi
 
             # Phase C — the :443 blocks, now that the certificate files exist.
             need_reload=0
-            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101"; do
+            for entry in "$DEMO_DOMAIN:dev_aoa_demo:8100" "$MAXITOR_DOMAIN:dev_aoa_maxitor:8101" "$REPO_GRAPH_PORT_DOMAIN:dev_aoa_repo_graph_port:8102"; do
                 domain="${entry%%:*}"
                 upstream="$(printf '%s' "$entry" | cut -d: -f2)"
                 internal_port="${entry##*:}"
                 if grep -q "proxy_pass http://${upstream}:${internal_port};" "$front_conf"; then
                     continue
                 fi
+                # The port's domain has its own certificate; GitHub's webhook bodies can be large.
+                local block_cert="$cert_name" body_limit=""
+                if [[ "$domain" == "$REPO_GRAPH_PORT_DOMAIN" ]]; then
+                    block_cert="$REPO_GRAPH_PORT_DOMAIN"
+                    body_limit="    client_max_body_size 25m;"
+                fi
                 cat >> "$front_conf" <<EOF
 
 server {
     listen 443 ssl;
     server_name ${domain};
-    ssl_certificate     /etc/nginx/ssl/${cert_name}.fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/${cert_name}.privkey.pem;
+    ssl_certificate     /etc/nginx/ssl/${block_cert}.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/${block_cert}.privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
+${body_limit}
 
     location / {
         proxy_pass http://${upstream}:${internal_port};
@@ -298,11 +332,14 @@ ${DEMO_DOMAIN} {
 ${MAXITOR_DOMAIN} {
     reverse_proxy 127.0.0.1:${MAXITOR_PORT}
 }
+${REPO_GRAPH_PORT_DOMAIN} {
+    reverse_proxy 127.0.0.1:${REPO_GRAPH_PORT_PORT}
+}
 EOF
             systemctl reload caddy || fail "vhost step: caddy reload failed."
             ;;
         *)
-            fail "terminator gate: detected '${terminator}' is not scripted — add the two virtual hosts manually and name this gap."
+            fail "terminator gate: detected '${terminator}' is not scripted — add the virtual hosts manually and name this gap."
             ;;
     esac
     say "virtual hosts added to ${terminator}; certificates issued by its own renew mechanism"
@@ -324,7 +361,7 @@ wait_healthy() {
 }
 
 backup_images() {
-    for service in demo maxitor; do
+    for service in "${SERVICES[@]}"; do
         local id
         id="$(docker images -q "stand-${service}:latest" 2>/dev/null || true)"
         if [[ -n "$id" ]]; then
@@ -356,6 +393,7 @@ main() {
     say "=== health ==="
     wait_healthy demo || rollback "the demo container did not become healthy"
     wait_healthy maxitor || rollback "the Maxitor container did not become healthy"
+    wait_healthy repo-graph-port || rollback "the repo-graph-port container did not become healthy"
     # The containers may have been recreated with new network addresses; nginx
     # resolves upstream names once per reload, so re-resolve them now.
     if [[ $LOCAL_MODE -eq 0 ]]; then
@@ -366,15 +404,18 @@ main() {
     if [[ $LOCAL_MODE -eq 1 ]]; then
         curl -fsS "http://127.0.0.1:${DEMO_PORT}/health" >/dev/null || rollback "local verification failed for the demo"
         curl -fsS "http://127.0.0.1:${MAXITOR_PORT}/api/health" >/dev/null || rollback "local verification failed for Maxitor"
+        curl -fsS "http://127.0.0.1:${REPO_GRAPH_PORT_PORT}/health" >/dev/null || rollback "local verification failed for repo-graph-port"
     else
         install_vhosts "$terminator" || rollback "virtual-host installation failed"
         curl -fsS --retry 3 --retry-delay 2 --retry-all-errors "https://${DEMO_DOMAIN}/health" >/dev/null \
             || rollback "https verification failed for ${DEMO_DOMAIN}"
         curl -fsS --retry 3 --retry-delay 2 --retry-all-errors "https://${MAXITOR_DOMAIN}/api/health" >/dev/null \
             || rollback "https verification failed for ${MAXITOR_DOMAIN}"
+        curl -fsS --retry 3 --retry-delay 2 --retry-all-errors "https://${REPO_GRAPH_PORT_DOMAIN}/health" >/dev/null \
+            || rollback "https verification failed for ${REPO_GRAPH_PORT_DOMAIN}"
     fi
 
-    say "stand verified: ${DEMO_DOMAIN} + ${MAXITOR_DOMAIN}"
+    say "stand verified: ${DEMO_DOMAIN} + ${MAXITOR_DOMAIN} + ${REPO_GRAPH_PORT_DOMAIN}"
 }
 
 main "$@"

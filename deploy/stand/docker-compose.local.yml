@@ -12,3 +12,9 @@ services:
       default:
         aliases:
           - demo
+
+  # Locally the port starts on the example config — no history, no App — so the
+  # stand's health and its routes can be checked without the host's folder.
+  repo-graph-port:
+    volumes:
+      - ./repo-graph-port:/config

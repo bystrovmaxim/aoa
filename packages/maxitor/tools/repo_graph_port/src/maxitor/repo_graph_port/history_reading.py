@@ -151,8 +151,14 @@ async def release_of(cache: VersionCache, host: GitHubHost, history: History, ta
 
 
 async def _token(host: GitHubHost, history: History) -> str | None:
-    """The App's token for a private history; none for a public one."""
-    return None if history.public else await host.token_for(history.repository)
+    """The App's token for a private history; for a public one, any installation's token, or none — anonymous — without an App."""
+    if not history.public:
+        return await host.token_for(history.repository)
+    try:
+        return await host.public_token()
+    except httpx.HTTPError:
+        # The App could not give a token: read anonymously, within the anonymous limit.
+        return None
 
 
 async def _read(mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, sha: str) -> tuple[bytes, GraphFacts]:

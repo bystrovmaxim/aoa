@@ -18,6 +18,12 @@ services:
         aliases:
           - dev_aoa_maxitor
 
+  repo-graph-port:
+    networks:
+      frontend:
+        aliases:
+          - dev_aoa_repo_graph_port
+
 networks:
   frontend:
     name: up2y-net

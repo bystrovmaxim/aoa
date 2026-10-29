@@ -25,12 +25,13 @@ def app_key() -> tuple[str, Any]:
 
 @dataclass
 class StandInGitHub:
-    """What the stand-in knows, and every request it was asked."""
+    """What the stand-in knows, every request it was asked, and the ``Authorization`` each path last came with."""
 
     public_key: Any
     pulls: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     releases: dict[str, dict[str, Any]] = field(default_factory=dict)
     asked: list[str] = field(default_factory=list)
+    authorized: dict[str, str] = field(default_factory=dict)
 
     def transport(self) -> httpx.MockTransport:
         """The transport a ``GitHubHost`` is built with."""
@@ -41,6 +42,10 @@ class StandInGitHub:
         path = request.url.path
         self.asked.append(f"{request.method} {path}")
         authorization = request.headers.get("authorization", "")
+        self.authorized[path] = authorization
+        if path == "/app/installations":
+            jwt.decode(authorization.removeprefix("Bearer "), self.public_key, algorithms=["RS256"])
+            return httpx.Response(200, json=[{"id": 7}])
         if path.endswith("/installation") or path.startswith("/app/"):
             claims = jwt.decode(authorization.removeprefix("Bearer "), self.public_key, algorithms=["RS256"])
             assert claims["iss"] == str(APP_ID)

@@ -72,8 +72,7 @@ def create_app(histories: Path | None = None, cache: Path | None = None, host: G
     config = HistoriesConfig(config_path)
     github = config.github()
     if host is None:
-        app_id, key_variable, secret_variable = github or (None, "", "")
-        host = GitHubHost(app_id, os.environ.get(key_variable) or None, os.environ.get(secret_variable) or None)
+        host = GitHubHost.from_settings(github)
     connections = {"HistoriesConfig": config, "GitMirror": GitMirror(folder), "VersionCache": VersionCache(folder), "GitHubHost": host}
     adapter = FastApiAdapter(
         machine=ActionProductMachine(graph_coordinator=create_node_graph_coordinator()),
