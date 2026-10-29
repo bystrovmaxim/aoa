@@ -121,26 +121,41 @@ def _revoke(config: HistoriesConfig, path: Path, history_id: str, name: str) -> 
 def _check(path: Path) -> int:
     """Each history's graph file is on its branch, read as the port reads it; print one line per history."""
     loaded = load_histories(path)
-    host = GitHubHost.from_settings(loaded.github)
+    histories = sorted(loaded.histories.items())
+    github = {history.repository for _, history in histories if history.host == "github"}
+    tokens = asyncio.run(_tokens(GitHubHost.from_settings(loaded.github), github))
     failed = 0
     with tempfile.TemporaryDirectory() as cache:
         mirror = GitMirror(Path(cache))
-        for history_id, history in sorted(loaded.histories.items()):
-            present, said = _check_one(mirror, host, history)
+        for history_id, history in histories:
+            present, said = _check_one(mirror, tokens, history)
             failed += not present
             print(f"{'ok ' if present else 'FAIL'} {history_id}: {said}")
     return 1 if failed else 0
 
 
-def _check_one(mirror: GitMirror, host: GitHubHost, history: History) -> tuple[bool, str]:
+async def _tokens(host: GitHubHost, repositories: set[str]) -> dict[str, str | httpx.HTTPError | None]:
+    """
+    Each repository's installation token, or the error GitHub answered with. All are read in one event loop:
+    the host keeps one HTTP client, and a client opened in a loop that has closed cannot be used again.
+    """
+    tokens: dict[str, str | httpx.HTTPError | None] = {}
+    for repository in sorted(repositories):
+        try:
+            tokens[repository] = await host.token_for(repository)
+        except httpx.HTTPError as error:
+            tokens[repository] = error
+    return tokens
+
+
+def _check_one(mirror: GitMirror, tokens: dict[str, str | httpx.HTTPError | None], history: History) -> tuple[bool, str]:
     """Whether one history's graph file is on its branch, and what to say about it."""
     auth: dict[str, str] = {}
     url = None
     if history.host == "github":
         url = f"https://github.com/{history.repository}.git"
-        try:
-            token = asyncio.run(host.token_for(history.repository))
-        except httpx.HTTPError:
+        token = tokens[history.repository]
+        if isinstance(token, httpx.HTTPError):
             return False, f"the App is not installed on {history.repository}"
         if token is None:
             return False, "no [github] App to read a private repository with"

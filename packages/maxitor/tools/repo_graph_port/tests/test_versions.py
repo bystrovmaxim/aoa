@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
@@ -98,3 +99,33 @@ def test_git_failures_are_named_and_unopened_repositories_refused(built: BuiltRe
         mirror.tags("never/opened")
     with pytest.raises(ValueError):
         mirror.open("../escape", url="file:///nowhere")
+
+
+def test_a_failed_clone_leaves_no_mirror_behind(tmp_path: Path) -> None:
+    """A clone that fails leaves nothing in the cache, so the next open clones again instead of reading half a mirror."""
+    mirror = GitMirror(tmp_path / "cache")
+    with pytest.raises(GitError):
+        mirror.open("owner/missing", url=(tmp_path / "nowhere").as_uri())
+    assert list((tmp_path / "cache" / "mirrors").iterdir()) == []
+    built = build_repository(tmp_path / "origin")
+    mirror.open("owner/missing", url=built.path.as_uri())
+    assert [c.sha for c in mirror.versions("owner/missing", "main", GRAPH_FILE)] == built.versions
+
+
+class _TimingOutMirror(GitMirror):
+    """A mirror whose clone starts writing its folder, then runs out of time — what a stalled network does."""
+
+    def _git(self, place: Path | None, arguments: list[str], auth: Mapping[str, str] | None = None) -> bytes:
+        """Make the clone's target folder, then give up the way a timeout does."""
+        if arguments[0] == "clone":
+            Path(arguments[-1]).mkdir(parents=True)
+            raise GitError("clone", "no answer in 300 s")
+        return super()._git(place, arguments, auth)
+
+
+def test_a_clone_that_times_out_leaves_no_mirror_behind(tmp_path: Path) -> None:
+    """A clone cut off by its timeout leaves no folder that a later open would take for a whole mirror."""
+    mirror = _TimingOutMirror(tmp_path / "cache")
+    with pytest.raises(GitError, match="no answer"):
+        mirror.open("owner/slow", url="https://example.invalid/owner/slow.git")
+    assert list((tmp_path / "cache" / "mirrors").iterdir()) == []
