@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] – 2026-10-29
+
+### Changed — breaking
+
+- **One package, `maxitor`, with parts chosen by extras.** `pip install maxitor` is the `graph-builder` command alone (no AOA, no server); `maxitor[viewer]` adds the app; `maxitor[all]` both. Until 2.3.0 the app was `aoa-maxitor`, and the command was `maxitor-gnomon` 0.1.0.
+- **Imports**: the app is `maxitor.viewer` (was `aoa.maxitor`), the command `maxitor.graph_builder` (was `maxitor_gnomon`).
+- **The command** is `graph-builder` (was `gnomon`), its config `graph-builder.toml` with `graph_builder = "1.0"` (was `gnomon.toml` with `gnomon = "1.0"`), its skill `graph-builder-setup` (was `gnomon-setup`). Graph files are unchanged.
+- **The CI step** is `uses: bystrovmaxim/aoa/packages/maxitor/tools/graph_builder@<ref>`; it no longer installs the project's environment — the steps before it do, in whatever language the project is.
+- **The protocol's schemas** live in `packages/open-gnomon-protocol`, a folder with no code; their `$id` is the raw address of each file.
+
 ## [2.3.0] – 2026-10-27
 
 ### Added
