@@ -1,6 +1,6 @@
 ---
 name: aoa-graph-builder-setup
-description: Connect a project — AOA services first — to the Open Gnomon Protocol, the shared language for describing a project's model as a graph — find every model in the code and every graph already saved, add the code that exports a model where none does, prove it, save each description in a graph.json, make CI check every graph, and add the graph builder to the project's own check run. Asks everything once, after its survey. Use when asked to set up, initiate, audit or repair a project's model graph, model description, graph files, graph history, gnomon or graph-builder.toml.
+description: Connect a project — AOA services first — to the Open Gnomon Protocol, the shared language for describing a project's model as a graph — find every model in the code and every graph already saved, add the code that exports a model where none does, prove it, save each description in a graph.json, make CI check every graph, and add the graph builder to the project's own check run. After its survey it talks the choices through with the user one question at a time, each with options, then shows one table of what is and what will change, and goes on only when the user says so. Use when asked to set up, initiate, audit or repair a project's model graph, model description, graph files, graph history, gnomon or graph-builder.toml.
 ---
 
 # aoa-graph-builder-setup
@@ -40,7 +40,7 @@ git ls-remote https://github.com/bystrovmaxim/aoa refs/heads/main
 ```
 
 - a tag `maxitor-v<version>` exists → `uvx --from "maxitor==<version>" graph-builder …`, and the CI action at `@maxitor-v<version>`;
-- no tag yet → the commit of `main` the second command printed: `uvx --from "git+https://github.com/bystrovmaxim/aoa@<commit>#subdirectory=packages/maxitor" graph-builder …`, and the CI action at `@<commit>`. Say under the table that the pin is a commit until a release exists.
+- no tag yet → the commit of `main` the second command printed: `uvx --from "git+https://github.com/bystrovmaxim/aoa@<commit>#subdirectory=packages/maxitor" graph-builder …`, and the CI action at `@<commit>`. Say in the CI question (step 5) that the pin is a commit until a release exists.
 
 | Command | What it does | Exit |
 |---|---|---|
@@ -53,14 +53,14 @@ git ls-remote https://github.com/bystrovmaxim/aoa refs/heads/main
 
 ## Setup
 
-Setup has two phases. **Survey** (steps 1–5) changes nothing in the repository: everything it needs to try — a draft exporter, a config, an output file — goes into a temporary folder outside the repository, created only when step 4 needs it. Keep it until the user answers, since Apply uses its proven drafts, and delete it at the end of Apply — or at once, if the user applies nothing. **Apply** (steps 6–7) writes the project's files, and only after the user has answered the question that ends the survey. Never commit.
+Setup has three phases. **Survey** (steps 1–4) changes nothing in the repository: everything it needs to try — a draft exporter, a config, an output file — goes into a temporary folder outside the repository, created only when step 4 needs it. **Dialogue** (steps 5–6) talks the choices through with the user and ends with their permission. **Apply** (steps 7–8) writes the project's files, and only after that permission. Keep the temporary folder until then, since Apply uses its proven drafts, and delete it at the end of Apply — or at once, if the user applies nothing. Never commit.
 
 ### Survey
 
 1. **Read the config, the CI and the check run.** Look for `graph-builder.toml` at the repository root; if there is none, no graph is configured yet, and step 2 has nothing to check. Then find:
    - **the CI** the project uses — `.github/workflows/`, `.gitlab-ci.yml`, or another — and whether a job runs `graph-builder check`, and over which config. A configured repository without that job is the most common gap; a job that runs it without a config fails on every change; a repository may have **no CI at all**;
    - **the check run** — what the project's developers run before a change is done: a script (`scripts/check*.sh`, `run_checks*`), a task (`make check`, a `[tool.taskipy]` or `package.json` script), a `pre-commit` config — and whether it runs `graph-builder write`. A project may have none.
-   Step 5 says both under the table.
+   The dialogue (step 5) starts from both.
 2. **Check every configured graph.** Run `graph-builder check` once; it gives each graph's state: **current** (its file is what its build prints), **stale** (the file differs — `check` lists what changed, by id), **missing** (no file yet), **broken** (`failed`: the build exits with an error, times out, or prints something that is not JSON), or **refused** (JSON, but not a graph of the version it claims). A file holds the graph formatted (sorted keys, indent 2), so it never equals the build's raw output byte for byte: only `graph-builder check` says whether a file is current, never `cmp` or `diff`.
 3. **Find every service and how its model can be exported.** A service is a package or application with a model of its own; libraries that only provide building blocks (adapters, plugins, a graph builder) are not services. For each service, find which of these it is:
    - **it exports already** — a command that prints its graph document to standard output (a module named like `build_graph`, a script). A graph that is only served over HTTP (a route such as `/graph-json`) or only built in code (`to_json()` on a graph builder) shows that the model can be exported, but a build cannot wait for a running server: treat that service as the next case and add an exporter that prints the same document;
@@ -72,38 +72,42 @@ Setup has two phases. **Survey** (steps 1–5) changes nothing in the repository
    - For a service with a **model and no exporter**, write a draft exporter in the temporary folder (the example below) and run it by its path, e.g. `uv run python <temporary folder>/build_graph.py`, from the folder the service's build will run in — with whatever the project's own commands need (extras, environment variables). In the repository it will become a module of the service named with a verb, `build_graph.py`, so it is never mistaken for the graph file it feeds; a module the project already has for this keeps its name.
    - For a **broken** graph, find why its build fails and prove a fixed command.
    Prove each command the way CI will run it: write a temporary config in the temporary folder with one `[[graph]]` — `cwd` the absolute path of the folder the build runs in, `build` the command, `file` a path in the temporary folder (absolute paths are allowed in a config; relative ones start at the config's folder) — and run `graph-builder write --config <temporary config>`. The proof is its line `ok <name> (written)` and exit 0; then `graph-builder validate <that file>` gives the size, `ok 1.1: N nodes, M edges`. Anything else is not proven: say what the build printed and why it failed. When the service already has a graph file, also run `graph-builder check` on a temporary config whose `file` is that existing file: `ok <name>` means it is already current, and `check` writes nothing.
-5. **Propose where each file goes, and ask.** A configured graph keeps its file unless the user wants it moved. For each new graph, in this order:
-   - a place that follows the repository's own conventions — a folder that already holds generated or exported files, an existing graph file, the service's own folder;
-   - the standard place, `<service folder>/graph.json`;
-   - a place the user names.
-   Then show **one table** — every graph, configured or found — and under it the **questions, all at once**: the user answers them together, and Apply asks nothing new.
+### Dialogue
 
-   | Service | Service folder | Build command (cwd) | Proof | File (alternatives) | State |
-   |---|---|---|---|---|---|
-   | game-back | `packages/game-back` | `uv run python -m game_back.build_graph` (`packages/game-back`) | `ok 1.1: 517 nodes, 646 edges` | `packages/game-back/graph.json` | new — exporter to add |
-   | game-admin | `packages/game-admin` | `uv run python -m game_admin.build_graph` (`packages/game-admin`) | `ok 1.1: 440 nodes, 550 edges` | `packages/game-admin/graph.json` (existing file, current) | new |
-   | billing-worker | `services/billing` | — | — | — | no producer |
+5. **Talk it through, one question at a time.** Start with a short account of what the survey found — one line per service: what it is, its state, its proof — and say what is already fine. Then ask the questions below **one per message**, each with **2–4 numbered options**: your recommendation first, marked *(recommended)*, with one line on why; the last option is always "something else". If your harness has a tool for questions with options, use it. Wait for each answer before the next question, and let an answer change the questions that follow. Ask only where there is a real choice: a question whose answer the project already settles is a line in the account, not a question.
 
-   States: **current**, **stale**, **missing**, **broken**, **refused** for a configured graph (step 2); **new** for a graph found in step 3, with **exporter to add** when its build needs the module this skill will write; **no producer** for a service whose model nothing can export. The Build column shows the command the config will hold — for an exporter to add, its final `python -m <service package>.build_graph`, while the Proof column shows what the draft printed. For a new graph whose file already exists, the File column says whether that file is current (step 4). The Proof of a configured graph is its `graph-builder check` line and its size from `graph-builder validate <file>`; of a new or fixed one, its proof from step 4.
+   1. **Each new graph — where its file goes.** Options, in this order: the place the repository's own conventions give (a folder that already holds generated or exported files, an existing graph file); the standard place, `<service folder>/graph.json`; another place the user names. Several new graphs with the same pattern may share one question: "all in their service's folder?".
+   2. **Each stale, broken or refused graph — fix it, or drop it from the config.** A missing file is simply written; it is not a question.
+   3. **A service with a model and no exporter — add `<service package>/build_graph.py`** (the draft proven in step 4), or leave the service out for now.
+   4. **CI.** Say what it checks today (step 1). Every graph of the config must be checked; the options are the ways the project allows: the existing job that runs `graph-builder check`, a step added to the job that prepares the project's environment, or — with no CI — a new workflow, `.github/workflows/graph-builder.yml` (the example below). Say its pin (*Pin what exists*).
+   5. **The check run — always asked.** Which run gets `graph-builder write`, naming its file. Recommend its **last step, run only when every other step passed** — a red run then never rewrites a graph file, and a green one leaves the files current for the commit. With no check run, the options are the closest place the project has (a `pre-commit` hook, a `make` target) and running `graph-builder write` by hand before each commit.
 
-   Under the table, ask — each with your proposal, so the user can answer "yes" to all:
-   1. **The graphs**: which to keep, add, fix or drop, and where each new file goes (the File column is the proposal).
-   2. **CI**: say what it checks today (step 1). Every graph of the config must be checked; propose how — the existing job that runs `graph-builder check`, a step added to the job that prepares the project's environment, or, with no CI, a new workflow (`.github/workflows/graph-builder.yml`, the example below) — and its pin (*Pin what exists*).
-   3. **The check run**: always ask which run gets `graph-builder write`, naming the file. Propose its **last step, run only when every other step passed** — a red run then never rewrites a graph file, and a green one leaves the files current for the commit. With no check run, say so and propose the closest place the project has (a `pre-commit` hook, a `make` target), or running `graph-builder write` by hand before each commit.
-   Then say what Apply will create, change and run — every file by its path. When everything is configured, current, checked in CI and written by the check run, there is nothing to apply: say so, and ask only whether to keep it as it is.
+   When everything is configured, current, checked in CI and written by the check run, there is nothing to ask: say so, and ask only whether to keep it as it is.
+
+6. **Show the result and ask to go on.** When every answer is in, show **one table** — every graph, as it is now and as Apply will leave it — and under it every file Apply will create or change, by its path, and every command it will run:
+
+   | Graph | Service folder | Now | After Apply | Build command (cwd) | Proof | File |
+   |---|---|---|---|---|---|---|
+   | game-back | `packages/game-back` | no exporter, no file | exporter added, file written, checked in CI | `uv run python -m game_back.build_graph` (`packages/game-back`) | `ok 1.1: 517 nodes, 646 edges` | `packages/game-back/graph.json` |
+   | game-admin | `packages/game-admin` | file current, not in CI | checked in CI | `uv run python -m game_admin.build_graph` (`packages/game-admin`) | `ok 1.1: 440 nodes, 550 edges` | `packages/game-admin/graph.json` |
+   | billing-worker | `services/billing` | no producer | unchanged | — | — | — |
+
+   States for **Now**: **current**, **stale**, **missing**, **broken**, **refused** for a configured graph (step 2); **new** for a graph found in step 3, **no exporter** when its build needs the module this skill will write; **no producer** for a service whose model nothing can export. The Build column shows the command the config will hold — for an added exporter, its final `python -m <service package>.build_graph`, while the Proof column shows what the draft printed. The Proof of a configured graph is its `graph-builder check` line and its size from `graph-builder validate <file>`; of a new or fixed one, its proof from step 4.
+
+   Then ask, with options: **go on** *(recommended)*, **change an answer** (back to that question), or **stop** (nothing is written; the temporary folder is deleted). Apply starts only on "go on".
 
 ### Apply
 
-6. **Apply what the user chose.** In this order:
+7. **Apply what the user allowed.** In this order:
    1. add each exporter the user accepted, as `<service package>/build_graph.py` (the draft, proven in step 4), and point its build at it, `python -m <service package>.build_graph`;
    2. write `graph-builder.toml` (example below);
    3. run `graph-builder write` — every graph is built again from the repository's own files, so a build that only worked from the temporary folder fails here;
-   4. make CI check every graph, the way the user chose in step 5 — the example below for a new workflow;
-   5. add `graph-builder write` to the check run the user chose in step 5, as its last step, run only when every other step passed;
+   4. make CI check every graph, the way the user chose — the example below for a new workflow;
+   5. add `graph-builder write` to the check run the user chose, as its last step, run only when every other step passed;
    6. run `graph-builder check` and show that it passes.
 
-   If something here was not in the survey — a file changed since, a job you did not see — stop and ask; do not decide it alone.
-7. **Hand over.** Delete the temporary folder. List every file you created or changed, and the graph files you wrote, and say the next step is the user's: review them, commit them together, and **merge them into the main branch** — a graph's history starts with the first commit of its file on that branch, so a graph left on a side branch has no history yet. Do not commit, push or open a pull request.
+   If something here was not in the table of step 6 — a file changed since, a job you did not see — stop and ask; do not decide it alone.
+8. **Hand over.** Delete the temporary folder. List every file you created or changed, and the graph files you wrote, and say the next step is the user's: review them, commit them together, and **merge them into the main branch** — a graph's history starts with the first commit of its file on that branch, so a graph left on a side branch has no history yet. Do not commit, push or open a pull request.
 
    When the project wants its graphs' history served — versions with their pull requests, shown and compared in Maxitor — say what the `repo-graph-port` service needs: one `[[history]]` per graph file in its config (`repository`, `branch`, `graph_file`), and, for a private repository, its GitHub App installed on the repository.
 
@@ -113,7 +117,7 @@ Setup has two phases. **Survey** (steps 1–5) changes nothing in the repository
 - Never pipe a build into `graph-builder validate -` as proof; prove builds with `graph-builder write` on a temporary config (step 4). If you must pipe for another reason, run it under `set -o pipefail`.
 - An old hand-kept history (folders of numbered snapshots, an index file) is not migrated: git is the history from the first `graph.json` on. Point it out and let the user delete it.
 - CI only checks. The check run, or the developer, runs `graph-builder write`, and the files are committed with the change; a stale file fails the pull request until they are.
-- Ask once. Every question goes under the table of step 5; never ask in the middle of Apply what the survey could have asked.
+- Talk, then act. Questions come one at a time in step 5, each with options; the table of step 6 and the user's "go on" come before any file is written; Apply asks nothing the dialogue could have asked.
 
 ## Example exporters
 
