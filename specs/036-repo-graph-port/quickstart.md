@@ -14,7 +14,7 @@ cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev maxitor --help
 ## 2. A history from a local repository
 
 ```bash
-cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest -q packages/maxitor/core/repo_graph_port/tests
+cd /Users/bystrovmaxim/PythonDev/aoa && uv run --extra dev pytest -q packages/maxitor/tools/repo_graph_port/tests
 ```
 Expect: the fixture repository's versions are exactly its first-parent commits that changed the graph file; tags land where research R4 says; each version's graph is the committed file byte for byte.
 

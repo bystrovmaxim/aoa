@@ -1,0 +1,992 @@
+{
+  "edges": [
+    {
+      "id": "aoa.action_machine.auth.any_role.AnyRole|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.action_machine.auth.any_role.AnyRole",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.action_machine.auth.guest_role.GuestRole|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.fastapi.socket_channel.SocketChannel|domain|aoa.fastapi.socket_channel.TransportDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.fastapi.socket_channel.SocketChannel",
+      "target_id": "aoa.fastapi.socket_channel.TransportDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.fastapi.socket_channel.TransportDomain|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.fastapi.socket_channel.TransportDomain",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary|@required_context|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:env.history_refresh_seconds",
+      "is_dag": false,
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:env.history_refresh_seconds",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary|@required_context|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.history",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.history",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary|@required_context|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.user_id",
+      "is_dag": false,
+      "properties": {
+        "key": "user.user_id"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.user_id",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "is_dag": true,
+      "properties": {
+        "key": "GitMirror"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoriesConfig"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "is_dag": true,
+      "properties": {
+        "key": "VersionCache"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@summary_aspect|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|generic:params|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|generic:result|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:link",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:branch",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:branch",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:graph_file",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:graph_file",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:repository",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:repository",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:versions",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:versions",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary|@required_context|maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:env.history_refresh_seconds",
+      "is_dag": false,
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:env.history_refresh_seconds",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary|@required_context|maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.history",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.history",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary|@required_context|maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.user_id",
+      "is_dag": false,
+      "properties": {
+        "key": "user.user_id"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.user_id",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "is_dag": true,
+      "properties": {
+        "key": "GitMirror"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoriesConfig"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "is_dag": true,
+      "properties": {
+        "key": "VersionCache"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@summary_aspect|maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|generic:params|maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|generic:result|maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams|field|maxitor.repo_graph_port.actions.history_action.HistoryParams:after",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:after",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams|field|maxitor.repo_graph_port.actions.history_action.HistoryParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams|field|maxitor.repo_graph_port.actions.history_action.HistoryParams:link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:link",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary|@required_context|maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:env.history_refresh_seconds",
+      "is_dag": false,
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:env.history_refresh_seconds",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary|@required_context|maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.history",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.history",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary|@required_context|maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.user_id",
+      "is_dag": false,
+      "properties": {
+        "key": "user.user_id"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.user_id",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "is_dag": true,
+      "properties": {
+        "key": "GitMirror"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoriesConfig"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "is_dag": true,
+      "properties": {
+        "key": "VersionCache"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@summary_aspect|maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|generic:params|maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|generic:result|maxitor.repo_graph_port.actions.version_action.VersionResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams|field|maxitor.repo_graph_port.actions.version_action.VersionParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams|field|maxitor.repo_graph_port.actions.version_action.VersionParams:link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams:link",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams|field|maxitor.repo_graph_port.actions.version_action.VersionParams:sha",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams:sha",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionResult|field|maxitor.repo_graph_port.actions.version_action.VersionResult:graph",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionResult",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionResult:graph",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.history_reader_role.HistoryReaderRole|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.history_reader_role.HistoryReaderRole",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.version_cache.VersionCache|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "aoa.action_machine.application.application.Application",
+      "label": "Application",
+      "properties": {
+        "description": "Logical application root for interchange graphs.",
+        "name": "application"
+      },
+      "type": "Application"
+    },
+    {
+      "id": "aoa.action_machine.auth.any_role.AnyRole",
+      "label": "AnyRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "label": "GuestRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "label": "ParamsStub",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.action_machine.model.result_stub.ResultStub",
+      "label": "ResultStub",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.fastapi.socket_channel.SocketChannel",
+      "label": "SocketChannel",
+      "properties": {
+        "description": "One WebSocket connection an action can send events through"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.fastapi.socket_channel.TransportDomain",
+      "label": "TransportDomain",
+      "properties": {
+        "description": "Resources the FastAPI adapter creates for one connection",
+        "name": "transport"
+      },
+      "type": "Domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "label": "DescribeHistoryAction",
+      "properties": {
+        "description": "Describe a graph's history: its repository, branch, file and versions"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary",
+      "label": "describe_summary",
+      "properties": {
+        "description": "Describe the history"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:env.history_refresh_seconds",
+      "label": "env.history_refresh_seconds",
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.history",
+      "label": "user.history",
+      "properties": {
+        "key": "user.history"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction:describe_summary:reqctx:user.user_id",
+      "label": "user.user_id",
+      "properties": {
+        "key": "user.user_id"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "label": "DescribeHistoryParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:history",
+      "label": "history",
+      "properties": {
+        "description": "A configured history's id; its read key must open it",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:link",
+      "label": "link",
+      "properties": {
+        "description": "A link to a public repository's graph file, in place of an id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "label": "DescribeHistoryResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:branch",
+      "label": "branch",
+      "properties": {
+        "description": "The branch whose first parents are the versions",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:graph_file",
+      "label": "graph_file",
+      "properties": {
+        "description": "The graph file's path in the repository",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:id",
+      "label": "id",
+      "properties": {
+        "description": "The history's id, or the link that names a public one",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
+      "label": "newest",
+      "properties": {
+        "description": "The newest version's sha; none when there is no version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:repository",
+      "label": "repository",
+      "properties": {
+        "description": "owner/name on the host, or a local path",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:versions",
+      "label": "versions",
+      "properties": {
+        "description": "How many versions the history has",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "label": "HistoryAction",
+      "properties": {
+        "description": "List a graph's versions with their tags and facts"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary",
+      "label": "history_summary",
+      "properties": {
+        "description": "List the history's versions"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:env.history_refresh_seconds",
+      "label": "env.history_refresh_seconds",
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.history",
+      "label": "user.history",
+      "properties": {
+        "key": "user.history"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction:history_summary:reqctx:user.user_id",
+      "label": "user.user_id",
+      "properties": {
+        "key": "user.user_id"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "label": "HistoryParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:after",
+      "label": "after",
+      "properties": {
+        "description": "Only the versions newer than this sha",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:history",
+      "label": "history",
+      "properties": {
+        "description": "A configured history's id; its read key must open it",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:link",
+      "label": "link",
+      "properties": {
+        "description": "A link to a public repository's graph file, in place of an id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "label": "HistoryResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
+      "label": "versions",
+      "properties": {
+        "description": "The history's versions, oldest first",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "label": "VersionAction",
+      "properties": {
+        "description": "Read one version's graph file"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary",
+      "label": "version_summary",
+      "properties": {
+        "description": "Read the version's graph file"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:env.history_refresh_seconds",
+      "label": "env.history_refresh_seconds",
+      "properties": {
+        "key": "env.history_refresh_seconds"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.history",
+      "label": "user.history",
+      "properties": {
+        "key": "user.history"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:user.user_id",
+      "label": "user.user_id",
+      "properties": {
+        "key": "user.user_id"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "label": "VersionParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams:history",
+      "label": "history",
+      "properties": {
+        "description": "A configured history's id; its read key must open it",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams:link",
+      "label": "link",
+      "properties": {
+        "description": "A link to a public repository's graph file, in place of an id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams:sha",
+      "label": "sha",
+      "properties": {
+        "description": "The version's commit",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionResult",
+      "label": "VersionResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionResult:graph",
+      "label": "graph",
+      "properties": {
+        "description": "The graph file's text, exactly as committed",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.history_reader_role.HistoryReaderRole",
+      "label": "HistoryReaderRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "label": "RepoGraphDomain",
+      "properties": {
+        "description": "A graph's history read from the repository that keeps its file: versions, tags, graphs",
+        "name": "repo_graph"
+      },
+      "type": "Domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "label": "GitMirror",
+      "properties": {
+        "description": "The history of a repository, read with git from a local path or a partial mirror"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "label": "HistoriesConfig",
+      "properties": {
+        "description": "The histories the port serves and their read keys, from its config file"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "label": "VersionCache",
+      "properties": {
+        "description": "A version's graph and facts on disk, by commit; when each repository was fetched"
+      },
+      "type": "Resource"
+    }
+  ],
+  "schema_version": "1.1"
+}
