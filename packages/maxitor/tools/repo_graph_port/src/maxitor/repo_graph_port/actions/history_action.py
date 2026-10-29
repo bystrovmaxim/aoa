@@ -19,7 +19,8 @@ ARCHITECTURE / DATA FLOW
 
     history id ──► config ──► mirror refreshed after the fallback interval
                ──► versions + first-parent chain + tags ──► place_tags
-               ──► each version's facts (cache, or git once) ──► [VersionRecord, …]
+               ──► each version's facts (cache, or git once), its pull request and its tags' releases
+                   (cache while fresh, or the host) ──► [VersionRecord, …]
 
 The adapter tags the answer with an ``ETag`` of its body, so a repeated read of an
 unchanged history is answered ``304``.
@@ -31,11 +32,12 @@ import asyncio
 from typing import cast
 
 from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
-from maxitor.repo_graph_port.history_reading import chosen, facts_of, refreshed
+from maxitor.repo_graph_port.history_reading import chosen, facts_of, pull_request_of, refreshed, release_of
 from maxitor.repo_graph_port.history_versions import place_tags
 from maxitor.repo_graph_port.placed_tag import PlacedTag
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
 from maxitor.repo_graph_port.version_record import VersionRecord
@@ -72,6 +74,7 @@ class HistoryResult(BaseResult):
 @check_roles(GuestRole)
 @connection(HistoriesConfig, key="HistoriesConfig", description="The histories this server serves")
 @connection(GitMirror, key="GitMirror", description="The repositories' history, read with git")
+@connection(GitHubHost, key="GitHubHost", description="GitHub: the App's token, pull requests, releases")
 @connection(VersionCache, key="VersionCache", description="Each version's facts, read once")
 class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
     """
@@ -92,11 +95,13 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         connections: Connections,
         ctx: ContextView,
     ) -> HistoryResult:
-        """Refresh the repository, place the tags, gather every version's facts."""
+        """Refresh the repository, place the tags, gather every version's facts, pull request and releases."""
         mirror = cast(GitMirror, connections["GitMirror"])
+        host = cast(GitHubHost, connections["GitHubHost"])
         cache = cast(VersionCache, connections["VersionCache"])
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
-        await refreshed(mirror, cache, history, ctx.get("env.history_refresh_seconds"))
+        interval = ctx.get("env.history_refresh_seconds")
+        await refreshed(mirror, cache, host, history, interval)
         commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
         shas = [commit.sha for commit in commits]
         if params.after is not None and params.after not in shas:
@@ -106,12 +111,15 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         start = shas.index(params.after) + 1 if params.after is not None else 0
         records: list[VersionRecord] = []
         for commit in commits[start:]:
-            facts = await facts_of(mirror, cache, history, commit.sha)
+            facts = await facts_of(mirror, cache, host, history, commit.sha)
+            pull = await pull_request_of(cache, host, history, commit.sha, interval)
+            placed = [PlacedTag(name=name, release=await release_of(cache, host, history, name, interval)) for name in tags.get(commit.sha, [])]
             records.append(VersionRecord(
                 sha=commit.sha,
                 date=commit.date,
-                message=commit.message,
-                tags=[PlacedTag(name=name) for name in tags.get(commit.sha, [])],
+                pr=pull,
+                message=None if pull is not None else commit.message,
+                tags=placed,
                 nodes=facts.nodes,
                 edges=facts.edges,
                 refused=facts.refused,

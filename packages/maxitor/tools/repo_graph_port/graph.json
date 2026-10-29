@@ -90,6 +90,17 @@
       "type": "@connection"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "is_dag": true,
+      "properties": {
+        "key": "GitHubHost"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
@@ -273,6 +284,17 @@
       "type": "@connection"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "is_dag": true,
+      "properties": {
+        "key": "GitHubHost"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryAction",
+      "target_id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
@@ -367,6 +389,158 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "is_dag": true,
+      "properties": {
+        "key": "GitMirror"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "is_dag": true,
+      "properties": {
+        "key": "GitHubHost"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoriesConfig"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "is_dag": true,
+      "properties": {
+        "key": "VersionCache"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.resources.version_cache.VersionCache",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@summary_aspect|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction:receive_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction:receive_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|generic:params|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|generic:result|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:after",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:after",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:before",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:before",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:kind",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:kind",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:merge_commit_sha",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:merge_commit_sha",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:ref",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:ref",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:repository",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:repository",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult|field|maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult:changed",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult",
+      "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult:changed",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary|@required_context|maxitor.repo_graph_port.actions.version_action.VersionAction:version_summary:reqctx:env.history_refresh_seconds",
       "is_dag": false,
       "properties": {
@@ -417,6 +591,17 @@
       "relationship": "Association",
       "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
       "target_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "is_dag": true,
+      "properties": {
+        "key": "GitHubHost"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
+      "target_id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "type": "@connection"
     },
     {
@@ -537,6 +722,15 @@
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "maxitor.repo_graph_port.resources.git_mirror.GitMirror",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.github_host.GitHubHost|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
       "type": "domain"
     },
@@ -851,6 +1045,111 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction",
+      "label": "ReceiveHostEventAction",
+      "properties": {
+        "description": "Refresh the histories a GitHub webhook changes"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction:receive_summary",
+      "label": "receive_summary",
+      "properties": {
+        "description": "Refresh the histories the event changed"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams",
+      "label": "ReceiveHostEventParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:after",
+      "label": "after",
+      "properties": {
+        "description": "The branch's commit after a push",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:before",
+      "label": "before",
+      "properties": {
+        "description": "The branch's commit before a push",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:kind",
+      "label": "kind",
+      "properties": {
+        "description": "push, tag, pull_request or other",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:merge_commit_sha",
+      "label": "merge_commit_sha",
+      "properties": {
+        "description": "The commit a merged or edited pull request made",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:ref",
+      "label": "ref",
+      "properties": {
+        "description": "The pushed ref, refs/heads/<branch>",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventParams:repository",
+      "label": "repository",
+      "properties": {
+        "description": "owner/name of the repository the event is about",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult",
+      "label": "ReceiveHostEventResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult:changed",
+      "label": "changed",
+      "properties": {
+        "description": "Ids of the configured histories the event changed, sorted",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction",
       "label": "VersionAction",
       "properties": {
@@ -968,6 +1267,14 @@
       "label": "GitMirror",
       "properties": {
         "description": "The history of a repository, read with git from a local path or a partial mirror"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.repo_graph_port.resources.github_host.GitHubHost",
+      "label": "GitHubHost",
+      "properties": {
+        "description": "GitHub: the App's token, a commit's pull request, a tag's release, the webhooks' signature"
       },
       "type": "Resource"
     },

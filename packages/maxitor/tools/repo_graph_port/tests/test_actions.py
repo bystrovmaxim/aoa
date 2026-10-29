@@ -18,6 +18,7 @@ from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
 from maxitor.repo_graph_port.history_reader_info import HistoryReaderInfo
 from maxitor.repo_graph_port.history_reader_role import HistoryReaderRole
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
 from maxitor.repo_graph_port.tag import Tag
@@ -94,6 +95,7 @@ class Server:
             "HistoriesConfig": HistoriesConfig(config),
             "GitMirror": self.mirror,
             "VersionCache": VersionCache(folder / "cache"),
+            "GitHubHost": GitHubHost(),
         }
 
     async def run(self, action: Any, params: Any, context: type[HistoryContext] = HistoryContext) -> Any:

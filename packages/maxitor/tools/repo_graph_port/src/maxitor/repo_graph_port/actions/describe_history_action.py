@@ -26,6 +26,7 @@ from typing import cast
 from maxitor.repo_graph_port.history_reading import chosen, refreshed
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
 from pydantic import Field
@@ -65,6 +66,7 @@ class DescribeHistoryResult(BaseResult):
 @check_roles(GuestRole)
 @connection(HistoriesConfig, key="HistoriesConfig", description="The histories this server serves")
 @connection(GitMirror, key="GitMirror", description="The repositories' history, read with git")
+@connection(GitHubHost, key="GitHubHost", description="GitHub: the App's token, pull requests, releases")
 @connection(VersionCache, key="VersionCache", description="When each repository was fetched")
 class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryResult]):
     """
@@ -87,8 +89,9 @@ class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryRes
     ) -> DescribeHistoryResult:
         """Find the history, refresh its repository, count its versions."""
         mirror = cast(GitMirror, connections["GitMirror"])
+        host = cast(GitHubHost, connections["GitHubHost"])
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
-        await refreshed(mirror, cast(VersionCache, connections["VersionCache"]), history, ctx.get("env.history_refresh_seconds"))
+        await refreshed(mirror, cast(VersionCache, connections["VersionCache"]), host, history, ctx.get("env.history_refresh_seconds"))
         await box.info(Channel.business, "History {%var.history} described for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
         commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
         return DescribeHistoryResult(

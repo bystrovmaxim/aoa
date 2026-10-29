@@ -12,9 +12,9 @@ All under `/api/v1/history/`. A configured history is named by its `id`; a priva
 | `GET /api/v1/history/public?link=…` | `DescribeHistoryAction` | the link | as for an id |
 | `GET /api/v1/history/public/versions?link=…` | `HistoryAction` | the link, `after` | as for an id |
 | `GET /api/v1/history/public/versions/{sha}?link=…` | `VersionAction` | the link, `sha` | as for an id |
-| `POST /api/v1/history/events/github` | `ReceiveHostEventAction` | the host's event; its `X-Hub-Signature-256` checked over the raw body by a middleware before the adapter | `204`; a bad signature `401`, the action never runs |
+| `POST /api/v1/history/events/github` | `ReceiveHostEventAction` | the host's event; its `X-Hub-Signature-256` checked over the raw body by a middleware before the adapter | `200 {"changed": [<history id>, …]}` — the configured histories it changed; a bad signature `401`, the action never runs |
 
-Which histories an event changes (research R12): `push` — those of the repository and branch whose graph file changed between `before` and `after` by `git log --first-parent`; `create` of a tag — the tags of the repository's histories; `pull_request` edited or merged — the version whose commit is its `merge_commit_sha`, if any. Anything else changes nothing.
+Which histories an event changes (research R12): `push` — those of the repository and branch whose graph file changed between `before` and `after` by `git log --first-parent`; `create` of a tag — the tags of the repository's histories; `pull_request` edited or merged — the version whose commit is its `merge_commit_sha`, if any. Anything else changes nothing. When GitHub does not answer (down, or out of its rate limit), `history` still answers: a version shows its commit's message, a tag no release, and the next read asks again.
 
 Refusals: an unknown, revoked or expired key; a key of another history; an unknown history; a version the history does not have — all `404 {"detail": "not found"}`. More than the set number of wrong keys from one client address in a minute: `429`.
 

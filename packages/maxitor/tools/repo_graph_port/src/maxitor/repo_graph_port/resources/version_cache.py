@@ -10,7 +10,9 @@ A version's graph file and the facts read from it — its counts, or why it is
 refused — belong to its commit and never change. They are read from git once and
 kept, so a second read of a version touches neither git nor the file again. The
 cache also remembers when each repository's mirror was last fetched, so a history
-fetches again only after the fallback interval.
+fetches again only after the fallback interval, and what the host said about each
+version's pull request and each tag's release, with when it said it: those can
+change, so they are read again after a webhook or the fallback interval.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -24,7 +26,8 @@ ARCHITECTURE / DATA FLOW
 The repository key is the first 16 hex of the SHA-256 of the repository's name, so
 any name — ``owner/name`` or a local path — is one safe folder. A file is written
 to a temporary name and renamed, so a reader never sees half of one. The fetch
-times live in memory: after a restart every repository is fetched on its first read.
+times, pull requests and releases live in memory: after a restart every repository
+is fetched, and every pull request and release read, on its first read.
 """
 
 from __future__ import annotations
@@ -47,7 +50,7 @@ class VersionCache(BaseStorage):
     """
     AI-CORE-BEGIN
     ROLE: Keep what never changes for a commit, and when each repository was last fetched.
-    CONTRACT: ``keep`` stores a version's bytes and facts by ``(repository, sha)``; ``graph`` and ``facts`` return them, or ``None`` before ``keep``; ``fetched_at`` returns the time ``mark_fetched`` was given, or ``None``.
+    CONTRACT: ``keep`` stores a version's bytes and facts by ``(repository, sha)``; ``graph`` and ``facts`` return them, or ``None`` before ``keep``; ``fetched_at`` returns the time ``mark_fetched`` was given, or ``None``; pull requests and releases are kept with their read time until forgotten.
     INVARIANTS: Kept entries are never changed or removed; a reader never sees a half-written file.
     AI-CORE-END
     """
@@ -55,6 +58,8 @@ class VersionCache(BaseStorage):
     def __init__(self, folder: Path) -> None:
         self._folder = folder
         self._fetched: dict[str, float] = {}
+        self._pulls: dict[tuple[str, str], tuple[dict[str, str | int] | None, float]] = {}
+        self._releases: dict[tuple[str, str], tuple[dict[str, str] | None, float]] = {}
 
     def get_wrapper_class(self) -> type[BaseStorage] | None:
         """Return ``None``: nested actions read through this same cache."""
@@ -85,6 +90,31 @@ class VersionCache(BaseStorage):
         except FileNotFoundError:
             return None
         return GraphFacts(nodes=kept["nodes"], edges=kept["edges"], refused=kept["refused"])
+
+    def pull_request(self, repository: str, sha: str) -> tuple[dict[str, str | int] | None, float] | None:
+        """A version's pull request as last read (``None`` when it had none) and when it was read; ``None`` before any read."""
+        return self._pulls.get((repository, sha))
+
+    def keep_pull_request(self, repository: str, sha: str, pull: dict[str, str | int] | None, at: float) -> None:
+        """Remember a version's pull request, read at ``at``."""
+        self._pulls[(repository, sha)] = (pull, at)
+
+    def forget_pull_request(self, repository: str, sha: str) -> None:
+        """Drop a version's pull request, so the next read asks the host again."""
+        self._pulls.pop((repository, sha), None)
+
+    def release(self, repository: str, tag: str) -> tuple[dict[str, str] | None, float] | None:
+        """A tag's release as last read (``None`` when it had none) and when it was read; ``None`` before any read."""
+        return self._releases.get((repository, tag))
+
+    def keep_release(self, repository: str, tag: str, release: dict[str, str] | None, at: float) -> None:
+        """Remember a tag's release, read at ``at``."""
+        self._releases[(repository, tag)] = (release, at)
+
+    def forget_releases(self, repository: str) -> None:
+        """Drop every release of ``repository``, so the next read asks the host again."""
+        for key in [key for key in self._releases if key[0] == repository]:
+            del self._releases[key]
 
     def fetched_at(self, repository: str) -> float | None:
         """When ``repository`` was last fetched, as given to ``mark_fetched``, or ``None``."""
