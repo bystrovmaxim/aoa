@@ -15,7 +15,7 @@ GitHub → *Settings* → *Developer settings* → *GitHub Apps* → *New GitHub
 | Repository permissions | *Contents*: read-only, *Pull requests*: read-only (*Metadata*: read-only comes with them) |
 | Subscribe to events | *Push*, *Create*, *Pull request* |
 
-Keep the webhook's secret: never paste it into a chat, an issue or a screenshot. After *Create GitHub App*, note the **App ID**, then *Generate a private key* — a `.pem` file downloads. Then *Install App* → your account → *Only select repositories* → the repositories whose histories the port serves.
+Keep the webhook's secret: never paste it into a chat, an issue or a screenshot. After *Create GitHub App*, note the **App ID**, then open *Credentials* → *Key pairs* and generate a private key — a `.pem` file downloads. Pass it on by its file name only, never by pasting or attaching its contents. Then *Install App* → your account → *Only select repositories* → the repositories whose histories the port serves.
 
 ## 2. Write the histories config
 
@@ -60,6 +60,8 @@ docker run -d --name repo-graph-port -p 127.0.0.1:8103:8102 --env-file secrets.e
 
 `config/` holds `histories.toml` and is mounted writable: the key commands write into it. Put your HTTPS front end before `127.0.0.1:8103`, passing `X-Forwarded-For` and allowing request bodies of 25 MB (GitHub's webhooks). Without Docker: `pip install "maxitor[repo-graph-port]"`, then `MAXITOR_HISTORIES=histories.toml repo-graph-port` with the secrets in its environment (`REPO_GRAPH_PORT_HOST`, `REPO_GRAPH_PORT_PORT` choose where it listens).
 
+A host whose network MTU is below 1500 (a cloud VM often has 1450) needs the same MTU on the container's network: with Docker's default 1500, connections to GitHub stall in the TLS handshake and a clone times out. Give the port a network of its own, e.g. `docker network create --opt com.docker.network.driver.mtu=1450 egress`, and run it with `--network egress`; `ip link` shows the host's MTU.
+
 The demonstrator stand of this repository runs it this way at `https://repo-graph-port.aoa.run`; [its README](../../deploy/stand/README.md) says what lives where on that host.
 
 ## 5. Check, then issue keys
@@ -83,7 +85,13 @@ Then one key per reader of each history:
 docker exec repo-graph-port repo-graph-port history key new --history orders --name anna --expires 2027-06-01
 ```
 
-The key is printed once; only its hash is written. Hand it to its holder only. `key list` shows names and dates; `key revoke --history orders --name anna` removes one; a changed config needs no restart.
+The key is printed once; only its hash is written. Send it straight into a file that never enters git — this repository keeps such files in [`certificates/`](../../certificates/README.md) — and hand it to its holder only:
+
+```bash
+docker exec repo-graph-port repo-graph-port history key new --history orders --name anna > certificates/repo-graph-port/orders.key
+```
+
+ `key list` shows names and dates; `key revoke --history orders --name anna` removes one; a changed config needs no restart.
 
 ## 6. Read a history
 
@@ -95,3 +103,5 @@ curl -G --data-urlencode "link=https://github.com/owner/open-repo/blob/main/grap
 ```
 
 Merge a pull request that changes the graph file: GitHub's webhook reaches the port, and the next read has the new version. The App's page → *Advanced* → *Recent Deliveries* shows each webhook and the port's answer, `{"changed": ["orders"]}` — the histories it changed, and none for a push that touched no graph file.
+
+If *Recent Deliveries* shows only timeouts and no request reaches your HTTPS front end, GitHub cannot connect to your host — check that its addresses (`https://api.github.com/meta`, `hooks`) are let in. The port still serves fresh histories without webhooks: a read fetches the repository again when its last fetch is older than `MAXITOR_HISTORY_REFRESH_SECONDS` (600), so a merge shows within ten minutes.
