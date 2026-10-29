@@ -25,7 +25,7 @@ services:
   maxitor:
     build:
       context: ../..
-      dockerfile: packages/maxitor/app/Dockerfile
+      dockerfile: packages/maxitor/front/Dockerfile
     environment:
       # Built graphs stay in memory until this many are held; then the one read longest ago leaves.
       # One graph of the reference service costs about 22 MiB of the process after #268, so 50 graphs

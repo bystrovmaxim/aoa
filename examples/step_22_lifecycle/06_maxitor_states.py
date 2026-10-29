@@ -14,8 +14,8 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from maxitor.viewer.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
-from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
+from maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action import GetLifecycleFiniteAutomatonAction
+from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 class OrderStateEntity(BaseStateEntity):

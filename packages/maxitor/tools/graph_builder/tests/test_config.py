@@ -19,7 +19,7 @@ file = "packages/aoa-demo/graph.json"
 MAXITOR = """
 [[graph]]
 name = "maxitor"
-build = "uv run python -m maxitor.viewer.build_graph"
+build = "uv run python -m maxitor.front.build_graph"
 file = "packages/maxitor/graph.json"
 """
 
@@ -37,7 +37,7 @@ def test_a_valid_config_gives_its_graphs_in_order(tmp_path: Path) -> None:
     path = _config(tmp_path, MAXITOR + DEMO)
     repo = path.parent.resolve()
     assert read_config(path) == [
-        Graph("maxitor", repo, "uv run python -m maxitor.viewer.build_graph", repo / "packages/maxitor/graph.json"),
+        Graph("maxitor", repo, "uv run python -m maxitor.front.build_graph", repo / "packages/maxitor/graph.json"),
         Graph(
             "demo",
             repo / "packages/aoa-demo",

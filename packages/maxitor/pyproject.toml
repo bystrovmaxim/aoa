@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name = "maxitor"
 version = "3.0.0"
-description = "Maxitor: the AOA system viewer and its tools, one package with extras."
+description = "Maxitor: its front and its tools, one package with extras."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md"]
@@ -21,8 +21,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# The viewer: Maxitor's server and its built front.
-viewer = [
+# The front: Maxitor's server and its built web client.
+front = [
     "aoa-action-machine>=1.0.1a0",
     "aoa-fastapi-adapter>=1.3.0",
     "duckdb>=1.5,<2",
@@ -30,7 +30,7 @@ viewer = [
     "uvicorn>=0.30",
     "websockets>=15",
 ]
-all = ["maxitor[viewer]"]
+all = ["maxitor[front]"]
 
 [tool.uv.sources]
 aoa-action-machine = { workspace = true }
@@ -43,17 +43,17 @@ Repository = "https://github.com/action-machine/action-machine"
 
 [project.scripts]
 graph-builder = "maxitor.graph_builder.cli:main"
-maxitor-api = "maxitor.viewer.launch:viewer"
+maxitor = "maxitor.front.launch:main"
 
-# One package from several folders: the application (app/), the tools (tools/<name>/) and the
+# One package from several folders: the web part (front/), the tools (tools/<name>/) and the
 # skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
 [tool.hatch.build.targets.wheel]
-only-include = ["app/src/maxitor", "tools/graph_builder/src/maxitor"]
-artifacts = ["app/src/maxitor/viewer/static/**/*"]
-dev-mode-dirs = ["app/src", "tools/graph_builder/src"]
+only-include = ["front/src/maxitor", "tools/graph_builder/src/maxitor"]
+artifacts = ["front/src/maxitor/front/static/**/*"]
+dev-mode-dirs = ["front/src", "tools/graph_builder/src"]
 
 [tool.hatch.build.targets.wheel.sources]
-"app/src" = ""
+"front/src" = ""
 "tools/graph_builder/src" = ""
 
 [tool.hatch.build.targets.wheel.force-include]
@@ -61,12 +61,12 @@ dev-mode-dirs = ["app/src", "tools/graph_builder/src"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-  "app/client/node_modules",
-  "app/client/node_modules/**",
-  "app/client/.vite",
-  "app/client/.vite/**",
+  "front/client/node_modules",
+  "front/client/node_modules/**",
+  "front/client/.vite",
+  "front/client/.vite/**",
   # A service's saved graph is the repository's history, not the package's (graph-builder.toml).
-  "app/graph.json",
+  "front/graph.json",
 ]
 
 [dependency-groups]

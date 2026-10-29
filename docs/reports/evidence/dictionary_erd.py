@@ -45,8 +45,8 @@ def main() -> None:
     import json
 
     from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-    from maxitor.viewer.model.diagrams.actions.list_entities_action import ListEntitiesAction
-    from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+    from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
+    from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
     machine = ActionProductMachine(loggers=[])
     domain = next(node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "ShopDomain")
@@ -54,7 +54,7 @@ def main() -> None:
     import asyncio
 
     from aoa.action_machine.model import BaseState
-    from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+    from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
 
     # This read-only summary uses the connection; it does not use a toolbox.
     result = asyncio.run(
