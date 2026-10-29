@@ -14,6 +14,17 @@ export function setActiveSource(url: string | null): void {
   activeSource = url;
 }
 
+/**
+ * The read key of the private history whose version this tab shows, or ``""``. It travels on every
+ * graph read only in the header ``X-Maxitor-History-Key``, never in the address (spec 037, FR-010b).
+ */
+let activeHistoryKey = "";
+
+/** Set the key every later graph read sends; ``""`` sends none. */
+export function setActiveHistoryKey(key: string): void {
+  activeHistoryKey = key;
+}
+
 /** The source every later graph read is for, or ``null`` when no source is open. */
 export function getActiveSource(): string | null {
   return activeSource;
@@ -82,7 +93,7 @@ function waitForBusyRetry(response: Response): Promise<void> {
  */
 export async function graphFetch(path: string, query?: URLSearchParams): Promise<Response> {
   for (;;) {
-    const response = await fetch(graphApiUrl(path, query));
+    const response = await fetch(graphApiUrl(path, query), activeHistoryKey ? { headers: { "X-Maxitor-History-Key": activeHistoryKey } } : undefined);
     if (response.status !== 503) {
       nextBusySeconds = BUSY_FALLBACK_SECONDS;
       return response;

@@ -1,4 +1,6 @@
 // src/lib/urlState.ts
+import { withKey } from "@/lib/historyAddress";
+import { keyFor } from "@/lib/historyKey";
 import type { DiagramSelection } from "@/model/diagramSelection";
 
 const PARAM_SOURCE = "source";
@@ -117,9 +119,16 @@ export function setUrlRoom(room: string | null): void {
   window.history.replaceState(null, "", `${url.pathname}${url.search}`);
 }
 
-/** ``href`` with ``room`` set: the link Copy link hands out is the page being looked at, in the room. */
+/**
+ * ``href`` with ``room`` set: the link Copy link hands out is the page being looked at, in the room.
+ * On a private history it also carries the tab's read key after ``#key=``, since that is what opens
+ * the history elsewhere; it is shown with the key as dots (spec 037, FR-010).
+ */
 export function roomLink(href: string, room: string): string {
   const url = new URL(href);
   url.searchParams.set(PARAM_ROOM, room);
-  return url.toString();
+  url.hash = "";
+  const history = url.searchParams.get("history");
+  const key = history ? keyFor(history) : "";
+  return withKey(url.toString(), key);
 }
