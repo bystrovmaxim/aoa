@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-10-29] — Graph setup explains one decision at a time
+
+Connecting a project's model maps now follows a guided conversation in your language. The wizard first tells you what it found, finishes the choices for one service before moving to another, and then explains how maps will be updated and checked. Each question says what the decision changes, why a particular option is recommended and what choosing differently means. You decide whether to connect a service before discussing where its map belongs; leaving it out removes the questions that no longer matter.
+
+You can ask for an example, look at your choices, go back, change an answer or pause without losing unrelated decisions. An explanation request never counts as acceptance, and working settings do not need to be chosen again. Before applying anything, you see a compact account of the result with the prepared changes and their verification. If you defer automatic checks, the wizard tells you what remains manual. If an audit finds everything working, it finishes without a needless confirmation. Reviewing the skill itself does not start setup, and a failed application is reported with what actually changed rather than presented as success.
+
 ## [2026-10-29] — The setup skill talks the choices through with you, and writes the graphs from your own check run
 
 The skill a coding agent follows to connect a project to graph files is now `aoa-graph-builder-setup` (it was `graph-builder-setup`): it sets up AOA projects first. It still finds every model in the code and every graph already saved, writes an exporter where a service has a model and nothing prints it, and proves each build before it changes anything. What changed is how it ends its survey: it tells you what it found, then asks one question at a time, each with a few options and its recommendation — where each graph file goes, how CI checks every graph, and which of your project's check runs writes the graphs. It recommends the run's last step, taken only when every other check passed, so a failing run never rewrites a graph; a project with no CI is offered a ready workflow. With every answer in, it shows one table of each graph as it is and as it will be, and writes nothing until you tell it to go on.
