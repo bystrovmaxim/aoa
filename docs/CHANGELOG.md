@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-10-29] — A service's graph history, read straight from its repository
+
+A service that keeps its graph in a file beside its code already has the graph's whole history in git: every merge that changed the file is a version. A new service, `repo-graph-port`, reads that history and serves it. Each version comes with the pull request that made it — its number, title, description and link, or the commit's message when there was none — with the repository's tags and their releases, and with the size of its graph; any version's graph comes back exactly as it was committed. A tag put on a later commit that did not change the graph belongs to the version before it, and a version whose file is not a valid graph is listed with the reason.
+
+A private repository is read through a GitHub App you install on it, with read-only rights, and a reader opens one history with a read key: a key opens that history and nothing else, even in the same repository, and every refusal looks the same, so a stranger learns nothing about what exists. Keys are issued, listed and revoked on the server, printed once, kept only as hashes, and may expire. A public repository needs no key and no setup: a link to its graph file opens its history. GitHub tells the port about every push at once, and git — not the push's own file list — decides which graph files changed, so a push that touches no graph adds no version anywhere. The port is the only part of Maxitor that talks to GitHub, and the App's key, its webhook secret and every token stay with it, never on disk or in a log.
+
+Install it with `pip install "maxitor[repo-graph-port]"` and run `repo-graph-port`, or with Docker; the [how-to page](how-to/run-the-repo-graph-port.md) walks through the App, the config and the keys. Maxitor's web part is now called `front`: install it with `pip install "maxitor[front]"` and start it with `maxitor` — the extra `viewer`, the command `maxitor-api` and the import `maxitor.viewer` are gone.
+
 ## [2026-10-29] — Maxitor is one package for projects in any language, and the graph's format stands apart
 
 The format of a service's graph — the Open Gnomon Protocol — is now a standard of its own, with no code at all: a folder of JSON Schemas, one per version, and the text that explains them. Any project, in any language, can follow it; any JSON Schema validator can tell a graph from anything else. Each schema's address is the schema itself, so a validator can fetch it by name. Its versions are the ones you know, `1.0` and `1.1`, unchanged.
