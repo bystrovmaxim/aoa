@@ -49,9 +49,9 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from maxitor.viewer.api.app import create_app
-from maxitor.viewer.api.graph_store import GraphEntry, GraphStore
-from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+from maxitor.front.api.app import create_app
+from maxitor.front.api.graph_store import GraphEntry, GraphStore
+from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 _SOURCE = "https://game.example/graph-json"
 _EMPTY_SIDEBAR = SimpleNamespace(level1_nodes=[], level2_diagrams=[], level2_nodes=[], level3_diagrams=[])

@@ -122,7 +122,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
 
 
 def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
-    """``pip install maxitor`` with no extra is the ``graph-builder`` command alone: no AOA, none of the viewer's dependencies."""
+    """``pip install maxitor`` with no extra is the ``graph-builder`` command alone: no AOA, none of the front's dependencies."""
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
@@ -151,18 +151,31 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     assert skill.startswith("---\nname: graph-builder-setup\n")
 
 
-def test_clean_install_maxitor_viewer_names_its_extra(tmp_path: Path) -> None:
-    """Without the ``viewer`` extra, ``maxitor-api`` names the extra instead of failing on an import."""
+def test_clean_install_maxitor_front_names_its_extra(tmp_path: Path) -> None:
+    """Without the ``front`` extra, ``maxitor`` names the extra instead of failing on an import."""
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
     _uv_pip_install(vpy, [_latest_wheel("maxitor")])
     _run_in_venv(vpy, "import importlib.util as u; import importlib.metadata as m; assert m.version('maxitor'); assert u.find_spec('aoa') is None")
     started = subprocess.run(
-        [str(venv / "bin" / "maxitor-api")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
+        [str(venv / "bin" / "maxitor")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
     )
     assert started.returncode == 2
-    assert started.stderr == 'maxitor-api needs the viewer: pip install "maxitor[viewer]"\n'
+    assert started.stderr == 'maxitor needs its front: pip install "maxitor[front]"\n'
+
+
+def test_clean_install_repo_graph_port_names_its_extra(tmp_path: Path) -> None:
+    """Without the ``repo-graph-port`` extra, ``repo-graph-port`` names the extra instead of failing on an import."""
+    venv = tmp_path / "venv"
+    subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
+    vpy = _venv_python(venv)
+    _uv_pip_install(vpy, [_latest_wheel("maxitor")])
+    started = subprocess.run(
+        [str(venv / "bin" / "repo-graph-port")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
+    )
+    assert started.returncode == 2
+    assert started.stderr == 'repo-graph-port needs its extra: pip install "maxitor[repo-graph-port]"\n'
 
 
 def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:

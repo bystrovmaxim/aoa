@@ -148,7 +148,7 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
 
 ## The graph saved with every change
 
-Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/app/graph.json`, listed in `graph-builder.toml` at the root:
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/front/graph.json`, listed in `graph-builder.toml` at the root:
 
 ```toml
 graph_builder = "1.0"
@@ -170,7 +170,7 @@ ok maxitor
 run: graph-builder write --config graph-builder.toml, and commit the graph files
 ```
 
-Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[viewer]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.viewer`.
+Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[front]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.front`.
 
 Merged, the pull request carries the graph as it now is; `git log -p packages/aoa-demo/graph.json` is the demo's graph history. [12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)) shows every case:
 
@@ -186,6 +186,36 @@ Merged, the pull request carries the graph as it now is; `git log -p packages/ao
 6. An unknown version
    GraphRefused: graph 9.9: unknown schema version '9.9'; known: 1.0, 1.1
 ```
+
+## A graph's history, read from its repository
+
+Because the graph file travels with every merge, its git history *is* the graph's history: every first-parent commit that changed the file is a version — one per merged pull request. `repo-graph-port`, a service of its own (`pip install "maxitor[repo-graph-port]"`, then `repo-graph-port`), reads that history and serves it: the versions, each with its pull request (or its commit's message) and the repository's tags with their releases, and the graph of any version, byte for byte. A private repository is read through a GitHub App and opened by a read key, one key per history; a public one by a link to its graph file, with no key. GitHub's webhook tells the port about a push at once, and the port lets git decide which graph files the push changed, so a push that touches no graph adds no version anywhere.
+
+[14_graph_history.py](../../examples/step_26_maxitor/14_graph_history.py) ([notebook](../../examples/step_26_maxitor/14_graph_history.ipynb)) builds a service's repository with two graph files and runs the port over it, with GitHub stood in:
+
+```text
+4. versions of orders, oldest first
+  History orders listed for anna
+   Add the graph                       214 nodes, 305 edges
+   PR #1 Two edges fewer               214 nodes, 303 edges   v1.0 (release Release 1.0)
+   Drop an edge on main                214 nodes, 302 edges   v1.1
+   Break the graph                     refused: graph 1.1 at nodes/0: matches none of the shapes allowed here
+   Mend the graph                      214 nodes, 305 edges
+8. one key, one history
+  History orders described for anna
+   orders with anna's key: 200 · billing with anna's key: 404 {'detail': 'not found'} · orders with no key: 404 {'detail': 'not found'}
+11. a push that changes only billing.json
+  History billing listed for bob
+  Event push on acme/service changed billing
+   webhook: 200 {'changed': ['billing']}
+  History billing listed for bob
+  History orders listed for anna
+   billing: 1 → 2 versions · orders: 5 → 5 versions
+```
+
+The indented lines are the port's own log: it names each history and its reader, never a key.
+
+The tag `v1.1` sits on a later commit that only changed the README, so it belongs to the version before it. Running the port on a server — the App, the config, the keys — is [the how-to page](../how-to/run-the-repo-graph-port.md); [its README](../../packages/maxitor/tools/repo_graph_port/README.md) is the reference.
 
 ## Dictionaries in the entity diagram
 
@@ -463,10 +493,10 @@ Maxitor's own answers are conditional too: every successful `GET` of a `FastApiA
 
 ```bash
 # backend (FastAPI, :8000)
-uv run task maxitor-api
+uv run task maxitor
 
 # frontend (Vite SPA, :5173; proxies /api to :8000)
-cd packages/maxitor/app/client && npm install && npm run dev
+cd packages/maxitor/front/client && npm install && npm run dev
 ```
 
 Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](../../packages/maxitor/README.md).
@@ -631,7 +661,7 @@ The page opens faster than it did, and a second visit barely downloads anything.
 
 **What the layout engine does on a first open.** G6 still computes the arrangement on the main thread and draws it; a web worker was built and measured, and it did not pay: it changed the longest frozen stretch by nothing measurable and made the first pixel 350–450 ms later. The measurement and the decision are in [research R13](../../specs/026-full-graph-fast-open/research.md). What ships from that work is the precomputed-layout adapter the remembered arrangement uses.
 
-**How it is measured.** `packages/maxitor/app/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
+**How it is measured.** `packages/maxitor/front/client/scripts/measure-full-graph.ts` opens the page in Chromium at 1× CPU, 4× CPU and Slow 4G, and reports the bytes and headers per resource, the longest main-thread task, the time to the first graph pixel and the settled canvas. `npm run measure -- --maxitor http://127.0.0.1:8102 --source http://127.0.0.1:8765/graph-json` is the command; the acceptance table is R15 of the same research page. The server side is shown by [04_full_graph_delivery.py](../../examples/step_26_maxitor/04_full_graph_delivery.py) ([notebook](../../examples/step_26_maxitor/04_full_graph_delivery.ipynb)), the browser side by [05_full_graph_in_the_browser.py](../../examples/step_26_maxitor/05_full_graph_in_the_browser.py) ([notebook](../../examples/step_26_maxitor/05_full_graph_in_the_browser.ipynb)).
 
 | Criterion | Before | After | Target |
 |---|---|---|---|

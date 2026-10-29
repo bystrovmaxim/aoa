@@ -19,7 +19,7 @@ Each service exports its model — domains, entities, actions and their dependen
 - **reviewers see the model change**, element by element, next to the code that changed it;
 - **the model never drifts**: the code produces it, nobody draws it by hand;
 - **git holds the model's history** — `git log -p graph.json` is how the system grew;
-- **any tool reads the project without running it** — a viewer such as [Maxitor](../../app/README.md), an architecture check, a coding agent.
+- **any tool reads the project without running it** — a viewer such as [Maxitor](../../front/README.md), an architecture check, a coding agent.
 
 `graph-builder` knows nothing about any framework, and installing it brings nothing of AOA. [AOA](https://github.com/bystrovmaxim/aoa) services export the protocol out of the box; any service that can print a graph by its schema works the same way.
 

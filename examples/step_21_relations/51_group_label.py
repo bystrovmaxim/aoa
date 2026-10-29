@@ -100,8 +100,8 @@ def main() -> None:
     """Run this one learning experiment."""
     import json
 
-    from maxitor.viewer.model.diagrams.actions.list_entities_action import ListEntitiesAction
-    from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+    from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
+    from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
     machine = ActionProductMachine(loggers=[])
     store = DuckDBGraphResource.build_from_json(json.loads(machine.graph_coordinator.to_json()))
     domain = next(n.node_id for n in machine.graph_coordinator.get_all_nodes() if n.label == "MusicDomain")

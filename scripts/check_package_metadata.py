@@ -65,7 +65,7 @@ FORBIDDEN_ANYWHERE: dict[str, frozenset[str]] = {
 
 # Packages whose base install must stay free of ``aoa-*``: AOA comes only with the named extra.
 AOA_ONLY_IN_EXTRA: dict[str, str] = {
-    "maxitor": "viewer",
+    "maxitor": "front",
 }
 
 _NAME_RE = re.compile(r"^([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")

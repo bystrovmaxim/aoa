@@ -5,7 +5,7 @@
       "name": "Maxitor Flet (module)",
       "type": "debugpy",
       "request": "launch",
-      "module": "maxitor.viewer.ui.main",
+      "module": "maxitor.front.ui.main",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     },
@@ -13,7 +13,7 @@
       "name": "Maxitor sample graph (module)",
       "type": "debugpy",
       "request": "launch",
-      "module": "maxitor.viewer",
+      "module": "maxitor.front",
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     }

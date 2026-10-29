@@ -71,12 +71,12 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.demo.model.services.graph_json_service import ExampleModelGraphJsonService
-from maxitor.viewer.api.app import create_app
-from maxitor.viewer.api.graph_store import GraphStore, build_graph_entry
-from maxitor.viewer.model.core.actions.check_source_action import CheckSourceAction, CheckSourceParams
-from maxitor.viewer.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
-from maxitor.viewer.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
-from maxitor.viewer.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
+from maxitor.front.api.app import create_app
+from maxitor.front.api.graph_store import GraphStore, build_graph_entry
+from maxitor.front.model.core.actions.check_source_action import CheckSourceAction, CheckSourceParams
+from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
+from maxitor.front.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 
 MODEL = json.dumps({"coordinator_json": ExampleModelGraphJsonService().coordinator_json()}).encode()
 
