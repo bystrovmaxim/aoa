@@ -23,6 +23,7 @@ import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/li
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { useSidebarCollapse } from "@/components/layout/MainLayout/SidebarCollapseContext";
 import { ReloadServiceButton } from "./ReloadServiceButton";
+import type { OpenedHistory } from "@/api/history";
 import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
@@ -102,6 +103,8 @@ type LeftSidebarProps = {
   onSelectDiagram: (sel: DiagramSelection) => void;
   sidebar: SidebarPayload | null;
   onLoaded: (serviceUrl: string) => void;
+  /** A history was opened from the address field or Recent (spec 037). */
+  onHistoryOpened?: (history: OpenedHistory, key: string) => void;
   onReset: () => void;
   /** The source currently open, shown so it can be reloaded; null on the start page. */
   source: string | null;
@@ -158,6 +161,7 @@ export function LeftSidebar({
   onSelectDiagram,
   sidebar,
   onLoaded,
+  onHistoryOpened,
   onReset,
   source,
   onReloadFromService,
@@ -323,7 +327,7 @@ export function LeftSidebar({
           ...(collapsed ? { display: "none" } : {}),
         }}
       >
-        {!source && <ServiceUrlInput onLoaded={onLoaded} />}
+        {!source && <ServiceUrlInput onLoaded={onLoaded} onHistoryOpened={onHistoryOpened} />}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {sidebar &&
           group &&

@@ -18,6 +18,7 @@ import { clearFocus, putFocus } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
+import { openHistory } from "@/api/history";
 
 /** What the name dialog is for. */
 export type NameDialogMode = "open" | "join" | "rename";
@@ -115,9 +116,15 @@ export type RoomSessionOptions = {
   surface: DiagramSurface | null;
   /** The fingerprint of the graph the left panel was read from. */
   fingerprint: string | null;
+  /** The history the tab shows, for a room on it (spec 037): its name, version and key; ``null`` for a service. */
+  history?: { name: string; version: string | null; key: string } | null;
+  /** The room moved to a version, or a newcomer learned the room's. */
+  onVersion?: (b: string) => void;
+  /** The room's history changed: read its list again. */
+  onHistoryChanged?: () => void;
 };
 
-export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGraphChanged, surface, fingerprint }: RoomSessionOptions) {
+export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGraphChanged, surface, fingerprint, history = null, onVersion, onHistoryChanged }: RoomSessionOptions) {
   const [room, dispatch] = useReducer(reducer, null);
   const [connection, setConnection] = useState<ConnectionState | null>(null);
   const [dialog, setDialog] = useState<{ mode: NameDialogMode; error: string | null } | null>(
@@ -136,8 +143,10 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const target = useRef<string | null>(initialRoom);
   const socket = useRef<RoomConnection | null>(null);
   const opening = useRef(false);
-  const callbacks = useRef({ onFallbackPage, onGraphChanged });
-  callbacks.current = { onFallbackPage, onGraphChanged };
+  const callbacks = useRef({ onFallbackPage, onGraphChanged, onVersion, onHistoryChanged });
+  callbacks.current = { onFallbackPage, onGraphChanged, onVersion, onHistoryChanged };
+  const historyRef = useRef(history);
+  historyRef.current = history;
   const pageRef = useRef(page);
   pageRef.current = page;
   const graphVersion = useRef(0);
@@ -181,6 +190,18 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     if (event.type === "left" || (event.type === "presence" && (event.away || event.page !== pageRef.current))) {
       dropPointer(event.type === "left" ? event.participant.id : event.id);
     }
+    if (event.type === "version") {
+      if (event.b) callbacks.current.onVersion?.(event.b);
+      return;
+    }
+    if (event.type === "history_changed") {
+      callbacks.current.onHistoryChanged?.();
+      return;
+    }
+    if (event.type === "welcome" && event.room.history && event.room.version) {
+      // A newcomer takes the room's version, whatever their link named (FR-022a).
+      callbacks.current.onVersion?.(event.room.version);
+    }
     if (event.type === "welcome") {
       target.current = event.room.id;
       setUrlRoom(event.room.id);
@@ -223,11 +244,14 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const connect = useCallback(
     (name: string) => {
       const roomId = target.current ?? "new";
-      if (roomId === "new" && !source) return;
+      const onHistory = historyRef.current;
+      if (roomId === "new" && !source && !onHistory) return;
       socket.current?.close();
       const next = new RoomConnection({
         room: roomId,
         source: source ?? undefined,
+        history: onHistory ? { name: onHistory.name, version: onHistory.version } : undefined,
+        ticket: onHistory?.key ? async () => (await openHistory(onHistory.name, onHistory.key)).room_ticket : undefined,
         name,
         page: pageRef.current ?? "",
         onEvent,

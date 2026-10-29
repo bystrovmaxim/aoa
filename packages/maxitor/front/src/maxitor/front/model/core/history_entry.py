@@ -108,6 +108,10 @@ class HistoryEntry:
         found = self.version(version)
         return version_source(self.route, self.link, str(found["sha"])) if found is not None else None
 
+    def versions_with_sources(self) -> list[dict[str, Any]]:
+        """The versions as a tab is told them: each with the ``source`` its graph is read under, keyless."""
+        return [{**version, "source": version_source(self.route, self.link, str(version["sha"]))} for version in self.versions]
+
     @property
     def public(self) -> bool:
         """Whether the history is read by a public link, with no key."""

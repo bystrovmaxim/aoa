@@ -4049,7 +4049,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
       "label": "versions",
       "properties": {
-        "description": "The port's versions, oldest first",
+        "description": "The port's versions, oldest first, each with the source its graph is read under",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -4659,7 +4659,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:versions",
       "label": "versions",
       "properties": {
-        "description": "The port's versions, oldest first",
+        "description": "The port's versions, oldest first, each with the source its graph is read under",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true

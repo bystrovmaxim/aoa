@@ -61,7 +61,7 @@ class HistoryVersionsParams(BaseParams):
 class HistoryVersionsResult(BaseResult):
     """The history's versions and its Live service, as held now."""
 
-    versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first")
+    versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first, each with the source its graph is read under")
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
 
 
@@ -100,4 +100,4 @@ class HistoryVersionsAction(BaseAction[HistoryVersionsParams, HistoryVersionsRes
             gateway = cast(RepoGraphPortGateway, connections[REPO_GRAPH_PORT_CONNECTION_KEY])
             entry = await open_history(box, gateway, store, access, params.history, key, str(ctx.get("request.client_ip") or ""))
         cast(OpenTabsRegistry, connections[OPEN_TABS_CONNECTION_KEY]).seen(entry.name, store.now())
-        return HistoryVersionsResult(versions=entry.versions, live=entry.live)
+        return HistoryVersionsResult(versions=entry.versions_with_sources(), live=entry.live)
