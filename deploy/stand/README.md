@@ -53,11 +53,19 @@ The private key goes on one line, its newlines written as `\n`; the port turns t
 printf 'GITHUB_APP_PRIVATE_KEY=%s\n' "$(awk '{printf "%s\\n", $0}' maxitor-repo-graph-port.private-key.pem)" > /etc/aoa-repo-graph-port/secrets.env
 ```
 
-Then add the `GITHUB_WEBHOOK_SECRET=` line, and `chmod 600 /etc/aoa-repo-graph-port/secrets.env`.
+Then add the `GITHUB_WEBHOOK_SECRET=` line, and `chmod 600 /etc/aoa-repo-graph-port/secrets.env`. To replace the key later, rewrite only its line, so the webhook's secret stays.
+
+### `/etc/aoa-certificates/repo-graph-port/`
+
+The read keys issued to Maxitor, one `<history id>.key` per private history, root only (`600`) — the same files as [`certificates/`](../../certificates/README.md) in the maintainer's checkout. They live outside `/opt/aoa-stand`, which every deploy replaces.
 
 ## The GitHub App
 
-`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](../../docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app).
+`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](../../docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app). It is installed on `bystrovmaxim/gameoffer` only.
+
+GitHub's webhook deliveries do not reach this host: no connection from GitHub's addresses arrives at its interface, while port 443 opens from elsewhere. Until the stand moves to another host, the port runs without events — a history is fetched again on a read when its last fetch is older than ten minutes.
+
+The host's MTU is 1450. The port reaches GitHub through a network of its own, `egress`, with that MTU ([`docker-compose.host.yml`](docker-compose.host.yml)); with Docker's 1500 its TLS handshakes to GitHub stalled.
 
 ## After a deploy
 
@@ -67,7 +75,7 @@ The key commands run inside the port's container:
 docker exec stand-repo-graph-port-1 repo-graph-port history check
 ```
 ```bash
-docker exec stand-repo-graph-port-1 repo-graph-port history key new --history orders --name anna
+docker exec stand-repo-graph-port-1 repo-graph-port history key new --history orders --name maxitor > /etc/aoa-certificates/repo-graph-port/orders.key
 ```
 
-`check` says, for each history, whether its graph file is on its branch as the port reads it — with the App's token. `key new` prints a key once; hand it to its holder only. `key list` shows names and dates; `key revoke --history <id> --name <who>` removes one.
+`check` says, for each history, whether its graph file is on its branch as the port reads it — with the App's token. `key new` prints a key once, so it goes straight into its file; hand it to its holder only. `key list` shows names and dates; `key revoke --history <id> --name <who>` removes one.
