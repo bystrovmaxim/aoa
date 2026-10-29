@@ -102,7 +102,8 @@ class OpenHistoryAction(BaseAction[OpenHistoryParams, OpenHistoryResult]):
         gateway = cast(RepoGraphPortGateway, connections[REPO_GRAPH_PORT_CONNECTION_KEY])
         entry = await open_history(box, gateway, store, access, params.history, key, str(ctx.get("request.client_ip") or ""))
         cast(OpenTabsRegistry, connections[OPEN_TABS_CONNECTION_KEY]).seen(entry.name, store.now())
-        await box.info(Channel.business, "{%var.history} opened: {%var.count} versions{%var.live}", history=history_line(entry), count=len(entry.versions), live=" and Live" if entry.live else "")
+        count = len(entry.versions)
+        await box.info(Channel.business, "{%var.history} opened: {%var.count}{%var.live}", history=history_line(entry), count=f"{count} version" if count == 1 else f"{count} versions", live=" and Live" if entry.live else "")
         return OpenHistoryResult(
             name=entry.name,
             title=entry.title,

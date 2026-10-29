@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
 ::
 
     request ──X-Maxitor-History-Key──► HistoryKeyHolder(history_key)
-            └──HttpContextAssembler──► RequestInfo(client_ip, request_path, …)
+            └──► RequestInfo(client_ip, request_path, request_method)
                                             └──► Context(user, request)
 """
 
@@ -29,7 +29,6 @@ from typing import Any
 
 from maxitor.front.model.core.history_key_holder import HistoryKeyHolder
 
-from aoa.action_machine.auth.jwt_auth.http_context_assembler import HttpContextAssembler
 from aoa.action_machine.context import Context, RequestInfo
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
@@ -46,9 +45,6 @@ class HistoryKeyAuthCoordinator(BaseCoordinator):
     AI-CORE-END
     """
 
-    def __init__(self) -> None:
-        self._assembler = HttpContextAssembler()
-
     def __repr__(self) -> str:
         """Name the coordinator only."""
         return "HistoryKeyAuthCoordinator()"
@@ -56,5 +52,11 @@ class HistoryKeyAuthCoordinator(BaseCoordinator):
     async def process(self, request_data: Any) -> Context:
         """The request's context: its key, if any, and its metadata."""
         key = request_data.headers.get(HISTORY_KEY_HEADER, "").strip()
-        request = RequestInfo(**await self._assembler.assemble(request_data))
+        # Read here rather than through the JWT extra's assembler, which Maxitor's image does not install.
+        client = getattr(request_data, "client", None)
+        request = RequestInfo(
+            request_path=request_data.url.path,
+            request_method=request_data.method,
+            client_ip=client.host if client else None,
+        )
         return Context(user=HistoryKeyHolder(history_key=key), request=request)
