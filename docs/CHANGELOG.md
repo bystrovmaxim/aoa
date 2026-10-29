@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-29] — Maxitor is one package for projects in any language, and the graph's format stands apart
+
+The format of a service's graph — the Open Gnomon Protocol — is now a standard of its own, with no code at all: a folder of JSON Schemas, one per version, and the text that explains them. Any project, in any language, can follow it; any JSON Schema validator can tell a graph from anything else. Each schema's address is the schema itself, so a validator can fetch it by name. Its versions are the ones you know, `1.0` and `1.1`, unchanged.
+
+Everything else that was spread over two packages is now one, `maxitor`, and you choose its parts when you install it. `pip install maxitor` installs `graph-builder`, the command that keeps every service's graph in its file and checks it — and nothing else: nothing of AOA, no server, which is all a CI job needs. `pip install "maxitor[viewer]"` adds the viewer, the app that draws the graph, the entity diagrams, use cases and lifecycles; `maxitor[all]` adds everything. A command whose part is not installed says which extra to add instead of failing.
+
+The command is now named for what it does: `graph-builder write` and `graph-builder check`, configured by `graph-builder.toml`, set up by an agent with the `graph-builder-setup` skill. It knows nothing about any language either: a service in Python, Node, Java or 1C plugs in with a command, in its own language, that prints its graph; `graph-builder` runs it, checks what it printed against the protocol's schema, keeps the file, and fails CI when the file is stale. In CI it is one step, `uses: bystrovmaxim/aoa/packages/maxitor/tools/graph_builder@maxitor-v3.0.0`, after the steps that prepare your project's environment; it needs no Python in your project, since it brings its own.
+
+If you used the earlier packages, three things change. Install `maxitor` (with `[viewer]` for the app) instead of `aoa-maxitor` or `maxitor-gnomon`. The app's import is `maxitor.viewer` instead of `aoa.maxitor`, and the command's is `maxitor.graph_builder` instead of `maxitor_gnomon`. A repository's config is `graph-builder.toml`, whose first line is `graph_builder = "1.0"`, and its check is `graph-builder check`; the graph files themselves do not change. AOA no longer depends on any Maxitor package: it carries its own copy of the protocol's schema.
+
 ## [2026-10-28] — Each service keeps its graph in a file that every change carries
 
 The graph of a service — the map Maxitor draws of its operations, entities and dependencies — is now kept in the repository, in one file beside the service, and that file changes in the same pull request as the code that changed the graph. Git therefore holds the graph's whole history: what the system looked like at any commit, and which change moved what. In this repository the demo and Maxitor itself do it, in `packages/aoa-demo/graph.json` and `packages/aoa-maxitor/graph.json`.
