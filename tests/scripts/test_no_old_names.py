@@ -11,10 +11,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # The front was ``aoa-maxitor`` in ``packages/aoa-maxitor``, imported as ``aoa.maxitor``, then ``maxitor.viewer`` in
 # ``packages/maxitor/app``, installed as ``maxitor[viewer]`` and run as ``maxitor-api``; the command was
-# ``maxitor-gnomon`` in ``packages/maxitor-gnomon``, imported as ``maxitor_gnomon``.
+# ``maxitor-gnomon`` in ``packages/maxitor-gnomon``, imported as ``maxitor_gnomon``. The setup skill was
+# ``graph-builder-setup`` before it became ``aoa-graph-builder-setup``.
 OLD_NAMES = re.compile(
     r"aoa\.maxitor|aoa/maxitor(?![-\w])|aoa-maxitor|maxitor_gnomon|packages/maxitor-gnomon"
     r"|maxitor\.viewer|maxitor/viewer|maxitor\[viewer\]|packages/maxitor/app|maxitor-api"
+    r"|(?<!aoa-)graph-builder-setup"
 )
 # A link pinned to the released ``maxitor-gnomon`` 0.1.0 points at that snapshot, where the old paths are right.
 RELEASED = "maxitor-gnomon-v0.1.0"

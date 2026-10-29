@@ -98,8 +98,8 @@ def _validate(source: str) -> int:
 
 
 def _skill() -> int:
-    """Print the setup skill for coding agents, to be saved as ``<skills folder>/graph-builder-setup/SKILL.md``."""
-    sys.stdout.write(files("maxitor").joinpath("skills", "graph-builder-setup", "SKILL.md").read_text(encoding="utf-8"))
+    """Print the setup skill for coding agents, to be saved as ``<skills folder>/aoa-graph-builder-setup/SKILL.md``."""
+    sys.stdout.write(files("maxitor").joinpath("skills", "aoa-graph-builder-setup", "SKILL.md").read_text(encoding="utf-8"))
     return 0
 
 
@@ -121,7 +121,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         command.add_argument("--config", default=DEFAULT_CONFIG, help=f"the config (default: {DEFAULT_CONFIG})")
     validate = commands.add_parser("validate", help="say whether one document is a graph")
     validate.add_argument("source", help="a graph file, or - for standard input")
-    commands.add_parser("skill", help="print the graph-builder-setup skill for coding agents")
+    commands.add_parser("skill", help="print the aoa-graph-builder-setup skill for coding agents")
     args = parser.parse_args(argv)
     if args.command == "write":
         return _run(args.config, write)
