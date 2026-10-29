@@ -1,4 +1,4 @@
-# deploy/stand/docker-compose.yml — the demonstrator stand, two containers on one host.
+# deploy/stand/docker-compose.yml — the demonstrator stand, three containers on one host.
 #
 # Both services build from the repository root (uv workspace) and publish their
 # ports on the host's loopback only — the stand is reachable from outside
@@ -25,7 +25,7 @@ services:
   maxitor:
     build:
       context: ../..
-      dockerfile: packages/maxitor/app/Dockerfile
+      dockerfile: packages/maxitor/front/Dockerfile
     environment:
       # Built graphs stay in memory until this many are held; then the one read longest ago leaves.
       # One graph of the reference service costs about 22 MiB of the process after #268, so 50 graphs
@@ -41,3 +41,37 @@ services:
       start_period: 15s
     restart: unless-stopped
     stop_grace_period: 30s
+
+  # The repo-graph-port service (#288): the only container that talks to GitHub and the only
+  # one that holds the GitHub App's private key and webhook secret. Its histories config lives
+  # on the host, outside the repository, in a folder mounted writable — `repo-graph-port history
+  # key new` writes key hashes into it; its git mirrors and version cache live in a volume.
+  repo-graph-port:
+    build:
+      context: ../..
+      dockerfile: packages/maxitor/tools/repo_graph_port/Dockerfile
+    environment:
+      MAXITOR_HISTORIES: /config/histories.toml
+      # Behind the host's front end every request arrives from the proxy; trust its
+      # X-Forwarded-For, so the limit on wrong keys counts real client addresses.
+      FORWARDED_ALLOW_IPS: "*"
+    env_file:
+      # GITHUB_APP_PRIVATE_KEY and GITHUB_WEBHOOK_SECRET — written by the maintainer on the host.
+      - path: /etc/aoa-repo-graph-port/secrets.env
+        required: false
+    volumes:
+      - ${REPO_GRAPH_PORT_CONFIG_DIR:-/etc/aoa-repo-graph-port}:/config
+      - repo-graph-port-cache:/var/cache/repo-graph-port
+    ports:
+      - "127.0.0.1:${REPO_GRAPH_PORT_PORT:-8103}:8102"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8102/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  repo-graph-port-cache:

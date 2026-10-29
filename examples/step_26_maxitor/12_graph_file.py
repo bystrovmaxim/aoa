@@ -2,7 +2,7 @@
 12_graph_file.py — a service keeps its current graph in one file, and every merge carries it
 
 The demo and Maxitor each print their graph, and ``graph-builder write`` saves it in a file beside the
-package — ``packages/aoa-demo/graph.json``, ``packages/maxitor/app/graph.json`` — listed in
+package — ``packages/aoa-demo/graph.json``, ``packages/maxitor/front/graph.json`` — listed in
 ``graph-builder.toml`` at the repository root. The file changes in the same pull request as the code that
 changed the graph, so git holds the graph's whole history; CI runs ``graph-builder check`` and fails when a
 file is stale. The format is the Open Gnomon Protocol; ``graph-builder``, of the ``maxitor`` package,
@@ -24,7 +24,7 @@ Output:
 
     1. The repository's graphs
        demo     uv run --extra dev python -m aoa.demo.build_graph  →  packages/aoa-demo/graph.json
-       maxitor  uv run --extra dev python -m maxitor.viewer.build_graph  →  packages/maxitor/app/graph.json
+       maxitor  uv run --extra dev python -m maxitor.front.build_graph  →  packages/maxitor/front/graph.json
     2. A saved graph against its schema
        packages/aoa-demo/graph.json: 1.1, 3213 nodes, 4841 edges — a graph
     3. Built again

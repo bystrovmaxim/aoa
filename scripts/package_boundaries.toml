@@ -1,5 +1,5 @@
 # Package import boundaries for production code under packages/*/src/aoa/.
-# Keys action_machine | ocel | maxitor | examples are canonical internal names.
+# Keys action_machine | ocel | maxitor | repo_graph_port | examples are canonical internal names.
 # may_import lists which other internal packages a package may import (not including itself).
 
 [packages.action_machine]
@@ -21,9 +21,16 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/maxitor/app/src/maxitor/viewer"]
-future_roots = ["packages/maxitor/app/src/maxitor/viewer"]
-import_prefixes = ["maxitor.viewer"]
+current_roots = ["packages/maxitor/front/src/maxitor/front"]
+future_roots = ["packages/maxitor/front/src/maxitor/front"]
+import_prefixes = ["maxitor.front"]
+may_import = ["action_machine", "graph_builder"]
+
+# The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
+[packages.repo_graph_port]
+current_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
+future_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
+import_prefixes = ["maxitor.repo_graph_port"]
 may_import = ["action_machine", "graph_builder"]
 
 [packages.examples]
@@ -37,8 +44,8 @@ allow = []
 
 # Standalone packages live outside the ``aoa`` namespace and may import nothing from ``aoa``.
 # ``maxitor.graph_builder`` is Maxitor's graph-file command, installed by ``pip install maxitor`` with no extra:
-# it imports nothing from ``aoa`` and nothing of the viewer, whose dependencies come only with ``[viewer]``.
+# it imports nothing from ``aoa`` and nothing of the front, whose dependencies come only with ``[front]``.
 [standalone.graph_builder]
 roots = ["packages/maxitor/tools/graph_builder/src/maxitor/graph_builder"]
 import_prefixes = ["maxitor.graph_builder"]
-forbid = ["maxitor.viewer"]
+forbid = ["maxitor.front", "maxitor.repo_graph_port"]

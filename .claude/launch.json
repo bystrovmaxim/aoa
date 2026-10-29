@@ -12,14 +12,14 @@
       "port": 8899
     },
     {
-      "name": "maxitor-api",
+      "name": "maxitor",
       "runtimeExecutable": "uv",
       "runtimeArgs": [
         "run",
         "--extra",
         "dev",
         "uvicorn",
-        "maxitor.viewer.api.app:app",
+        "maxitor.front.api.app:app",
         "--host",
         "127.0.0.1",
         "--port",
@@ -34,7 +34,7 @@
         "run",
         "dev",
         "--prefix",
-        "packages/maxitor/app/client"
+        "packages/maxitor/front/client"
       ],
       "port": 5173
     }

@@ -127,7 +127,7 @@ Hello, World!
 | [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
 | [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
-| [maxitor](packages/maxitor/README.md) | 3.0.0 | Maxitor, one package with extras: `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[viewer]`) draws the interactive graph, ERD, use cases and lifecycles |
+| [maxitor](packages/maxitor/README.md) | 3.0.0 | Maxitor, one package with extras: `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[front]`) draws the interactive graph, ERD, use cases and lifecycles |
 | [open-gnomon-protocol](packages/open-gnomon-protocol/README.md) | 1.1 | The Open Gnomon Protocol: the graph's JSON Schemas and specification — a folder with no code, for any language |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
 
