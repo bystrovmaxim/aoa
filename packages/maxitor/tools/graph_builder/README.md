@@ -39,7 +39,7 @@ Forgot step 2? Run `graph-builder write`, commit, push: one more commit to the s
 | `graph-builder write` | Rebuild every graph; write each file whose content changed. An unchanged graph leaves its file untouched. |
 | `graph-builder check` | Rebuild every graph; write nothing; fail if a file is stale or missing, or a build fails. |
 | `graph-builder validate <file \| ->` | Say whether a document is a graph of the version it declares: `ok 1.1: 3213 nodes, 4841 edges`. |
-| `graph-builder skill` | Print the `graph-builder-setup` skill for coding agents. |
+| `graph-builder skill` | Print the `aoa-graph-builder-setup` skill for coding agents. |
 
 `write` and `check` take `--config FILE` (default `graph-builder.toml`). Each graph is built in a process of its own, with a 300-second limit. Exit codes: `0` all good · `1` a graph is stale, missing or broken · `2` the config is refused.
 
@@ -121,5 +121,5 @@ A graph of thousands of elements is checked in a fraction of a second.
 
 - **[Get started](../../README.md#get-started)** — connect a project: one sentence to a coding agent, or four steps by hand
 - **[Open Gnomon Protocol](../../../open-gnomon-protocol/README.md)** — the language itself: the document, its vocabulary, versions, identity
-- **[graph-builder-setup](../../skills/graph-builder-setup/SKILL.md)** — the skill an agent follows
+- **[aoa-graph-builder-setup](../../skills/aoa-graph-builder-setup/SKILL.md)** — the skill an agent follows
 - **[Every case, runnable](../../../../examples/step_26_maxitor/12_graph_file.py)** — a saved graph, a rebuild, a stale copy, an unknown version

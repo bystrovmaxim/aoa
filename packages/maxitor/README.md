@@ -17,7 +17,7 @@ Maxitor is one package with parts you choose at install time:
 | **`graph-builder`** | Keeps each service's model graph in one file beside its code, by the [Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/open-gnomon-protocol/README.md), and fails CI when a file is stale — every pull request shows what it did to the model | `pip install maxitor` |
 | **the front** | Maxitor's web part: the full graph, entity diagrams, use cases and lifecycles of an AOA service, live in the browser | `pip install "maxitor[front]"` |
 | **`repo-graph-port`** | A service that reads each graph's history from its repository — every merged pull request that changed the graph file is a version, with its description and tags — and serves any version's graph; the only part that talks to GitHub | `pip install "maxitor[repo-graph-port]"` |
-| **skills** | `graph-builder-setup`, the skill a coding agent follows to connect a project | comes with every install |
+| **skills** | `aoa-graph-builder-setup`, the skill a coding agent follows to connect a project | comes with every install |
 
 `pip install "maxitor[all]"` installs everything. The base install brings only `jsonschema` and `jsonschema-rs` — nothing of AOA, no server — so it is all a CI job needs. A command whose part is not installed says which extra to add.
 
@@ -25,11 +25,11 @@ Maxitor is one package with parts you choose at install time:
 
 ### The fastest way: one sentence to your coding agent
 
-> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/maxitor-v3.0.0/packages/maxitor/skills/graph-builder-setup/SKILL.md
+> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md
 
-The agent installs the `graph-builder-setup` skill and runs it. The skill finds every service, proves how each one's model is exported — writing a small exporter where a service has a model but nothing prints it — and shows you one table: each service, its build, its proof, where its file goes. Nothing changes until you answer. Then it writes `graph-builder.toml`, saves the graphs and adds the CI check, and leaves the result for you to review and commit.
+The agent installs the `aoa-graph-builder-setup` skill and runs it. The skill finds every service, proves how each one's model is exported — writing a small exporter where a service has a model but nothing prints it — and shows you one table: each service, its build, its proof, where its file goes. Under the table it asks everything at once, each with its proposal: where each file goes, how CI checks every graph (a new workflow if the project has none), and which check run writes the graphs (its last step, only when every other step passed). Nothing changes until you answer. Then it writes `graph-builder.toml`, saves the graphs, adds the CI check and the check run's step, and leaves the result for you to review, commit and merge into the main branch — a graph's history starts there.
 
-Already have the package? `graph-builder skill > .claude/skills/graph-builder-setup/SKILL.md` (or `.cursor/skills/…`), then ask the agent to *run graph-builder-setup*. Run it again any time: on a configured project it is an audit.
+Already have the package? `graph-builder skill > .claude/skills/aoa-graph-builder-setup/SKILL.md` (or `.cursor/skills/…`), then ask the agent to *run aoa-graph-builder-setup*. Run it again any time: on a configured project it is an audit.
 
 ### By hand, in four steps
 
@@ -104,7 +104,7 @@ Open `http://127.0.0.1:8000` and point it at an AOA service's graph.
 - **[The `graph-builder` command](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/tools/graph_builder/README.md)** — commands, configuration, how graphs are kept in a repository, the CI check, use from Python
 - **[The front](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/front/README.md)** — the diagrams, the API, running it, its architecture
 - **[`repo-graph-port`](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/tools/repo_graph_port/README.md)** — a graph's history from its repository: versions, keys, public links, webhooks
-- **[graph-builder-setup](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/skills/graph-builder-setup/SKILL.md)** — the skill an agent follows
+- **[aoa-graph-builder-setup](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md)** — the skill an agent follows
 - **[Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/open-gnomon-protocol/README.md)** — the graph's language, which any language can follow
 - [Changelog](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/CHANGELOG.md) · [Source](https://github.com/bystrovmaxim/aoa/tree/maxitor-v3.0.0/packages/maxitor) · [Issues](https://github.com/bystrovmaxim/aoa/issues)
 
