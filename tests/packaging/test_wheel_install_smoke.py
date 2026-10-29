@@ -148,7 +148,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     ).stdout
     assert validated.startswith("ok 1.1: ")
     skill = subprocess.run([graph_builder, "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
-    assert skill.startswith("---\nname: graph-builder-setup\n")
+    assert skill.startswith("---\nname: aoa-graph-builder-setup\n")
 
 
 def test_clean_install_maxitor_front_names_its_extra(tmp_path: Path) -> None:
