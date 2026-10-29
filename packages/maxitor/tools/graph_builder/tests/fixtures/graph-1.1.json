@@ -1,0 +1,647 @@
+{
+  "edges": [
+    {
+      "id": "aoa.action_machine.auth.any_role.AnyRole|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.action_machine.auth.any_role.AnyRole",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|@access_decide|aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:answer_on_object_access_decide",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:answer_on_object_access_decide",
+      "type": "@access_decide"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|@check_roles|aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeOfficerRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeOfficerRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|@summary_aspect|aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:object_rule_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:object_rule_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|domain|aoa.demo.model.access_cascade.access_cascade_domain.AccessCascadeDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.access_cascade_domain.AccessCascadeDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|generic:params|aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction|generic:result|aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "target_id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Result",
+      "type": "generic:result"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity|entity_field|aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity:id",
+      "is_dag": false,
+      "properties": {
+        "field_name": "id",
+        "ordinal": 0
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity",
+      "target_id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity:id",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity|entity_relation|peer_boundary",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "One-sided boundary to a peer row — the absent reverse side is the shape",
+        "field_name": "peer_boundary",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity",
+      "target_id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeLineLeadRole|parent_role|aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeOfficerRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Generalization",
+      "source_id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeLineLeadRole",
+      "target_id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeOfficerRole",
+      "type": "parent_role"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:hydrate|lifecycle_transition|aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:commit|hydrate",
+      "is_dag": false,
+      "properties": {
+        "from_state": "hydrate",
+        "to_state": "commit"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:hydrate",
+      "target_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:commit",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:commit",
+      "is_dag": false,
+      "properties": {
+        "state_key": "commit"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:commit",
+      "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity|lifecycle|aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle",
+      "is_dag": false,
+      "properties": {
+        "field_name": "lifecycle"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity",
+      "target_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle",
+      "type": "lifecycle"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params|field|aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params:invoice_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params",
+      "target_id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params:invoice_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:client_secret_hint|sensitive|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:sensitive:client_secret_hint",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:client_secret_hint",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:sensitive:client_secret_hint",
+      "type": "sensitive"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params|property|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:client_secret_hint",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:client_secret_hint",
+      "type": "property"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect|@result_checker|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect:capture_txn",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect:capture_txn",
+      "type": "@result_checker"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect|@required_context|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect:reqctx:user.user_id",
+      "is_dag": false,
+      "properties": {
+        "key": "user.user_id"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect:reqctx:user.user_id",
+      "type": "@required_context"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@compensate|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_compensate",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_compensate",
+      "type": "@compensate"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@connection|aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
+      "is_dag": true,
+      "properties": {
+        "key": "replica"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "target_id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
+      "type": "@connection"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "is_dag": true,
+      "properties": {
+        "description": "Ledger append"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "target_id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "type": "@depends"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@on_error|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:unexpected_error_on_error",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:unexpected_error_on_error",
+      "type": "@on_error"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@regular_aspect|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect",
+      "type": "@regular_aspect"
+    },
+    {
+      "id": "aoa.demo.model.catalog_custody.actions.custody_workbench_merge_action.CustodyWorkbenchMergeAction|parent_action|aoa.demo.model.catalog_custody.actions.register_snapshot_peek_action.RegisterSnapshotPeekAction",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Generalization",
+      "source_id": "aoa.demo.model.catalog_custody.actions.custody_workbench_merge_action.CustodyWorkbenchMergeAction",
+      "target_id": "aoa.demo.model.catalog_custody.actions.register_snapshot_peek_action.RegisterSnapshotPeekAction",
+      "type": "parent_action"
+    },
+    {
+      "id": "aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction.Result:order|entity_schema|aoa.demo.model.entity_projection_demo.entities.projection_demo_core.ProjectionDemoOrderCoreEntity",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction.Result:order",
+      "target_id": "aoa.demo.model.entity_projection_demo.entities.projection_demo_core.ProjectionDemoOrderCoreEntity",
+      "type": "entity_schema"
+    },
+    {
+      "id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity|entity_specialization|aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity",
+      "is_dag": false,
+      "properties": {
+        "alternative_index": 0,
+        "alternatives": [
+          "variant_a -> aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity",
+          "variant_b -> aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantBSpecEntity"
+        ],
+        "cardinality": "one",
+        "classifier_value": "variant_a",
+        "deprecated": false,
+        "description": "Shape: the specialization axis — one of the declared variants",
+        "dictionary_label": "GeneralizationShapesKindEnumEntity",
+        "dictionary_qualname": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationShapesKindEnumEntity",
+        "field_name": "details",
+        "has_inverse": true,
+        "labels": [
+          "GeneralizationVariantASpec (variant_a)",
+          "GeneralizationVariantBSpec (variant_b)"
+        ],
+        "relation_type": "specialization"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity",
+      "target_id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity",
+      "type": "entity_specialization"
+    },
+    {
+      "id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity|parent_entity|aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity",
+      "is_dag": false,
+      "properties": {
+        "classifier_value": "variant_a",
+        "field_name": "head",
+        "head_entity_id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity",
+        "inverse_field": "details"
+      },
+      "relationship": "Generalization",
+      "source_id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity",
+      "target_id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity",
+      "type": "parent_entity"
+    },
+    {
+      "id": "aoa.demo.model.store.store_domain.StoreDomain|parent_domain|aoa.demo.model.store.marketplace_operations_domain.MarketplaceOperationsDomain",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Generalization",
+      "source_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "target_id": "aoa.demo.model.store.marketplace_operations_domain.MarketplaceOperationsDomain",
+      "type": "parent_domain"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "aoa.action_machine.auth.any_role.AnyRole",
+      "label": "AnyRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "aoa.action_machine.application.application.Application",
+      "label": "Application",
+      "properties": {
+        "description": "Logical application root for interchange graphs.",
+        "name": "application"
+      },
+      "type": "Application"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction",
+      "label": "AccessDecideShapeAction",
+      "properties": {
+        "description": "Shape: a declared object rule answered on a real object"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:answer_on_object_access_decide",
+      "label": "answer_on_object_access_decide",
+      "properties": {
+        "description": "Answer the declared object rule for the drawing fixture"
+      },
+      "type": "AccessDecide"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeOfficerRole",
+      "label": "CascadeOfficerRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction:object_rule_summary",
+      "label": "object_rule_summary",
+      "properties": {
+        "description": "Return the empty result"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.access_cascade_domain.AccessCascadeDomain",
+      "label": "AccessCascadeDomain",
+      "properties": {
+        "description": "Drawing fixtures for access-cascade shapes: cascade steps, role chains, matching paths and boundaries",
+        "name": "access_cascade"
+      },
+      "type": "Domain"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.actions.access_decide_shape_action.AccessDecideShapeAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity",
+      "label": "CascadeBoundaryAssocEntity",
+      "properties": {
+        "description": "Shape: a one-sided relation boundary — the absent reverse side is the drawing",
+        "entity_kind": "assoc",
+        "entity_kind_label": "Association"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.entities.cascade_boundary_entity.CascadeBoundaryAssocEntity:id",
+      "label": "id",
+      "properties": {
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": true
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeLineLeadRole",
+      "label": "CascadeLineLeadRole",
+      "properties": {
+        "role_mode": "alive"
+      },
+      "type": "Role"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:hydrate",
+      "label": "Hydrate",
+      "properties": {
+        "attributes": {
+          "code": "hydrate",
+          "display_name": "Hydrate",
+          "sort_order": 2
+        },
+        "lifecycle_class_id": "aoa.demo.model.analytics.entities.an_dense_lifecycle.AnalyticsPipelineLifecycle",
+        "state_key": "hydrate"
+      },
+      "type": "StateIntermediate"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle:commit",
+      "label": "Committed",
+      "properties": {
+        "attributes": {
+          "code": "commit",
+          "display_name": "Committed",
+          "sort_order": 3
+        },
+        "lifecycle_class_id": "aoa.demo.model.analytics.entities.an_dense_lifecycle.AnalyticsPipelineLifecycle",
+        "state_key": "commit"
+      },
+      "type": "StateFinal"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity:lifecycle:lifecycle",
+      "label": "lifecycle",
+      "properties": {
+        "field_name": "lifecycle"
+      },
+      "type": "Lifecycle"
+    },
+    {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity",
+      "label": "AnalyticsAggregateSketchStubCoreEntity",
+      "properties": {
+        "description": "Sketch aggregate stub following sampling policy (two-node branch)",
+        "entity_kind": "core",
+        "entity_kind_label": "Core"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params:invoice_id",
+      "label": "invoice_id",
+      "properties": {
+        "description": "Source invoice id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:client_secret_hint",
+      "label": "client_secret_hint",
+      "properties": {
+        "entity_schema": false,
+        "required": false
+      },
+      "type": "PropertyField"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params:sensitive:client_secret_hint",
+      "label": "client_secret_hint",
+      "properties": {
+        "sensitive_char": "*",
+        "sensitive_enabled": true,
+        "sensitive_max_chars": 4,
+        "sensitive_max_percent": 40
+      },
+      "type": "Sensitive"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect",
+      "label": "capture_aspect",
+      "properties": {
+        "description": "Capture funds"
+      },
+      "type": "RegularAspect"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_aspect:capture_txn",
+      "label": "capture_txn",
+      "properties": {
+        "TypeChecker": "String",
+        "max_length": null,
+        "min_length": null,
+        "not_empty": true,
+        "opaque": false,
+        "required": true
+      },
+      "type": "Checker"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect",
+      "label": "validate_invoice_aspect",
+      "properties": {
+        "description": "Validate invoice"
+      },
+      "type": "RegularAspect"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:validate_invoice_aspect:reqctx:user.user_id",
+      "label": "user.user_id",
+      "properties": {
+        "key": "user.user_id"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
+      "label": "InvoiceSettleAction",
+      "properties": {
+        "description": "Settle invoice with full interchange graph (billing demo)"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:capture_compensate",
+      "label": "capture_compensate",
+      "properties": {
+        "description": "Void capture on failure",
+        "target_aspect_name": "capture_aspect"
+      },
+      "type": "Compensator"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
+      "label": "BillingReadReplica",
+      "properties": {
+        "description": "Billing read replica (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "label": "LedgerArchiveServiceResource",
+      "properties": {
+        "description": "Ledger archive client for aspects/connections (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction:unexpected_error_on_error",
+      "label": "unexpected_error_on_error",
+      "properties": {
+        "description": "Billing fallback"
+      },
+      "type": "ErrorHandler"
+    },
+    {
+      "id": "aoa.demo.model.catalog_custody.actions.custody_workbench_merge_action.CustodyWorkbenchMergeAction",
+      "label": "CustodyWorkbenchMergeAction",
+      "properties": {
+        "description": "Custody reconciliation workbench merges peek spine with attest include + postings extend"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.catalog_custody.actions.register_snapshot_peek_action.RegisterSnapshotPeekAction",
+      "label": "RegisterSnapshotPeekAction",
+      "properties": {
+        "description": "Snapshot peek over regulated SKU custody register (immutable read model slice)"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction.Result:order",
+      "label": "order",
+      "properties": {
+        "description": "Partial order wire (id, status, total) without nested customer",
+        "entity_schema": true,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.entity_projection_demo.entities.projection_demo_core.ProjectionDemoOrderCoreEntity",
+      "label": "ProjectionDemoOrderCoreEntity",
+      "properties": {
+        "description": "Demo storefront order",
+        "entity_kind": "core",
+        "entity_kind_label": "Core"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationHeadCoreEntity",
+      "label": "GeneralizationHeadCoreEntity",
+      "properties": {
+        "description": "Shape: the specialization head — its axis and the two extensions draw the ERD generalization",
+        "entity_kind": "core",
+        "entity_kind_label": "Core"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.generalization_shapes.entities.generalization_entities.GeneralizationVariantASpecEntity",
+      "label": "GeneralizationVariantASpecEntity",
+      "properties": {
+        "description": "Shape: an extension entity — the ERD draws a parent_entity arrow into the head",
+        "entity_kind": "spec",
+        "entity_kind_label": "Specialization"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "label": "StoreDomain",
+      "properties": {
+        "description": "Sample storefront: checkout, entities, plugins, and persistence stubs",
+        "name": "store"
+      },
+      "type": "Domain"
+    },
+    {
+      "id": "aoa.demo.model.store.marketplace_operations_domain.MarketplaceOperationsDomain",
+      "label": "MarketplaceOperationsDomain",
+      "properties": {
+        "description": "Umbrella for multi-channel retail operations that concrete storefront slices specialize",
+        "name": "marketplace_operations"
+      },
+      "type": "Domain"
+    }
+  ],
+  "schema_version": "1.1"
+}

@@ -1,6 +1,6 @@
 <!-- translated-from: README_draft.md @ 2026-06-20T17:51:23Z (filesystem mtime; draft is gitignored, no git history) · sha256:49dcb5f93e83 -->
 <p align="center">
-  <img src="../../docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
+  <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <img src="https://img.shields.io/badge/pip-aoa--action--machine-blue?logo=pypi&logoColor=white" alt="aoa-action-machine">

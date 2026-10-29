@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://aoa.local/schemas/node-graph-export.schema.json",
-  "title": "AOA node graph JSON export",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.1.json",
+  "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "const": "1.1"
     },
     "nodes": {
       "type": "array",
@@ -828,6 +828,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "id",
         "source_id",
         "target_id",
         "type",
@@ -836,6 +837,10 @@
         "properties"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
         "source_id": {
           "type": "string",
           "minLength": 1

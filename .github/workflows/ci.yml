@@ -2,8 +2,11 @@ name: CI
 
 on:
   pull_request:
+    # main, and the feature branches that sub-issues merge into before main
+    # (e.g. feature/issue-273-graph-history), so every step is checked on its way.
     branches:
       - main
+      - "feature/**"
 
 jobs:
   checks:
@@ -19,13 +22,28 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/aoa-maxitor/client/package-lock.json
+          cache-dependency-path: packages/maxitor/app/client/package-lock.json
 
       - name: Maxitor client — build
-        working-directory: packages/aoa-maxitor/client
+        working-directory: packages/maxitor/app/client
         run: |
           npm ci
           npm run build
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      # The graph files (graph-builder.toml) must be what the code builds: CI only checks, the
+      # developer runs `graph-builder write` and commits the files with the change. The builds run
+      # in the project's environment, prepared first; the check is maxitor's own action, the one
+      # other projects use, here running this checkout's graph-builder.
+      - name: Project environment for the graph builds
+        run: uv sync --all-extras
+
+      - name: Graph files are current (graph-builder check)
+        uses: ./packages/maxitor/tools/graph_builder
+        with:
+          graph-builder: uv run --extra dev graph-builder
 
       - name: Check for uncommitted changes
         run: |
@@ -42,8 +60,9 @@ jobs:
           git log -1 --oneline
 
       - name: Check branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
         run: |
-          BRANCH="${{ github.head_ref }}"
           echo "🌿 Branch: $BRANCH"
           if [[ "$BRANCH" == "main" ]]; then
             echo "❌ Cannot PR directly from main"

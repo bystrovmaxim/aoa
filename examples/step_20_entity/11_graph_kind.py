@@ -13,7 +13,7 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.maxitor.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 
 class ShopDomain(BaseDomain):

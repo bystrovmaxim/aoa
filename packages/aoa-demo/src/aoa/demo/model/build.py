@@ -1,7 +1,7 @@
 # packages/aoa-demo/src/aoa/demo/model/build.py
 """Sample module list for import-time registration side effects.
 
-Mirror of :data:`aoa.maxitor.interchange_demo_coordinator.SAMPLE_MODEL_REGISTRATION_MODULE_NAMES`
+Mirror of :data:`maxitor.viewer.interchange_demo_coordinator.SAMPLE_MODEL_REGISTRATION_MODULE_NAMES`
 (keep both in sync).
 """
 

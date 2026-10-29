@@ -12,7 +12,7 @@ This chapter starts with one small order lifecycle. Every linked script is compl
 uv run python examples/step_22_lifecycle/01_lifecycle.py
 ```
 
-The Maxitor example additionally needs the workspace's `aoa-maxitor` package and DuckDB. It starts no HTTP server and uses no external database.
+The Maxitor example additionally needs the workspace's `maxitor` package and DuckDB. It starts no HTTP server and uses no external database.
 
 
 An order and a state of that order play different roles. The order is a `BaseCoreEntity`; its state description is a `BaseStateEntity`. The state class keeps the `StateEntity` suffix, does not need `@entity`, and is excluded from ordinary Entity nodes. A lifecycle still represents its statuses as State nodes. Choosing a kind does not change the transition API described below. See [the six entity kinds](step-20-entity.md#understand-the-six-kinds).

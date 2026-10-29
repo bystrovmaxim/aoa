@@ -1,6 +1,6 @@
 <!-- translated-from: README_draft.md @ 2026-06-18T22:35:50Z (filesystem mtime; draft is gitignored, no git history) · sha256:cf6abfcdb8a4 -->
 <p align="center">
-  <img src="docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
+  <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="660"><br><br>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -58,13 +58,13 @@ AOA covers three architectural layers. Each level has its own specialized elemen
 - **Business layer** — describes the system's operations. Its core element is `Action`: a self-contained unit of meaning with a clear interface (`Params` as input, `Result` as output), declarative ports `@depends` / `@connection` / `@context_requires`, and a direct pipeline of aspects. Inside the pipeline live `RegularAspect`, a shared `State` contract, `SummaryAspect` for assembling the result, and `Compensate` handlers for rollbacks on failure. At every step boundary the machine generates events for `@plugin`.
 - **Data and domain model layer** — responsible for access to sources and description of the problem domain. Its elements are `Resource` and `Entity`: `Resource` abstracts an external source (PostgreSQL, MongoDB, ClickHouse, API, a test fixture), while `Entity` describes domain objects, their relationships, and lifecycle without coupling to tables or ORM mappings. Where an ORM model is a mirror of the DB schema, `Entity` is a domain object: the same `OrderCoreEntity` can be assembled from different sources, and the business code never notices.
 
-Each of these layers is covered in detail below. Code examples are in [aoa-action-machine](packages/aoa-action-machine/README.md) and [examples/](examples/), system visualization is in [aoa-maxitor](packages/aoa-maxitor/README.md).
+Each of these layers is covered in detail below. Code examples are in [aoa-action-machine](packages/aoa-action-machine/README.md) and [examples/](examples/), system visualization is in [maxitor](packages/maxitor/README.md).
 
 Since intentions are expressed in a machine-readable form, the system can show itself in full. **Maxitor** builds an interactive graph of all `Action` operations, their dependencies, resources, and entities directly from code — without a single line of manual documentation:
 
 ![Maxitor: full system graph built from code](docs/assets/maxitor-full-graph.png)
 
-→ [Maxitor: interactive graph, ERD, use cases and state machine diagrams](packages/aoa-maxitor/README.md)
+→ [Maxitor: interactive graph, ERD, use cases and state machine diagrams](packages/maxitor/README.md)
 
 ---
 
@@ -127,7 +127,8 @@ Hello, World!
 | [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
 | [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
-| [aoa-maxitor](packages/aoa-maxitor/README.md) | 2.3.0 | Visualizer: interactive graph, ERD, use cases, lifecycle from code |
+| [maxitor](packages/maxitor/README.md) | 3.0.0 | Maxitor, one package with extras: `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[viewer]`) draws the interactive graph, ERD, use cases and lifecycles |
+| [open-gnomon-protocol](packages/open-gnomon-protocol/README.md) | 1.1 | The Open Gnomon Protocol: the graph's JSON Schemas and specification — a folder with no code, for any language |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
 
 ---

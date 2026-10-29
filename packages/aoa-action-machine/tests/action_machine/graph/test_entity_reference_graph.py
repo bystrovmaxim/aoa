@@ -32,6 +32,7 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.edge_identity import edge_id
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
@@ -291,9 +292,9 @@ def test_a_graph_document_with_an_ordinary_association_edge_validates() -> None:
     node = EntityGraphNode(ReferenceHostCoreEntity)
     dictionary = EntityGraphNode(CurrencyEnumEntity)
     document = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "nodes": [node.to_dict(), dictionary.to_dict()],
-        "edges": [edge.to_dict(source_id=node.node_id) for edge in node.relations],
+        "edges": [{**row, "id": edge_id(row)} for row in (edge.to_dict(source_id=node.node_id) for edge in node.relations)],
     }
 
     jsonschema.validate(document, GRAPH_JSON_SCHEMA)

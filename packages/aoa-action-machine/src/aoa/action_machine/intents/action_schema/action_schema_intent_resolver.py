@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import inspect
 import sys
 import typing
 from typing import Any, ForwardRef, Literal, get_args, get_origin
@@ -10,6 +11,9 @@ from typing import Any, ForwardRef, Literal, get_args, get_origin
 from aoa.action_machine.exceptions.action_result_declaration_error import ActionResultDeclarationError
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+
+# ``ForwardRef._evaluate`` gained ``type_params`` in Python 3.12.4; 3.12.0–3.12.3 refuse it.
+_EVALUATE_TAKES_TYPE_PARAMS = "type_params" in inspect.signature(ForwardRef._evaluate).parameters
 
 
 class ActionSchemaIntentResolver:
@@ -100,13 +104,15 @@ class ActionSchemaIntentResolver:
                     locals=localns,
                     type_params=(),
                 )
-            else:
+            elif _EVALUATE_TAKES_TYPE_PARAMS:
                 resolved = ref._evaluate(
                     globalns,
                     localns,
-                    None,
+                    type_params=(),
                     recursive_guard=frozenset(),
                 )
+            else:
+                resolved = ref._evaluate(globalns, localns, recursive_guard=frozenset())
         except Exception:
             return None
         return resolved if isinstance(resolved, type) else None

@@ -13,6 +13,9 @@ rich ``properties`` from :class:`~aoa.action_machine.intents.entity.entity_relat
 
 Skips rows where ``omit_graph_edge`` is set (parity with legacy interchange emission).
 
+Its id names the field instead of the target (``ID_RULE``): a relation that points at another
+entity is the same relation.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -22,11 +25,12 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.graph.core.association_graph_edge import AssociationGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.core.edge_id_rule import EdgeIdRule
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import EntityRelationIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -58,6 +62,9 @@ class EntityGraphEdge(AssociationGraphEdge):
     AI-CORE-END
     """
 
+    EDGE_TYPE: ClassVar[str] = "entity_relation"
+    ID_RULE: ClassVar[EdgeIdRule] = EdgeIdRule(member="field_name")
+
     def __init__(
         self,
         *,
@@ -66,7 +73,7 @@ class EntityGraphEdge(AssociationGraphEdge):
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
         super().__init__(
-            edge_name="entity_relation",
+            edge_name=self.EDGE_TYPE,
             is_dag=False,
             target_node_id=target_node_id,
             target_node=target_node,
