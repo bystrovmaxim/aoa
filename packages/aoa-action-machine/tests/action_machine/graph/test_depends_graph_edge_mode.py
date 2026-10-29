@@ -49,7 +49,7 @@ def _minimal_graph_doc(*, mode: str | None) -> dict:
     if mode is not None:
         props["mode"] = mode
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "nodes": [
             {"id": "a", "type": "Action", "label": "A", "properties": {"description": "host"}},
             {"id": "b", "type": "Resource", "label": "B", "properties": {"description": "tgt"}},
@@ -62,6 +62,7 @@ def _minimal_graph_doc(*, mode: str | None) -> dict:
                 "relationship": "Association",
                 "is_dag": True,
                 "properties": props,
+                "id": "a|@depends|b",
             },
         ],
     }

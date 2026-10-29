@@ -1,0 +1,37 @@
+# packages/maxitor/tools/graph_builder/action.yml — the graph check as one CI step: `uses: bystrovmaxim/aoa/packages/maxitor/tools/graph_builder@<ref>`.
+# Language-neutral: the project prepares its own environment in the steps before this one (setup-java,
+# setup-node, uv sync, …); this step only runs `graph-builder check`, whose builds run in that environment.
+name: Model graph files are current (graph-builder)
+description: Rebuild every graph listed in graph-builder.toml and fail when a saved graph file is stale, missing or broken.
+author: Bystrov Maxim
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  config:
+    description: The config that lists the repository's graphs.
+    required: false
+    default: graph-builder.toml
+  graph-builder:
+    description: How to run the command; empty runs the maxitor release this action belongs to.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v5
+
+    - name: Check the graph files
+      shell: bash
+      env:
+        GRAPH_BUILDER: ${{ inputs.graph-builder }}
+        CONFIG: ${{ inputs.config }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        if [ -z "$GRAPH_BUILDER" ]; then
+          version=$(python3 -c "import sys, tomllib; print(tomllib.load(open(sys.argv[1], 'rb'))['project']['version'])" "$ACTION_PATH/../../pyproject.toml")
+          GRAPH_BUILDER="uvx --from maxitor==$version graph-builder"
+        fi
+        $GRAPH_BUILDER check --config "$CONFIG"

@@ -4,15 +4,18 @@ StateGraphEdge — COMPOSITION modelling one directed template transition ``from
 
 Standalone edge type using opaque source/target interchange ids (typically matching :class:`~aoa.action_machine.graph.nodes.state_graph_node.StateGraphNode` rows). Coordinators hydrate ``target_node`` later.
 
+Its id appends the state it leaves (``ID_RULE``): two transitions into one state from two states differ.
+
 Not registered in package lazy exports in this revision.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
+from aoa.action_machine.graph.core.edge_id_rule import EdgeIdRule
 
 if TYPE_CHECKING:
     from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
@@ -27,6 +30,9 @@ class StateGraphEdge(CompositionGraphEdge):
     AI-CORE-END
     """
 
+    EDGE_TYPE: ClassVar[str] = "lifecycle_transition"
+    ID_RULE: ClassVar[EdgeIdRule] = EdgeIdRule(suffix="from_state")
+
     def __init__(
         self,
         *,
@@ -36,7 +42,7 @@ class StateGraphEdge(CompositionGraphEdge):
         target_node: BaseGraphNode[Any] | None = None,
     ) -> None:
         super().__init__(
-            edge_name="lifecycle_transition",
+            edge_name=self.EDGE_TYPE,
             is_dag=False,
             target_node_id=target_node_id,
             target_node=target_node,

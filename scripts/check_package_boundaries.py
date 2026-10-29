@@ -4,6 +4,7 @@
 Enforce import boundaries for production packages.
 
 Production: ``packages/*/src/aoa/`` trees and ``[packages.*]`` in ``scripts/package_boundaries.toml``.
+Standalone: the roots of ``[standalone.*]`` import nothing from ``aoa``, nor any module their ``forbid`` lists.
 """
 
 from __future__ import annotations
@@ -82,15 +83,19 @@ def _owner_for_file(rel_posix: str, roots: dict[str, list[str]]) -> str | None:
     return best
 
 
-def _target_from_module(module: str) -> str | None:
-    parts = module.split(".")
-    if not parts:
-        return None
-    if parts[0] == "aoa" and len(parts) >= 2 and parts[1] in CANONICAL:
-        return parts[1]
-    if parts[0] in CANONICAL:
-        return parts[0]
-    return None
+def _import_prefixes(cfg: dict) -> dict[str, str]:
+    """Every ``import_prefixes`` entry of the canonical and standalone packages, mapped to its package."""
+    packages = _packages_table(cfg)
+    prefixes = {str(prefix): name for name in CANONICAL for prefix in packages[name].get("import_prefixes") or []}
+    for name, table in (cfg.get("standalone") or {}).items():
+        prefixes.update({str(prefix): name for prefix in table.get("import_prefixes") or []})
+    return prefixes
+
+
+def _target_from_module(module: str, prefixes: dict[str, str]) -> str | None:
+    """The package an import belongs to: the one whose prefix is the longest match, so ``maxitor.viewer`` never swallows a sibling."""
+    matches = [prefix for prefix in prefixes if module == prefix or module.startswith(prefix + ".")]
+    return prefixes[max(matches, key=len)] if matches else None
 
 
 def _load_allows(cfg: dict) -> list[tuple[str, frozenset[str]]]:
@@ -121,7 +126,7 @@ def _allowed_by_allowlist(
     return False
 
 
-def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list[Violation]:
+def _iter_import_violations(path: Path, owner: str, may: frozenset[str], prefixes: dict[str, str]) -> list[Violation]:
     text = path.read_text(encoding="utf-8")
     try:
         tree = ast.parse(text, filename=str(path))
@@ -134,7 +139,7 @@ def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list
         if isinstance(node, ast.Import):
             for alias in node.names:
                 mod = alias.name
-                tgt = _target_from_module(mod)
+                tgt = _target_from_module(mod, prefixes)
                 if tgt is None or tgt == owner:
                     continue
                 if tgt in may:
@@ -144,7 +149,7 @@ def _iter_import_violations(path: Path, owner: str, may: frozenset[str]) -> list
             if node.module is None:
                 continue
             mod = node.module
-            tgt = _target_from_module(mod)
+            tgt = _target_from_module(mod, prefixes)
             if tgt is None or tgt == owner:
                 continue
             if tgt in may:
@@ -179,6 +184,7 @@ def _collect_py_files(roots: dict[str, list[str]]) -> list[Path]:
 def check_production(cfg: dict) -> list[Violation]:
     roots = _package_roots(cfg)
     may_by_pkg = {p: _may_import(cfg, p) for p in CANONICAL}
+    prefixes = _import_prefixes(cfg)
     allows = _load_allows(cfg)
     violations: list[Violation] = []
     for path in _collect_py_files(roots):
@@ -186,10 +192,44 @@ def check_production(cfg: dict) -> list[Violation]:
         owner = _owner_for_file(rel, roots)
         if owner is None:
             continue
-        for v in _iter_import_violations(path, owner, may_by_pkg[owner]):
+        for v in _iter_import_violations(path, owner, may_by_pkg[owner], prefixes):
             if _allowed_by_allowlist(rel, v.target, allows):
                 continue
             violations.append(v)
+    return violations
+
+
+def _imported_modules(path: Path) -> list[tuple[int, str]]:
+    """Every absolute module a file imports, with the line it is imported on."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except SyntaxError as exc:
+        raise SystemExit(f"{path}: syntax error: {exc}") from exc
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.extend((node.lineno, alias.name) for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None and node.level == 0:
+            found.append((node.lineno, node.module))
+    return found
+
+
+def check_standalone(cfg: dict) -> list[Violation]:
+    """Imports of ``aoa``, or of a module listed in ``forbid``, from a package that must stand without them."""
+    standalone = cfg.get("standalone", {})
+    if not isinstance(standalone, dict):
+        raise SystemExit("'standalone' must be a table of tables")
+    violations: list[Violation] = []
+    for owner, table in standalone.items():
+        roots = [str(r).rstrip("/") for r in table.get("roots") or []]
+        if not roots:
+            raise SystemExit(f"[standalone.{owner}].roots must be non-empty")
+        banned = ["aoa", *(str(prefix) for prefix in table.get("forbid") or [])]
+        for path in _collect_py_files_from_roots(roots):
+            for lineno, module in _imported_modules(path):
+                hit = next((ban for ban in banned if module == ban or module.startswith(ban + ".")), None)
+                if hit is not None:
+                    violations.append(Violation(path, lineno, owner, hit, module))
     return violations
 
 
@@ -197,7 +237,7 @@ def main() -> int:
     argparse.ArgumentParser(description=__doc__).parse_args()
     cfg = _load_config()
 
-    violations = check_production(cfg)
+    violations = check_production(cfg) + check_standalone(cfg)
 
     if violations:
         for v in sorted(violations, key=lambda x: (str(x.path), x.lineno)):
