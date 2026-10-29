@@ -27,9 +27,52 @@ Maxitor is one package with parts you choose at install time:
 
 > Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md
 
-The agent installs the `aoa-graph-builder-setup` skill and runs it. The skill finds every service, proves how each one's model is exported — writing a small exporter where a service has a model but nothing prints it — and tells you what it found. Then it talks the choices through with you, one question at a time, each with options and its recommendation: where each graph file goes, how CI checks every graph (a new workflow if the project has none), and which check run writes the graphs (its last step, only when every other step passed). With every answer in, it shows one table — each graph as it is and as it will be — and goes on only when you say so. Then it writes `graph-builder.toml`, saves the graphs, adds the CI check and the check run's step, and leaves the result for you to review, commit and merge into the main branch — a graph's history starts there.
+The agent follows a four-stage wizard in your language: discover the project, settle each service's choices, choose updating and checking, then review the proposed changes. Each question explains one decision, a recommendation and the consequences of the alternatives. You can ask for an example, go back, change an answer or pause. Nothing is applied to the target project until the proposed changes are reviewed and authorized. Asking to review or edit the skill itself does not start setup.
+
+The wizard proves exports in a temporary folder, then applies the accepted exporters, graph files and integrations. A deferred integration remains explicitly manual. It leaves the result for you to review and commit; serving graph history from the main branch requires those files to reach that branch.
 
 Already have the package? `graph-builder skill > .claude/skills/aoa-graph-builder-setup/SKILL.md` (or `.cursor/skills/…`), then ask the agent to *run aoa-graph-builder-setup*. Run it again any time: on a configured project it is an audit.
+
+### What the wizard asks you to decide
+
+It finishes one service before moving to the next. First decide whether to connect a newly discovered service (including its exporter if needed), then where to save its map if that is not already established. After the services, choose how to refresh their maps and how to detect a forgotten refresh. Existing working arrangements are retained, not turned into repeat questions. Technical commands and proof accompany the final review rather than crowding each question.
+
+An illustrative question, with fictional project paths:
+
+> **2/4 · Services · game-back — save a map of this service?**
+>
+> `game-back` contains the game's model, but no command saves its map. A small exporter has been proven in a temporary folder. Connecting it lets you review model changes alongside code changes.
+>
+> 1. **Connect it (recommended):** add `packages/game-back/game_back/build_graph.py`, the program that produces the map. You will review the saved map when the model changes; its location comes next.
+> 2. **Leave it out for now:** add nothing for this service; this setup will not track its model changes.
+
+If you answer “leave it out”, the wizard acknowledges that consequence and skips that service's file-location question. If you answer “I do not understand”, it explains a concrete case: “Adding an entity changes the model. The saved map lets the same code review show that new entity. Leaving this service out means this setup will not save that map.” It then returns to the same decision, without treating the explanation request as acceptance. This is an illustrative dialogue, not a recorded agent run.
+
+| Case | What the wizard does |
+|---|---|
+| New service with an export command | Proves the command; settles inclusion and any unresolved file location |
+| Model with no export command | Proves a small exporter; explains its addition as part of connecting this service |
+| No graph producer | Explains the prerequisite and leaves the service out; never invents a graph |
+| Current configured graph | Preserves its destination and working integrations |
+| Missing saved graph | Writes it when applying the accepted setup; no redundant missing-file question |
+| Stale saved graph | Explains that it describes the old model; offers proven refresh or explicit exclusion from checks |
+| Broken build or refused graph format | Shows the cause and a proven correction, or a blocker; exclusion leaves the old file untouched |
+| Invalid configuration | Treats it as a configuration problem and prepares a repair before dependent decisions |
+| No local check run | Explains an explicit update command/target versus manual refresh; does not invent a full test pipeline |
+| Update only after a dependency update | Explains that service-code changes still require a refresh; asks about the extra integration separately |
+| Missing CI | Offers a check for the actual hosting provider or deferral; deferral leaves checks manual |
+| No included services | Creates no empty config and asks no irrelevant integration questions |
+| Fully healthy audit | Reports evidence and finishes without asking permission to change nothing |
+| “Details” or “show my choices” | Shows the requested information while retaining the current unanswered decision |
+| “Back” or a changed answer | Revisits that decision and removes invalid dependent choices; retains unrelated answers |
+| Ambiguous answer, silence or “I do not understand” | Keeps the choice pending; clarifies or explains |
+| “Do what is best” | Accepts the current recommendation, unless broader delegation is explicitly stated |
+| Pause or stop before applying | Pause keeps a resumable summary; stop discards temporary drafts; neither changes project files |
+| Apply fails or scope changes | Reports partial changes and exact failure, or returns to the changed decision; does not claim success or erase user work |
+
+Updating and checking are different: `graph-builder write` refreshes files; `graph-builder check` detects stale files without rewriting them. A failing CI check blocks merging only when repository rules require it. The wizard does not change those rules. A local update step runs only after the other checks pass.
+
+Before applying, you see the before/after table, affected files, prepared changes, commands, proof and any manual work left. You can apply, revise a choice or stop. The skill remains a single file, so `graph-builder skill` delivers the whole wizard. A live conversation is still needed to judge how clearly a particular agent follows these instructions; package tests alone do not establish that.
 
 ### By hand, in four steps
 
