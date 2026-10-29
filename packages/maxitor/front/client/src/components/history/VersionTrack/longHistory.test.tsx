@@ -50,8 +50,8 @@ describe.each([
 
   it("counts the newer versions out of view, and Live when it is out of view too", () => {
     render(<VersionTrack versions={versions(count)} live={live} value={id(0)} onChange={() => undefined} width={WIDTH} />);
-    const hidden = xs().slice(0, count).filter((x) => x > WIDTH).length;
-    expect(screen.getByTestId("newer").textContent).toBe(`+${hidden} newer${live ? " and Live" : ""}`);
+    const hidden = xs().filter((x) => x > WIDTH).length;
+    expect(screen.getByTestId("newer").textContent).toBe(`${hidden} newer ›`);
   });
 
   it("scrolls by the wheel, sideways and vertical, and pins a handle scrolled out of view to its edge", () => {

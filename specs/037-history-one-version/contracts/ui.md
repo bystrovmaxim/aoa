@@ -41,9 +41,9 @@ Over the diagram, anchored under the button; starts closed; closed by a click ou
 - Time axis: oldest left; Live after a dashed gap at the right end.
 - A point per version; releases named by their tag, larger; merges small dots; flags above for other tags.
 - Points `max(24 px, width / count)` apart; phone touch targets ≥ 44 px.
-- Scroll: horizontal wheel or swipe, vertical wheel over the track, drag on empty track; no scrollbar; edges fade where more is hidden; the right edge says "+N newer" when N versions are hidden there, "+N newer and Live" when Live is hidden too.
+- Scroll: horizontal wheel or swipe, vertical wheel over the track, drag on empty track; no scrollbar; edges fade where more is hidden; the right edge says "N newer ›", N counting every point hidden there, Live included (as the mockup shows it).
 - The handle: drag, click a point, ← → Home End. Scrolled out of view, it is pinned to its edge; a click scrolls back to it.
-- Labels thin out: the chosen version, the oldest and newest, and Live never thin out; then releases newest first, each kept only when it does not overlap one kept before.
+- Labels: the oldest point, releases and Live, none under the chosen chip; the merges between are dots only; the oldest and Live never thin out; then releases newest first, each kept only when it does not overlap one kept before.
 - Opens with the chosen version in view.
 
 ## The message

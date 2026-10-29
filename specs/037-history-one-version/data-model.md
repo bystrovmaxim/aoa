@@ -54,7 +54,7 @@ Derived from the port's `Version`:
 
 | Field | Rule |
 |---|---|
-| `name` | R10: release tag · `<release> · #<pr>` · `#<pr>` · short commit · `Live` |
+| `name` | R10: release (`0.11.0`) · `<release> · #<pr>` · `#<pr>` · a direct commit's place in the history (`0.11.0 · #57`) · `Live` |
 | `isRelease` | a tag with `release` |
 | `flags` | tags without a release |
 | `tooltip` | `#<pr> <title>`, date, `<nodes> nodes · <edges> edges`, tags |

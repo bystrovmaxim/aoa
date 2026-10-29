@@ -43,7 +43,7 @@ A developer pastes a history's address into Maxitor — a private one, which car
 2. **Given** a private history's address with a valid key, **When** it is opened, **Then** it opens in its mode (FR-009a): with the version button showing Live in M4–M6 and its newest version in M2–M3, and with no button and "This history has no version yet." in M7.
 3. **Given** a link to a graph file on a public GitHub repository, **When** it is opened, **Then** its history opens with no key.
 4. **Given** an open history, **When** the button is clicked, **Then** the picker opens over the diagram with the service's name, the count ("12 versions and Live"), the mode switch with One active and Diff and Side by side greyed out with the hint "comes later", and one track — oldest left, newest right, Live last after a dashed gap.
-5. **Given** the open picker, **When** a point is clicked, the handle dragged, ← or → pressed, or Home or End pressed, **Then** that version is chosen, the button names it (`◷ v0.11.0 · #147 ▾`), and every diagram shows its graph.
+5. **Given** the open picker, **When** a point is clicked, the handle dragged, ← or → pressed, or Home or End pressed, **Then** that version is chosen, the button names it (`◷ 0.11.0 · #147 ▾`), and every diagram shows its graph.
 6. **Given** the open picker, **When** the user clicks outside it, **Then** it closes and the chosen version stays.
 7. **Given** a chosen version, **When** the link made by **Copy link** is opened in another browser, **Then** the same history opens on the same version (the link carries `history`, `b` and the key after `#key=`). The browser's own address bar carries `history` and `b` but not the key: opened elsewhere, it opens only where Recent already holds that history's key, and otherwise asks for the history's address.
 8. **Given** a version whose graph fails the protocol's schema, **When** it is chosen, **Then** Maxitor refuses it with the reason the port reports, and the other versions still open.
@@ -142,7 +142,8 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 - **A history open but no tab watching it** — its list stops being checked when no tab is open, as a held graph does today.
 - **A public history whose link is not a graph file on a GitHub repository** (another host, a folder, a branch page) — refused with the reason, before anything is fetched.
 - **An address bar naming a version the history does not have** — the history opens on its default version, and the address bar is corrected.
-- **A version before the first release** — named by its pull request's number (or its short commit) alone.
+- **A version before the first release** — named by its pull request's number alone.
+- **A version with no pull request** (a direct commit) — named by its place in the history, the oldest version being 1: `#57` before any release, `0.11.0 · #57` after one. The number is easy to say aloud and never changes as newer versions come; a commit's hash is never a name.
 - **A key in a pasted address with surrounding spaces** — trimmed like any address; the key is everything after `#key=` to the end, so the one held and the one masked are the same string; a second `#` in the address is refused with the reason.
 - **The key that the room's server read with is revoked** — the room goes on with the key of any participant the port still accepts; when none is left, every tab is told "not found".
 - **A `#123` in a private repository's message** — the link opens the code host, where only readers with access to the repository see it; Maxitor grants nothing.
@@ -197,12 +198,12 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 
 **The version button and the picker**
 
-- **FR-013**: In M2–M6 the top row MUST have one version button naming the shown version by FR-018 (`◷ Live ▾`, `◷ v0.11.0 ▾`, `◷ v0.11.0 · #147 ▾`, `◷ #12 ▾`, `◷ 3be81c6 ▾`); in M1 and M7 it MUST be absent.
+- **FR-013**: In M2–M6 the top row MUST have one version button naming the shown version by FR-018 (`◷ Live ▾`, `◷ #147 ▾`, `◷ #57 ▾`); in M1 and M7 it MUST be absent.
 - **FR-014**: The button MUST open the picker over the diagram; a click outside or Escape MUST close it; it MUST start closed when a history opens and stay closed until the button is used, and choosing a version MUST leave it open.
 - **FR-015**: The picker MUST show the service's name, the number of versions and whether Live follows, worded as in FR-009a ("1 version", "12 versions and Live", "0 versions and Live"), the mode switch, and one track. In the switch One MUST be active, and Diff and Side by side MUST be shown greyed out and disabled, with the hint "comes later" on hover, focus or touch; choosing them MUST do nothing.
 - **FR-016**: The track MUST be a time axis, oldest left, newest right, with Live last after a dashed gap; every point MUST be one version from the port.
-- **FR-017**: A release — a version carrying a tag that has a release — MUST be named on the track by its tag; versions between releases MUST be small dots; other tags MUST be small flags.
-- **FR-018**: A version MUST be named `<release> · #<pull request>` when it follows a release, by its release alone when it carries one, and by its pull request's number (or short commit) when no release comes before it.
+- **FR-017**: A release — a version carrying a tag that has a release on its host, or a tag that is a version number (`v0.8.0`, `0.8.0`; a local repository has tags but no releases) — MUST be named on the track by its tag; versions between releases MUST be small dots; every tag, a release's included, MUST be a small flag above its point (the mockup).
+- **FR-018**: A version MUST be named from what every history has: its pull request's number (`#147`), or, without one, its place in the history, the oldest being 1 (`#57`); never by a version number, which not every history has, and never by its commit's hash. A version number, where the history has one, MUST be shown in the point's tooltip as a chip.
 - **FR-019**: A point's tooltip MUST give its pull request's number and title, its date, its size (nodes and edges) and its tags; a refused version's tooltip MUST end with "refused: <reason>".
 - **FR-019a**: A refused version MUST stay on the track, drawn hollow — a refused release keeps its name, a refused merge its dot — and choosing it MUST show its reason in the workspace instead of a diagram, the button naming it.
 - **FR-020**: A version MUST be chosen by clicking its point or dragging the handle; ← and → MUST step, Home and End MUST jump to the ends; where there is nothing to step to (M3, M6) they MUST do nothing, and the handle MUST still announce the version it is on to assistive technology.
@@ -231,6 +232,12 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 
 **The tail**
 
+- **FR-033**: Names under the track MUST be dates, which every history has: the first point of each day (`Oct 22`), or of each month when days would crowd, and `Live`; a version number MUST NOT be a name under the track (the maintainer, 2026-10-30).
+- **FR-034**: A point's tooltip MUST read as a pull request card: "Merged" for a merged pull request, the version number as a dark chip where the history has one, the pull request's number and when; its title; who made it and who merged it (a picture where the host gives one, else initials); its size in lines and files; what it did to the graph — nodes added and removed by kind, nodes changed. A version with no pull request MUST carry no "Commit" mark.
+- **FR-035**: The port MUST take who made a version and who merged it, and its size, from git — a merge commit's author merged it, its branch's authors made it — so that a local or corporate repository with no host has them too; and a version's pull request from its merge or squash commit's message when the host does not tell it, never keeping GitHub's "Merge pull request #N from …" line.
+- **FR-036**: When Live runs exactly the newest version's graph — the same nodes and edges, compared as graphs, a service's `coordinator_json` wrapper unwrapped — the track MUST show the two as one point, Live, whose tooltip and message are that version's.
+- **FR-037**: The pull requests still open into the history's branch that change its graph MUST stand between the newest version and Live, past a dotted gap — Live is always last — each in GitHub's colour for its state: draft (grey, hollow and dashed), review required (GitHub's brown-yellow "attention"), approved (green), changes requested (red), with the state as a chip in its tooltip; a merged pull request's mark is GitHub's purple; and MUST be readable like a version; on GitHub the state comes from the pull request and its reviews, in a local repository every `refs/pull/<n>/head` not yet in the branch is open. A pull request closed without being merged MUST NOT be shown.
+- **FR-038**: The track MUST scroll as the browser scrolls — a sideways swipe with its momentum, the vertical wheel turned sideways, a drag — with nothing faded at its edges; a tooltip MUST stay where it is while the track scrolls under a still pointer, and when the track stops it MUST show the point now under the pointer, or close when there is none.
 - **FR-032**: The change MUST end with the check run taken to zero, then the documentation — every case of this step shown, each as a script and a notebook that were run, with the page's Russian draft beside it — then the changelog, one article (Principle VI).
 
 ### Key Entities

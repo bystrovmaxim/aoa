@@ -21,6 +21,8 @@ ARCHITECTURE / DATA FLOW
     open(repository[, url]) ──► local path as it is, or git clone --bare --filter=blob:none
     fetch(repository)       ──► git fetch (branches and tags), one at a time per repository
     versions / first_parents / tags / file_at ──► git log / rev-list / for-each-ref / show
+    contribution / proposal                   ──► rev-list --parents, log, merge-base, diff --shortstat
+    pull_heads / merged / commit              ──► for-each-ref refs/pull, merge-base --is-ancestor, log -1
 
 Every call is ``subprocess.run`` with an argument list, no shell, a timeout and
 no terminal prompt. ``auth`` is git configuration for that one call — the host's
@@ -41,6 +43,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from maxitor.repo_graph_port.commit import Commit
+from maxitor.repo_graph_port.contribution import Contribution
 from maxitor.repo_graph_port.git_error import GitError
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.tag import Tag
@@ -110,7 +113,8 @@ class GitMirror(BaseStorage):
             self._place(repository)
             return
         with self._lock(repository):
-            refspecs = ["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"]
+            # Open pull requests are read from the heads GitHub keeps for them.
+            refspecs = ["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", "+refs/pull/*/head:refs/pull/*/head"]
             self._git(self._place(repository), ["fetch", "--prune", "--filter=blob:none", "origin", *refspecs], auth)
 
     def versions(self, repository: str, branch: str, path: str) -> list[Commit]:
@@ -164,6 +168,57 @@ class GitMirror(BaseStorage):
             return None
         return self._git(place, ["show", f"{sha}:{path}"], auth)
 
+    def pull_heads(self, repository: str) -> dict[int, str]:
+        """Every pull request head the repository keeps (``refs/pull/<n>/head``), by number."""
+        out = self._git(self._place(repository), ["for-each-ref", "refs/pull", "--format=%(refname)%1f%(objectname)"])
+        heads: dict[int, str] = {}
+        for line in out.decode("utf-8").splitlines():
+            name, sha = line.split("\x1f")
+            parts = name.split("/")
+            if len(parts) == 4 and parts[3] == "head" and parts[2].isdigit():
+                heads[int(parts[2])] = sha
+        return heads
+
+    def merged(self, repository: str, sha: str, branch: str) -> bool:
+        """Whether ``sha`` is already in ``branch``."""
+        try:
+            self._git(self._place(repository), ["merge-base", "--is-ancestor", sha, branch])
+        except GitError:
+            return False
+        return True
+
+    def commit(self, repository: str, sha: str) -> Commit:
+        """One commit: its date in UTC and its whole message."""
+        out = self._git(self._place(repository), ["log", "-1", "--format=%cI%x1f%B", sha]).decode("utf-8")
+        date, message = out.split("\x1f", 1)
+        utc = datetime.fromisoformat(date.strip()).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return Commit(sha=sha, date=utc, message=message.rstrip("\n"))
+
+    def proposal(self, repository: str, branch: str, head: str, auth: Mapping[str, str] | None = None) -> Contribution:
+        """Who made an open pull request and how large it is: the authors of its commits not yet in ``branch``, its diff against where it left ``branch``."""
+        place = self._place(repository)
+        names = [name for name in self._git(place, ["log", "--reverse", "--format=%an", f"{branch}..{head}"]).decode("utf-8").split("\n") if name]
+        base = self._git(place, ["merge-base", branch, head]).decode("ascii").strip()
+        stat = self._git(place, ["diff", "--shortstat", base, head], auth).decode("utf-8")
+        author = names[0] if names else self._git(place, ["log", "-1", "--format=%an", head]).decode("utf-8").strip()
+        return Contribution(author=author, co_authors=max(len(set(names)) - 1, 0), merged_by=None, **_shortstat(stat))
+
+    def contribution(self, repository: str, sha: str, auth: Mapping[str, str] | None = None) -> Contribution:
+        """Who made the version ``sha`` and how large it was: a merge commit's branch authors and merger, or a commit's author; its diff against its first parent."""
+        place = self._place(repository)
+        parents = self._git(place, ["rev-list", "--parents", "-n", "1", sha]).decode("ascii").split()[1:]
+        own = self._git(place, ["log", "-1", "--format=%an", sha]).decode("utf-8").strip()
+        author, co_authors, merged_by = own, 0, None
+        if len(parents) > 1:
+            branch = self._git(place, ["log", "--reverse", "--format=%an", f"{parents[0]}..{parents[1]}"]).decode("utf-8").split("\n")
+            names = [name for name in branch if name]
+            if names:
+                author, co_authors, merged_by = names[0], len(set(names)) - 1, own
+        # A first commit has no parent to compare with: its whole content is the change.
+        arguments = ["diff", "--shortstat", parents[0], sha] if parents else ["show", "--shortstat", "--format=", sha]
+        stat = self._git(place, arguments, auth).decode("utf-8")
+        return Contribution(author=author, co_authors=co_authors, merged_by=merged_by, **_shortstat(stat))
+
     def _place(self, repository: str) -> Path:
         """Where git reads ``repository``; it must have been opened."""
         try:
@@ -193,3 +248,9 @@ class GitMirror(BaseStorage):
         if done.returncode != 0:
             raise GitError(arguments[0], done.stderr.decode("utf-8", "replace").strip())
         return done.stdout
+
+
+def _shortstat(line: str) -> dict[str, int]:
+    """``N files changed, A insertions(+), D deletions(-)`` read into files, additions and deletions; a part git leaves out is 0."""
+    found = {"files": r"(\d+) files? changed", "additions": r"(\d+) insertions?\(\+\)", "deletions": r"(\d+) deletions?\(-\)"}
+    return {key: int(match.group(1)) if (match := re.search(pattern, line)) else 0 for key, pattern in found.items()}

@@ -31,7 +31,7 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -55,10 +55,11 @@ class Described:
 
 @dataclass(frozen=True)
 class Listed:
-    """A history's versions, oldest first, with the ``ETag`` of that list."""
+    """A history's versions, oldest first, with the ``ETag`` of that list, and the pull requests still open that change the graph."""
 
     versions: list[dict[str, Any]]
     etag: str | None
+    proposals: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -130,7 +131,12 @@ class RepoGraphPortGateway(BaseGateway):
         listed = body.get("versions") if body is not None else None
         if not isinstance(listed, list):
             return PortUnreachable("the port's list of versions is not a list")
-        return Listed([version for version in listed if isinstance(version, dict)], answer.headers.get("etag"))
+        proposals = body.get("proposals") if body is not None else None
+        return Listed(
+            [version for version in listed if isinstance(version, dict)],
+            answer.headers.get("etag"),
+            [proposal for proposal in proposals if isinstance(proposal, dict)] if isinstance(proposals, list) else [],
+        )
 
     async def _get(self, url: str, link: str | None, key: str, etag: str | None) -> httpx.Response | PortNotModified | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
         """One GET to a port, turned into a response or a typed outcome."""

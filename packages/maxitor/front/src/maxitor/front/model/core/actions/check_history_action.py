@@ -132,7 +132,7 @@ async def _check(entry: HistoryEntry, gateway: RepoGraphPortGateway, rooms: Room
             await box.info(Channel.business, "{%var.history} unchanged", history=history_line(entry))
             return "unchanged"
         if isinstance(listed, Listed):
-            entry.versions, entry.etag = listed.versions, listed.etag
+            entry.versions, entry.etag, entry.proposals = listed.versions, listed.etag, listed.proposals
         entry.live = live
         _tell_rooms(entry, rooms)
         await box.info(Channel.business, "{%var.history} changed: {%var.count} versions{%var.live}", history=history_line(entry), count=len(entry.versions), live=" and Live" if entry.live else "")

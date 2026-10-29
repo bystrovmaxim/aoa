@@ -74,13 +74,13 @@ Every decision below was checked against the code on 2026-10-29 (`packages/maxit
 
 ## R10. Names on the track
 
-**Decision**: a release is a version with a tag whose `release` is not null. A version's name: its release's tag when it carries one (`v0.11.0`); `<last release before it> · #<pr>` (`v0.11.0 · #147`); `#<pr>` or the first 7 characters of its commit when no release comes before it; `Live` for Live. Tags without a release are flags.
+**Decision**: a release is a version with a tag whose `release` is not null, or a tag that is a version number (`v0.8.0`, `0.8.0`), since a local repository has tags but no releases (the maintainer, 2026-10-30). A version's name: its release's tag without the `v` before a number when it carries one (`0.11.0`); `<last release before it> · #<pr>` (`0.11.0 · #147`); `#<pr>` when no release comes before it; a version with no pull request — a direct commit — by its place in the history, the oldest being 1 (`0.11.0 · #57`), a number easy to say aloud in a room; `Live` for Live. A commit's hash is never a name: it means nothing to a reader (the maintainer, 2026-10-30); it stays only the id in the address and the room. Tags without a release are flags.
 
 **Rationale**: FR-017 and FR-018; the mockup's names (`0.11.0 · #147`) with the release defined by the issue, not by a label change.
 
 ## R11. The track
 
-**Decision**: one React component, `VersionTrack`, draws an SVG time axis in a container with hidden overflow, scrolled by its own `scrollLeft`: a horizontal wheel or swipe, the vertical wheel over the track turned sideways, and a drag on empty track. Points stand at `max(24 px, width / count)`. Fades are CSS masks on the edges; the right edge shows "+N newer" when N versions are out of view, and "+N newer and Live" when Live is too. A handle out of view is drawn pinned to its edge and scrolls back on click. Release labels thin out greedily: the chosen version, the ends and Live never thin out; then releases newest first, each kept only when it does not overlap a label already kept. The keyboard: ← → Home End on the handle, which has `role="slider"` with `aria-valuetext` set to the version's name.
+**Decision**: one React component, `VersionTrack`, draws an SVG time axis in a container with hidden overflow, scrolled by its own `scrollLeft`: a horizontal wheel or swipe, the vertical wheel over the track turned sideways, and a drag on empty track. Points stand at `max(24 px, width / count)`. Fades are CSS masks on the edges; the right edge shows "+N newer" when N versions are out of view, and "+N newer and Live" when Live is too. A handle out of view is drawn pinned to its edge and scrolls back on click. Labels are the mockup's: the oldest version, releases and Live, none under the chosen chip; the oldest and Live never thin out; then releases newest first, each kept only when it does not overlap a label already kept. The keyboard: ← → Home End on the handle, which has `role="slider"` with `aria-valuetext` set to the version's name.
 
 **Rationale**: FR-016 … FR-027. The client uses MUI and its own SVG diagrams; no chart library is in the bundle, and a track does not need one.
 

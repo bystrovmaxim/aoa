@@ -43,7 +43,7 @@ class HistoryEntry:
     """
     AI-CORE-BEGIN
     ROLE: The unit ``HistoryStore`` keeps for one history.
-    CONTRACT: ``name`` is the history's address without its key; ``route`` and ``link`` say where its port reads it; ``versions`` is the port's list, oldest first; ``live`` is its Live service or ``None``.
+    CONTRACT: ``name`` is the history's address without its key; ``route`` and ``link`` say where its port reads it; ``versions`` is the port's list, oldest first; ``proposals`` are its pull requests still open that change the graph; ``live`` is its Live service or ``None``.
     INVARIANTS: ``keys`` never appears in ``repr``; a key is added only after the port accepted it.
     AI-CORE-END
     """
@@ -58,6 +58,8 @@ class HistoryEntry:
     reader: str | None
     versions: list[dict[str, Any]]
     etag: str | None
+    #: Pull requests still open that change the graph, each with its state: looked at, never a default.
+    proposals: list[dict[str, Any]] = field(default_factory=list)
     last_read: float = 0.0
     last_checked: float = 0.0
     checking: bool = False
@@ -80,7 +82,7 @@ class HistoryEntry:
         """The version whose commit starts with ``sha``, or ``None``."""
         if len(sha) < 7:
             return None
-        return next((version for version in self.versions if str(version.get("sha", "")).startswith(sha)), None)
+        return next((version for version in [*self.versions, *self.proposals] if str(version.get("sha", "")).startswith(sha)), None)
 
     def default_version(self) -> str | None:
         """
@@ -111,6 +113,10 @@ class HistoryEntry:
     def versions_with_sources(self) -> list[dict[str, Any]]:
         """The versions as a tab is told them: each with the ``source`` its graph is read under, keyless."""
         return [{**version, "source": version_source(self.route, self.link, str(version["sha"]))} for version in self.versions]
+
+    def proposals_with_sources(self) -> list[dict[str, Any]]:
+        """The open pull requests as a tab is told them: each with the ``source`` its head's graph is read under, keyless."""
+        return [{**proposal, "source": version_source(self.route, self.link, str(proposal["sha"]))} for proposal in self.proposals]
 
     @property
     def public(self) -> bool:

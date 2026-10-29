@@ -33,8 +33,9 @@ from __future__ import annotations
 from typing import NoReturn
 
 from maxitor.front.model.core.history_address import PrivateHistory, PublicHistory, history_from_name, port_route
-from maxitor.front.model.core.history_entry import HistoryEntry
+from maxitor.front.model.core.history_entry import HistoryEntry, short_sha
 from maxitor.front.model.core.history_errors import HistoryNotFoundError, HistoryUnreachableError, TooManyWrongKeysError
+from maxitor.front.model.core.resources.graph_source_gateway import Document, GraphSourceGateway
 from maxitor.front.model.core.resources.history_access import HistoryAccess
 from maxitor.front.model.core.resources.history_store import HistoryStore
 from maxitor.front.model.core.resources.repo_graph_port_gateway import (
@@ -46,6 +47,7 @@ from maxitor.front.model.core.resources.repo_graph_port_gateway import (
     PortUnreachable,
     RepoGraphPortGateway,
 )
+from maxitor.front.model.core.same_graph import same_graph
 from maxitor.front.model.core.source_label import label
 
 from aoa.action_machine.logging import Channel
@@ -124,6 +126,7 @@ async def open_history(
         live=body.get("live") if isinstance(body.get("live"), str) and isinstance(history, PrivateHistory) else None,
         reader=body.get("reader") if isinstance(body.get("reader"), str) else None,
         versions=listed.versions,
+        proposals=listed.proposals,
         etag=listed.etag,
         last_checked=store.now(),
         keys=list(held.keys) if held is not None else [],
@@ -133,3 +136,24 @@ async def open_history(
         access.accept(history.name, key)
     store.put(entry)
     return entry
+
+
+async def live_same_as(entry: HistoryEntry, graphs: GraphSourceGateway, key: str) -> str | None:
+    """
+    AI-CORE-BEGIN
+    ROLE: Find whether Live is the newest version: the same graph.
+    CONTRACT: The newest version's full sha when the history has Live and its graph is the newest unrefused version's graph; ``None`` otherwise, or when either cannot be read. Never raises.
+    INVARIANTS: The key goes only to the port, as the version download's header.
+    AI-CORE-END
+    """
+    newest = next((version for version in reversed(entry.versions) if not version.get("refused")), None)
+    if entry.live is None or newest is None:
+        return None
+    source = entry.source_of(short_sha(str(newest["sha"])))
+    if source is None:
+        return None
+    live = await graphs.fetch(entry.live)
+    version = await graphs.with_key(key).fetch(source)
+    if not isinstance(live, Document) or not isinstance(version, Document):
+        return None
+    return str(newest["sha"]) if same_graph(live.body, version.body) else None

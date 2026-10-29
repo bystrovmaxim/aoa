@@ -38,7 +38,7 @@ describe("the chosen version's message (FR-028 – FR-030)", () => {
   it("stops at nine lines and scrolls inside, wrapping long lines by words, its text selectable", () => {
     render(<VersionMessage version={version({ message: Array.from({ length: 40 }, (_, i) => `line ${i}`).join("\n") })} repository={null} />);
     const style = getComputedStyle(screen.getByTestId("message"));
-    expect(style.maxHeight).toBe(`${MESSAGE_LINES * 18}px`);
+    expect(style.maxHeight).toBe(`${MESSAGE_LINES * 18 + 16}px`);
     expect(style.overflowY).toBe("auto");
     expect(style.whiteSpace).toBe("pre-wrap");
     expect(style.userSelect).toBe("text");
@@ -50,20 +50,20 @@ describe("Live's closing line", () => {
   const now = Date.parse("2026-10-30T12:00:00Z");
 
   it("says when Live was checked and the newest version (M4, M5)", () => {
-    expect(liveLine(versions, { ok: true, at: now - 12_000 }, now)).toBe("Live · checked 12 s ago · newest version #3, 2026-10-29");
+    expect(liveLine(versions, { ok: true, at: now - 12_000 }, now)).toBe("checked 12 s ago · newest version #3, 2026-10-29");
   });
 
   it("leaves the newest version out when there is none (M6)", () => {
-    expect(liveLine([], { ok: true, at: now - 120_000 }, now)).toBe("Live · checked 2 min ago");
+    expect(liveLine([], { ok: true, at: now - 120_000 }, now)).toBe("checked 2 min ago");
   });
 
   it("says since when Live cannot be reached", () => {
-    expect(liveLine(versions, { ok: false, at: now }, now)).toMatch(/^Live · cannot be reached since /);
+    expect(liveLine(versions, { ok: false, at: now }, now)).toMatch(/^cannot be reached since /);
   });
 
   it("stands in for the message of Live", () => {
-    render(<VersionMessage version={null} repository="o/r" liveLine="Live · checked 3 s ago" />);
-    expect(screen.getByTestId("live-line").textContent).toBe("Live · checked 3 s ago");
+    render(<VersionMessage version={null} repository="o/r" liveLine="checked 3 s ago" />);
+    expect(screen.getByTestId("live-line").textContent).toBe("Livechecked 3 s ago");
     expect(screen.queryByTestId("message")).toBeNull();
   });
 });

@@ -22,6 +22,7 @@ export function hasPicker(mode: HistoryMode): boolean {
 }
 
 /** The picker's subtitle: "12 versions", "1 version and Live", "0 versions and Live". */
-export function pickerSubtitle(count: number, live: boolean): string {
-  return `${count} ${count === 1 ? "version" : "versions"}${live ? " and Live" : ""}`;
+export function pickerSubtitle(count: number, live: boolean, open = 0): string {
+  const opened = open ? ` · ${open} open pull request${open === 1 ? "" : "s"}` : "";
+  return `${count} ${count === 1 ? "version" : "versions"}${live ? " and Live" : ""}${opened}`;
 }

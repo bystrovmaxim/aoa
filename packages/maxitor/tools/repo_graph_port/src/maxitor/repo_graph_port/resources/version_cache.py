@@ -11,8 +11,9 @@ refused — belong to its commit and never change. They are read from git once a
 kept, so a second read of a version touches neither git nor the file again. The
 cache also remembers when each repository's mirror was last fetched, so a history
 fetches again only after the fallback interval, and what the host said about each
-version's pull request and each tag's release, with when it said it: those can
-change, so they are read again after a webhook or the fallback interval.
+version's pull request, each tag's release and the pull requests still open, with
+when it said it: those can change, so they are read again after a webhook or the
+fallback interval.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -22,6 +23,7 @@ ARCHITECTURE / DATA FLOW
 
     <folder>/versions/<repository key>/<sha>.graph  — the file's bytes
     <folder>/versions/<repository key>/<sha>.json   — {"nodes", "edges", "refused"}
+    <folder>/versions/<repository key>/<sha>.detail.json — who made it, its size, what it did to the graph
 
 The repository key is the first 16 hex of the SHA-256 of the repository's name, so
 any name — ``owner/name`` or a local path — is one safe folder. A file is written
@@ -60,6 +62,7 @@ class VersionCache(BaseStorage):
         self._fetched: dict[str, float] = {}
         self._pulls: dict[tuple[str, str], tuple[dict[str, str | int] | None, float]] = {}
         self._releases: dict[tuple[str, str], tuple[dict[str, str] | None, float]] = {}
+        self._open: dict[tuple[str, str], tuple[list[dict[str, str | int]], float]] = {}
 
     def get_wrapper_class(self) -> type[BaseStorage] | None:
         """Return ``None``: nested actions read through this same cache."""
@@ -91,6 +94,19 @@ class VersionCache(BaseStorage):
             return None
         return GraphFacts(nodes=kept["nodes"], edges=kept["edges"], refused=kept["refused"])
 
+    def detail(self, repository: str, sha: str) -> dict[str, object] | None:
+        """A kept version's detail — its contribution and graph change — or ``None``."""
+        try:
+            return dict(json.loads((self._place(repository) / f"{sha}.detail.json").read_bytes()))
+        except FileNotFoundError:
+            return None
+
+    def keep_detail(self, repository: str, sha: str, detail: dict[str, object]) -> None:
+        """Store a version's detail for good: it belongs to the commit and to the version before it on the chain."""
+        place = self._place(repository)
+        place.mkdir(parents=True, exist_ok=True)
+        _write(place / f"{sha}.detail.json", json.dumps(detail).encode())
+
     def pull_request(self, repository: str, sha: str) -> tuple[dict[str, str | int] | None, float] | None:
         """A version's pull request as last read (``None`` when it had none) and when it was read; ``None`` before any read."""
         return self._pulls.get((repository, sha))
@@ -115,6 +131,14 @@ class VersionCache(BaseStorage):
         """Drop every release of ``repository``, so the next read asks the host again."""
         for key in [key for key in self._releases if key[0] == repository]:
             del self._releases[key]
+
+    def open_pull_requests(self, repository: str, branch: str) -> tuple[list[dict[str, str | int]], float] | None:
+        """The pull requests open into ``branch`` as the host last told them, and when; ``None`` before any read."""
+        return self._open.get((repository, branch))
+
+    def keep_open_pull_requests(self, repository: str, branch: str, pulls: list[dict[str, str | int]], at: float) -> None:
+        """Remember the pull requests open into ``branch``, read at ``at``."""
+        self._open[(repository, branch)] = (pulls, at)
 
     def fetched_at(self, repository: str) -> float | None:
         """When ``repository`` was last fetched, as given to ``mark_fetched``, or ``None``."""

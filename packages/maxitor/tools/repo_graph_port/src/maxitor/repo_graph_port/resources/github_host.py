@@ -24,6 +24,7 @@ ARCHITECTURE / DATA FLOW
     public_token()        ──► GET /app/installations ──► the first installation's token, for public repositories' reads
     git_auth(r)            ──► {"http.https://github.com/.extraheader": "AUTHORIZATION: basic <x-access-token:token>"}
     pull_request_of(r, sha) ──► GET /repos/{r}/commits/{sha}/pulls ──► the merged one whose merge commit is sha, or the first
+    open_pull_requests(r, b) ──► GET /repos/{r}/pulls?state=open&base=b, and each one's reviews ──► its state
     release_of(r, tag)      ──► GET /repos/{r}/releases/tags/{tag} ──► title and link, or None
     verify_webhook(body, s) ──► HMAC-SHA256 of the raw body with the webhook secret, compared in constant time
 
@@ -137,12 +138,42 @@ class GitHubHost(BaseGateway):
         return {"http.https://github.com/.extraheader": f"AUTHORIZATION: basic {basic}"}
 
     async def pull_request_of(self, repository: str, sha: str, token: str | None) -> dict[str, str | int] | None:
-        """The pull request the commit ``sha`` came from: number, title, body, url; ``None`` when there is none."""
+        """The pull request the commit ``sha`` came from: number, title, body, url, its author's login and avatar; ``None`` when there is none."""
         pulls = await self._call("GET", f"/repos/{repository}/commits/{sha}/pulls", self._headers(token), missing=[])
         if not pulls:
             return None
         chosen = next((p for p in pulls if p.get("merge_commit_sha") == sha), pulls[0])
-        return {"number": chosen["number"], "title": chosen["title"], "body": chosen.get("body") or "", "url": chosen["html_url"]}
+        user = chosen.get("user") or {}
+        return {
+            "number": chosen["number"],
+            "title": chosen["title"],
+            "body": chosen.get("body") or "",
+            "url": chosen["html_url"],
+            "author": user.get("login") or "",
+            "avatar": user.get("avatar_url") or "",
+        }
+
+    async def open_pull_requests(self, repository: str, branch: str, token: str | None) -> list[dict[str, str | int]]:
+        """The pull requests open into ``branch``: number, title, body, url, author, avatar, head and state — draft, changes_requested, approved or open."""
+        pulls = await self._call("GET", f"/repos/{repository}/pulls?state=open&base={branch}&per_page=100", self._headers(token), missing=[])
+        found: list[dict[str, str | int]] = []
+        for pull in pulls:
+            reviews = await self._call("GET", f"/repos/{repository}/pulls/{pull['number']}/reviews?per_page=100", self._headers(token), missing=[])
+            # Each reviewer's last word counts.
+            last = {review["user"]["login"]: review["state"] for review in reviews if review.get("user") and review.get("state") in ("APPROVED", "CHANGES_REQUESTED")}
+            state = "draft" if pull.get("draft") else "changes_requested" if "CHANGES_REQUESTED" in last.values() else "approved" if "APPROVED" in last.values() else "open"
+            user = pull.get("user") or {}
+            found.append({
+                "number": pull["number"],
+                "title": pull["title"],
+                "body": pull.get("body") or "",
+                "url": pull["html_url"],
+                "author": user.get("login") or "",
+                "avatar": user.get("avatar_url") or "",
+                "head": pull["head"]["sha"],
+                "state": state,
+            })
+        return found
 
     async def release_of(self, repository: str, tag: str, token: str | None) -> dict[str, str] | None:
         """The release made of ``tag``: its title and link; ``None`` when the tag has none."""

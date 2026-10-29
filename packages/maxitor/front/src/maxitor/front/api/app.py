@@ -195,6 +195,7 @@ def create_app() -> FastAPI:
     graphs = GraphStoreController(store)
     check_connections = {GRAPH_STORE_CONNECTION_KEY: graphs, GRAPH_SOURCE_CONNECTION_KEY: graph_source, ROOM_REGISTRY_KEY: rooms}
     history_connections = {
+        GRAPH_SOURCE_CONNECTION_KEY: graph_source,
         REPO_GRAPH_PORT_CONNECTION_KEY: port_gateway,
         HISTORY_STORE_CONNECTION_KEY: histories,
         HISTORY_ACCESS_CONNECTION_KEY: history_access,
