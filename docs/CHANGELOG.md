@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-10-29] — The setup skill asks everything once, and writes the graphs from your own check run
+
+The skill a coding agent follows to connect a project to graph files is now `aoa-graph-builder-setup` (it was `graph-builder-setup`): it sets up AOA projects first. It still finds every model in the code and every graph already saved, writes an exporter where a service has a model and nothing prints it, and proves each build before it changes anything. What changed is how it ends its survey: under the one table it asks every question at once, each with a proposal you can simply accept — where each graph file goes, how CI checks every graph, and which of your project's check runs writes the graphs. It proposes the run's last step, taken only when every other check passed, so a failing run never rewrites a graph; a project with no CI gets a ready workflow to accept or decline. Nothing is written until you answer, and nothing new is asked while it applies.
+
+It also pins only what exists: until a `maxitor` release is published, CI uses a commit of this repository instead of a version that is not there yet. And it ends by reminding you to merge into the main branch, because a graph's history begins with its file on that branch. The command `graph-builder skill` prints the renamed skill; to install it, save it in a folder named `aoa-graph-builder-setup`.
+
 ## [2026-10-29] — A service's graph history, read straight from its repository
 
 A service that keeps its graph in a file beside its code already has the graph's whole history in git: every merge that changed the file is a version. A new service, `repo-graph-port`, reads that history and serves it. Each version comes with the pull request that made it — its number, title, description and link, or the commit's message when there was none — with the repository's tags and their releases, and with the size of its graph; any version's graph comes back exactly as it was committed. A tag put on a later commit that did not change the graph belongs to the version before it, and a version whose file is not a valid graph is listed with the reason.
