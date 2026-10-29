@@ -123,7 +123,7 @@ The maintainer asks the port at `https://repo-graph-port.aoa.run` for the histor
 
 **The history**
 
-- **FR-004**: The port `maxitor.repo_graph_port` MUST live in `packages/maxitor/core/repo_graph_port/`, installed with its own extra and run as a service of its own by its own command, `repo-graph-port`; it MUST be the only part of Maxitor that talks to a host.
+- **FR-004**: The port `maxitor.repo_graph_port` MUST live in `packages/maxitor/tools/repo_graph_port/`, installed with its own extra and run as a service of its own by its own command, `repo-graph-port`; it MUST be the only part of Maxitor that talks to a host.
 - **FR-005**: A history MUST be one graph file on one branch of one repository, named in the port's configuration with its host and its read keys.
 - **FR-006**: The versions of a history MUST be the commits of its branch, by first parent, that changed its graph file, oldest first.
 - **FR-007**: Each version MUST carry its commit, its date, its pull request's number, title, description and link (or its commit's message when it has none), the repository's tags placed on it with their releases' title and link, and its graph's node and edge counts.

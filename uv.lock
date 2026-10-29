@@ -2102,14 +2102,15 @@ front = [
     { name = "aoa-fastapi-adapter" },
     { name = "duckdb" },
     { name = "httpx" },
-    { name = "pyjwt", extra = ["crypto"] },
     { name = "uvicorn" },
     { name = "websockets" },
 ]
 repo-graph-port = [
     { name = "aoa-action-machine" },
+    { name = "aoa-fastapi-adapter" },
     { name = "httpx" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -2123,15 +2124,17 @@ requires-dist = [
     { name = "aoa-action-machine", marker = "extra == 'front'", editable = "packages/aoa-action-machine" },
     { name = "aoa-action-machine", marker = "extra == 'repo-graph-port'", editable = "packages/aoa-action-machine" },
     { name = "aoa-fastapi-adapter", marker = "extra == 'front'", editable = "packages/aoa-fastapi-adapter" },
+    { name = "aoa-fastapi-adapter", marker = "extra == 'repo-graph-port'", editable = "packages/aoa-fastapi-adapter" },
     { name = "duckdb", marker = "extra == 'front'", specifier = ">=1.5,<2" },
     { name = "httpx", marker = "extra == 'front'", specifier = ">=0.28,<1.0" },
     { name = "httpx", marker = "extra == 'repo-graph-port'", specifier = ">=0.28,<1.0" },
     { name = "jsonschema", specifier = ">=4.17,<5" },
     { name = "jsonschema-rs", specifier = ">=0.60,<1" },
     { name = "maxitor", extras = ["front"], marker = "extra == 'all'", editable = "packages/maxitor" },
-    { name = "maxitor", extras = ["repo-graph-port"], marker = "extra == 'front'", editable = "packages/maxitor" },
+    { name = "maxitor", extras = ["repo-graph-port"], marker = "extra == 'all'", editable = "packages/maxitor" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'repo-graph-port'", specifier = ">=2.8,<3" },
     { name = "uvicorn", marker = "extra == 'front'", specifier = ">=0.30" },
+    { name = "uvicorn", marker = "extra == 'repo-graph-port'", specifier = ">=0.30" },
     { name = "websockets", marker = "extra == 'front'", specifier = ">=15" },
 ]
 provides-extras = ["repo-graph-port", "front", "all"]

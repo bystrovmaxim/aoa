@@ -24,12 +24,12 @@ may_import = ["action_machine"]
 current_roots = ["packages/maxitor/front/src/maxitor/front"]
 future_roots = ["packages/maxitor/front/src/maxitor/front"]
 import_prefixes = ["maxitor.front"]
-may_import = ["action_machine", "graph_builder", "repo_graph_port"]
+may_import = ["action_machine", "graph_builder"]
 
-# The core that reads a graph's history: the front serves it, and it never imports the front.
+# The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
 [packages.repo_graph_port]
-current_roots = ["packages/maxitor/core/repo_graph_port/src/maxitor/repo_graph_port"]
-future_roots = ["packages/maxitor/core/repo_graph_port/src/maxitor/repo_graph_port"]
+current_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
+future_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
 import_prefixes = ["maxitor.repo_graph_port"]
 may_import = ["action_machine", "graph_builder"]
 

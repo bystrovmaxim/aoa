@@ -6,7 +6,7 @@
 
 ## Summary
 
-First, Maxitor's web part takes its name: `packages/maxitor/front/`, `maxitor.front`, `maxitor[front]`, the command `maxitor`. Then the port `maxitor.repo_graph_port` (`packages/maxitor/core/repo_graph_port/`), a service of its own at `https://repo-graph-port.aoa.run` and the only part of Maxitor that talks to GitHub, reads a graph's history from its repository: a partial git mirror gives the versions (first-parent commits that changed the graph file) and their graphs byte for byte; the GitHub host gives each version's pull request and each tag's release, through a GitHub App for a private repository and anonymously for a public one; read keys open one history each through an AOA auth coordinator; webhooks, routed by git to the histories they change, and a fallback fetch keep it fresh. Three actions — `describe`, `history`, `version` — and a webhook action are the routes of the port's own server; Maxitor reads them over HTTP.
+First, Maxitor's web part takes its name: `packages/maxitor/front/`, `maxitor.front`, `maxitor[front]`, the command `maxitor`. Then the port `maxitor.repo_graph_port` (`packages/maxitor/tools/repo_graph_port/`), a service of its own at `https://repo-graph-port.aoa.run` and the only part of Maxitor that talks to GitHub, reads a graph's history from its repository: a partial git mirror gives the versions (first-parent commits that changed the graph file) and their graphs byte for byte; the GitHub host gives each version's pull request and each tag's release, through a GitHub App for a private repository and anonymously for a public one; read keys open one history each through an AOA auth coordinator; webhooks, routed by git to the histories they change, and a fallback fetch keep it fresh. Three actions — `describe`, `history`, `version` — and a webhook action are the routes of the port's own server; Maxitor reads them over HTTP.
 
 ## Technical Context
 
@@ -72,8 +72,9 @@ packages/maxitor/
 │   ├── graph.json                         # the front's graph, unchanged but for the rename
 │   ├── Dockerfile                         # --extra front
 │   └── tests/
-├── core/
-│   └── repo_graph_port/
+├── tools/
+│   ├── graph_builder/
+│   └── repo_graph_port/                   # a service of its own, moved from core/ on 2026-10-29
 │       ├── src/maxitor/repo_graph_port/
 │       │   ├── __init__.py
 │       │   ├── repo_graph_domain.py
@@ -88,13 +89,12 @@ packages/maxitor/
 │       ├── graph.json                     # the port's own graph
 │       ├── Dockerfile                     # installs git; --extra repo-graph-port
 │       └── tests/                         # fixtures: a git repository builder, a stand-in host
-├── tools/graph_builder/
 └── skills/
 ```
 
 Outside: root `pyproject.toml` (workspace paths, mypy, vulture), `scripts/package_boundaries.toml` + checker, `scripts/check_run.py` (a pytest step for the core), `graph-builder.toml`, `.github/workflows/*`, `deploy/stand/docker-compose.yml` and `docker-compose.host.yml` (the port's service), `.claude/launch.json`, `.vscode/launch.json`, docs, examples, tests.
 
-**Structure Decision**: the port in `core/repo_graph_port/` — the core of Maxitor's work with repositories — with its own server, graph and image; the front reads it over HTTP and does not import it.
+**Structure Decision**: the port in `tools/repo_graph_port/`, beside `graph_builder` — a service of its own with its own server, graph and image, not a core the front embeds (it was in `core/` until 2026-10-29); the front reads it over HTTP and does not import it.
 
 ## Phases → commits
 
