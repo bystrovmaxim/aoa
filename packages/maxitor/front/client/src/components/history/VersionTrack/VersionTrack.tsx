@@ -4,7 +4,7 @@ import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
-import { dayLabel, flagsOf, monthLabel, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
+import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
 import { PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
 import { thinLabels } from "./thinLabels";
@@ -112,11 +112,11 @@ function chipHalf(text: string): number {
 }
 
 /** The chosen version's chip under the track: dark, its name in white, centred on ``x``. */
-function Chip({ x, text }: { x: number; text: string }) {
+function Chip({ x, text, colour = INK }: { x: number; text: string; colour?: string }) {
   const half = chipHalf(text);
   return (
     <g data-testid="chip">
-      <rect x={x - half} y={LABEL_Y - 9} width={half * 2} height={18} rx={9} fill={INK} />
+      <rect x={x - half} y={LABEL_Y - 9} width={half * 2} height={18} rx={9} fill={colour} />
       <text x={x} y={LABEL_Y + 3.8} fontSize={10.5} fontWeight={600} fill="#fff" textAnchor="middle">
         {text}
       </text>
@@ -145,8 +145,23 @@ const TIP_SX = {
 const TIP_OFFSET = [0, HEIGHT + 2 - (AXIS_Y + MIN_STEP / 2)] as const;
 
 /** The chosen version's knob on the axis: dark, a white ring, a soft shadow. */
-function Knob({ x }: { x: number }) {
-  return <circle cx={x} cy={AXIS_Y} r={7.5} fill={INK} stroke="#fff" strokeWidth={2} filter="url(#track-shadow)" />;
+/** The chosen point's knob and chip keep what the point is: a merged version dark, an open pull request in its state's colour, Live hollow. */
+function lookOf(point: Point): { colour: string; hollow: boolean } {
+  if (point.b === "live") return { colour: INK, hollow: true };
+  if (point.state) return { colour: PROPOSAL_LOOK[point.state].colour, hollow: false };
+  return { colour: INK, hollow: false };
+}
+
+/** The radius of the chosen point's knob. */
+const KNOB = 5.5;
+
+function Knob({ x, point, shadow = true }: { x: number; point: Point; shadow?: boolean }) {
+  const look = lookOf(point);
+  return look.hollow ? (
+    <circle cx={x} cy={AXIS_Y} r={KNOB} fill="#fff" stroke={look.colour} strokeWidth={2.4} filter={shadow ? "url(#track-shadow)" : undefined} />
+  ) : (
+    <circle cx={x} cy={AXIS_Y} r={KNOB} fill={look.colour} stroke="#fff" strokeWidth={2} filter={shadow ? "url(#track-shadow)" : undefined} />
+  );
 }
 
 /**
@@ -292,7 +307,9 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const shownOffset = clamp(offset, 0, maxOffset);
   const newer = points.filter((point) => point.x > shownOffset + width).length;
   const pinned = chosen && chosen.x < shownOffset ? "left" : chosen && chosen.x > shownOffset + width ? "right" : null;
-  const pinWidth = chosen ? chipHalf(chosen.name) * 2 + 16 : 0;
+  // The chosen point's chip, as the mockup writes it: its version and its name (``0.11.0 · #147``), or its name alone.
+  const chipText = chosen ? (chosen.number && chosen.b !== "live" && !chosen.state ? `${chosen.number} · ${chosen.name}` : chosen.name) : "";
+  const pinWidth = chosen ? chipHalf(chipText) * 2 + 16 : 0;
 
   // The points are drawn once per choice, hover or pin — not once per scrolled pixel.
   const body = useMemo(() => {
@@ -301,9 +318,9 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     const lastProposal = points.filter((point) => point.state).at(-1);
     const livePoint = points.find((point) => point.b === "live");
     // No name stands where the chosen version's chip does.
-    const underChip = (x: number) => chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chosen.name) + 20;
-    // Names under the track are dates, which every history has: the first point of each day (``Oct 22``), or of
-    // each month when days would crowd, and Live. Names thin out where they would collide, never under the chip.
+    const underChip = (x: number) => chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20;
+    // Names under the track: a version's own point by its number (``0.8.0``), as the mockup names it, and Live;
+    // no dates. Names thin out where they would collide, never under the chip.
     const shown = trackLabels(points, (point) => point.b !== value && !underChip(point.x));
     const versionCount = history.length;
     return (
@@ -340,7 +357,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             style={{ cursor: "pointer" }}
           >
             <circle data-testid={`target-${point.b}`} cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
-            {hovered === point.b && point.b !== value && <circle data-testid="hover-ring" cx={point.x} cy={AXIS_Y} r={7.5} fill="none" stroke={MUTED} strokeWidth={1.4} style={{ pointerEvents: "none" }} />}
+            {hovered === point.b && point.b !== value && <circle data-testid="hover-ring" cx={point.x} cy={AXIS_Y} r={KNOB + 1} fill="none" stroke={MUTED} strokeWidth={1.4} style={{ pointerEvents: "none" }} />}
             {point.b === "live" ? (
               <circle cx={point.x} cy={AXIS_Y} r={4} fill="#fff" stroke={MUTED} strokeWidth={1.5} style={{ pointerEvents: "none" }} />
             ) : point.state && !point.refused ? (
@@ -349,10 +366,9 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
                 cx={point.x}
                 cy={AXIS_Y}
                 r={3.6}
-                fill={point.state === "draft" ? "#fff" : PROPOSAL_LOOK[point.state].colour}
+                fill={PROPOSAL_LOOK[point.state].colour}
                 stroke={PROPOSAL_LOOK[point.state].colour}
                 strokeWidth={1.4}
-                strokeDasharray={point.state === "draft" ? "1.6 1.4" : undefined}
                 style={{ pointerEvents: "none" }}
               />
             ) : point.refused ? (
@@ -369,8 +385,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
         ))}
         {chosen && !pinned && (
           <g data-testid="handle" style={{ pointerEvents: "none" }}>
-            <Knob x={chosen.x} />
-            <Chip x={clamp(chosen.x, chipHalf(chosen.name) + 1, length - chipHalf(chosen.name) - 1)} text={chosen.name} />
+            <Knob x={chosen.x} point={chosen} />
+            <Chip x={clamp(chosen.x, chipHalf(chipText) + 1, length - chipHalf(chipText) - 1)} text={chipText} colour={lookOf(chosen).colour} />
           </g>
         )}
       </svg>
@@ -440,7 +456,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
         <svg
           data-testid="pinned-handle"
           role="button"
-          aria-label={`Scroll back to ${chosen.name}`}
+          aria-label={`Scroll back to ${chipText}`}
           width={pinWidth}
           height={HEIGHT}
           onPointerDown={(event) => event.stopPropagation()}
@@ -450,14 +466,14 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
           {pinned === "left" ? (
             <>
               <path d={`M10 ${AXIS_Y}l5-4.5v9z`} fill="#334155" />
-              <circle cx={26} cy={AXIS_Y} r={7.5} fill={INK} stroke="#fff" strokeWidth={2} />
-              <Chip x={8 + chipHalf(chosen.name)} text={chosen.name} />
+              <Knob x={26} point={chosen} shadow={false} />
+              <Chip x={8 + chipHalf(chipText)} text={chipText} colour={lookOf(chosen).colour} />
             </>
           ) : (
             <>
               <path d={`M${pinWidth - 10} ${AXIS_Y}l-5-4.5v9z`} fill="#334155" />
-              <circle cx={pinWidth - 26} cy={AXIS_Y} r={7.5} fill={INK} stroke="#fff" strokeWidth={2} />
-              <Chip x={pinWidth - 8 - chipHalf(chosen.name)} text={chosen.name} />
+              <Knob x={pinWidth - 26} point={chosen} shadow={false} />
+              <Chip x={pinWidth - 8 - chipHalf(chipText)} text={chipText} colour={lookOf(chosen).colour} />
             </>
           )}
         </svg>
@@ -466,36 +482,20 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   );
 }
 
-/** The day or month a point opens, under ``by``, or ``null`` when the point before it shares it. */
-function opens(points: readonly Point[], at: number, by: (date: string) => string): string | null {
-  const date = points[at].date;
-  if (date === null) return null;
-  const previous = at > 0 ? points[at - 1].date : null;
-  return previous !== null && by(previous) === by(date) ? null : by(date);
-}
-
 /**
- * The names under the track, by point: Live and the oldest point always, then the dates that open a day — or a
- * month, when fewer than half the days would find room — newest first, wherever room is left.
+ * The names under the track, by point: a version's own point by its number (``0.8.0``), as the mockup names it,
+ * and Live. Nothing else is named — no dates: a point after a version with no tag of its own belongs to it, and a
+ * history without version tags has only its points and the chosen one's chip. Names thin out where they collide.
  */
 function trackLabels(points: readonly Point[], allowed: (point: Point) => boolean): Map<string, string> {
-  const years = new Set(points.filter((point) => point.date).map((point) => new Date(point.date!).getFullYear()));
-  const scales = [dayLabel, (date: string) => monthLabel(date, years.size > 1)];
-  let best = new Map<string, string>();
-  for (const by of scales) {
-    const candidates = points.flatMap((point, at) => {
-      if (!allowed(point)) return [];
-      // Dates are the track's names: every history has them. A version number, where there is one, is in the
-      // point's tooltip, not under the track.
-      const text = point.b === "live" ? point.name : opens(points, at, by);
-      return text === null ? [] : [{ b: point.b, x: point.x, text, kept: point.b === "live" || at === 0, release: point.b === "live" }];
-    });
-    const kept = thinLabels(candidates);
-    best = new Map(candidates.filter((candidate) => kept.has(candidate.b)).map((candidate) => [candidate.b, candidate.text]));
-    const dates = candidates.filter((candidate) => !candidate.release);
-    if (dates.filter((candidate) => kept.has(candidate.b)).length * 2 >= dates.length) break;
-  }
-  return best;
+  const candidates = points.flatMap((point, at) => {
+    if (!allowed(point)) return [];
+    const release = point.release && !point.state && point.b !== "live" && point.number !== null;
+    const text = point.b === "live" ? point.name : release ? point.number : null;
+    return text === null ? [] : [{ b: point.b, x: point.x, text, kept: point.b === "live" || at === 0, release: true }];
+  });
+  const kept = thinLabels(candidates);
+  return new Map(candidates.filter((candidate) => kept.has(candidate.b)).map((candidate) => [candidate.b, candidate.text]));
 }
 
 /** ``value`` kept within ``low`` and ``high``. */

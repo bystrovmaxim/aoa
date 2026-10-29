@@ -3,7 +3,6 @@ import type { ProposalState } from "@/api/history";
 
 /** How a pull request still open is drawn, in GitHub's own colours (Primer): its point's colour, its chip's tint, its state's name. */
 export const PROPOSAL_LOOK: Record<ProposalState, { colour: string; tint: string; name: string }> = {
-  draft: { colour: "#59636e", tint: "#f6f8fa", name: "Draft" },
   // GitHub's "attention": a pull request waiting for its review.
   open: { colour: "#9a6700", tint: "#fff8c5", name: "Review required" },
   approved: { colour: "#1a7f37", tint: "#dafbe1", name: "Approved" },

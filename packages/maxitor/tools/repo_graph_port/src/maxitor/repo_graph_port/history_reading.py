@@ -199,7 +199,7 @@ async def proposals_of(
     """
     AI-CORE-BEGIN
     ROLE: List the pull requests still open into the history's branch that change its graph, for a reader to look at before they are merged.
-    CONTRACT: On GitHub, the host's open pull requests with their state — draft, changes_requested, approved or open — kept while younger than ``interval_seconds``; in a local repository, every ``refs/pull/<n>/head`` not yet in the branch, state ``open``, its title the head commit's first line. Only those whose graph differs from ``newest``'s are listed, oldest number first, each with its facts, its authors and size against where it left the branch, and its change against ``newest``. Never raises for a host that does not answer: it lists what it last knew.
+    CONTRACT: On GitHub, the host's open pull requests offered for review, drafts left out, with their state — changes_requested, approved or open — kept while younger than ``interval_seconds``; in a local repository, every ``refs/pull/<n>/head`` not yet in the branch, state ``open``, its title the head commit's first line. Only those whose graph differs from ``newest``'s are listed, oldest number first, each with its facts, its authors and size against where it left the branch, and its change against ``newest``. Never raises for a host that does not answer: it lists what it last knew.
     AI-CORE-END
     """
     if history.host == "github":

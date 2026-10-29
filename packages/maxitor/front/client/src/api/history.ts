@@ -27,8 +27,8 @@ export type HistoryVersion = {
   source: string;
 };
 
-/** Where a pull request still open stands: a draft, waiting for review, approved, or asked to change. */
-export type ProposalState = "draft" | "open" | "approved" | "changes_requested";
+/** Where a pull request still open stands: waiting for review, approved, or asked to change. Drafts are not shown. */
+export type ProposalState = "open" | "approved" | "changes_requested";
 
 /** An opened history, as the server answers it. */
 export type OpenedHistory = {

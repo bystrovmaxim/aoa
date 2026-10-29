@@ -13,7 +13,7 @@ function versions(count: number): HistoryVersion[] {
 
 function picker(count: number, live: string | null, value: string | null) {
   render(
-    <VersionPicker anchor={document.body} onClose={() => undefined} title="orders" versions={versions(count)} live={live} value={value} onChange={() => undefined} link="L" phone>
+    <VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions(count)} live={live} value={value} onChange={() => undefined} phone>
       <div data-testid="message-slot">message</div>
     </VersionPicker>,
   );
@@ -47,7 +47,7 @@ describe.each([
 
 describe("the picker on a desktop", () => {
   it("is a popover under the button, not a sheet", () => {
-    render(<VersionPicker anchor={document.body} onClose={() => undefined} title="orders" versions={versions(3)} live={null} value={null} onChange={() => undefined} link="L" />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions(3)} live={null} value={null} onChange={() => undefined} />);
     expect(screen.getByRole("dialog").closest(".MuiPopover-root")).not.toBeNull();
   });
 });

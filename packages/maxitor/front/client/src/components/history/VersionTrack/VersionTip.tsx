@@ -1,6 +1,7 @@
 // src/components/history/VersionTrack/VersionTip.tsx
 import Box from "@mui/material/Box";
 import type { HistoryVersion, ProposalState } from "@/api/history";
+import { releaseNoteOf } from "@/lib/versionNames";
 import { MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -78,6 +79,28 @@ function Pill({ children, tone }: { children: React.ReactNode; tone: "live" | "m
   );
 }
 
+/** The release flag, as the track draws it. */
+export function FlagIcon() {
+  return (
+    <svg viewBox="0 0 12 14" width={10} height={12} aria-hidden>
+      <path d="M2 13V1.5" stroke="currentColor" strokeWidth={1.3} />
+      <path d="M2 1.5h7l-2 2.4 2 2.4H2z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** The git-commit mark: one commit on a line — a change pushed straight to the branch. */
+function CommitIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width={12} height={12} aria-hidden>
+      <g fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+        <circle cx={8} cy={8} r={2.6} />
+        <path d="M1.5 8h3.9M10.6 8h3.9" />
+      </g>
+    </svg>
+  );
+}
+
 /** The git-merge mark: two branches joining. */
 function MergeIcon() {
   return (
@@ -104,7 +127,8 @@ export type VersionTipProps = {
 };
 
 /**
- * A point's tooltip (spec 037, FR-019), laid out as a pull request card: "Merged" for a merged pull request, its
+ * A point's tooltip (spec 037, FR-019), laid out as a pull request card: "Merged" for a merged pull request, "Direct
+ * push" for a change pushed straight to the branch, the state of one still open, its
  * version number as a dark chip where the history has one, who made it, its number and when; its title; who made
  * it and who merged it; its size in lines and files; what it did to the graph; and why it was refused, if it was.
  */
@@ -120,6 +144,9 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
   const who = version.contribution;
   const title = version.pr ? version.pr.title : (version.message ?? "").split("\n")[0];
   const change = changeOf(version.change);
+  const note = releaseNoteOf(version);
+  // Tags that are neither the version number nor the release: named here only, never drawn on the track.
+  const others = version.tags.map((tag) => tag.name).filter((name) => name !== note?.title && !/^v?\d+\.\d+/.test(name) && !/^release($|[-_/.])/i.test(name));
   return (
     <>
       <Box sx={{ display: "flex", alignItems: "center", gap: "6px", color: MUTED, fontSize: 12, minWidth: 0 }}>
@@ -128,6 +155,12 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
           <Box component="span" sx={{ bgcolor: PROPOSAL_LOOK[state].tint, color: PROPOSAL_LOOK[state].colour, display: "inline-flex", alignItems: "center", gap: "4px", height: 20, px: "8px", borderRadius: "10px", fontSize: 11.5, fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0 }}>
             {PROPOSAL_LOOK[state].name}
           </Box>
+        )}
+        {!version.pr && !state && (
+          <Pill tone="plain">
+            <CommitIcon />
+            Direct push
+          </Pill>
         )}
         {version.pr && !state && (
           <Pill tone="merged">
@@ -141,7 +174,17 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
           {whenOf(version.date)}
         </Box>
       </Box>
+      {note && (
+        <Box sx={{ mt: "8px", display: "flex", alignItems: "center", gap: "6px", fontSize: 12, color: "#334155", minWidth: 0 }}>
+          <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "4px", height: 20, px: "8px", borderRadius: "10px", bgcolor: "#f1f5f9", color: "#334155", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
+            <FlagIcon />
+            Release
+          </Box>
+          <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.title}</Box>
+        </Box>
+      )}
       {title && <Box sx={{ mt: "8px", fontSize: 13, fontWeight: 500, color: "#0f172a", lineHeight: 1.4 }}>{title}</Box>}
+      {others.length > 0 && <Box sx={{ mt: "4px", color: MUTED, fontSize: 11.5 }}>tags: {others.join(", ")}</Box>}
       {who && (
         <Box sx={{ mt: "8px", display: "flex", alignItems: "center", gap: "6px", color: MUTED, fontSize: 12, minWidth: 0 }}>
           <Person name={version.pr?.author || who.author} avatar={version.pr?.avatar} />

@@ -154,14 +154,17 @@ class GitHubHost(BaseGateway):
         }
 
     async def open_pull_requests(self, repository: str, branch: str, token: str | None) -> list[dict[str, str | int]]:
-        """The pull requests open into ``branch``: number, title, body, url, author, avatar, head and state — draft, changes_requested, approved or open."""
+        """The pull requests open into ``branch`` and offered for review — drafts left out: number, title, body, url, author, avatar, head and state — changes_requested, approved or open."""
         pulls = await self._call("GET", f"/repos/{repository}/pulls?state=open&base={branch}&per_page=100", self._headers(token), missing=[])
         found: list[dict[str, str | int]] = []
         for pull in pulls:
+            # A draft is not yet offered for review: it is no proposal to look at.
+            if pull.get("draft"):
+                continue
             reviews = await self._call("GET", f"/repos/{repository}/pulls/{pull['number']}/reviews?per_page=100", self._headers(token), missing=[])
             # Each reviewer's last word counts.
             last = {review["user"]["login"]: review["state"] for review in reviews if review.get("user") and review.get("state") in ("APPROVED", "CHANGES_REQUESTED")}
-            state = "draft" if pull.get("draft") else "changes_requested" if "CHANGES_REQUESTED" in last.values() else "approved" if "APPROVED" in last.values() else "open"
+            state = "changes_requested" if "CHANGES_REQUESTED" in last.values() else "approved" if "APPROVED" in last.values() else "open"
             user = pull.get("user") or {}
             found.append({
                 "number": pull["number"],

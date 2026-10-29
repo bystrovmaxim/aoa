@@ -14,10 +14,9 @@ import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory }
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "@/components/history/VersionPicker";
-import { withKey } from "@/lib/historyAddress";
 import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
-import { nameOf } from "@/lib/versionNames";
+import { shownNameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
 import { sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
 import { loadGraph } from "@/api/load";
@@ -78,8 +77,10 @@ export function App() {
   const shown = opened.history;
   const shownSource = shown ? sourceOf(shown) : null;
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
-  const shownName = shown ? nameOf(shown.versions, shown.b) : null;
-  const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
+  const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals) : null;
+  // The picker opens under the version button there is now: the button may be drawn anew while it is open.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const versionButton = useRef<HTMLButtonElement | null>(null);
   // On a phone the picker is a sheet from the bottom (FR-031), at the width MainLayout calls a phone.
   const phone = useMediaQuery(useTheme().breakpoints.down("sm"));
   /** When Live was last read, or since when it cannot be: its closing line under the track (FR-030). */
@@ -371,7 +372,7 @@ export function App() {
       topRow={(compact) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
           {shown && hasPicker(opened.mode) && (
-            <VersionButton name={shownName ?? "—"} open={pickerAnchor !== null} onClick={(button) => setPickerAnchor((current) => (current ? null : button))} />
+            <VersionButton ref={versionButton} name={shownName ?? "—"} open={pickerOpen} onClick={() => setPickerOpen((open) => !open)} />
           )}
           <Box sx={{ flex: 1 }} />
         <RoomBar
@@ -438,8 +439,8 @@ export function App() {
       )}
       {shown && (
         <VersionPicker
-          anchor={pickerAnchor}
-          onClose={() => setPickerAnchor(null)}
+          anchor={pickerOpen ? versionButton : null}
+          onClose={() => setPickerOpen(false)}
           title={shown.title}
           versions={shown.versions}
           live={shown.live}
@@ -447,7 +448,6 @@ export function App() {
           proposals={shown.proposals}
           value={shown.b}
           onChange={pickVersion}
-          link={withKey(window.location.href, shown.key)}
           phone={phone}
         >
           <VersionMessage
