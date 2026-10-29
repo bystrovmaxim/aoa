@@ -187,6 +187,36 @@ Merged, the pull request carries the graph as it now is; `git log -p packages/ao
    GraphRefused: graph 9.9: unknown schema version '9.9'; known: 1.0, 1.1
 ```
 
+## A graph's history, read from its repository
+
+Because the graph file travels with every merge, its git history *is* the graph's history: every first-parent commit that changed the file is a version — one per merged pull request. `repo-graph-port`, a service of its own (`pip install "maxitor[repo-graph-port]"`, then `repo-graph-port`), reads that history and serves it: the versions, each with its pull request (or its commit's message) and the repository's tags with their releases, and the graph of any version, byte for byte. A private repository is read through a GitHub App and opened by a read key, one key per history; a public one by a link to its graph file, with no key. GitHub's webhook tells the port about a push at once, and the port lets git decide which graph files the push changed, so a push that touches no graph adds no version anywhere.
+
+[14_graph_history.py](../../examples/step_26_maxitor/14_graph_history.py) ([notebook](../../examples/step_26_maxitor/14_graph_history.ipynb)) builds a service's repository with two graph files and runs the port over it, with GitHub stood in:
+
+```text
+4. versions of orders, oldest first
+  History orders listed for anna
+   Add the graph                       214 nodes, 305 edges
+   PR #1 Two edges fewer               214 nodes, 303 edges   v1.0 (release Release 1.0)
+   Drop an edge on main                214 nodes, 302 edges   v1.1
+   Break the graph                     refused: graph 1.1 at nodes/0: matches none of the shapes allowed here
+   Mend the graph                      214 nodes, 305 edges
+8. one key, one history
+  History orders described for anna
+   orders with anna's key: 200 · billing with anna's key: 404 {'detail': 'not found'} · orders with no key: 404 {'detail': 'not found'}
+11. a push that changes only billing.json
+  History billing listed for bob
+  Event push on acme/service changed billing
+   webhook: 200 {'changed': ['billing']}
+  History billing listed for bob
+  History orders listed for anna
+   billing: 1 → 2 versions · orders: 5 → 5 versions
+```
+
+The indented lines are the port's own log: it names each history and its reader, never a key.
+
+The tag `v1.1` sits on a later commit that only changed the README, so it belongs to the version before it. Running the port on a server — the App, the config, the keys — is [the how-to page](../how-to/run-the-repo-graph-port.md); [its README](../../packages/maxitor/tools/repo_graph_port/README.md) is the reference.
+
 ## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.
