@@ -13,6 +13,10 @@ the resource only fetches it. An answer is a typed value, never an exception: a
 service that is down, slow or answering with an error is a normal outcome an action
 must handle, not a crash.
 
+A version of a private history is read from its port with the history's read key; the
+gateway made by ``with_key`` sends that key in the header ``X-Maxitor-History-Key`` on
+each of its requests, and only there (spec 037, FR-010b).
+
 The body is returned with what identifies it — its SHA-256 and the validators the
 service gave (``ETag``, ``Last-Modified``) — because a held graph remembers them to
 know later whether its source changed.
@@ -78,14 +82,28 @@ class GraphSourceGateway(BaseGateway):
     CONTRACT: ``fetch`` returns ``Document`` for a 2xx answer and ``Unreachable`` for an HTTP error,
     a timeout or a network failure; ``fetch_if_changed`` also returns ``NotModified`` for a ``304`` to
     the validators it was given. Neither raises for those.
-    INVARIANTS: One HTTP client per gateway, created on first use and closed by ``aclose``; the
-    gateway keeps no answers and decides nothing about them.
+    INVARIANTS: One HTTP client per gateway, created on first use and closed by ``aclose``; a keyed
+    gateway shares its parent's client and sends its key only as a header; the gateway keeps no
+    answers and decides nothing about them.
     AI-CORE-END
     """
 
     def __init__(self, *, timeout: float = FETCH_TIMEOUT_SECONDS) -> None:
         self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
+        self._key = ""
+        self._parent: GraphSourceGateway | None = None
+
+    def __repr__(self) -> str:
+        """Name the gateway only: never a key."""
+        return "GraphSourceGateway()"
+
+    def with_key(self, key: str) -> GraphSourceGateway:
+        """A gateway that sends ``key`` as ``X-Maxitor-History-Key`` on every request, over this one's client."""
+        keyed = GraphSourceGateway(timeout=self._timeout)
+        keyed._key = key
+        keyed._parent = self._parent or self
+        return keyed
 
     def get_wrapper_class(self) -> type[BaseGateway] | None:
         """Return ``None``: nested actions download through this same gateway."""
@@ -115,10 +133,14 @@ class GraphSourceGateway(BaseGateway):
 
     async def _get(self, url: str, headers: dict[str, str]) -> Document | NotModified | Unreachable:
         """One GET of ``url`` with ``headers``, turned into a typed answer."""
-        if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self._timeout)
+        if self._parent is not None:
+            client = self._parent.client()
+        else:
+            client = self.client()
+        if self._key:
+            headers = {**headers, "X-Maxitor-History-Key": self._key}
         try:
-            response = await self._client.get(url, headers=headers)
+            response = await client.get(url, headers=headers)
         except httpx.RequestError as exc:
             return Unreachable(reason=str(exc) or type(exc).__name__)
         if response.status_code == 304:
@@ -132,6 +154,12 @@ class GraphSourceGateway(BaseGateway):
             etag=response.headers.get("etag"),
             last_modified=response.headers.get("last-modified"),
         )
+
+    def client(self) -> httpx.AsyncClient:
+        """The one HTTP client of this gateway, opened on first use."""
+        if self._client is None:
+            self._client = httpx.AsyncClient(timeout=self._timeout)
+        return self._client
 
     async def aclose(self) -> None:
         """Close the HTTP client, when one was opened."""

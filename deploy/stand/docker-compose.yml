@@ -1,4 +1,4 @@
-# deploy/stand/docker-compose.yml — the demonstrator stand, three containers on one host.
+# deploy/stand/docker-compose.yml — the demonstrator stand, four containers on one host.
 #
 # Both services build from the repository root (uv workspace) and publish their
 # ports on the host's loopback only — the stand is reachable from outside
@@ -31,6 +31,8 @@ services:
       # One graph of the reference service costs about 22 MiB of the process after #268, so 50 graphs
       # keep the process near 1.1 GiB at its peak. Lower it on a smaller machine.
       MAXITOR_MAX_GRAPHS: "${MAXITOR_MAX_GRAPHS:-50}"
+      # Maxitor's own port, through which public GitHub links are read (spec 037, FR-003b).
+      MAXITOR_PUBLIC_PORT: http://maxitor-public-port:8102
     ports:
       - "127.0.0.1:${MAXITOR_PORT:-8101}:8101"
     healthcheck:
@@ -73,5 +75,27 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
 
+  # Maxitor's own port (#289): the same image as repo-graph-port, with an empty histories config, so
+  # it reads public GitHub links and nothing else — no history, no key, no App. Only Maxitor reaches
+  # it, by its name on the stand's network; it publishes no port.
+  maxitor-public-port:
+    build:
+      context: ../..
+      dockerfile: packages/maxitor/tools/repo_graph_port/Dockerfile
+    environment:
+      MAXITOR_HISTORIES: /config/histories.toml
+    volumes:
+      - ./maxitor-public-port:/config:ro
+      - maxitor-public-port-cache:/var/cache/repo-graph-port
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8102/health', timeout=3) and sys.exit(0) or sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    stop_grace_period: 30s
+
 volumes:
   repo-graph-port-cache:
+  maxitor-public-port-cache:

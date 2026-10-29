@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from maxitor.repo_graph_port.history import History
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
@@ -158,7 +159,18 @@ def _history(path: Path, index: int, entry: dict[str, Any], seen: dict[str, Hist
         raise ValueError(f"{path}: history {entry['id']!r} has host {entry['host']!r}; known: {', '.join(hosts)}")
     if entry["id"] in seen or entry["id"] == "public":
         raise ValueError(f"{path}: history id {entry['id']!r} is given twice or reserved")
-    return History(*(entry[name] for name in fields))
+    live = entry.get("live")
+    if live is not None and not _is_http_url(live):
+        raise ValueError(f"{path}: history {entry['id']!r} has live {live!r}; an http(s) URL is needed")
+    return History(id=entry["id"], host=entry["host"], repository=entry["repository"], branch=entry["branch"], graph_file=entry["graph_file"], live=live)
+
+
+def _is_http_url(value: object) -> bool:
+    """Whether ``value`` is an ``http`` or ``https`` URL with a host."""
+    if not isinstance(value, str):
+        return False
+    parsed = urlsplit(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.hostname)
 
 
 def _key(path: Path, history_id: str, key: dict[str, Any], names: set[str]) -> tuple[str, str, date | None]:

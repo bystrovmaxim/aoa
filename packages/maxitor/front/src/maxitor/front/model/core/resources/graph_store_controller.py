@@ -68,9 +68,9 @@ class GraphStoreController(BaseController):
         """Return the entry held for ``source`` without counting it as a read, or ``None``."""
         return self._store.peek(source)
 
-    async def acquire(self, source: str) -> GraphEntry:
-        """Return the entry for ``source``, building it when it is not held."""
-        return await self._store.acquire(source)
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
+        """Return the entry for ``source``, building it when it is not held; ``key`` reads a private history's version."""
+        return await self._store.acquire(source, key)
 
     async def replace(self, source: str) -> GraphEntry:
         """Build ``source`` again and swap the entry in only when the build succeeds."""

@@ -65,6 +65,7 @@ from typing import Any
 
 from maxitor.front.model.core.actions.left_sidebar_action import GetLeftMenuSidebarDataAction
 from maxitor.front.model.core.actions.load_aoa_service_action import LoadAOAServiceAction, LoadAOAServiceParams
+from maxitor.front.model.core.history_address import parse_version_source
 from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
@@ -125,6 +126,8 @@ class GraphEntry:
     """When the source was last asked whether its graph changed."""
     checking: bool = False
     """Whether a check of the source is running now; checks of one source never overlap."""
+    immutable: bool = False
+    """Whether the graph can never change — a history's version — so it is never checked again."""
 
     @property
     def fingerprint(self) -> str:
@@ -149,7 +152,7 @@ class GraphStore:
 
     def __init__(
         self,
-        builder: Callable[[str], Awaitable[GraphEntry]],
+        builder: Callable[..., Awaitable[GraphEntry]],
         *,
         max_graphs: int = 50,
         max_concurrent_builds: int = 4,
@@ -192,8 +195,8 @@ class GraphStore:
         """Return the entry held for ``source`` without counting it as a read, or ``None``."""
         return self._entries.get(source)
 
-    async def acquire(self, source: str) -> GraphEntry:
-        """Return the built entry for ``source``, building it when the store does not hold it."""
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
+        """Return the built entry for ``source``, building it when the store does not hold it; ``key`` reaches a first build only."""
         self.sweep()
         entry = self._entries.get(source)
         if entry is not None:
@@ -202,7 +205,7 @@ class GraphStore:
         failure = self._failures.get(source)
         if failure is not None:
             raise GraphBuildError(failure[0])
-        return await asyncio.shield(self._build_task(source))
+        return await asyncio.shield(self._build_task(source, key))
 
     async def reload(self, source: str) -> GraphEntry:
         """Build ``source`` again and replace its entry; on failure keep the entry and raise."""
@@ -227,18 +230,18 @@ class GraphStore:
         ]:
             del self._failures[source]
 
-    def _build_task(self, source: str) -> asyncio.Task[GraphEntry]:
+    def _build_task(self, source: str, key: str = "") -> asyncio.Task[GraphEntry]:
         """Start the one build for ``source``, or return the one already running."""
         task = self._in_flight.get(source)
         if task is None:
-            task = asyncio.create_task(self._build_and_store(source))
+            task = asyncio.create_task(self._build_and_store(source, key))
             self._in_flight[source] = task
         return task
 
-    async def _build_and_store(self, source: str) -> GraphEntry:
+    async def _build_and_store(self, source: str, key: str) -> GraphEntry:
         """Build ``source`` inside a slot, remember its failure, and store it on success."""
         try:
-            entry = await self._build_under_slot(source)
+            entry = await self._build_under_slot(source, key)
         except GraphBuildError as exc:
             self._failures[source] = (exc.reason, self._clock())
             raise
@@ -252,7 +255,7 @@ class GraphStore:
         self._failures.pop(source, None)
         return entry
 
-    async def _build_under_slot(self, source: str) -> GraphEntry:
+    async def _build_under_slot(self, source: str, key: str) -> GraphEntry:
         """Wait for a free slot with the busy timeout, then run the builder."""
         self._queued += 1
         try:
@@ -264,7 +267,8 @@ class GraphStore:
 
         self._running += 1
         try:
-            return await self._builder(source)
+            # A key goes to the builder only when there is one, so a builder of plain sources takes just the source.
+            return await (self._builder(source, key) if key else self._builder(source))
         except GraphBuildError:
             raise
         except Exception as exc:
@@ -281,14 +285,14 @@ class GraphStore:
         self._entries[source] = entry
 
 
-async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceGateway, source: str) -> GraphEntry:
-    """Build one entry for ``source`` by running the two actions the load route runs; download through ``gateway``."""
+async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceGateway, source: str, key: str = "") -> GraphEntry:
+    """Build one entry for ``source`` by running the two actions the load route runs; download through ``gateway``, sending ``key`` when given."""
     try:
         load_result = await machine.run(
             Context(),
             LoadAOAServiceAction(),
             LoadAOAServiceParams(service_url=source),
-            connections={GRAPH_SOURCE_CONNECTION_KEY: gateway},
+            connections={GRAPH_SOURCE_CONNECTION_KEY: gateway.with_key(key) if key else gateway},
         )
         sidebar_result = await machine.run(
             Context(),
@@ -306,4 +310,5 @@ async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceG
         content_sha256=load_result.content_sha256,
         etag=load_result.etag or None,
         last_modified=load_result.last_modified or None,
+        immutable=parse_version_source(source) is not None,
     )

@@ -49,6 +49,12 @@ ARCHITECTURE / DATA FLOW
                        ▼                        ▼
                  entry.graph                entry.sidebar
 
+A version of a history (spec 037) is read only by a reader the port lets read that history:
+before such a source is acquired, ``CheckVersionAccessAction`` decides, with the read key the
+request sent in ``X-Maxitor-History-Key`` — ``404`` for a key the port refuses or an unknown
+version, ``422`` with the port's reason for a refused version, ``429`` and ``503`` as the port
+answers. The key reaches the builder of a first build, as a header, and nothing else.
+
 One request sees one entry for as long as it runs (FR-007), so a reload of the same source
 in the middle of a request cannot mix two graphs in one answer. ``OPTIONS`` passes through
 untouched: a CORS preflight carries no ``source`` and is answered by ``CORSMiddleware``.
@@ -68,7 +74,18 @@ from maxitor.front.api.graph_store import (
     GraphEntry,
     GraphStoreBusyError,
 )
+from maxitor.front.api.history_key_auth_coordinator import HISTORY_KEY_HEADER
+from maxitor.front.model.core.actions.check_version_access_action import (
+    CheckVersionAccessAction,
+    CheckVersionAccessParams,
+    VersionRefusedError,
+)
+from maxitor.front.model.core.history_address import HistoryAddressError, parse_version_source
+from maxitor.front.model.core.history_errors import HistoryNotFoundError, HistoryUnreachableError, TooManyWrongKeysError
+from maxitor.front.model.core.history_key_holder import HistoryKeyHolder
 from starlette.types import Receive, Scope, Send
+
+from aoa.action_machine.context import Context, RequestInfo
 
 #: What a read without a name is told, word for word.
 MISSING_SOURCE_DETAIL = "Missing query parameter 'source': name the graph-json URL this read is for."
@@ -121,9 +138,18 @@ class GraphSourceMiddleware:
             await _refuse(send, 400, MISSING_SOURCE_DETAIL)
             return
 
+        key = ""
+        if parse_version_source(source) is not None:
+            key = _history_key_of(scope)
+            refusal = await _version_refusal(scope, source, key)
+            if refusal is not None:
+                status, detail = refusal
+                await _refuse(send, status, detail, retry_after=RETRY_AFTER_SECONDS if status == 503 else None)
+                return
+
         store = scope["app"].state.graph_store
         try:
-            entry = await store.acquire(source)
+            entry = await store.acquire(source, key)
         except GraphStoreBusyError:
             await _refuse(send, 503, BUSY_DETAIL, retry_after=RETRY_AFTER_SECONDS)
             return
@@ -133,6 +159,32 @@ class GraphSourceMiddleware:
 
         with bound_graph_entry(entry):
             await self._app(scope, receive, send)
+
+
+def _history_key_of(scope: Scope) -> str:
+    """The read key the request sent in ``X-Maxitor-History-Key``, or an empty string."""
+    for name, value in scope.get("headers", []):
+        if name == HISTORY_KEY_HEADER.encode("latin-1"):
+            return str(value.decode("latin-1")).strip()
+    return ""
+
+
+async def _version_refusal(scope: Scope, source: str, key: str) -> tuple[int, str] | None:
+    """Run ``CheckVersionAccessAction`` for a version's source; ``None`` when the reader may read it, else the refusal."""
+    state = scope["app"].state
+    client = scope.get("client")
+    context = Context(user=HistoryKeyHolder(history_key=key), request=RequestInfo(client_ip=client[0] if client else None))
+    try:
+        await state.machine.run(context, CheckVersionAccessAction(), CheckVersionAccessParams(source=source), connections=state.history_connections)
+    except (HistoryNotFoundError, HistoryAddressError):
+        return 404, "not found"
+    except TooManyWrongKeysError as exc:
+        return 429, str(exc)
+    except HistoryUnreachableError as exc:
+        return 503, str(exc)
+    except VersionRefusedError as exc:
+        return 422, str(exc)
+    return None
 
 
 def _is_graph_read(scope: Scope) -> bool:

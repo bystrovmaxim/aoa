@@ -134,11 +134,19 @@ class Participant:
 
 @dataclass
 class Room:
-    """One room: its source, its participants, and the shared settings of every page."""
+    """
+    One room: its source, its participants, and the shared settings of every page.
+
+    A room on a history (spec 037) also names the history — its address without a key —
+    and the version it shows, a short sha or ``live``; ``source`` is then that version's
+    graph, and moves when the room's version does.
+    """
 
     id: str
     source: str
     created_by: str
+    history: str | None = None
+    version: str | None = None
     participants: dict[str, Participant] = field(default_factory=dict)
     page_settings: dict[str, dict[str, Any]] = field(default_factory=dict)
     reported_hashes: dict[tuple[str, str], str] = field(default_factory=dict)
@@ -154,6 +162,8 @@ class Room:
         return {
             "id": self.id,
             "source": self.source,
+            "history": self.history,
+            "version": self.version,
             "created_by": self.created_by,
             "participants": [participant.public() for participant in self.participants.values()],
             "settings": self.page_settings,
@@ -284,12 +294,16 @@ class RoomRegistry(BaseController):
         """Every open room of ``source``."""
         return (room for room in self._rooms.values() if room.source == source)
 
-    def open_room(self, source: str, created_by: str) -> Room:
-        """Create a room with a fresh 128-bit id."""
+    def rooms_of_history(self, history: str) -> Iterator[Room]:
+        """Every open room on the history named ``history``."""
+        return (room for room in self._rooms.values() if room.history == history)
+
+    def open_room(self, source: str, created_by: str, history: str | None = None, version: str | None = None) -> Room:
+        """Create a room with a fresh 128-bit id; on a history, name it and the version shown."""
         room_id = secrets.token_urlsafe(16)
         while room_id in self._rooms or room_id in self._ended:
             room_id = secrets.token_urlsafe(16)
-        room = Room(id=room_id, source=source, created_by=created_by)
+        room = Room(id=room_id, source=source, created_by=created_by, history=history, version=version)
         self._rooms[room_id] = room
         return room
 
