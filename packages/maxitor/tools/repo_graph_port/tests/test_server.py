@@ -6,12 +6,15 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from maxitor.repo_graph_port.cli import main as cli
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.server import create_app
 
 from tests.repo_builder import BuiltRepository, build_repository, graph
+from tests.stand_in_github import StandInGitHub
 from tests.test_keys import config_file, issue
 
 BASE = "/api/v1/history"
@@ -81,7 +84,8 @@ def test_too_many_wrong_keys_are_refused(port: tuple[TestClient, str, Path]) -> 
 def test_a_public_link_opens_with_no_key(tmp_path: Path, github_in: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """A link to a public repository's graph file opens its history and a version, with no key and no config entry."""
     public = build_repository(github_in / "owner" / "service.git")
-    client = TestClient(create_app(config_file(tmp_path), tmp_path / "cache"))
+    hub = StandInGitHub(None)
+    client = TestClient(create_app(config_file(tmp_path), tmp_path / "cache", GitHubHost(transport=hub.transport())))
     link = "https://github.com/owner/service/blob/main/graph.json"
     versions = client.get(f"{BASE}/public/versions", params={"link": link}).json()["versions"]
     assert [v["sha"] for v in versions] == public.versions
@@ -112,3 +116,18 @@ def test_the_server_refuses_a_config_out_of_shape(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="reserved"):
         create_app(broken, tmp_path / "cache")
     assert cli(["--config", str(broken), "check"]) == 2
+
+
+def test_a_history_answers_when_github_does_not(tmp_path: Path, github_in: Path) -> None:
+    """GitHub down or out of its rate limit: the versions still come, with their messages and no pull request."""
+    public = build_repository(github_in / "owner" / "service.git")
+
+    def down(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("unreachable", request=request)
+
+    client = TestClient(create_app(config_file(tmp_path), tmp_path / "cache", GitHubHost(transport=httpx.MockTransport(down))))
+    answer = client.get(f"{BASE}/public/versions", params={"link": "https://github.com/owner/service/blob/main/graph.json"})
+    assert answer.status_code == 200
+    listed = answer.json()["versions"]
+    assert [v["sha"] for v in listed] == public.versions
+    assert listed[0]["pr"] is None and listed[0]["message"] == "Add the graph"

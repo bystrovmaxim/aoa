@@ -21,6 +21,8 @@ ARCHITECTURE / DATA FLOW
          ──history(id)──► History | None
          ──reader_of(hash, today)──► (id, name) | None   — an expired key opens nothing
          ──keys(id?)──► names and expiry dates, never hashes
+         ──histories_of(repository, branch?)──► the histories a webhook concerns
+         ──github()──► the App's id and the names of its secrets' variables
 
 The file is read again when its modification time changes, so issuing or revoking a
 key needs no restart. A file out of shape — not TOML, a history missing a field, an
@@ -51,6 +53,7 @@ class _Loaded:
 
     histories: dict[str, History]
     readers: dict[str, tuple[str, str, date | None]]
+    github: tuple[int, str, str] | None
 
 
 @meta(description="The histories the port serves and their read keys, from its config file", domain=RepoGraphDomain)
@@ -94,6 +97,15 @@ class HistoriesConfig(BaseStorage):
             return None
         return history_id, name
 
+    def histories_of(self, repository: str, branch: str | None = None) -> list[History]:
+        """The configured histories of ``repository`` (on ``branch``, when given), by id."""
+        found = [h for h in self._current().histories.values() if h.repository == repository and branch in (None, h.branch)]
+        return sorted(found, key=lambda history: history.id)
+
+    def github(self) -> tuple[int, str, str] | None:
+        """The App's id and the names of the variables holding its private key and webhook secret, or ``None``."""
+        return self._current().github
+
     def keys(self, history_id: str | None = None) -> list[tuple[str, str, date | None]]:
         """Every key as (history id, name, expiry), of one history or of all, sorted."""
         listed = [entry for entry in self._current().readers.values() if history_id in (None, entry[0])]
@@ -121,7 +133,7 @@ def load_histories(path: Path) -> _Loaded:
         document = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as error:
         raise ValueError(f"{path}: not TOML: {error}") from None
-    _check_github(path, document.get("github"))
+    github = _github(path, document.get("github"))
     histories: dict[str, History] = {}
     readers: dict[str, tuple[str, str, date | None]] = {}
     for index, entry in enumerate(document.get("history", [])):
@@ -132,7 +144,7 @@ def load_histories(path: Path) -> _Loaded:
             name, digest, expires = _key(path, history.id, key, names)
             names.add(name)
             readers[digest] = (history.id, name, expires)
-    return _Loaded(histories, readers)
+    return _Loaded(histories, readers, github)
 
 
 def _history(path: Path, index: int, entry: dict[str, Any], seen: dict[str, History]) -> History:
@@ -166,10 +178,10 @@ def _key(path: Path, history_id: str, key: dict[str, Any], names: set[str]) -> t
     return name, digest, expires
 
 
-def _check_github(path: Path, table: object) -> None:
+def _github(path: Path, table: object) -> tuple[int, str, str] | None:
     """The ``[github]`` table, when present: the App's id and the names of the variables holding its secrets."""
     if table is None:
-        return
+        return None
     if not isinstance(table, dict):
         raise ValueError(f"{path}: [github] is not a table")
     if not isinstance(table.get("app_id"), int):
@@ -177,3 +189,4 @@ def _check_github(path: Path, table: object) -> None:
     for name in ("private_key_env", "webhook_secret_env"):
         if not isinstance(table.get(name), str) or not table[name]:
             raise ValueError(f"{path}: [github] lacks {name}")
+    return table["app_id"], table["private_key_env"], table["webhook_secret_env"]

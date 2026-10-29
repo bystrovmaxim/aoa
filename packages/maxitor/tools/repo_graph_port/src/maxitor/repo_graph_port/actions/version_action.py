@@ -29,6 +29,7 @@ from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
 from maxitor.repo_graph_port.history_reading import chosen, graph_of, refreshed
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
 from pydantic import Field
@@ -64,6 +65,7 @@ class VersionResult(BaseResult):
 @check_roles(GuestRole)
 @connection(HistoriesConfig, key="HistoriesConfig", description="The histories this server serves")
 @connection(GitMirror, key="GitMirror", description="The repositories' history, read with git")
+@connection(GitHubHost, key="GitHubHost", description="GitHub: the App's token, pull requests, releases")
 @connection(VersionCache, key="VersionCache", description="Each version's file, read once")
 class VersionAction(BaseAction[VersionParams, VersionResult]):
     """
@@ -86,14 +88,15 @@ class VersionAction(BaseAction[VersionParams, VersionResult]):
     ) -> VersionResult:
         """Answer from the cache, or check the sha is a version and read it once."""
         mirror = cast(GitMirror, connections["GitMirror"])
+        host = cast(GitHubHost, connections["GitHubHost"])
         cache = cast(VersionCache, connections["VersionCache"])
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
         kept = cache.graph(history.repository, params.sha)
         if kept is None:
-            await refreshed(mirror, cache, history, ctx.get("env.history_refresh_seconds"))
+            await refreshed(mirror, cache, host, history, ctx.get("env.history_refresh_seconds"))
             commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
             if params.sha not in {commit.sha for commit in commits}:
                 raise HistoryNotFoundError()
-            kept = await graph_of(mirror, cache, history, params.sha)
+            kept = await graph_of(mirror, cache, host, history, params.sha)
         await box.info(Channel.business, "History {%var.history} version read for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
         return VersionResult(graph=kept.decode("utf-8"))

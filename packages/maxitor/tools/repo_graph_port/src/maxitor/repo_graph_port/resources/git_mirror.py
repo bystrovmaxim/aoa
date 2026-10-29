@@ -23,9 +23,10 @@ ARCHITECTURE / DATA FLOW
     versions / first_parents / tags / file_at ──► git log / rev-list / for-each-ref / show
 
 Every call is ``subprocess.run`` with an argument list, no shell, a timeout and
-no terminal prompt. ``auth`` is extra environment for that one call (the host's
-credentials, as git config variables); it is never stored, logged or written to
-the mirror's config.
+no terminal prompt. ``auth`` is git configuration for that one call — the host's
+credentials as an ``http.<url>.extraheader`` — passed through ``GIT_CONFIG_COUNT`` /
+``GIT_CONFIG_KEY_<n>`` / ``GIT_CONFIG_VALUE_<n>`` after any the environment already
+holds; it is never stored, logged, put in a remote URL or written to the mirror's config.
 """
 
 from __future__ import annotations
@@ -135,10 +136,21 @@ class GitMirror(BaseStorage):
             found.append(Tag(name=name, sha=peeled or target))
         return found
 
+    def changed(self, repository: str, before: str, after: str, path: str) -> bool:
+        """Whether ``path`` changed by first parent between ``before`` and ``after``; a history git cannot compare that way counts as changed."""
+        if set(before) == {"0"}:
+            return True
+        try:
+            out = self._git(self._place(repository), ["log", "--first-parent", "--format=%H", f"{before}..{after}", "--", path])
+        except GitError:
+            # ``before`` is gone — a forced push: the history is read again whole.
+            return True
+        return bool(out.strip())
+
     def file_at(self, repository: str, sha: str, path: str, auth: Mapping[str, str] | None = None) -> bytes | None:
         """The bytes of ``path`` at commit ``sha`` exactly as committed, or ``None`` when the commit has no such file."""
         place = self._place(repository)
-        if not self._git(place, ["ls-tree", "--name-only", sha, "--", path]).strip():
+        if not self._git(place, ["ls-tree", "--name-only", sha, "--", path], auth).strip():
             return None
         return self._git(place, ["show", f"{sha}:{path}"], auth)
 
@@ -158,7 +170,12 @@ class GitMirror(BaseStorage):
         """Run one git command in ``place`` and return its standard output; a failure or a timeout is a ``GitError``."""
         timeout_seconds = 300
         command = ["git", *(["-C", str(place)] if place is not None else []), *arguments]
-        environment = {**os.environ, "GIT_TERMINAL_PROMPT": "0", **(auth or {})}
+        environment = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+        held = int(environment.get("GIT_CONFIG_COUNT", "0"))
+        for index, (key, value) in enumerate((auth or {}).items(), start=held):
+            environment[f"GIT_CONFIG_KEY_{index}"] = key
+            environment[f"GIT_CONFIG_VALUE_{index}"] = value
+        environment["GIT_CONFIG_COUNT"] = str(held + len(auth or {}))
         try:
             done = subprocess.run(command, capture_output=True, env=environment, timeout=timeout_seconds, check=False)
         except subprocess.TimeoutExpired:
