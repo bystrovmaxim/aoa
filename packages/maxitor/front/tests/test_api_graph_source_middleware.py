@@ -98,7 +98,7 @@ class _BusyStore:
     running = 0
     queued = 0
 
-    async def acquire(self, source: str) -> GraphEntry:
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
         """Refuse the read, as a store that waited out its slot limit does."""
         raise GraphStoreBusyError(BUSY_DETAIL)
 
@@ -113,7 +113,7 @@ class _FailingStore:
     def __init__(self, reason: str) -> None:
         self._reason = reason
 
-    async def acquire(self, source: str) -> GraphEntry:
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
         """Refuse the read with the reason a failed build would carry."""
         raise GraphBuildError(self._reason)
 

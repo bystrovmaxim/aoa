@@ -151,6 +151,17 @@
       "type": "@connection"
     },
     {
+      "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "is_dag": true,
       "properties": {
@@ -159,6 +170,17 @@
       "relationship": "Association",
       "source_id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction",
       "target_id": "maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "RepoGraphPort"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction",
+      "target_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "type": "@connection"
     },
     {
@@ -215,6 +237,102 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesResult",
       "target_id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesResult:checked",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "RepoGraphPort"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
+      "is_dag": true,
+      "properties": {
+        "key": "RoomRegistry"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@summary_aspect|maxitor.front.model.core.actions.check_history_action.CheckHistoryAction:check_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction:check_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|generic:params|maxitor.front.model.core.actions.check_history_action.CheckHistoryParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|generic:result|maxitor.front.model.core.actions.check_history_action.CheckHistoryResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams|field|maxitor.front.model.core.actions.check_history_action.CheckHistoryParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams",
+      "target_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult|field|maxitor.front.model.core.actions.check_history_action.CheckHistoryResult:status",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult:status",
       "type": "field"
     },
     {
@@ -329,6 +447,115 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.check_source_action.CheckSourceResult",
       "target_id": "maxitor.front.model.core.actions.check_source_action.CheckSourceResult:status",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary|@required_context|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:request.client_ip",
+      "is_dag": false,
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:request.client_ip",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary|@required_context|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:user.history_key",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history_key"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:user.history_key",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryAccess"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "RepoGraphPort"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@summary_aspect|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|generic:params|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|generic:result|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams|field|maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams:source",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams",
+      "target_id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams:source",
       "type": "field"
     },
     {
@@ -490,6 +717,144 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.graph_fingerprint_action.GraphFingerprintResult",
       "target_id": "maxitor.front.model.core.actions.graph_fingerprint_action.GraphFingerprintResult:fingerprint",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary|@required_context|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:request.client_ip",
+      "is_dag": false,
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:request.client_ip",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary|@required_context|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:user.history_key",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history_key"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:user.history_key",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryAccess"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
+      "is_dag": true,
+      "properties": {
+        "key": "OpenTabs"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "RepoGraphPort"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@summary_aspect|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|generic:params|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|generic:result|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams|field|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
       "type": "field"
     },
     {
@@ -947,6 +1312,198 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary|@required_context|maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:request.client_ip",
+      "is_dag": false,
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:request.client_ip",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary|@required_context|maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:user.history_key",
+      "is_dag": false,
+      "properties": {
+        "key": "user.history_key"
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:user.history_key",
+      "type": "@required_context"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryAccess"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
+      "is_dag": true,
+      "properties": {
+        "key": "OpenTabs"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "RepoGraphPort"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@summary_aspect|maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|generic:params|maxitor.front.model.core.actions.open_history_action.OpenHistoryParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|generic:result|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:count",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:count",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:host",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:host",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:repository",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:repository",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:room_ticket",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:room_ticket",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:title",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:title",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:versions",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:versions",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.core.core_domain.CoreDomain|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -1043,6 +1600,24 @@
       "type": "domain"
     },
     {
+      "id": "maxitor.front.model.core.resources.history_access.HistoryAccess|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.resources.history_store.HistoryStore|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
       "id": "maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry|domain|maxitor.front.model.core.core_domain.CoreDomain",
       "is_dag": true,
       "properties": {},
@@ -1057,6 +1632,15 @@
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "maxitor.front.model.core.resources.own_model_graph_resource.OwnModelGraphResource",
+      "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway|domain|maxitor.front.model.core.core_domain.CoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
       "type": "domain"
     },
@@ -2090,6 +2674,28 @@
       "type": "@connection"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryAccess"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction",
+      "target_id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "is_dag": true,
       "properties": {
@@ -2146,6 +2752,15 @@
       "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction",
       "target_id": "maxitor.front.model.rooms.actions.room_action_support.RoomAnswer",
       "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
+      "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:history",
+      "type": "field"
     },
     {
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:host",
@@ -2217,6 +2832,24 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
       "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:tab",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:ticket",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
+      "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:ticket",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
+      "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version",
       "type": "field"
     },
     {
@@ -2774,6 +3407,93 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
+      "is_dag": true,
+      "properties": {
+        "key": "socket"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "aoa.fastapi.socket_channel.SocketChannel",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
+      "is_dag": true,
+      "properties": {
+        "key": "HistoryStore"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
+      "is_dag": true,
+      "properties": {
+        "key": "RoomRegistry"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@summary_aspect|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction:version_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction:version_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|domain|maxitor.front.model.rooms.rooms_domain.RoomsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.rooms.rooms_domain.RoomsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|generic:params|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|generic:result|maxitor.front.model.rooms.actions.room_action_support.RoomAnswer",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "target_id": "maxitor.front.model.rooms.actions.room_action_support.RoomAnswer",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams|field|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.stop_following_action.StopFollowingAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
       "is_dag": false,
       "properties": {},
@@ -2992,7 +3712,57 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesResult:checked",
       "label": "checked",
       "properties": {
-        "description": "Sources a check was run for",
+        "description": "Sources and histories a check was run for",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction",
+      "label": "CheckHistoryAction",
+      "properties": {
+        "description": "Ask a held history's port whether its list or its Live changed, and tell its rooms"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction:check_summary",
+      "label": "check_summary",
+      "properties": {
+        "description": "Check the history and tell its rooms"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams",
+      "label": "CheckHistoryParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryParams:history",
+      "label": "history",
+      "properties": {
+        "description": "The history's address without its key",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult",
+      "label": "CheckHistoryResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryResult:status",
+      "label": "status",
+      "properties": {
+        "description": "not_held, skipped, unchanged, changed, unreachable or not_found",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -3072,6 +3842,61 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction",
+      "label": "CheckVersionAccessAction",
+      "properties": {
+        "description": "Decide whether a reader may read a version's graph"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary",
+      "label": "access_summary",
+      "properties": {
+        "description": "Decide whether the reader may read the version"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:request.client_ip",
+      "label": "request.client_ip",
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction:access_summary:reqctx:user.history_key",
+      "label": "user.history_key",
+      "properties": {
+        "key": "user.history_key"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams",
+      "label": "CheckVersionAccessParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessParams:source",
+      "label": "source",
+      "properties": {
+        "description": "A version's source: the port's version URL, keyless",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessResult",
+      "label": "CheckVersionAccessResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
       "id": "maxitor.front.model.core.actions.get_own_graph_json_action.GetOwnGraphJsonAction",
       "label": "GetOwnGraphJsonAction",
       "properties": {
@@ -3148,6 +3973,83 @@
       "label": "fingerprint",
       "properties": {
         "description": "SHA-256 of the graph-json body the held graph is built from",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "label": "HistoryVersionsAction",
+      "properties": {
+        "description": "Answer a held history's versions to a polling tab"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary",
+      "label": "versions_summary",
+      "properties": {
+        "description": "Answer the versions"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:request.client_ip",
+      "label": "request.client_ip",
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction:versions_summary:reqctx:user.history_key",
+      "label": "user.history_key",
+      "properties": {
+        "key": "user.history_key"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams",
+      "label": "HistoryVersionsParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsParams:history",
+      "label": "history",
+      "properties": {
+        "description": "The history's address without its key",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "label": "HistoryVersionsResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live",
+      "label": "live",
+      "properties": {
+        "description": "The running service whose graph is Live, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
+      "label": "versions",
+      "properties": {
+        "description": "The port's versions, oldest first",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -3622,6 +4524,149 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "label": "OpenHistoryAction",
+      "properties": {
+        "description": "Open a history through its port and hold it"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary",
+      "label": "open_summary",
+      "properties": {
+        "description": "Open the history and answer it"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:request.client_ip",
+      "label": "request.client_ip",
+      "properties": {
+        "key": "request.client_ip"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction:open_summary:reqctx:user.history_key",
+      "label": "user.history_key",
+      "properties": {
+        "key": "user.history_key"
+      },
+      "type": "RequiredContext"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams",
+      "label": "OpenHistoryParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryParams:history",
+      "label": "history",
+      "properties": {
+        "description": "The history's address without its key: a port's history URL, or a GitHub link to a graph file",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "label": "OpenHistoryResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:count",
+      "label": "count",
+      "properties": {
+        "description": "How many versions there are",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:host",
+      "label": "host",
+      "properties": {
+        "description": "github or local: whether #123 in a message is a pull request on GitHub",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live",
+      "label": "live",
+      "properties": {
+        "description": "The running service whose graph is Live, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
+      "label": "name",
+      "properties": {
+        "description": "The history's address without its key",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:repository",
+      "label": "repository",
+      "properties": {
+        "description": "owner/name on the host, or a path on the port's disk",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:room_ticket",
+      "label": "room_ticket",
+      "properties": {
+        "description": "A one-use ticket into a room of this history, for a private one",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:title",
+      "label": "title",
+      "properties": {
+        "description": "The history's id, or owner/repo for a public one",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:versions",
+      "label": "versions",
+      "properties": {
+        "description": "The port's versions, oldest first",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.core.core_domain.CoreDomain",
       "label": "CoreDomain",
       "properties": {
@@ -3707,6 +4752,22 @@
       "type": "Resource"
     },
     {
+      "id": "maxitor.front.model.core.resources.history_access.HistoryAccess",
+      "label": "HistoryAccess",
+      "properties": {
+        "description": "Which keys a port accepted lately, and room tickets"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.front.model.core.resources.history_store.HistoryStore",
+      "label": "HistoryStore",
+      "properties": {
+        "description": "The histories Maxitor holds, one per name"
+      },
+      "type": "Resource"
+    },
+    {
       "id": "maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "label": "OpenTabsRegistry",
       "properties": {
@@ -3719,6 +4780,14 @@
       "label": "OwnModelGraphResource",
       "properties": {
         "description": "Maxitor's own model as interchange graph JSON"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
+      "label": "RepoGraphPortGateway",
+      "properties": {
+        "description": "Asks a repo-graph-port about a history"
       },
       "type": "Resource"
     },
@@ -5084,6 +6153,17 @@
       "type": "Params"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:history",
+      "label": "history",
+      "properties": {
+        "description": "The history a new room is on, its address without a key; ignored when joining",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:host",
       "label": "host",
       "properties": {
@@ -5168,6 +6248,28 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:ticket",
+      "label": "ticket",
+      "properties": {
+        "description": "The one-use ticket into a room on a private history, from OpenHistoryAction",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version",
+      "label": "version",
+      "properties": {
+        "description": "The version a new room on a history opens on: a short sha or 'live'",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
@@ -5435,6 +6537,39 @@
       "label": "value",
       "properties": {
         "description": "The setting's new value: a word, a boolean or a list of names",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
+      "label": "SetRoomVersionAction",
+      "properties": {
+        "description": "Move a room on a history to another version"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction:version_summary",
+      "label": "version_summary",
+      "properties": {
+        "description": "Move the room or refuse the pick"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "label": "SetRoomVersionParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",
+      "label": "b",
+      "properties": {
+        "description": "The version: the first 12 hex characters of its commit, or 'live'",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true

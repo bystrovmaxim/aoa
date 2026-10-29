@@ -6,7 +6,7 @@ Every route is an AOA action behind Maxitor's `FastApiAdapter`. A private histor
 
 | Route | Action | Input | Answer |
 |---|---|---|---|
-| `GET /api/history?history=<name>` | `OpenHistoryAction` | the history's name (its address without the key); the key in the header | `{name, title, host, repository, live, versions: [Version…], count, room_ticket}`; `ETag`; `room_ticket` only for a private history (research R18) |
+| `GET /api/history/open?history=<name>` | `OpenHistoryAction` | the history's name (its address without the key); the key in the header | `{name, title, host, repository, live, versions: [Version…], count, room_ticket}`; `ETag`; `room_ticket` only for a private history (research R18) |
 | `GET /api/history/versions?history=<name>` | `HistoryVersionsAction` | the name; `If-None-Match` | `{versions: [Version…]}`; `ETag`; `304` when unchanged |
 
 `Version` is the port's (`sha, date, pr, message, tags, nodes, edges, refused`).

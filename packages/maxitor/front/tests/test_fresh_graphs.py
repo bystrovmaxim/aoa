@@ -44,8 +44,14 @@ from maxitor.front.model.core.actions.check_source_action import CheckSourceActi
 from maxitor.front.model.core.actions.graph_fingerprint_action import GraphFingerprintAction, GraphFingerprintParams
 from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from maxitor.front.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from maxitor.front.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.front.model.core.resources.open_tabs_registry import OPEN_TABS_CONNECTION_KEY, OpenTabsRegistry
+from maxitor.front.model.core.resources.repo_graph_port_gateway import (
+    REPO_GRAPH_PORT_CONNECTION_KEY,
+    RepoGraphPortGateway,
+)
 from maxitor.front.model.core.resources.source_checks import SOURCE_CHECKS_CONNECTION_KEY, SourceChecks
+from maxitor.front.model.core.source_label import label
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 
 from aoa.action_machine.context import Context
@@ -190,7 +196,7 @@ async def test_a_failing_build_keeps_the_old_graph(service: tuple[Service, str],
     state.body = b"not json"
     assert await maxitor.check(source) == "failed"
     assert maxitor.store.peek(source) is held
-    assert f"Source {source} not rebuilt" in capsys.readouterr().out
+    assert f"Source {label(source)} not rebuilt" in capsys.readouterr().out
 
 
 async def test_an_unreachable_service_keeps_the_old_graph_readable(service: tuple[Service, str]) -> None:
@@ -222,7 +228,12 @@ async def test_an_unwatched_source_waits_for_its_next_read(service: tuple[Servic
     entry = await maxitor.store.acquire(source)
     entry.last_checked -= 1000
     maxitor.tabs.seen(source, maxitor.store.now() - 600)
-    due_connections = {**maxitor.check_connections(), OPEN_TABS_CONNECTION_KEY: maxitor.tabs}
+    due_connections = {
+        **maxitor.check_connections(),
+        OPEN_TABS_CONNECTION_KEY: maxitor.tabs,
+        HISTORY_STORE_CONNECTION_KEY: HistoryStore(),
+        REPO_GRAPH_PORT_CONNECTION_KEY: RepoGraphPortGateway(),
+    }
     picked = await maxitor.machine.run(Context(), CheckDueSourcesAction(), ParamsStub(), due_connections)
     assert picked.checked == []
     before = state.requests
@@ -246,7 +257,7 @@ async def test_an_unwatched_source_waits_for_its_next_read(service: tuple[Servic
 
 
 async def test_the_log_names_the_source_and_nobody_else(service: tuple[Service, str], capsys: pytest.CaptureFixture[str]) -> None:
-    """(8) Check records carry the source; no participant appears in them."""
+    """(8) Check records name the source by its label, never its address; no participant appears in them."""
     state, source = service
     maxitor = _maxitor()
     await maxitor.store.acquire(source)
@@ -257,5 +268,6 @@ async def test_the_log_names_the_source_and_nobody_else(service: tuple[Service, 
     state.body = _CHANGED_BODY
     await maxitor.check(source)
     out = capsys.readouterr().out
-    assert f"Source {source} unchanged" in out and f"Source {source} rebuilt" in out
+    assert f"Source {label(source)} unchanged" in out and f"Source {label(source)} rebuilt" in out
+    assert source not in out
     assert "anna" not in out.lower() and "Secret" not in out

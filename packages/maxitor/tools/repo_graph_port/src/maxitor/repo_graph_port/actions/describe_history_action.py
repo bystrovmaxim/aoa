@@ -15,7 +15,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    history id ──► config ──► mirror refreshed ──► versions ──► {id, repository, branch, graph_file, versions, newest}
+    history id ──► config ──► mirror refreshed ──► versions ──► {id, repository, branch, graph_file, versions, newest, live, reader}
 """
 
 from __future__ import annotations
@@ -60,6 +60,8 @@ class DescribeHistoryResult(BaseResult):
     graph_file: str = Field(description="The graph file's path in the repository")
     versions: int = Field(description="How many versions the history has")
     newest: str | None = Field(default=None, description="The newest version's sha; none when there is no version")
+    live: str | None = Field(default=None, description="The running service whose graph is Live; none when the config names none, and for a public link")
+    reader: str | None = Field(default=None, description="The name of the key that opened the history; none for a public link")
 
 
 @meta(description="Describe a graph's history: its repository, branch, file and versions", domain=RepoGraphDomain)
@@ -72,7 +74,7 @@ class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryRes
     """
     AI-CORE-BEGIN
     ROLE: Say what a history is before its versions are read.
-    CONTRACT: A history the request may not open — unknown, not opened by its key, a link to nothing public — raises ``HistoryNotFoundError``; ``newest`` is the last version's sha.
+    CONTRACT: A history the request may not open — unknown, not opened by its key, a link to nothing public — raises ``HistoryNotFoundError``; ``newest`` is the last version's sha; ``live`` and ``reader`` are absent for a public link.
     INVARIANTS: Reads only; fetches the repository only after the fallback interval.
     AI-CORE-END
     """
@@ -101,4 +103,6 @@ class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryRes
             graph_file=history.graph_file,
             versions=len(commits),
             newest=commits[-1].sha if commits else None,
+            live=None if history.public else history.live,
+            reader=None if history.public else ctx.get("user.user_id"),
         )

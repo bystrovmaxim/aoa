@@ -3,7 +3,7 @@
 #
 # The stand is accepted by opening its URLs and by running one command — this
 # script is that command. In order: DNS and TLS-terminator gates, build the
-# images (demo, Maxitor, repo-graph-port), start the containers, poll their health,
+# images (demo, Maxitor, repo-graph-port, Maxitor's own port), start the containers, poll their health,
 # verify every domain, and roll back to the previously running images on any failure. On nginx, every run
 # also makes sure Maxitor's vhost passes room WebSockets (spec 028), including a
 # vhost an earlier run wrote.
@@ -59,7 +59,7 @@ DEMO_PORT="${DEMO_PORT:-8100}"
 MAXITOR_PORT="${MAXITOR_PORT:-8101}"
 REPO_GRAPH_PORT_DOMAIN="${REPO_GRAPH_PORT_DOMAIN:-repo-graph-port.aoa.run}"
 REPO_GRAPH_PORT_PORT="${REPO_GRAPH_PORT_PORT:-8103}"
-SERVICES=(demo maxitor repo-graph-port)
+SERVICES=(demo maxitor repo-graph-port maxitor-public-port)
 
 say() { printf '%s\n' "$*"; }
 fail() { say "FAIL: $*"; exit 1; }
@@ -394,6 +394,7 @@ main() {
     wait_healthy demo || rollback "the demo container did not become healthy"
     wait_healthy maxitor || rollback "the Maxitor container did not become healthy"
     wait_healthy repo-graph-port || rollback "the repo-graph-port container did not become healthy"
+    wait_healthy maxitor-public-port || rollback "Maxitor's own port did not become healthy"
     # The containers may have been recreated with new network addresses; nginx
     # resolves upstream names once per reload, so re-resolve them now.
     if [[ $LOCAL_MODE -eq 0 ]]; then

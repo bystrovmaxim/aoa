@@ -12,56 +12,56 @@ Modes: M1 Live only · M2 history, several, no Live · M3 history, one, no Live 
 
 ## Requirement Completeness
 
-- [ ] CHK001 Does the spec name the seven modes, or only list the combinations in FR-009a, leaving the names M1–M7 to the UI contract? Tasks and tests will cite them. [Traceability, Spec §FR-009a, Contract ui "Modes"]
-- [ ] CHK002 Is the version the history opens on specified for every mode, M7 included (FR-021 covers "Live, otherwise the newest")? [Completeness, Spec §FR-021, Contract ui]
-- [ ] CHK003 Is the button's text specified for M2 and M3, where the newest version may be a release, a merge after a release, or a version before any release (FR-013 gives only `Live` and `v0.11.0 · #147`)? [Clarity, Spec §FR-013, §FR-018]
-- [ ] CHK004 Is the picker's subtitle specified for one version and for none ("1 version", "0 versions and Live"), not only by FR-015's "12 versions and Live"? [Clarity, Spec §FR-015]
-- [ ] CHK005 Are the keys' effects specified where there is nothing to step to (M3, M6), and between the one point and Live (M5)? [Coverage, Spec §FR-020, Contract ui]
-- [ ] CHK006 Is the message area specified for each mode: a version's message, Live's closing line, Live's line without "newest version" in M6? [Completeness, Spec §FR-028, §FR-030]
-- [ ] CHK007 Is what Recent says specified for each mode (FR-012 gives two kinds only)? [Completeness, Spec §FR-012, Contract ui]
-- [ ] CHK008 Is the phone's sheet specified for the modes where the track is a single point or Live alone (M3, M5, M6)? [Coverage, Spec §FR-031]
-- [ ] CHK009 Is what the address bar carries in each mode specified, including no `b` in M7 and `b=live` only where Live exists? [Completeness, Spec §FR-022]
-- [ ] CHK010 Is freshness specified per mode — the list alone in M2, M3, M7; the list and Live in M4–M6; the graph alone in M1? [Completeness, Spec §FR-006, §FR-006a]
+- [x] CHK001 Does the spec name the seven modes, or only list the combinations in FR-009a, leaving the names M1–M7 to the UI contract? Tasks and tests will cite them. [Traceability, Spec §FR-009a, Contract ui "Modes"]
+- [x] CHK002 Is the version the history opens on specified for every mode, M7 included (FR-021 covers "Live, otherwise the newest")? [Completeness, Spec §FR-021, Contract ui]
+- [x] CHK003 Is the button's text specified for M2 and M3, where the newest version may be a release, a merge after a release, or a version before any release (FR-013 gives only `Live` and `v0.11.0 · #147`)? [Clarity, Spec §FR-013, §FR-018]
+- [x] CHK004 Is the picker's subtitle specified for one version and for none ("1 version", "0 versions and Live"), not only by FR-015's "12 versions and Live"? [Clarity, Spec §FR-015]
+- [x] CHK005 Are the keys' effects specified where there is nothing to step to (M3, M6), and between the one point and Live (M5)? [Coverage, Spec §FR-020, Contract ui]
+- [x] CHK006 Is the message area specified for each mode: a version's message, Live's closing line, Live's line without "newest version" in M6? [Completeness, Spec §FR-028, §FR-030]
+- [x] CHK007 Is what Recent says specified for each mode (FR-012 gives two kinds only)? [Completeness, Spec §FR-012, Contract ui]
+- [x] CHK008 Is the phone's sheet specified for the modes where the track is a single point or Live alone (M3, M5, M6)? [Coverage, Spec §FR-031]
+- [x] CHK009 Is what the address bar carries in each mode specified, including no `b` in M7 and `b=live` only where Live exists? [Completeness, Spec §FR-022]
+- [x] CHK010 Is freshness specified per mode — the list alone in M2, M3, M7; the list and Live in M4–M6; the graph alone in M1? [Completeness, Spec §FR-006, §FR-006a]
 
 ## Requirement Clarity
 
-- [ ] CHK011 Is the M7 workspace text fixed, and is it distinct from "not found" and "cannot be read now", so the three are never confused? [Clarity, Spec §Edge Cases "A history with no versions"]
-- [ ] CHK012 Does "+N newer" count Live as one of the newer points, in M4 and M5? [Ambiguity, Spec §FR-024]
-- [ ] CHK013 Is the Live point exempt from label thinning, or can its name thin out like a release's? [Ambiguity, Spec §FR-026]
-- [ ] CHK014 Is "drawn hollow" for a refused version (contract) carried into the spec, with how a refused release and a refused merge differ? [Traceability, Spec §FR-008, Contract ui]
+- [x] CHK011 Is the M7 workspace text fixed, and is it distinct from "not found" and "cannot be read now", so the three are never confused? [Clarity, Spec §Edge Cases "A history with no versions"]
+- [x] CHK012 Does "+N newer" count Live as one of the newer points, in M4 and M5? [Ambiguity, Spec §FR-024]
+- [x] CHK013 Is the Live point exempt from label thinning, or can its name thin out like a release's? [Ambiguity, Spec §FR-026]
+- [x] CHK014 Is "drawn hollow" for a refused version (contract) carried into the spec, with how a refused release and a refused merge differ? [Traceability, Spec §FR-008, Contract ui]
 
 ## Requirement Consistency
 
-- [ ] CHK015 Do FR-007 (no Live for a public link) and the mode table agree that a public history is only ever M2, M3 or M7? [Consistency, Spec §FR-007, Contract ui]
-- [ ] CHK016 Do the counts agree — `describe`'s `versions` and the length of the list — and is it said which one the mode is derived from when they differ between two reads? [Consistency, Contract port, Contract maxitor-api]
-- [ ] CHK017 Is US1 scenario 2 ("shows Live if the history has one, otherwise its newest version") consistent with M7, where there is no newest version and no button? [Consistency, Spec §US1, Contract ui]
-- [ ] CHK018 Is SC-001 ("a history shows it [the button] in 100%") consistent with M7, where a history has no button? [Conflict, Spec §SC-001, Contract ui]
+- [x] CHK015 Do FR-007 (no Live for a public link) and the mode table agree that a public history is only ever M2, M3 or M7? [Consistency, Spec §FR-007, Contract ui]
+- [x] CHK016 Do the counts agree — `describe`'s `versions` and the length of the list — and is it said which one the mode is derived from when they differ between two reads? [Consistency, Contract port, Contract maxitor-api]
+- [x] CHK017 Is US1 scenario 2 ("shows Live if the history has one, otherwise its newest version") consistent with M7, where there is no newest version and no button? [Consistency, Spec §US1, Contract ui]
+- [x] CHK018 Is SC-001 ("a history shows it [the button] in 100%") consistent with M7, where a history has no button? [Conflict, Spec §SC-001, Contract ui]
 
 ## Mode Transitions
 
-- [ ] CHK019 Are the moves between modes while a history is open stated in the spec — M7 → M3 → M2 and M6 → M5 → M4 on new merges — and not only in the UI contract? [Traceability, Spec §FR-006a, Contract ui]
-- [ ] CHK020 Is it specified what happens when `live` is added to or removed from the port's config while a history is open (M2 ↔ M4, M3 ↔ M5, M7 ↔ M6), including for a user who is on Live? [Gap, Spec §FR-007]
-- [ ] CHK021 Is it specified what happens when a version disappears from the list (the branch rewritten, the graph file moved) while someone is on it? [Gap, Edge Case]
-- [ ] CHK022 Is a mode change inside a room specified: who sees the new button, and whether the room's version moves? [Gap, Spec §FR-022a]
-- [ ] CHK023 Is it specified what a single user (outside a room) sees when the version they move to lacks the page they are on? Fallback is stated for rooms only. [Gap, Research R9]
+- [x] CHK019 Are the moves between modes while a history is open stated in the spec — M7 → M3 → M2 and M6 → M5 → M4 on new merges — and not only in the UI contract? [Traceability, Spec §FR-006a, Contract ui]
+- [x] CHK020 Is it specified what happens when `live` is added to or removed from the port's config while a history is open (M2 ↔ M4, M3 ↔ M5, M7 ↔ M6), including for a user who is on Live? [Gap, Spec §FR-007]
+- [x] CHK021 Is it specified what happens when a version disappears from the list (the branch rewritten, the graph file moved) while someone is on it? [Gap, Edge Case]
+- [x] CHK022 Is a mode change inside a room specified: who sees the new button, and whether the room's version moves? [Gap, Spec §FR-022a]
+- [x] CHK023 Is it specified what a single user (outside a room) sees when the version they move to lacks the page they are on? Fallback is stated for rooms only. [Gap, Research R9]
 
 ## Refused Versions
 
-- [ ] CHK024 Is the opening version specified when the newest version is refused and there is no Live (M2, M3), and when every version is refused? [Edge Case, Spec §FR-008, §FR-021]
-- [ ] CHK025 Is it specified whether a room may move to a refused version (the room contract refuses it) and what the participant who picked it is told? [Consistency, Spec §FR-022a, Contract room-protocol]
-- [ ] CHK026 Is the tooltip of a refused version specified, so the reason is visible before choosing it? [Gap, Spec §FR-019]
+- [x] CHK024 Is the opening version specified when the newest version is refused and there is no Live (M2, M3), and when every version is refused? [Edge Case, Spec §FR-008, §FR-021]
+- [x] CHK025 Is it specified whether a room may move to a refused version (the room contract refuses it) and what the participant who picked it is told? [Consistency, Spec §FR-022a, Contract room-protocol]
+- [x] CHK026 Is the tooltip of a refused version specified, so the reason is visible before choosing it? [Gap, Spec §FR-019]
 
 ## Unreachable Live
 
-- [ ] CHK027 Is it specified whether a history whose Live is unreachable at the moment it is opened still opens on Live (M4–M6), or on its newest version? [Ambiguity, Spec §FR-021, §Edge Cases "Live unreachable"]
-- [ ] CHK028 Is M6 with an unreachable Live specified — no version to fall back to, nothing to show but the unreachable state? [Edge Case, Gap]
-- [ ] CHK029 Is the closing line of Live specified while Live is unreachable ("checked 12 s ago" of what)? [Clarity, Spec §FR-030]
-- [ ] CHK030 Is an unreachable Live inside a room specified: everyone on Live sees the same state, and anyone may still move the room to a version? [Coverage, Spec §FR-022a]
+- [x] CHK027 Is it specified whether a history whose Live is unreachable at the moment it is opened still opens on Live (M4–M6), or on its newest version? [Ambiguity, Spec §FR-021, §Edge Cases "Live unreachable"]
+- [x] CHK028 Is M6 with an unreachable Live specified — no version to fall back to, nothing to show but the unreachable state? [Edge Case, Gap]
+- [x] CHK029 Is the closing line of Live specified while Live is unreachable ("checked 12 s ago" of what)? [Clarity, Spec §FR-030]
+- [x] CHK030 Is an unreachable Live inside a room specified: everyone on Live sees the same state, and anyone may still move the room to a version? [Coverage, Spec §FR-022a]
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK031 Is there a success criterion per mode — or one that names all seven — so that "ready for every case" can be measured, not judged? [Measurability, Spec §FR-009a, §SC-001]
-- [ ] CHK032 Do the long-history criteria (SC-005, 64 versions) say whether they hold with Live (M4) as well as without (M2)? [Coverage, Spec §SC-005]
+- [x] CHK031 Is there a success criterion per mode — or one that names all seven — so that "ready for every case" can be measured, not judged? [Measurability, Spec §FR-009a, §SC-001]
+- [x] CHK032 Do the long-history criteria (SC-005, 64 versions) say whether they hold with Live (M4) as well as without (M2)? [Coverage, Spec §SC-005]
 
 ## Notes
 
