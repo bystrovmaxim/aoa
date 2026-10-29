@@ -108,6 +108,6 @@ def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> Non
     """``graph-builder skill`` prints a skill file an agent can save as it is."""
     assert main(["skill"]) == 0
     text = capsys.readouterr().out
-    assert text.startswith("---\nname: graph-builder-setup\ndescription: ")
+    assert text.startswith("---\nname: aoa-graph-builder-setup\ndescription: ")
     assert "## Setup" in text and "## If you read this from a link" in text
     assert "uvx --from maxitor graph-builder" in text and "maxitor-gnomon" not in text
