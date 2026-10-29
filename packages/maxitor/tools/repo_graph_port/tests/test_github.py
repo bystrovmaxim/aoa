@@ -17,7 +17,7 @@ from maxitor.repo_graph_port.server import create_app
 
 from tests.repo_builder import GRAPH_FILE, BuiltRepository, build_repository, graph
 from tests.stand_in_github import APP_ID, TOKEN, StandInGitHub, app_key
-from tests.test_keys import issue
+from tests.test_keys import config_file, issue
 
 SECRET = "webhook-secret-for-tests"
 BASE = "/api/v1/history"
@@ -159,3 +159,26 @@ def test_without_an_app_a_private_history_is_not_found(tmp_path: Path, github_in
     client = TestClient(create_app(config, tmp_path / "cache"))
     answer = client.get(f"{BASE}/orders/versions", headers={"X-Maxitor-History-Key": key})
     assert (answer.status_code, answer.json()) == (404, {"detail": "not found"})
+
+
+def test_a_public_link_reads_the_api_with_the_apps_token(tmp_path: Path, github_in: Path) -> None:
+    """With an App set, a public history's pull requests are asked with an installation's token — not anonymously, within 60 an hour."""
+    public = build_repository(github_in / "other" / "open.git")
+    pem, key = app_key()
+    hub = StandInGitHub(key)
+    hub.pulls[public.sha["m1"]] = [{"number": 9, "title": "Public PR", "body": "", "html_url": "u", "merge_commit_sha": public.sha["m1"]}]
+    config = tmp_path / "histories.toml"
+    config.write_text(f'[github]\napp_id = {APP_ID}\nprivate_key_env = "APP_KEY"\nwebhook_secret_env = "HOOK_SECRET"\n', encoding="utf-8")
+    client = TestClient(create_app(config, tmp_path / "cache", GitHubHost(APP_ID, pem, SECRET, transport=hub.transport())))
+    listed = client.get(f"{BASE}/public/versions", params={"link": "https://github.com/other/open/blob/main/graph.json"}).json()["versions"]
+    assert {v["sha"]: v for v in listed}[public.sha["m1"]]["pr"]["title"] == "Public PR"
+    assert hub.authorized[f"/repos/other/open/commits/{public.sha['m1']}/pulls"] == f"Bearer {TOKEN}"
+
+
+def test_without_an_app_a_public_link_reads_the_api_anonymously(tmp_path: Path, github_in: Path) -> None:
+    """With no App, the same reads carry no token at all."""
+    public = build_repository(github_in / "other" / "open.git")
+    hub = StandInGitHub(None)
+    client = TestClient(create_app(config_file(tmp_path), tmp_path / "cache", GitHubHost(transport=hub.transport())))
+    client.get(f"{BASE}/public/versions", params={"link": "https://github.com/other/open/blob/main/graph.json"})
+    assert hub.authorized[f"/repos/other/open/commits/{public.sha['m1']}/pulls"] == ""

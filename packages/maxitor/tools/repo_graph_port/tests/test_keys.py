@@ -149,3 +149,11 @@ def test_nothing_shows_a_key(tmp_path: Path, capsys: pytest.CaptureFixture[str])
     shown = repr(coordinator) + repr(coordinator.authenticator) + repr(HistoriesConfig(path))
     assert str(path) in shown
     assert key not in shown and hashlib.sha256(key.encode()).hexdigest() not in shown
+
+
+def test_check_says_when_a_private_history_has_no_app(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A GitHub history with no ``[github]`` App: the check fails and says why, without trying an anonymous clone."""
+    path = tmp_path / "histories.toml"
+    path.write_text('[[history]]\nid = "orders"\nhost = "github"\nrepository = "owner/private"\nbranch = "main"\ngraph_file = "graph.json"\n', encoding="utf-8")
+    assert cli(["--config", str(path), "check"]) == 1
+    assert capsys.readouterr().out == "FAIL orders: no [github] App to read a private repository with\n"

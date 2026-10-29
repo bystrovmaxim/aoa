@@ -22,7 +22,8 @@ ARCHITECTURE / DATA FLOW
         key new    ──► a [[history.keys]] block after that history's last block ──► checked ──► written
         key revoke ──► that block removed ──► checked ──► written
         key list   ──► HistoriesConfig.keys
-        check      ──► load_histories + each graph file on its branch, through GitMirror
+        check      ──► load_histories + each graph file on its branch, through GitMirror —
+                       a GitHub one with the App's token, as the port reads it
 
 The file is edited as text, so its comments and order survive; every edit is checked
 by loading the result before it is written. Exit codes: 0 done, 1 a check failed,
@@ -32,6 +33,7 @@ by loading the result before it is written. Exit codes: 0 done, 1 a check failed
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import hashlib
 import os
@@ -42,8 +44,11 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+import httpx
 from maxitor.repo_graph_port.git_error import GitError
+from maxitor.repo_graph_port.history import History
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig, load_histories
 
 
@@ -114,22 +119,38 @@ def _revoke(config: HistoriesConfig, path: Path, history_id: str, name: str) -> 
 
 
 def _check(path: Path) -> int:
-    """Each history's graph file is on its branch; print one line per history."""
+    """Each history's graph file is on its branch, read as the port reads it; print one line per history."""
+    loaded = load_histories(path)
+    host = GitHubHost.from_settings(loaded.github)
     failed = 0
     with tempfile.TemporaryDirectory() as cache:
         mirror = GitMirror(Path(cache))
-        histories = load_histories(path).histories
-        for history_id, history in sorted(histories.items()):
-            url = None if history.host == "local" else f"https://github.com/{history.repository}.git"
-            try:
-                mirror.open(history.repository, url)
-                present = mirror.file_at(history.repository, history.branch, history.graph_file) is not None
-                said = "ok" if present else f"no {history.graph_file} on {history.branch}"
-            except GitError as error:
-                present, said = False, str(error)
+        for history_id, history in sorted(loaded.histories.items()):
+            present, said = _check_one(mirror, host, history)
             failed += not present
             print(f"{'ok ' if present else 'FAIL'} {history_id}: {said}")
     return 1 if failed else 0
+
+
+def _check_one(mirror: GitMirror, host: GitHubHost, history: History) -> tuple[bool, str]:
+    """Whether one history's graph file is on its branch, and what to say about it."""
+    auth: dict[str, str] = {}
+    url = None
+    if history.host == "github":
+        url = f"https://github.com/{history.repository}.git"
+        try:
+            token = asyncio.run(host.token_for(history.repository))
+        except httpx.HTTPError:
+            return False, f"the App is not installed on {history.repository}"
+        if token is None:
+            return False, "no [github] App to read a private repository with"
+        auth = GitHubHost.git_auth(token)
+    try:
+        mirror.open(history.repository, url, auth)
+        present = mirror.file_at(history.repository, history.branch, history.graph_file, auth) is not None
+    except GitError as error:
+        return False, str(error)
+    return present, "ok" if present else f"no {history.graph_file} on {history.branch}"
 
 
 def _blocks(text: str) -> list[tuple[str | None, str, str]]:
