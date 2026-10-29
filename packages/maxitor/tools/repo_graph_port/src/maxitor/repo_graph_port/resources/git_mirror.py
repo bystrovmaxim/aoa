@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import threading
 from collections.abc import Mapping
@@ -86,7 +87,16 @@ class GitMirror(BaseStorage):
         with self._lock(repository):
             if not place.is_dir():
                 place.parent.mkdir(parents=True, exist_ok=True)
-                self._git(None, ["clone", "--bare", "--filter=blob:none", "--", url, str(place)], auth)
+                # Cloned beside its place and renamed only when complete: a clone that fails or times out
+                # never leaves a half-made mirror that a later start would take for a whole one.
+                partial = place.with_name(place.name + ".partial")
+                shutil.rmtree(partial, ignore_errors=True)
+                try:
+                    self._git(None, ["clone", "--bare", "--filter=blob:none", "--", url, str(partial)], auth)
+                except GitError:
+                    shutil.rmtree(partial, ignore_errors=True)
+                    raise
+                partial.rename(place)
             self._places[repository] = place
             self._remote.add(repository)
 

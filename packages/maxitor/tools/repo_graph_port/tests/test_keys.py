@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from maxitor.repo_graph_port.auth.history_key_auth_coordinator import HistoryKeyAuthCoordinator
 from maxitor.repo_graph_port.cli import main as cli
@@ -157,3 +159,44 @@ def test_check_says_when_a_private_history_has_no_app(tmp_path: Path, capsys: py
     path.write_text('[[history]]\nid = "orders"\nhost = "github"\nrepository = "owner/private"\nbranch = "main"\ngraph_file = "graph.json"\n', encoding="utf-8")
     assert cli(["--config", str(path), "check"]) == 1
     assert capsys.readouterr().out == "FAIL orders: no [github] App to read a private repository with\n"
+
+
+class _InstalledNowhere(httpx.AsyncBaseTransport):
+    """GitHub where the App is installed on no repository; it notes the event loop each request came in."""
+
+    def __init__(self) -> None:
+        self.loops: set[int] = set()
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Answer every request ``404``, as GitHub does for a repository the App is not installed on."""
+        self.loops.add(id(asyncio.get_running_loop()))
+        return httpx.Response(404, json={"message": "Not Found"})
+
+
+def test_check_reads_github_in_one_event_loop(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Two private histories the App cannot read: each is reported, and every GitHub call came in one event loop.
+
+    The host keeps one HTTP client; a second event loop would reuse it after the first had closed, and the check
+    would stop with ``Event loop is closed`` on the second history.
+    """
+    from maxitor.repo_graph_port.resources.github_host import GitHubHost
+
+    from tests.stand_in_github import APP_ID, app_key
+
+    github = _InstalledNowhere()
+    pem, _ = app_key()
+    monkeypatch.setattr(GitHubHost, "from_settings", classmethod(lambda cls, _settings: cls(APP_ID, pem, transport=github)))
+    path = tmp_path / "histories.toml"
+    path.write_text(
+        "".join(
+            f'[[history]]\nid = "{name}"\nhost = "github"\nrepository = "owner/{name}"\nbranch = "main"\ngraph_file = "graph.json"\n\n'
+            for name in ("billing", "orders")
+        ),
+        encoding="utf-8",
+    )
+    assert cli(["--config", str(path), "check"]) == 1
+    assert capsys.readouterr().out == (
+        "FAIL billing: the App is not installed on owner/billing\nFAIL orders: the App is not installed on owner/orders\n"
+    )
+    assert len(github.loops) == 1
