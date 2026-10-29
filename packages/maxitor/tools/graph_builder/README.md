@@ -119,7 +119,7 @@ A graph of thousands of elements is checked in a fraction of a second.
 
 ## Learn more
 
-- **[Get started](../../README.md#get-started)** — connect a project: one sentence to a coding agent, or four steps by hand
+- **[Get started](../../README.md#get-started)** — connect a project: one prompt to a coding agent, or four steps by hand
 - **[Open Gnomon Protocol](../../../open-gnomon-protocol/README.md)** — the language itself: the document, its vocabulary, versions, identity
 - **[aoa-graph-builder-setup](../../skills/aoa-graph-builder-setup/SKILL.md)** — the skill an agent follows
 - **[Every case, runnable](../../../../examples/step_26_maxitor/12_graph_file.py)** — a saved graph, a rebuild, a stale copy, an unknown version

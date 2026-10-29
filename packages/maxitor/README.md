@@ -23,9 +23,18 @@ Maxitor is one package with parts you choose at install time:
 
 ## Get started
 
-### The fastest way: one sentence to your coding agent
+### The fastest way: one prompt to your coding agent
 
-> Set up this project's model graphs with the skill at https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md
+```text
+Install and run this skill for the current project:
+https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md
+
+Walk me through the wizard in my language. Ask one question at a time and wait for my answer. For each decision, explain in plain words: what you found, what you propose to change, why you recommend this option, and what happens if I choose another. Explain each technical term the first time you use it.
+
+First check whether the current project fits. If it is empty or has no source of graphs, explain the situation and stop without creating any configuration or checks. If some services are already connected, keep the settings that work, and discuss the new services one at a time.
+
+If I do not understand a question, give a concrete example and come back to the same decision. Before applying anything, show the summary: my decisions, which files will change, and what will remain to do by hand. Apply changes only after I confirm. Do not create commits or pull requests.
+```
 
 The agent follows a four-stage wizard in your language: discover the project, settle each service's choices, choose updating and checking, then review the proposed changes. Each question explains one decision, a recommendation and the consequences of the alternatives. You can ask for an example, go back, change an answer or pause. Nothing is applied to the target project until the proposed changes are reviewed and authorized. Asking to review or edit the skill itself does not start setup.
 
