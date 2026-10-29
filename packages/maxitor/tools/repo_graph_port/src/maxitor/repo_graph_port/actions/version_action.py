@@ -71,7 +71,7 @@ class VersionAction(BaseAction[VersionParams, VersionResult]):
     """
     AI-CORE-BEGIN
     ROLE: Give a reader one version's graph file.
-    CONTRACT: The file's text as committed; a history the request may not open, or a ``sha`` that is not one of its versions, raises ``HistoryNotFoundError``.
+    CONTRACT: The file's text as committed; a history the request may not open, or a ``sha`` that is neither one of its versions nor the head of a pull request the repository keeps, raises ``HistoryNotFoundError``.
     INVARIANTS: Reads only; a version kept in the cache is answered without git.
     AI-CORE-END
     """
@@ -95,7 +95,9 @@ class VersionAction(BaseAction[VersionParams, VersionResult]):
         if kept is None:
             await refreshed(mirror, cache, host, history, ctx.get("env.history_refresh_seconds"))
             commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
-            if params.sha not in {commit.sha for commit in commits}:
+            # A version, or the head of a pull request still open: a reader looks at it before it is merged.
+            heads = await asyncio.to_thread(mirror.pull_heads, history.repository)
+            if params.sha not in {commit.sha for commit in commits} and params.sha not in heads.values():
                 raise HistoryNotFoundError()
             kept = await graph_of(mirror, cache, host, history, params.sha)
         await box.info(Channel.business, "History {%var.history} version read for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")

@@ -27,7 +27,8 @@ from __future__ import annotations
 from typing import Any, cast
 
 from maxitor.front.model.core.core_domain import CoreDomain
-from maxitor.front.model.core.history_reading import history_line, open_history
+from maxitor.front.model.core.history_reading import history_line, live_same_as, open_history
+from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from maxitor.front.model.core.resources.history_access import HISTORY_ACCESS_CONNECTION_KEY, HistoryAccess
 from maxitor.front.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.front.model.core.resources.open_tabs_registry import OPEN_TABS_CONNECTION_KEY, OpenTabsRegistry
@@ -64,6 +65,8 @@ class OpenHistoryResult(BaseResult):
     host: str = Field(description="github or local: whether #123 in a message is a pull request on GitHub")
     repository: str = Field(description="owner/name on the host, or a path on the port's disk")
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
+    proposals: list[dict[str, Any]] = Field(default_factory=list, description="Pull requests still open that change the graph, each with its state and source")
+    live_same_as: str | None = Field(default=None, description="The newest version's sha when Live runs exactly its graph: the two are one point")
     versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first, each with the source its graph is read under")
     count: int = Field(ge=0, description="How many versions there are")
     room_ticket: str | None = Field(default=None, description="A one-use ticket into a room of this history, for a private one")
@@ -72,6 +75,7 @@ class OpenHistoryResult(BaseResult):
 @meta(description="Open a history through its port and hold it", domain=CoreDomain)
 @check_roles(GuestRole)
 @connection(RepoGraphPortGateway, key=REPO_GRAPH_PORT_CONNECTION_KEY, description="Reads the history from its port")
+@connection(GraphSourceGateway, key=GRAPH_SOURCE_CONNECTION_KEY, description="Downloads Live's and the newest version's graphs to compare them")
 @connection(HistoryStore, key=HISTORY_STORE_CONNECTION_KEY, description="The histories Maxitor holds")
 @connection(HistoryAccess, key=HISTORY_ACCESS_CONNECTION_KEY, description="Keys the port accepted lately, room tickets")
 @connection(OpenTabsRegistry, key=OPEN_TABS_CONNECTION_KEY, description="Tabs that show a history")
@@ -110,7 +114,9 @@ class OpenHistoryAction(BaseAction[OpenHistoryParams, OpenHistoryResult]):
             host=entry.host,
             repository=entry.repository,
             live=entry.live,
+            live_same_as=await live_same_as(entry, cast(GraphSourceGateway, connections[GRAPH_SOURCE_CONNECTION_KEY]), key),
             versions=entry.versions_with_sources(),
+            proposals=entry.proposals_with_sources(),
             count=len(entry.versions),
             room_ticket=None if entry.public else access.issue_ticket(entry.name, key),
         )

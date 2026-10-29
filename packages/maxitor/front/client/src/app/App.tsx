@@ -118,7 +118,7 @@ export function App() {
     onHistoryChanged: () => {
       if (!shown) return;
       void historyVersions(shown.name, shown.key)
-        .then((answer) => answer && opened.takeList(answer.versions, answer.live, answer.etag))
+        .then((answer) => answer && opened.takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals }))
         .catch(() => undefined);
     },
   });
@@ -369,10 +369,11 @@ export function App() {
   return (
     <MainLayout
       topRow={(compact) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
           {shown && hasPicker(opened.mode) && (
-            <VersionButton name={shownName ?? "—"} open={pickerAnchor !== null} onClick={(button) => setPickerAnchor(button)} />
+            <VersionButton name={shownName ?? "—"} open={pickerAnchor !== null} onClick={(button) => setPickerAnchor((current) => (current ? null : button))} />
           )}
+          <Box sx={{ flex: 1 }} />
         <RoomBar
           session={room}
           page={page}
@@ -442,12 +443,18 @@ export function App() {
           title={shown.title}
           versions={shown.versions}
           live={shown.live}
+          liveIs={shown.liveSameAs}
+          proposals={shown.proposals}
           value={shown.b}
           onChange={pickVersion}
           link={withKey(window.location.href, shown.key)}
           phone={phone}
         >
-          <VersionMessage version={shownVersion} repository={shown.host === "github" ? shown.repository : null} liveLine={liveLine(shown.versions, liveState)} />
+          <VersionMessage
+            version={shownVersion ?? (shown.b === "live" ? versionOf(shown, shown.liveSameAs) : null)}
+            repository={shown.host === "github" ? shown.repository : null}
+            liveLine={shown.b === "live" ? liveLine(shown.versions, liveState) : undefined}
+          />
         </VersionPicker>
       )}
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}

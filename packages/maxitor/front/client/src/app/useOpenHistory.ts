@@ -23,21 +23,30 @@ export type OpenHistory = {
   key: string;
   versions: HistoryVersion[];
   live: string | null;
+  /** The newest version's full sha when Live runs exactly its graph, else ``null``. */
+  liveSameAs: string | null;
+  /** Pull requests still open that change the graph: looked at, never opened on by default. */
+  proposals: HistoryVersion[];
   etag: string | null;
   /** The chosen version: a short sha, ``live``, or ``null`` in M7. */
   b: string | null;
 };
 
 /** Whether ``b`` can be shown: listed and not refused, or Live where there is Live. A refused one may still be chosen to read its reason. */
-export function offers(history: Pick<OpenHistory, "versions" | "live">, b: string | null): boolean {
+export function offers(history: Pick<OpenHistory, "versions" | "live"> & { proposals?: HistoryVersion[] }, b: string | null): boolean {
   if (b === "live") return Boolean(history.live);
-  return Boolean(b) && history.versions.some((version) => version.sha.startsWith(b ?? "\u0000"));
+  return Boolean(b) && [...history.versions, ...(history.proposals ?? [])].some((version) => version.sha.startsWith(b ?? "\u0000"));
 }
 
 /** The version a short sha names, or ``null``. */
-export function versionOf(history: Pick<OpenHistory, "versions">, b: string | null): HistoryVersion | null {
+export function versionOf(history: Pick<OpenHistory, "versions"> & { proposals?: HistoryVersion[] }, b: string | null): HistoryVersion | null {
   if (!b || b === "live") return null;
-  return history.versions.find((version) => version.sha.startsWith(b)) ?? null;
+  return [...history.versions, ...(history.proposals ?? [])].find((version) => version.sha.startsWith(b)) ?? null;
+}
+
+/** ``b`` as shown: the newest version is ``live`` while Live runs exactly its graph — they are one point. */
+function asLive(b: string | null, liveSameAs: string | null): string | null {
+  return b && b !== "live" && liveSameAs?.startsWith(b) ? "live" : b;
 }
 
 /** The graph source of the chosen version: Live's address, or the version's source; ``null`` for a refused one or M7. */
@@ -55,13 +64,15 @@ export function useOpenHistory(polling: boolean) {
 
   /** Show ``opened`` on ``wanted`` when it offers it, else on its default version. */
   const show = useCallback((opened: OpenedHistory, key: string, wanted: string | null) => {
-    const b = offers(opened, wanted) ? wanted : defaultVersion(opened.versions, opened.live);
+    const liveSameAs = opened.live_same_as ?? null;
+    const proposals = opened.proposals ?? [];
+    const b = asLive(offers({ ...opened, proposals }, wanted) ? wanted : defaultVersion(opened.versions, opened.live), liveSameAs);
     setNotice(null);
-    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, etag: null, b });
+    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b });
   }, []);
 
   const pick = useCallback((b: string) => {
-    setHistory((current) => (current && offers(current, b) ? { ...current, b } : current));
+    setHistory((current) => (current && offers(current, b) ? { ...current, b: asLive(b, current.liveSameAs) } : current));
   }, []);
 
   const close = useCallback(() => {
@@ -70,10 +81,11 @@ export function useOpenHistory(polling: boolean) {
   }, []);
 
   /** Take a new list: keep the version when it is still offered, else move to the default and say why. */
-  const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null) => {
+  const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null, more: { liveSameAs?: string | null; proposals?: HistoryVersion[] } = {}) => {
     const current = historyRef.current;
     if (!current) return;
-    const next = { ...current, versions, live, etag };
+    const liveSameAs = more.liveSameAs ?? null;
+    const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], etag, b: asLive(current.b, liveSameAs) };
     if (!offers(next, current.b)) {
       const gone = current.b === "live" ? "Live is no longer part of this history" : `${nameOf(current.versions, current.b) ?? current.b} is no longer in the history`;
       next.b = defaultVersion(versions, live);
@@ -89,7 +101,7 @@ export function useOpenHistory(polling: boolean) {
       if (!current) return;
       void historyVersions(current.name, current.key, current.etag ?? undefined)
         .then((answer) => {
-          if (answer) takeList(answer.versions, answer.live, answer.etag);
+          if (answer) takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals });
         })
         .catch(() => undefined);
     }, HISTORY_POLL_MS);

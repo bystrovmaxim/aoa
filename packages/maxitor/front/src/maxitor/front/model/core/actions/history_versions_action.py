@@ -30,7 +30,8 @@ from __future__ import annotations
 from typing import Any, cast
 
 from maxitor.front.model.core.core_domain import CoreDomain
-from maxitor.front.model.core.history_reading import open_history
+from maxitor.front.model.core.history_reading import live_same_as, open_history
+from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from maxitor.front.model.core.resources.history_access import HISTORY_ACCESS_CONNECTION_KEY, HistoryAccess
 from maxitor.front.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.front.model.core.resources.open_tabs_registry import OPEN_TABS_CONNECTION_KEY, OpenTabsRegistry
@@ -63,11 +64,14 @@ class HistoryVersionsResult(BaseResult):
 
     versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first, each with the source its graph is read under")
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
+    proposals: list[dict[str, Any]] = Field(default_factory=list, description="Pull requests still open that change the graph, each with its state and source")
+    live_same_as: str | None = Field(default=None, description="The newest version's sha when Live runs exactly its graph: the two are one point")
 
 
 @meta(description="Answer a held history's versions to a polling tab", domain=CoreDomain)
 @check_roles(GuestRole)
 @connection(RepoGraphPortGateway, key=REPO_GRAPH_PORT_CONNECTION_KEY, description="Reads the history from its port")
+@connection(GraphSourceGateway, key=GRAPH_SOURCE_CONNECTION_KEY, description="Downloads Live's and the newest version's graphs to compare them")
 @connection(HistoryStore, key=HISTORY_STORE_CONNECTION_KEY, description="The histories Maxitor holds")
 @connection(HistoryAccess, key=HISTORY_ACCESS_CONNECTION_KEY, description="Keys the port accepted lately")
 @connection(OpenTabsRegistry, key=OPEN_TABS_CONNECTION_KEY, description="Tabs that show a history")
@@ -100,4 +104,10 @@ class HistoryVersionsAction(BaseAction[HistoryVersionsParams, HistoryVersionsRes
             gateway = cast(RepoGraphPortGateway, connections[REPO_GRAPH_PORT_CONNECTION_KEY])
             entry = await open_history(box, gateway, store, access, params.history, key, str(ctx.get("request.client_ip") or ""))
         cast(OpenTabsRegistry, connections[OPEN_TABS_CONNECTION_KEY]).seen(entry.name, store.now())
-        return HistoryVersionsResult(versions=entry.versions_with_sources(), live=entry.live)
+        graphs = cast(GraphSourceGateway, connections[GRAPH_SOURCE_CONNECTION_KEY])
+        return HistoryVersionsResult(
+            versions=entry.versions_with_sources(),
+            proposals=entry.proposals_with_sources(),
+            live=entry.live,
+            live_same_as=await live_same_as(entry, graphs, key),
+        )

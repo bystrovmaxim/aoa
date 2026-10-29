@@ -12,15 +12,23 @@ import { apiUrl } from "@/api/client";
 export type HistoryVersion = {
   sha: string;
   date: string;
-  pr?: { number: number; title: string; body: string; url: string };
+  /** ``author`` and ``avatar`` come only from a host that tells them (GitHub). */
+  pr?: { number: number; title: string; body: string; url: string; author?: string; avatar?: string; state?: ProposalState };
   message?: string;
   tags: { name: string; release: { title: string; url: string } | null }[];
   nodes: number;
   edges: number;
   refused?: string;
+  /** Who made it and how large it was, from git. */
+  contribution?: { author: string; co_authors: number; merged_by: string | null; files: number; additions: number; deletions: number };
+  /** What it did to the previous version's graph: nodes added and removed by kind, nodes changed. */
+  change?: { added: Record<string, number>; removed: Record<string, number>; changed: number };
   /** The source this version's graph is read under (the server's, keyless). */
   source: string;
 };
+
+/** Where a pull request still open stands: a draft, waiting for review, approved, or asked to change. */
+export type ProposalState = "draft" | "open" | "approved" | "changes_requested";
 
 /** An opened history, as the server answers it. */
 export type OpenedHistory = {
@@ -29,7 +37,11 @@ export type OpenedHistory = {
   host: string;
   repository: string;
   live: string | null;
+  /** The newest version's sha when Live runs exactly its graph: the two are one point. */
+  live_same_as?: string | null;
   versions: HistoryVersion[];
+  /** Pull requests still open that change the graph, oldest number first, each with its state. */
+  proposals?: HistoryVersion[];
   count: number;
   room_ticket: string | null;
 };
@@ -74,10 +86,10 @@ export async function historyVersions(
   name: string,
   key: string,
   etag?: string,
-): Promise<{ versions: HistoryVersion[]; live: string | null; etag: string | null } | null> {
+): Promise<{ versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null; etag: string | null } | null> {
   const response = await fetch(`${apiUrl("/api/history/versions")}?${new URLSearchParams({ history: name })}`, { headers: headers(key, etag) });
   if (response.status === 304) return null;
   if (!response.ok) throw await refusal(response);
-  const body = (await response.json()) as { versions: HistoryVersion[]; live: string | null };
+  const body = (await response.json()) as { versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null };
   return { ...body, etag: response.headers.get("etag") };
 }
