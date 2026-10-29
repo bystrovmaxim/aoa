@@ -118,7 +118,7 @@ asyncio_mode = "auto"
 pythonpath = [
     "packages/aoa-action-machine/src",
     "packages/maxitor/app/src",
-    "packages/maxitor/tools/gnomon/src",
+    "packages/maxitor/tools/graph_builder/src",
     "packages/aoa-demo/src",
     "packages/aoa-langgraph/src",
     "packages/aoa-fastapi-adapter/src",
@@ -165,7 +165,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/maxitor/app/src:packages/maxitor/tools/gnomon/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/maxitor/app/src:packages/maxitor/tools/graph_builder/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -362,9 +362,9 @@ external = ["V107"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_undecided.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
-# ``maxitor.gnomon`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
+# ``maxitor.graph_builder`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
 # above: the caller learns "this is not a graph", not that something broke, so the verdict's word is the name.
-"packages/maxitor/tools/gnomon/src/maxitor/gnomon/**" = ["N818"]
+"packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/**" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
@@ -409,7 +409,7 @@ paths = [
     "packages/aoa-mcp-adapter/src/aoa/mcp",
     "packages/aoa-langgraph/src/aoa/langgraph",
     "packages/maxitor/app/src/maxitor",
-    "packages/maxitor/tools/gnomon/src/maxitor",
+    "packages/maxitor/tools/graph_builder/src/maxitor",
     "packages/aoa-demo/src/aoa/demo",
 ]
 min_confidence = 80
@@ -437,7 +437,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/app/src packages/maxitor/tools/gnomon/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/app/src packages/maxitor/tools/graph_builder/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"

@@ -1,11 +1,11 @@
-# packages/maxitor/tools/gnomon/tests/test_differences.py
+# packages/maxitor/tools/graph_builder/tests/test_differences.py
 """Differences between two graph documents: elements matched by ``id``, one line per change."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from maxitor.gnomon.differences import differences
+from maxitor.graph_builder.differences import differences
 
 
 def _graph(nodes: list[dict[str, Any]], edges: list[dict[str, Any]], version: str = "1.1") -> dict[str, Any]:

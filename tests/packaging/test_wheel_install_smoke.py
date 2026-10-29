@@ -122,7 +122,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
 
 
 def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
-    """``pip install maxitor`` with no extra is the ``gnomon`` command alone: no AOA, none of the viewer's dependencies."""
+    """``pip install maxitor`` with no extra is the ``graph-builder`` command alone: no AOA, none of the viewer's dependencies."""
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
@@ -135,20 +135,20 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     ).stdout.split()
     brought = [d for d in installed if d.startswith("aoa") or d in {"fastapi", "uvicorn", "duckdb", "httpx", "websockets"}]
     assert brought == [], f"the base install brought {brought}"
-    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "gnomon" / "tests" / "fixtures" / "graph-1.1.json"
-    (tmp_path / "gnomon.toml").write_text(
-        f'gnomon = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
+    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph_builder" / "tests" / "fixtures" / "graph-1.1.json"
+    (tmp_path / "graph-builder.toml").write_text(
+        f'graph_builder = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
     )
-    gnomon = str(venv / "bin" / "gnomon")
-    subprocess.run([gnomon, "write"], check=True, cwd=str(tmp_path))
-    checked = subprocess.run([gnomon, "check"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
+    graph_builder = str(venv / "bin" / "graph-builder")
+    subprocess.run([graph_builder, "write"], check=True, cwd=str(tmp_path))
+    checked = subprocess.run([graph_builder, "check"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
     assert checked.startswith("ok sample")
     validated = subprocess.run(
-        [gnomon, "validate", "graph.json"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
+        [graph_builder, "validate", "graph.json"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
     ).stdout
     assert validated.startswith("ok 1.1: ")
-    skill = subprocess.run([gnomon, "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
-    assert skill.startswith("---\nname: gnomon-setup\n")
+    skill = subprocess.run([graph_builder, "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
+    assert skill.startswith("---\nname: graph-builder-setup\n")
 
 
 def test_clean_install_maxitor_viewer_names_its_extra(tmp_path: Path) -> None:

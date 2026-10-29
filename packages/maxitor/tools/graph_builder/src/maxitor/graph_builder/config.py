@@ -1,6 +1,6 @@
-# packages/maxitor/tools/gnomon/src/maxitor/gnomon/config.py
+# packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/config.py
 """
-Read ``gnomon.toml``: the graphs of one repository.
+Read ``graph-builder.toml``: the graphs of one repository.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -15,7 +15,7 @@ the graph and the field that are wrong.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-TOML → the config's own version (``gnomon = "1.0"``) → its JSON Schema
+TOML → the config's own version (``graph_builder = "1.0"``) → its JSON Schema
 (``config_schema.json`` beside this module, the one config version there is) → the rules a schema cannot say: names and
 files unique → ``Graph`` values with paths resolved against the config's folder.
 """
@@ -72,7 +72,7 @@ class ConfigRefused(ValueError):
 @cache
 def _config_schema() -> dict[str, Any]:
     """The JSON Schema of the config, version ``1.0``, read once."""
-    text = files("maxitor.gnomon").joinpath("config_schema.json").read_text(encoding="utf-8")
+    text = files("maxitor.graph_builder").joinpath("config_schema.json").read_text(encoding="utf-8")
     schema: dict[str, Any] = json.loads(text)
     return schema
 
@@ -103,8 +103,8 @@ def _refusal(document: dict[str, Any], error: ValidationError) -> ConfigRefused:
 def read_config(path: str | Path) -> list[Graph]:
     """
     AI-CORE-BEGIN
-    ROLE: Read a repository's ``gnomon.toml`` into its graphs.
-    CONTRACT: Returns the graphs in file order, paths absolute; raises ``ConfigRefused`` naming the graph and the field — a missing file, not TOML, no or unknown ``gnomon`` version, a missing or unknown field, a repeated name, two graphs with one file.
+    ROLE: Read a repository's ``graph-builder.toml`` into its graphs.
+    CONTRACT: Returns the graphs in file order, paths absolute; raises ``ConfigRefused`` naming the graph and the field — a missing file, not TOML, no or unknown ``graph-builder`` version, a missing or unknown field, a repeated name, two graphs with one file.
     AI-CORE-END
     """
     config = Path(path)
@@ -114,12 +114,12 @@ def read_config(path: str | Path) -> list[Graph]:
         raise ConfigRefused(None, "", f"no config at {config}") from None
     except tomllib.TOMLDecodeError as exc:
         raise ConfigRefused(None, "", f"not TOML: {exc}") from None
-    version = document.get("gnomon")
+    version = document.get("graph_builder")
     if version is None:
-        raise ConfigRefused(None, "gnomon", 'required: the config\'s format version, gnomon = "1.0"')
+        raise ConfigRefused(None, "graph_builder", 'required: the config\'s format version, graph_builder = "1.0"')
     if version not in CONFIG_VERSIONS:
         known = ", ".join(CONFIG_VERSIONS)
-        raise ConfigRefused(None, "gnomon", f"unknown config version {version!r}; known: {known}")
+        raise ConfigRefused(None, "graph_builder", f"unknown config version {version!r}; known: {known}")
     error = best_match(Draft202012Validator(_config_schema()).iter_errors(document))
     if error is not None:
         raise _refusal(document, error)

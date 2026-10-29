@@ -10,19 +10,19 @@
 
 ## Context: what is true today, checked on 2026-10-29
 
-- **Three things share one package.** `maxitor-gnomon` 0.1.0 (published) holds the protocol (the graph schemas `1.0` and `1.1`, the config schema, the specification), the `gnomon` command (write, check, validate, skill) and the `gnomon-setup` skill. The schemas' `$id` point at `blob/main/packages/maxitor-gnomon/protocol/…`, which never resolved: that path has not reached `main`.
+- **Three things share one package.** `maxitor-gnomon` 0.1.0 (published) holds the protocol (the graph schemas `1.0` and `1.1`, the config schema, the specification), the `graph-builder` command (write, check, validate, skill) and the `graph-builder-setup` skill. The schemas' `$id` point at `blob/main/packages/maxitor-gnomon/protocol/…`, which never resolved: that path has not reached `main`.
 - **The viewer is a package of its own.** `aoa-maxitor` 2.3.0 (import `aoa.maxitor`) holds Maxitor's server and its built front (2.7 MB), with the front's source beside it, its own graph file and the command `maxitor-api`. It needs AOA, the FastAPI adapter, duckdb, httpx, uvicorn and websockets.
 - **AOA depends on the tool for one value.** `aoa-action-machine` requires `maxitor-gnomon` only to read the schema of version `1.1` it checks its export against.
-- **The old path is everywhere.** 254 tracked files name `packages/aoa-maxitor`; outside the package itself and old specs they are the preview config, the CI and publish workflows, the ignore file, the root README, the stand's compose file, the docs, the tutorial's examples, `gnomon.toml`, the workspace members, the check run's scripts and the lock file.
+- **The old path is everywhere.** 254 tracked files name `packages/aoa-maxitor`; outside the package itself and old specs they are the preview config, the CI and publish workflows, the ignore file, the root README, the stand's compose file, the docs, the tutorial's examples, `graph-builder.toml`, the workspace members, the check run's scripts and the lock file.
 - **Every package but one lives under the `aoa` namespace**; the package-boundary rules know `maxitor_gnomon` as the single exception.
-- **PyPI**: the name `maxitor` is free; `gnomon` is taken.
+- **PyPI**: the name `maxitor` is free; `graph-builder` is taken.
 - **The preview config** carries an uncommitted `maxitor-api` entry that runs without the dev extras, so starting it strips the dev tools from the environment.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A project checks its graphs in CI with a light install (Priority: P1)
 
-A project's CI checks that its graph files are current. It installs Maxitor with no extra, or adds one ready step, and runs `gnomon check`. Nothing of AOA, of Maxitor's server or of its front's dependencies is installed.
+A project's CI checks that its graph files are current. It installs Maxitor with no extra, or adds one ready step, and runs `graph-builder check`. Nothing of AOA, of Maxitor's server or of its front's dependencies is installed.
 
 **Why this priority**: This is what most other projects will ever install of Maxitor; a heavy install would keep them from adopting the check.
 
@@ -30,7 +30,7 @@ A project's CI checks that its graph files are current. It installs Maxitor with
 
 **Acceptance Scenarios**:
 
-1. **Given** a clean environment, **When** the package is installed with no extra, **Then** `gnomon check` runs, and no AOA package and none of the server's dependencies is installed.
+1. **Given** a clean environment, **When** the package is installed with no extra, **Then** `graph-builder check` runs, and no AOA package and none of the server's dependencies is installed.
 2. **Given** a project's CI, **When** the maintainer adds the ready step with one `uses:` line, **Then** the step checks the project's graph files and fails on a stale one.
 3. **Given** a command whose part was not installed (Maxitor's server without its extra), **When** it is run, **Then** it names the extra to install instead of failing on an import.
 
@@ -85,7 +85,7 @@ A developer changes one part of Maxitor and cannot, by accident, make the light 
 
 ### User Story 5 - A project is connected by following the README or the skill (Priority: P2)
 
-The maintainer follows only `maxitor`'s README — or asks an agent to run the `gnomon-setup` skill, which the package prints — and connects gameoffer's two services: their graphs saved, their CI checking them. Whatever stops them is fixed in the README or the skill.
+The maintainer follows only `maxitor`'s README — or asks an agent to run the `graph-builder-setup` skill, which the package prints — and connects gameoffer's two services: their graphs saved, their CI checking them. Whatever stops them is fixed in the README or the skill.
 
 **Why this priority**: The documentation moves with the code; a README that still names the old packages would stop every new project at its first step.
 
@@ -122,8 +122,8 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 
 **One package**
 
-- **FR-005**: `aoa-maxitor` and `maxitor-gnomon` MUST become one package, `maxitor`, in `packages/maxitor`, laid out by kind: `app/` (the application — front, server `maxitor.viewer`, its graph, its Dockerfile, its tests), `tools/<name>/` (each tool with its own `src/` and `tests/`; today `tools/gnomon/`), `skills/` (the skills, apart from the code), and later `core/` (shared code the application and tools both use, #288). `maxitor` is a namespace package assembled from these folders.
-- **FR-006**: Installing `maxitor` with no extra MUST give a working `gnomon` command and MUST NOT install AOA or any dependency of the viewer.
+- **FR-005**: `aoa-maxitor` and `maxitor-gnomon` MUST become one package, `maxitor`, in `packages/maxitor`, laid out by kind: `app/` (the application — front, server `maxitor.viewer`, its graph, its Dockerfile, its tests), `tools/<name>/` (each tool with its own `src/` and `tests/`; today `tools/graph_builder/`), `skills/` (the skills, apart from the code), and later `core/` (shared code the application and tools both use, #288). `maxitor` is a namespace package assembled from these folders.
+- **FR-006**: Installing `maxitor` with no extra MUST give a working `graph-builder` command and MUST NOT install AOA or any dependency of the viewer.
 - **FR-007**: The extra `viewer` MUST bring everything Maxitor's server needs; the extra `all` MUST bring everything.
 - **FR-008**: A command whose extra is not installed MUST say which extra to install.
 - **FR-009**: `maxitor` MUST ship copies of the protocol's graph schemas, byte for byte the protocol folder's files; the check run MUST fail when any copy differs from its source.
@@ -133,30 +133,30 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 
 **Boundaries**
 
-- **FR-013**: The check run MUST fail when `maxitor.gnomon` imports anything of AOA or of `maxitor.viewer`, naming the module and the import; `maxitor.viewer` MAY import `maxitor.gnomon`.
+- **FR-013**: The check run MUST fail when `maxitor.graph_builder` imports anything of AOA or of `maxitor.viewer`, naming the module and the import; `maxitor.viewer` MAY import `maxitor.graph_builder`.
 - **FR-014**: The package-boundary rules MUST know `maxitor` in place of `maxitor_gnomon`.
 
 **Skills and CI**
 
-- **FR-015**: The `gnomon-setup` skill MUST live in the package's `skills` part and `gnomon skill` MUST print it from the installed package; its links and install commands MUST name `maxitor`.
-- **FR-016**: The package MUST offer a ready CI step that installs the project's environment and runs `gnomon check`, usable with one `uses:` line; this repository's CI MUST use it.
+- **FR-015**: The `graph-builder-setup` skill MUST live in the package's `skills` part and `graph-builder skill` MUST print it from the installed package; its links and install commands MUST name `maxitor`.
+- **FR-016**: The package MUST offer a ready CI step that installs the project's environment and runs `graph-builder check`, usable with one `uses:` line; this repository's CI MUST use it.
 
 **Everything that names the old folders**
 
-- **FR-017**: Every tracked file outside old specs and the past entries of every changelog that names `packages/aoa-maxitor`, `packages/maxitor-gnomon`, `aoa.maxitor` or `maxitor_gnomon` MUST follow the change — the workspace, the boundary rules, the check run, the CI and publish workflows, the stand's compose file, the preview config, `gnomon.toml`, the docs and the examples.
+- **FR-017**: Every tracked file outside old specs and the past entries of every changelog that names `packages/aoa-maxitor`, `packages/maxitor-gnomon`, `aoa.maxitor` or `maxitor_gnomon` MUST follow the change — the workspace, the boundary rules, the check run, the CI and publish workflows, the stand's compose file, the preview config, `graph-builder.toml`, the docs and the examples.
 - **FR-018**: The preview config's viewer server MUST run with the dev extras, so starting it keeps the dev tools.
 - **FR-019**: Nothing new MUST be published under `aoa-maxitor` or `maxitor-gnomon`; publishing `maxitor` and tagging the protocol's release are the maintainer's, after the merge.
 
 **The tail**
 
-- **FR-020**: The change MUST end with the check run taken to zero, then the documentation (the protocol's README, `maxitor`'s README, the root README's package table, the tutorial's step 26, and an executed example — script and notebook — showing every new case: a no-extra install with `gnomon`, `maxitor-api` naming its missing extra, a graph checked against the protocol with a plain JSON Schema validator, the import `maxitor.viewer`), then the changelog — one article (Principle VI).
+- **FR-020**: The change MUST end with the check run taken to zero, then the documentation (the protocol's README, `maxitor`'s README, the root README's package table, the tutorial's step 26, and an executed example — script and notebook — showing every new case: a no-extra install with `graph-builder`, `maxitor-api` naming its missing extra, a graph checked against the protocol with a plain JSON Schema validator, the import `maxitor.viewer`), then the changelog — one article (Principle VI).
 
 ### Key Entities
 
 - **Protocol folder**: the standard — graph schemas by version, the specification, the changelog. No code. Released by a git tag.
 - **Schema copy**: a protocol schema kept inside a Python package beside its code; always byte for byte the folder's file, which the check run proves.
 - **`maxitor` package**: one installable unit with parts; its version and changelog cover every part.
-- **Part**: a subpackage of `maxitor` — `gnomon`, `viewer`, `skills` — with its own allowed imports.
+- **Part**: a subpackage of `maxitor` — `graph-builder`, `viewer`, `skills` — with its own allowed imports.
 - **Extra**: a named choice at install time that brings one part's dependencies: none (the command), `viewer`, `all`.
 - **Service graph file**: `graph.json` in the folder of each service (a process with actions of its own), built from that service's code.
 
@@ -164,7 +164,7 @@ The maintainer follows only `maxitor`'s README — or asks an agent to run the `
 
 ### Measurable Outcomes
 
-- **SC-001**: A clean install of the package with no extra installs zero AOA packages and zero dependencies of the viewer, and `gnomon check` passes on this repository's graphs.
+- **SC-001**: A clean install of the package with no extra installs zero AOA packages and zero dependencies of the viewer, and `graph-builder check` passes on this repository's graphs.
 - **SC-002**: 100% of the schema copies shipped by Python packages are byte for byte the protocol folder's files.
 - **SC-003**: The protocol's folder holds zero files of code and zero package definitions.
 - **SC-004**: The viewer's graph after the change differs from the graph before in nothing but the prefix of its ids.

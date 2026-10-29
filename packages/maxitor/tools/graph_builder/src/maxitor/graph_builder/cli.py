@@ -1,13 +1,13 @@
-# packages/maxitor/tools/gnomon/src/maxitor/gnomon/cli.py
+# packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/cli.py
 """
-The ``gnomon`` command: ``write``, ``check``, ``validate`` and ``skill``.
+The ``graph-builder`` command: ``write``, ``check``, ``validate`` and ``skill``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A developer runs ``gnomon write`` and commits the graph files with the change;
-CI runs ``gnomon check`` and fails when a file is stale. ``validate`` tells
+A developer runs ``graph-builder write`` and commits the graph files with the change;
+CI runs ``graph-builder check`` and fails when a file is stale. ``validate`` tells
 whether one document is a graph, ``skill`` prints the setup skill for agents.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -30,11 +30,11 @@ from importlib.metadata import version
 from importlib.resources import files
 from pathlib import Path
 
-from maxitor.gnomon.config import ConfigRefused, Graph, read_config
-from maxitor.gnomon.schemas import GraphRefused, check_graph
-from maxitor.gnomon.writer import Outcome, check, write
+from maxitor.graph_builder.config import ConfigRefused, Graph, read_config
+from maxitor.graph_builder.schemas import GraphRefused, check_graph
+from maxitor.graph_builder.writer import Outcome, check, write
 
-DEFAULT_CONFIG = "gnomon.toml"
+DEFAULT_CONFIG = "graph-builder.toml"
 
 
 def _shown_path(path: Path) -> str:
@@ -63,9 +63,9 @@ def _report(outcomes: list[Outcome], config: str) -> int:
             print(f"  {detail}")
     broken = [o.graph.name for o in outcomes if o.state in ("failed", "refused")]
     if broken:
-        print(f"fix the build of {', '.join(broken)}, then run: gnomon write --config {config}")
+        print(f"fix the build of {', '.join(broken)}, then run: graph-builder write --config {config}")
     elif not all(o.ok for o in outcomes):
-        print(f"run: gnomon write --config {config}, and commit the graph files")
+        print(f"run: graph-builder write --config {config}, and commit the graph files")
     return 0 if all(o.ok for o in outcomes) else 1
 
 
@@ -98,20 +98,20 @@ def _validate(source: str) -> int:
 
 
 def _skill() -> int:
-    """Print the setup skill for coding agents, to be saved as ``<skills folder>/gnomon-setup/SKILL.md``."""
-    sys.stdout.write(files("maxitor").joinpath("skills", "gnomon-setup", "SKILL.md").read_text(encoding="utf-8"))
+    """Print the setup skill for coding agents, to be saved as ``<skills folder>/graph-builder-setup/SKILL.md``."""
+    sys.stdout.write(files("maxitor").joinpath("skills", "graph-builder-setup", "SKILL.md").read_text(encoding="utf-8"))
     return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """
     AI-CORE-BEGIN
-    ROLE: The ``gnomon`` console script.
+    ROLE: The ``graph-builder`` console script.
     CONTRACT: Returns the exit code: 0 — fine; 1 — a graph is not (stale, missing, failed, refused, not a graph); 2 — the config was refused.
     AI-CORE-END
     """
-    parser = argparse.ArgumentParser(prog="gnomon", description="Keep each graph of a repository in its file.")
-    parser.add_argument("--version", action="version", version=f"gnomon {version('maxitor')}")
+    parser = argparse.ArgumentParser(prog="graph-builder", description="Keep each graph of a repository in its file.")
+    parser.add_argument("--version", action="version", version=f"graph-builder {version('maxitor')}")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, about in (
         ("write", "build every graph and write the files that changed"),
@@ -121,7 +121,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         command.add_argument("--config", default=DEFAULT_CONFIG, help=f"the config (default: {DEFAULT_CONFIG})")
     validate = commands.add_parser("validate", help="say whether one document is a graph")
     validate.add_argument("source", help="a graph file, or - for standard input")
-    commands.add_parser("skill", help="print the gnomon-setup skill for coding agents")
+    commands.add_parser("skill", help="print the graph-builder-setup skill for coding agents")
     args = parser.parse_args(argv)
     if args.command == "write":
         return _run(args.config, write)

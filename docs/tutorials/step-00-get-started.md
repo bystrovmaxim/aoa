@@ -95,7 +95,7 @@ uv run python examples/step_01_Action_and_pipeline/01_hello_world.py
 
 ### Save your graph from day one
 
-An AOA service can print its own graph — every operation, entity and dependency, with an id each. Save it in a file from the first commit, `graph.json` beside the service, and let every pull request that changes the graph carry the new file: git then holds the graph's whole history, and CI fails when someone forgets. The file's format and the command that keeps it current are a package of their own, [maxitor](../../packages/maxitor/README.md), which knows nothing about AOA. There are three ways to start, all in its README: by hand (a few lines that print the graph, a `gnomon.toml`, one CI step), from the command line (`gnomon skill` installs a setup skill for your coding agent), or one sentence to an agent with the skill's link. This repository does it for the demo and for Maxitor ([chapter 26](step-26-maxitor.md#the-graph-saved-with-every-change)).
+An AOA service can print its own graph — every operation, entity and dependency, with an id each. Save it in a file from the first commit, `graph.json` beside the service, and let every pull request that changes the graph carry the new file: git then holds the graph's whole history, and CI fails when someone forgets. The file's format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md), a standard with no code; the command that keeps it current is `graph-builder`, in [maxitor](../../packages/maxitor/README.md) (`pip install maxitor`), which knows nothing about AOA. There are three ways to start, all in its README: by hand (a few lines that print the graph, a `graph-builder.toml`, one CI step), from the command line (`graph-builder skill` installs a setup skill for your coding agent), or one sentence to an agent with the skill's link. This repository does it for the demo and for Maxitor ([chapter 26](step-26-maxitor.md#the-graph-saved-with-every-change)).
 
 ---
 
@@ -110,8 +110,8 @@ aoa/
 ├── packages/        ← the packages; the first three are the heart of AOA
 │   ├── aoa-action-machine/   ← CORE: the Action model, execution core, contracts, observability
 │   ├── aoa-demo/         ← LIBRARY of ready-made domains — the framework "at scale"
-│   ├── maxitor/          ← VISUALIZER: graph, ERD, and diagrams straight from code
-│   ├── maxitor-gnomon/       ← GRAPH FORMAT: the saved graph and `gnomon`; knows nothing about AOA
+│   ├── maxitor/          ← MAXITOR: app/ (graph, ERD and diagrams straight from code), tools/graph_builder/ (keeps the saved graphs), skills/
+│   ├── open-gnomon-protocol/ ← GRAPH FORMAT: the protocol's schemas and specification, no code
 │   └── aoa-fastapi-adapter/, aoa-mcp-adapter/, aoa-langgraph/, aoa-ocel/, aoa-otel/   ← adapters and plugins
 │
 ├── docs/            ← this guide (chapters + the intents-and-invariants reference)
@@ -121,7 +121,7 @@ aoa/
 │
 ├── README.md · LICENSE
 ├── pyproject.toml · uv.lock      ← the uv workspace
-├── gnomon.toml                   ← which graphs the repository saves, and where
+├── graph-builder.toml   ← which graphs the repository saves, and where
 └── housekeeping: .github/, dist/, .venv, caches, htmlcov
 ```
 

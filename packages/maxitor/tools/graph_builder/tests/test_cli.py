@@ -1,5 +1,5 @@
-# packages/maxitor/tools/gnomon/tests/test_cli.py
-"""The ``gnomon`` command: its lines, its fixing command and its exit codes."""
+# packages/maxitor/tools/graph_builder/tests/test_cli.py
+"""The ``graph-builder`` command: its lines, its fixing command and its exit codes."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
-from maxitor.gnomon.cli import main
+from maxitor.graph_builder.cli import main
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -16,8 +16,8 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def _repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, build: str = "cat printed.json") -> None:
     """A repository with one graph, ``tiny``, and the current folder at its root."""
     (tmp_path / "printed.json").write_bytes((FIXTURES / "graph-1.1.json").read_bytes())
-    (tmp_path / "gnomon.toml").write_text(
-        f'gnomon = "1.0"\n\n[[graph]]\nname = "tiny"\nbuild = "{build}"\nfile = "graph.json"\n', encoding="utf-8"
+    (tmp_path / "graph-builder.toml").write_text(
+        f'graph_builder = "1.0"\n\n[[graph]]\nname = "tiny"\nbuild = "{build}"\nfile = "graph.json"\n', encoding="utf-8"
     )
     monkeypatch.chdir(tmp_path)
 
@@ -44,7 +44,7 @@ def test_a_stale_file_fails_the_check_with_the_fix(
     assert capsys.readouterr().out.splitlines() == [
         "stale tiny: graph.json",
         f"  nodes[id={removed}]: removed",
-        "run: gnomon write --config gnomon.toml, and commit the graph files",
+        "run: graph-builder write --config graph-builder.toml, and commit the graph files",
     ]
 
 
@@ -67,7 +67,7 @@ def test_a_failed_build_fails_with_its_fix(
         "failed tiny",
         "  exited with 3",
         "  $ exit 3",
-        "fix the build of tiny, then run: gnomon write --config gnomon.toml",
+        "fix the build of tiny, then run: graph-builder write --config graph-builder.toml",
     ]
 
 
@@ -76,11 +76,11 @@ def test_a_refused_config_exits_2(
 ) -> None:
     """No graph is built when the config is wrong; the refusal goes to standard error."""
     _repo(tmp_path, monkeypatch)
-    (tmp_path / "gnomon.toml").write_text(
-        'gnomon = "1.0"\n[[graph]]\nname = "tiny"\nfile = "graph.json"\n', encoding="utf-8"
+    (tmp_path / "graph-builder.toml").write_text(
+        'graph_builder = "1.0"\n[[graph]]\nname = "tiny"\nfile = "graph.json"\n', encoding="utf-8"
     )
     assert (main(["write"]), main(["check"])) == (2, 2)
-    assert capsys.readouterr().err.splitlines()[0] == "config refused: gnomon.toml: graph 'tiny', build: required"
+    assert capsys.readouterr().err.splitlines()[0] == "config refused: graph-builder.toml: graph 'tiny', build: required"
     assert not (tmp_path / "graph.json").exists()
 
 
@@ -105,9 +105,9 @@ def test_validate_refuses_what_is_not_json(monkeypatch: pytest.MonkeyPatch, caps
 
 
 def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> None:
-    """``gnomon skill`` prints a skill file an agent can save as it is."""
+    """``graph-builder skill`` prints a skill file an agent can save as it is."""
     assert main(["skill"]) == 0
     text = capsys.readouterr().out
-    assert text.startswith("---\nname: gnomon-setup\ndescription: ")
+    assert text.startswith("---\nname: graph-builder-setup\ndescription: ")
     assert "## Setup" in text and "## If you read this from a link" in text
-    assert "uvx --from maxitor gnomon" in text and "maxitor-gnomon" not in text
+    assert "uvx --from maxitor graph-builder" in text and "maxitor-gnomon" not in text

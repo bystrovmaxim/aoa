@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/tools/gnomon/src/maxitor/gnomon/config_schema.json",
-  "title": "Gnomon config",
-  "description": "gnomon.toml: the graphs of one repository, each built by a command and saved in a file.",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/config_schema.json",
+  "title": "graph-builder config",
+  "description": "graph-builder.toml: the graphs of one repository, each built by a command and saved in a file.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["gnomon", "graph"],
+  "required": ["graph_builder", "graph"],
   "properties": {
-    "gnomon": {
+    "graph_builder": {
       "const": "1.0"
     },
     "graph": {

@@ -120,6 +120,6 @@ A release of the protocol is the git tag `open-gnomon-protocol-v<version>`; its 
 
 | | Role |
 |---|---|
-| **[`gnomon`](../maxitor/README.md), in Maxitor** | Reference implementation: the `gnomon` command of the `maxitor` package (`pip install maxitor`, no extra) that writes and checks a repository's graph files, and the `gnomon-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
+| **[`graph-builder`](../maxitor/README.md), in Maxitor** | Reference implementation: the `graph-builder` command of the `maxitor` package (`pip install maxitor`, no extra) that writes and checks a repository's graph files, and the `graph-builder-setup` skill that connects a project to the protocol. **Start here to use the protocol in your project.** |
 | **[AOA](https://github.com/bystrovmaxim/aoa)** | Producer: every AOA service exports its model in this format. |
 | **[Maxitor](../maxitor/README.md)** | Consumer: draws the graph, its entity diagrams and lifecycles. |
