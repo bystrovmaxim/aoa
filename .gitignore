@@ -49,10 +49,10 @@ dmypy.json
 # ============================================================================
 # Node (Maxitor web client — source lives in git; node_modules stays local only)
 # ============================================================================
-packages/maxitor/app/client/node_modules/
-packages/maxitor/app/client/.vite/
+packages/maxitor/front/client/node_modules/
+packages/maxitor/front/client/.vite/
 # Built frontend — assembled by CI before packaging; never commit
-packages/maxitor/app/src/maxitor/viewer/static/
+packages/maxitor/front/src/maxitor/front/static/
 
 # ============================================================================
 # IDE

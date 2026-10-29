@@ -15,7 +15,7 @@ Maxitor is one package with parts you choose at install time:
 | Part | What it does | Install |
 |---|---|---|
 | **`graph-builder`** | Keeps each service's model graph in one file beside its code, by the [Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/open-gnomon-protocol/README.md), and fails CI when a file is stale — every pull request shows what it did to the model | `pip install maxitor` |
-| **the app** | The viewer: the full graph, entity diagrams, use cases and lifecycles of an AOA service, live in the browser | `pip install "maxitor[viewer]"` |
+| **the front** | Maxitor's web part: the full graph, entity diagrams, use cases and lifecycles of an AOA service, live in the browser | `pip install "maxitor[front]"` |
 | **skills** | `graph-builder-setup`, the skill a coding agent follows to connect a project | comes with every install |
 
 `pip install "maxitor[all]"` installs everything. The base install brings only `jsonschema` and `jsonschema-rs` — nothing of AOA, no server — so it is all a CI job needs. A command whose part is not installed says which extra to add.
@@ -92,8 +92,8 @@ From then on, a pull request that changes the model without its graph file fails
 ### See the system
 
 ```bash
-pip install "maxitor[viewer]"
-maxitor-api
+pip install "maxitor[front]"
+maxitor
 ```
 
 Open `http://127.0.0.1:8000` and point it at an AOA service's graph.
@@ -101,7 +101,7 @@ Open `http://127.0.0.1:8000` and point it at an AOA service's graph.
 ## Learn more
 
 - **[The `graph-builder` command](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/tools/graph_builder/README.md)** — commands, configuration, how graphs are kept in a repository, the CI check, use from Python
-- **[The app](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/app/README.md)** — the diagrams, the API, running it, its architecture
+- **[The app](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/front/README.md)** — the diagrams, the API, running it, its architecture
 - **[graph-builder-setup](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/skills/graph-builder-setup/SKILL.md)** — the skill an agent follows
 - **[Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/open-gnomon-protocol/README.md)** — the graph's language, which any language can follow
 - [Changelog](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/CHANGELOG.md) · [Source](https://github.com/bystrovmaxim/aoa/tree/maxitor-v3.0.0/packages/maxitor) · [Issues](https://github.com/bystrovmaxim/aoa/issues)

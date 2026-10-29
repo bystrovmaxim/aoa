@@ -24,7 +24,7 @@ SCOPE (IN / OUT)
     Running a declared-model source in a fresh process and returning its exit code,
     stdout and stderr.
     Supplying a standard ``sys.path`` preamble for ``aoa.action_machine`` /
-    ``maxitor.viewer`` imports.
+    ``maxitor.front`` imports.
 
 **Out of scope**
     Declaring entities itself; callers pass a complete source string.
@@ -62,7 +62,7 @@ _PRELUDE = textwrap.dedent(
 
     import sys
     sys.path.insert(0, "packages/aoa-action-machine/src")
-    sys.path.insert(0, "packages/maxitor/app/src")
+    sys.path.insert(0, "packages/maxitor/front/src")
     """
 )
 

@@ -14,7 +14,7 @@ check, and the differences between a file and what its build prints.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-The part imports nothing from ``aoa`` and nothing of ``maxitor.viewer``;
+The part imports nothing from ``aoa`` and nothing of ``maxitor.front``;
 ``scripts/check_package_boundaries.py`` enforces both, so ``pip install maxitor``
 with no extra is enough to run it.
 """

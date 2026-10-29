@@ -93,7 +93,7 @@ def _import_prefixes(cfg: dict) -> dict[str, str]:
 
 
 def _target_from_module(module: str, prefixes: dict[str, str]) -> str | None:
-    """The package an import belongs to: the one whose prefix is the longest match, so ``maxitor.viewer`` never swallows a sibling."""
+    """The package an import belongs to: the one whose prefix is the longest match, so ``maxitor.front`` never swallows a sibling."""
     matches = [prefix for prefix in prefixes if module == prefix or module.startswith(prefix + ".")]
     return prefixes[max(matches, key=len)] if matches else None
 

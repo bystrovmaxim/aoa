@@ -9,8 +9,8 @@ from pathlib import Path
 
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from maxitor.viewer.model.diagrams.actions.list_entities_action import ListEntitiesAction
-from maxitor.viewer.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
+from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
+from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 
 def main() -> None:

@@ -117,7 +117,7 @@ asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
     "packages/aoa-action-machine/src",
-    "packages/maxitor/app/src",
+    "packages/maxitor/front/src",
     "packages/maxitor/tools/graph_builder/src",
     "packages/aoa-demo/src",
     "packages/aoa-langgraph/src",
@@ -165,7 +165,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/maxitor/app/src:packages/maxitor/tools/graph_builder/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/maxitor/front/src:packages/maxitor/tools/graph_builder/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -216,7 +216,7 @@ disable_error_code = ["valid-type"]
 
 # JsonSchemaValue.define() types used as annotations (mypy sees a variable, not a static alias)
 [[tool.mypy.overrides]]
-module = "maxitor.viewer.model.diagrams.*"
+module = "maxitor.front.model.diagrams.*"
 disable_error_code = ["valid-type"]
 
 [[tool.mypy.overrides]]
@@ -408,7 +408,7 @@ paths = [
     "packages/aoa-fastapi-adapter/src/aoa/fastapi",
     "packages/aoa-mcp-adapter/src/aoa/mcp",
     "packages/aoa-langgraph/src/aoa/langgraph",
-    "packages/maxitor/app/src/maxitor",
+    "packages/maxitor/front/src/maxitor",
     "packages/maxitor/tools/graph_builder/src/maxitor",
     "packages/aoa-demo/src/aoa/demo",
 ]
@@ -423,7 +423,7 @@ ignore_names = ["event_type", "jurisdiction"]
 # TASKIPY — УДОБНЫЕ КОМАНДЫ
 # ============================================================================
 [tool.taskipy.tasks]
-maxitor-api = "uv run uvicorn maxitor.viewer.api.app:app --reload --host 127.0.0.1 --port 8000"
+maxitor = "uv run uvicorn maxitor.front.api.app:app --reload --host 127.0.0.1 --port 8000"
 packaging-smoke = "pytest tests/packaging -v"
 build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/maxitor && uv run --group dev python -m build packages/aoa-demo"
 cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
@@ -437,7 +437,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/app/src packages/maxitor/tools/graph_builder/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/front/src packages/maxitor/tools/graph_builder/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "radon cc packages/ -a -nb"
 mi = "radon mi packages/ -nb"

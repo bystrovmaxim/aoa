@@ -2096,7 +2096,7 @@ all = [
     { name = "uvicorn" },
     { name = "websockets" },
 ]
-viewer = [
+front = [
     { name = "aoa-action-machine" },
     { name = "aoa-fastapi-adapter" },
     { name = "duckdb" },
@@ -2113,17 +2113,17 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aoa-action-machine", marker = "extra == 'viewer'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-fastapi-adapter", marker = "extra == 'viewer'", editable = "packages/aoa-fastapi-adapter" },
-    { name = "duckdb", marker = "extra == 'viewer'", specifier = ">=1.5,<2" },
-    { name = "httpx", marker = "extra == 'viewer'", specifier = ">=0.28,<1.0" },
+    { name = "aoa-action-machine", marker = "extra == 'front'", editable = "packages/aoa-action-machine" },
+    { name = "aoa-fastapi-adapter", marker = "extra == 'front'", editable = "packages/aoa-fastapi-adapter" },
+    { name = "duckdb", marker = "extra == 'front'", specifier = ">=1.5,<2" },
+    { name = "httpx", marker = "extra == 'front'", specifier = ">=0.28,<1.0" },
     { name = "jsonschema", specifier = ">=4.17,<5" },
     { name = "jsonschema-rs", specifier = ">=0.60,<1" },
-    { name = "maxitor", extras = ["viewer"], marker = "extra == 'all'", editable = "packages/maxitor" },
-    { name = "uvicorn", marker = "extra == 'viewer'", specifier = ">=0.30" },
-    { name = "websockets", marker = "extra == 'viewer'", specifier = ">=15" },
+    { name = "maxitor", extras = ["front"], marker = "extra == 'all'", editable = "packages/maxitor" },
+    { name = "uvicorn", marker = "extra == 'front'", specifier = ">=0.30" },
+    { name = "websockets", marker = "extra == 'front'", specifier = ">=15" },
 ]
-provides-extras = ["viewer", "all"]
+provides-extras = ["front", "all"]
 
 [package.metadata.requires-dev]
 dev = [
