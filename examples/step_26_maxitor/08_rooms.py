@@ -82,7 +82,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from aoa.demo.model.services.graph_json_service import ExampleModelGraphJsonService
-from aoa.maxitor.api.app import create_app
+from maxitor.viewer.api.app import create_app
 
 ERD = "view=domain-erd"
 

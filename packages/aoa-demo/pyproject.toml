@@ -45,7 +45,7 @@ Repository = "https://github.com/action-machine/action-machine"
 packages = ["src/aoa"]
 
 [tool.hatch.build.targets.sdist]
-# The saved graph is the repository's history, not the package's (gnomon.toml).
+# The saved graph is the repository's history, not the package's (graph-builder.toml).
 exclude = ["graph.json"]
 
 [dependency-groups]

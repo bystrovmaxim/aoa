@@ -1,6 +1,6 @@
 # tests/packaging/test_wheel_install_smoke.py
 """
-Wheel layout and clean-venv install smoke for the publishable distributions (``aoa-*`` and ``maxitor-gnomon``).
+Wheel layout and clean-venv install smoke for the publishable distributions (``aoa-*`` and ``maxitor``).
 
 Requires prior ``python -m build packages/<pkg>`` (``run_checks_with_log.sh`` runs builds before pytest).
 """
@@ -20,7 +20,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Single source of truth: every publishable distribution → the one top-level tree its wheel ships.
-# ``aoa-*`` share the ``aoa/`` namespace; ``maxitor-gnomon`` stands outside it.
+# ``aoa-*`` share the ``aoa/`` namespace; ``maxitor`` stands outside it.
 _DIST_TREE: dict[str, str] = {
     "aoa-action-machine": "aoa/action_machine/",
     "aoa-ocel": "aoa/ocel/",
@@ -28,9 +28,8 @@ _DIST_TREE: dict[str, str] = {
     "aoa-fastapi-adapter": "aoa/fastapi/",
     "aoa-mcp-adapter": "aoa/mcp/",
     "aoa-langgraph": "aoa/langgraph/",
-    "aoa-maxitor": "aoa/maxitor/",
+    "maxitor": "maxitor/",
     "aoa-demo": "aoa/demo/",
-    "maxitor-gnomon": "maxitor_gnomon/",
 }
 
 _PACKAGE_DIRS: dict[str, str] = {dist: dist for dist in _DIST_TREE}
@@ -105,7 +104,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
-    _uv_pip_install(vpy, [_latest_wheel("aoa-action-machine"), _latest_wheel("maxitor-gnomon")])
+    _uv_pip_install(vpy, [_latest_wheel("aoa-action-machine")])
     _run_in_venv(
         vpy,
         "import importlib.util as u; import aoa.action_machine; "
@@ -116,26 +115,54 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.otel') is None; "
-        "assert u.find_spec('aoa.maxitor') is None; "
-        "assert u.find_spec('aoa.demo') is None",
+        "assert u.find_spec('maxitor') is None; "
+        "assert u.find_spec('aoa.demo') is None; "
+        "assert u.find_spec('maxitor') is None",
     )
 
 
-def test_clean_install_gnomon_brings_no_aoa(tmp_path: Path) -> None:
+def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
+    """``pip install maxitor`` with no extra is the ``graph-builder`` command alone: no AOA, none of the viewer's dependencies."""
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
-    _uv_pip_install(vpy, [_latest_wheel("maxitor-gnomon")])
-    _run_in_venv(
-        vpy,
-        "import importlib.util as u; import maxitor_gnomon; "
-        "assert maxitor_gnomon.__version__; "
-        "assert u.find_spec('aoa') is None",
+    _uv_pip_install(vpy, [_latest_wheel("maxitor")])
+    installed = subprocess.run(
+        [str(vpy), "-c", "import importlib.metadata as m; print('\\n'.join(sorted(d.metadata['Name'].lower() for d in m.distributions())))"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    brought = [d for d in installed if d.startswith("aoa") or d in {"fastapi", "uvicorn", "duckdb", "httpx", "websockets"}]
+    assert brought == [], f"the base install brought {brought}"
+    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph_builder" / "tests" / "fixtures" / "graph-1.1.json"
+    (tmp_path / "graph-builder.toml").write_text(
+        f'graph_builder = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
     )
-    skill = subprocess.run(
-        [str(venv / "bin" / "gnomon"), "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
+    graph_builder = str(venv / "bin" / "graph-builder")
+    subprocess.run([graph_builder, "write"], check=True, cwd=str(tmp_path))
+    checked = subprocess.run([graph_builder, "check"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
+    assert checked.startswith("ok sample")
+    validated = subprocess.run(
+        [graph_builder, "validate", "graph.json"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
     ).stdout
-    assert skill.startswith("---\nname: gnomon-setup\n")
+    assert validated.startswith("ok 1.1: ")
+    skill = subprocess.run([graph_builder, "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
+    assert skill.startswith("---\nname: graph-builder-setup\n")
+
+
+def test_clean_install_maxitor_viewer_names_its_extra(tmp_path: Path) -> None:
+    """Without the ``viewer`` extra, ``maxitor-api`` names the extra instead of failing on an import."""
+    venv = tmp_path / "venv"
+    subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
+    vpy = _venv_python(venv)
+    _uv_pip_install(vpy, [_latest_wheel("maxitor")])
+    _run_in_venv(vpy, "import importlib.util as u; import importlib.metadata as m; assert m.version('maxitor'); assert u.find_spec('aoa') is None")
+    started = subprocess.run(
+        [str(venv / "bin" / "maxitor-api")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
+    )
+    assert started.returncode == 2
+    assert started.stderr == 'maxitor-api needs the viewer: pip install "maxitor[viewer]"\n'
 
 
 def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
@@ -146,7 +173,6 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         vpy,
         [
             _latest_wheel("aoa-action-machine"),
-            _latest_wheel("maxitor-gnomon"),
             _latest_wheel("aoa-ocel"),
             _latest_wheel("aoa-demo"),
         ],
@@ -157,7 +183,7 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         "import aoa.demo; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is not None; "
-        "assert u.find_spec('aoa.maxitor') is None",
+        "assert u.find_spec('maxitor') is None",
     )
     listed = subprocess.run(
         [_which_uv(), "pip", "list", f"--python={vpy}"],
@@ -166,4 +192,4 @@ def test_clean_install_examples_does_not_pull_maxitor(tmp_path: Path) -> None:
         text=True,
         cwd=str(REPO_ROOT),
     ).stdout.lower()
-    assert "aoa-maxitor" not in listed
+    assert "maxitor" not in listed
