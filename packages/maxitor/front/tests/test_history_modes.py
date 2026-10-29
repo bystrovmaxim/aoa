@@ -29,6 +29,7 @@ def test_each_private_mode_opens_as_its_port_says(maxitor: TestClient, port: Sta
     assert (body["live"] is not None) == has_live
     assert body["title"] == history and body["host"] == "github" and body["room_ticket"]
     assert body["name"] == port.name(history) and port.histories[history].key not in answer.text
+    assert [v["source"] for v in body["versions"]] == [version_source(port.name(history), None, v["sha"]) for v in body["versions"]]
 
 
 def test_a_public_link_opens_through_maxitors_own_port(maxitor: TestClient) -> None:  # noqa: F811

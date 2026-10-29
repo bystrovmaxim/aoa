@@ -1,6 +1,6 @@
 // src/api/history.ts
 /**
- * Maxitor's history routes (spec 037, contracts/maxitor-api.md): open a history, poll its versions.
+ * Maxitor's history routes (spec 037, the history routes' contract): open a history, poll its versions.
  *
  * A history is named by its address without its key; the key, when there is one, travels only in the
  * header ``X-Maxitor-History-Key`` (FR-010b). A refusal comes back with the server's own words.
@@ -18,6 +18,8 @@ export type HistoryVersion = {
   nodes: number;
   edges: number;
   refused?: string;
+  /** The source this version's graph is read under (the server's, keyless). */
+  source: string;
 };
 
 /** An opened history, as the server answers it. */

@@ -64,7 +64,7 @@ class OpenHistoryResult(BaseResult):
     host: str = Field(description="github or local: whether #123 in a message is a pull request on GitHub")
     repository: str = Field(description="owner/name on the host, or a path on the port's disk")
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
-    versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first")
+    versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first, each with the source its graph is read under")
     count: int = Field(ge=0, description="How many versions there are")
     room_ticket: str | None = Field(default=None, description="A one-use ticket into a room of this history, for a private one")
 
@@ -109,7 +109,7 @@ class OpenHistoryAction(BaseAction[OpenHistoryParams, OpenHistoryResult]):
             host=entry.host,
             repository=entry.repository,
             live=entry.live,
-            versions=entry.versions,
+            versions=entry.versions_with_sources(),
             count=len(entry.versions),
             room_ticket=None if entry.public else access.issue_ticket(entry.name, key),
         )

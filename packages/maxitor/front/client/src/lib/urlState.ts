@@ -9,6 +9,19 @@ const PARAM_DOMAIN = "domain";
 const PARAM_NODE = "node";
 const PARAM_HOST = "host";
 const PARAM_ROOM = "room";
+const PARAM_HISTORY = "history";
+const PARAM_VERSION = "b";
+
+/**
+ * The history this tab shows and its version, or ``null``. While one is set, every address this
+ * module writes names it as ``history`` and ``b`` in place of ``source``, and never its key (spec 037, FR-022).
+ */
+let currentHistory: { name: string; b: string | null } | null = null;
+
+/** Name the history and version every later address carries, or ``null`` for a plain source. */
+export function setUrlHistory(history: { name: string; b: string | null } | null): void {
+  currentHistory = history;
+}
 
 /**
  * The room this tab is in, or ``null``. Kept here rather than passed to every navigation, so that
@@ -31,6 +44,10 @@ export type UrlDeepLink = {
   node: string | null;
   host: string | null;
   room: string | null;
+  /** The history the address names, its address without a key, or ``null``. */
+  history?: string | null;
+  /** The version the address names: a short sha, ``live``, or ``null``. */
+  b?: string | null;
 };
 
 export function readUrlDeepLink(): UrlDeepLink {
@@ -42,6 +59,8 @@ export function readUrlDeepLink(): UrlDeepLink {
     node: params.get(PARAM_NODE),
     host: params.get(PARAM_HOST),
     room: params.get(PARAM_ROOM),
+    history: params.get(PARAM_HISTORY),
+    b: params.get(PARAM_VERSION),
   };
 }
 
@@ -73,7 +92,10 @@ export function selectionToParams(sel: DiagramSelection): Record<string, string>
 
 function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null): string {
   const params = new URLSearchParams();
-  if (serviceUrl) params.set(PARAM_SOURCE, serviceUrl);
+  if (currentHistory) {
+    params.set(PARAM_HISTORY, currentHistory.name);
+    if (currentHistory.b) params.set(PARAM_VERSION, currentHistory.b);
+  } else if (serviceUrl) params.set(PARAM_SOURCE, serviceUrl);
   if (selection) {
     for (const [k, v] of Object.entries(selectionToParams(selection))) params.set(k, v);
   }
