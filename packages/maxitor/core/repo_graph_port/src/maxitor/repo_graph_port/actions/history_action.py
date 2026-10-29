@@ -1,0 +1,117 @@
+# packages/maxitor/core/repo_graph_port/src/maxitor/repo_graph_port/actions/history_action.py
+"""
+HistoryAction — a history's versions, oldest first, each with its tags and facts.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+The list a reader picks versions from: every first-parent commit that changed the
+graph file, its date and message, the repository's tags placed on it, and its
+graph's counts or why it is refused. ``after`` returns only the versions newer than
+the one a reader already holds.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    history id ──► config ──► mirror refreshed after the fallback interval
+               ──► versions + first-parent chain + tags ──► place_tags
+               ──► each version's facts (cache, or git once) ──► [VersionRecord, …]
+
+The adapter tags the answer with an ``ETag`` of its body, so a repeated read of an
+unchanged history is answered ``304``.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import cast
+
+from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
+from maxitor.repo_graph_port.history_reading import facts_of, found, refreshed
+from maxitor.repo_graph_port.history_versions import place_tags
+from maxitor.repo_graph_port.placed_tag import PlacedTag
+from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
+from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
+from maxitor.repo_graph_port.resources.version_cache import VersionCache
+from maxitor.repo_graph_port.version_record import VersionRecord
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.context_requires import context_requires
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
+from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
+
+class HistoryParams(BaseParams):
+    """The history to list, and the version a reader already holds."""
+
+    history: str = Field(description="The history's id in the histories config")
+    after: str | None = Field(default=None, description="Only the versions newer than this sha")
+
+
+class HistoryResult(BaseResult):
+    """The versions, oldest first."""
+
+    versions: list[VersionRecord] = Field(description="The history's versions, oldest first")
+
+
+@meta(description="List a graph's versions with their tags and facts", domain=RepoGraphDomain)
+@check_roles(GuestRole)
+@connection(HistoriesConfig, key="HistoriesConfig", description="The histories this server serves")
+@connection(GitMirror, key="GitMirror", description="The repositories' history, read with git")
+@connection(VersionCache, key="VersionCache", description="Each version's facts, read once")
+class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
+    """
+    AI-CORE-BEGIN
+    ROLE: List a history's versions for a reader to choose from.
+    CONTRACT: Oldest first; ``after`` drops it and every older version; an unknown history or an ``after`` that is not a version raises ``HistoryNotFoundError``.
+    INVARIANTS: Reads only; each version's file is read from git once, then from the cache.
+    AI-CORE-END
+    """
+
+    @summary_aspect("List the history's versions")
+    @context_requires("env.history_refresh_seconds")
+    async def history_summary(
+        self,
+        params: HistoryParams,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+        ctx: ContextView,
+    ) -> HistoryResult:
+        """Refresh the repository, place the tags, gather every version's facts."""
+        mirror = cast(GitMirror, connections["GitMirror"])
+        cache = cast(VersionCache, connections["VersionCache"])
+        history = found(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history)
+        await refreshed(mirror, cache, history, ctx.get("env.history_refresh_seconds"))
+        commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
+        shas = [commit.sha for commit in commits]
+        if params.after is not None and params.after not in shas:
+            raise HistoryNotFoundError()
+        chain = await asyncio.to_thread(mirror.first_parents, history.repository, history.branch)
+        tags = place_tags(chain, shas, await asyncio.to_thread(mirror.tags, history.repository))
+        start = shas.index(params.after) + 1 if params.after is not None else 0
+        records: list[VersionRecord] = []
+        for commit in commits[start:]:
+            facts = await facts_of(mirror, cache, history, commit.sha)
+            records.append(VersionRecord(
+                sha=commit.sha,
+                date=commit.date,
+                message=commit.message,
+                tags=[PlacedTag(name=name) for name in tags.get(commit.sha, [])],
+                nodes=facts.nodes,
+                edges=facts.edges,
+                refused=facts.refused,
+            ))
+        return HistoryResult(versions=records)

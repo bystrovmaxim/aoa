@@ -21,7 +21,7 @@ sha256 = "9c1e…"
 expires = "2027-06-01"
 ```
 
-Commands (`maxitor history …`, the core's CLI):
+Commands (`repo-graph-port history …`, the port's CLI):
 
 | Command | Does |
 |---|---|

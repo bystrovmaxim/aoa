@@ -12,11 +12,11 @@ Decisions taken while planning #288. Each: what was chosen, why, and what was re
 
 ## R2. Where the core lives and what it may import
 
-**Decision**: `packages/maxitor/core/repo_graph_port/` with `src/maxitor/repo_graph_port/` (namespace `maxitor`, like `front` and `graph_builder`) and `tests/`; hatch `sources` and `dev-mode-dirs` gain `core/repo_graph_port/src`. A new extra, `repo-graph-port = ["aoa-action-machine>=1.0.1a0", "PyJWT[crypto]>=2.8,<3", "httpx>=0.28,<1.0"]`; `front = ["maxitor[repo-graph-port]", …]`. Boundaries: `[packages.repo_graph_port]` with `may_import = ["action_machine", "graph_builder"]` (it checks graphs with the protocol's schema through `maxitor.graph_builder.schemas`); `front` may import `repo_graph_port`; `graph_builder` and `repo_graph_port` never import `front`.
+**Decision**: `packages/maxitor/core/repo_graph_port/` with `src/maxitor/repo_graph_port/` (namespace `maxitor`, like `front` and `graph_builder`), `tests/`, its own `graph.json` and `Dockerfile`; hatch `sources` and `dev-mode-dirs` gain `core/repo_graph_port/src`. Its extra, `repo-graph-port = ["aoa-action-machine>=1.0.1a0", "aoa-fastapi-adapter>=1.3.0", "uvicorn>=0.30", "PyJWT[crypto]>=2.8,<3", "httpx>=0.28,<1.0"]`, is no longer part of `front`. Boundaries: `[packages.repo_graph_port]` with `may_import = ["action_machine", "graph_builder"]` (it checks graphs with the protocol's schema through `maxitor.graph_builder.schemas`); `front` does not import it — it reads the port over HTTP (#289); `graph_builder` imports neither.
 
-**Rationale**: FR-004, FR-019; the layout of #286 (`core/` for what the front and tools share).
+**Rationale**: FR-004, FR-019; the maintainer's decision of 2026-10-29: only the port talks to GitHub, so only its container holds the App's secrets.
 
-**Alternatives rejected**: inside `front` (the gateway could not reuse it without the whole front); a second copy of the schema check (one implementation, in `graph_builder`).
+**Alternatives rejected**: the port mounted in the front's server (the App's private key and webhook secret would live in the process that draws diagrams and holds rooms; GitHub's webhook would point at Maxitor); a second copy of the schema check (one implementation, in `graph_builder`).
 
 ## R3. Reading git: a partial bare mirror through the `git` command
 
@@ -42,7 +42,7 @@ The Docker image installs `git` (`python:3.12-slim` lacks it).
 
 ## R6. Read keys: an AOA auth coordinator, not a parameter
 
-**Decision**: a key travels in the header `X-Maxitor-History-Key` (the front reads it from the history's address in the browser and sends it), never in a query string or path — so it is in no access log. A `HistoryKeyAuthCoordinator` (AOA's `AuthCoordinator`: a credential extractor for that header, an authenticator that hashes the key and finds it in the histories config, and a context assembler) puts the reader into the context: `user_id` = the key's `name`, roles = `HistoryReaderRole`, and the history id it opens. Actions declare `@check_roles(HistoryReaderRole, GuestRole)` and check the history they serve against the context. A public history needs no key (`GuestRole`). Every refusal — unknown, revoked or expired key, other history, missing version — is the same "not found". Wrong keys are limited per client address per minute in the coordinator.
+**Decision**: a key travels in the header `X-Maxitor-History-Key` (Maxitor keeps it in the history's address in the browser and sends it to the port; any other client sends it the same way), never in a query string or path — so it is in no access log. A `HistoryKeyAuthCoordinator` (AOA's `AuthCoordinator`: a credential extractor for that header, an authenticator that hashes the key and finds it in the histories config, and a context assembler) puts the reader into the context: `user_id` = the key's `name`, roles = `HistoryReaderRole`, and the history id it opens. Actions declare `@check_roles(HistoryReaderRole, GuestRole)` and check the history they serve against the context. A public history needs no key (`GuestRole`). Every refusal — unknown, revoked or expired key, other history, missing version — is the same "not found". Wrong keys are limited per client address per minute in the coordinator.
 
 **Rationale**: FR-011–FR-014; AOA's access model (rules 55–57) rather than a hand check in each aspect; the key is a sensitive value (rule 58).
 
@@ -50,27 +50,39 @@ The Docker image installs `git` (`python:3.12-slim` lacks it).
 
 ## R7. The histories config
 
-**Decision**: a TOML file named by the environment variable `MAXITOR_HISTORIES` (read only by the settings loader, reaching actions through declared context — rule 63), reread when its modification time changes. Shape as in #288: `[github]` (`app_id`, `private_key_env`, `webhook_secret_env`) and `[[history]]` (`id`, `host`, `repository`, `branch`, `graph_file`) with `[[history.keys]]` (`name`, `sha256`, `expires`). `maxitor history key new|revoke|list|check` edits and checks it (a CLI, not HTTP: FR-011).
+**Decision**: a TOML file named by the environment variable `MAXITOR_HISTORIES` (read only by the settings loader, reaching actions through declared context — rule 63), reread when its modification time changes. Shape as in #288: `[github]` (`app_id`, `private_key_env`, `webhook_secret_env`) and `[[history]]` (`id`, `host`, `repository`, `branch`, `graph_file`) with `[[history.keys]]` (`name`, `sha256`, `expires`). `repo-graph-port history key new|revoke|list|check` edits and checks it (a CLI, not HTTP: FR-011).
 
 ## R8. The cache
 
 **Decision**: per repository, the mirror is the cache; per `(repository, sha)` the version's facts (counts, refusal) and graph bytes are kept on disk forever; tags and pull request descriptions are kept with a time and refreshed by a webhook or when older than the fallback interval (default 10 minutes, `MAXITOR_HISTORY_REFRESH_SECONDS`). `history` answers with an `ETag` (hash of its body) through the adapter's conditional GET; `version` answers `Cache-Control: immutable`.
 
-## R9. The actions and their routes
+## R9. The actions, their routes and the port's own server
 
-**Decision**: in `maxitor.repo_graph_port.actions`: `DescribeHistoryAction`, `HistoryAction` (`after`), `VersionAction` (`sha`), `ReceiveHostEventAction` (the webhook). The front mounts them under `/api/v1/history/…`: a configured history by its id (`/api/v1/history/{id}`, `/versions`, `/versions/{sha}`); a public one by its link on its own routes (`/api/v1/history/public?link=…`, `/public/versions?link=…`, `/public/versions/{sha}?link=…`), named in the cache by the link's repository, branch and path; `POST /api/v1/history/events/github` for the webhook. The webhook's signature is checked by a small ASGI middleware on that one route, over the raw body and before the adapter parses it (rule 47: the transport checks the request); a bad signature is answered `401` and never reaches the action.
+**Decision**: in `maxitor.repo_graph_port.actions`: `DescribeHistoryAction`, `HistoryAction` (`after`), `VersionAction` (`sha`), `ReceiveHostEventAction` (the webhook). The port's own server, `maxitor.repo_graph_port.server` (`FastApiAdapter` over these actions, built by `create_app()`), mounts them under `/api/v1/history/…`: a configured history by its id (`/api/v1/history/{id}`, `/versions`, `/versions/{sha}`); a public one by its link on its own routes (`/api/v1/history/public?link=…`, `/public/versions?link=…`, `/public/versions/{sha}?link=…`), named in the cache by the link's repository, branch and path; `POST /api/v1/history/events/github` for the webhook. The webhook's signature is checked by a small ASGI middleware on that one route, over the raw body and before the adapter parses it (rule 47: the transport checks the request); a bad signature is answered `401` and never reaches the action. `version` answers the file's bytes with `Cache-Control: public, max-age=31536000, immutable`; `history` gets its `ETag` and `304` from the adapter. The command `repo-graph-port` (`maxitor.repo_graph_port.launch:main`) starts it with uvicorn on `REPO_GRAPH_PORT_HOST`/`REPO_GRAPH_PORT_PORT` (default `127.0.0.1:8102`); without the extra it names the extra to install, as `maxitor` does. The port's `graph.json` is built by `python -m maxitor.repo_graph_port.build_graph` and kept by `graph-builder.toml`.
+
+## R12. Which histories a webhook changes
+
+**Decision**: one secret for the whole App checks every event; which histories it concerns is decided by git, not by the event's file lists (a push lists at most 20 commits):
+- `push` (`repository.full_name`, `ref`, `before`, `after`): the configured histories of that repository whose `branch` is the pushed one; one `fetch` of the mirror; a history gets new versions only when `git log --first-parent before..after -- <graph_file>` is not empty — a new resource method, `GitMirror.changed(repository, before, after, path)`. When `before` is all zeros (a new branch) or no longer an ancestor of `after` (a forced push), that history's versions are recomputed whole. Public histories of that repository, if cached, are fetched the same way.
+- `create` with `ref_type = tag`: the tags of that repository are read again; no graph is read.
+- `pull_request` with `action` `edited`, or `closed` with `merged`: `pull_request.merge_commit_sha` is looked up among the versions of that repository's histories; if it is one, that version's pull request is read again; otherwise the event changes nothing.
+- Any other event, or a repository the config does not name: `204`, nothing done.
+
+**Rationale**: FR-018, FR-018a; most pushes and pull requests touch no graph file, and one repository may hold several.
+
+**Alternatives rejected**: trusting `commits[].added/modified/removed` (truncated at 20 commits; a merge's own changes are not listed); refreshing every history of the repository on every event (reads graphs that did not change).
 
 ## R10a. The cache's place and the boundary checker
 
-**Decision**: the mirrors and the version cache live under `MAXITOR_HISTORY_CACHE` (default `~/.cache/maxitor/history`), through declared context. The boundary checker learns the new package: `repo_graph_port` joins its `CANONICAL` names and its `[packages.*]`, and a `[packages.*]` entry may name a standalone owner (`graph_builder`) in `may_import`.
+**Decision**: the mirrors and the version cache live under `MAXITOR_HISTORY_CACHE` (default `~/.cache/maxitor/history`), through declared context. The boundary checker learns the new package: `repo_graph_port` joins its `CANONICAL` names and its `[packages.*]`; the front's `may_import` does not name it.
 
 ## R10b. The stand
 
-**Decision**: the stand (`deploy/stand/`) runs Maxitor's image with `git` installed; `MAXITOR_HISTORIES` points at a config file on the server and `MAXITOR_HISTORY_CACHE` at a volume; `GITHUB_APP_PRIVATE_KEY` and `GITHUB_WEBHOOK_SECRET` come from the server's environment file, which the maintainer writes and which is not in the repository; the App's webhook URL is the stand's `/api/v1/history/events/github`. The maintainer chooses the repositories; read keys for the private histories are issued on the server with `maxitor history key new` and handed to the maintainer only. How the stand is deployed (the host and its script) is agreed with the maintainer before the phase.
+**Decision**: the stand (`deploy/stand/`) gains a third service, `repo-graph-port`, built from `packages/maxitor/core/repo_graph_port/Dockerfile` (with `git`), published on the host's loopback (`127.0.0.1:8102`) and joined to the front end's network as `dev_aoa_repo_graph_port` in `docker-compose.host.yml`; the host's front end routes `repo-graph-port.aoa.run` to it, as it routes `maxitor.aoa.run` to Maxitor (the maintainer's side, outside the repository). `MAXITOR_HISTORIES` points at a config file on the server, mounted read-only, and `MAXITOR_HISTORY_CACHE` at a named volume; `GITHUB_APP_PRIVATE_KEY` and `GITHUB_WEBHOOK_SECRET` come from an environment file on the server, given to this service only, which the maintainer writes and which is not in the repository. Maxitor's service is unchanged. The App's webhook URL is `https://repo-graph-port.aoa.run/api/v1/history/events/github`. The maintainer chooses the repositories; read keys for the private histories are issued on the server with `repo-graph-port history key new` and handed to the maintainer only. How the stand is deployed (the host and its script) is agreed with the maintainer before the phase.
 
 ## R10. Tests
 
-**Decision**: a small git repository built in a temporary folder by a test fixture (`git init`, commits, `git merge --no-ff`, tags), read as a local path; the GitHub host replaced by a stand-in; the end-to-end read of a real private repository checked once by hand and recorded in the pull request.
+**Decision**: a small git repository built in a temporary folder by a test fixture (`git init`, commits, `git merge --no-ff`, tags), read as a local path; the GitHub host replaced by a stand-in; the end-to-end read of the maintainer's real repositories is the stand's phase (R10b), recorded in the tasks with real answers.
 
 ## R11. Rules the code is written by
 

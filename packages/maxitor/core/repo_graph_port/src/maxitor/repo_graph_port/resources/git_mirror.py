@@ -89,6 +89,10 @@ class GitMirror(BaseStorage):
             self._places[repository] = place
             self._remote.add(repository)
 
+    def is_open(self, repository: str) -> bool:
+        """Whether ``open`` was called for ``repository`` in this process."""
+        return repository in self._places
+
     def fetch(self, repository: str, auth: Mapping[str, str] | None = None) -> None:
         """Bring a mirror's branches and tags up to date; a local repository is always current."""
         if repository not in self._remote:
