@@ -1,5 +1,5 @@
 # tests/scripts/test_package_boundaries.py
-"""The boundary check inside ``maxitor``: ``graph-builder`` stands alone; an import belongs to its longest prefix."""
+"""The boundary check inside ``maxitor``: ``graph-builder`` stands alone, the core never imports the front; an import belongs to its longest prefix."""
 
 from __future__ import annotations
 
@@ -26,16 +26,21 @@ def _checker() -> ModuleType:
 CONFIG = {
     "packages": {
         "action_machine": {"current_roots": ["aoa/action_machine"], "import_prefixes": ["aoa.action_machine"], "may_import": []},
-        "maxitor": {"current_roots": ["maxitor/front"], "import_prefixes": ["maxitor.front"], "may_import": ["action_machine", "graph_builder"]},
+        "maxitor": {"current_roots": ["maxitor/front"], "import_prefixes": ["maxitor.front"], "may_import": ["action_machine", "graph_builder", "repo_graph_port"]},
+        "repo_graph_port": {
+            "current_roots": ["maxitor/repo_graph_port"],
+            "import_prefixes": ["maxitor.repo_graph_port"],
+            "may_import": ["action_machine", "graph_builder"],
+        },
         "examples": {"current_roots": ["aoa/demo"], "import_prefixes": ["aoa.demo"], "may_import": ["action_machine"]},
     },
-    "standalone": {"graph_builder": {"roots": ["maxitor/graph_builder"], "import_prefixes": ["maxitor.graph_builder"], "forbid": ["maxitor.front"]}},
+    "standalone": {"graph_builder": {"roots": ["maxitor/graph_builder"], "import_prefixes": ["maxitor.graph_builder"], "forbid": ["maxitor.front", "maxitor.repo_graph_port"]}},
 }
 
 
 def _violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner_folder: str, source: str) -> list[str]:
     """Check a tree whose one module, in ``owner_folder``, holds ``source``; every other root is empty."""
-    for folder in ("aoa/action_machine", "maxitor/front", "aoa/demo", "maxitor/graph_builder"):
+    for folder in ("aoa/action_machine", "maxitor/front", "maxitor/repo_graph_port", "aoa/demo", "maxitor/graph_builder"):
         (tmp_path / folder).mkdir(parents=True, exist_ok=True)
     (tmp_path / owner_folder / "module.py").write_text(source, encoding="utf-8")
     checker = _checker()
@@ -64,3 +69,15 @@ def test_an_import_belongs_to_its_longest_prefix(tmp_path: Path, monkeypatch: py
     """The demo importing ``maxitor.graph_builder`` is a violation against ``graph-builder``, not lost and not charged to ``maxitor``."""
     found = _violations(tmp_path, monkeypatch, "aoa/demo", "from maxitor.graph_builder.schemas import graph_schema\n")
     assert found == ["aoa/demo/module.py:1: context 'examples' must not import package 'graph_builder' via 'maxitor.graph_builder.schemas'"]
+
+
+def test_the_core_importing_the_front_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``maxitor.repo_graph_port`` must not import the front: one violation, naming file, line, owner and module."""
+    found = _violations(tmp_path, monkeypatch, "maxitor/repo_graph_port", "from maxitor.front.api import app\n")
+    assert found == ["maxitor/repo_graph_port/module.py:1: context 'repo_graph_port' must not import package 'maxitor' via 'maxitor.front.api'"]
+
+
+def test_the_core_may_use_graph_builder_and_the_front_the_core(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The core checks graphs with ``graph_builder``; the front serves the core: both allowed."""
+    assert _violations(tmp_path, monkeypatch, "maxitor/repo_graph_port", "from maxitor.graph_builder.schemas import check_graph\n") == []
+    assert _violations(tmp_path, monkeypatch, "maxitor/front", "from maxitor.repo_graph_port.commit import Commit\n") == []
