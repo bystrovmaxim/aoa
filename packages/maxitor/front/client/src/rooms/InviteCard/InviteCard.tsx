@@ -5,6 +5,7 @@ import Popover from "@mui/material/Popover";
 import DoneIcon from "@mui/icons-material/Done";
 import { useEffect, useRef, useState } from "react";
 import { CARD_BUTTON_QUIET_SX, CARD_PAPER_SX, HINT_SX, LABEL_CAPS_SX } from "@/rooms/roomStyles";
+import { mask } from "@/lib/historyAddress";
 
 export type InviteCardProps = {
   anchor: HTMLElement | null;
@@ -74,7 +75,8 @@ export function InviteCard({ anchor, link, copyOnOpen, onClose }: InviteCardProp
           component="input"
           ref={field}
           readOnly
-          value={link}
+          // The key is dots (spec 037, FR-010) — except when the clipboard is missing and the link must be copied by hand.
+          value={result === "manual" ? link : mask(link)}
           aria-label="Room link"
           onFocus={(event: React.FocusEvent<HTMLInputElement>) => event.currentTarget.select()}
           sx={{

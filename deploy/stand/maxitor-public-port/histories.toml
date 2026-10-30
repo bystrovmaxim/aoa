@@ -1,0 +1,5 @@
+# deploy/stand/maxitor-public-port/histories.toml — the config of Maxitor's own port.
+#
+# Empty on purpose. This port serves public GitHub links only (spec 037, FR-003b): no history,
+# no key, no GitHub App of any owner. Maxitor reaches it inside the stand's network as
+# MAXITOR_PUBLIC_PORT; it is never published, and its address is never shown to a user.

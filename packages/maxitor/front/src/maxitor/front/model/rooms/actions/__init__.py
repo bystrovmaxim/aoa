@@ -21,6 +21,7 @@ from maxitor.front.model.rooms.actions.rename_participant_action import RenamePa
 from maxitor.front.model.rooms.actions.report_page_action import ReportPageAction
 from maxitor.front.model.rooms.actions.seed_page_settings_action import SeedPageSettingsAction
 from maxitor.front.model.rooms.actions.set_page_setting_action import SetPageSettingAction
+from maxitor.front.model.rooms.actions.set_room_version_action import SetRoomVersionAction
 from maxitor.front.model.rooms.actions.stop_following_action import StopFollowingAction
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "ReportPageAction",
     "SeedPageSettingsAction",
     "SetPageSettingAction",
+    "SetRoomVersionAction",
     "StopFollowingAction",
 ]

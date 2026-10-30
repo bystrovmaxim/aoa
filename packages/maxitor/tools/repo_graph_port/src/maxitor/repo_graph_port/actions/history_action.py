@@ -19,8 +19,10 @@ ARCHITECTURE / DATA FLOW
 
     history id ──► config ──► mirror refreshed after the fallback interval
                ──► versions + first-parent chain + tags ──► place_tags
-               ──► each version's facts (cache, or git once), its pull request and its tags' releases
-                   (cache while fresh, or the host) ──► [VersionRecord, …]
+               ──► each version's facts and detail — who made it, its size, its graph change — (cache, or git once),
+                   its pull request and its tags' releases
+                   (cache while fresh, or the host; a pull request else from its merge commit's message)
+               ──► [VersionRecord, …], and the open pull requests that change the graph ──► proposals
 
 The adapter tags the answer with an ``ETag`` of its body, so a repeated read of an
 unchanged history is answered ``304``.
@@ -32,8 +34,16 @@ import asyncio
 from typing import cast
 
 from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
-from maxitor.repo_graph_port.history_reading import chosen, facts_of, pull_request_of, refreshed, release_of
-from maxitor.repo_graph_port.history_versions import place_tags
+from maxitor.repo_graph_port.history_reading import (
+    chosen,
+    detail_of,
+    facts_of,
+    proposals_of,
+    pull_request_of,
+    refreshed,
+    release_of,
+)
+from maxitor.repo_graph_port.history_versions import place_tags, pull_request_in_message
 from maxitor.repo_graph_port.placed_tag import PlacedTag
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
@@ -68,6 +78,7 @@ class HistoryResult(BaseResult):
     """The versions, oldest first."""
 
     versions: list[VersionRecord] = Field(description="The history's versions, oldest first")
+    proposals: list[VersionRecord] = Field(default_factory=list, description="Pull requests still open into the branch that change the graph, each with its state")
 
 
 @meta(description="List a graph's versions with their tags and facts", domain=RepoGraphDomain)
@@ -109,10 +120,14 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         chain = await asyncio.to_thread(mirror.first_parents, history.repository, history.branch)
         tags = place_tags(chain, shas, await asyncio.to_thread(mirror.tags, history.repository))
         start = shas.index(params.after) + 1 if params.after is not None else 0
+        pull_url = f"https://github.com/{history.repository}/pull/" if history.host == "github" else ""
         records: list[VersionRecord] = []
-        for commit in commits[start:]:
+        for index, commit in enumerate(commits[start:], start=start):
             facts = await facts_of(mirror, cache, host, history, commit.sha)
-            pull = await pull_request_of(cache, host, history, commit.sha, interval)
+            contribution, change = await detail_of(mirror, cache, host, history, commit.sha, shas[index - 1] if index > 0 else None)
+            # The host tells a version's pull request; where it does not (a local repository, or GitHub without
+            # an answer), the merge or squash commit's message names it.
+            pull = await pull_request_of(cache, host, history, commit.sha, interval) or pull_request_in_message(commit.message, pull_url)
             placed = [PlacedTag(name=name, release=await release_of(cache, host, history, name, interval)) for name in tags.get(commit.sha, [])]
             records.append(VersionRecord(
                 sha=commit.sha,
@@ -123,6 +138,9 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
                 nodes=facts.nodes,
                 edges=facts.edges,
                 refused=facts.refused,
+                contribution=contribution,
+                change=change,
             ))
+        proposals = await proposals_of(mirror, cache, host, history, shas[-1] if shas else None, interval)
         await box.info(Channel.business, "History {%var.history} listed for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
-        return HistoryResult(versions=records)
+        return HistoryResult(versions=records, proposals=proposals)

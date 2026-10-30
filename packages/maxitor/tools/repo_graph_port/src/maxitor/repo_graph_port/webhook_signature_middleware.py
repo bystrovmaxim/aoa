@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 
+from maxitor.repo_graph_port.security_reporter import SecurityReporter
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -36,13 +37,14 @@ class WebhookSignatureMiddleware:
     """
     AI-CORE-BEGIN
     ROLE: Let through to the webhook's route only a body whose signature checks.
-    CONTRACT: ``verify(body, signature)`` decides; a POST to the webhook's path that fails it is answered ``401`` and goes no further.
+    CONTRACT: ``verify(body, signature)`` decides; a POST to the webhook's path that fails it is answered ``401``, reported as a security warning naming the client, and goes no further.
     AI-CORE-END
     """
 
-    def __init__(self, app: ASGIApp, verify: Callable[[bytes, str], bool]) -> None:
+    def __init__(self, app: ASGIApp, verify: Callable[[bytes, str], bool], reporter: SecurityReporter | None = None) -> None:
         self.app = app
         self.verify = verify
+        self.reporter = reporter
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Check a webhook's body; pass anything else through."""
@@ -57,6 +59,9 @@ class WebhookSignatureMiddleware:
                 break
         signature = next((v.decode("latin-1") for k, v in scope.get("headers", []) if k == b"x-hub-signature-256"), "")
         if not self.verify(bytes(body), signature):
+            if self.reporter is not None:
+                client = scope.get("client")
+                await self.reporter.report("bad_signature", client[0] if client else "")
             content = json.dumps({"detail": "bad signature"}).encode()
             headers = [(b"content-type", b"application/json"), (b"content-length", str(len(content)).encode())]
             await send({"type": "http.response.start", "status": 401, "headers": headers})

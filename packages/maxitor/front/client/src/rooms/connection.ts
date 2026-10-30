@@ -21,6 +21,10 @@ export type RoomConnectionOptions = {
   /** The room's id, or ``"new"`` with ``source`` to open one. */
   room: string;
   source?: string;
+  /** A room on a history (spec 037): its name and the version a new room opens on, never its key. */
+  history?: { name: string; version: string | null };
+  /** For a private history: a fresh one-use ticket before every connection, the key's stand-in on the socket. */
+  ticket?: () => Promise<string | null>;
   name: string;
   page: string;
   onEvent: (event: ServerEvent) => void;
@@ -111,13 +115,30 @@ export class RoomConnection {
   open(): void {
     this.stopped = false;
     this.options.onState({ kind: this.attempt === 0 ? "connecting" : "reconnecting" });
+    if (this.options.ticket) {
+      // A ticket is used up by one connection, so every connection, a reconnect included, asks for its own.
+      void this.options.ticket().then(
+        (ticket) => this.connect(ticket),
+        () => this.connect(null),
+      );
+      return;
+    }
+    this.connect(null);
+  }
+
+  private connect(ticket: string | null): void {
+    if (this.stopped) return;
     const query = new URLSearchParams({
       participant: this.participant,
       tab: tabId(),
       participant_name: this.options.name,
       start_page: this.page,
     });
-    if (this.room === "new" && this.options.source) query.set("source", this.options.source);
+    if (this.room === "new" && this.options.history) {
+      query.set("history", this.options.history.name);
+      if (this.options.history.version) query.set("version", this.options.history.version);
+    } else if (this.room === "new" && this.options.source) query.set("source", this.options.source);
+    if (ticket) query.set("ticket", ticket);
     const socket = new WebSocket(socketUrl(`/api/v1/rooms/${encodeURIComponent(this.room)}/live`, query));
     this.socket = socket;
     socket.onmessage = (message) => this.receive(message.data);

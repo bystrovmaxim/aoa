@@ -6,7 +6,19 @@ import { LeftSidebar } from "@/components/navigation/LeftSidebar";
 import { useSidebarPayload } from "@/components/navigation/LeftSidebar/hooks/useSidebarPayload";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { SidebarPayload } from "@/model/sidebar";
-import { GraphReadError, onGraphBusy, setActiveSource } from "@/api/client";
+import Box from "@mui/material/Box";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { GraphReadError, onGraphBusy, setActiveHistoryKey, setActiveSource } from "@/api/client";
+import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
+import { VersionButton } from "@/components/history/VersionButton";
+import { VersionMessage } from "@/components/history/VersionMessage";
+import { VersionPicker } from "@/components/history/VersionPicker";
+import { keyFor } from "@/lib/historyKey";
+import { liveLine } from "@/lib/liveLine";
+import { shownNameOf } from "@/lib/versionNames";
+import { hasPicker } from "@/model/historyMode";
+import { sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
 import { loadGraph } from "@/api/load";
 import { getGraphFingerprint } from "@/api/graphFingerprint";
 import { useFingerprintPoll, useModelRefresh } from "@/lib/freshGraph";
@@ -17,6 +29,7 @@ import {
   deepLinkToSelection,
   pushUrlState,
   readUrlDeepLink,
+  setUrlHistory,
   setUrlRoom,
   syncUrlToState,
   type UrlDeepLink,
@@ -58,6 +71,20 @@ export function App() {
 
   const page = diagram ? pageKeyOf(diagram) : null;
   const [askLeaveForService, setAskLeaveForService] = useState(false);
+  // A history (spec 037): polled outside a room only — inside one, the room says when it changed.
+  const [roomOpen, setRoomOpen] = useState(false);
+  const opened = useOpenHistory(!roomOpen);
+  const shown = opened.history;
+  const shownSource = shown ? sourceOf(shown) : null;
+  const shownVersion = shown ? versionOf(shown, shown.b) : null;
+  const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals) : null;
+  // The picker opens under the version button there is now: the button may be drawn anew while it is open.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const versionButton = useRef<HTMLButtonElement | null>(null);
+  // On a phone the picker is a sheet from the bottom (FR-031), at the width MainLayout calls a phone.
+  const phone = useMediaQuery(useTheme().breakpoints.down("sm"));
+  /** When Live was last read, or since when it cannot be: its closing line under the track (FR-030). */
+  const [liveState, setLiveState] = useState<{ ok: boolean; at: number } | null>(null);
 
   /** The server opened this tab on a page other than its link's: go there, without a history entry. */
   const handleFallbackPage = useCallback(
@@ -87,11 +114,20 @@ export function App() {
     onGraphChanged: handleGraphChanged,
     surface,
     fingerprint: sidebar?.fingerprint ?? null,
+    history: shown ? { name: shown.name, version: shown.b, key: shown.key } : null,
+    onVersion: opened.pick,
+    onHistoryChanged: () => {
+      if (!shown) return;
+      void historyVersions(shown.name, shown.key)
+        .then((answer) => answer && opened.takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals }))
+        .catch(() => undefined);
+    },
   });
   // Pointers go out and come in only while connected and while this page's layout is the room's
   // (FR-045, FR-093); Hide pointers only stops drawing other people's.
   // Outside a room a tab asks every 30 s whether its graph changed; inside one the room tells it.
   useFingerprintPoll(!room.inRoom && serviceUrl !== null && sidebar !== null, getGraphFingerprint, sidebar?.fingerprint ?? null, handleGraphChanged);
+  useEffect(() => setRoomOpen(room.inRoom), [room.inRoom]);
   const pointersLive = room.inRoom && room.connection?.kind === "open" && !room.pointersOff;
   usePointerSender(surface, room.send, pointersLive);
   const roomSettings = room.room?.settings;
@@ -135,13 +171,20 @@ export function App() {
   // A busy server means "retrying", not "your source is wrong": the page says so and waits.
   useEffect(() => onGraphBusy(() => setBusy(true)), []);
 
-  /** Read the sidebar of ``source``; a refused source falls back to the manual prompt. */
-  async function readSidebar(source: string) {
+  /** Read the sidebar of ``source``; a refused source falls back to the manual prompt, or, for a history's Live, says so. */
+  async function readSidebar(source: string, inHistory = false) {
     try {
       await reload();
-      pushServiceUrl(source);
+      if (!inHistory) pushServiceUrl(source);
+      if (inHistory && source === shown?.live) setLiveState({ ok: true, at: Date.now() });
       setBusy(false);
     } catch (e) {
+      if (inHistory) {
+        if (source === shown?.live) setLiveState((current) => (current && !current.ok ? current : { ok: false, at: Date.now() }));
+        // Live that cannot be reached leaves the history open: another version can still be picked (FR-021).
+        opened.setNotice("Live cannot be reached; pick a version");
+        return;
+      }
       if (e instanceof GraphReadError && e.status === 422) {
         setActiveSource(null);
         setServiceUrl(null);
@@ -150,8 +193,31 @@ export function App() {
     }
   }
 
+  /** Open the history an address names, with the key this tab or Recent holds; a refusal is a notice. */
+  async function openHistoryOf(name: string, b: string | null) {
+    const key = keyFor(name);
+    try {
+      opened.show(await openHistory(name, key), key, b);
+    } catch (e) {
+      setUrlHistory(null);
+      opened.close();
+      setReloadError(e instanceof HistoryRequestError ? e.message : String(e));
+    }
+  }
+
   /** Applies a service+view combination read from the URL — initial load or a popstate. */
   function applyDeepLink(link: UrlDeepLink, activeServiceUrl: string | null, activeSidebar: SidebarPayload | null) {
+    if (link.history) {
+      // Named at once, so the address keeps ``history`` and ``b`` while the history is still being opened.
+      setUrlHistory({ name: link.history, b: link.b ?? null });
+      const resolvedHistory = deepLinkToSelection(link);
+      if (resolvedHistory) setDiagram(resolvedHistory);
+      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null);
+      else if (link.b && link.b !== shown.b) opened.pick(link.b);
+      return;
+    }
+    setUrlHistory(null);
+    opened.close();
     const resolved = deepLinkToSelection(link);
     if (resolved) {
       pendingKind.current = null;
@@ -201,10 +267,34 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceUrl, sidebar]);
 
+  // A history's chosen version is what the page reads: its source, its key, and the address that names it.
+  useEffect(() => {
+    if (!shown) return;
+    setUrlHistory({ name: shown.name, b: shown.b });
+    setActiveHistoryKey(shown.b === "live" ? "" : shown.key);
+    if (shownSource && shownSource !== serviceUrl) {
+      setActiveSource(shownSource);
+      setServiceUrl(shownSource);
+      void readSidebar(shownSource, true);
+      // Another version is another graph: the diagram on screen is read again from it, page kept.
+      setWorkspaceKey((count) => count + 1);
+    } else if (!shownSource) {
+      setActiveSource(null);
+      setServiceUrl(null);
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown?.name, shown?.b, shownSource]);
+
+  // The tab's title names the history and its version, never its address (FR-011c).
+  useEffect(() => {
+    document.title = shown ? `${shown.title} · ${shownName ?? "no version yet"} — Maxitor` : "Maxitor";
+  }, [shown, shownName]);
+
   // Keep the URL accurate as state resolves — replaceState, so it never adds a history entry on its own.
   useEffect(() => {
     syncUrlToState(serviceUrl, diagram);
-  }, [serviceUrl, diagram]);
+  }, [serviceUrl, diagram, shown?.b]);
 
   function handleSelectDiagram(sel: DiagramSelection) {
     stopFollowingOnOwnMove();
@@ -212,7 +302,23 @@ export function App() {
     setDiagram(sel);
   }
 
+  /** A history opened from the field or Recent: show it on its default version, as a new navigation. */
+  function handleHistoryOpened(history: OpenedHistory, key: string) {
+    setReloadError(null);
+    opened.show(history, key, null);
+    setUrlHistory({ name: history.name, b: null });
+    pushUrlState(null, null);
+  }
+
+  /** Pick a version: in a room the whole room moves (FR-022a), outside one only this tab. */
+  function pickVersion(b: string) {
+    if (room.inRoom) room.send({ type: "version", b });
+    else opened.pick(b);
+  }
+
   function handleLoaded(url: string) {
+    setUrlHistory(null);
+    opened.close();
     pushUrlState(url, null);
     setActiveSource(url);
     setServiceUrl(url);
@@ -228,6 +334,9 @@ export function App() {
   }
 
   function handleReset() {
+    setUrlHistory(null);
+    opened.close();
+    setActiveHistoryKey("");
     pushUrlState(null, null);
     setActiveSource(null);
     setServiceUrl(null);
@@ -261,11 +370,16 @@ export function App() {
   return (
     <MainLayout
       topRow={(compact) => (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+          {shown && hasPicker(opened.mode) && (
+            <VersionButton ref={versionButton} name={shownName ?? "—"} open={pickerOpen} onClick={() => setPickerOpen((open) => !open)} />
+          )}
+          <Box sx={{ flex: 1 }} />
         <RoomBar
           session={room}
           page={page}
           pageLabel={labelOfPage}
-          canOpen={serviceUrl !== null}
+          canOpen={serviceUrl !== null || (shown !== null && hasPicker(opened.mode))}
           compact={compact}
           onGoTo={(participant, theirPage) => {
             // Going to someone is your own navigation: it ends following (FR-051).
@@ -275,6 +389,7 @@ export function App() {
           onFollow={follow}
           onStopFollowing={stopFollowing}
         />
+        </Box>
       )}
       overlay={
         <>
@@ -290,6 +405,11 @@ export function App() {
             onOpenRoom={room.requestOpen}
             onDismiss={room.dismissPageNotice}
           />
+          <RoomBanner
+            banner={opened.notice ? { kind: "info", text: opened.notice, open: false } : null}
+            onOpenRoom={room.requestOpen}
+            onDismiss={() => opened.setNotice(null)}
+          />
         </>
       }
       sidebar={
@@ -298,6 +418,7 @@ export function App() {
           onSelectDiagram={handleSelectDiagram}
           sidebar={sidebar}
           onLoaded={handleLoaded}
+          onHistoryOpened={handleHistoryOpened}
           onReset={requestReset}
           source={serviceUrl}
           onReloadFromService={() => void handleReloadFromService()}
@@ -307,9 +428,35 @@ export function App() {
         />
       }
     >
-      <PageSettingsProvider page={page} room={sharedSettings}>
-        <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
-      </PageSettingsProvider>
+      {shown && opened.mode === "M7" ? (
+        <WorkspaceNote text="This history has no version yet." />
+      ) : shownVersion?.refused ? (
+        <WorkspaceNote text={`${shownName ?? "This version"} is refused: ${shownVersion.refused}`} />
+      ) : (
+        <PageSettingsProvider page={page} room={sharedSettings}>
+          <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+        </PageSettingsProvider>
+      )}
+      {shown && (
+        <VersionPicker
+          anchor={pickerOpen ? versionButton : null}
+          onClose={() => setPickerOpen(false)}
+          title={shown.title}
+          versions={shown.versions}
+          live={shown.live}
+          liveIs={shown.liveSameAs}
+          proposals={shown.proposals}
+          value={shown.b}
+          onChange={pickVersion}
+          phone={phone}
+        >
+          <VersionMessage
+            version={shownVersion ?? (shown.b === "live" ? versionOf(shown, shown.liveSameAs) : null)}
+            repository={shown.host === "github" ? shown.repository : null}
+            liveLine={shown.b === "live" ? liveLine(shown.versions, liveState) : undefined}
+          />
+        </VersionPicker>
+      )}
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}
@@ -331,3 +478,13 @@ export function App() {
     </MainLayout>
   );
 }
+
+/** A sentence in place of the diagram: a history with no version yet, or a refused version and why. */
+function WorkspaceNote({ text }: { text: string }) {
+  return (
+    <Box role="status" sx={{ m: "auto", p: 4, maxWidth: 520, textAlign: "center", fontSize: 14, color: "rgb(71, 85, 105)" }}>
+      {text}
+    </Box>
+  );
+}
+

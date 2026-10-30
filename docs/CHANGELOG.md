@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-10-30] — Maxitor opens a service's graph history and shows any version
+
+Maxitor now opens the history a `repo-graph-port` serves. Paste the history's address with its read key after `#key=`, a public GitHub link to a graph file, or a running service's own address as before: Maxitor tells which it is from the answer. A version button at the left of the row above the diagram names what you are looking at and opens a picker with a time axis — every change that reached the branch, oldest at the left, the pull requests still open that would change the graph, and Live, the service running now, always last. Pick any point and every diagram shows that version's graph.
+
+The track reads at a glance. A point's colour says how the change came: purple for a merged pull request, grey for a direct push, and for an open pull request GitHub's colour of its review — waiting, approved or asked to change; drafts are not shown. A point that starts a version is larger and carries its number underneath; a flag marks a release, either published on GitHub or tagged `release…`, which works without GitHub too. Hovering a point shows a card with its title, who made it and who merged it, its size, and what it did to the model — entities, fields and links added or removed — all read from git, so a local or corporate repository shows it as well. When the service runs exactly the newest version, the two are one point. A small "i" explains every mark.
+
+Sharing is copying the address bar: it holds the history, the version and the key, so it opens the same view elsewhere; the key never reaches a server or a log. A room moves together to whatever version anyone picks. A long history scrolls like a page, and on a phone the picker is a sheet from the bottom. The [how-to page](how-to/open-a-graph-history.md) walks through reading the track and every refusal.
+
+## [2026-10-30] — Graph setup remembers its decisions and requires release versions
+
+The graph setup wizard keeps its familiar questions and now checks release versioning every time it runs. Existing working choices are shown as statuses, so a project already connected to graphs is asked about the newly required version instead of repeating its setup. Broken items come first. Every release needs an increasing version tag and checks that reject violations; you choose whether a release tool or a person creates the tags. The first tag is a separate decision, and no tag is created without your consent.
+
+The wizard remembers settled choices in the project and still verifies them against what exists today. Optional integrations can remain deferred, but declining versioning leaves setup explicitly incomplete and brings the requirement back on the next run. Monorepositories keep their release streams separate. Before applying anything, one review shows all items, their evidence and the proposed changes, and the owner receives the exact repository settings still needed to enforce the checks. The existing service dialogue remains in place, and the version rule does not depend on the project's programming language.
+
 ## [2026-10-29] — Graph setup explains one decision at a time
 
 Connecting a project's model maps now follows a guided conversation in your language. The wizard first tells you what it found, finishes the choices for one service before moving to another, and then explains how maps will be updated and checked. Each question says what the decision changes, why a particular option is recommended and what choosing differently means. You decide whether to connect a service before discussing where its map belongs; leaving it out removes the questions that no longer matter.

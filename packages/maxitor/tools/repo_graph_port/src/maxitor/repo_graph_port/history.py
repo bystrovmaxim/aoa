@@ -28,7 +28,7 @@ class History:
     """
     AI-CORE-BEGIN
     ROLE: Where one history's graph file lives.
-    CONTRACT: ``host`` is ``github`` or ``local``; ``repository`` is ``owner/name`` on the host, or a local path; ``branch`` gives the versions by first parent; ``graph_file`` is the file's path in the repository; ``public`` is true for a history named by a link, read with no key and no credentials.
+    CONTRACT: ``host`` is ``github`` or ``local``; ``repository`` is ``owner/name`` on the host, or a local path; ``branch`` gives the versions by first parent; ``graph_file`` is the file's path in the repository; ``public`` is true for a history named by a link, read with no key and no credentials; ``live`` is the address of the running service whose graph is Live, or ``None``.
     AI-CORE-END
     """
 
@@ -38,6 +38,7 @@ class History:
     branch: str
     graph_file: str
     public: bool = False
+    live: str | None = None
 
 
 def public_history(link: str) -> History | None:

@@ -1,7 +1,12 @@
 // src/components/navigation/LeftSidebar/ServiceUrlInput.tsx
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { HistoryIcon } from "@/components/history/VersionButton/VersionButton";
+import { LiveIcon } from "@/components/history/VersionMessage/VersionMessage";
 import LinkIcon from "@mui/icons-material/Link";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
@@ -14,8 +19,11 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { type OpenedHistory, openHistory } from "@/api/history";
 import { loadGraph } from "@/api/load";
-import { getServiceUrlHistory, pushServiceUrl } from "@/lib/serviceUrlHistory";
+import { type History, mask, parseHistory } from "@/lib/historyAddress";
+import { rememberKey } from "@/lib/historyKey";
+import { describeRecent, getRecent, pushRecent, pushServiceUrl, removeRecent } from "@/lib/serviceUrlHistory";
 
 const SB = {
   text: "rgb(30, 41, 59)",
@@ -28,16 +36,28 @@ const SB = {
 
 type Props = {
   onLoaded: (serviceUrl: string) => void;
+  /** A history was opened from the field or from Recent (spec 037); without it, histories are only recorded. */
+  onHistoryOpened?: (history: OpenedHistory, key: string) => void;
 };
 
 const COPY_FEEDBACK_MS = 1500;
 
-export function ServiceUrlInput({ onLoaded }: Props) {
+/**
+ * The address field and Recent. A read key in an address is shown as eight dots unless the field is
+ * being edited, and the eye reveals it until it is clicked again or the field loses focus (spec 037,
+ * FR-010); Recent says what each address turned out to be and lets each be removed, key and all (FR-012).
+ */
+export function ServiceUrlInput({ onLoaded, onHistoryOpened }: Props) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const history = getServiceUrlHistory();
+  const [editing, setEditing] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const [, setRecentVersion] = useState(0);
+  const history = getRecent();
+  const hasKey = url.includes("#key=");
+  const shown = editing || revealed || !hasKey ? url : mask(url);
 
   async function copyToClipboard(value: string) {
     try {
@@ -49,15 +69,28 @@ export function ServiceUrlInput({ onLoaded }: Props) {
     }
   }
 
+  async function open(found: History) {
+    const key = found.kind === "private" ? found.key : "";
+    const opened = await openHistory(found.name, key);
+    if (key) rememberKey(found.name, key);
+    pushRecent({ address: found.kind === "private" ? `${found.name}#key=${key}` : found.link, kind: "history", name: opened.title, versions: opened.count, live: Boolean(opened.live) });
+    onHistoryOpened?.(opened, key);
+  }
+
   async function submit(value: string) {
     const trimmed = value.trim();
     if (!trimmed || loading) return;
     setLoading(true);
     setError(null);
     try {
-      await loadGraph(trimmed);
-      pushServiceUrl(trimmed);
-      onLoaded(trimmed);
+      const found = parseHistory(trimmed);
+      if (found) {
+        await open(found);
+      } else {
+        await loadGraph(trimmed);
+        pushServiceUrl(trimmed);
+        onLoaded(trimmed);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,8 +111,14 @@ export function ServiceUrlInput({ onLoaded }: Props) {
         fullWidth
         size="small"
         placeholder="http://127.0.0.1:8001"
-        value={url}
+        value={shown}
         onChange={(e) => setUrl(e.target.value)}
+        onFocus={() => setEditing(true)}
+        onBlur={() => {
+          setEditing(false);
+          setRevealed(false);
+        }}
+        inputProps={{ "aria-label": "Service or history address" }}
         onKeyDown={(e) => {
           if (e.key === "Enter") void submit(url);
         }}
@@ -87,6 +126,18 @@ export function ServiceUrlInput({ onLoaded }: Props) {
         error={Boolean(error)}
         endAdornment={
           <InputAdornment position="end">
+            {hasKey && !editing && (
+              <IconButton
+                size="small"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setRevealed((value) => !value)}
+                aria-label={revealed ? "Hide the key" : "Show the key"}
+                aria-pressed={revealed}
+                sx={{ p: 0.25, mr: 0.25, color: SB.icon, "&:hover": { color: SB.text } }}
+              >
+                {revealed ? <VisibilityOffIcon sx={{ fontSize: 16 }} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
+              </IconButton>
+            )}
             {loading ? (
               <CircularProgress size={16} thickness={4} sx={{ color: SB.icon }} />
             ) : (
@@ -126,62 +177,91 @@ export function ServiceUrlInput({ onLoaded }: Props) {
             Recent
           </Typography>
           <List dense disablePadding>
-            {history.map((h) => (
-              <ListItem
-                key={h}
-                disablePadding
-                sx={{
-                  borderRadius: 1.5,
-                  "&:hover": { bgcolor: SB.hover },
-                  "&:hover .row-copy-btn, &:focus-within .row-copy-btn": { opacity: 1 },
-                }}
-                secondaryAction={
-                  <Tooltip title={copiedUrl === h ? "Copied" : "Copy address"} placement="top">
-                    <IconButton
-                      className="row-copy-btn"
-                      size="small"
-                      disabled={loading}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void copyToClipboard(h);
-                      }}
-                      aria-label="Copy address"
-                      sx={{
-                        opacity: 0,
-                        transition: "opacity .15s",
-                        color: copiedUrl === h ? "success.main" : SB.icon,
-                        "&:hover": { color: copiedUrl === h ? "success.main" : SB.text },
-                      }}
-                    >
-                      {copiedUrl === h ? <CheckIcon sx={{ fontSize: 15 }} /> : <ContentCopyIcon sx={{ fontSize: 15 }} />}
-                    </IconButton>
-                  </Tooltip>
-                }
-              >
-                <ListItemButton
-                  disabled={loading}
-                  onClick={() => {
-                    setUrl(h);
-                    void submit(h);
-                  }}
+            {history.map((record) => {
+              const h = record.address;
+              return (
+                <ListItem
+                  key={h}
+                  disablePadding
                   sx={{
                     borderRadius: 1.5,
-                    py: 0.3,
-                    pr: 4.5,
-                    minHeight: 30,
-                    "&:hover": { bgcolor: "transparent" },
+                    "&:hover": { bgcolor: SB.hover },
+                    "&:hover .row-copy-btn, &:focus-within .row-copy-btn": { opacity: 1 },
+                    // The two buttons sit at the edge; the text stops before them, so they never cover it.
+                    "& .MuiListItemSecondaryAction-root": { right: 4 },
                   }}
+                  secondaryAction={
+                    <Box sx={{ display: "flex" }}>
+                      <Tooltip title={copiedUrl === h ? "Copied" : "Copy address"} placement="top">
+                        <IconButton
+                          className="row-copy-btn"
+                          size="small"
+                          disabled={loading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void copyToClipboard(h);
+                          }}
+                          aria-label="Copy address"
+                          sx={{
+                            opacity: 0,
+                            transition: "opacity .15s",
+                            color: copiedUrl === h ? "success.main" : SB.icon,
+                            "&:hover": { color: copiedUrl === h ? "success.main" : SB.text },
+                          }}
+                        >
+                          {copiedUrl === h ? <CheckIcon sx={{ fontSize: 15 }} /> : <ContentCopyIcon sx={{ fontSize: 15 }} />}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Remove from Recent" placement="top">
+                        <IconButton
+                          className="row-copy-btn"
+                          size="small"
+                          disabled={loading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeRecent(h);
+                            setRecentVersion((value) => value + 1);
+                          }}
+                          aria-label="Remove from Recent"
+                          sx={{ opacity: 0, transition: "opacity .15s", color: SB.icon, "&:hover": { color: SB.text } }}
+                        >
+                          <CloseIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
                 >
-                  <ListItemText
-                    primary={h}
-                    primaryTypographyProps={{
-                      noWrap: true,
-                      sx: { fontSize: 12, color: SB.textSecondary, fontFamily: "ui-monospace, monospace" },
+                  <ListItemButton
+                    disabled={loading}
+                    onClick={() => {
+                      setUrl(h);
+                      void submit(h);
                     }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+                    sx={{
+                      borderRadius: 1.5,
+                      py: 0.3,
+                      pr: "68px",
+                      minHeight: 30,
+                      "&:hover": { bgcolor: "transparent" },
+                    }}
+                  >
+                    {/* What the address turned out to be, as the mockup marks it: a history's clock, a running service's waves. */}
+                    <Box component="span" aria-hidden sx={{ display: "inline-flex", color: SB.icon, mr: "8px", mt: "2px", alignSelf: "flex-start", flexShrink: 0 }}>
+                      {record.kind === "history" ? <HistoryIcon /> : <LiveIcon />}
+                    </Box>
+                    <ListItemText
+                      primary={mask(h)}
+                      secondary={describeRecent(record)}
+                      primaryTypographyProps={{
+                        noWrap: true,
+                        sx: { fontSize: 12, color: SB.textSecondary, fontFamily: "ui-monospace, monospace" },
+                      }}
+                      secondaryTypographyProps={{ noWrap: true, sx: { fontSize: 10.5, color: SB.icon } }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
         </Box>
       )}

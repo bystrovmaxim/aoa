@@ -6,6 +6,7 @@ A source that gives ``ETag`` or ``Last-Modified`` is cheap to ask — an unchang
 ``304`` — so it is asked every 30 seconds; one that gives neither is downloaded whole to compare
 hashes, so every 2 minutes. A tab outside a room asks for the fingerprint every 30 seconds, so a
 source last asked about more than 75 seconds ago has no open tab left: two missed polls and a margin.
+A history's version never changes, so it is never due (spec 037, FR-006).
 """
 
 from __future__ import annotations
@@ -26,8 +27,8 @@ def check_interval(entry: GraphEntry) -> float:
 
 
 def is_due(entry: GraphEntry, now: float) -> bool:
-    """Whether ``entry``'s source is due for a check at ``now``, and none is running."""
-    return not entry.checking and now - entry.last_checked >= check_interval(entry)
+    """Whether ``entry``'s source is due for a check at ``now``, and none is running; a history's version never is."""
+    return not entry.immutable and not entry.checking and now - entry.last_checked >= check_interval(entry)
 
 
 def tab_is_open(last_seen: float | None, now: float) -> bool:

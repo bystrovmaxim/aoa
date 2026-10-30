@@ -44,7 +44,7 @@ def world(tmp_path: Path, github_in: Path, capsys: pytest.CaptureFixture[str]) -
     keys = {name: issue(config, capsys, name, "anna") for name in ("orders", "billing")}
     host = GitHubHost(APP_ID, pem, SECRET, transport=hub.transport())
     client = TestClient(create_app(config, tmp_path / "cache", host))
-    return {"built": built, "hub": hub, "client": client, "keys": keys, "cache": tmp_path / "cache"}
+    return {"built": built, "hub": hub, "host": host, "client": client, "keys": keys, "cache": tmp_path / "cache"}
 
 
 def versions(world: dict[str, Any], history: str) -> list[dict[str, Any]]:
@@ -77,11 +77,13 @@ def commit(world: dict[str, Any], name: str, text: str) -> str:
 def test_versions_carry_their_pull_request_and_their_tags_release(world: dict[str, Any]) -> None:
     """A merged pull request names its version; a version with none keeps its message; a tag carries its release."""
     built: BuiltRepository = world["built"]
-    world["hub"].pulls[built.sha["m1"]] = [{"number": 1, "title": "Two edges fewer", "body": "Why", "html_url": "https://github.com/owner/service/pull/1", "merge_commit_sha": built.sha["m1"]}]
+    world["hub"].pulls[built.sha["m1"]] = [
+        {"number": 1, "title": "Two edges fewer", "body": "Why", "html_url": "https://github.com/owner/service/pull/1", "merge_commit_sha": built.sha["m1"], "user": {"login": "anna", "avatar_url": "https://a/anna.png"}}
+    ]
     world["hub"].releases["v1.0"] = {"name": "Release 1.0", "html_url": "https://github.com/owner/service/releases/tag/v1.0"}
     listed = {v["sha"]: v for v in versions(world, "orders")}
     merged, direct = listed[built.sha["m1"]], listed[built.sha["d1"]]
-    assert merged["pr"] == {"number": 1, "title": "Two edges fewer", "body": "Why", "url": "https://github.com/owner/service/pull/1"}
+    assert merged["pr"] == {"number": 1, "title": "Two edges fewer", "body": "Why", "url": "https://github.com/owner/service/pull/1", "author": "anna", "avatar": "https://a/anna.png"}
     assert merged["message"] is None
     assert merged["tags"] == [{"name": "v1.0", "release": {"title": "Release 1.0", "url": "https://github.com/owner/service/releases/tag/v1.0"}}]
     assert direct["pr"] is None and direct["message"] == "Drop an edge on main"
@@ -182,3 +184,22 @@ def test_without_an_app_a_public_link_reads_the_api_anonymously(tmp_path: Path, 
     client = TestClient(create_app(config_file(tmp_path), tmp_path / "cache", GitHubHost(transport=hub.transport())))
     client.get(f"{BASE}/public/versions", params={"link": "https://github.com/other/open/blob/main/graph.json"})
     assert hub.authorized[f"/repos/other/open/commits/{public.sha['m1']}/pulls"] == ""
+
+
+async def test_open_pull_requests_carry_their_review_state_and_drafts_are_left_out(world: dict[str, Any]) -> None:
+    """Each reviewer's last word counts: one asking for changes outweighs an approval; none yet is "open"; a draft is no proposal."""
+    hub = world["hub"]
+    head = {"sha": "a" * 40}
+    hub.open_pulls = [
+        {"number": 7, "title": "Seven", "body": "", "html_url": "https://github.com/owner/service/pull/7", "draft": False, "head": head, "user": {"login": "olga"}},
+        {"number": 8, "title": "Eight", "body": "", "html_url": "u8", "draft": False, "head": head, "user": {}},
+        {"number": 9, "title": "Nine", "body": "", "html_url": "u9", "draft": False, "head": head, "user": {}},
+        {"number": 10, "title": "Draft", "body": "", "html_url": "u10", "draft": True, "head": head, "user": {}},
+    ]
+    hub.reviews = {
+        7: [{"user": {"login": "a"}, "state": "APPROVED"}, {"user": {"login": "b"}, "state": "CHANGES_REQUESTED"}],
+        8: [{"user": {"login": "a"}, "state": "CHANGES_REQUESTED"}, {"user": {"login": "a"}, "state": "APPROVED"}],
+    }
+    pulls = await world["host"].open_pull_requests("owner/service", "main", None)
+    assert [(p["number"], p["state"]) for p in pulls] == [(7, "changes_requested"), (8, "approved"), (9, "open")]
+    assert pulls[0]["author"] == "olga" and pulls[0]["head"] == "a" * 40

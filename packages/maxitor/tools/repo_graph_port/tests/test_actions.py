@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
@@ -26,7 +27,7 @@ from maxitor.repo_graph_port.tag import Tag
 from aoa.action_machine.context import env
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from tests.repo_builder import GRAPH_FILE, BuiltRepository, build_repository, graph
+from tests.repo_builder import GRAPH_FILE, BuiltRepository, add_proposal, build_repository, graph, keep_pull_head
 
 
 class CountingMirror(GitMirror):
@@ -124,7 +125,20 @@ async def test_history_lists_every_version_with_its_tags_and_facts(server: Serve
     assert {v.sha: [t.name for t in v.tags] for v in listed if v.tags} == {built.sha["m1"]: ["v1.0"], built.sha["d1"]: ["v1.1"]}
     assert [(v.nodes, v.edges) for v in listed] == [(38, 28), (38, 26), (38, 25), (38, 24), (None, None), (38, 28)]
     assert listed[4].refused is not None and listed[4].refused.startswith("graph 1.1 at nodes/0")
-    assert listed[1].message == "Merge pull request #1 from feature-a\n\nTwo edges fewer"
+    # A merge commit names its pull request, with no host to ask; GitHub's merge line is never kept.
+    assert listed[1].pr == {"number": 1, "title": "Two edges fewer", "body": "", "url": ""}
+    assert listed[1].message is None
+
+
+async def test_history_tells_who_made_each_version_how_large_it_was_and_what_it_did_to_the_graph(server: Server, built: BuiltRepository) -> None:
+    """A merge commit's branch authors made it and its author merged it; a direct push has no merger; its size and its graph change, links included."""
+    listed = {v.sha: v for v in (await server.run(HistoryAction(), HistoryParams(history="service"))).versions}
+    merged, direct = listed[built.sha["m1"]], listed[built.sha["d1"]]
+    assert merged.contribution is not None and (merged.contribution.author, merged.contribution.merged_by) == ("Tester", "Tester")
+    assert merged.contribution.files == 1 and merged.contribution.deletions > 0
+    assert direct.contribution is not None and direct.contribution.merged_by is None
+    # 28 edges, then 26: the merge removed two links and no node.
+    assert merged.change == {"added": {}, "removed": {}, "changed": 0, "links": {"added": 0, "removed": 2}}
 
 
 async def test_after_returns_only_later_versions(server: Server, built: BuiltRepository) -> None:
@@ -190,3 +204,25 @@ def test_a_config_out_of_shape_is_refused(tmp_path: Path) -> None:
         config.write_text(text, encoding="utf-8")
         with pytest.raises(ValueError, match=reason):
             HistoriesConfig(config)
+
+
+async def test_history_lists_the_pull_requests_still_open_that_change_the_graph(tmp_path: Path) -> None:
+    """A local repository's ``refs/pull/<n>/head`` not yet in the branch is an open pull request; one already merged, or one that leaves the graph as it is, is not listed."""
+    built = build_repository(tmp_path / "service")
+    # The newest version is the 1.0 graph; this pull request drops its last link and nothing else.
+    newest_links = len(json.loads(graph(version="1.0"))["edges"])
+    changing = add_proposal(built, 9, "Offer bundles\n\nBundles beside single offers.", {GRAPH_FILE: graph(version="1.0", edges=newest_links - 1)})
+    add_proposal(built, 10, "Notes only", {"NOTES.md": "notes"})
+    keep_pull_head(built, 1, built.sha["m1"])
+    proposals = (await Server(built, tmp_path).run(HistoryAction(), HistoryParams(history="service"))).proposals
+    assert [(p.sha, p.pr["number"] if p.pr else None, p.pr["state"] if p.pr else None) for p in proposals] == [(changing, 9, "open")]
+    assert proposals[0].pr is not None and proposals[0].pr["title"] == "Offer bundles"
+    assert proposals[0].change is not None and proposals[0].change["links"] == {"added": 0, "removed": 1}
+
+
+async def test_an_open_pull_requests_graph_can_be_read(tmp_path: Path) -> None:
+    """A reader looks at an open pull request before it is merged: its head's graph is served like a version's."""
+    built = build_repository(tmp_path / "service")
+    head = add_proposal(built, 9, "Offer bundles", {GRAPH_FILE: graph(edges=27)})
+    answer = await Server(built, tmp_path).run(VersionAction(), VersionParams(history="service", sha=head))
+    assert answer.graph == graph(edges=27)

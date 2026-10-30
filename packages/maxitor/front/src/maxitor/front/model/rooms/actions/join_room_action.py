@@ -33,11 +33,15 @@ from __future__ import annotations
 from typing import cast
 
 from maxitor.front.api.graph_store import GraphBuildError, GraphEntry, GraphStoreBusyError
+from maxitor.front.model.core.history_reading import history_line
 from maxitor.front.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from maxitor.front.model.core.resources.history_access import HISTORY_ACCESS_CONNECTION_KEY, HistoryAccess, key_digest
+from maxitor.front.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.front.model.core.resources.static_bundle_resource import (
     STATIC_BUNDLE_CONNECTION_KEY,
     StaticBundleResource,
 )
+from maxitor.front.model.core.source_label import label
 from maxitor.front.model.rooms.actions.room_action_support import (
     INVALID_VALUE,
     MAX_PARTICIPANTS,
@@ -79,6 +83,9 @@ class JoinRoomParams(BaseParams):
     participant_name: str = Field(description="The name the person typed")
     start_page: str = Field(description="Canonical key of the page the tab opens on")
     source: str = Field(default="", description="The service a new room is for; ignored when joining")
+    history: str = Field(default="", description="The history a new room is on, its address without a key; ignored when joining")
+    version: str = Field(default="", description="The version a new room on a history opens on: a short sha or 'live'")
+    ticket: str = Field(default="", description="The one-use ticket into a room on a private history, from OpenHistoryAction")
     origin: str = Field(default="", description="The connection's Origin header")
     host: str = Field(default="", description="The connection's Host header")
 
@@ -106,12 +113,15 @@ def _fallback_page(room: Room, pages: set[str]) -> str:
 @connection(SocketChannel, key="socket", description="The joining tab's connection")
 @connection(GraphStoreController, key=GRAPH_STORE_CONNECTION_KEY, description="Built graphs, for the room's pages")
 @connection(StaticBundleResource, key=STATIC_BUNDLE_CONNECTION_KEY, description="The client build Maxitor serves")
+@connection(HistoryStore, key=HISTORY_STORE_CONNECTION_KEY, description="The histories Maxitor holds")
+@connection(HistoryAccess, key=HISTORY_ACCESS_CONNECTION_KEY, description="Room tickets of private histories")
 class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
     """
     AI-CORE-BEGIN
     ROLE: Decide whether a connecting tab may open or join a room, and seat it there.
-    CONTRACT: Refuses with 4403 (origin), 4422 (name or missing source), 4503 (too many rooms), 4404 (room
-    ended or unknown), 4409 (room full); otherwise sends ``welcome`` and tells the room.
+    CONTRACT: Refuses with 4403 (origin), 4422 (name, missing source, a history with no version), 4503 (too many
+    rooms), 4404 (room ended or unknown, or a private history's room without a valid ticket), 4409 (room full);
+    otherwise sends ``welcome`` and tells the room.
     INVARIANTS: A returning participant keeps id and colour and is not announced as joined; the log
     carries ids, never names.
     AI-CORE-END
@@ -138,7 +148,9 @@ class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
             await box.warning(Channel.security, "Room join refused: invalid name for {%var.room}", room=params.room_id)
             raise ConnectionRefusalError(INVALID_VALUE, "invalid name")
 
-        room, entry = await self._room(params, registry, store, box)
+        histories = cast(HistoryStore, connections[HISTORY_STORE_CONNECTION_KEY])
+        access = cast(HistoryAccess, connections[HISTORY_ACCESS_CONNECTION_KEY])
+        room, entry = await self._room(params, registry, store, histories, access, box)
         pages = page_keys(entry.sidebar)
 
         async with room.lock:
@@ -180,6 +192,8 @@ class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
         params: JoinRoomParams,
         registry: RoomRegistry,
         store: GraphStoreController,
+        histories: HistoryStore,
+        access: HistoryAccess,
         box: ToolsBox,
     ) -> tuple[Room, GraphEntry]:
         """Find the named room or open a new one once its source is built; refuse what cannot be."""
@@ -188,21 +202,65 @@ class JoinRoomAction(BaseAction[JoinRoomParams, RoomAnswer]):
             if existing is None:
                 await box.warning(Channel.security, "Room join refused: {%var.room} has ended", room=params.room_id)
                 raise ConnectionRefusalError(ROOM_ENDED, "room ended")
-            return existing, await _built(store, existing.source)
-        if not params.source:
-            raise ConnectionRefusalError(INVALID_VALUE, "a new room needs a source")
+            key = await _admitted(existing.history, params.ticket, histories, access, box)
+            return existing, await _built(store, existing.source, key)
         if registry.room_count() >= MAX_ROOMS:
             await box.warning(Channel.security, "Room creation refused: {%var.limit} rooms are open", limit=MAX_ROOMS)
             raise ConnectionRefusalError(TOO_MANY_ROOMS, "too many rooms")
+        if params.history:
+            return await _history_room(params, registry, store, histories, access, box)
+        if not params.source:
+            raise ConnectionRefusalError(INVALID_VALUE, "a new room needs a source")
         entry = await _built(store, params.source)
         room = registry.open_room(params.source, params.participant)
-        await box.info(Channel.business, "Room {%var.room} created for {%var.source}", room=room.id, source=params.source)
+        await box.info(Channel.business, "Room {%var.room} created for {%var.source}", room=room.id, source=label(params.source))
         return room, entry
 
 
-async def _built(store: GraphStoreController, source: str) -> GraphEntry:
-    """The built graph of ``source``; refuse the connection when it cannot be built now."""
+async def _history_room(
+    params: JoinRoomParams,
+    registry: RoomRegistry,
+    store: GraphStoreController,
+    histories: HistoryStore,
+    access: HistoryAccess,
+    box: ToolsBox,
+) -> tuple[Room, GraphEntry]:
+    """Open a room on a held history, on the version asked for when the history offers it, else its default."""
+    key = await _admitted(params.history, params.ticket, histories, access, box)
+    history = histories.peek(params.history)
+    if history is None:
+        raise ConnectionRefusalError(ROOM_ENDED, "not found")
+    version = params.version if history.offers(params.version) else history.default_version()
+    source = history.source_of(version) if version is not None else None
+    if version is None or source is None:
+        raise ConnectionRefusalError(INVALID_VALUE, "the history has no version yet")
+    entry = await _built(store, source, key)
+    room = registry.open_room(source, params.participant, history=history.name, version=version)
+    await box.info(Channel.business, "Room {%var.room} created on {%var.history}", room=room.id, history=history_line(history))
+    return room, entry
+
+
+async def _admitted(history_name: str | None, ticket: str, histories: HistoryStore, access: HistoryAccess, box: ToolsBox) -> str:
+    """
+    For a room on a private history (spec 037, FR-011d): the remembered key the tab's ticket stands for,
+    refused as "not found" before anything of the room is told. ``""`` for a room on a service or a public history.
+    """
+    if history_name is None:
+        return ""
+    history = histories.peek(history_name)
+    if history is not None and history.public:
+        return ""
+    digest = access.redeem(ticket, history_name) if ticket else None
+    key = next((held for held in history.keys if key_digest(held) == digest), None) if history is not None and digest else None
+    if key is None:
+        await box.warning(Channel.security, "Room join refused: no valid ticket for a private history")
+        raise ConnectionRefusalError(ROOM_ENDED, "not found")
+    return key
+
+
+async def _built(store: GraphStoreController, source: str, key: str = "") -> GraphEntry:
+    """The built graph of ``source``, read with ``key`` for a private history's version; refuse the connection when it cannot be built now."""
     try:
-        return await store.acquire(source)
+        return await store.acquire(source, key)
     except (GraphBuildError, GraphStoreBusyError) as exc:
         raise ConnectionRefusalError(SOURCE_UNAVAILABLE, "the service's graph cannot be built now") from exc

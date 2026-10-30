@@ -18,7 +18,9 @@ It listens on `127.0.0.1:8102` (`REPO_GRAPH_PORT_HOST`, `REPO_GRAPH_PORT_PORT`).
 A history is one graph file on one branch of one repository. Its versions are the commits of that branch, by first parent, that changed the file — one per merged pull request, plus any commit made on the branch itself; commits inside a pull request's branch are not versions. Each version carries:
 
 - `sha` and `date` (UTC);
-- `pr` — the pull request's number, title, description and link, or `message` — the commit's message when there is none;
+- `pr` — the pull request's number, title, description and link (on GitHub also its author's login and picture), or `message` — the commit's message when there is none. With no host to ask — a local repository — the pull request is read from the merge commit's message (`Merge pull request #N from …`, then the title and description) or a squash commit's first line (`Title (#N)`);
+- `contribution` — from git: who made it (the first author of a merged branch, or the commit's), how many others, who merged it (the merge commit's author; none for a squash or direct commit), and its size against its first parent: files, lines added and removed;
+- `change` — what it did to the previous version's graph: nodes added and removed by kind, nodes changed, links added and removed;
 - `tags` — the repository's tags placed on it, each with its release's title and link: a tag on a later commit that did not change the graph belongs to the version before it;
 - `nodes` and `edges`, or `refused` — why the file is not a graph of the protocol's version it claims.
 
@@ -32,8 +34,8 @@ A history is one graph file on one branch of one repository. Its versions are th
 | Route | Answer |
 |---|---|
 | `GET /api/v1/history/{id}` | `{id, repository, branch, graph_file, versions, newest}` |
-| `GET /api/v1/history/{id}/versions[?after=<sha>]` | `{versions: […]}`, oldest first; `after` returns only newer ones; an `ETag`, and `304` to a reader that holds it |
-| `GET /api/v1/history/{id}/versions/{sha}` | the graph file as committed, `Cache-Control: immutable` |
+| `GET /api/v1/history/{id}/versions[?after=<sha>]` | `{versions: […], proposals: […]}`, oldest first; `after` returns only newer ones; an `ETag`, and `304` to a reader that holds it. `proposals` are the pull requests still open into the branch whose graph differs from the newest version's, each shaped like a version with `pr.state` — `open`, `approved` or `changes_requested`: on GitHub from its open pull requests and their reviews, drafts left out; in a local repository from each `refs/pull/<n>/head` not yet in the branch |
+| `GET /api/v1/history/{id}/versions/{sha}` | the graph file as committed, `Cache-Control: immutable` — a version's, or an open pull request's head |
 | `GET /api/v1/history/public…?link=…` | the same three, for a public link |
 | `POST /api/v1/history/events/github` | GitHub's webhook: `{changed: [<id>, …]}` |
 | `GET /health` | `{"status": "ok"}` |
