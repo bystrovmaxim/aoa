@@ -9,7 +9,8 @@ import type { SidebarPayload } from "@/model/sidebar";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { GraphReadError, onGraphBusy, setActiveHistoryKey, setActiveSource } from "@/api/client";
+import { GraphReadError, onGraphBusy, setActiveBase, setActiveHistoryKey, setActiveSource } from "@/api/client";
+import { useDiffCounts } from "@/lib/diffCounts";
 import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
@@ -84,6 +85,8 @@ export function App() {
   const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals) : null;
   const trackPoints = shown ? keysOf(shown) : [];
   const pickerMode: PickerMode = shown?.a ? "diff" : "one";
+  const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
+  const diffCounts = useDiffCounts();
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
   const [pickerOpen, setPickerOpen] = useState(false);
   const versionButton = useRef<HTMLButtonElement | null>(null);
@@ -293,12 +296,15 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown?.name, shown?.b, shownSource]);
 
-  // The address follows A as well: it names the two compared (spec 038, FR-014).
+  // The address follows A as well: it names the two compared (spec 038, FR-014). The diagrams read A beside B, with
+  // the history's key — B may be Live, which needs none —, and the diagram on screen is drawn again from both.
   useEffect(() => {
     if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
     syncUrlToState(serviceUrl, diagram);
+    setActiveBase(olderVersion && !olderVersion.refused ? { source: olderVersion.source, key: shown?.key ?? "" } : null);
+    if (shown) setWorkspaceKey((count) => count + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.a]);
+  }, [shown?.a, olderVersion?.source]);
 
   // The tab's title names the history and its version, never its address (FR-011c).
   useEffect(() => {
@@ -405,6 +411,7 @@ export function App() {
             <VersionButton
               ref={versionButton}
               name={shown.a ? `A ${olderName ?? "—"} → B ${shownName ?? "—"}` : (shownName ?? "—")}
+              counts={shown.a && diagram?.kind === "erd" ? diffCounts : null}
               open={pickerOpen}
               onClick={() => setPickerOpen((open) => !open)}
             />
@@ -466,7 +473,9 @@ export function App() {
       {shown && opened.mode === "M7" ? (
         <WorkspaceNote text="This history has no version yet." />
       ) : shownVersion?.refused ? (
-        <WorkspaceNote text={`${shownName ?? "This version"} is refused: ${shownVersion.refused}`} />
+        <WorkspaceNote text={`${shown?.a ? "B " : ""}${shownName ?? "This version"} is refused: ${shownVersion.refused}`} />
+      ) : olderVersion?.refused ? (
+        <WorkspaceNote text={`A ${olderName ?? "This version"} is refused: ${olderVersion.refused}`} />
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
           <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />

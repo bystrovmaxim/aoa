@@ -428,8 +428,17 @@ function reachEdges(points: string, span: { x0: number; y0: number; x1: number; 
     .join(" ");
 }
 
+/** The opacity of a table that did not change, in Diff (spec 038, FR-022). */
+export const ERD_FADED_OPACITY = 0.32;
+
+/** The dash of a removed table's frame, in Diff. */
+export const ERD_REMOVED_DASH = "5 3";
+
+/** What Diff adds to the cards, by table id: the tables to fade and those whose frame is dashed. */
+export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string> };
+
 /** One node's markup drawn as the designed card, or as it was when it is not a card. */
-function drawCard(node: string, radius: number, stroke: number): string {
+function drawCard(node: string, radius: number, stroke: number, dashed = false): string {
   const backdrop = BACKDROP.exec(node);
   const span = backdrop ? spanOf(backdrop[1]!) : null;
   if (!backdrop || !span) return node;
@@ -445,7 +454,13 @@ function drawCard(node: string, radius: number, stroke: number): string {
     return `<polygon${clipped}${attributes}points="${reachEdges(points, span, inset)}"`;
   });
   const outline = new RegExp(`<path fill="none" stroke="([^"]+)" d="${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"\\/?>(?:<\\/path>)?`);
-  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}" ${box}/>`);
+  const dash = dashed ? ` stroke-dasharray="${ERD_REMOVED_DASH}"` : "";
+  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}"${dash} ${box}/>`);
+}
+
+/** The table id a node's markup draws: its ``<title>``, unescaped. */
+function titleOf(node: string): string {
+  return (/<title>([^<]*)<\/title>/.exec(node)?.[1] ?? "").replace(/&#45;/g, "-").replace(/&amp;/g, "&");
 }
 
 /**
@@ -453,9 +468,10 @@ function drawCard(node: string, radius: number, stroke: number): string {
  * way to one rounded rectangle of ``radius`` (the mockup's 9) with a ``stroke``-wide outline in the
  * domain colour; the header and the row tints reach the card's edge and are trimmed to the same
  * rounded shape, so the header fills right up to the outline with no gap. Graphviz's layout — every
- * cell's place and size — is left as it is. Run after ``containNodeFills``.
+ * cell's place and size — is left as it is. Run after ``containNodeFills``. In Diff (spec 038) ``marks`` fades the
+ * tables that did not change and dashes the frame of those that are gone.
  */
-export function drawErdCards(svg: string, radius: number, stroke: number): string {
+export function drawErdCards(svg: string, radius: number, stroke: number, marks?: ErdCardMarks): string {
   const starts = [...svg.matchAll(NODE_START)].map((m) => m.index ?? 0);
   if (!starts.length) return svg;
   let out = svg.slice(0, starts[0]);
@@ -465,7 +481,11 @@ export function drawErdCards(svg: string, radius: number, stroke: number): strin
     GROUP_START.lastIndex = start + 1;
     const following = GROUP_START.exec(svg)?.index ?? svg.length;
     const end = Math.min(following, next);
-    out += drawCard(svg.slice(start, end), radius, stroke) + svg.slice(end, next);
+    const node = svg.slice(start, end);
+    const table = marks ? titleOf(node) : "";
+    let drawn = drawCard(node, radius, stroke, marks?.dashed.has(table) ?? false);
+    if (marks?.faded.has(table)) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${ERD_FADED_OPACITY}"`);
+    out += drawn + svg.slice(end, next);
   });
   return out;
 }

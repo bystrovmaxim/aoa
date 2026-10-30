@@ -8,7 +8,17 @@ export type VersionButtonProps = {
   open: boolean;
   /** Called with the button itself, which the picker opens under. */
   onClick: (button: HTMLElement) => void;
+  /** In Diff, what the diagram on screen counts (spec 038, FR-025); ``null`` or absent shows no counts. */
+  counts?: { added: number; removed: number; changed: number } | null;
 };
+
+/** The colours of the counts, the ERD's marks' own. */
+const COUNT_COLOUR = { added: "#16a34a", removed: "#dc2626", changed: "#d97706" } as const;
+
+/** The counts as the button says them: ``+15 −1 ~3``, or ``no changes``. */
+export function countsText(counts: { added: number; removed: number; changed: number }): string {
+  return counts.added + counts.removed + counts.changed === 0 ? "no changes" : `+${counts.added} −${counts.removed} ~${counts.changed}`;
+}
 
 /** The mockup's history icon: a clock with the arrow of time turned back. */
 export function HistoryIcon() {
@@ -26,16 +36,17 @@ export function HistoryIcon() {
 /**
  * The one button that says which version is shown (spec 037, FR-013), as the mockup draws it: at the
  * left of the top row, the history's clock, the version's name in bold, a chevron. It opens the picker;
- * it exists only while a history with something to pick is open (M2–M6).
+ * it exists only while a history with something to pick is open (M2–M6). In Diff it names both versions and
+ * carries the diagram's counts — ``◷ A 0.8.0 → B 0.9.0  +15 −1 ~3 ▾`` — or "no changes" (spec 038, FR-025, FR-026).
  */
-export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick }, ref) {
+export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick, counts = null }, ref) {
   return (
     <ButtonBase
       ref={ref}
       onClick={(event) => onClick(event.currentTarget)}
       aria-haspopup="dialog"
       aria-expanded={open}
-      aria-label={`Version: ${name}`}
+      aria-label={counts ? `Versions: ${name}, ${countsText(counts)}` : `Version: ${name}`}
       sx={{
         height: 28,
         pl: "8px",
@@ -51,6 +62,18 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
     >
       <HistoryIcon />
       <b style={{ color: "#0f172a", fontWeight: 600 }}>{name}</b>
+      {counts &&
+        (countsText(counts) === "no changes" ? (
+          <span data-testid="diff-counts" style={{ color: "#64748b", marginLeft: 4 }}>
+            no changes
+          </span>
+        ) : (
+          <span data-testid="diff-counts" style={{ marginLeft: 4, fontWeight: 600, display: "inline-flex", gap: 5 }}>
+            <span style={{ color: COUNT_COLOUR.added }}>+{counts.added}</span>
+            <span style={{ color: COUNT_COLOUR.removed }}>−{counts.removed}</span>
+            <span style={{ color: COUNT_COLOUR.changed }}>~{counts.changed}</span>
+          </span>
+        ))}
       <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#64748b" }}>
         <path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z" />
       </svg>
