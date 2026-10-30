@@ -108,3 +108,21 @@ describe("the choice of what paints", () => {
     expect(result.current.source).toBe("domains");
   });
 });
+
+describe("a specialization container in Diff", () => {
+  const block = (diff?: ErdDiff) =>
+    buildDotSource({ entities: [table("A", diff), table("B", diff)], relations: [], groups: [{ group_id: "g", label: "details", members: ["A", "B"] }] }, "gv-dot-lr");
+
+  it("has no fill and an outline a point wider, so it does not stand out among the faded tables", () => {
+    const dot = block("unchanged");
+    expect(dot).toContain('style="rounded,dashed";');
+    expect(dot).not.toContain("fillcolor=");
+    expect(dot).toContain("penwidth=3;");
+  });
+
+  it("keeps its half-tone grey fill and its outline in One", () => {
+    expect(block()).toContain('fillcolor="#0f172a0d"');
+    expect(block()).toContain("penwidth=2;");
+  });
+});
+
