@@ -15,6 +15,7 @@ import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory }
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "@/components/history/VersionPicker";
+import { VersionsBetween } from "@/components/history/VersionsBetween";
 import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
 import { shownNameOf } from "@/lib/versionNames";
@@ -501,6 +502,12 @@ export function App() {
           diffOffered={diffOffered(trackPoints)}
           range={shown.a && shown.b ? { a: shown.a, b: shown.b } : null}
           onRange={pickRange}
+          older={shown.a ? <VersionMessage version={olderVersion} repository={shown.host === "github" ? shown.repository : null} /> : undefined}
+          between={
+            shown.a && shown.b ? (
+              <VersionsBetween versions={shown.versions} live={shown.live} liveIs={shown.liveSameAs} proposals={shown.proposals} range={{ a: shown.a, b: shown.b }} repository={shown.host === "github" ? shown.repository : null} />
+            ) : undefined
+          }
         >
           <VersionMessage
             version={shownVersion ?? (shown.b === "live" ? versionOf(shown, shown.liveSameAs) : null)}

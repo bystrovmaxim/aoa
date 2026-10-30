@@ -1,7 +1,8 @@
 // src/components/history/VersionPicker/VersionPicker.test.tsx
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HistoryVersion } from "@/api/history";
+import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "./VersionPicker";
 
 /** jsdom has no ResizeObserver; the picker only uses it to follow its button. */
@@ -63,5 +64,33 @@ describe("the picker", () => {
     expect(screen.getByTestId("handle-b")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "One" }));
     expect(onMode).toHaveBeenCalledWith("one");
+  });
+
+  it("in Diff puts A's message on the left and B's on the right, Live's closing line on B's side (spec 038, FR-030)", () => {
+    const a = versions[0].sha.slice(0, 12);
+    render(
+      <VersionPicker
+        anchor={{ current: document.body }}
+        onClose={() => undefined}
+        title="orders"
+        versions={versions}
+        live="https://live"
+        value="live"
+        onChange={() => undefined}
+        mode="diff"
+        diffOffered
+        range={{ a, b: "live" }}
+        onRange={() => undefined}
+        older={<VersionMessage version={{ ...versions[0], message: "Older change" }} repository={null} />}
+      >
+        <VersionMessage version={null} repository={null} liveLine="checked 3 s ago" />
+      </VersionPicker>,
+    );
+    const left = screen.getByTestId("message-a");
+    const right = screen.getByTestId("message-b");
+    expect(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(left.textContent).toBe("Older change");
+    expect(within(right).getByTestId("live-line").textContent).toContain("checked 3 s ago");
+    expect(within(left).queryByTestId("live-line")).toBeNull();
   });
 });

@@ -29,8 +29,12 @@ export type VersionPickerProps = {
   proposals?: readonly HistoryVersion[];
   value: string | null;
   onChange: (b: string) => void;
-  /** Under the track: the chosen version's message. */
+  /** Under the track: the chosen version's message — in Diff, B's, on the right. */
   children?: ReactNode;
+  /** In Diff: A's message, on the left of B's — over it on a phone (spec 038, FR-030). */
+  older?: ReactNode;
+  /** In Diff, under the two messages: the versions between A and B (FR-031). */
+  between?: ReactNode;
   /** On a phone the picker is a sheet from the bottom, its track as wide as the screen (FR-031). */
   phone?: boolean;
   /** One version or two (spec 038): in Diff the track holds ``range``. */
@@ -144,7 +148,8 @@ function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onCha
  * The picker (spec 037, FR-014, FR-015), laid out as the mockup lays it out: a card under the version
  * button at the left of the top row; the service's name and how many versions it has on the left of the
  * head, the mode switch on the right — One and Diff (spec 038), Side by side greyed out, "comes later" — with
- * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message. The
+ * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message — in Diff A's
+ * on the left and B's on the right, stacked on a phone, the versions between them below. The
  * link to share is the address bar itself, which keeps a private history's key after ``#key=``. It
  * starts closed, a click outside or Escape closes it, and choosing a version leaves it open. On a phone
  * it is a sheet from the bottom with the same head, track and message, every point a 44 px touch target.
@@ -166,6 +171,8 @@ export function VersionPicker({
   diffOffered = false,
   range = null,
   onRange,
+  older,
+  between,
 }: VersionPickerProps) {
   useEffect(() => {
     if (!anchor || phone) return;
@@ -213,7 +220,22 @@ export function VersionPicker({
         range={mode === "diff" ? range : null}
         onRange={onRange}
       />
-      {children}
+      {mode === "diff" && older !== undefined ? (
+        <>
+          {/* No header above either message: A is on the left and B on the right, as their handles stand. */}
+          <Box sx={{ display: "grid", gridTemplateColumns: phone ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 2 }}>
+            <Box data-testid="message-a" sx={{ minWidth: 0 }}>
+              {older}
+            </Box>
+            <Box data-testid="message-b" sx={{ minWidth: 0 }}>
+              {children}
+            </Box>
+          </Box>
+          {between}
+        </>
+      ) : (
+        children
+      )}
     </>
   );
 

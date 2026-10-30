@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** The chosen version's message under the track: its pull request's title and body, or its commit's message, as plain text whose only links are addresses and `#123`; 180 px of text, then it scrolls inside, nothing faded; for Live, the newest version's message when Live runs exactly its graph, and Live's closing line. (spec 037)
+**Role:** The chosen version's message under the track: its pull request's title and body, or its commit's message, as plain text whose only links are addresses and `#123`; 180 px of text, then it scrolls inside, nothing faded; for Live, the newest version's message when Live runs exactly its graph, and Live's closing line, wrapping in a narrow column. In Diff there are two of them, A's and B's, and one for each opened row of the versions between. (spec 037, spec 038)
 
 ## Files
 
