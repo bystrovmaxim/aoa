@@ -204,6 +204,14 @@ describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
     hover(line, false);
     expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
   });
+
+  it("gives every table back the opacity it was drawn with when the hover ends — a faded table stays faded (spec 038)", () => {
+    const { root } = mount();
+    const line = root.querySelector('g[id="re2"]')!;
+    hover(line, true);
+    hover(line, false);
+    expect([...root.querySelectorAll<SVGElement>("g.node, g.edge")].map((element) => element.style.opacity)).toEqual(Array(root.querySelectorAll("g.node, g.edge").length).fill(""));
+  });
 });
 
 describe("a line's end labels (spec 029, FR-042)", () => {

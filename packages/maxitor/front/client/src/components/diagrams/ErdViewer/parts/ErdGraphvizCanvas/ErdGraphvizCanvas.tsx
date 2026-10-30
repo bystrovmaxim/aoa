@@ -28,7 +28,6 @@ import {
   ERD_KIND_PAINT_PALETTE,
   setErdPaint,
   erdDiffMarks,
-  erdGlance,
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
@@ -39,6 +38,7 @@ import {
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
+import { changesOnDiagram, onScreen } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
@@ -256,6 +256,9 @@ export function ErdGraphvizCanvas({
 
   // A table is on screen only when its domain (or qualifier) and its kind are both on.
   const mergedData = useMemo(() => filterGraphByKinds(beforeKinds, disabledKinds), [beforeKinds, disabledKinds]);
+  // The diagram's base: every table of the drawing that is open, before any filter. The filter rows come from it,
+  // so a filter never adds or removes another filter's rows (spec 038).
+  const baseEntities = useMemo(() => getMergedFromDomains(enriched, new Set(domainKeyList)).entities ?? [], [enriched, domainKeyList]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -285,8 +288,8 @@ export function ErdGraphvizCanvas({
   const { source: paintSection } = useErdPaint();
   const [offChanges, setOffChanges] = useState<ReadonlySet<string>>(new Set());
   const kindPaint = useMemo(
-    () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
-    [bundle.entity_kinds, beforeKinds.entities],
+    () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
+    [bundle.entity_kinds, baseEntities],
   );
   const paintKey = `${paintSection}|${[...offChanges].sort().join(",")}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
@@ -468,16 +471,17 @@ export function ErdGraphvizCanvas({
   // One grey for every disk that does not paint: the domains' light grey.
   const IDLE_DISK = "#cbd5e1";
   const changesGrey = choosing && paintSection !== "changes";
-  // The Changes section lists only the kinds of change the diagram has before any filter — none when nothing on it
-  // changed, as the domain and kind sections list only what the diagram has.
-  const presentChanges = new Set(beforeKinds.entities.filter((entity) => entity.diff !== undefined).map(erdGlance));
-  const anyChange = [...presentChanges].some((status) => status !== "unchanged");
-  const changeRows: ErdFilterRow[] = bundle.diff && anyChange
-    ? (["added", "removed", "changed", "unchanged"] as const).filter((status) => presentChanges.has(status)).map((status) => ({
+  // The rows come from the base; a row with nothing of it on screen is dimmed, never switched on or off for it.
+  const shown = onScreen(mergedData.entities, offChanges, (entity) => readEntityQual(entity) ?? fallbackQual);
+  // A domain is on screen by its own tables: a slice also carries its 1-hop neighbours from other domains.
+  const tabShown = (key: string) => shown.domains.has(bundle.domain_qualifiers[key]?.trim() || null);
+  const changeRows: ErdFilterRow[] = bundle.diff
+    ? changesOnDiagram(baseEntities).map((status) => ({
         key: status,
         label: status.charAt(0).toUpperCase() + status.slice(1),
         iconSrc: statusDiskUri(status === "unchanged" || changesGrey ? IDLE_DISK : ERD_DIFF_COLOUR[status], status === "unchanged" ? "" : ERD_DIFF_SIGN[status]),
         on: !offChanges.has(status),
+        absent: !shown.changes.has(status),
       }))
     : [];
   const toggleChange = (status: string) => {
@@ -493,20 +497,23 @@ export function ErdGraphvizCanvas({
         label: bundle.domain_tab_labels?.[key] ?? key,
         iconSrc: svgDataUriForInterchangeDomainLegend(domainsGrey ? "#cbd5e1" : tabAccents[key] || "#3b82f6"),
         on: enabledDomains.has(key),
+        absent: !tabShown(key),
       }))
     : entityQualList.map((qual) => ({
         key: qual,
         label: qualRowLabels?.[qual] ?? qual,
         iconSrc: svgDataUriForInterchangeDomainLegend(domainsGrey ? "#cbd5e1" : qualAccents[qual] || "#3b82f6"),
         on: enabledEntityQualifiers.has(qual),
+        absent: !shown.domains.has(qual),
       }));
 
   // Only the kinds this diagram has (spec 029, FR-044).
-  const kindRows: ErdFilterRow[] = kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row) => ({
+  const kindRows: ErdFilterRow[] = kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row) => ({
     key: row.entity_kind,
     label: row.label,
     iconSrc: choosing ? kindLegendDiskUri(row.entity_kind, paintSection === "kinds" ? kindPaint[row.entity_kind] : IDLE_DISK) : kindLegendDiskUri(row.entity_kind),
     on: !disabledKinds.has(row.entity_kind),
+    absent: !shown.kinds.has(row.entity_kind),
   }));
 
   // the sections this diagram offers to paint by, in the filter's order.
