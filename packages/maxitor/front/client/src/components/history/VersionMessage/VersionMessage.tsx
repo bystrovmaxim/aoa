@@ -23,7 +23,7 @@ export function messageOf(version: HistoryVersion): string {
 }
 
 /** The mockup's Live icon: a point with waves on both sides. */
-function LiveIcon() {
+export function LiveIcon() {
   return (
     <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ display: "block" }}>
       <g fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">

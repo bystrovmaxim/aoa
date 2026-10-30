@@ -27,13 +27,15 @@ export function kindCount(kind: string, n: number): string {
   return `${n} ${plural}`;
 }
 
-/** What a version did to the graph, in words: ``+2 entities · +6 fields · −1 field · 3 changed``. */
+/** What a version did to the graph, in words: ``+2 entities · +6 fields · −1 field · 3 changed · +4 links``. */
 export function changeOf(change: HistoryVersion["change"]): string[] {
   if (!change) return [];
   return [
     ...Object.entries(change.added).map(([kind, n]) => `+${kindCount(kind, n)}`),
     ...Object.entries(change.removed).map(([kind, n]) => `−${kindCount(kind, n)}`),
     ...(change.changed ? [`${change.changed} changed`] : []),
+    ...(change.links?.added ? [`+${change.links.added} link${change.links.added === 1 ? "" : "s"}`] : []),
+    ...(change.links?.removed ? [`−${change.links.removed} link${change.links.removed === 1 ? "" : "s"}`] : []),
   ];
 }
 

@@ -27,7 +27,7 @@ Pure functions, no I/O: the mirror reads, these decide.
     first-parent chain + version shas + tags ──► place_tags ──► {version sha: tag names}
     a version's file bytes                   ──► graph_facts ──► GraphFacts
     a version's commit message               ──► pull_request_in_message ──► number, title, body, url | None
-    the graph before + the graph after       ──► graph_change ──► added and removed by kind, changed
+    the graph before + the graph after       ──► graph_change ──► nodes added and removed by kind, changed; links added and removed
 """
 
 from __future__ import annotations
@@ -110,7 +110,7 @@ def graph_change(before: bytes | None, after: bytes) -> dict[str, object]:
     """
     AI-CORE-BEGIN
     ROLE: Say what a version did to the graph of the version before it.
-    CONTRACT: Nodes are matched by ``id``: ``added`` and ``removed`` count them by ``type``; ``changed`` counts nodes kept whose type, label or properties differ. ``before`` is ``None`` for the first version, whose every node is added. A file that is not a graph counts as having no nodes; never raises.
+    CONTRACT: Nodes are matched by ``id``: ``added`` and ``removed`` count them by ``type``; ``changed`` counts nodes kept whose type, label or properties differ. Edges — the links between nodes — are matched by ``id`` (or source, relationship and target when they have none): ``links`` counts those ``added`` and ``removed``. ``before`` is ``None`` for the first version, whose every node and edge is added. A file that is not a graph counts as having none; never raises.
     AI-CORE-END
     """
     old, new = _nodes(before), _nodes(after)
@@ -123,7 +123,24 @@ def graph_change(before: bytes | None, after: bytes) -> dict[str, object]:
         kind = str(old[key].get("type", "node"))
         removed[kind] = removed.get(kind, 0) + 1
     changed = sum(1 for key in new.keys() & old.keys() if new[key] != old[key])
-    return {"added": dict(sorted(added.items())), "removed": dict(sorted(removed.items())), "changed": changed}
+    old_links, new_links = _edges(before), _edges(after)
+    links = {"added": len(new_links - old_links), "removed": len(old_links - new_links)}
+    return {"added": dict(sorted(added.items())), "removed": dict(sorted(removed.items())), "changed": changed, "links": links}
+
+
+def _edges(content: bytes | None) -> set[str]:
+    """A graph file's edges, each by its id, or by source, relationship and target; anything that is not a graph has none."""
+    if not content:
+        return set()
+    try:
+        edges = json.loads(content).get("edges", [])
+    except (ValueError, AttributeError):
+        return set()
+    return {
+        str(edge.get("id") or f"{edge.get('source_id')}|{edge.get('relationship')}|{edge.get('target_id')}")
+        for edge in edges
+        if isinstance(edge, dict)
+    }
 
 
 def _nodes(content: bytes | None) -> dict[str, dict[str, object]]:

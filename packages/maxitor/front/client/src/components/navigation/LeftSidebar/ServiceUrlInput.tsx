@@ -2,6 +2,8 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { HistoryIcon } from "@/components/history/VersionButton/VersionButton";
+import { LiveIcon } from "@/components/history/VersionMessage/VersionMessage";
 import LinkIcon from "@mui/icons-material/Link";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -185,6 +187,8 @@ export function ServiceUrlInput({ onLoaded, onHistoryOpened }: Props) {
                     borderRadius: 1.5,
                     "&:hover": { bgcolor: SB.hover },
                     "&:hover .row-copy-btn, &:focus-within .row-copy-btn": { opacity: 1 },
+                    // The two buttons sit at the edge; the text stops before them, so they never cover it.
+                    "& .MuiListItemSecondaryAction-root": { right: 4 },
                   }}
                   secondaryAction={
                     <Box sx={{ display: "flex" }}>
@@ -236,11 +240,15 @@ export function ServiceUrlInput({ onLoaded, onHistoryOpened }: Props) {
                     sx={{
                       borderRadius: 1.5,
                       py: 0.3,
-                      pr: 8,
+                      pr: "68px",
                       minHeight: 30,
                       "&:hover": { bgcolor: "transparent" },
                     }}
                   >
+                    {/* What the address turned out to be, as the mockup marks it: a history's clock, a running service's waves. */}
+                    <Box component="span" aria-hidden sx={{ display: "inline-flex", color: SB.icon, mr: "8px", mt: "2px", alignSelf: "flex-start", flexShrink: 0 }}>
+                      {record.kind === "history" ? <HistoryIcon /> : <LiveIcon />}
+                    </Box>
                     <ListItemText
                       primary={mask(h)}
                       secondary={describeRecent(record)}
