@@ -43,7 +43,8 @@ import {
 } from "@/lib/urlState";
 import { PageSettingsProvider, seedPageSettings, shownPageSettings, usePageSettingsVersion, type RoomSettings } from "@/lib/pageSettings";
 import { presetPaint, useErdPaint } from "@/lib/erdPaint";
-import { paramsToView, viewToParams } from "@/lib/viewUrl";
+import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "@/lib/viewUrl";
+import type { SavedView } from "@/rooms/diagramSurface";
 import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
@@ -54,6 +55,9 @@ import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
+
+/** How long a pan or zoom must rest before the address takes it: the address does not chase every frame. */
+const CAMERA_SETTLE_MS = 250;
 
 export function App() {
   const [diagram, setDiagram] = useState<DiagramSelection | null>(null);
@@ -70,6 +74,8 @@ export function App() {
   // as it runs, so a second read (e.g. React StrictMode's dev-only double-invoke of mount
   // effects) would see an already-rewritten URL and silently drop the deep link.
   const initialLinkRef = useRef<UrlDeepLink | undefined>(undefined);
+  /** The zoom and centre the address opened with, placed on the first diagram drawn, then forgotten. */
+  const openingCamera = useRef<SavedView | null>(null);
   if (!initialLinkRef.current) {
     initialLinkRef.current = readUrlDeepLink();
     // The source must be known before the page's first read: the read below goes out with it.
@@ -78,6 +84,7 @@ export function App() {
     setUrlRoom(initialLinkRef.current.room ?? null);
     // The view the address names — filters, layout, modes, paint — is the page's own from the first render (spec 038).
     const view = paramsToView(readUrlParams());
+    openingCamera.current = paramsToCamera(readUrlParams());
     const opening = deepLinkToSelection(initialLinkRef.current);
     if (opening) seedPageSettings(pageKeyOf(opening), view.settings);
     if (view.paint) presetPaint(Boolean(initialLinkRef.current.a), view.paint);
@@ -161,9 +168,30 @@ export function App() {
   const settingsVersion = usePageSettingsVersion();
   const paint = useErdPaint();
   const paintChoice = diagram?.kind === "erd" ? (shown?.a ? paint.inDiff : paint.one) : null;
+  // Where the diagram is looked at, too: every pan and zoom, a moment after it settles.
+  // Until the first diagram is drawn the address keeps the view it opened with, so a second reload loses nothing.
+  const [camera, setCamera] = useState<SavedView | null>(() => openingCamera.current);
   useEffect(() => {
-    setUrlView(page ? viewToParams(shownPageSettings(page, sharedSettings), paintChoice) : {});
-  }, [page, settingsVersion, sharedSettings, paintChoice]);
+    if (!surface) return undefined;
+    if (openingCamera.current) {
+      surface.restore(openingCamera.current);
+      openingCamera.current = null;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const note = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setCamera(surface.view()), CAMERA_SETTLE_MS);
+    };
+    note();
+    const stop = surface.subscribe(note);
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+  }, [surface]);
+  useEffect(() => {
+    setUrlView(page ? { ...viewToParams(shownPageSettings(page, sharedSettings), paintChoice), ...cameraToParams(camera) } : {});
+  }, [page, settingsVersion, sharedSettings, paintChoice, camera]);
   /**
    * Going to someone opens their page like any navigation: the left panel and the address follow.
    * Following replaces the history entry instead, so Back is not flooded (FR-057).

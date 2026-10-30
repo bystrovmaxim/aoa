@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearLocalPageSettings, seedPageSettings, shownPageSettings } from "@/lib/pageSettings";
 import { setUrlView, syncUrlToState } from "@/lib/urlState";
-import { paramsToView, viewToParams } from "./viewUrl";
+import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "./viewUrl";
 
 afterEach(() => {
   clearLocalPageSettings();
@@ -51,4 +51,18 @@ describe("the view in the address (spec 038)", () => {
     seedPageSettings("p", { layout: "gv-neato" });
     expect(shownPageSettings("p", { settings: { p: { layout: "gv-circo" } }, set: () => undefined })).toEqual({ layout: "gv-circo" });
   });
+
+  it("carries where the diagram is looked at — zoom and the diagram point at the centre — and reads it back", () => {
+    const params = cameraToParams({ x: 1234.5678, y: -98.76, zoom: 0.4567 });
+    expect(params).toEqual({ zoom: "0.457", at: "1234.6,-98.8" });
+    expect(paramsToCamera(new URLSearchParams(params))).toEqual({ x: 1234.6, y: -98.8, zoom: 0.457 });
+  });
+
+  it("names no view when the address has none or one out of shape", () => {
+    expect(cameraToParams(null)).toEqual({});
+    expect(paramsToCamera(new URLSearchParams(""))).toBeNull();
+    expect(paramsToCamera(new URLSearchParams("zoom=0&at=1,2"))).toBeNull();
+    expect(paramsToCamera(new URLSearchParams("zoom=1&at=nowhere"))).toBeNull();
+  });
 });
+
