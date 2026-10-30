@@ -184,53 +184,67 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
   useEffect(() => {
     if (!targetId || !surface || page !== targetPage) return undefined;
     const glide = createGlide();
+    // Their zoom glides like their centre: ``x`` is the zoom, so a zoom they make arrives as smoothly as a pan.
+    const zoomGlide = createGlide();
+    let zooming = false;
     let frame: number | null = null;
     let last: Point | null = null;
     let lastSize: { w: number; h: number } | null = null;
     const step = () => {
       frame = null;
-      const { point, arrived } = glide.at(performance.now());
-      surface.centreOn(point);
-      if (!arrived) frame = requestAnimationFrame(step);
+      const now = performance.now();
+      const { point, arrived } = glide.at(now);
+      const zoom = zooming ? zoomGlide.at(now) : null;
+      if (zoom) surface.restore({ x: point.x, y: point.y, zoom: zoom.point.x });
+      else surface.centreOn(point);
+      if (zoom?.arrived) zooming = false;
+      if (!arrived || (zoom && !zoom.arrived)) frame = requestAnimationFrame(step);
     };
-    // Their zoom: when their area differs from yours, yours changes at once, on their centre.
-    const matchZoom = (theirs: DiagramViewport): boolean => {
+    const schedule = () => {
+      if (frame === null) frame = requestAnimationFrame(step);
+    };
+    /** The zoom that shows their area here, or ``null`` when yours already is it. */
+    const zoomFor = (theirs: DiagramViewport): number | null => {
       lastSize = { w: theirs.w, h: theirs.h };
       const yours = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
       const zoom = surface.view()?.zoom;
-      const next = yours && zoom ? followZoom(yours, theirs, zoom) : null;
-      if (next === null) return false;
-      surface.restore({ x: theirs.cx, y: theirs.cy, zoom: next });
-      return true;
+      return yours && zoom ? followZoom(yours, theirs, zoom) : null;
     };
     const onScreen = () => {
       const theirs = viewportOfParticipant(targetId);
       const point = followCentre(theirs);
       if (!theirs || !point) return;
+      const now = performance.now();
       const resized = !lastSize || lastSize.w !== theirs.w || lastSize.h !== theirs.h;
-      if (resized && matchZoom(theirs)) {
-        last = point;
-        glide.jump(point, performance.now());
-        return;
+      const next = resized ? zoomFor(theirs) : null;
+      if (next !== null) {
+        const current = surface.view()?.zoom ?? next;
+        if (!zooming) zoomGlide.jump({ x: current, y: 0 }, now);
+        zoomGlide.push({ x: next, y: 0 }, now);
+        zooming = true;
       }
-      if (last && point.x === last.x && point.y === last.y) return;
+      if (last && point.x === last.x && point.y === last.y && next === null) return;
       if (!last) {
         // The first centre they report: nothing to glide from yet.
         last = point;
-        glide.jump(point, performance.now());
-        surface.centreOn(point);
+        glide.jump(point, now);
+        if (next === null) surface.centreOn(point);
+        else schedule();
         return;
       }
       last = point;
-      glide.push(point, performance.now());
-      if (frame === null) frame = requestAnimationFrame(step);
+      glide.push(point, now);
+      schedule();
     };
     const firstScreen = viewportOfParticipant(targetId);
     const first = followCentre(firstScreen);
     if (firstScreen && first) {
       last = first;
       glide.jump(first, performance.now());
-      if (!matchZoom(firstScreen)) surface.centreOn(first);
+      // The first picture takes their zoom at once: there is nothing on screen yet to glide from.
+      const zoom = zoomFor(firstScreen);
+      if (zoom !== null) surface.restore({ x: first.x, y: first.y, zoom });
+      else surface.centreOn(first);
     }
     const unsubscribe = subscribePointers(onScreen);
     return () => {
