@@ -47,3 +47,23 @@ describe("the wheel over a Graphviz diagram (spec 029, FR-053)", () => {
     expect(transformOf(getByTestId("panner")).scale).toBeGreaterThan(1);
   });
 });
+
+describe("a picture that moves (spec 038)", () => {
+  it("is one layer while it moves, and is painted again a moment after it stops", () => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "setTimeout", "clearTimeout"] });
+    const { getByTestId } = render(<Viewer />);
+    const panner = getByTestId("panner");
+    act(() => {
+      getByTestId("viewport").dispatchEvent(new WheelEvent("wheel", { deltaX: 30, cancelable: true }));
+    });
+    expect(panner.style.willChange).toBe("transform");
+    act(() => {
+      vi.advanceTimersByTime(150);
+      getByTestId("viewport").dispatchEvent(new WheelEvent("wheel", { deltaX: 30, cancelable: true }));
+      vi.advanceTimersByTime(150);
+    });
+    expect(panner.style.willChange).toBe("transform");
+    act(() => vi.advanceTimersByTime(100));
+    expect(panner.style.willChange).toBe("");
+  });
+});

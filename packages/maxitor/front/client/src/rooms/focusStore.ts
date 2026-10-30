@@ -11,14 +11,15 @@
  */
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
-/** A diagram element, named by the id every viewer already uses for it. */
-export type ElementRef = { kind: "node" | "row" | "edge" | "table"; id: string };
+/** A diagram element, named by the id every viewer already uses for it — or a version on the picker's track. */
+export type ElementRef = { kind: "node" | "row" | "edge" | "table" | "version"; id: string };
 
 /**
  * The open panels: the open left-panel branches; the filter panel — closed (``null``), open with no
- * section (``"open"``) or open on a section; and whether the legend is expanded.
+ * section (``"open"``) or open on a section; whether the legend is expanded; and whether the version
+ * picker is open (spec 038).
  */
-export type Panels = { sidebar: string[]; filter: "open" | "domains" | "kinds" | "changes" | null; legend: boolean };
+export type Panels = { sidebar: string[]; filter: "open" | "domains" | "kinds" | "changes" | null; legend: boolean; versions: boolean };
 
 export type FocusState = {
   page: string;
@@ -30,7 +31,7 @@ export type FocusState = {
 
 type OwnFocus = Omit<FocusState, "page">;
 
-const EMPTY: OwnFocus = { hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false } };
+const EMPTY: OwnFocus = { hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: false } };
 
 let own: OwnFocus = EMPTY;
 /** The last focus each participant sent; only the followed person's is shown. */
@@ -83,6 +84,11 @@ export function putFocus(participant: string, focus: FocusState): void {
 /** Whether this tab follows someone now: viewers then ignore the follower's own mouse. */
 export function isFollowing(): boolean {
   return target !== null;
+}
+
+/** The participant this tab follows, or ``null``. */
+export function followedParticipant(): string | null {
+  return target;
 }
 
 /** The followed person's focus, while following and once they sent one; ``null`` otherwise. */
@@ -145,7 +151,7 @@ export function sameRef(a: ElementRef | null, b: ElementRef | null): boolean {
 }
 
 function samePanels(a: Panels, b: Panels): boolean {
-  return a.filter === b.filter && a.legend === b.legend && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
+  return a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
 }
 
 /** Whether two focus states show the same thing (the sender sends only changes). */

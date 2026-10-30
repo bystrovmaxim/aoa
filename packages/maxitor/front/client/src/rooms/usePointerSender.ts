@@ -9,10 +9,11 @@
 import { useEffect } from "react";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
+import { inFrame } from "@/rooms/pointerFrames";
 import type { ClientMessage } from "@/rooms/protocol";
 import { POINTER_RATE, VIEWPORT_RATE, throttle } from "@/rooms/throttle";
 
-type Position = Point & { frame?: "screen" };
+type Position = Point & { frame?: string };
 type PointerMessage = Position & { kind: "mouse" | "touch" };
 
 const samePointer = (a: PointerMessage, b: PointerMessage) => a.x === b.x && a.y === b.y && a.kind === b.kind && a.frame === b.frame;
@@ -24,10 +25,13 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
   const viewport = throttle<DiagramViewport>(VIEWPORT_RATE, (v) => send({ type: "viewport", ...v }), sameViewport);
   const hidden = () => document.visibilityState === "hidden";
 
-  // Over the diagram a position is the diagram's own; over anything else — a panel fixed to the screen — it is the
-  // screen's, from the diagram's top-left corner, so it lands on the same control for someone whose window differs.
+  // Over the diagram a position is the diagram's own; over a panel that names its frame — the version picker — it is
+  // that panel's; over anything else — a panel fixed to the screen — it is the screen's, from the diagram's top-left
+  // corner, so it lands on the same control for someone whose window differs.
   const positionOf = (event: PointerEvent): Position | null => {
     if (event.target instanceof Node && surface.element.contains(event.target)) return surface.toDiagram({ x: event.clientX, y: event.clientY });
+    const framed = inFrame(event.target, { x: event.clientX, y: event.clientY });
+    if (framed) return framed;
     const rect = surface.element.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top, frame: "screen" };
   };

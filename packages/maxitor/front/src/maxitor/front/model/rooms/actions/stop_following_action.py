@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import cast
 
 from maxitor.front.model.rooms.actions.room_action_support import RoomAnswer, located
+from maxitor.front.model.rooms.layout_authority import recheck_layouts
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 from maxitor.front.model.rooms.rooms_domain import RoomsDomain
 
@@ -69,4 +70,6 @@ class StopFollowingAction(BaseAction[StopFollowingParams, RoomAnswer]):
         async with room.lock:
             participant.follows = None
             registry.broadcast(room, {"type": "follows", "follows": room.follows()})
+            registry.send_chain_focus(room)
+            recheck_layouts(room)
         return RoomAnswer()

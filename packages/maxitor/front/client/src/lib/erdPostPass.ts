@@ -14,7 +14,7 @@
  * drawing check runs this very function in plain Node; the glyph drawing is passed in.
  */
 
-import { erdHeadInk, type ErdEntity } from "@/lib/buildDotSource";
+import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity } from "@/lib/buildDotSource";
 
 /** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
 export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
@@ -234,6 +234,27 @@ export function placeEndLabel(
   }
   return last ?? { x: pointAt(0).x - plate.width / 2, y: pointAt(0).y - plate.height / 2, ...plate };
 }
+
+/** The ink a hovered grey line takes. */
+const HOVERED_LINE_INK = "#475569";
+
+/**
+ * The canvas's style for a hovered line (or every line of a hovered row): thicker, a grey one darker. A line painted by
+ * its change in Diff keeps its colour — the hover never says a removed line is something else (spec 038).
+ */
+export const erdLineHoverSx = {
+  "& g.edge path": { transition: "stroke-width 100ms ease, stroke 100ms ease" },
+  [`& g.edge.${EDGE_HOVER_CLASS} path:not(.erd-hit)`]: { stroke: HOVERED_LINE_INK, strokeWidth: 2.4 },
+  [`& g.edge.${EDGE_HOVER_CLASS} polygon`]: { stroke: HOVERED_LINE_INK },
+  [`& g.edge.${EDGE_HOVER_CLASS} polygon:not([fill='none'])`]: { fill: HOVERED_LINE_INK },
+  [`& g.edge.${EDGE_HOVER_CLASS} text`]: { fill: "#334155", fontWeight: 700 },
+  ...Object.fromEntries(
+    Object.values(ERD_DIFF_COLOUR).flatMap((colour) => [
+      [`& g.edge.${EDGE_HOVER_CLASS} path[stroke='${colour}']:not(.erd-hit), & g.edge.${EDGE_HOVER_CLASS} polygon[stroke='${colour}']`, { stroke: colour }],
+      [`& g.edge.${EDGE_HOVER_CLASS} polygon[fill='${colour}']`, { fill: colour }],
+    ]),
+  ),
+} as const;
 
 /** The canvas's style for line labels: hidden, and shown on their plates while the line is hovered. */
 export const erdEndLabelSx = {

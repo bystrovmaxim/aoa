@@ -241,7 +241,7 @@ export function VersionPicker({
 
   if (phone) {
     return (
-      <Drawer anchor="bottom" open={anchor !== null} onClose={onClose} slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", sx: { p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12 } } }}>
+      <Drawer anchor="bottom" open={anchor !== null} onClose={onClose} slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", ...{ "data-pointer-frame": "versions" }, sx: { p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12 } } }}>
         {content}
       </Drawer>
     );
@@ -262,6 +262,8 @@ export function VersionPicker({
         <Paper
           role="dialog"
           aria-label="Pick a version"
+          // A pointer over the picker lands on the same place of it for a follower, wherever it opened (spec 038).
+          data-pointer-frame="versions"
           elevation={0}
           sx={{
             width: WIDTH,

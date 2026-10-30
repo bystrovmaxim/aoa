@@ -4,17 +4,22 @@
  *
  * After every draw the tab reports its client build, the fingerprint of the graph it drew, the
  * layout hash and the settings digest; the server answers ``check``. Another build reloads the tab
- * — at most once in five minutes, keeping zoom and centre; another graph is re-read in place; a
- * layout that differs although build and graph agree turns pointers off on that page, both ways.
+ * — at most once in five minutes, keeping zoom and centre; another graph is re-read in place. A
+ * layout other than the room's — the followed person's, else the one most tabs drew (spec 038) —
+ * reloads the tab once the same way. The report after it says so (``layout_reloaded``): a layout still other
+ * then reloads the room's side once instead, since it may be the one on old code; still other after that, the
+ * server answers ``off`` and pointers stay off on that page, both ways.
  */
 import type { SavedView } from "@/rooms/diagramSurface";
 import type { ClientMessage } from "@/rooms/protocol";
 
-export type CheckAnswer = { build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" };
+export type CheckAnswer = { build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "reload" | "off" };
 
 export type CheckOutcome = {
   /** Reload the page now. */
   reload: boolean;
+  /** The reload is for the layout: the room drew the page another way. */
+  layoutReload: boolean;
   /** A reload is due but one happened under five minutes ago: say so instead of looping. */
   reloadHeldBack: boolean;
   /** Read the graph again in place. */
@@ -28,30 +33,41 @@ export const RELOAD_GUARD_MS = 5 * 60 * 1000;
 
 const VIEW_KEY = "maxitor.view.restore";
 const RELOAD_KEY = "maxitor.reload.at";
+const LAYOUT_RELOAD_KEY = "maxitor.layout-reload.at";
 
-/** What to do about a ``check``, given when this tab last reloaded itself. */
-export function decideCheck(check: CheckAnswer, now: number, lastReloadAt: number | null): CheckOutcome {
+/** What to do about a ``check``, given when this tab last reloaded itself for its build and for its layout. */
+export function decideCheck(check: CheckAnswer, now: number, lastReloadAt: number | null, lastLayoutReloadAt: number | null = null): CheckOutcome {
+  const allowedSince = (at: number | null) => at === null || now - at >= RELOAD_GUARD_MS;
   const due = check.build === "reload";
-  const allowed = lastReloadAt === null || now - lastReloadAt >= RELOAD_GUARD_MS;
+  const allowed = allowedSince(lastReloadAt);
+  const layoutDue = !due && check.layout === "reload";
+  const layoutAllowed = layoutDue && allowedSince(lastLayoutReloadAt);
   return {
-    reload: due && allowed,
+    reload: (due && allowed) || layoutAllowed,
+    layoutReload: layoutAllowed,
     reloadHeldBack: due && !allowed,
     reread: check.fingerprint === "reread",
-    pointersOff: check.layout === "off",
+    pointersOff: (layoutDue && !layoutAllowed) || (!due && check.layout === "off"),
   };
 }
 
 /** The sentence the page shows for an outcome, or ``null``. */
 export function checkNotice(outcome: CheckOutcome): string | null {
+  if (outcome.layoutReload) return "Taking the room's picture of this page — reloading…";
   if (outcome.reload) return "Maxitor was updated — reloading…";
   if (outcome.reloadHeldBack) return "Maxitor was updated. Reload this page to get the new version.";
   if (outcome.pointersOff) return "Pointers are off on this page: your diagram is laid out differently from the room's.";
   return null;
 }
 
-/** The ``page`` message after a draw: the page, the build, the graph and what the picture is. */
-export function pageReport(page: string, build: string, fingerprint: string | null, element: HTMLElement | null): ClientMessage {
+/**
+ * The ``page`` message after a draw: the page, the build, the graph and what the picture is — and whether this tab
+ * reloaded for its layout within the last five minutes, ``now`` being the time.
+ */
+export function pageReport(page: string, build: string, fingerprint: string | null, element: HTMLElement | null, now = Date.now()): ClientMessage {
   const message: Extract<ClientMessage, { type: "page" }> = { type: "page", page, build };
+  const layoutReloadAt = lastLayoutReload();
+  if (layoutReloadAt !== null && now - layoutReloadAt < RELOAD_GUARD_MS) message.layout_reloaded = true;
   if (fingerprint) message.fingerprint = fingerprint;
   const hash = element?.getAttribute("data-layout-hash");
   if (hash) {
@@ -78,15 +94,24 @@ function write(key: string, value: string | null): void {
   }
 }
 
-/** When this tab last reloaded itself, or ``null``. */
-export function lastSelfReload(): number | null {
-  const value = Number(read(RELOAD_KEY));
+function readTime(key: string): number | null {
+  const value = Number(read(key));
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-/** Remember the view and the time, then reload. */
-export function reloadKeepingView(view: SavedView | null, now: number, reload: () => void): void {
-  write(RELOAD_KEY, String(now));
+/** When this tab last reloaded itself for a new build, or ``null``. */
+export function lastSelfReload(): number | null {
+  return readTime(RELOAD_KEY);
+}
+
+/** When this tab last reloaded itself to take the room's layout, or ``null``. */
+export function lastLayoutReload(): number | null {
+  return readTime(LAYOUT_RELOAD_KEY);
+}
+
+/** Remember the view and the time — of a layout reload when ``forLayout`` — then reload. */
+export function reloadKeepingView(view: SavedView | null, now: number, reload: () => void, forLayout = false): void {
+  write(forLayout ? LAYOUT_RELOAD_KEY : RELOAD_KEY, String(now));
   write(VIEW_KEY, view ? JSON.stringify(view) : null);
   reload();
 }

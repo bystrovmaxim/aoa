@@ -27,6 +27,7 @@ from typing import cast
 
 from maxitor.front.model.rooms.actions.end_room_action import schedule_end_if_empty
 from maxitor.front.model.rooms.actions.room_action_support import RoomAnswer, located
+from maxitor.front.model.rooms.layout_authority import recheck_layouts
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 from maxitor.front.model.rooms.rooms_domain import RoomsDomain
 
@@ -74,6 +75,7 @@ class LeaveRoomAction(BaseAction[LeaveRoomParams, RoomAnswer]):
             registry.remove_participant(room, participant.id)
             registry.broadcast(room, {"type": "left", "participant": participant.public()})
             registry.broadcast(room, {"type": "follows", "follows": room.follows()})
+            recheck_layouts(room)
             schedule_end_if_empty(registry, room)
         await box.info(
             Channel.business,

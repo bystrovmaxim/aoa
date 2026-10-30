@@ -54,6 +54,7 @@ import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
+import { useShownPanel } from "@/rooms/focusStore";
 
 /** How long a pan or zoom must rest before the address takes it: the address does not chase every frame. */
 const CAMERA_SETTLE_MS = 250;
@@ -104,7 +105,9 @@ export function App() {
   const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
   const diffCounts = useDiffCounts();
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // A follower sees the version picker open while the person they follow has it open (spec 038).
+  const [ownPickerOpen, setPickerOpen] = useState(false);
+  const pickerOpen = useShownPanel(ownPickerOpen, setPickerOpen, (panels) => panels.versions, (open) => ({ versions: open }));
   const versionButton = useRef<HTMLButtonElement | null>(null);
   // On a phone the picker is a sheet from the bottom (FR-031), at the width MainLayout calls a phone.
   const phone = useMediaQuery(useTheme().breakpoints.down("sm"));
@@ -202,7 +205,7 @@ export function App() {
     [serviceUrl],
   );
   const goTo = useGoTo({ surface, page, navigate: navigateToPage });
-  const { following, follow, stop: stopFollowing } = useFollow({
+  const { following, lead, follow, stop: stopFollowing } = useFollow({
     room: room.room,
     send: room.send,
     surface,
@@ -587,7 +590,7 @@ export function App() {
           />
         </VersionPicker>
       )}
-      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={following?.id ?? null} />}
+      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={lead?.id ?? null} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}
         initialName={room.dialog?.mode === "rename" ? (room.room?.participants.find((p) => p.id === room.room?.youId)?.name ?? lastName()) : lastName()}

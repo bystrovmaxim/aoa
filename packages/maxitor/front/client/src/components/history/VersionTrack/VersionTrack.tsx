@@ -5,6 +5,7 @@ import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
+import { reportHover, useMirroredFocus } from "@/rooms/focusStore";
 import { homeEnd, moveTo, shiftBoth, shiftBy, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
@@ -219,7 +220,23 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const pointer = useRef<{ x: number; y: number } | null>(null);
   const scrolling = useRef(false);
   const settle = useRef(0);
-  const hovered = tip?.b ?? null;
+  // A follower sees the tooltip of the version the person they follow has under the pointer (spec 038).
+  const mirrored = useMirroredFocus();
+  const hovered = mirrored ? (mirrored.hover?.kind === "version" ? mirrored.hover.id : null) : (tip?.b ?? null);
+  const ownTip = tip?.b ?? null;
+  const reported = useRef(false);
+  useEffect(() => {
+    if (mirrored) return;
+    if (ownTip !== null) reportHover({ kind: "version", id: ownTip });
+    else if (reported.current) reportHover(null);
+    reported.current = ownTip !== null;
+  }, [ownTip, mirrored]);
+  useEffect(
+    () => () => {
+      if (reported.current) reportHover(null);
+    },
+    [],
+  );
 
   const scrollTo = (x: number, smooth = true) => scroller.current?.scrollTo({ left: clamp(x - width / 2, 0, maxOffset), behavior: smooth ? "smooth" : "auto" });
 
@@ -282,7 +299,13 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     if (Math.abs(y - AXIS_Y) > hitRadius) return null;
     const near = points.reduce<Point | null>((best, point) => (Math.abs(point.x - x) <= hitRadius && (!best || Math.abs(point.x - x) < Math.abs(best.x - x)) ? point : best), null);
     if (!near) return null;
-    return { b: near.b, rect: new DOMRect(box.left + near.x - element.scrollLeft - hitRadius, box.top + AXIS_Y - hitRadius, hitRadius * 2, hitRadius * 2) };
+    return { b: near.b, rect: rectOfPoint(near, element) };
+  }
+
+  /** Where point ``point``'s target stands on the screen. */
+  function rectOfPoint(point: Point, element: HTMLElement): DOMRect {
+    const box = element.getBoundingClientRect();
+    return new DOMRect(box.left + point.x - element.scrollLeft - hitRadius, box.top + AXIS_Y - hitRadius, hitRadius * 2, hitRadius * 2);
   }
 
   /** Scroll smoothly by the few pixels between point ``b`` and the pointer; nothing when they already meet. */
@@ -591,7 +614,9 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, length, value, chosen, older, pinned, olderPinned, hovered, hitRadius, live, onChange, shownRange, chipX, olderChipX]);
 
-  const tipPoint = tip ? points.find((point) => point.b === tip.b) ?? null : null;
+  const tipPoint = hovered ? (points.find((point) => point.b === hovered) ?? null) : null;
+  // Your own tooltip stays where it opened while the track scrolls under it; a followed one stands at its point.
+  const tipRect = () => (!mirrored && tip ? tip.rect : tipPoint && scroller.current ? rectOfPoint(tipPoint, scroller.current) : new DOMRect());
   // A handle out of view is pinned to its edge: on each side the one nearer to the view.
   const pins = (["left", "right"] as const).flatMap((edge) => {
     const out = [older && olderPinned === edge ? { point: older, text: olderText } : null, chosen && pinned === edge ? { point: chosen, text: chipText } : null].filter((each) => each !== null);
@@ -616,6 +641,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
       <Box
         ref={scroller}
         data-testid="track-view"
+        // A pointer over the track names the same version for a follower, however far each scrolled it (spec 038).
+        data-pointer-frame="version-track"
         onScroll={onScroll}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -638,10 +665,10 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
       >
         {body}
       </Box>
-      {tip && tipPoint && (
+      {tipPoint && (
         <Popper
           open
-          anchorEl={{ getBoundingClientRect: () => tip.rect }}
+          anchorEl={{ getBoundingClientRect: tipRect }}
           placement="bottom-start"
           modifiers={[{ name: "offset", options: { offset: TIP_OFFSET } }]}
           sx={{ zIndex: 1400, pointerEvents: "none" }}

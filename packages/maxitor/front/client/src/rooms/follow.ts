@@ -16,11 +16,11 @@
  * selection and open panels (spec 029, FR-010) — through ``focusStore``; every tab in a room sends what
  * it shows as ``focus``, at most ten times a second, and the server passes it to its followers only.
  */
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { isZoomWheel } from "@/lib/wheelGesture";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
-import { focusToSend, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
+import { focusToSend, followedParticipant, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
 import { subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
 import type { ClientMessage, Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -85,6 +85,23 @@ export function followedBy(room: RoomState | null): Participant | null {
   return target ? (room.participants.find((p) => p.id === target) ?? null) : null;
 }
 
+/**
+ * Whom this tab takes the view from: the end of the chain it follows. Following Ваня while Ваня follows Лёша, the
+ * camera, the hover and the panels come from Лёша directly — the same picture Ваня shows, without the second glide
+ * and delay; once Ваня stops following, the chain ends at Ваня (spec 038). ``null`` while following nobody.
+ */
+export function followHead(room: RoomState | null): Participant | null {
+  const target = followedBy(room);
+  if (!room || !target) return null;
+  let id = target.id;
+  const seen = new Set([room.youId, id]);
+  for (let next = room.follows[id]; next && !seen.has(next); next = room.follows[id]) {
+    seen.add(next);
+    id = next;
+  }
+  return room.participants.find((p) => p.id === id) ?? target;
+}
+
 /** A page change following makes: their page, replacing the history entry (FR-057). */
 export type FollowNavigation = { page: string; replace: true };
 
@@ -129,6 +146,17 @@ export function followTarget(yourPixels: { w: number; h: number }, yours: Diagra
     };
   }
   return { centre: { x: theirs.cx, y: theirs.cy }, zoom: followZoom(yours, theirs, zoom) };
+}
+
+/**
+ * The size in pixels of the screen of the person this tab follows, when they tell it; ``null`` otherwise. A follower
+ * fits a new drawing to it, not to its own screen: following one to one, that is the very view the person followed
+ * fits it to, so a new filter or paint shows in one frame, not first fitted here and then moved there (spec 038).
+ */
+export function followedScreen(): { w: number; h: number } | null {
+  const id = followedParticipant();
+  const screen = id ? viewportOfParticipant(id) : undefined;
+  return screen?.pw && screen.ph ? { w: screen.pw, h: screen.ph } : null;
 }
 
 /** Distance a pointer travels with its button down before it counts as a pan, in pixels. */
@@ -183,7 +211,9 @@ export type FollowOptions = {
 
 /** Follow, switch and stop; while following, keep this tab on the followed person's page and centre. */
 export function useFollow({ room, send, surface, page, navigate }: FollowOptions) {
-  const target = followedBy(room);
+  const following = followedBy(room);
+  // The view comes from the end of the chain; whom you follow stays whom you chose.
+  const target = followHead(room);
   const targetId = target?.id ?? null;
   const targetPage = target?.page ?? null;
 
@@ -201,8 +231,18 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
   }, [targetId, targetPage, page, navigate]);
 
   // Their screen's centre: at once on every new surface, then gliding to every screen they report.
+  const placedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!targetId) placedFor.current = null;
+  }, [targetId]);
   useEffect(() => {
     if (!targetId || !surface || page !== targetPage) return undefined;
+    // A new surface on the same page is a refit of a new drawing — new filters, a new layout mode. This tab fitted it
+    // to their screen, which is their very view, so the screen they reported before their own refit is stale: it is
+    // not put back, and only a screen they report after it is followed (spec 038).
+    const refit = placedFor.current === `${targetId}|${page}`;
+    placedFor.current = `${targetId}|${page}`;
+    const stale = refit ? viewportOfParticipant(targetId) : undefined;
     const glide = createGlide();
     // Their zoom glides like their centre: ``x`` is the zoom, so a zoom they make arrives as smoothly as a pan.
     const zoomGlide = createGlide();
@@ -231,7 +271,7 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     };
     const onScreen = () => {
       const theirs = viewportOfParticipant(targetId);
-      if (!theirs) return;
+      if (!theirs || theirs === stale) return;
       const target = targetFor(theirs);
       const point = target?.centre ?? followCentre(theirs);
       if (!point) return;
@@ -256,7 +296,7 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       glide.push(point, now);
       schedule();
     };
-    const firstScreen = viewportOfParticipant(targetId);
+    const firstScreen = refit ? undefined : viewportOfParticipant(targetId);
     const firstTarget = firstScreen ? targetFor(firstScreen) : null;
     const first = firstTarget?.centre ?? followCentre(firstScreen);
     if (first) {
@@ -309,5 +349,5 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     return () => document.removeEventListener("keydown", onKey);
   }, [targetId, stop]);
 
-  return { following: target, follow, stop };
+  return { following, lead: target, follow, stop };
 }

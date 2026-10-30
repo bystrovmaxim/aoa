@@ -498,7 +498,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
         return (
           "<TR>" +
           iconTd +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="Click to copy">${nameMarkup}</TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="${escHtml(nameText)}">${nameMarkup}</TD>` +
           `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="${ERD_TYPE_COLOUR}" POINT-SIZE="10">${typeMarkup}</FONT></TD>` +
           "</TR>"
         );
@@ -516,7 +516,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
       `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
       `<TD WIDTH="4"></TD>` +
-      `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="Click to copy" BGCOLOR="${color}">` +
+      `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="${escHtml(title)}" BGCOLOR="${color}">` +
       `<FONT COLOR="${headInk}" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>` +
       `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
     );

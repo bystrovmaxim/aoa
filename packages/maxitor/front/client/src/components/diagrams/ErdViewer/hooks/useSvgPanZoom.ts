@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isZoomWheel, wheelPan } from "@/lib/wheelGesture";
+import { followedScreen } from "@/rooms/follow";
 
 const MIN_SCALE = 0.005;
 const MAX_SCALE = 2.5;
@@ -139,16 +140,28 @@ export type UseSvgPanZoomOptions = {
   fitBoundsSelector?: string;
   /** Maximum scale used by automatic fit; user zoom still uses MAX_SCALE. */
   fitMaxScale?: number;
+  /**
+   * Fit the SVG's own box — Graphviz's bounding box, labels included by its own estimate — instead of the drawn
+   * elements. Text is measured by each browser a little differently, so two screens fitting the elements of one
+   * drawing differ by a few pixels and a follower glides them after the new picture; the box is the same everywhere
+   * (spec 038). For drawings whose bounding box hugs the content, as a use case's does.
+   */
+  fitToViewBox?: boolean;
 };
+
+/** How long after the last move the picture stops being a moving layer. */
+const MOVING_HINT_MS = 200;
 
 export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const fitBottomInset = options?.fitBottomInset ?? 0;
   const fitMarginPx = options?.fitMarginPx ?? 0;
   const fitBoundsSelector = options?.fitBoundsSelector ?? "g.graph g.node, g.graph g.edge";
   const fitMaxScale = options?.fitMaxScale ?? MAX_SCALE;
+  const fitToViewBox = options?.fitToViewBox ?? false;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const pannerRef = useRef<HTMLDivElement | null>(null);
   const panRef = useRef({ scale: 1, tx: 0, ty: 0 });
+  const movingTimerRef = useRef(0);
   const dragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const touchDragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
@@ -168,12 +181,22 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   /** Told after every pan, zoom and fit, so overlays drawn in diagram coordinates follow the picture. */
   const transformListenersRef = useRef(new Set<() => void>());
 
-  const applyTransform = useCallback((publishZoom = true) => {
+  /** Put the transform on the panner; ``announce`` false for a step nobody may see or hear of, as fitting measures. */
+  const applyTransform = useCallback((publishZoom = true, announce = true) => {
     const panner = pannerRef.current;
     if (!panner) return;
     const { scale, tx, ty } = panRef.current;
     panner.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${tx}, ${ty})`;
+    // While the picture moves frame after frame — a drag, a follower's glide — it is one layer the browser moves as it
+    // is: Safari otherwise paints the whole drawing again on every frame and the move comes in jumps. A moment after
+    // it stops, the hint goes, so the drawing is painted sharp at its new zoom (spec 038).
+    panner.style.willChange = "transform";
+    window.clearTimeout(movingTimerRef.current);
+    movingTimerRef.current = window.setTimeout(() => {
+      if (pannerRef.current) pannerRef.current.style.willChange = "";
+    }, MOVING_HINT_MS);
     if (publishZoom) setZoomPct(Math.round(scale * 100));
+    if (!announce) return;
     for (const listener of transformListenersRef.current) listener();
   }, []);
 
@@ -225,8 +248,10 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     const svg = panner.querySelector("svg");
     if (!svg) return;
 
-    const cw = vp.clientWidth;
-    const ch = vp.clientHeight;
+    // Following, a drawing is fitted to the followed person's screen: their very view, at once (spec 038).
+    const screen = followedScreen();
+    const cw = screen?.w ?? vp.clientWidth;
+    const ch = screen?.h ?? vp.clientHeight;
     if (cw < 8 || ch < 8) return;
 
     const chFit = Math.max(8, ch - fitBottomInset);
@@ -235,17 +260,20 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
 
     stripGraphvizBackdropPolygons(svg);
 
-    // Measure real painted SVG content at identity panner transform.
+    // Measure real painted SVG content at identity panner transform. Nobody hears of it — a room would send it as this
+    // screen's view and a follower would glide to it and back (spec 038) — and the measurement that fails puts the
+    // transform it found back.
+    const before = { ...panRef.current };
     panRef.current.scale = 1;
     panRef.current.tx = 0;
     panRef.current.ty = 0;
-    applyTransform(false);
+    applyTransform(false, false);
     void panner.offsetHeight;
 
     // Prefer union of node + edge rects: ``g.graph`` bounds can balloon from off-canvas spline
     // control points (notably TB back-edges in lifecycle FSMs), shrinking ``s`` too much and
     // leaving huge empty margins. Fall back to ``g.graph`` only if the union is empty.
-    let box = unionClientRects(svg.querySelectorAll(fitBoundsSelector), vp);
+    let box = fitToViewBox ? unionClientRects([svg], vp) : unionClientRects(svg.querySelectorAll(fitBoundsSelector), vp);
     if (!box) {
       box = graphGroupBoxInViewport(svg, vp);
     }
@@ -253,7 +281,11 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
       const graphEl = svg.querySelector("g.graph") ?? svg;
       box = unionClientRects([graphEl], vp);
     }
-    if (!box) return;
+    if (!box) {
+      panRef.current = before;
+      applyTransform(false, false);
+      return;
+    }
 
     const pad = 0.92;
     let s = Math.min((availW * pad) / box.width, (availH * pad) / box.height);
@@ -268,7 +300,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     hasFittedRef.current = true;
     setFitted(true);
     setFitCount((count) => count + 1);
-  }, [applyTransform, fitBottomInset, fitMarginPx, fitBoundsSelector, fitMaxScale]);
+  }, [applyTransform, fitBottomInset, fitMarginPx, fitBoundsSelector, fitMaxScale, fitToViewBox]);
 
   useEffect(() => {
     const vp = viewportRef.current;
