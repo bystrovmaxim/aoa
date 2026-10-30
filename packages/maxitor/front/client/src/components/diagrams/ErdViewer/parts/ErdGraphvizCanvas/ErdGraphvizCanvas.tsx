@@ -216,7 +216,9 @@ export function ErdGraphvizCanvas({
   const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
   const panZoom = useSvgPanZoom();
-  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag } = panZoom;
+  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag, needsFit } = panZoom;
+  /** The tables the markup on hand was drawn from: a markup older than the tables shown now is never placed again. */
+  const markupDataRef = useRef<unknown>(null);
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
   // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
   useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table");
@@ -353,6 +355,7 @@ export function ErdGraphvizCanvas({
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
+        markupDataRef.current = drawnData;
         setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
@@ -372,6 +375,8 @@ export function ErdGraphvizCanvas({
     if (!svgMarkup) return;
     const panner = pannerRef.current;
     if (!panner) return;
+    // The tables changed and their new picture is still being laid out: the old one stays as it is, not placed again.
+    if (markupDataRef.current !== drawnData) return;
     // The markup is placed here, not through ``dangerouslySetInnerHTML``: React re-applied that prop on
     // every render of the canvas (a zoom click is enough) and replaced the SVG, so the size, the table
     // hover and every listener bound below were lost on the drawing the user actually sees.
@@ -425,14 +430,15 @@ export function ErdGraphvizCanvas({
       node.addEventListener("mouseleave", onLeave, { signal: ac.signal });
     });
 
-    // Use triple-rAF to ensure the browser has fully laid out and painted the SVG
-    // before we measure getBBox() and compute the fit transform.
+    // A new drawing is fitted here, before the frame is painted, so no picture between the old view and the fitted one
+    // ever shows; new colours alone keep the view. The triple rAF below fits again only if this one could not measure.
+    if (needsFit()) fitToContainer();
     let unbindPan: (() => void) | undefined;
     let cancelled = false;
 
     const doFitAndBind = () => {
       if (cancelled) return;
-      fitToContainer();
+      if (needsFit()) fitToContainer();
       unbindPan = bindInteractions();
     };
 
@@ -454,7 +460,7 @@ export function ErdGraphvizCanvas({
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
     };
-  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, drawnData]);
+  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, drawnData, needsFit]);
 
   const tabAccents = (enriched.domain_accent_colors ?? {}) as Record<string, string>;
 
