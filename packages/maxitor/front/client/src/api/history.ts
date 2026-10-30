@@ -22,7 +22,7 @@ export type HistoryVersion = {
   /** Who made it and how large it was, from git. */
   contribution?: { author: string; co_authors: number; merged_by: string | null; files: number; additions: number; deletions: number };
   /** What it did to the previous version's graph: nodes added and removed by kind, nodes changed. */
-  change?: { added: Record<string, number>; removed: Record<string, number>; changed: number };
+  change?: { added: Record<string, number>; removed: Record<string, number>; changed: number; links?: { added: number; removed: number } };
   /** The source this version's graph is read under (the server's, keyless). */
   source: string;
 };

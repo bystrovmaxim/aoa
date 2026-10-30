@@ -38,4 +38,4 @@ class VersionRecord(BaseModel):
     edges: int | None = Field(default=None, description="Edges of its graph")
     refused: str | None = Field(default=None, description="Why its file is not a graph")
     contribution: Contribution | None = Field(default=None, description="Who made it and how large it was, from git")
-    change: dict[str, object] | None = Field(default=None, description="What it did to the previous version's graph: added and removed by kind, changed")
+    change: dict[str, object] | None = Field(default=None, description="What it did to the previous version's graph: nodes added and removed by kind, nodes changed, links added and removed")
