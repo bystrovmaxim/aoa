@@ -29,6 +29,11 @@ export function setPaintSource(section: PaintSection): void {
   update(state.diff ? { inDiff: section } : { one: section });
 }
 
+/** Take ``section`` as the choice of One or of Diff — the paint an address names, read when the page opens. */
+export function presetPaint(diff: boolean, section: PaintSection): void {
+  update(diff ? { inDiff: section } : { one: section });
+}
+
 /** The section that paints: the mode's choice when the diagram offers it, else its first section. */
 function sourceOf(current: State): PaintSection {
   const wanted = current.diff ? current.inDiff : current.one;
@@ -36,7 +41,7 @@ function sourceOf(current: State): PaintSection {
 }
 
 /** What paints now and what can, followed as it changes. */
-export function useErdPaint(): { sections: readonly PaintSection[]; source: PaintSection; diff: boolean } {
+export function useErdPaint(): { sections: readonly PaintSection[]; source: PaintSection; diff: boolean; one: PaintSection; inDiff: PaintSection } {
   const current = useSyncExternalStore(
     (listener) => {
       listeners.add(listener);
@@ -44,5 +49,5 @@ export function useErdPaint(): { sections: readonly PaintSection[]; source: Pain
     },
     () => state,
   );
-  return { sections: current.sections, source: sourceOf(current), diff: current.diff };
+  return { sections: current.sections, source: sourceOf(current), diff: current.diff, one: current.one, inDiff: current.inDiff };
 }

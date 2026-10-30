@@ -2,6 +2,7 @@
 import { withKey } from "@/lib/historyAddress";
 import { keyFor } from "@/lib/historyKey";
 import type { DiagramSelection } from "@/model/diagramSelection";
+import { VIEW_PARAMS } from "@/lib/viewUrl";
 
 const PARAM_SOURCE = "source";
 const PARAM_VIEW = "view";
@@ -31,6 +32,27 @@ export function setUrlHistory(history: { name: string; b: string | null; a?: str
  * each address this module writes keeps ``room`` while the tab is in one (spec 028, FR-017).
  */
 let currentRoom: string | null = null;
+
+/**
+ * The view of the page on screen — its filters, layout, modes and paint (``@/lib/viewUrl``) — that every address this
+ * module writes carries, so a reload or a copied link shows the same picture (spec 038).
+ */
+let currentView: Record<string, string> = {};
+
+/** Put the page's view into the address, keeping every other parameter, without a new entry in the browser's history. */
+export function setUrlView(view: Record<string, string>): void {
+  currentView = view;
+  const url = new URL(window.location.href);
+  for (const param of VIEW_PARAMS) url.searchParams.delete(param);
+  for (const [param, value] of Object.entries(view)) url.searchParams.set(param, value);
+  const next = withHistoryKey(`${url.pathname}${url.search}`);
+  if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(null, "", next);
+}
+
+/** The parameters of the address the page was opened with. */
+export function readUrlParams(): URLSearchParams {
+  return new URLSearchParams(window.location.search);
+}
 
 /** Deep-link slugs for ``view=`` — kept in sync with the aoa.run marketing site's "Try Maxitor" links. */
 const VIEW_SLUG_BY_KIND: Record<DiagramSelection["kind"], string> = {
@@ -110,6 +132,7 @@ function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null)
     for (const [k, v] of Object.entries(selectionToParams(selection))) params.set(k, v);
   }
   if (currentRoom) params.set(PARAM_ROOM, currentRoom);
+  for (const [param, value] of Object.entries(currentView)) params.set(param, value);
   const qs = params.toString();
   return withHistoryKey(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
 }

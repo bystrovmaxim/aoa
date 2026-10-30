@@ -65,6 +65,21 @@ export function ownSettingsByPage(): Record<string, Record<string, unknown>> {
   return Object.fromEntries([...local].map(([page, values]) => [page, Object.fromEntries(values)]));
 }
 
+/** Take ``values`` as this tab's own for ``page`` — the view an address names, read when the page opens (spec 038). */
+export function seedPageSettings(page: string, values: Readonly<Record<string, unknown>>): void {
+  for (const [name, value] of Object.entries(values)) writeLocal(page, name, value);
+}
+
+/** The settings ``page`` shows: the room's inside one, this tab's own outside. */
+export function shownPageSettings(page: string, room: RoomSettings | null): Record<string, unknown> {
+  return room ? { ...(room.settings[page] ?? {}) } : Object.fromEntries(local.get(page) ?? []);
+}
+
+/** A number that changes whenever a setting kept outside a room does: what an address that follows them listens to. */
+export function usePageSettingsVersion(): number {
+  return useSyncExternalStore(subscribe, () => version);
+}
+
 /** Forget every value kept outside a room (tests). */
 export function clearLocalPageSettings(): void {
   local.clear();
