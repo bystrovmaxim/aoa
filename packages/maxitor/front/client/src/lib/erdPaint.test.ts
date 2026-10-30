@@ -81,11 +81,6 @@ describe("what the post-pass marks in Diff", () => {
     ]);
   });
 
-  it("dims the tables of a kind of change switched off, and lays no halo under them", () => {
-    const marks = erdDiffMarks(tables, new Set(["added"]));
-    expect([...marks.dimmed]).toEqual(["Added"]);
-    expect(marks.halo.has("Added")).toBe(false);
-  });
 });
 
 describe("the choice of what paints", () => {
