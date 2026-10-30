@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { liveLine } from "@/lib/liveLine";
-import { MESSAGE_LINES, messageOf, VersionMessage } from "./VersionMessage";
+import { messageOf, VersionMessage } from "./VersionMessage";
 
 afterEach(cleanup);
 
@@ -38,7 +38,8 @@ describe("the chosen version's message (FR-028 – FR-030)", () => {
   it("stops at nine lines and scrolls inside, wrapping long lines by words, its text selectable", () => {
     render(<VersionMessage version={version({ message: Array.from({ length: 40 }, (_, i) => `line ${i}`).join("\n") })} repository={null} />);
     const style = getComputedStyle(screen.getByTestId("message"));
-    expect(style.maxHeight).toBe(`${MESSAGE_LINES * 18 + 16}px`);
+    // The mockup's 180 px of text, about nine lines; its padding and border outside it.
+    expect(style.maxHeight).toBe("180px");
     expect(style.overflowY).toBe("auto");
     expect(style.whiteSpace).toBe("pre-wrap");
     expect(style.userSelect).toBe("text");

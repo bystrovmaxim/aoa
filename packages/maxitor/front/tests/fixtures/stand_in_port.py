@@ -67,6 +67,7 @@ class StandInHistory:
     graphs: dict[str, bytes]
     live: str | None = None
     more_keys: list[str] = field(default_factory=list)
+    proposals: list[dict[str, Any]] = field(default_factory=list)
 
     def opens(self, key: str) -> bool:
         """Whether ``key`` opens this history."""
@@ -164,7 +165,7 @@ def _handler(port: StandInPort) -> type[BaseHTTPRequestHandler]:
                     body.update(live=history.live, reader="anna")
                 self._send(200, json.dumps(body).encode())
             elif rest == ["versions"]:
-                payload = json.dumps({"versions": history.versions}).encode()
+                payload = json.dumps({"versions": history.versions, "proposals": history.proposals}).encode()
                 etag = '"' + hashlib.sha256(payload).hexdigest()[:16] + '"'
                 if self.headers.get("If-None-Match") == etag:
                     self._send(304, b"", {"ETag": etag})

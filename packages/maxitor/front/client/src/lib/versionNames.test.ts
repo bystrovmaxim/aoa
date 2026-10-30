@@ -1,47 +1,55 @@
 // src/lib/versionNames.test.ts
 import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
-import { defaultVersion, flagsOf, nameOf, tipOf, versionNames } from "./versionNames";
+import { defaultVersion, flagsOf, numbersOf, releaseNoteOf, releaseOf, shownNameOf, versionNames } from "./versionNames";
 
 function version(n: number, extra: Partial<HistoryVersion> = {}): HistoryVersion {
   return { sha: `${n}`.padEnd(40, "a"), date: `2026-10-${String(n).padStart(2, "0")}T00:00:00Z`, tags: [], nodes: n * 10, edges: n * 20, source: `s${n}`, ...extra };
 }
 
 const pr = (n: number) => ({ pr: { number: n, title: `Change ${n}`, body: "", url: "" } });
-const release = (name: string) => ({ tags: [{ name, release: { title: name, url: "" } }] });
 
-describe("names on the track (R10)", () => {
-  const versions = [version(1, pr(10)), version(2, { date: new Date(2026, 9, 2, 12).toISOString(), message: "Direct" }), version(3, { ...pr(12), ...release("v0.1.0") }), version(4, pr(14)), version(5, { ...pr(16), tags: [{ name: "prod", release: null }] })];
+describe("names on the track (R10, FR-018)", () => {
+  const versions = [
+    version(1, pr(10)),
+    version(2, { message: "Direct" }),
+    version(3, { ...pr(12), tags: [{ name: "v0.1.0", release: null }] }),
+    version(4, pr(14)),
+    version(5, { ...pr(16), tags: [{ name: "prod", release: null }] }),
+  ];
 
-  it("names a version before any release by its pull request or its place, a release by its tag without the v, the rest after it", () => {
-    expect(versionNames(versions)).toEqual(["#10", "#2", "0.1.0", "0.1.0 · #14", "0.1.0 · #16"]);
+  it("names a version by its pull request, or by its place when it had none — never by a version or a hash", () => {
+    expect(versionNames(versions)).toEqual(["#10", "#2", "#12", "#14", "#16"]);
   });
 
-  it("never names a direct commit by its hash, but by its place in the history, the oldest being 1", () => {
-    const names = versionNames([version(1, { message: "First" }), version(2, { ...pr(2), ...release("v1.0.0") }), version(3, { message: "Direct" }), version(4, pr(9)), version(5, { message: "Direct" })]);
-    expect(names).toEqual(["#1", "1.0.0", "1.0.0 · #3", "1.0.0 · #9", "1.0.0 · #5"]);
+  it("gives each version the last version number at or before it, none before the first", () => {
+    expect(numbersOf(versions)).toEqual([null, null, "0.1.0", "0.1.0", "0.1.0"]);
   });
 
-  it("names a version a short sha or live names", () => {
-    expect(nameOf(versions, versions[3].sha.slice(0, 12))).toBe("0.1.0 · #14");
-    expect(nameOf(versions, "live")).toBe("Live");
-    expect(nameOf(versions, "f".repeat(12))).toBeNull();
+  it("writes the version button's name with the version before it where there is one", () => {
+    expect(shownNameOf(versions, versions[3].sha.slice(0, 12))).toBe("0.1.0 · #14");
+    expect(shownNameOf(versions, versions[1].sha.slice(0, 12))).toBe("#2");
+    expect(shownNameOf(versions, "live")).toBe("Live");
+    const open = { ...version(9, pr(30)), sha: "f".repeat(40) };
+    expect(shownNameOf(versions, "f".repeat(12), [open])).toBe("#30");
+    expect(shownNameOf(versions, "e".repeat(12))).toBeNull();
   });
 
-  it("draws every tag as a flag", () => {
-    expect(flagsOf(versions[4])).toEqual(["prod"]);
+  it("takes only a version-number tag as a version, with or without its v", () => {
+    expect(releaseOf(version(1, { tags: [{ name: "prod", release: null }, { name: "1.2.3", release: null }] }))).toBe("1.2.3");
+    expect(releaseOf(version(1, { tags: [{ name: "release-4", release: null }] }))).toBeNull();
   });
 
-  it("takes a tag that is a version number for a release even with no release on the host", () => {
-    const local = [version(1, { tags: [{ name: "v0.8.0", release: null }] }), version(2, pr(20)), version(3, { date: new Date(2026, 9, 3, 12).toISOString(), tags: [{ name: "prod", release: null }] })];
-    expect(versionNames(local)).toEqual(["0.8.0", "0.8.0 · #20", "0.8.0 · #3"]);
-    expect(flagsOf(local[0])).toEqual(["v0.8.0"]);
-    expect(flagsOf(local[2])).toEqual(["prod"]);
-  });
-
-  it("tells in a tooltip the commit, how it came, the date and tags, the title, the size and the pull request, and why it was refused", () => {
-    const tip = tipOf(version(6, { ...pr(18), date: new Date(2026, 9, 6, 12).toISOString(), tags: [{ name: "v0.9.0", release: null }], refused: "bad graph" }));
-    expect(tip).toEqual({ commit: "6aaaaaa", kind: "pull request", when: "Oct 6, 2026 · tag v0.9.0", title: "Change 18", size: "60 nodes · 120 edges · #18", refused: "bad graph" });
+  it("flags a release: a GitHub Release, or a tag named release…; any other tag is no flag", () => {
+    const published = version(1, { tags: [{ name: "v1.0.0", release: { title: "Spring", url: "https://r" } }, { name: "prod", release: null }] });
+    expect(flagsOf(published)).toEqual(["v1.0.0"]);
+    expect(releaseNoteOf(published)).toEqual({ title: "Spring", url: "https://r" });
+    const tagged = version(2, { tags: [{ name: "release/2026-10-30", release: null }] });
+    expect(flagsOf(tagged)).toEqual(["release/2026-10-30"]);
+    expect(releaseNoteOf(tagged)).toEqual({ title: "release/2026-10-30", url: "" });
+    expect(flagsOf(versions[4])).toEqual([]);
+    expect(flagsOf(versions[2])).toEqual([]);
+    expect(releaseNoteOf(versions[4])).toBeNull();
   });
 });
 

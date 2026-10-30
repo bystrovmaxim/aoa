@@ -1,16 +1,13 @@
 // src/lib/versionNames.ts
 /**
- * Names on the track (spec 037, FR-017 – FR-019, research R10).
+ * Names on the track (spec 037, FR-017, FR-018, FR-033, research R10).
  *
- * A release is a version carrying a tag that has a release on its host, or a tag that is a version
- * number (``v0.8.0``, ``0.8.0``) — a local repository has tags but no releases; it is named by that tag without its
- * leading ``v`` (``0.11.0``). A version after a release is ``<release> · #<pr>``; one before any release
- * is ``#<pr>``. A version with no pull request — a direct commit — is named by its place in the history,
- * the oldest version being 1 (``0.8.0 · #57``, or ``#57`` before any release): a number that is easy to
- * say aloud and never changes as newer versions come. A commit's hash means nothing to a reader and is
- * never a name. Live is ``Live``. A flag above a point marks a release: a tag published as a GitHub Release, or a tag named
- * ``release…``; any other tag is only in the point's card. A version
- * is still named in the address and in a room by the first 12 hex characters of its commit.
+ * A version is named from what every history has: its pull request's number (``#147``), or, with no pull
+ * request, its place in the history, the oldest being 1 (``#57``) — never its commit's hash. Its version
+ * number is the last version-number tag at or before it (``v0.11.0`` → ``0.11.0``), where there is one; the
+ * version button and the chosen point's chip write it before the name (``0.11.0 · #147``). A flag marks a
+ * release: a tag published as a GitHub Release, or a tag named ``release…``; any other tag is only in the
+ * point's card. In the address and in a room a version is the first 12 hex characters of its commit.
  */
 
 import type { HistoryVersion } from "@/api/history";
@@ -22,8 +19,6 @@ export const SHORT_SHA = 12;
 export function shortSha(version: HistoryVersion): string {
   return version.sha.slice(0, SHORT_SHA);
 }
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** A release's name: its tag without the ``v`` before a number (``v0.11.0`` → ``0.11.0``). */
 export function releaseName(tag: string): string {
@@ -103,29 +98,6 @@ export function nameOf(versions: readonly HistoryVersion[], b: string | null): s
   if (!b) return null;
   const index = versions.findIndex((version) => version.sha.startsWith(b));
   return index < 0 ? null : versionNames(versions)[index];
-}
-
-/** What a point's tooltip says, as the mockup lays it out. */
-export type VersionTip = { commit: string; kind: string; when: string; title: string; size: string; refused: string | null };
-
-/** A pull request as the mockup's tooltip writes it: ``<repo>#<number>``, or ``#<number>`` without an address. */
-function pullRequestRef(pr: NonNullable<HistoryVersion["pr"]>): string {
-  const repo = /github\.com\/[^/]+\/([^/]+)\/pull\//.exec(pr.url)?.[1];
-  return `${repo ?? ""}#${pr.number}`;
-}
-
-/** A point's tooltip: its commit and how it came, its date and tags, its title, its size and pull request. */
-export function tipOf(version: HistoryVersion): VersionTip {
-  const at = new Date(version.date);
-  const tags = version.tags.map((tag) => tag.name);
-  return {
-    commit: version.sha.slice(0, 7),
-    kind: version.pr ? "pull request" : "direct commit",
-    when: [`${MONTHS[at.getMonth()]} ${at.getDate()}, ${at.getFullYear()}`, tags.length ? `tag ${tags.join(", ")}` : ""].filter(Boolean).join(" · "),
-    title: version.pr ? version.pr.title : (version.message ?? "").split("\n")[0],
-    size: [`${version.nodes} nodes`, `${version.edges} edges`, version.pr ? pullRequestRef(version.pr) : ""].filter(Boolean).join(" · "),
-    refused: version.refused ?? null,
-  };
 }
 
 /** The version a history opens on (FR-021): Live, else the newest unrefused one, else the newest; ``null`` in M7. */

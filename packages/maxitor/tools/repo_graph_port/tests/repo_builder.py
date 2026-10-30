@@ -107,3 +107,21 @@ def add_version(built: BuiltRepository, edges: int) -> str:
     b = _Builder.__new__(_Builder)
     b.path, b.clock = built.path, 500
     return b.commit("One more version", {GRAPH_FILE: graph(edges=edges)})
+
+
+def add_proposal(built: BuiltRepository, number: int, message: str, files: dict[str, str]) -> str:
+    """A branch off ``main`` with one commit, kept as ``refs/pull/<number>/head`` as GitHub keeps a pull request's head; return its commit."""
+    b = _Builder.__new__(_Builder)
+    b.path, b.clock = built.path, 600 + number
+    b.git("checkout", "-q", "-b", f"proposal-{number}", "main")
+    head = b.commit(message, files)
+    b.git("checkout", "-q", "main")
+    b.git("update-ref", f"refs/pull/{number}/head", head)
+    return head
+
+
+def keep_pull_head(built: BuiltRepository, number: int, sha: str) -> None:
+    """Keep ``sha`` as ``refs/pull/<number>/head`` — a pull request whose head is already in ``main``."""
+    b = _Builder.__new__(_Builder)
+    b.path, b.clock = built.path, 700 + number
+    b.git("update-ref", f"refs/pull/{number}/head", sha)

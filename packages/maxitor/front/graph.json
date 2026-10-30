@@ -751,6 +751,17 @@
       "type": "@check_roles"
     },
     {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "GraphSource"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction",
+      "target_id": "maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
@@ -846,6 +857,24 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
       "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live_same_as",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live_same_as",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:proposals",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:proposals",
       "type": "field"
     },
     {
@@ -1343,6 +1372,17 @@
       "type": "@check_roles"
     },
     {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
+      "is_dag": true,
+      "properties": {
+        "key": "GraphSource"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction",
+      "target_id": "maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
+      "type": "@connection"
+    },
+    {
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
@@ -1459,12 +1499,30 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live_same_as",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live_same_as",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
       "is_dag": false,
       "properties": {},
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
       "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:proposals",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:proposals",
       "type": "field"
     },
     {
@@ -4046,6 +4104,28 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:live_same_as",
+      "label": "live_same_as",
+      "properties": {
+        "description": "The newest version's sha when Live runs exactly its graph: the two are one point",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:proposals",
+      "label": "proposals",
+      "properties": {
+        "description": "Pull requests still open that change the graph, each with its state and source",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
       "label": "versions",
       "properties": {
@@ -4612,6 +4692,17 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:live_same_as",
+      "label": "live_same_as",
+      "properties": {
+        "description": "The newest version's sha when Live runs exactly its graph: the two are one point",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:name",
       "label": "name",
       "properties": {
@@ -4619,6 +4710,17 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryResult:proposals",
+      "label": "proposals",
+      "properties": {
+        "description": "Pull requests still open that change the graph, each with its state and source",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
