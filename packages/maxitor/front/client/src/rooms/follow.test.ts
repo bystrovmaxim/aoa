@@ -94,10 +94,19 @@ describe("following", () => {
     view.restore.mockImplementation((next) => {
       zoom = next.zoom;
     });
+    vi.useFakeTimers();
     renderHook(() => useFollow({ room: roomWith({ anna: "boris" }, ERD), send: vi.fn(), surface: view, page: ERD, navigate: vi.fn() }));
     act(() => putViewport("boris", { cx: 40, cy: -10, w: 2000, h: 1000 }));
+    act(() => vi.advanceTimersByTime(GLIDE_MAX_MS + 50));
     expect(view.restore).toHaveBeenLastCalledWith({ x: 40, y: -10, zoom: 0.5 });
+    // A zoom they make glides here: on the way it passes between the two, and it ends exactly on theirs.
     act(() => putViewport("boris", { cx: 40, cy: -10, w: 500, h: 250 }));
+    act(() => vi.advanceTimersByTime(17));
+    const between = view.restore.mock.calls.at(-1)![0].zoom;
+    act(() => vi.advanceTimersByTime(GLIDE_MAX_MS + 50));
+    vi.useRealTimers();
+    expect(between).toBeGreaterThan(0.5);
+    expect(between).toBeLessThan(2);
     expect(view.restore).toHaveBeenLastCalledWith({ x: 40, y: -10, zoom: 2 });
   });
 
