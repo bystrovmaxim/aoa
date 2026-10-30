@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
 import type { ReactNode } from "react";
-import { PROPOSAL_LOOK } from "@/components/history/VersionTrack/proposalLook";
+import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "@/components/history/VersionTrack/proposalLook";
 
 const INK = "#0f172a";
 const MUTED = "#94a3b8";
@@ -41,103 +41,78 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** What the track's marks mean: what is on it, how the chosen point looks, what stands after the history. */
+/** A point as the track draws it, with the stretch of line that leads to it, in its colour. */
+function PointSample({ colour, hollow = false, dash }: { colour: string; hollow?: boolean; dash?: string }) {
+  return (
+    <Sample>
+      <line x1={4} y1={10} x2={28} y2={10} stroke={colour} strokeOpacity={0.35} strokeWidth={2} strokeDasharray={dash} strokeLinecap="round" />
+      {hollow ? <circle cx={30} cy={10} r={3.8} fill="#fff" stroke={colour} strokeWidth={1.5} /> : <circle cx={30} cy={10} r={3.4} fill={colour} />}
+    </Sample>
+  );
+}
+
+/** What the track's marks mean: one row per kind of point, in the order they stand, then the other marks. */
 function Legend() {
   return (
     <Box sx={{ display: "grid", gap: "16px" }}>
-      <Group title="On the track">
+      <Group title="Points">
+        <Row term="Direct push" sample={<PointSample colour={DIRECT_LOOK.colour} />}>
+          A change pushed straight to the branch, with no pull request.
+        </Row>
+        <Row term="Merged" sample={<PointSample colour={MERGED_LOOK.colour} />}>
+          A merged pull request.
+        </Row>
+        {STATES.map((state) => (
+          <Row key={state} term={PROPOSAL_LOOK[state].name} sample={<PointSample colour={PROPOSAL_LOOK[state].colour} dash="2 4" />}>
+            {
+              {
+                open: "An open pull request no reviewer has answered yet: no approval, no request for changes.",
+                approved: "An open pull request a reviewer approved: it can be merged.",
+                changes_requested: "An open pull request a reviewer asked to fix: it cannot be merged as it is.",
+              }[state]
+            }
+          </Row>
+        ))}
+        <Row term="Live" sample={<PointSample colour={LIVE_LOOK.colour} hollow dash="2 4" />}>
+          What the service runs now — always last; one point with the newest version when their graphs are the same.
+        </Row>
+      </Group>
+      <Group title="Marks">
         <Row
-          term="A point"
+          term="Size"
           sample={
             <Sample>
-              <line x1={2} y1={10} x2={38} y2={10} stroke="#e2e8f0" strokeWidth={2} />
-              <circle cx={14} cy={10} r={2.2} fill="#dbe2ea" />
-              <circle cx={28} cy={10} r={3.4} fill="#cbd5e1" />
+              <circle cx={13} cy={10} r={2.4} fill={MERGED_LOOK.colour} />
+              <circle cx={27} cy={10} r={3.4} fill={MERGED_LOOK.colour} />
             </Sample>
           }
         >
-          A change that reached the branch and changed the graph — a merged pull request, or a direct push. A larger point starts a version and carries its number below; a smaller one belongs to that version.
+          A larger point starts a version and carries its number below; a smaller one belongs to that version.
         </Row>
         <Row
-          term="A flag"
+          term="Flag"
           sample={
             <Sample>
               <path d="M20 14V3" stroke={MUTED} strokeWidth={1.2} />
               <path d="M20 3h7l-2 2.4 2 2.4h-7z" fill={MUTED} />
-              <circle cx={20} cy={14} r={2.6} fill="#cbd5e1" />
+              <circle cx={20} cy={14} r={2.6} fill={MERGED_LOOK.colour} />
             </Sample>
           }
         >
           That version was released: a GitHub Release, or a tag named <code>release…</code>.
         </Row>
-      </Group>
-      <Group title="The chosen point">
         <Row
-          term="Its colour"
+          term="The chosen point"
           sample={
             <Sample>
-              <circle cx={7} cy={10} r={4.5} fill={INK} />
-              <circle cx={20} cy={10} r={4.5} fill={PROPOSAL_LOOK.open.colour} />
-              <circle cx={33} cy={10} r={3.8} fill="#fff" stroke={INK} strokeWidth={1.8} />
-            </Sample>
-          }
-        >
-          Dark when merged, its state's colour when still open, hollow for Live.
-        </Row>
-        <Row
-          term="Its name"
-          sample={
-            <Sample>
-              <rect x={2} y={3} width={36} height={14} rx={7} fill={INK} />
+              <rect x={2} y={3} width={36} height={14} rx={7} fill={MERGED_LOOK.colour} />
               <text x={20} y={13.2} fontSize={8.5} fontWeight={600} fill="#fff" textAnchor="middle" fontFamily="ui-sans-serif, system-ui, sans-serif">
                 #147
               </text>
             </Sample>
           }
         >
-          <code>0.11.0 · #147</code> — its version and pull request; <code>#57</code> — its place in the history, when it had no pull request.
-        </Row>
-      </Group>
-      <Group title="After the history">
-        <Row
-          term="Open pull requests"
-          sample={
-            <Sample>
-              {STATES.map((state, at) => (
-                <circle key={state} cx={8 + at * 12} cy={10} r={3} fill={PROPOSAL_LOOK[state].colour} stroke={PROPOSAL_LOOK[state].colour} strokeWidth={1.2} />
-              ))}
-            </Sample>
-          }
-        >
-          <Box component="span" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px", mt: "4px" }}>
-            {STATES.map((state) => (
-              <Box key={state} component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "6px", color: PROPOSAL_LOOK[state].colour, fontWeight: 600 }}>
-                {/* The point exactly as the track draws it. */}
-                <svg viewBox="0 0 10 10" width={10} height={10} aria-hidden style={{ display: "block", flexShrink: 0 }}>
-                  <circle
-                    cx={5}
-                    cy={5}
-                    r={3.6}
-                    fill={PROPOSAL_LOOK[state].colour}
-                    stroke={PROPOSAL_LOOK[state].colour}
-                    strokeWidth={1.4}
-                  />
-                </svg>
-                {PROPOSAL_LOOK[state].name}
-              </Box>
-            ))}
-          </Box>
-        </Row>
-        <Row
-          term="Live"
-          sample={
-            <Sample>
-              <line x1={2} y1={10} x2={28} y2={10} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="2 4" />
-              <circle cx={33} cy={10} r={4} fill="#fff" stroke={MUTED} strokeWidth={1.5} />
-            </Sample>
-          }
-        >
-          What the service runs now — always last. One point with the newest version when their graphs are the same.
+          Larger, in its own colour, its name in a chip: <code>0.11.0 · #147</code> — version and pull request; <code>#57</code> — its place, when it had no pull request.
         </Row>
       </Group>
     </Box>

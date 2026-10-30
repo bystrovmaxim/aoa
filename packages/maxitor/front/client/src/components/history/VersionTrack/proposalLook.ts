@@ -11,3 +11,9 @@ export const PROPOSAL_LOOK: Record<ProposalState, { colour: string; tint: string
 
 /** A merged pull request's mark, in GitHub's purple. */
 export const MERGED_LOOK = { colour: "#8250df", tint: "#fbefff" } as const;
+
+/** A change pushed straight to the branch, with no pull request: grey. */
+export const DIRECT_LOOK = { colour: "#8c959f", tint: "#f6f8fa" } as const;
+
+/** Live: what the service runs now, a hollow grey point. */
+export const LIVE_LOOK = { colour: "#8c959f" } as const;

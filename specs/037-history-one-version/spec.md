@@ -84,7 +84,7 @@ A service with 64 merged pull requests opens with a track that does not cram the
 **Acceptance Scenarios**:
 
 1. **Given** a history of 64 versions, **When** the picker opens, **Then** points stand at least 24 px apart, the track scrolls sideways, and the chosen version is in view.
-2. **Given** a scrolled track, **When** it is looked at, **Then** there is no scrollbar, the edges fade where more is hidden, and the right edge says how many newer versions are out of view.
+2. **Given** a scrolled track, **When** it is looked at, **Then** there is no scrollbar and nothing is faded, and the right edge says how many newer points are out of view.
 3. **Given** the handle scrolled out of view, **When** the track is looked at, **Then** the handle is pinned to its edge, and clicking it scrolls back to it.
 4. **Given** many releases close together, **When** they are drawn, **Then** their names thin out before they collide.
 5. **Given** a point, **When** it is hovered, **Then** its tooltip gives the pull request's number and title, its date, its size and its tags; tags that are not releases show as small flags.
@@ -103,7 +103,7 @@ Under the track, the developer reads why this version exists: its pull request's
 
 1. **Given** a version made by a pull request, **When** it is chosen, **Then** the box under the track shows its title and body, whole, with line breaks kept and long lines wrapped by words, and nothing above them.
 2. **Given** a version made by a direct commit, **When** it is chosen, **Then** the box shows the commit's message.
-3. **Given** a message of several screens, **When** it is shown, **Then** the box stops at nine lines and scrolls inside, with a thin visible scrollbar, its lower edge fading while more is below; the text can be selected.
+3. **Given** a message of several screens, **When** it is shown, **Then** the box stops at nine lines and scrolls inside, with a thin visible scrollbar that shows how much more there is, nothing faded (the maintainer, 2026-10-30); the text can be selected.
 4. **Given** Live, **When** it is chosen, **Then** there is no message; a closing line says when Live was last checked.
 5. **Given** a message with `## Heading`, `**bold**`, `<script>`, a `javascript:` address, an `https://` address and `#142`, **When** it is shown, **Then** the first four appear as typed text, the address links to itself, and `#142` links to pull request 142 of the history's repository, each opening in a new tab.
 
@@ -214,7 +214,7 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 **A long history**
 
 - **FR-023**: Points MUST stand at least 24 px apart; the track MUST scroll sideways by a sideways swipe, the mouse wheel over it, or dragging its empty part.
-- **FR-024**: The track MUST have no scrollbar: its edges MUST fade where more is hidden, and the right edge MUST say how many newer versions are out of view, counting versions only and adding "and Live" when Live is out of view too ("+5 newer and Live").
+- **FR-024**: The track MUST have no scrollbar and nothing faded at its edges; the right edge MUST say how many points are out of view to the right, Live included ("5 newer ›").
 - **FR-025**: A handle scrolled out of view MUST be pinned to its edge; clicking it MUST scroll back to it.
 - **FR-026**: Release names MUST thin out before they collide; the chosen version's name, the oldest and newest versions' names and Live's name MUST never thin out.
 - **FR-027**: The picker MUST open with the chosen version in view.
@@ -223,7 +223,7 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 
 - **FR-028**: Under the track MUST be the chosen version's message — its pull request's title and body, or its commit's message when it had none — whole, with nothing above it, line breaks kept, long lines wrapped by words.
 - **FR-028a**: The message MUST be plain text: Markdown and HTML MUST NOT be rendered. Only two things MUST become links: `http://` and `https://` addresses (trailing punctuation left out), and `#<number>`, which MUST point at that pull request of the history's own repository; every other scheme and `owner/repo#<number>` MUST stay text. Links MUST open in a new tab and MUST NOT pass Maxitor's address on to the page they open. The same MUST hold for every other link Maxitor shows for a history — the Live service, the repository, a pull request.
-- **FR-029**: The message box MUST stop at nine lines of its text and scroll inside with a thin visible scrollbar; its lower edge MUST fade while more is below; its text MUST be selectable.
+- **FR-029**: The message box MUST stop at nine lines of its text and scroll inside with a thin visible scrollbar; the scrollbar shows how much more there is, nothing faded; its text MUST be selectable.
 - **FR-030**: Live MUST have no message; a closing line MUST say "Live · checked <time> ago · newest version <name>, <date>" — without its last part in M6 — and, while Live cannot be reached, "Live · cannot be reached since <time>".
 
 **Phone**
@@ -236,7 +236,7 @@ On a phone, the version button sits in the phone bar and the picker opens as a s
 - **FR-034**: A point's tooltip MUST read as a pull request card: "Merged" for a merged pull request, the version number as a dark chip where the history has one, the pull request's number and when; its title; who made it and who merged it (a picture where the host gives one, else initials); its size in lines and files; what it did to the graph — nodes added and removed by kind, nodes changed. A version with no pull request — a change pushed straight to the branch — MUST be marked "Direct push", so every point says how it came.
 - **FR-035**: The port MUST take who made a version and who merged it, and its size, from git — a merge commit's author merged it, its branch's authors made it — so that a local or corporate repository with no host has them too; and a version's pull request from its merge or squash commit's message when the host does not tell it, never keeping GitHub's "Merge pull request #N from …" line.
 - **FR-036**: When Live runs exactly the newest version's graph — the same nodes and edges, compared as graphs, a service's `coordinator_json` wrapper unwrapped — the track MUST show the two as one point, Live, whose tooltip and message are that version's.
-- **FR-037**: The pull requests still open into the history's branch that change its graph MUST stand between the newest version and Live, past a dotted gap — Live is always last — each in GitHub's colour for its state: review required (GitHub's brown-yellow "attention"), approved (green), changes requested (red) — a draft is not yet offered for review and is not shown — with the state as a chip in its tooltip; a merged pull request's mark is GitHub's purple; and MUST be readable like a version; on GitHub the state comes from the pull request and its reviews, in a local repository every `refs/pull/<n>/head` not yet in the branch is open. A pull request closed without being merged MUST NOT be shown.
+- **FR-037**: The pull requests still open into the history's branch that change its graph MUST stand between the newest version and Live, past a dashed gap like Live's — Live is always last — each in GitHub's colour for its state: review required (GitHub's brown-yellow "attention"), approved (green), changes requested (red) — a draft is not yet offered for review and is not shown — with the state as a chip in its tooltip; a merged pull request's mark is GitHub's purple; and MUST be readable like a version; on GitHub the state comes from the pull request and its reviews, in a local repository every `refs/pull/<n>/head` not yet in the branch is open. A pull request closed without being merged MUST NOT be shown.
 - **FR-038**: The track MUST scroll as the browser scrolls — a sideways swipe with its momentum, the vertical wheel turned sideways, a drag — with nothing faded at its edges; a tooltip MUST stay where it is while the track scrolls under a still pointer, and when the track stops it MUST show the point now under the pointer, or close when there is none.
 - **FR-032**: The change MUST end with the check run taken to zero, then the documentation — every case of this step shown, each as a script and a notebook that were run, with the page's Russian draft beside it — then the changelog, one article (Principle VI).
 
