@@ -344,6 +344,19 @@ def test_pointers_reach_only_the_same_page(client: TestClient, source: str) -> N
     assert next_for_vera["type"] == "follows"
 
 
+def test_a_click_reaches_the_same_page_and_is_not_kept(client: TestClient, source: str) -> None:
+    """Anna's click reaches Boris on her page as it happened; it is not her pointer, which stays where it was."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        anna.send_json({"type": "click", "x": 4, "y": 5.5})
+        click = _expect(boris, "click")
+
+    assert click == {"type": "click", "participant": "anna", "x": 4, "y": 5.5}
+
+
 def test_a_page_the_service_lacks_falls_back(client: TestClient, source: str) -> None:
     """(12) Boris's link names a page the service does not offer: he opens Anna's page instead."""
     with ExitStack() as stack:

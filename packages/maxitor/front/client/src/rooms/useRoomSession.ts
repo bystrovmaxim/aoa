@@ -15,7 +15,7 @@ import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
 import { clearFocus, putFocus } from "@/rooms/focusStore";
-import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
+import { clearPointers, dropPointer, putClick, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
 import { openHistory } from "@/api/history";
@@ -172,6 +172,10 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     }
     if (event.type === "viewport") {
       putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
+      return;
+    }
+    if (event.type === "click") {
+      putClick(event.participant, { x: event.x, y: event.y, at: Date.now() });
       return;
     }
     if (event.type === "focus") {

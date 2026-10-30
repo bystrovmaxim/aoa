@@ -587,7 +587,7 @@ export function App() {
           />
         </VersionPicker>
       )}
-      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
+      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={following?.id ?? null} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}
         initialName={room.dialog?.mode === "rename" ? (room.room?.participants.find((p) => p.id === room.room?.youId)?.name ?? lastName()) : lastName()}

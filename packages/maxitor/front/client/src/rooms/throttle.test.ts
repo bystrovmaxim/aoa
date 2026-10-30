@@ -67,7 +67,7 @@ describe("a tab moving its pointer and panning at once", () => {
 });
 
 describe("the pointer sender", () => {
-  it("sends diagram coordinates, not screen pixels, and says whether it was a touch", () => {
+  function sender() {
     const element = document.createElement("div");
     element.getBoundingClientRect = () => ({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300 }) as DOMRect;
     const surface: DiagramSurface = {
@@ -81,10 +81,37 @@ describe("the pointer sender", () => {
     };
     const sent: ClientMessage[] = [];
     const stop = startPointerSender(surface, (message) => sent.push(message));
-    const tap = new Event("pointerdown") as PointerEvent;
-    Object.assign(tap, { clientX: 100, clientY: 50, pointerType: "touch" });
-    element.dispatchEvent(tap);
+    // A panel over the page, outside the diagram: the filter panel, the version picker, the left panel.
+    const panel = document.createElement("div");
+    document.body.appendChild(panel);
+    const press = (type: string, extra: Partial<PointerEvent>) => {
+      const event = new Event(type, { bubbles: true }) as PointerEvent;
+      Object.assign(event, { clientX: 100, clientY: 50, pointerType: "mouse", button: 0, ...extra });
+      panel.dispatchEvent(event);
+    };
+    return { sent, press, stop: () => (stop(), panel.remove()) };
+  }
+
+  it("sends diagram coordinates, not screen pixels, and says whether it was a touch", () => {
+    const { sent, press, stop } = sender();
+    press("pointerdown", { pointerType: "touch" });
     stop();
     expect(sent.find((m) => m.type === "pointer")).toEqual({ type: "pointer", x: 1400, y: -300, kind: "touch" });
+  });
+
+  it("sends the pointer over a panel outside the diagram too (spec 038)", () => {
+    const { sent, press, stop } = sender();
+    press("pointermove", {});
+    stop();
+    expect(sent).toContainEqual({ type: "pointer", x: 1400, y: -300, kind: "mouse" });
+  });
+
+  it("sends a click where it happened — a left click of a mouse, not a tap nor another button", () => {
+    const { sent, press, stop } = sender();
+    press("pointerdown", {});
+    press("pointerdown", { button: 2 });
+    press("pointerdown", { pointerType: "touch" });
+    stop();
+    expect(sent.filter((m) => m.type === "click")).toEqual([{ type: "click", x: 1400, y: -300 }]);
   });
 });

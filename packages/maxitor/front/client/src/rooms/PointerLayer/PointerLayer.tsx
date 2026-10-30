@@ -1,18 +1,35 @@
 // src/rooms/PointerLayer/PointerLayer.tsx
 import Box from "@mui/material/Box";
+import { keyframes } from "@mui/system";
 import { useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/rooms/Circles/Avatar";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { inkOn } from "@/rooms/initials";
-import { currentPointers, subscribePointers, type RemotePointer } from "@/rooms/pointerStore";
+import { currentClicks, currentPointers, subscribePointers, type RemotePointer } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 
 export type PointerLayerProps = {
   surface: DiagramSurface;
   /** The participants whose pointers may be drawn: others on this page, connected. */
   participants: Participant[];
+  /** The one this tab follows: their pointer shows wherever it is on the page — over a panel or a picker too. */
+  followed?: string | null;
 };
+
+/** How long a click's ripple shows (spec 038). */
+export const RIPPLE_MS = 700;
+
+/** A ring that grows from the click and fades as it goes. */
+const ripple = keyframes`
+  from { transform: scale(0.2); opacity: 0.7; }
+  to { transform: scale(1); opacity: 0; }
+`;
+
+/** Where a point lands in the window, or ``null`` off it. */
+function inWindow(client: { x: number; y: number }): { x: number; y: number } | null {
+  return client.x >= 0 && client.y >= 0 && client.x <= window.innerWidth && client.y <= window.innerHeight ? client : null;
+}
 
 /** A touch shows as a ring for about this long (FR-041). */
 export const TOUCH_MS = 1_000;
@@ -79,7 +96,7 @@ function NameTag({ participant, left, top }: { participant: Participant; left: n
  * pan and zoom (FR-040 … FR-044; mockup screens 6 and 8). A pointer outside the view is an arrow at
  * the edge with the person's initials; a click on it centres the view there at the same zoom.
  */
-export function PointerLayer({ surface, participants }: PointerLayerProps) {
+export function PointerLayer({ surface, participants, followed = null }: PointerLayerProps) {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => {
@@ -105,16 +122,54 @@ export function PointerLayer({ surface, participants }: PointerLayerProps) {
   const rect = surface.element.getBoundingClientRect();
   const now = Date.now();
   const pointers = currentPointers();
+  // The layer covers the window, above every panel: positions are the window's own. The followed person's pointer
+  // shows wherever it is on the page; anyone else's on the diagram, or as an arrow at its edge.
+  const at = (participant: Participant, client: { x: number; y: number }): Placed => {
+    const anywhere = participant.id === followed ? inWindow(client) : null;
+    if (anywhere) return { kind: "inside", ...anywhere };
+    const placed = place(client.x - rect.left, client.y - rect.top, rect.width, rect.height);
+    return { ...placed, x: placed.x + rect.left, y: placed.y + rect.top };
+  };
   const drawn = participants.flatMap((participant) => {
     const pointer = pointers.get(participant.id);
     if (!pointer || !pointerVisible(pointer, now)) return [];
     const client = surface.toClient(pointer);
     if (!client) return [];
-    return [{ participant, pointer, at: place(client.x - rect.left, client.y - rect.top, rect.width, rect.height) }];
+    return [{ participant, pointer, at: at(participant, client) }];
+  });
+  const clicks = currentClicks();
+  const ripples = participants.flatMap((participant) => {
+    const click = clicks.get(participant.id);
+    if (!click || now - click.at > RIPPLE_MS) return [];
+    const client = surface.toClient(click);
+    const placed = client ? at(participant, client) : null;
+    return placed && placed.kind === "inside" ? [{ participant, click, placed }] : [];
   });
 
   return createPortal(
-    <Box aria-hidden sx={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50, overflow: "hidden" }}>
+    <Box aria-hidden data-testid="pointer-layer" sx={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 1500, overflow: "hidden" }}>
+      {ripples.map(({ participant, click, placed }) => (
+        <Box key={`${participant.id}-${click.at}`} data-click={participant.id} sx={{ position: "absolute", left: placed.x, top: placed.y }}>
+          {[0, 120].map((delay) => (
+            <Box
+              key={delay}
+              component="span"
+              sx={{
+                position: "absolute",
+                left: -22,
+                top: -22,
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: `2px solid ${participant.colour}`,
+                opacity: 0,
+                animation: `${ripple} ${RIPPLE_MS - delay}ms ease-out ${delay}ms forwards`,
+                "@media (prefers-reduced-motion: reduce)": { animation: "none", opacity: 0.5 },
+              }}
+            />
+          ))}
+        </Box>
+      ))}
       {drawn.map(({ participant, pointer, at }) => {
         if (at.kind === "edge") {
           return (
@@ -182,6 +237,6 @@ export function PointerLayer({ surface, participants }: PointerLayerProps) {
         );
       })}
     </Box>,
-    surface.element,
+    document.body,
   );
 }

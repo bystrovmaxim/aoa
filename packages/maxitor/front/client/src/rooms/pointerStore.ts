@@ -10,7 +10,11 @@ import type { DiagramViewport, Point } from "@/rooms/coordinates";
 
 export type RemotePointer = Point & { kind: "mouse" | "touch"; at: number };
 
+/** A click someone made, where and when: it shows as a ripple for a moment (spec 038). */
+export type RemoteClick = Point & { at: number };
+
 const pointers = new Map<string, RemotePointer>();
+const clicks = new Map<string, RemoteClick>();
 const viewports = new Map<string, DiagramViewport>();
 const listeners = new Set<() => void>();
 
@@ -30,16 +34,29 @@ export function putViewport(participant: string, viewport: DiagramViewport): voi
   changed();
 }
 
+/** Record a participant's click. */
+export function putClick(participant: string, click: RemoteClick): void {
+  clicks.set(participant, click);
+  changed();
+}
+
+/** Every participant's last click. */
+export function currentClicks(): ReadonlyMap<string, RemoteClick> {
+  return clicks;
+}
+
 /** Forget a participant's pointer: they left, or went to another page. */
 export function dropPointer(participant: string): void {
   if (pointers.delete(participant)) changed();
   viewports.delete(participant);
+  clicks.delete(participant);
 }
 
 /** Forget everyone: the tab left the room or changed page. */
 export function clearPointers(): void {
   pointers.clear();
   viewports.clear();
+  clicks.clear();
   changed();
 }
 
