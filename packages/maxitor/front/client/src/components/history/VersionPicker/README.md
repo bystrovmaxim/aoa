@@ -8,10 +8,11 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** The picker over the diagram: the service's name, its count of versions and Live, **Copy link**, the mode switch (One; Diff and Side by side greyed, "comes later"), the track, and the chosen version's message. (spec 037)
+**Role:** The mockup's card under the version button, not modal, following the button: the service's name, its count of versions, Live and open pull requests, an "i" for the track's legend, the mode switch (One; Diff and Side by side greyed, "comes later"), the track, and the chosen version's message; a bottom sheet on a phone. (spec 037)
 
 ## Files
 
 | File | Responsibility |
 |------|----------------|
-| `VersionPicker.tsx` | MUI `Popover` holding `VersionTrack`. |
+| `VersionPicker.tsx` | An MUI `Popper` with a click-away that lets the sidebar's clicks through, holding `VersionTrack`; a `Drawer` on a phone. |
+| `TrackLegend.tsx` | The legend behind the "i": one row per kind of point in track order, then size, flag, the chosen point. |

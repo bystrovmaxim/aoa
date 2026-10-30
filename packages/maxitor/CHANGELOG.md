@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Maxitor opens a graph's history** served by `repo-graph-port` and shows any version: a version button and a picker with a time axis of merged pull requests, direct pushes, open pull requests by review state and Live; version numbers from tags, release flags, a card per point with who made and merged it, its size and its graph change; the address bar carries the key, so copying it shares the view. `repo-graph-port` adds each version's contribution and graph change, pull requests read from merge commits, and the open pull requests.
 - **`repo-graph-port`**, a service that reads a graph's history from its repository: versions with their pull requests, tags and releases, and any version's graph; read keys for private repositories through a GitHub App, links for public ones, GitHub's webhooks, and without them a fetch on read once ten minutes have passed. `pip install "maxitor[repo-graph-port]"`, command `repo-graph-port`.
 
 ### Changed — breaking

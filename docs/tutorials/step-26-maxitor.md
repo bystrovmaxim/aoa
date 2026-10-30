@@ -217,6 +217,21 @@ The indented lines are the port's own log: it names each history and its reader,
 
 The tag `v1.1` sits on a later commit that only changed the README, so it belongs to the version before it. Running the port on a server — the App, the config, the keys — is [the how-to page](../how-to/run-the-repo-graph-port.md); [its README](../../packages/maxitor/tools/repo_graph_port/README.md) is the reference.
 
+Maxitor opens such a history from one address — the port's history URL with the key after `#key=` — and shows any version on a time axis: the merged pull requests and direct pushes, the pull requests still open, and Live. [16_open_a_history.py](../../examples/step_26_maxitor/16_open_a_history.py) ([notebook](../../examples/step_26_maxitor/16_open_a_history.ipynb)) runs a port and Maxitor over a repository it builds:
+
+```text
+3. Maxitor opens orders: versions oldest first
+   #1  0.1.0  Direct push  Olga Kim                      +6722 −0 · 1 file   +265 nodes · +385 links
+   #1  0.2.0  Merged       Anna Petrova → Maxim          +0 −18 · 1 file     −2 links  ⚑ release-0.2
+   #2  0.2.0  Merged       Ivan Sokolov → Maxim          +10 −0 · 1 file     +1 Entity
+4. Live runs exactly the newest version's graph
+   live_same_as is the newest version: True — the track draws them as one point, Live
+5. The pull request still open
+   #3 Drop the audit links · state open · by Pavel Orlov · {'added': 0, 'removed': 4}
+```
+
+Reading the track — colours, versions, release flags, the card — is [the how-to page](../how-to/open-a-graph-history.md).
+
 ## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.

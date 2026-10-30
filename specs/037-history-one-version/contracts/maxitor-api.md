@@ -6,10 +6,10 @@ Every route is an AOA action behind Maxitor's `FastApiAdapter`. A private histor
 
 | Route | Action | Input | Answer |
 |---|---|---|---|
-| `GET /api/history/open?history=<name>` | `OpenHistoryAction` | the history's name (its address without the key); the key in the header | `{name, title, host, repository, live, versions: [Version…], count, room_ticket}`; `ETag`; `room_ticket` only for a private history (research R18) |
-| `GET /api/history/versions?history=<name>` | `HistoryVersionsAction` | the name; `If-None-Match` | `{versions: [Version…]}`; `ETag`; `304` when unchanged |
+| `GET /api/history/open?history=<name>` | `OpenHistoryAction` | the history's name (its address without the key); the key in the header | `{name, title, host, repository, live, live_same_as, versions: [Version…], proposals: [Version…], count, room_ticket}`; `ETag`; `room_ticket` only for a private history (research R18) |
+| `GET /api/history/versions?history=<name>` | `HistoryVersionsAction` | the name; `If-None-Match` | `{versions: [Version…], proposals: [Version…], live, live_same_as}`; `ETag`; `304` when unchanged |
 
-`Version` is the port's (`sha, date, pr, message, tags, nodes, edges, refused`).
+`Version` is the port's (`sha, date, pr, message, tags, nodes, edges, refused, contribution, change`, see `port.md`), with the `source` its graph is read under. `proposals` are the port's open pull requests, each with its `source`. `live_same_as` is the newest unrefused version's sha when Live runs exactly its graph — compared as graphs, the same nodes and edges in any order, a service's `coordinator_json` unwrapped — and `null` otherwise or when either cannot be read (FR-036).
 
 Refusals:
 
