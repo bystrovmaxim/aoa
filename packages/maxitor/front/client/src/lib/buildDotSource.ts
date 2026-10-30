@@ -446,7 +446,9 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
     const frameColour = changeHead ?? (quietHead ? "#cbd5e1" : own ? ERD_DIFF_COLOUR[own] : neutral ? "#cbd5e1" : color);
     const zebraColour = neutral ? "#94a3b8" : color;
     const headInk = quietHead ? "#334155" : "white";
-    const title = own ? `${ERD_DIFF_SIGN[own]} ${nd.label || nd.id}` : nd.label || nd.id;
+    // The name carries what happened to the table as a whole: ``~`` for any change inside, its own properties or a row.
+    const sign = glance !== "unchanged" ? ERD_DIFF_SIGN[glance] : null;
+    const title = sign ? `${sign} ${nd.label || nd.id}` : nd.label || nd.id;
     const table = tableIndex.get(nd.id) ?? 0;
     const kind = nd.entity_kind?.trim() || "unknown";
     const kindLabel = nd.entity_kind_label || kind.charAt(0).toUpperCase() + kind.slice(1);

@@ -35,6 +35,11 @@ describe("Diff painted by changes (spec 038)", () => {
     expect(look(dot(), "Own")).toEqual({ head: ERD_DIFF_COLOUR.changed, frame: ERD_DIFF_COLOUR.changed });
   });
 
+  it("signs the name of every changed table — added +, removed −, changed ~ whether a row or its own properties changed", () => {
+    const names = [...dot().matchAll(/<B>([^<]*)<\/B><\/FONT><\/TD><\/TR><\/TABLE>/g)].map((m) => m[1]);
+    expect(names).toEqual(["+ Added", "− Removed", "~ Inside", "~ Own", "Same"]);
+  });
+
   it("keeps a table that did not change quiet: a grey header and a grey frame", () => {
     expect(look(dot(), "Same")).toEqual({ head: QUIET_HEAD, frame: QUIET_FRAME });
   });
