@@ -21,7 +21,7 @@ import { isZoomWheel } from "@/lib/wheelGesture";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { focusToSend, followedParticipant, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
-import { subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
+import { screenOfParticipant, subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
 import type { ClientMessage, Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
 import { throttle } from "@/rooms/throttle";
@@ -155,8 +155,7 @@ export function followTarget(yourPixels: { w: number; h: number }, yours: Diagra
  */
 export function followedScreen(): { w: number; h: number } | null {
   const id = followedParticipant();
-  const screen = id ? viewportOfParticipant(id) : undefined;
-  return screen?.pw && screen.ph ? { w: screen.pw, h: screen.ph } : null;
+  return (id && screenOfParticipant(id)) || null;
 }
 
 /** Distance a pointer travels with its button down before it counts as a pan, in pixels. */
