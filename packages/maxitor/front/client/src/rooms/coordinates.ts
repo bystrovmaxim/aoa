@@ -49,7 +49,8 @@ export function g6DiagramToClient(graph: CanvasMapped, point: Point): Point | nu
 }
 
 /** What a tab sees of the diagram, in diagram coordinates: centre and size (the ``viewport`` message). */
-export type DiagramViewport = { cx: number; cy: number; w: number; h: number };
+/** What a screen shows, in diagram units; ``pw`` × ``ph`` its size in pixels, when the sender tells it (spec 038). */
+export type DiagramViewport = { cx: number; cy: number; w: number; h: number; pw?: number; ph?: number };
 
 /** The part of the diagram inside ``rect`` (the viewer on screen), through ``toDiagram``. */
 export function viewportOf(rect: DOMRectReadOnly, toDiagram: (client: Point) => Point | null): DiagramViewport | null {

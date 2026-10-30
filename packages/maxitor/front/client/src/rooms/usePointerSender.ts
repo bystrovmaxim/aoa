@@ -16,7 +16,7 @@ type Position = Point & { frame?: "screen" };
 type PointerMessage = Position & { kind: "mouse" | "touch" };
 
 const samePointer = (a: PointerMessage, b: PointerMessage) => a.x === b.x && a.y === b.y && a.kind === b.kind && a.frame === b.frame;
-const sameViewport = (a: DiagramViewport, b: DiagramViewport) => a.cx === b.cx && a.cy === b.cy && a.w === b.w && a.h === b.h;
+const sameViewport = (a: DiagramViewport, b: DiagramViewport) => a.cx === b.cx && a.cy === b.cy && a.w === b.w && a.h === b.h && a.pw === b.pw && a.ph === b.ph;
 
 /** Start sending for ``surface``; returns the call that stops. */
 export function startPointerSender(surface: DiagramSurface, send: (message: ClientMessage) => void): () => void {
@@ -45,8 +45,10 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
   };
   const onTransform = () => {
     if (hidden()) return;
-    const v = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
-    if (v) viewport.push(v);
+    const rect = surface.element.getBoundingClientRect();
+    const v = viewportOf(rect, surface.toDiagram);
+    // With the screen's size in pixels a follower takes the same zoom and the same top-left corner (spec 038).
+    if (v) viewport.push({ ...v, pw: rect.width, ph: rect.height });
   };
 
   // The whole page, captured before a panel or a picker can stop the event.

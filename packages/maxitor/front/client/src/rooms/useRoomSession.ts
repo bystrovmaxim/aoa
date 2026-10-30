@@ -171,7 +171,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       return;
     }
     if (event.type === "viewport") {
-      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
+      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h, ...(event.pw && event.ph && { pw: event.pw, ph: event.ph }) });
       return;
     }
     if (event.type === "click") {

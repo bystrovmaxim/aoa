@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "@/rooms/coordinates";
 import type { DiagramSurface, SavedView } from "@/rooms/diagramSurface";
-import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
+import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, followTarget, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
 import { clearPointers, putViewport } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -57,6 +57,17 @@ describe("where following goes", () => {
   it("centres on the centre of their screen", () => {
     expect(followCentre({ cx: 5, cy: 6, w: 4000, h: 3000 })).toEqual({ x: 5, y: 6 });
     expect(followCentre(undefined)).toBeNull();
+  });
+
+  it("goes one to one when they tell their screen's size: their zoom, and their top-left corner on yours (spec 038)", () => {
+    // Theirs: 1200 × 800 px showing 2400 × 1600 units from (0, 0) — half a pixel a unit. Yours: 600 × 400 px at zoom 1,
+    // showing 600 × 400 units: a pixel a unit, so their zoom is half yours, and your top-left corner goes to (0, 0).
+    const target = followTarget({ w: 600, h: 400 }, { cx: 0, cy: 0, w: 600, h: 400 }, { cx: 1200, cy: 800, w: 2400, h: 1600, pw: 1200, ph: 800 }, 1);
+    expect(target).toEqual({ centre: { x: 600, y: 400 }, zoom: 0.5 });
+  });
+
+  it("falls back to their centre, fitting their area, when they do not tell their screen's size", () => {
+    expect(followTarget({ w: 600, h: 400 }, { cx: 0, cy: 0, w: 600, h: 400 }, { cx: 5, cy: 6, w: 1200, h: 800 }, 1)).toEqual({ centre: { x: 5, y: 6 }, zoom: 0.5 });
   });
 
   it("takes their zoom: the same on a screen of the same size, all of their area on another (spec 038)", () => {
