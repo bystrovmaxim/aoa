@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { layOut } from "@/components/history/VersionTrack/VersionTrack";
-import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, shiftBoth, shiftBy, stepHandle, trackKeys, type Range } from "./versionRange";
+import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, shiftBoth, shiftBy, stepHandle, stepShown, trackKeys, type Range } from "./versionRange";
 
 const P = ["v1", "v2", "v3", "v4", "live"];
 
@@ -103,6 +103,14 @@ describe("the keys", () => {
     expect(shiftBy(P, { a: "v3", b: "live" }, -9)).toEqual({ a: "v1", b: "v3" });
     const same: Range = { a: "v2", b: "v3" };
     expect(shiftBy(P, same, 0)).toBe(same);
+  });
+
+  it("a step without the picker moves the version in One and the whole range in Diff, and stops at the ends", () => {
+    expect(stepShown(P, null, "v2", 1)).toEqual({ a: null, b: "v3" });
+    expect(stepShown(P, null, "v1", -1)).toBeNull();
+    expect(stepShown(P, null, "live", 1)).toBeNull();
+    expect(stepShown(P, "v2", "v3", -1)).toEqual({ a: "v1", b: "v2" });
+    expect(stepShown(P, "v3", "live", 1)).toBeNull();
   });
 
   it("Home and End take the focused handle to the ends", () => {

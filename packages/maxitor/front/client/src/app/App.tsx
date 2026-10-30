@@ -21,7 +21,8 @@ import { liveLine } from "@/lib/liveLine";
 import { shortNameOf, shownNameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
 import { keysOf, sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
-import { diffOffered, oneToDiff, type Range } from "@/lib/versionRange";
+import { diffOffered, oneToDiff, stepShown, type Range } from "@/lib/versionRange";
+import { stepOfKey } from "@/lib/stepKeys";
 import type { PickerMode } from "@/components/history/VersionPicker";
 import { loadGraph } from "@/api/load";
 import { getGraphFingerprint } from "@/api/graphFingerprint";
@@ -350,6 +351,28 @@ export function App() {
     else opened.pickRange(range);
   }
 
+  /** One step older or newer without the picker — the version in One, the whole range in Diff — as a pick would. */
+  function step(delta: -1 | 1) {
+    if (!shown?.b) return;
+    const next = stepShown(trackPoints, shown.a, shown.b, delta);
+    if (next?.a) pickRange({ a: next.a, b: next.b });
+    else if (next) pickVersion(next.b);
+  }
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  // Shift + ← → step the same way anywhere on the page.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const delta = stepOfKey(event);
+      if (delta === null) return;
+      event.preventDefault();
+      stepRef.current(delta);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   /** One → Diff keeps the version as B and puts A on the one before it; Diff → One keeps B (spec 038, FR-013). */
   function pickMode(mode: PickerMode) {
     if (!shown?.b) return;
@@ -423,6 +446,8 @@ export function App() {
               counts={shown.a && diagram?.kind === "erd" ? diffCounts : null}
               open={pickerOpen}
               onClick={() => setPickerOpen((open) => !open)}
+              onStep={step}
+              canStep={{ older: shown.b ? stepShown(trackPoints, shown.a, shown.b, -1) !== null : false, newer: shown.b ? stepShown(trackPoints, shown.a, shown.b, 1) !== null : false }}
             />
           )}
           <Box sx={{ flex: 1 }} />
