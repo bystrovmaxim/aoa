@@ -64,3 +64,41 @@ describe("the picker on a desktop", () => {
     expect(document.querySelector(".MuiBackdrop-root")).toBeNull();
   });
 });
+
+describe("Diff on a phone (spec 038, FR-033)", () => {
+  it("holds the range in the sheet, both handles 44 px touch targets, and stacks A's message over B's", () => {
+    const list = versions(4);
+    const [a, b] = [list[1], list[3]].map((each) => each.sha.slice(0, 12));
+    render(
+      <VersionPicker
+        anchor={{ current: document.body }}
+        onClose={() => undefined}
+        title="orders"
+        versions={list}
+        live={null}
+        value={b}
+        onChange={() => undefined}
+        phone
+        mode="diff"
+        diffOffered
+        range={{ a, b }}
+        onRange={() => undefined}
+        older={<div data-testid="older-slot">A</div>}
+        between={<div data-testid="between-slot">1 version between</div>}
+      >
+        <div data-testid="newer-slot">B</div>
+      </VersionPicker>,
+    );
+    const sheet = screen.getByRole("dialog", { name: "Pick a version" });
+    expect(sheet.closest(".MuiDrawer-root")).not.toBeNull();
+    expect(screen.getByRole("radio", { name: "Diff" }).getAttribute("aria-checked")).toBe("true");
+    for (const side of ["a", "b"]) {
+      const target = screen.getByTestId(`handle-${side}`).querySelector("circle");
+      expect(2 * Number(target?.getAttribute("r"))).toBeGreaterThanOrEqual(TOUCH_STEP);
+    }
+    const grid = screen.getByTestId("message-a").parentElement as HTMLElement;
+    expect(getComputedStyle(grid).gridTemplateColumns).toBe("minmax(0, 1fr)");
+    expect(screen.getByTestId("older-slot").compareDocumentPosition(screen.getByTestId("newer-slot")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("between-slot")).toBeTruthy();
+  });
+});
