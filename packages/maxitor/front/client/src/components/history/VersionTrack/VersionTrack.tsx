@@ -5,6 +5,7 @@ import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
+import { homeEnd, moveTo, shiftBoth, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
 import { thinLabels } from "./thinLabels";
@@ -39,6 +40,10 @@ export type VersionTrackProps = {
   liveIs?: string | null;
   /** Pull requests still open that change the graph: drawn after Live, each in the colour of its state. */
   proposals?: readonly HistoryVersion[];
+  /** In Diff: the two picked points, A before B (spec 038, FR-009 – FR-012); ``value`` is then not drawn. */
+  range?: Range | null;
+  /** A new range picked by a drag, a click, or the keys on a handle. */
+  onRange?: (range: Range) => void;
 };
 
 
@@ -177,19 +182,33 @@ function Knob({ x, point, shadow = true }: { x: number; point: Point; shadow?: b
  * turned sideways, a drag on it — with no scrollbar and nothing faded: the right edge counts what is newer
  * out of view, and a chosen version out of view is pinned to its edge. The track is a slider: ← → step,
  * Home and End jump to the ends.
+ *
+ * In Diff (``range``) it holds two handles, A and B, the stretch between them dark (spec 038, FR-009 –
+ * FR-012): each is a slider of its own, dragged, clicked toward or stepped by the keys, past the other one
+ * too — roles follow position, so they swap as one passes the other —; Shift + ← → moves both; a click on a
+ * point moves the nearer handle; a handle dragged to an edge scrolls the track along.
  */
-export function VersionTrack({ versions, live, value, onChange, width, touch = false, liveIs = null, proposals = EMPTY }: VersionTrackProps) {
+export function VersionTrack({ versions, live, value, onChange, width, touch = false, liveIs = null, proposals = EMPTY, range = null, onRange }: VersionTrackProps) {
   const { points, length } = useMemo(
     () => layOut(versions, live, width, touch ? TOUCH_STEP : MIN_STEP, liveIs, proposals),
     [versions, live, width, touch, liveIs, proposals],
   );
+  const keys = useMemo(() => points.map((point) => point.b), [points]);
   const hitRadius = (touch ? TOUCH_STEP : MIN_STEP) / 2;
   const maxOffset = Math.max(0, length - width);
-  const index = points.findIndex((point) => point.b === value);
+  // While a handle is dragged, the range it would leave is drawn; it is picked when the handle is let go.
+  const [preview, setPreview] = useState<Range | null>(null);
+  const shownRange = range ? (preview ?? range) : null;
+  const pointOf = (b: string | null) => points.find((point) => point.b === b) ?? null;
+  const index = points.findIndex((point) => point.b === (shownRange ? shownRange.b : value));
   const chosen = index >= 0 ? points[index] : null;
+  const older = shownRange ? pointOf(shownRange.a) : null;
   const scroller = useRef<HTMLDivElement | null>(null);
-  const [offset, setOffset] = useState(() => (chosen ? clamp(chosen.x - width / 2, 0, maxOffset) : maxOffset));
+  const [offset, setOffset] = useState(() => openingOffset(chosen, older, width, maxOffset));
   const drag = useRef<{ x: number; left: number; moved: boolean; pointer: number } | null>(null);
+  const handleDrag = useRef<{ side: Side; start: Range; lastX: number; direction: number; moved: Moved | null } | null>(null);
+  const handles = useRef<Record<Side, SVGGElement | null>>({ a: null, b: null });
+  const [focusSide, setFocusSide] = useState<Side | null>(null);
   const frame = useRef(0);
   // One tooltip for the track: the point under the pointer and where it stood on the screen. It stays where it
   // is while the track scrolls under a still pointer; when the track stops, it moves to the point now under the
@@ -202,7 +221,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
 
   const scrollTo = (x: number, smooth = true) => scroller.current?.scrollTo({ left: clamp(x - width / 2, 0, maxOffset), behavior: smooth ? "smooth" : "auto" });
 
-  // The track opens where the chosen version is.
+  // The track opens where the chosen version is — in Diff, with A in view too when both fit.
   useLayoutEffect(() => {
     if (scroller.current) scroller.current.scrollLeft = offset;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,7 +231,12 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   useEffect(() => {
     if (chosen && (chosen.x < offset + PAD || chosen.x > offset + width - PAD)) scrollTo(chosen.x);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, range?.b]);
+
+  // The handle that moved keeps the focus, whichever side it ended on (spec 038, FR-012).
+  useEffect(() => {
+    if (focusSide) handles.current[focusSide]?.focus();
+  }, [focusSide, range?.a, range?.b]);
 
   // The vertical wheel over the track scrolls it sideways; a sideways swipe scrolls natively. Neither ever
   // reaches the page — React's wheel listener is passive and cannot stop it, so this one is not.
@@ -270,13 +294,13 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
 
   function follow(event: PointerEvent<HTMLDivElement>) {
     pointer.current = { x: event.clientX, y: event.clientY };
-    if (scrolling.current || drag.current?.moved) return;
+    if (scrolling.current || drag.current?.moved || handleDrag.current) return;
     const next = tipUnderPointer();
     if (next?.b !== tip?.b) setTip(next);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (points.length < 2) return;
+    if (range || points.length < 2) return;
     const at = Math.max(index, 0);
     const next = { ArrowLeft: at - 1, ArrowRight: at + 1, Home: 0, End: points.length - 1 }[event.key];
     if (next === undefined) return;
@@ -285,8 +309,89 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     if (clamped !== index) onChange(points[clamped].b);
   }
 
+  /** Pick ``next``, and keep the focus on the handle that moved, on whichever side it now is. */
+  function pickRange(next: Range, side: Side | null) {
+    if (side) setFocusSide(side);
+    if (range && (next.a !== range.a || next.b !== range.b)) onRange?.(next);
+  }
+
+  /** The keys on one handle: ← → step it, Shift + ← → move both, Home and End take it to the ends. */
+  function onHandleKey(side: Side, event: KeyboardEvent<SVGGElement>) {
+    if (!range) return;
+    const delta = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+    if (delta !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.shiftKey) pickRange(shiftBoth(keys, range, delta), side);
+      else {
+        const moved = stepHandle(keys, range, side, delta);
+        pickRange(moved.range, moved.side);
+      }
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      event.stopPropagation();
+      const moved = homeEnd(keys, range, side, event.key === "Home" ? "home" : "end");
+      pickRange(moved.range, moved.side);
+    }
+  }
+
+  /** A click on a point: in One it is chosen; in Diff the nearer handle moves to it. */
+  function onPoint(b: string) {
+    if (drag.current?.moved) return;
+    if (!range) {
+      onChange(b);
+      return;
+    }
+    const at = keys.indexOf(b);
+    const [a, z] = [keys.indexOf(range.a), keys.indexOf(range.b)];
+    if (at === a || at === z) return;
+    const side: Side = Math.abs(at - a) <= Math.abs(at - z) ? "a" : "b";
+    pickRange(moveTo(keys, range, side, at, Math.sign(at - (side === "a" ? a : z))).range, null);
+  }
+
+  /** The point nearest to where the pointer stands on the track, by index. */
+  function nearestAt(clientX: number): number {
+    const element = scroller.current;
+    const x = clientX - (element?.getBoundingClientRect().left ?? 0) + (element?.scrollLeft ?? 0);
+    return points.reduce((best, point, at) => (Math.abs(point.x - x) < Math.abs(points[best].x - x) ? at : best), 0);
+  }
+
+  function onHandleDown(side: Side, event: PointerEvent<SVGGElement>) {
+    if (!range) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    handleDrag.current = { side, start: range, lastX: event.clientX, direction: 0, moved: null };
+    setTip(null);
+  }
+
+  function onHandleMove(event: PointerEvent<SVGGElement>) {
+    const current = handleDrag.current;
+    if (!current) return;
+    if (event.clientX !== current.lastX) current.direction = Math.sign(event.clientX - current.lastX);
+    current.lastX = event.clientX;
+    const target = nearestAt(event.clientX);
+    const direction = current.direction || Math.sign(target - keys.indexOf(current.start[current.side]));
+    current.moved = moveTo(keys, current.start, current.side, target, direction);
+    setPreview(current.moved.range);
+    // A handle dragged to an edge of a long track scrolls it along (spec 038, FR-017).
+    const element = scroller.current;
+    if (element) {
+      const box = element.getBoundingClientRect();
+      if (event.clientX < box.left + PAD) element.scrollLeft -= MIN_STEP / 2;
+      else if (event.clientX > box.left + width - PAD) element.scrollLeft += MIN_STEP / 2;
+    }
+  }
+
+  function onHandleUp() {
+    const current = handleDrag.current;
+    handleDrag.current = null;
+    if (!current) return;
+    setPreview(null);
+    if (current.moved) pickRange(current.moved.range, current.moved.side);
+  }
+
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    event.currentTarget.focus();
+    if (!range) event.currentTarget.focus();
     if (event.pointerType !== "mouse") return; // a finger scrolls natively
     drag.current = { x: event.clientX, left: scroller.current?.scrollLeft ?? 0, moved: false, pointer: event.pointerId };
   }
@@ -310,18 +415,25 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
 
   const shownOffset = clamp(offset, 0, maxOffset);
   const newer = points.filter((point) => point.x > shownOffset + width).length;
-  const pinned = chosen && chosen.x < shownOffset ? "left" : chosen && chosen.x > shownOffset + width ? "right" : null;
+  const sideOf = (point: Point | null) => (point && point.x < shownOffset ? "left" : point && point.x > shownOffset + width ? "right" : null);
+  const pinned = sideOf(chosen);
+  const olderPinned = sideOf(older);
   // The chosen point's chip, as the mockup writes it: its version and its name (``0.11.0 · #147``), or its name alone.
-  const chipText = chosen ? (chosen.number && chosen.b !== "live" && !chosen.state ? `${chosen.number} · ${chosen.name}` : chosen.name) : "";
+  // In Diff each handle's chip says which it is: ``A 0.8.0``, ``B 0.9.0 · #129``.
+  const chipText = chosen ? `${shownRange ? "B " : ""}${nameOnChip(chosen)}` : "";
+  const olderText = older ? `A ${nameOnChip(older)}` : "";
   const pinWidth = chosen ? chipHalf(chipText) * 2 + 16 : 0;
+  // The two chips never cover each other: when they would, each moves aside by half of what they share.
+  const [olderChipX, chipX] = older && chosen ? apart(older.x, chipHalf(olderText), chosen.x, chipHalf(chipText), length) : [0, chosen ? clamp(chosen.x, chipHalf(chipText) + 1, length - chipHalf(chipText) - 1) : 0];
 
   // The points are drawn once per choice, hover or pin — not once per scrolled pixel.
   const body = useMemo(() => {
-    // No name stands where the chosen version's chip does.
-    const underChip = (x: number) => chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20;
+    // No name stands where a chosen version's chip does.
+    const underChip = (x: number) =>
+      (chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20) || (older !== null && !olderPinned && Math.abs(x - older.x) < chipHalf(olderText) + 20);
     // Names under the track: a version's own point by its number (``0.8.0``), as the mockup names it, and Live;
     // no dates. Names thin out where they would collide, never under the chip.
-    const shown = trackLabels(points, (point) => point.b !== value && !underChip(point.x));
+    const shown = trackLabels(points, (point) => point.b !== chosen?.b && point.b !== older?.b && !underChip(point.x));
     return (
       <svg width={length} height={HEIGHT} viewBox={`0 0 ${length} ${HEIGHT}`} fontFamily="ui-sans-serif, system-ui, sans-serif" style={{ display: "block" }}>
         <defs>
@@ -354,19 +466,19 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             strokeLinecap="round"
           />
         ))}
+        {/* In Diff the stretch between A and B is dark. */}
+        {older && chosen && <line data-testid="range-stretch" x1={older.x} y1={AXIS_Y} x2={chosen.x} y2={AXIS_Y} stroke={INK} strokeWidth={3} strokeLinecap="round" style={{ pointerEvents: "none" }} />}
         {points.map((point) => (
           <g
             key={point.b}
             data-testid={`point-${point.b}`}
             data-x={point.x}
             data-refused={point.refused || undefined}
-            onClick={() => {
-              if (!drag.current?.moved) onChange(point.b);
-            }}
+            onClick={() => onPoint(point.b)}
             style={{ cursor: "pointer" }}
           >
             <circle data-testid={`target-${point.b}`} cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
-            {hovered === point.b && point.b !== value && <circle data-testid="hover-ring" cx={point.x} cy={AXIS_Y} r={KNOB + 1} fill="none" stroke={MUTED} strokeWidth={1.4} style={{ pointerEvents: "none" }} />}
+            {hovered === point.b && point.b !== chosen?.b && point.b !== older?.b && <circle data-testid="hover-ring" cx={point.x} cy={AXIS_Y} r={KNOB + 1} fill="none" stroke={MUTED} strokeWidth={1.4} style={{ pointerEvents: "none" }} />}
             {point.b === "live" ? (
               <circle cx={point.x} cy={AXIS_Y} r={4} fill="#fff" stroke={LIVE_LOOK.colour} strokeWidth={1.5} style={{ pointerEvents: "none" }} />
             ) : point.state && !point.refused ? (
@@ -392,27 +504,65 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             )}
           </g>
         ))}
-        {chosen && !pinned && (
+        {!shownRange && chosen && !pinned && (
           <g data-testid="handle" style={{ pointerEvents: "none" }}>
             <Knob x={chosen.x} point={chosen} />
-            <Chip x={clamp(chosen.x, chipHalf(chipText) + 1, length - chipHalf(chipText) - 1)} text={chipText} colour={lookOf(chosen).colour} />
+            <Chip x={chipX} text={chipText} colour={lookOf(chosen).colour} />
           </g>
         )}
+        {shownRange &&
+          ([
+            ["a", older, olderText, olderChipX, olderPinned],
+            ["b", chosen, chipText, chipX, pinned],
+          ] as const).map(([side, point, text, x, out]) =>
+            point && !out ? (
+              <g
+                key={side}
+                ref={(element) => void (handles.current[side] = element)}
+                data-testid={`handle-${side}`}
+                role="slider"
+                tabIndex={0}
+                aria-label={side === "a" ? "A, the older version" : "B, the newer version"}
+                aria-valuemin={0}
+                aria-valuemax={points.length - 1}
+                aria-valuenow={keys.indexOf(point.b)}
+                aria-valuetext={`${side === "a" ? "A" : "B"}, ${nameOnChip(point)}, ${side === "a" ? "older" : "newer"} version`}
+                onKeyDown={(event) => onHandleKey(side, event)}
+                onFocus={() => setFocusSide(side)}
+                onPointerDown={(event) => onHandleDown(side, event)}
+                onPointerMove={onHandleMove}
+                onPointerUp={onHandleUp}
+                onPointerCancel={onHandleUp}
+                style={{ cursor: "grab", outline: "none" }}
+              >
+                <circle cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
+                <Knob x={point.x} point={point} />
+                <Chip x={x} text={text} colour={INK} />
+              </g>
+            ) : null,
+          )}
       </svg>
     );
-  }, [points, length, value, chosen, pinned, hovered, hitRadius, live, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, length, value, chosen, older, pinned, olderPinned, hovered, hitRadius, live, onChange, shownRange, chipX, olderChipX]);
 
   const tipPoint = tip ? points.find((point) => point.b === tip.b) ?? null : null;
+  // A handle out of view is pinned to its edge: on each side the one nearer to the view.
+  const pins = (["left", "right"] as const).flatMap((edge) => {
+    const out = [older && olderPinned === edge ? { point: older, text: olderText } : null, chosen && pinned === edge ? { point: chosen, text: chipText } : null].filter((each) => each !== null);
+    const nearest = edge === "left" ? out.at(-1) : out[0];
+    return nearest ? [{ edge, ...nearest }] : [];
+  });
 
   return (
     <Box
-      role="slider"
-      tabIndex={0}
-      aria-label="Version"
-      aria-valuemin={0}
-      aria-valuemax={Math.max(points.length - 1, 0)}
-      aria-valuenow={Math.max(index, 0)}
-      aria-valuetext={chosen?.name ?? "none"}
+      role={range ? "group" : "slider"}
+      tabIndex={range ? undefined : 0}
+      aria-label={range ? "Versions" : "Version"}
+      aria-valuemin={range ? undefined : 0}
+      aria-valuemax={range ? undefined : Math.max(points.length - 1, 0)}
+      aria-valuenow={range ? undefined : Math.max(index, 0)}
+      aria-valuetext={range ? undefined : (chosen?.name ?? "none")}
       onKeyDown={onKeyDown}
       data-testid="track"
       data-offset={shownOffset}
@@ -456,39 +606,62 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
           </Paper>
         </Popper>
       )}
-      {newer > 0 && pinned !== "right" && (
+      {newer > 0 && !pins.some((pin) => pin.edge === "right") && (
         <Box data-testid="newer" sx={{ position: "absolute", right: 0, top: LABEL_Y - 7, pl: "8px", bgcolor: "#fff", fontSize: 10.5, color: "#64748b", lineHeight: "16px", pointerEvents: "none" }}>
           {`${newer} newer ›`}
         </Box>
       )}
-      {pinned && chosen && (
-        <svg
-          data-testid="pinned-handle"
-          role="button"
-          aria-label={`Scroll back to ${chipText}`}
-          width={pinWidth}
-          height={HEIGHT}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => scrollTo(chosen.x)}
-          style={{ position: "absolute", top: 0, [pinned]: 0, cursor: "pointer", background: "#fff" }}
-        >
-          {pinned === "left" ? (
-            <>
-              <path d={`M10 ${AXIS_Y}l5-4.5v9z`} fill="#334155" />
-              <Knob x={26} point={chosen} shadow={false} />
-              <Chip x={8 + chipHalf(chipText)} text={chipText} colour={lookOf(chosen).colour} />
-            </>
-          ) : (
-            <>
-              <path d={`M${pinWidth - 10} ${AXIS_Y}l-5-4.5v9z`} fill="#334155" />
-              <Knob x={pinWidth - 26} point={chosen} shadow={false} />
-              <Chip x={pinWidth - 8 - chipHalf(chipText)} text={chipText} colour={lookOf(chosen).colour} />
-            </>
-          )}
-        </svg>
-      )}
+      {pins.map(({ edge, point, text }) => {
+        const widthOfPin = chipHalf(text) * 2 + 16;
+        return (
+          <svg
+            key={edge}
+            data-testid={range ? `pinned-${point === older ? "a" : "b"}` : "pinned-handle"}
+            role="button"
+            aria-label={`Scroll back to ${text}`}
+            width={range ? widthOfPin : pinWidth}
+            height={HEIGHT}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => scrollTo(point.x)}
+            style={{ position: "absolute", top: 0, [edge]: 0, cursor: "pointer", background: "#fff" }}
+          >
+            {edge === "left" ? (
+              <>
+                <path d={`M10 ${AXIS_Y}l5-4.5v9z`} fill="#334155" />
+                <Knob x={26} point={point} shadow={false} />
+                <Chip x={8 + chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} />
+              </>
+            ) : (
+              <>
+                <path d={`M${widthOfPin - 10} ${AXIS_Y}l-5-4.5v9z`} fill="#334155" />
+                <Knob x={widthOfPin - 26} point={point} shadow={false} />
+                <Chip x={widthOfPin - 8 - chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} />
+              </>
+            )}
+          </svg>
+        );
+      })}
     </Box>
   );
+}
+
+/** A point's name on its chip: its version and its name (``0.11.0 · #147``), or its name alone. */
+function nameOnChip(point: Point): string {
+  return point.number && point.b !== "live" && !point.state ? `${point.number} · ${point.name}` : point.name;
+}
+
+/** Where the track opens: the chosen point in the middle — in Diff, the middle of A and B when both fit. */
+function openingOffset(chosen: Point | null, older: Point | null, width: number, maxOffset: number): number {
+  if (!chosen) return maxOffset;
+  const centre = older && chosen.x - older.x <= width - 2 * PAD ? (older.x + chosen.x) / 2 : chosen.x;
+  return clamp(centre - width / 2, 0, maxOffset);
+}
+
+/** Two chips' centres moved apart by half of what they would share, each kept on the track. */
+function apart(left: number, leftHalf: number, right: number, rightHalf: number, length: number): [number, number] {
+  const overlap = leftHalf + rightHalf + 4 - (right - left);
+  const shift = overlap > 0 ? overlap / 2 : 0;
+  return [clamp(left - shift, leftHalf + 1, length - leftHalf - 1), clamp(right + shift, rightHalf + 1, length - rightHalf - 1)];
 }
 
 /**

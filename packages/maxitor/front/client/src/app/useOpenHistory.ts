@@ -4,13 +4,15 @@
  * is read from. The mode follows the list (FR-009a); a history opens on its default version (FR-021);
  * a ``b`` the history does not offer falls back to that default; outside a room the list is polled
  * every 30 seconds with its ``ETag`` (FR-006a), and a version that disappears, or Live that goes,
- * moves the tab to the default with a notice.
+ * moves the tab to the default with a notice. In Diff (spec 038) the tab holds two versions, A before B on
+ * the track; an end that leaves the list moves toward the other, and when the two would meet one is left.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { historyVersions, type HistoryVersion, type OpenedHistory } from "@/api/history";
 import { modeOf, type HistoryMode } from "@/model/historyMode";
 import { defaultVersion, nameOf } from "@/lib/versionNames";
+import { afterListChange, normalise, trackKeys, type Range } from "@/lib/versionRange";
 
 /** How often a tab outside a room asks whether its history's list changed. */
 export const HISTORY_POLL_MS = 30_000;
@@ -28,9 +30,16 @@ export type OpenHistory = {
   /** Pull requests still open that change the graph: looked at, never opened on by default. */
   proposals: HistoryVersion[];
   etag: string | null;
-  /** The chosen version: a short sha, ``live``, or ``null`` in M7. */
+  /** The chosen version: a short sha, ``live``, or ``null`` in M7. In Diff it is B, the newer one. */
   b: string | null;
+  /** In Diff, A — the older version, before ``b`` on the track; ``null`` while one version is shown. */
+  a: string | null;
 };
+
+/** The history's track points in order: what A and B are ordered by. */
+export function keysOf(history: Pick<OpenHistory, "versions" | "live" | "liveSameAs" | "proposals">): string[] {
+  return trackKeys(history.versions, history.live, history.liveSameAs, history.proposals);
+}
 
 /** Whether ``b`` can be shown: listed and not refused, or Live where there is Live. A refused one may still be chosen to read its reason. */
 export function offers(history: Pick<OpenHistory, "versions" | "live"> & { proposals?: HistoryVersion[] }, b: string | null): boolean {
@@ -56,23 +65,48 @@ export function sourceOf(history: OpenHistory): string | null {
   return version && !version.refused ? version.source : null;
 }
 
+/** The track key a short sha from an address names — the address may carry a longer or a shorter sha. */
+function fullKey(keys: readonly string[], b: string): string {
+  return keys.find((key) => key === b || (b !== "live" && key !== "live" && (key.startsWith(b) || b.startsWith(key)))) ?? b;
+}
+
 export function useOpenHistory(polling: boolean) {
   const [history, setHistory] = useState<OpenHistory | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const historyRef = useRef(history);
   historyRef.current = history;
 
-  /** Show ``opened`` on ``wanted`` when it offers it, else on its default version. */
-  const show = useCallback((opened: OpenedHistory, key: string, wanted: string | null) => {
+  /**
+   * Show ``opened`` on ``wanted`` when it offers it, else on its default version; with ``wantedA`` too, in Diff —
+   * a reversed pair swapped, the same version twice or an ``a`` it lacks shown as one version (spec 038, FR-014).
+   */
+  const show = useCallback((opened: OpenedHistory, key: string, wanted: string | null, wantedA: string | null = null) => {
     const liveSameAs = opened.live_same_as ?? null;
     const proposals = opened.proposals ?? [];
-    const b = asLive(offers({ ...opened, proposals }, wanted) ? wanted : defaultVersion(opened.versions, opened.live), liveSameAs);
+    let b = asLive(offers({ ...opened, proposals }, wanted) ? wanted : defaultVersion(opened.versions, opened.live), liveSameAs);
+    let a: string | null = null;
+    if (wantedA && b) {
+      const keys = trackKeys(opened.versions, opened.live, liveSameAs, proposals);
+      const range = normalise(keys, asLive(fullKey(keys, wantedA), liveSameAs), fullKey(keys, b));
+      if (range) ({ a, b } = range);
+    }
     setNotice(null);
-    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b });
+    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b, a });
   }, []);
 
+  /** Show one version: in a room or not, a pick in One leaves Diff. */
   const pick = useCallback((b: string) => {
-    setHistory((current) => (current && offers(current, b) ? { ...current, b: asLive(b, current.liveSameAs) } : current));
+    setHistory((current) => (current && offers(current, b) ? { ...current, b: asLive(b, current.liveSameAs), a: null } : current));
+  }, []);
+
+  /** Show two versions, A before B on the track (spec 038, FR-010); a pair the track does not hold is ignored. */
+  const pickRange = useCallback((range: Range) => {
+    setHistory((current) => {
+      if (!current) return current;
+      const keys = keysOf(current);
+      const next = normalise(keys, asLive(range.a, current.liveSameAs), asLive(range.b, current.liveSameAs));
+      return next && next.a ? { ...current, a: next.a, b: next.b } : current;
+    });
   }, []);
 
   const close = useCallback(() => {
@@ -85,7 +119,17 @@ export function useOpenHistory(polling: boolean) {
     const current = historyRef.current;
     if (!current) return;
     const liveSameAs = more.liveSameAs ?? null;
-    const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], etag, b: asLive(current.b, liveSameAs) };
+    const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], etag, b: asLive(current.b, liveSameAs), a: current.a ? asLive(current.a, liveSameAs) : null };
+    if (current.a && current.b) {
+      // In Diff an end that left moves toward the other; when they would meet, one version is left.
+      const range = afterListChange(keysOf(current), keysOf(next), { a: current.a, b: current.b });
+      if (range && (range.a !== current.a || range.b !== current.b)) setNotice("A version of the comparison is no longer in the history");
+      if (range) {
+        setHistory({ ...next, a: range.a, b: range.b });
+        return;
+      }
+      next.a = null;
+    }
     if (!offers(next, current.b)) {
       const gone = current.b === "live" ? "Live is no longer part of this history" : `${nameOf(current.versions, current.b) ?? current.b} is no longer in the history`;
       next.b = defaultVersion(versions, live);
@@ -109,5 +153,5 @@ export function useOpenHistory(polling: boolean) {
   }, [polling, history?.name, takeList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mode: HistoryMode = modeOf(history);
-  return { history, mode, notice, setNotice, show, pick, close, takeList };
+  return { history, mode, notice, setNotice, show, pick, pickRange, close, takeList };
 }

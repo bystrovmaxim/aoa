@@ -110,6 +110,16 @@ class HistoryEntry:
         found = self.version(version)
         return version_source(self.route, self.link, str(found["sha"])) if found is not None else None
 
+    def older(self, a: str, b: str) -> bool:
+        """Whether ``a`` stands before ``b`` on the track — versions oldest first, then open pull requests, then Live (spec 038)."""
+        order = [short_sha(str(each["sha"])) for each in [*self.versions, *self.proposals]] + (["live"] if self.live else [])
+
+        def place(version: str) -> int:
+            """Where ``version`` stands on the track, or ``-1``."""
+            return next((at for at, key in enumerate(order) if key == version or (version != "live" and key.startswith(version))), -1)
+
+        return 0 <= place(a) < place(b)
+
     def versions_with_sources(self) -> list[dict[str, Any]]:
         """The versions as a tab is told them: each with the ``source`` its graph is read under, keyless."""
         return [{**version, "source": version_source(self.route, self.link, str(version["sha"]))} for version in self.versions]
