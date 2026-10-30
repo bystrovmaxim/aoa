@@ -39,6 +39,13 @@ describe("the pointers over the page (spec 038)", () => {
     expect([style.left, style.top]).toEqual(["38px", "28px"]);
   });
 
+  it("put a pointer over a panel on the same spot of the screen, from the diagram's corner, whatever the diagram shows", () => {
+    putPointer("boris", { x: -60, y: 20, kind: "mouse", at: Date.now(), frame: "screen" });
+    render(<PointerLayer surface={surface} participants={[boris]} followed="boris" />);
+    const style = getComputedStyle(placed()!);
+    expect([style.left, style.top]).toEqual(["38px", "118px"]);
+  });
+
   it("show anyone else's pointer off the diagram as an arrow at its edge", () => {
     putPointer("boris", { x: 40, y: 30, kind: "mouse", at: Date.now() });
     render(<PointerLayer surface={surface} participants={[boris]} />);

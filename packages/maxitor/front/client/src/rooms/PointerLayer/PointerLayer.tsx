@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { Avatar } from "@/rooms/Circles/Avatar";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { inkOn } from "@/rooms/initials";
-import { currentClicks, currentPointers, subscribePointers, type RemotePointer } from "@/rooms/pointerStore";
+import type { Point } from "@/rooms/coordinates";
+import { currentClicks, currentPointers, subscribePointers, type PointerFrame, type RemotePointer } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 
 export type PointerLayerProps = {
@@ -130,10 +131,12 @@ export function PointerLayer({ surface, participants, followed = null }: Pointer
     const placed = place(client.x - rect.left, client.y - rect.top, rect.width, rect.height);
     return { ...placed, x: placed.x + rect.left, y: placed.y + rect.top };
   };
+  // A position over a panel is the screen's, from the diagram's top-left corner; any other is the diagram's.
+  const clientOf = (where: Point & PointerFrame) => (where.frame === "screen" ? { x: rect.left + where.x, y: rect.top + where.y } : surface.toClient(where));
   const drawn = participants.flatMap((participant) => {
     const pointer = pointers.get(participant.id);
     if (!pointer || !pointerVisible(pointer, now)) return [];
-    const client = surface.toClient(pointer);
+    const client = clientOf(pointer);
     if (!client) return [];
     return [{ participant, pointer, at: at(participant, client) }];
   });
@@ -141,7 +144,7 @@ export function PointerLayer({ surface, participants, followed = null }: Pointer
   const ripples = participants.flatMap((participant) => {
     const click = clicks.get(participant.id);
     if (!click || now - click.at > RIPPLE_MS) return [];
-    const client = surface.toClient(click);
+    const client = clientOf(click);
     const placed = client ? at(participant, client) : null;
     return placed && placed.kind === "inside" ? [{ participant, click, placed }] : [];
   });
@@ -177,7 +180,7 @@ export function PointerLayer({ surface, participants, followed = null }: Pointer
               key={participant.id}
               data-participant={participant.id}
               title={`${participant.name} — show`}
-              onClick={() => surface.centreOn(pointer)}
+              onClick={() => pointer.frame !== "screen" && surface.centreOn(pointer)}
               sx={{ position: "absolute", left: at.x, top: at.y, width: 30, height: 30, ml: "-15px", mt: "-15px", pointerEvents: "auto", cursor: "pointer" }}
             >
               <Box

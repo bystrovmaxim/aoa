@@ -353,8 +353,14 @@ def test_a_click_reaches_the_same_page_and_is_not_kept(client: TestClient, sourc
         _expect(anna, "joined")
         anna.send_json({"type": "click", "x": 4, "y": 5.5})
         click = _expect(boris, "click")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 30, "y": 40, "frame": "screen"})
+        over_a_panel = _expect(boris, "pointer")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 31, "y": 40, "frame": "planet"})
+        unknown_frame = _expect(boris, "pointer")
 
     assert click == {"type": "click", "participant": "anna", "x": 4, "y": 5.5}
+    assert over_a_panel == {"type": "pointer", "participant": "anna", "x": 30, "y": 40, "kind": "mouse", "frame": "screen"}
+    assert "frame" not in unknown_frame
 
 
 def test_a_page_the_service_lacks_falls_back(client: TestClient, source: str) -> None:

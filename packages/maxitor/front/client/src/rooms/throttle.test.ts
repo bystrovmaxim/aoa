@@ -69,7 +69,8 @@ describe("a tab moving its pointer and panning at once", () => {
 describe("the pointer sender", () => {
   function sender() {
     const element = document.createElement("div");
-    element.getBoundingClientRect = () => ({ left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300 }) as DOMRect;
+    document.body.appendChild(element);
+    element.getBoundingClientRect = () => ({ left: 300, top: 40, right: 700, bottom: 340, width: 400, height: 300 }) as DOMRect;
     const surface: DiagramSurface = {
       element,
       toDiagram: (c) => ({ x: c.x * 4 + 1000, y: c.y * 4 - 500 }),
@@ -84,34 +85,43 @@ describe("the pointer sender", () => {
     // A panel over the page, outside the diagram: the filter panel, the version picker, the left panel.
     const panel = document.createElement("div");
     document.body.appendChild(panel);
-    const press = (type: string, extra: Partial<PointerEvent>) => {
+    const fire = (target: Element, type: string, extra: Partial<PointerEvent>) => {
       const event = new Event(type, { bubbles: true }) as PointerEvent;
-      Object.assign(event, { clientX: 100, clientY: 50, pointerType: "mouse", button: 0, ...extra });
-      panel.dispatchEvent(event);
+      Object.assign(event, { clientX: 340, clientY: 90, pointerType: "mouse", button: 0, ...extra });
+      target.dispatchEvent(event);
     };
-    return { sent, press, stop: () => (stop(), panel.remove()) };
+    return {
+      sent,
+      onDiagram: (type: string, extra: Partial<PointerEvent> = {}) => fire(element, type, extra),
+      onPanel: (type: string, extra: Partial<PointerEvent> = {}) => fire(panel, type, extra),
+      stop: () => (stop(), panel.remove(), element.remove()),
+    };
   }
 
-  it("sends diagram coordinates, not screen pixels, and says whether it was a touch", () => {
-    const { sent, press, stop } = sender();
-    press("pointerdown", { pointerType: "touch" });
+  it("sends diagram coordinates over the diagram, not screen pixels, and says whether it was a touch", () => {
+    const { sent, onDiagram, stop } = sender();
+    onDiagram("pointerdown", { pointerType: "touch" });
     stop();
-    expect(sent.find((m) => m.type === "pointer")).toEqual({ type: "pointer", x: 1400, y: -300, kind: "touch" });
+    expect(sent.find((m) => m.type === "pointer")).toEqual({ type: "pointer", x: 2360, y: -140, kind: "touch" });
   });
 
-  it("sends the pointer over a panel outside the diagram too (spec 038)", () => {
-    const { sent, press, stop } = sender();
-    press("pointermove", {});
+  it("sends the pointer over a panel too, in screen pixels from the diagram's corner, where the panels stand (spec 038)", () => {
+    const { sent, onPanel, stop } = sender();
+    onPanel("pointermove");
     stop();
-    expect(sent).toContainEqual({ type: "pointer", x: 1400, y: -300, kind: "mouse" });
+    expect(sent).toContainEqual({ type: "pointer", x: 40, y: 50, kind: "mouse", frame: "screen" });
   });
 
   it("sends a click where it happened — a left click of a mouse, not a tap nor another button", () => {
-    const { sent, press, stop } = sender();
-    press("pointerdown", {});
-    press("pointerdown", { button: 2 });
-    press("pointerdown", { pointerType: "touch" });
+    const { sent, onDiagram, onPanel, stop } = sender();
+    onDiagram("pointerdown");
+    onPanel("pointerdown");
+    onPanel("pointerdown", { button: 2 });
+    onPanel("pointerdown", { pointerType: "touch" });
     stop();
-    expect(sent.filter((m) => m.type === "click")).toEqual([{ type: "click", x: 1400, y: -300 }]);
+    expect(sent.filter((m) => m.type === "click")).toEqual([
+      { type: "click", x: 2360, y: -140 },
+      { type: "click", x: 40, y: 50, frame: "screen" },
+    ]);
   });
 });

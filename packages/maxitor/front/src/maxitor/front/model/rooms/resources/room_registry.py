@@ -396,6 +396,9 @@ class RoomRegistry(BaseController):
         if not all(_is_number(value) for value in values.values()):
             return
         tab.last_activity = self.clock()
+        # Over a panel the position is the screen's, from the diagram's top-left corner, not the diagram's (spec 038).
+        if kind in ("pointer", "click") and message.get("frame") == "screen":
+            values["frame"] = "screen"
         if kind == "pointer":
             values["kind"] = "touch" if message.get("kind") == "touch" else "mouse"
             tab.pointer = values
