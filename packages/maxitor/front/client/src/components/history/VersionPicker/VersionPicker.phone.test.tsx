@@ -1,9 +1,19 @@
 // src/components/history/VersionPicker/VersionPicker.phone.test.tsx
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { TOUCH_STEP } from "@/components/history/VersionTrack/VersionTrack";
 import { VersionPicker } from "./VersionPicker";
+
+/** jsdom has no ResizeObserver; the picker only uses it to follow its button. */
+class NoResize {
+  observe(): void {}
+  disconnect(): void {}
+}
+
+beforeEach(() => vi.stubGlobal("ResizeObserver", NoResize));
+afterEach(() => vi.unstubAllGlobals());
+
 
 afterEach(cleanup);
 
@@ -46,8 +56,11 @@ describe.each([
 });
 
 describe("the picker on a desktop", () => {
-  it("is a popover under the button, not a sheet", () => {
+  it("is a card under the button, not a sheet, and lets clicks outside it through", () => {
     render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions(3)} live={null} value={null} onChange={() => undefined} />);
-    expect(screen.getByRole("dialog").closest(".MuiPopover-root")).not.toBeNull();
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.closest(".MuiPopper-root")).not.toBeNull();
+    expect(dialog.closest(".MuiDrawer-root")).toBeNull();
+    expect(document.querySelector(".MuiBackdrop-root")).toBeNull();
   });
 });

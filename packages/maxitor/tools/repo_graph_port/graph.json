@@ -398,6 +398,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
       "is_dag": false,
       "properties": {},
@@ -1153,6 +1162,17 @@
       "label": "HistoryResult",
       "properties": {},
       "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "label": "proposals",
+      "properties": {
+        "description": "Pull requests still open into the branch that change the graph, each with its state",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
     },
     {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",

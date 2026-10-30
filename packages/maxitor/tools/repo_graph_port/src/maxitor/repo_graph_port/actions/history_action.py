@@ -34,7 +34,15 @@ import asyncio
 from typing import cast
 
 from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
-from maxitor.repo_graph_port.history_reading import chosen, detail_of, facts_of, proposals_of, pull_request_of, refreshed, release_of
+from maxitor.repo_graph_port.history_reading import (
+    chosen,
+    detail_of,
+    facts_of,
+    proposals_of,
+    pull_request_of,
+    refreshed,
+    release_of,
+)
 from maxitor.repo_graph_port.history_versions import place_tags, pull_request_in_message
 from maxitor.repo_graph_port.placed_tag import PlacedTag
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain

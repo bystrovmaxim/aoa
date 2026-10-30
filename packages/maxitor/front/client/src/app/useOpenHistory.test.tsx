@@ -89,4 +89,22 @@ describe("the address of a history", () => {
     syncUrlToState(null, null);
     expect(new URLSearchParams(window.location.search).has("b")).toBe(false);
   });
+
+  it("shows the newest version as Live while Live runs exactly its graph", () => {
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show({ ...opened([version(1), version(2)], LIVE), live_same_as: version(2).sha }, "k", id(2)));
+    expect(result.current.history?.b).toBe("live");
+    act(() => result.current.pick(id(2)));
+    expect(result.current.history?.b).toBe("live");
+    act(() => result.current.pick(id(1)));
+    expect(result.current.history?.b).toBe(id(1));
+  });
+
+  it("offers an open pull request like a version, reading its head's graph", () => {
+    const open = { ...version(9, { source: "proposal-9", pr: { number: 158, title: "T", body: "", url: "", state: "open" as const } }) };
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show({ ...opened([version(1)], LIVE), proposals: [open] }, "k", id(9)));
+    expect(result.current.history?.b).toBe(id(9));
+    expect(sourceOf(result.current.history!)).toBe("proposal-9");
+  });
 });

@@ -1,8 +1,17 @@
 // src/components/history/VersionPicker/VersionPicker.test.tsx
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { VersionPicker } from "./VersionPicker";
+
+/** jsdom has no ResizeObserver; the picker only uses it to follow its button. */
+class NoResize {
+  observe(): void {}
+  disconnect(): void {}
+}
+
+beforeEach(() => vi.stubGlobal("ResizeObserver", NoResize));
+
 
 afterEach(() => {
   cleanup();

@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 from maxitor.repo_graph_port.git_error import GitError
-from maxitor.repo_graph_port.history_versions import graph_facts, place_tags, pull_request_in_message
+from maxitor.repo_graph_port.history_versions import graph_change, graph_facts, place_tags, pull_request_in_message
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 
 from tests.repo_builder import GRAPH_FILE, BuiltRepository, add_version, build_repository, graph
@@ -152,3 +153,14 @@ def test_a_squash_commit_names_its_pull_request() -> None:
 
 def test_a_direct_commit_names_no_pull_request() -> None:
     assert pull_request_in_message("Fix a typo in #12's description", "") is None
+
+
+def test_a_versions_change_counts_nodes_by_kind_nodes_changed_and_links() -> None:
+    """Nodes by id — added and removed by kind, kept but different; edges by id, or by their ends when they have none."""
+    before = json.dumps({"nodes": [{"id": "a", "type": "Entity"}, {"id": "b", "type": "Field", "label": "x"}, {"id": "c", "type": "Field"}],
+                         "edges": [{"id": "a-b"}, {"source_id": "a", "relationship": "has", "target_id": "c"}]}).encode()
+    after = json.dumps({"nodes": [{"id": "a", "type": "Entity"}, {"id": "b", "type": "Field", "label": "y"}, {"id": "d", "type": "Action"}],
+                        "edges": [{"id": "a-b"}, {"id": "a-d"}, {"id": "b-d"}]}).encode()
+    assert graph_change(before, after) == {"added": {"Action": 1}, "removed": {"Field": 1}, "changed": 1, "links": {"added": 2, "removed": 1}}
+    assert graph_change(None, after)["added"] == {"Action": 1, "Entity": 1, "Field": 1}
+    assert graph_change(b"not json", after)["links"] == {"added": 3, "removed": 0}

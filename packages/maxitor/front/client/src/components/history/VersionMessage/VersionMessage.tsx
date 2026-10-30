@@ -3,8 +3,6 @@ import Box from "@mui/material/Box";
 import type { HistoryVersion } from "@/api/history";
 import { linkify } from "@/lib/linkify";
 
-/** How many lines the box shows before it scrolls inside (FR-029). */
-export const MESSAGE_LINES = 9;
 /** The thin line above what stands under the track. */
 const DIVIDER = "1px solid rgba(15, 23, 42, 0.06)";
 

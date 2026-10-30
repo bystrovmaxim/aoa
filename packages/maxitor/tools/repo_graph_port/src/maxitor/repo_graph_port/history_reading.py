@@ -43,11 +43,11 @@ from maxitor.repo_graph_port.graph_facts import GraphFacts
 from maxitor.repo_graph_port.history import History, public_history
 from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
 from maxitor.repo_graph_port.history_versions import graph_change, graph_facts
-from maxitor.repo_graph_port.version_record import VersionRecord
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
+from maxitor.repo_graph_port.version_record import VersionRecord
 
 
 def chosen(config: HistoriesConfig, history_id: str | None, link: str | None, reader_history: str | None) -> History:
@@ -231,7 +231,8 @@ async def proposals_of(
             facts = await facts_of(mirror, cache, host, history, head)
             graph = await graph_of(mirror, cache, host, history, head)
             change = graph_change(before, graph)
-            if not change["added"] and not change["removed"] and not change["changed"]:
+            links = cast(dict[str, int], change["links"])
+            if not change["added"] and not change["removed"] and not change["changed"] and not links["added"] and not links["removed"]:
                 continue
             commit = await asyncio.to_thread(mirror.commit, history.repository, head)
             contribution = await asyncio.to_thread(mirror.proposal, history.repository, history.branch, head, auth)

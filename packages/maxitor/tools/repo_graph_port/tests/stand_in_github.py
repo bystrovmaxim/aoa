@@ -1,5 +1,5 @@
 # packages/maxitor/tools/repo_graph_port/tests/stand_in_github.py
-"""A stand-in for GitHub's REST API over ``httpx.MockTransport``: an App, its installation, pull requests and releases."""
+"""A stand-in for GitHub's REST API over ``httpx.MockTransport``: an App, its installation, pull requests — merged and open, with reviews — and releases."""
 
 from __future__ import annotations
 
@@ -30,6 +30,8 @@ class StandInGitHub:
     public_key: Any
     pulls: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     releases: dict[str, dict[str, Any]] = field(default_factory=dict)
+    open_pulls: list[dict[str, Any]] = field(default_factory=list)
+    reviews: dict[int, list[dict[str, Any]]] = field(default_factory=dict)
     asked: list[str] = field(default_factory=list)
     authorized: dict[str, str] = field(default_factory=dict)
 
@@ -52,6 +54,11 @@ class StandInGitHub:
             if path.endswith("/installation"):
                 return httpx.Response(200, json={"id": 7})
             return httpx.Response(201, json={"token": TOKEN, "expires_at": "2099-01-01T00:00:00Z"})
+        if "/pulls/" in path and path.endswith("/reviews"):
+            number = int(path.split("/pulls/")[1].split("/")[0])
+            return httpx.Response(200, json=self.reviews.get(number, []))
+        if path.endswith("/pulls") and "/commits/" not in path:
+            return httpx.Response(200, json=self.open_pulls)
         if "/commits/" in path and path.endswith("/pulls"):
             sha = path.split("/commits/")[1].split("/")[0]
             return httpx.Response(200, json=self.pulls.get(sha, []))
