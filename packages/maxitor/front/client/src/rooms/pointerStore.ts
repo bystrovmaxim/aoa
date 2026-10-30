@@ -23,6 +23,11 @@ export type RemoteClick = Point & PointerFrame & { at: number };
 const pointers = new Map<string, RemotePointer>();
 const clicks = new Map<string, RemoteClick>();
 const viewports = new Map<string, DiagramViewport>();
+/**
+ * Each participant's screen in pixels, as they last told it. Unlike what their screen shows, it does not depend on
+ * the page, so it is kept when they or this tab change page: a follower fits a new page to it at once (spec 038).
+ */
+const screens = new Map<string, { w: number; h: number }>();
 const listeners = new Set<() => void>();
 
 function changed(): void {
@@ -38,6 +43,7 @@ export function putPointer(participant: string, pointer: RemotePointer): void {
 /** Record what a participant's screen shows. */
 export function putViewport(participant: string, viewport: DiagramViewport): void {
   viewports.set(participant, viewport);
+  if (viewport.pw && viewport.ph) screens.set(participant, { w: viewport.pw, h: viewport.ph });
   changed();
 }
 
@@ -70,6 +76,11 @@ export function clearPointers(): void {
 /** Every pointer known now. */
 export function currentPointers(): ReadonlyMap<string, RemotePointer> {
   return pointers;
+}
+
+/** ``participant``'s screen in pixels, when they ever told it — kept across pages. */
+export function screenOfParticipant(participant: string): { w: number; h: number } | undefined {
+  return screens.get(participant);
 }
 
 /** What ``participant``'s screen shows, when known. */

@@ -11,7 +11,7 @@
  * Only what the check needs is here: open an address, run a function in the page, type into a field,
  * press a key, move and press the mouse, take a screenshot. Nothing is added to the client for it.
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
 import type { Page } from "playwright";
 
@@ -66,7 +66,6 @@ export function playwrightTab(name: string, page: Page, close: () => Promise<voi
   };
 }
 
-const ELEMENT = "element-6066-11e4-a52e-4f735466cecb";
 const KEYS = { Enter: "", Escape: "" } as const;
 
 /** Why Safari cannot be driven here, or ``null`` when it can: macOS only, with remote automation allowed. */
@@ -125,14 +124,30 @@ export async function safariTab(port: number, width: number, height: number): Pr
   };
   const actions = (list: unknown[]) => call("POST", "/actions", { actions: list });
   await call("POST", "/window/rect", { x: 0, y: 0, width, height });
+  // Safari stops painting, and its animation frames, in a window other windows cover: the check would read an empty,
+  // still picture. Its window is brought to the front; nobody may cover it while the check runs.
+  spawnSync("osascript", ["-e", 'tell application "Safari" to activate']);
   return {
     name: "safari",
     goto: async (url) => void (await call("POST", "/url", { url })),
     url: async () => String(await call("GET", "/url")),
     evaluate: async (fn, arg) => (await call("POST", "/execute/sync", { script: `return (${fn.toString()})(arguments[0]);`, args: [arg] })) as never,
     fill: async (selector, text) => {
-      const element = (await call("POST", "/element", { using: "css selector", value: selector })) as Record<string, string>;
-      await call("POST", `/element/${element[ELEMENT]}/value`, { text });
+      // As Playwright does, wait for the field to be there — a dialog opens a moment after the click that asks for it —
+      // and type into it the way React hears: the value through the input's own setter, then an ``input`` event.
+      // Safari's element search missed a field inside a dialog's portal.
+      const typed = (arg: { selector: string; text: string }) => {
+        const input = document.querySelector<HTMLInputElement>(arg.selector);
+        if (!input) return false;
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, arg.text);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      };
+      const until = Date.now() + 30_000;
+      while (!(await call("POST", "/execute/sync", { script: `return (${typed.toString()})(arguments[0]);`, args: [{ selector, text }] }))) {
+        if (Date.now() > until) throw new Error(`Safari: no ${selector} after 30 s`);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
     },
     press: async (key) => {
       await actions([{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: KEYS[key] }, { type: "keyUp", value: KEYS[key] }] }]);

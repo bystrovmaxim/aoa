@@ -14,7 +14,7 @@ import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { checkNotice, decideCheck, lastLayoutReload, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
-import { clearFocus, putFocus } from "@/rooms/focusStore";
+import { clearFocus, putFocus, reportHover } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putClick, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
@@ -297,10 +297,21 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
         return;
       }
       opening.current = dialog.mode === "open";
-      connect(name);
+      // A page on a private history joins with a ticket its key buys: before the history is read there is no key yet,
+      // and the server would refuse the room as ended. The join waits for it (spec 038).
+      const historyAwaited = new URLSearchParams(window.location.search).has("history") && !historyRef.current;
+      if (historyAwaited) waitingName.current = name;
+      else connect(name);
     },
     [dialog, connect, send],
   );
+  const waitingName = useRef<string | null>(null);
+  useEffect(() => {
+    if (!history || waitingName.current === null) return;
+    const name = waitingName.current;
+    waitingName.current = null;
+    connect(name);
+  }, [history, connect]);
 
   /** **Leave room**: close the connection, keep the page, take ``room`` out of the address. */
   const leave = useCallback(() => {
@@ -340,10 +351,12 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     });
   }, []);
 
-  // Another page: pointers seen on the old one do not belong here.
+  // Another page: pointers seen on the old one do not belong here, nor your own hover. Whom you follow and what they
+  // look at stay — each focus names its page — or a follower lost them on every page they were led to, fitted the new
+  // one to its own screen and showed its own panels until the leader changed something (spec 038).
   useEffect(() => {
     clearPointers();
-    clearFocus();
+    reportHover(null);
   }, [page]);
 
   // Every page the tab opens is reported, so the room knows where its participants are (FR-013),

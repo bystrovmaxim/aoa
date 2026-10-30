@@ -36,7 +36,7 @@
  * leader goes to each page and zooms in; the follower must draw the same page, take the same zoom and
  * the same top-left corner within 2 px, and show the diagram on screen: its share of drawn pixels
  * (`pngInk.ts`) at least 60 % of the leader's. Safari runs one session at a time, so its pairs run one
- * after another. On macOS Safari must be drivable — Develop → "Allow remote automation" — or the check
+ * after another, with Chromium only, both ways. On macOS Safari must be drivable — Develop → "Allow remote automation" — or the check
  * fails; elsewhere its pairs are skipped and a line says so.
  *
  * Then every change of the picture in one frame (spec 038): in a room, on the ERD of all domains and on a
@@ -710,8 +710,26 @@ async function followEveryDiagram(openLead: () => Promise<BrowserTab>, openFollo
   }
 }
 
-/** One change of the picture the leader makes, and how it is made on its page. */
-type VisualChange = { label: string; act: (tab: BrowserTab) => Promise<void> };
+/**
+ * One change of the picture the leader makes, and how it is made on its page. ``newPage``: it opens another diagram,
+ * and the blank while it loads is not counted — what is, is any picture between the old one and the new one's first.
+ */
+type VisualChange = { label: string; act: (tab: BrowserTab) => Promise<void>; newPage?: boolean };
+
+/** The leader opens ``target`` in the room, as the left panel does: the follower is led there. */
+const openPage = (target: Target): VisualChange => ({
+  label: `to ${target.label}`,
+  newPage: true,
+  act: async (tab) =>
+    void (await tab.evaluate((query: Record<string, string>) => {
+      const url = new URL(location.href);
+      for (const name of ["view", "domain", "node", "host", "zoom", "at"]) url.searchParams.delete(name);
+      for (const [name, value] of Object.entries(query)) url.searchParams.set(name, value);
+      history.pushState(null, "", url);
+      dispatchEvent(new PopStateEvent("popstate"));
+      return true;
+    }, target.query)),
+});
 
 const clickInPage = (selector: string) => {
   const element = document.querySelector<HTMLElement>(selector);
@@ -815,7 +833,8 @@ async function everyChangeInOneFrame(openLead: () => Promise<BrowserTab>, openFo
         await change.act(leader);
         await new Promise((resolve) => setTimeout(resolve, SETTLE_MS * 2));
         const [a, b] = [await leader.evaluate(readFramesInPage, null), await follower.evaluate(readFramesInPage, null)];
-        outcomes.push({ page: target.label, change: change.label, leader: a.pictures, follower: b.pictures, pointersOff: b.pointersOff || a.pointersOff, followerStates: b.states });
+        const pictures = (frames: { pictures: number; states: string[] }) => (change.newPage ? frames.states.filter((state) => !state.startsWith("nothing")).length - 1 : frames.pictures);
+        outcomes.push({ page: target.label, change: change.label, leader: pictures(a), follower: pictures(b), pointersOff: b.pointersOff || a.pointersOff, followerStates: b.states });
       }
     }
     return outcomes;
@@ -934,10 +953,12 @@ async function main(): Promise<void> {
       ]),
       ...(safariWhy === null ? [["safari", () => safariTab(safariPort, 1440, 900)] as [string, () => Promise<BrowserTab>]] : []),
     ];
-    const everyPair = openers.flatMap(([leadName, lead]) =>
-      openers.filter(([followName]) => followName !== leadName).map(([followName, follow]) => ({ leadName, followName, lead, follow })),
-    );
+    const everyPair = openers
+      .flatMap(([leadName, lead]) => openers.filter(([followName]) => followName !== leadName).map(([followName, follow]) => ({ leadName, followName, lead, follow })))
+      .filter((pair) => !(pair.leadName === "safari" || pair.followName === "safari") || pair.leadName === "chromium" || pair.followName === "chromium");
     const isSafari = (pair: { leadName: string; followName: string }) => pair.leadName === "safari" || pair.followName === "safari";
+    // Safari's pairs run one after another, so it pairs with Chromium only, both ways: the engine whose difference
+    // from Safari matters, at a third of the time.
     const everyDiagram = await timed(async () => {
       const byPair = new Map<string, PageFollow[]>();
       const parallel = everyPair.filter((pair) => !isSafari(pair));
@@ -948,9 +969,11 @@ async function main(): Promise<void> {
     });
     // Every change of the picture in one frame, in the same pairs: Playwright's at once, Safari's one after another.
     const byLabel = (prefix: string) => pages.find((page) => page.label.startsWith(prefix));
+    // Going to another diagram counts too: the follower opens it at the leader's view at once.
+    const opened = ["use case ", "ERD, all domains", "lifecycle ", "ERD "].flatMap((prefix) => (byLabel(prefix) ? [openPage(byLabel(prefix)!)] : []));
     const changePages = [
       { target: byLabel("ERD, all domains"), changes: ERD_CHANGES },
-      { target: byLabel("ERD "), changes: ONE_DOMAIN_CHANGES },
+      { target: byLabel("ERD "), changes: [...ONE_DOMAIN_CHANGES, ...opened] },
       { target: byLabel("use case "), changes: USE_CASE_CHANGES },
     ].filter((page): page is { target: Target; changes: VisualChange[] } => page.target !== undefined);
     const oneFrame = await timed(async () => {
