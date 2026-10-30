@@ -78,6 +78,17 @@ export function shiftBoth(points: readonly string[], range: Range, delta: -1 | 1
   return a < 0 || b >= points.length ? range : { a: points[a], b: points[b] };
 }
 
+/**
+ * The whole range dragged ``delta`` points (negative to the left): both handles move together and the range keeps its
+ * width; at an end of the track it stops there — so Live, the last point, can still only be B.
+ */
+export function shiftBy(points: readonly string[], range: Range, delta: number): Range {
+  const a = points.indexOf(range.a);
+  const b = points.indexOf(range.b);
+  const step = Math.max(-a, Math.min(points.length - 1 - b, Math.round(delta)));
+  return step === 0 ? range : { a: points[a + step], b: points[b + step] };
+}
+
 /** Home or End on a handle: to that end of the track, by the rules of a move. */
 export function homeEnd(points: readonly string[], range: Range, handle: Side, end: "home" | "end"): Moved {
   return end === "home" ? moveTo(points, range, handle, 0, -1) : moveTo(points, range, handle, points.length - 1, 1);
