@@ -1,6 +1,6 @@
 // src/lib/erdCopy.test.ts
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { bindNameCopy } from "@/lib/erdCopy";
+import { bindNameCopy, bareName } from "@/lib/erdCopy";
 
 function mount() {
   document.body.innerHTML =
@@ -71,5 +71,11 @@ describe("bindNameCopy", () => {
 
     expect(writeText).not.toHaveBeenCalled();
     expect(report).not.toHaveBeenCalled();
+  });
+});
+
+describe("a name written with its Diff sign", () => {
+  it("is copied bare (spec 038)", () => {
+    expect(["+ region", "− is_activated", "~ erid", "region", "  ~ OfferEntity "].map(bareName)).toEqual(["region", "is_activated", "erid", "region", "OfferEntity"]);
   });
 });

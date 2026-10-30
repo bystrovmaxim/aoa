@@ -10,7 +10,7 @@ import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { GraphReadError, onGraphBusy, setActiveBase, setActiveHistoryKey, setActiveSource } from "@/api/client";
-import { useDiffCounts } from "@/lib/diffCounts";
+import { setDiffNames, useDiffCounts } from "@/lib/diffCounts";
 import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
@@ -305,6 +305,9 @@ export function App() {
     if (shown) setWorkspaceKey((count) => count + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown?.a, olderVersion?.source]);
+
+  // A changed element's card says what it was added or removed in: the two versions' names.
+  useEffect(() => setDiffNames(shown?.a ? { a: olderName ?? "A", b: shownName ?? "B" } : null), [shown?.a, olderName, shownName]);
 
   // The tab's title names the history and its version, never its address (FR-011c).
   useEffect(() => {

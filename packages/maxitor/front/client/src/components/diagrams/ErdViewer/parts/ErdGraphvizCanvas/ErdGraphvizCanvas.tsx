@@ -35,7 +35,10 @@ import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
-import { setDiffCounts } from "@/lib/diffCounts";
+import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { cardAt, isMarkedCell, type CardTarget } from "@/lib/erdDiffCard";
+import { DiffCard } from "@/components/history/DiffCard";
+import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
 import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
@@ -270,6 +273,9 @@ export function ErdGraphvizCanvas({
   const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
   const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
   useEffect(() => setDiffCounts(counts), [counts]);
+  // A click on a marked table or row opens its card (spec 038, FR-028).
+  const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
+  const diffNames = useDiffNames();
   useEffect(() => () => setDiffCounts(null), []);
 
   const dot = useMemo(() => buildDotSource(drawnData, layout), [drawnData, layout]);
@@ -344,7 +350,21 @@ export function ErdGraphvizCanvas({
       addEndLabelBadges(svg);
       bindLineHover(svg, drawnData.relations, drawnData.entities, ac.signal);
     }
-    bindNameCopy(panner, setCopyMessage, ac.signal);
+    bindNameCopy(panner, setCopyMessage, ac.signal, (cell) => isMarkedCell(cell, drawnData.entities));
+    let press: { x: number; y: number } | null = null;
+    panner.addEventListener("pointerdown", (event) => void (press = { x: event.clientX, y: event.clientY }), { signal: ac.signal });
+    panner.addEventListener(
+      "pointerup",
+      (event) => {
+        const started = press;
+        press = null;
+        if (!started || Math.hypot(event.clientX - started.x, event.clientY - started.y) > COPY_CLICK_SLOP_PX) return;
+        const target = cardAt(event.target as Element | null, drawnData.entities);
+        const box = viewportRef.current?.getBoundingClientRect();
+        if (target && box) setCard({ target, at: { x: event.clientX - box.left + 8, y: event.clientY - box.top + 8 } });
+      },
+      { signal: ac.signal },
+    );
 
     const onEnter = (evt: Event) => {
       const el = evt.currentTarget as Element;
@@ -542,6 +562,8 @@ export function ErdGraphvizCanvas({
             }}
           />
         </Box>
+
+        {card && <DiffCard target={card.target} newer={diffNames?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
 
         <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
           <Box

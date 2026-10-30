@@ -1,6 +1,6 @@
 // src/api/compare.ts
 /**
- * The two comparison reads (spec 038, specs/038-erd-diff/contracts/maxitor-api.md): what changed from A to B,
+ * The two comparison reads (spec 038, its contract of the server): what changed from A to B,
  * and how one element changed. B is the tab's active source, A the base it compares with; both versions travel
  * with the history's key in the header, never in the address.
  */
