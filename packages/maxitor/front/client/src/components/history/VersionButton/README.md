@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** The one button in the top row that names the version shown — `◷ <name> ▾` — and opens the picker; only while a history has something to pick (M2–M6). (spec 037)
+**Role:** The one button at the left of the top row that names the version shown — `◷ 0.11.0 · #147 ▾`, `◷ #57 ▾`, `◷ Live ▾` — and opens or closes the picker; only while a history has something to pick (M2–M6). (spec 037)
 
 ## Files
 

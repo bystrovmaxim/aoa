@@ -12,9 +12,7 @@ Parsed into `{port, id | link, key?}`. The address without the key is the histor
 
 ## Page address
 
-In the browser's address bar: `?history=<address without key>&b=<first 12 hex of the commit | live>&view=…&domain=…&node=…&host=…&room=…` — never the key (FR-010a).
-
-A link Maxitor makes (**Copy link**, the room's link): the same plus `#key=<key>`. Opened, the page moves the key to `sessionStorage` for the tab and removes the fragment.
+In the browser's address bar: `?history=<address without key>&b=<first 12 hex of the commit | live>&view=…&domain=…&node=…&host=…&room=…#key=<key>` — the key after `#`, which no browser sends to a server, so the address copied as it is opens the same history at the same version (FR-010a). The page also keeps the key in the tab's `sessionStorage`; every address it writes keeps the fragment. The room's link carries it too.
 
 `source` is absent while a history is open. `b` the history does not have → its default version, and the address is rewritten (FR-022).
 
@@ -29,7 +27,8 @@ A link Maxitor makes (**Copy link**, the room's link): the same plus `#key=<key>
 | `host` | `github` or `local` |
 | `live` | the Live service's address, or none |
 | `reader` | the key's name, for the log; none for a public link |
-| `versions` | the port's list, oldest first ([port contract](https://github.com/bystrovmaxim/aoa/blob/main/specs/036-repo-graph-port/data-model.md#version)) |
+| `versions` | the port's list, oldest first ([port contract](https://github.com/bystrovmaxim/aoa/blob/main/specs/036-repo-graph-port/data-model.md#version)), each with `contribution` and `change` ([contracts/port.md](contracts/port.md)) |
+| `proposals` | the port's open pull requests that change the graph, each with `pr.state` |
 | `etag` | the port's `ETag` of `versions` |
 | `last_checked`, `checking` | as on `GraphEntry` |
 | `keys` | in memory only, the keys the port accepted for it while a tab of it is open, newest first; never logged, never in `repr` (R18) |
@@ -54,12 +53,17 @@ Derived from the port's `Version`:
 
 | Field | Rule |
 |---|---|
-| `name` | R10: release (`0.11.0`) · `<release> · #<pr>` · `#<pr>` · a direct commit's place in the history (`0.11.0 · #57`) · `Live` |
-| `isRelease` | a tag with `release` |
-| `flags` | tags without a release |
-| `tooltip` | `#<pr> <title>`, date, `<nodes> nodes · <edges> edges`, tags |
-| `message` | `pr.title + "\n\n" + pr.body`, or `message`; none for Live |
+| `name` | `#<pr>`, or its place in the history (`#57`); `Live` (FR-018) |
+| `number` | the last version-number tag at or before it, without its `v` (`0.11.0`), or none |
+| shown name | the button and the chip: `<number> · <name>` where there is a number, else `<name>` |
+| `release` (larger point, named under the track) | it carries its own version-number tag |
+| `flags` | its tags that mark a release: a GitHub Release, or a tag named `release…` |
+| kind (colour) | merged pull request, direct push, open pull request by `pr.state`, Live |
+| card | Merged / Direct push / state; version and Release chips; `#<pr>`; when; title; author → merger; lines and files; `change` in words |
+| `message` | `pr.title + "\n\n" + pr.body`, or `message`; for Live, the newest version's when Live runs exactly its graph |
 | `refused` | the port's reason, or none |
+
+The opened history also keeps `liveSameAs` (the newest version Live runs exactly, from the server) and `proposals`; while `liveSameAs` is set, choosing that version is choosing Live.
 
 ## Mode (client, derived)
 
@@ -78,4 +82,4 @@ Derived from the port's `Version`:
 
 ## Port config — one addition
 
-`[[history]] live = "<http(s) address>"`, optional. `describe` adds `live?` and `reader?`.
+`[[history]] live = "<http(s) address>"`, optional. `describe` adds `live?` and `reader?`. The version list adds `contribution`, `change` and `proposals` ([contracts/port.md](contracts/port.md)).

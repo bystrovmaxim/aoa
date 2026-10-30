@@ -35,4 +35,26 @@ Both are absent for a public link.
 
 Never the key, its hash or the signature. The block itself is unchanged from #288.
 
-Nothing else changes; `history`, `version`, the webhook and every refusal stay as in `specs/036-repo-graph-port/contracts/actions.md`.
+## `history` (the list of versions)
+
+`GET /api/v1/history/{id}/versions` answers, besides each version's fields of #288:
+
+| Field | Meaning |
+|---|---|
+| `pr` | as before, plus `author` and `avatar` when the host tells them (GitHub); taken from the merge commit's message (`Merge pull request #N from …`, then title and body) or a squash commit's first line (`Title (#N)`) when the host does not tell it — a local repository included; GitHub's merge line is never kept |
+| `contribution` | from git: `author` (the first author of a merged branch, or the commit's), `co_authors`, `merged_by` (a merge commit's author; `null` for a squash or direct commit), `files`, `additions`, `deletions` against the first parent |
+| `change` | against the previous version's graph: `added` and `removed` nodes by `type`, `changed` (nodes kept whose type, label or properties differ), `links: {added, removed}` (edges by `id`, or by source, relationship and target) |
+
+`contribution` and `change` belong to the commit and are read from git once, then from the cache.
+
+And a new list beside `versions`:
+
+| Field | Meaning |
+|---|---|
+| `proposals` | the pull requests still open into the branch whose graph differs from the newest version's, oldest number first, each shaped like a version, its `pr` carrying `state`: `open` (review required), `approved` or `changes_requested`. On GitHub from the open pull requests and their reviews (each reviewer's last word; drafts left out), kept for the freshness interval; in a local repository from `refs/pull/<n>/head` not yet in the branch, state `open`. A pull request closed without being merged is not listed |
+
+## `version`
+
+`GET /api/v1/history/{id}/versions/{sha}` also serves the head of a pull request the repository keeps (`refs/pull/<n>/head`), so a reader looks at it before it is merged.
+
+Nothing else changes; the webhook and every refusal stay as in `specs/036-repo-graph-port/contracts/actions.md`.
