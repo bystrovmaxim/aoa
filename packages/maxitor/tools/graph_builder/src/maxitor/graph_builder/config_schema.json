@@ -10,6 +10,82 @@
     "graph_builder": {
       "const": "1.0"
     },
+    "setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill",
+        "decided",
+        "deferred"
+      ],
+      "description": "Wizard decisions, not evidence of current health or a project release version.",
+      "properties": {
+        "skill": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "decided": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(config|local-update|ci-graph-check|version-tags|graph:.+|exporter:.+)$"
+          }
+        },
+        "deferred": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "local-update",
+              "ci-graph-check"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "deferred": {
+                "contains": {
+                  "const": "local-update"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decided": {
+                "contains": {
+                  "const": "local-update"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "deferred": {
+                "contains": {
+                  "const": "ci-graph-check"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decided": {
+                "contains": {
+                  "const": "ci-graph-check"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "graph": {
       "type": "array",
       "minItems": 1,

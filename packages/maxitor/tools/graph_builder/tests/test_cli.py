@@ -80,7 +80,9 @@ def test_a_refused_config_exits_2(
         'graph_builder = "1.0"\n[[graph]]\nname = "tiny"\nfile = "graph.json"\n', encoding="utf-8"
     )
     assert (main(["write"]), main(["check"])) == (2, 2)
-    assert capsys.readouterr().err.splitlines()[0] == "config refused: graph-builder.toml: graph 'tiny', build: required"
+    assert (
+        capsys.readouterr().err.splitlines()[0] == "config refused: graph-builder.toml: graph 'tiny', build: required"
+    )
     assert not (tmp_path / "graph.json").exists()
 
 
@@ -111,3 +113,19 @@ def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> Non
     assert text.startswith("---\nname: aoa-graph-builder-setup\ndescription: ")
     assert "## Setup" in text and "## If you read this from a link" in text
     assert "uvx --from maxitor graph-builder" in text and "maxitor-gnomon" not in text
+
+
+def test_write_and_check_preserve_setup_decisions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Graph commands accept wizard decisions without rewriting them."""
+    _repo(tmp_path, monkeypatch)
+    config = tmp_path / "graph-builder.toml"
+    content = config.read_text(encoding="utf-8") + (
+        '\n[setup]\nskill = "2"\ndecided = ["local-update"]\ndeferred = ["local-update"]\n'
+    )
+    config.write_text(content, encoding="utf-8")
+    assert main(["write"]) == 0
+    assert main(["check"]) == 0
+    assert capsys.readouterr().out == "ok tiny (written)\nok tiny\n"
+    assert config.read_text(encoding="utf-8") == content

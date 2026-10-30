@@ -56,6 +56,12 @@ The same graph always gives the same bytes, so a file changes only when the mode
 
 Paths are relative to `graph-builder.toml`. A wrong config is refused by graph and field — `graph 'demo', file: required` — before anything is built.
 
+### Optional setup decisions
+
+The setup wizard may persist its checklist in a root `[setup]` table. It requires a string `skill` revision (for example `"2"`), unique `decided` IDs and unique `deferred` IDs. The closed ID families are `config`, `graph:<name>`, `exporter:<service>`, `local-update`, `ci-graph-check` and `version-tags`. Only `local-update` and `ci-graph-check` may be deferred; each must also be decided. Unknown fields, unknown ID families and mandatory deferrals are refused before a build.
+
+Existing configurations without this optional table remain valid. The graph commands preserve the table and still return the same graphs; they do not certify its recorded decisions or enforce release tags themselves. The wizard re-audits evidence and prepares separate release CI. See [the guide](../../../../docs/how-to/graph-setup-version-tags.md), [script](../../../../examples/step_26_maxitor/15_setup_decisions.py) and [notebook](../../../../examples/step_26_maxitor/15_setup_decisions.ipynb).
+
 ## Keeping graphs in a repository
 
 The [Open Gnomon Protocol](../../../open-gnomon-protocol/README.md) defines the graph document. How a repository keeps its graphs — one file per service, listed in `graph-builder.toml`, checked in CI — is this command's convention, below.
