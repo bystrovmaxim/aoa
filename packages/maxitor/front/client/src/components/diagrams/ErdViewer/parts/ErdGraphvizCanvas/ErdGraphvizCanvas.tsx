@@ -22,6 +22,7 @@ import {
   buildErdDot,
   ERD_CARD_RADIUS,
   ERD_CARD_STROKE,
+  erdDiffMarks,
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
@@ -33,6 +34,8 @@ import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
+import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
+import { setDiffCounts } from "@/lib/diffCounts";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
 import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
@@ -255,13 +258,19 @@ export function ErdGraphvizCanvas({
     ) : null;
 
   // Each table carries its kind's display name for the header icon's tooltip.
-  const drawnData = useMemo(() => {
+  const labelledData = useMemo(() => {
     const labels = new Map((bundle.entity_kinds ?? []).map((row) => [row.entity_kind, row.label]));
     return {
       ...mergedData,
       entities: mergedData.entities.map((e) => ({ ...e, entity_kind_label: labels.get(e.entity_kind?.trim() || "unknown") })),
     };
   }, [mergedData, bundle.entity_kinds]);
+  // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One,
+  // nothing faded (spec 038, FR-025, FR-026).
+  const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
+  const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
+  useEffect(() => setDiffCounts(counts), [counts]);
+  useEffect(() => () => setDiffCounts(null), []);
 
   const dot = useMemo(() => buildDotSource(drawnData, layout), [drawnData, layout]);
   // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
@@ -292,7 +301,7 @@ export function ErdGraphvizCanvas({
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
