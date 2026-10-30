@@ -1,7 +1,7 @@
 // src/lib/versionNames.test.ts
 import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
-import { defaultVersion, flagsOf, numbersOf, releaseNoteOf, releaseOf, shownNameOf, versionNames } from "./versionNames";
+import { defaultVersion, flagsOf, numbersOf, releaseNoteOf, releaseOf, shortNameOf, shownNameOf, versionNames } from "./versionNames";
 
 function version(n: number, extra: Partial<HistoryVersion> = {}): HistoryVersion {
   return { sha: `${n}`.padEnd(40, "a"), date: `2026-10-${String(n).padStart(2, "0")}T00:00:00Z`, tags: [], nodes: n * 10, edges: n * 20, source: `s${n}`, ...extra };
@@ -24,6 +24,13 @@ describe("names on the track (R10, FR-018)", () => {
 
   it("gives each version the last version number at or before it, none before the first", () => {
     expect(numbersOf(versions)).toEqual([null, null, "0.1.0", "0.1.0", "0.1.0"]);
+  });
+
+  it("writes a phone's short name without the version number: the name alone, Live, an open pull request (spec 038, FR-033)", () => {
+    expect(shortNameOf(versions, versions[3].sha.slice(0, 12))).toBe("#14");
+    expect(shortNameOf(versions, "live")).toBe("Live");
+    expect(shortNameOf(versions, "f".repeat(12), [version(9, { sha: "f".repeat(40), ...pr(20) })])).toBe("#20");
+    expect(shortNameOf(versions, "0".repeat(12))).toBe("—");
   });
 
   it("writes the version button's name with the version before it where there is one", () => {

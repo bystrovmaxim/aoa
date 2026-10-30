@@ -18,7 +18,7 @@ import { VersionPicker } from "@/components/history/VersionPicker";
 import { VersionsBetween } from "@/components/history/VersionsBetween";
 import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
-import { shownNameOf } from "@/lib/versionNames";
+import { shortNameOf, shownNameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
 import { keysOf, sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
 import { diffOffered, oneToDiff, type Range } from "@/lib/versionRange";
@@ -418,7 +418,8 @@ export function App() {
           {shown && hasPicker(opened.mode) && (
             <VersionButton
               ref={versionButton}
-              name={shown.a ? `A ${olderName ?? "—"} → B ${shownName ?? "—"}` : (shownName ?? "—")}
+              name={shown.a ? (phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`) : (shownName ?? "—")}
+              compact={phone}
               counts={shown.a && diagram?.kind === "erd" ? diffCounts : null}
               open={pickerOpen}
               onClick={() => setPickerOpen((open) => !open)}

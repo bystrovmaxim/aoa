@@ -28,4 +28,11 @@ describe("the version button", () => {
     expect(screen.getByText("A 0.8.0 → B 0.9.0")).toBeTruthy();
     expect(screen.queryByTestId("diff-counts")).toBeNull();
   });
+
+  it("on a phone cuts the name, never the counts (spec 038, FR-033)", () => {
+    render(<VersionButton name="A #128 → B #129" open={false} onClick={() => undefined} counts={{ added: 15, removed: 1, changed: 3 }} compact />);
+    expect(getComputedStyle(screen.getByRole("button")).maxWidth).toBe("100%");
+    expect(screen.getByTestId("version-name").style.textOverflow).toBe("ellipsis");
+    expect(screen.getByTestId("diff-counts").style.flexShrink).toBe("0");
+  });
 });
