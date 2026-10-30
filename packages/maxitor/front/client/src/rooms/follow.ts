@@ -1,7 +1,8 @@
 // src/rooms/follow.ts
 /**
  * Following someone (spec 028, FR-051 … FR-057): your screen goes where theirs goes — their active
- * page, centred on the centre of their screen — at your own zoom. It changes nothing for them.
+ * page, centred on the centre of their screen, at their zoom: you see what they see, on a screen of another size
+ * at least all of it (spec 038). It changes nothing for them.
  *
  * Who follows whom is the server's: **Follow** sends ``follow``, the room answers ``follows``, and the
  * tab follows while the links say so. It stops on your own pan (a drag; zooming does not stop it),
@@ -16,7 +17,7 @@
  */
 import { useCallback, useEffect } from "react";
 import { isZoomWheel } from "@/lib/wheelGesture";
-import type { DiagramViewport, Point } from "@/rooms/coordinates";
+import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { focusToSend, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
 import { subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
@@ -92,9 +93,22 @@ export function followNavigation(target: Participant, page: string | null): Foll
   return { page: target.page, replace: true };
 }
 
-/** The point following centres on: the centre of their screen, never its size as a zoom (FR-051). */
+/** The point following centres on: the centre of their screen. */
 export function followCentre(viewport: DiagramViewport | undefined): Point | null {
   return viewport ? { x: viewport.cx, y: viewport.cy } : null;
+}
+
+/** How far apart two zooms may be before following changes yours: a hair's difference is left alone. */
+const ZOOM_TOLERANCE = 0.01;
+
+/**
+ * The zoom that shows what they see (spec 038): yours, times what fits their screen's area into yours — the same zoom
+ * on a screen of the same size, all of their area on another; ``null`` when yours already is it.
+ */
+export function followZoom(yours: DiagramViewport, theirs: DiagramViewport, zoom: number): number | null {
+  if (!(theirs.w > 0 && theirs.h > 0 && yours.w > 0 && yours.h > 0 && zoom > 0)) return null;
+  const next = zoom * Math.min(yours.w / theirs.w, yours.h / theirs.h);
+  return Math.abs(next - zoom) / zoom > ZOOM_TOLERANCE ? next : null;
 }
 
 /** Distance a pointer travels with its button down before it counts as a pan, in pixels. */
@@ -172,15 +186,34 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     const glide = createGlide();
     let frame: number | null = null;
     let last: Point | null = null;
+    let lastSize: { w: number; h: number } | null = null;
     const step = () => {
       frame = null;
       const { point, arrived } = glide.at(performance.now());
       surface.centreOn(point);
       if (!arrived) frame = requestAnimationFrame(step);
     };
+    // Their zoom: when their area differs from yours, yours changes at once, on their centre.
+    const matchZoom = (theirs: DiagramViewport): boolean => {
+      lastSize = { w: theirs.w, h: theirs.h };
+      const yours = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
+      const zoom = surface.view()?.zoom;
+      const next = yours && zoom ? followZoom(yours, theirs, zoom) : null;
+      if (next === null) return false;
+      surface.restore({ x: theirs.cx, y: theirs.cy, zoom: next });
+      return true;
+    };
     const onScreen = () => {
-      const point = followCentre(viewportOfParticipant(targetId));
-      if (!point || (last && point.x === last.x && point.y === last.y)) return;
+      const theirs = viewportOfParticipant(targetId);
+      const point = followCentre(theirs);
+      if (!theirs || !point) return;
+      const resized = !lastSize || lastSize.w !== theirs.w || lastSize.h !== theirs.h;
+      if (resized && matchZoom(theirs)) {
+        last = point;
+        glide.jump(point, performance.now());
+        return;
+      }
+      if (last && point.x === last.x && point.y === last.y) return;
       if (!last) {
         // The first centre they report: nothing to glide from yet.
         last = point;
@@ -192,11 +225,12 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       glide.push(point, performance.now());
       if (frame === null) frame = requestAnimationFrame(step);
     };
-    const first = followCentre(viewportOfParticipant(targetId));
-    if (first) {
+    const firstScreen = viewportOfParticipant(targetId);
+    const first = followCentre(firstScreen);
+    if (firstScreen && first) {
       last = first;
       glide.jump(first, performance.now());
-      surface.centreOn(first);
+      if (!matchZoom(firstScreen)) surface.centreOn(first);
     }
     const unsubscribe = subscribePointers(onScreen);
     return () => {

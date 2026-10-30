@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "@/rooms/coordinates";
 import type { DiagramSurface, SavedView } from "@/rooms/diagramSurface";
-import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, useFollow, watchOwnPan } from "@/rooms/follow";
+import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
 import { clearPointers, putViewport } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -54,14 +54,22 @@ describe("where following goes", () => {
     expect(followNavigation(person("boris", ERD), ERD)).toBeNull();
   });
 
-  it("centres on the centre of their screen, never on its size", () => {
+  it("centres on the centre of their screen", () => {
     expect(followCentre({ cx: 5, cy: 6, w: 4000, h: 3000 })).toEqual({ x: 5, y: 6 });
     expect(followCentre(undefined)).toBeNull();
+  });
+
+  it("takes their zoom: the same on a screen of the same size, all of their area on another (spec 038)", () => {
+    const yours = { cx: 0, cy: 0, w: 1000, h: 500 };
+    expect(followZoom(yours, { cx: 0, cy: 0, w: 2000, h: 1000 }, 1)).toBe(0.5);
+    expect(followZoom(yours, { cx: 0, cy: 0, w: 500, h: 500 }, 1)).toBeNull();
+    expect(followZoom(yours, { cx: 0, cy: 0, w: 500, h: 100 }, 1)).toBe(2);
+    expect(followZoom(yours, { cx: 0, cy: 0, w: 1004, h: 502 }, 1)).toBeNull();
   });
 });
 
 describe("following", () => {
-  it("keeps this tab on their page and centre at its own zoom", () => {
+  it("keeps this tab on their page and centre", () => {
     const view = surface();
     const navigate = vi.fn();
     const hook = renderHook(
@@ -74,6 +82,23 @@ describe("following", () => {
     expect(view.centreOn).toHaveBeenLastCalledWith({ x: 40, y: -10 });
     expect(view.restore).not.toHaveBeenCalled();
     expect(hook.result.current.following?.id).toBe("boris");
+  });
+
+  it("takes their zoom with their centre, and again whenever their zoom changes", () => {
+    const view = surface();
+    view.element.getBoundingClientRect = () => ({ left: 0, top: 0, right: 1000, bottom: 500, width: 1000, height: 500, x: 0, y: 0, toJSON: () => ({}) });
+    let zoom = 1;
+    view.view = () => ({ x: 0, y: 0, zoom });
+    // What the screen shows in diagram units shrinks as the zoom grows, as on a real diagram.
+    view.toDiagram = (client) => ({ x: client.x / zoom, y: client.y / zoom });
+    view.restore.mockImplementation((next) => {
+      zoom = next.zoom;
+    });
+    renderHook(() => useFollow({ room: roomWith({ anna: "boris" }, ERD), send: vi.fn(), surface: view, page: ERD, navigate: vi.fn() }));
+    act(() => putViewport("boris", { cx: 40, cy: -10, w: 2000, h: 1000 }));
+    expect(view.restore).toHaveBeenLastCalledWith({ x: 40, y: -10, zoom: 0.5 });
+    act(() => putViewport("boris", { cx: 40, cy: -10, w: 500, h: 250 }));
+    expect(view.restore).toHaveBeenLastCalledWith({ x: 40, y: -10, zoom: 2 });
   });
 
   it("switches with one message: Follow <name> instead", () => {
