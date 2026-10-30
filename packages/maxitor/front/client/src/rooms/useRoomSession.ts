@@ -167,7 +167,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const onEvent = useCallback((event: ServerEvent) => {
     // Pointers and screens change many times a second: they bypass React state.
     if (event.type === "pointer") {
-      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now() });
+      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame === "screen" && { frame: "screen" as const }) });
       return;
     }
     if (event.type === "viewport") {
@@ -175,7 +175,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       return;
     }
     if (event.type === "click") {
-      putClick(event.participant, { x: event.x, y: event.y, at: Date.now() });
+      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame === "screen" && { frame: "screen" as const }) });
       return;
     }
     if (event.type === "focus") {

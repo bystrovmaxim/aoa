@@ -50,8 +50,8 @@ export type ServerEvent =
   | { type: "setting"; page: string; name: string; value: unknown; by: string }
   | { type: "follows"; follows: FollowLinks }
   | { type: "follow_refused"; target: string; reason: string }
-  | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch" }
-  | { type: "click"; participant: string; x: number; y: number }
+  | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: "screen" }
+  | { type: "click"; participant: string; x: number; y: number; frame?: "screen" }
   | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number }
   | ({ type: "focus"; participant: string } & FocusState)
   | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" }
@@ -72,8 +72,8 @@ export type ClientMessage =
   | { type: "leave" }
   | { type: "reload" }
   | { type: "version"; b: string; a?: string | null }
-  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number }
-  | { type: "click"; x: number; y: number }
+  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: "screen" }
+  | { type: "click"; x: number; y: number; frame?: "screen" }
   | { type: "viewport"; cx: number; cy: number; w: number; h: number }
   | ({ type: "focus" } & FocusState);
 

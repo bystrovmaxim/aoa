@@ -8,10 +8,16 @@
  */
 import type { DiagramViewport, Point } from "@/rooms/coordinates";
 
-export type RemotePointer = Point & { kind: "mouse" | "touch"; at: number };
+/**
+ * ``frame: "screen"`` — over a panel, the version picker or the left panel: the position is in screen pixels from the
+ * diagram's top-left corner, where those panels stand, not in the diagram's coordinates (spec 038).
+ */
+export type PointerFrame = { frame?: "screen" };
+
+export type RemotePointer = Point & PointerFrame & { kind: "mouse" | "touch"; at: number };
 
 /** A click someone made, where and when: it shows as a ripple for a moment (spec 038). */
-export type RemoteClick = Point & { at: number };
+export type RemoteClick = Point & PointerFrame & { at: number };
 
 const pointers = new Map<string, RemotePointer>();
 const clicks = new Map<string, RemoteClick>();
