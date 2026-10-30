@@ -72,6 +72,12 @@ _RELAYED_FIELDS: dict[str, tuple[str, ...]] = {
     "click": ("x", "y"),
 }
 
+#: Numeric fields a relayed message may carry besides its own: the screen's size in pixels, so a follower takes the same
+#: zoom and the same top-left corner (spec 038).
+_RELAYED_OPTIONAL_FIELDS: dict[str, tuple[str, ...]] = {
+    "viewport": ("pw", "ph"),
+}
+
 #: The diagram elements a ``focus`` may name, and the longest id or page key it may carry.
 _FOCUS_KINDS = frozenset({"node", "row", "edge", "table"})
 _FOCUS_TEXT_MAX = 512
@@ -395,6 +401,9 @@ class RoomRegistry(BaseController):
         values = {name: message.get(name) for name in fields}
         if not all(_is_number(value) for value in values.values()):
             return
+        for name in _RELAYED_OPTIONAL_FIELDS.get(str(kind), ()):
+            if _is_number(message.get(name)):
+                values[name] = message.get(name)
         tab.last_activity = self.clock()
         # Over a panel the position is the screen's, from the diagram's top-left corner, not the diagram's (spec 038).
         if kind in ("pointer", "click") and message.get("frame") == "screen":

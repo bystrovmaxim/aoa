@@ -52,7 +52,7 @@ export type ServerEvent =
   | { type: "follow_refused"; target: string; reason: string }
   | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: "screen" }
   | { type: "click"; participant: string; x: number; y: number; frame?: "screen" }
-  | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number }
+  | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
   | ({ type: "focus"; participant: string } & FocusState)
   | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" }
   | { type: "graph_changed"; fingerprint: string }
@@ -74,7 +74,7 @@ export type ClientMessage =
   | { type: "version"; b: string; a?: string | null }
   | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: "screen" }
   | { type: "click"; x: number; y: number; frame?: "screen" }
-  | { type: "viewport"; cx: number; cy: number; w: number; h: number }
+  | { type: "viewport"; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
   | ({ type: "focus" } & FocusState);
 
 /** The largest room message Maxitor accepts, in bytes; a larger one closes the connection with 4413. */

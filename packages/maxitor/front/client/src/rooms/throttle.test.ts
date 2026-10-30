@@ -112,6 +112,12 @@ describe("the pointer sender", () => {
     expect(sent).toContainEqual({ type: "pointer", x: 40, y: 50, kind: "mouse", frame: "screen" });
   });
 
+  it("sends its screen with its size in pixels, so a follower can go one to one (spec 038)", () => {
+    const { sent, stop } = sender();
+    stop();
+    expect(sent.find((m) => m.type === "viewport")).toMatchObject({ type: "viewport", pw: 400, ph: 300 });
+  });
+
   it("sends a click where it happened — a left click of a mouse, not a tap nor another button", () => {
     const { sent, onDiagram, onPanel, stop } = sender();
     onDiagram("pointerdown");
