@@ -5,7 +5,8 @@
  * Names live in the cells ``buildDotSource`` makes addressable (``<g id="a_hn<i>">`` for a table name,
  * ``<g id="a_fn<i>_<n>">`` for a field name). A press counts as a click only when the pointer moved at
  * most 4 px before release, so panning the canvas by dragging never copies. When the browser refuses the
- * clipboard, the name is selected instead and the message says how to copy it by hand.
+ * clipboard, the name is selected instead and the message says how to copy it by hand. In Diff (spec 038) a
+ * name carries its sign (``+ region``): the bare name is copied, and a marked cell opens its card instead.
  */
 
 const NAME_CELL = 'g[id^="a_hn"], g[id^="a_fn"]';
@@ -22,14 +23,19 @@ function selectText(node: Node): void {
   selection.addRange(range);
 }
 
-/** Copy names clicked inside ``root``; ``report`` receives the message to show. */
-export function bindNameCopy(root: HTMLElement, report: (message: string) => void, signal: AbortSignal): void {
+/** A name as copied: without the sign Diff writes before it. */
+export function bareName(text: string): string {
+  return text.trim().replace(/^[+−~] /, "");
+}
+
+/** Copy names clicked inside ``root``; ``report`` receives the message to show; a cell ``skip`` takes is left alone. */
+export function bindNameCopy(root: HTMLElement, report: (message: string) => void, signal: AbortSignal, skip: (cell: Element) => boolean = () => false): void {
   let press: { x: number; y: number; cell: Element } | null = null;
   root.addEventListener(
     "pointerdown",
     (event) => {
       const cell = (event.target as Element | null)?.closest?.(NAME_CELL) ?? null;
-      press = cell ? { x: event.clientX, y: event.clientY, cell } : null;
+      press = cell && !skip(cell) ? { x: event.clientX, y: event.clientY, cell } : null;
     },
     { signal },
   );
@@ -41,7 +47,7 @@ export function bindNameCopy(root: HTMLElement, report: (message: string) => voi
       if (!started) return;
       if (Math.hypot(event.clientX - started.x, event.clientY - started.y) > COPY_CLICK_SLOP_PX) return;
       const text = started.cell.querySelector("text");
-      const name = text?.textContent?.trim();
+      const name = text?.textContent ? bareName(text.textContent) : "";
       if (!text || !name) return;
       const refused = () => {
         selectText(text);
