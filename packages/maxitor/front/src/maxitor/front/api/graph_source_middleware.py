@@ -55,6 +55,11 @@ request sent in ``X-Maxitor-History-Key`` — ``404`` for a key the port refuses
 version, ``422`` with the port's reason for a refused version, ``429`` and ``503`` as the port
 answers. The key reaches the builder of a first build, as a header, and nothing else.
 
+A comparison (spec 038) reads two versions: ``/api/v1/compare*`` names the newer as ``source``
+and the older as ``a``. The middleware guards ``a`` exactly as it guards ``source`` — the
+same key header, the same refusals, ``a`` first — and binds its entry to a second context
+variable, read through ``current_base_entry``; a comparison read without ``a`` is a 400.
+
 One request sees one entry for as long as it runs (FR-007), so a reload of the same source
 in the middle of a request cannot mix two graphs in one answer. ``OPTIONS`` passes through
 untouched: a CORS preflight carries no ``source`` and is answered by ``CORSMiddleware``.
@@ -66,6 +71,7 @@ import json
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from typing import cast
 from urllib.parse import parse_qsl
 
 from maxitor.front.api.graph_store import (
@@ -90,10 +96,17 @@ from aoa.action_machine.context import Context, RequestInfo
 #: What a read without a name is told, word for word.
 MISSING_SOURCE_DETAIL = "Missing query parameter 'source': name the graph-json URL this read is for."
 
+#: What a comparison read without its older version is told, word for word (spec 038).
+MISSING_BASE_DETAIL = "Missing query parameter 'a': name the older version this comparison is from."
+
+#: The reads that compare two versions: they name the older one as ``a`` as well.
+COMPARE_PATH_PREFIX = "/api/v1/compare"
+
 #: The pause the 503 asks a client to honour, in seconds.
 RETRY_AFTER_SECONDS = 5
 
 _CURRENT_ENTRY: ContextVar[GraphEntry | None] = ContextVar("maxitor_graph_entry", default=None)
+_BASE_ENTRY: ContextVar[GraphEntry | None] = ContextVar("maxitor_base_graph_entry", default=None)
 
 
 def current_graph_entry() -> GraphEntry | None:
@@ -101,13 +114,26 @@ def current_graph_entry() -> GraphEntry | None:
     return _CURRENT_ENTRY.get()
 
 
+def current_base_entry() -> GraphEntry | None:
+    """Return the older version's entry bound to the current comparison read, or ``None`` outside one."""
+    return _BASE_ENTRY.get()
+
+
+def current_pair() -> tuple[GraphEntry, GraphEntry] | None:
+    """The two versions the current comparison read names, A then B, or ``None`` outside one."""
+    base, entry = _BASE_ENTRY.get(), _CURRENT_ENTRY.get()
+    return (base, entry) if base is not None and entry is not None else None
+
+
 @contextmanager
-def bound_graph_entry(entry: GraphEntry) -> Iterator[GraphEntry]:
-    """Bind ``entry`` to the current context for the duration of the block, then restore it."""
+def bound_graph_entry(entry: GraphEntry, base: GraphEntry | None = None) -> Iterator[GraphEntry]:
+    """Bind ``entry`` — and, for a comparison, ``base`` — to the current context for the block, then restore them."""
     token = _CURRENT_ENTRY.set(entry)
+    base_token = _BASE_ENTRY.set(base)
     try:
         yield entry
     finally:
+        _BASE_ENTRY.reset(base_token)
         _CURRENT_ENTRY.reset(token)
 
 
@@ -133,32 +159,48 @@ class GraphSourceMiddleware:
             await self._app(scope, receive, send)
             return
 
-        source = _source_of(scope)
+        source = _query_of(scope, "source")
         if not source:
             await _refuse(send, 400, MISSING_SOURCE_DETAIL)
             return
 
-        key = ""
-        if parse_version_source(source) is not None:
-            key = _history_key_of(scope)
-            refusal = await _version_refusal(scope, source, key)
-            if refusal is not None:
-                status, detail = refusal
-                await _refuse(send, status, detail, retry_after=RETRY_AFTER_SECONDS if status == 503 else None)
+        base: GraphEntry | None = None
+        if str(scope.get("path", "")).startswith(COMPARE_PATH_PREFIX):
+            older = _query_of(scope, "a")
+            if not older:
+                await _refuse(send, 400, MISSING_BASE_DETAIL)
+                return
+            base = await _guarded(scope, send, older)
+            if base is None:
                 return
 
-        store = scope["app"].state.graph_store
-        try:
-            entry = await store.acquire(source, key)
-        except GraphStoreBusyError:
-            await _refuse(send, 503, BUSY_DETAIL, retry_after=RETRY_AFTER_SECONDS)
-            return
-        except GraphBuildError as exc:
-            await _refuse(send, 422, exc.reason)
+        entry = await _guarded(scope, send, source)
+        if entry is None:
             return
 
-        with bound_graph_entry(entry):
+        with bound_graph_entry(entry, base):
             await self._app(scope, receive, send)
+
+
+async def _guarded(scope: Scope, send: Send, source: str) -> GraphEntry | None:
+    """The built entry of ``source`` once a version's reader is let in; ``None`` after answering the refusal."""
+    key = ""
+    if parse_version_source(source) is not None:
+        key = _history_key_of(scope)
+        refusal = await _version_refusal(scope, source, key)
+        if refusal is not None:
+            status, detail = refusal
+            await _refuse(send, status, detail, retry_after=RETRY_AFTER_SECONDS if status == 503 else None)
+            return None
+
+    store = scope["app"].state.graph_store
+    try:
+        return cast(GraphEntry, await store.acquire(source, key))
+    except GraphStoreBusyError:
+        await _refuse(send, 503, BUSY_DETAIL, retry_after=RETRY_AFTER_SECONDS)
+    except GraphBuildError as exc:
+        await _refuse(send, 422, exc.reason)
+    return None
 
 
 def _history_key_of(scope: Scope) -> str:
@@ -193,10 +235,10 @@ def _is_graph_read(scope: Scope) -> bool:
     return path == "/api/sidebar" or path.startswith("/api/v1/")
 
 
-def _source_of(scope: Scope) -> str:
-    """Return the ``source`` query parameter, decoded and stripped, or an empty string."""
+def _query_of(scope: Scope, name: str) -> str:
+    """Return the query parameter ``name``, decoded and stripped, or an empty string."""
     raw = scope.get("query_string", b"")
-    return (dict(parse_qsl(raw.decode("latin-1"))).get("source") or "").strip()
+    return (dict(parse_qsl(raw.decode("latin-1"))).get(name) or "").strip()
 
 
 async def _refuse(send: Send, status: int, detail: str, *, retry_after: int | None = None) -> None:
