@@ -223,7 +223,21 @@ def _panels(value: Any) -> dict[str, Any] | None:
     versions = value.get("versions", False)
     if not isinstance(versions, bool):
         return None
-    return {"sidebar": list(sidebar), "filter": section, "legend": legend, "versions": versions}
+    # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
+    track = value.get("track")
+    if track is not None and not _track(track):
+        return None
+    return {"sidebar": list(sidebar), "filter": section, "legend": legend, "versions": versions, "track": track}
+
+
+def _track(value: Any) -> bool:
+    """Whether ``value`` is a track: ``a`` and ``b`` short texts or ``null``, and an ``offset`` number."""
+    return (
+        isinstance(value, dict)
+        and set(value) == {"a", "b", "offset"}
+        and all(value[end] is None or _short_text(value[end]) for end in ("a", "b"))
+        and _is_number(value["offset"])
+    )
 
 
 def focus_values(message: Mapping[str, Any]) -> dict[str, Any] | None:

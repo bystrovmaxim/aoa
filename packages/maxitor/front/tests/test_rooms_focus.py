@@ -35,7 +35,7 @@ from tests.test_rooms_server import _ALL_DOMAINS, _FULL_GRAPH, _connect, _expect
 
 __all__ = ["client", "source"]
 
-_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False}
+_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None}
 _FOCUS: dict[str, Any] = {
     "type": "focus",
     "page": _FULL_GRAPH,
@@ -59,6 +59,10 @@ _FOCUS: dict[str, Any] = {
         ({"panels": {**_PANELS, "legend": "yes"}}, False),
         ({"panels": {**_PANELS, "versions": True}}, True),
         ({"panels": {**_PANELS, "versions": "open"}}, False),
+        ({"panels": {**_PANELS, "versions": True, "track": {"a": "abc123", "b": "live", "offset": 120.5}}}, True),
+        ({"panels": {**_PANELS, "track": {"a": None, "b": None, "offset": 0}}}, True),
+        ({"panels": {**_PANELS, "track": {"a": "x" * 513, "b": "live", "offset": 0}}}, False),
+        ({"panels": {**_PANELS, "track": {"a": "abc", "b": "live"}}}, False),
         ({"selection": {"kind": "row", "id": "Orders:id"}}, True),
     ],
 )
@@ -123,7 +127,7 @@ def test_a_new_follower_gets_the_last_focus_at_once(client: TestClient, source: 
 
 def test_an_older_client_s_panels_say_the_version_picker_is_closed() -> None:
     """A focus without ``versions`` still passes, with the picker closed (spec 038)."""
-    older = {key: value for key, value in _PANELS.items() if key != "versions"}
+    older = {key: value for key, value in _PANELS.items() if key not in ("versions", "track")}
     values = focus_values({**_FOCUS, "panels": older})
     assert values is not None and values["panels"]["versions"] is False
 

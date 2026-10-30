@@ -5,7 +5,7 @@ import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
-import { reportHover, useMirroredFocus } from "@/rooms/focusStore";
+import { reportHover, reportPanels, useMirroredFocus } from "@/rooms/focusStore";
 import { homeEnd, moveTo, shiftBoth, shiftBy, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
@@ -199,7 +199,11 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const maxOffset = Math.max(0, length - width);
   // While a handle is dragged, the range it would leave is drawn; it is picked when the handle is let go.
   const [preview, setPreview] = useState<Range | null>(null);
-  const shownRange = range ? (preview ?? range) : null;
+  // A follower draws the range the person they follow is dragging, and scrolls the track as they do (spec 038).
+  const mirrored = useMirroredFocus();
+  const followedTrack = mirrored?.panels.track ?? null;
+  const followedPreview = followedTrack?.a && followedTrack.b ? { a: followedTrack.a, b: followedTrack.b } : null;
+  const shownRange = range ? ((mirrored ? followedPreview : preview) ?? range) : null;
   const pointOf = (b: string | null) => points.find((point) => point.b === b) ?? null;
   const index = points.findIndex((point) => point.b === (shownRange ? shownRange.b : value));
   const chosen = index >= 0 ? points[index] : null;
@@ -221,7 +225,6 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const scrolling = useRef(false);
   const settle = useRef(0);
   // A follower sees the tooltip of the version the person they follow has under the pointer (spec 038).
-  const mirrored = useMirroredFocus();
   const hovered = mirrored ? (mirrored.hover?.kind === "version" ? mirrored.hover.id : null) : (tip?.b ?? null);
   const ownTip = tip?.b ?? null;
   const reported = useRef(false);
@@ -234,9 +237,19 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   useEffect(
     () => () => {
       if (reported.current) reportHover(null);
+      reportPanels({ track: null });
     },
     [],
   );
+  // The range being dragged and the scroll go to the people who follow; theirs come back as ``followedTrack``.
+  useEffect(() => {
+    if (mirrored) return;
+    reportPanels({ track: { a: preview?.a ?? null, b: preview?.b ?? null, offset: Math.round(offset) } });
+  }, [preview, offset, mirrored]);
+  const followedOffset = followedTrack?.offset ?? null;
+  useEffect(() => {
+    if (followedOffset !== null && scroller.current) scroller.current.scrollLeft = followedOffset;
+  }, [followedOffset]);
 
   const scrollTo = (x: number, smooth = true) => scroller.current?.scrollTo({ left: clamp(x - width / 2, 0, maxOffset), behavior: smooth ? "smooth" : "auto" });
 
