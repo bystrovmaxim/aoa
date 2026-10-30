@@ -526,6 +526,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
     );
   };
 
+  const inDiffDrawing = (entities ?? []).some((entity) => entity.diff !== undefined);
   for (const group of groups) {
     const members = group.members
       .map((id) => entityById.get(id))
@@ -535,9 +536,8 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       `  subgraph "cluster_${group.group_id}" {`,
       `    label="${escHtml(group.label)}";`,
       // See-through but half a tone darker than the canvas, with an outline one point wider than before.
-      '    style="rounded,dashed,filled";',
-      '    fillcolor="#0f172a0d";',
-      '    penwidth=2;',
+      // In Diff no fill at all and an outline a point wider, so the container does not stand out among the faded tables.
+      ...(inDiffDrawing ? ['    style="rounded,dashed";', "    penwidth=3;"] : ['    style="rounded,dashed,filled";', '    fillcolor="#0f172a0d";', "    penwidth=2;"]),
       '    color="#94a3b8";',
       '    fontsize=10;',
       '    margin=12;',
