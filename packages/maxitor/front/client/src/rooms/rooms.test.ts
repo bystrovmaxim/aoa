@@ -7,7 +7,7 @@ import { closeSentence, isFinalClose } from "@/rooms/closeCodes";
 import { RECONNECT_DELAYS, RoomConnection, type ConnectionState } from "@/rooms/connection";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import type { Participant, ServerEvent, WelcomeEvent } from "@/rooms/protocol";
-import { followerCount, reduceRoom, youFirst, type RoomState } from "@/rooms/roomStore";
+import { followerCount, followerNames, reduceRoom, youFirst, type RoomState } from "@/rooms/roomStore";
 import { currentPointers } from "@/rooms/pointerStore";
 import { nameIsValid, useRoomSession } from "@/rooms/useRoomSession";
 
@@ -75,6 +75,14 @@ describe("the room store", () => {
     );
     expect(followerCount(state, "boris")).toBe(1);
     expect(state.notices.at(-1)?.text).toBe("they already follow you, directly or through others");
+  });
+
+  it("names those who follow someone directly, in the order they joined — not who follows them in turn", () => {
+    const state = run(welcome, { type: "follows", follows: { anna: "boris", boris: null } });
+    const vera = { ...state.participants[0], id: "vera", name: "Vera" };
+    const chain = { ...state, participants: [...state.participants, vera], follows: { ...state.follows, vera: "anna" } };
+    expect(followerNames(state, "boris")).toEqual([state.participants.find((p) => p.id === "anna")!.name]);
+    expect(followerNames(chain, "boris")).toEqual(followerNames(state, "boris"));
   });
 
   it("counts every rebuild of the room's graph", () => {
