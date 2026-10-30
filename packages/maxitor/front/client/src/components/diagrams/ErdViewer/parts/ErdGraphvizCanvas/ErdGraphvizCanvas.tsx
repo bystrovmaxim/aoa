@@ -28,6 +28,7 @@ import {
   ERD_KIND_PAINT_PALETTE,
   setErdPaint,
   erdDiffMarks,
+  erdGlance,
   erdGraphvizEngine,
   type ErdEntity,
   type ErdGraphPayload,
@@ -467,8 +468,12 @@ export function ErdGraphvizCanvas({
   // One grey for every disk that does not paint: the domains' light grey.
   const IDLE_DISK = "#cbd5e1";
   const changesGrey = choosing && paintSection !== "changes";
-  const changeRows: ErdFilterRow[] = bundle.diff
-    ? (["added", "removed", "changed", "unchanged"] as const).map((status) => ({
+  // The Changes section lists only the kinds of change the diagram has before any filter — none when nothing on it
+  // changed, as the domain and kind sections list only what the diagram has.
+  const presentChanges = new Set(beforeKinds.entities.filter((entity) => entity.diff !== undefined).map(erdGlance));
+  const anyChange = [...presentChanges].some((status) => status !== "unchanged");
+  const changeRows: ErdFilterRow[] = bundle.diff && anyChange
+    ? (["added", "removed", "changed", "unchanged"] as const).filter((status) => presentChanges.has(status)).map((status) => ({
         key: status,
         label: status.charAt(0).toUpperCase() + status.slice(1),
         iconSrc: statusDiskUri(status === "unchanged" || changesGrey ? IDLE_DISK : ERD_DIFF_COLOUR[status], status === "unchanged" ? "" : ERD_DIFF_SIGN[status]),
