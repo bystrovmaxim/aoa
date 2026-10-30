@@ -18,6 +18,8 @@ export type ErdFilterRow = {
   label: string;
   iconSrc: string;
   on: boolean;
+  /** Nothing of it is on screen under the other filters: its name is dimmed; whether it is on stays the user's. */
+  absent?: boolean;
 };
 
 export type ErdFilterPanelProps = {
@@ -98,13 +100,15 @@ export function GearShift({ sections, source, onPaint }: { sections: readonly Pa
 /** The panel's fixed width: the production Domains legend measured 148 CSS px; labels cut, never widen it. */
 export const ERD_FILTER_PANEL_WIDTH = 148;
 const ROW_OFF_OPACITY = 0.42;
+/** A row's name when nothing of it is on screen. */
+const ABSENT_LABEL_OPACITY = 0.4;
 // The panel stops above the zoom toolbar: its top inset (12) + the toolbar's bottom offset (10) +
 // its height (30 px buttons, 44 px on touch, plus 2 px padding each side) + 12 px of air.
 const ROOM_BELOW_DESKTOP = 12 + 10 + 34 + 12;
 const ROOM_BELOW_TOUCH = 12 + 10 + 48 + 12;
 
 /** A label that is cut with an ellipsis and shows its full text in a tooltip only when it was cut. */
-function RowLabel({ text }: { text: string }) {
+function RowLabel({ text, absent = false }: { text: string; absent?: boolean }) {
   const ref = useRef<HTMLSpanElement | null>(null);
   const [cut, setCut] = useState(false);
   return (
@@ -119,7 +123,7 @@ function RowLabel({ text }: { text: string }) {
           const el = ref.current;
           setCut(el !== null && el.scrollWidth > el.clientWidth);
         }}
-        sx={{ ...legendRowLabelSx, minWidth: 0, display: "block" }}
+        sx={{ ...legendRowLabelSx, minWidth: 0, display: "block", opacity: absent ? ABSENT_LABEL_OPACITY : 1, transition: "opacity 120ms ease" }}
       >
         {text}
       </Typography>
@@ -154,7 +158,7 @@ function FilterRow({ row, onToggle }: { row: ErdFilterRow; onToggle: (key: strin
       }}
     >
       <Box component="img" src={row.iconSrc} width={20} height={20} alt="" sx={legendDiskImgSx} />
-      <RowLabel text={row.label} />
+      <RowLabel text={row.label} absent={row.absent} />
     </Box>
   );
 }
