@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { layOut } from "@/components/history/VersionTrack/VersionTrack";
-import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, shiftBoth, stepHandle, trackKeys, type Range } from "./versionRange";
+import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, shiftBoth, shiftBy, stepHandle, trackKeys, type Range } from "./versionRange";
 
 const P = ["v1", "v2", "v3", "v4", "live"];
 
@@ -95,6 +95,14 @@ describe("the keys", () => {
     expect(shiftBoth(P, range, 1)).toEqual({ a: "v3", b: "v4" });
     expect(shiftBoth(P, { a: "v4", b: "live" }, 1)).toEqual({ a: "v4", b: "live" });
     expect(shiftBoth(P, { a: "v1", b: "v3" }, -1)).toEqual({ a: "v1", b: "v3" });
+  });
+
+  it("the whole range dragged keeps its width and stops at the ends, so Live stays B", () => {
+    expect(shiftBy(P, { a: "v1", b: "v2" }, 2)).toEqual({ a: "v3", b: "v4" });
+    expect(shiftBy(P, { a: "v2", b: "v4" }, 5)).toEqual({ a: "v3", b: "live" });
+    expect(shiftBy(P, { a: "v3", b: "live" }, -9)).toEqual({ a: "v1", b: "v3" });
+    const same: Range = { a: "v2", b: "v3" };
+    expect(shiftBy(P, same, 0)).toBe(same);
   });
 
   it("Home and End take the focused handle to the ends", () => {

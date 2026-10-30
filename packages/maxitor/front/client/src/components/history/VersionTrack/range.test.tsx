@@ -49,6 +49,19 @@ describe("two handles on one track", () => {
     expect(onRange).toHaveBeenCalledWith({ a: id(1), b: id(2) });
   });
 
+  it("drag the whole range by the stretch between them, keeping its width, stopping at the end of the track", () => {
+    const { x, onRange } = track({ a: id(1), b: id(2) });
+    const grip = screen.getByTestId("range-grip");
+    fireEvent.pointerDown(grip, { clientX: x(id(1)) + 10, pointerId: 1 });
+    fireEvent.pointerMove(grip, { clientX: x(id(3)) + 10, pointerId: 1 });
+    fireEvent.pointerUp(grip, { clientX: x(id(3)) + 10, pointerId: 1 });
+    expect(onRange).toHaveBeenLastCalledWith({ a: id(3), b: id(4) });
+    fireEvent.pointerDown(grip, { clientX: x(id(1)) + 10, pointerId: 1 });
+    fireEvent.pointerMove(grip, { clientX: x("live"), pointerId: 1 });
+    fireEvent.pointerUp(grip, { clientX: x("live"), pointerId: 1 });
+    expect(onRange).toHaveBeenLastCalledWith({ a: id(4), b: "live" });
+  });
+
   it("make Live only B", () => {
     const { a, x, onRange } = track({ a: id(3), b: id(4) });
     fireEvent.pointerDown(a(), { clientX: x(id(3)), pointerId: 1 });

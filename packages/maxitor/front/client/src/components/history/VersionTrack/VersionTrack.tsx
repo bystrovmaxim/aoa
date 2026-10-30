@@ -5,7 +5,7 @@ import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
-import { homeEnd, moveTo, shiftBoth, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
+import { homeEnd, moveTo, shiftBoth, shiftBy, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
 import { thinLabels } from "./thinLabels";
@@ -207,6 +207,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const [offset, setOffset] = useState(() => openingOffset(chosen, older, width, maxOffset));
   const drag = useRef<{ x: number; left: number; moved: boolean; pointer: number } | null>(null);
   const handleDrag = useRef<{ side: Side; start: Range; lastX: number; direction: number; moved: Moved | null } | null>(null);
+  /** The whole range being dragged by its stretch: where it started, the point under the pointer then, where it is now. */
+  const stretchDrag = useRef<{ start: Range; from: number; moved: Range | null } | null>(null);
   const handles = useRef<Record<Side, SVGGElement | null>>({ a: null, b: null });
   const [focusSide, setFocusSide] = useState<Side | null>(null);
   const frame = useRef(0);
@@ -390,6 +392,31 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     if (current.moved) pickRange(current.moved.range, current.moved.side);
   }
 
+  // The stretch between A and B drags the whole range: both handles move by the points the pointer crossed.
+  function onStretchDown(event: PointerEvent<SVGLineElement>) {
+    if (!range) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    stretchDrag.current = { start: range, from: nearestAt(event.clientX), moved: null };
+    setTip(null);
+  }
+
+  function onStretchMove(event: PointerEvent<SVGLineElement>) {
+    const current = stretchDrag.current;
+    if (!current) return;
+    const moved = shiftBy(keys, current.start, nearestAt(event.clientX) - current.from);
+    current.moved = moved === current.start ? null : moved;
+    setPreview(current.moved);
+  }
+
+  function onStretchUp() {
+    const current = stretchDrag.current;
+    stretchDrag.current = null;
+    if (!current) return;
+    setPreview(null);
+    if (current.moved) pickRange(current.moved, null);
+  }
+
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (!range) event.currentTarget.focus();
     if (event.pointerType !== "mouse") return; // a finger scrolls natively
@@ -468,6 +495,24 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
         ))}
         {/* In Diff the stretch between A and B is dark. */}
         {older && chosen && <line data-testid="range-stretch" x1={older.x} y1={AXIS_Y} x2={chosen.x} y2={AXIS_Y} stroke={INK} strokeWidth={3} strokeLinecap="round" style={{ pointerEvents: "none" }} />}
+        {older && chosen && onRange && (
+          // A wide, invisible grip over the stretch: dragging it moves the whole range.
+          <line
+            data-testid="range-grip"
+            aria-hidden
+            x1={older.x}
+            y1={AXIS_Y}
+            x2={chosen.x}
+            y2={AXIS_Y}
+            stroke="transparent"
+            strokeWidth={hitRadius}
+            style={{ cursor: stretchDrag.current ? "grabbing" : "grab" }}
+            onPointerDown={onStretchDown}
+            onPointerMove={onStretchMove}
+            onPointerUp={onStretchUp}
+            onPointerCancel={onStretchUp}
+          />
+        )}
         {points.map((point) => (
           <g
             key={point.b}
