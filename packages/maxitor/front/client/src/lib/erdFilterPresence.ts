@@ -7,7 +7,8 @@
  */
 
 import { erdGlance, type ErdDiff, type ErdEntity } from "@/lib/buildDotSource";
-import { entityKindOf } from "@/lib/erdKindFilter";
+import type { ErdGraphPayload } from "@/lib/buildDotSource";
+import { entityKindOf, pruneGraphToEntities } from "@/lib/erdKindFilter";
 
 /** The kinds of change, in the order the filter lists them. */
 export const CHANGE_ORDER: readonly ErdDiff[] = ["added", "removed", "changed", "unchanged"];
@@ -19,12 +20,31 @@ export function changesOnDiagram(entities: readonly ErdEntity[]): ErdDiff[] {
   return CHANGE_ORDER.filter((status) => present.has(status));
 }
 
-/** What the screen shows of each filter: the tables drawn, less those of a kind of change switched off. */
+/** Hide the tables of the kinds of change switched off — as a domain or a kind switched off hides its tables. */
+export function filterGraphByChanges(data: ErdGraphPayload, offChanges: ReadonlySet<string>): ErdGraphPayload {
+  if (offChanges.size === 0) return data;
+  return pruneGraphToEntities(data, (entity) => entity.diff === undefined || !offChanges.has(erdGlance(entity)));
+}
+
+/**
+ * 1-hop over the filters: the tables the filters left, and every table of the base one line away from them — even one
+ * a filter hid —, with the lines and containers between them.
+ */
+export function withOneHop(kept: ErdGraphPayload, base: ErdGraphPayload): ErdGraphPayload {
+  const ids = new Set(kept.entities.map((entity) => entity.id));
+  const reach = new Set(ids);
+  for (const relation of base.relations ?? []) {
+    if (ids.has(relation.source)) reach.add(relation.target);
+    if (ids.has(relation.target)) reach.add(relation.source);
+  }
+  return pruneGraphToEntities(base, (entity) => reach.has(entity.id));
+}
+
+/** What the screen shows of each filter. */
 export type OnScreen = { ids: ReadonlySet<string>; domains: ReadonlySet<string | null>; kinds: ReadonlySet<string>; changes: ReadonlySet<ErdDiff> };
 
-/** ``drawn`` — the tables left by the domain and kind filters, 1-hop neighbours included — read as each filter sees it. */
-export function onScreen(drawn: readonly ErdEntity[], offChanges: ReadonlySet<string>, domainOf: (entity: ErdEntity) => string | null): OnScreen {
-  const shown = drawn.filter((entity) => !(entity.diff !== undefined && offChanges.has(erdGlance(entity))));
+/** ``shown`` — the tables every filter left, 1-hop neighbours included — read as each filter sees it. */
+export function onScreen(shown: readonly ErdEntity[], domainOf: (entity: ErdEntity) => string | null): OnScreen {
   return {
     ids: new Set(shown.map((entity) => entity.id)),
     domains: new Set(shown.map(domainOf)),

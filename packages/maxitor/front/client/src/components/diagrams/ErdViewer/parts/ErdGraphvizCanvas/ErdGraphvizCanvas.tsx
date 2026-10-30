@@ -38,7 +38,7 @@ import {
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
-import { changesOnDiagram, onScreen } from "@/lib/erdFilterPresence";
+import { changesOnDiagram, filterGraphByChanges, onScreen, withOneHop } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
@@ -255,10 +255,21 @@ export function ErdGraphvizCanvas({
   }, [multiTab, mergedByTabs, enabledEntityQualifiers, fallbackQual]);
 
   // A table is on screen only when its domain (or qualifier) and its kind are both on.
-  const mergedData = useMemo(() => filterGraphByKinds(beforeKinds, disabledKinds), [beforeKinds, disabledKinds]);
+  // A kind of change switched off hides its tables like any other filter (spec 038).
+  const [offChangeList, setOffChangeList] = usePageSetting<string[]>("disabled_changes", []);
+  const offChanges = useMemo(() => new Set(offChangeList), [offChangeList]);
   // The diagram's base: every table of the drawing that is open, before any filter. The filter rows come from it,
   // so a filter never adds or removes another filter's rows (spec 038).
-  const baseEntities = useMemo(() => getMergedFromDomains(enriched, new Set(domainKeyList)).entities ?? [], [enriched, domainKeyList]);
+  const baseGraph = useMemo(() => getMergedFromDomains(enriched, new Set(domainKeyList)), [enriched, domainKeyList]);
+  const baseEntities = baseGraph.entities ?? [];
+  // The open domains' own tables, filtered; 1-hop then brings back the base's tables one line away from those left —
+  // the neighbours from other domains, and any table a filter hid.
+  const openQuals = useMemo(() => new Set(Object.values(bundle.domain_qualifiers).map((qual) => qual.trim())), [bundle.domain_qualifiers]);
+  const mergedData = useMemo(() => {
+    const filtered = filterGraphByChanges(filterGraphByKinds(beforeKinds, disabledKinds), offChanges);
+    const own = pruneGraphToEntities(filtered, (entity) => openQuals.has(readEntityQual(entity) ?? fallbackQual ?? ""));
+    return includeOneHop ? withOneHop(own, baseGraph) : own;
+  }, [beforeKinds, disabledKinds, offChanges, includeOneHop, baseGraph, openQuals, fallbackQual]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
@@ -286,12 +297,11 @@ export function ErdGraphvizCanvas({
   const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
   // which filter section paints the headers in Diff, and the kinds of change switched off.
   const { source: paintSection } = useErdPaint();
-  const [offChanges, setOffChanges] = useState<ReadonlySet<string>>(new Set());
   const kindPaint = useMemo(
     () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
     [bundle.entity_kinds, baseEntities],
   );
-  const paintKey = `${paintSection}|${[...offChanges].sort().join(",")}|${JSON.stringify(kindPaint)}`;
+  const paintKey = `${paintSection}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
   useEffect(() => () => setDiffCounts(null), []);
 
@@ -325,7 +335,7 @@ export function ErdGraphvizCanvas({
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities, offChanges)), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
@@ -472,7 +482,7 @@ export function ErdGraphvizCanvas({
   const IDLE_DISK = "#cbd5e1";
   const changesGrey = choosing && paintSection !== "changes";
   // The rows come from the base; a row with nothing of it on screen is dimmed, never switched on or off for it.
-  const shown = onScreen(mergedData.entities, offChanges, (entity) => readEntityQual(entity) ?? fallbackQual);
+  const shown = onScreen(mergedData.entities, (entity) => readEntityQual(entity) ?? fallbackQual);
   // A domain is on screen by its own tables: a slice also carries its 1-hop neighbours from other domains.
   const tabShown = (key: string) => shown.domains.has(bundle.domain_qualifiers[key]?.trim() || null);
   const changeRows: ErdFilterRow[] = bundle.diff
@@ -488,7 +498,7 @@ export function ErdGraphvizCanvas({
     const next = new Set(offChanges);
     if (next.has(status)) next.delete(status);
     else next.add(status);
-    setOffChanges(next);
+    setOffChangeList([...next].sort());
   };
 
   const domainRows: ErdFilterRow[] = multiTab

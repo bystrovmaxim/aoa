@@ -86,6 +86,7 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
         "domains": _strings,
         "disabled_entities": _strings,
         "disabled_kinds": _strings,
+        "disabled_changes": _strings,
         "one_hop": _boolean,
     },
     "use-case": {

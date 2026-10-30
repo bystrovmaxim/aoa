@@ -435,7 +435,7 @@ export const ERD_FADED_OPACITY = 0.32;
 export const ERD_REMOVED_DASH = "5 3";
 
 /** What Diff adds to the cards, by table id: the tables to fade and those whose frame is dashed. */
-export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string>; halo?: ReadonlyMap<string, string>; dimmed?: ReadonlySet<string> };
+export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string>; halo?: ReadonlyMap<string, string> };
 
 /** One node's markup drawn as the designed card, or as it was when it is not a card. */
 function drawCard(node: string, radius: number, stroke: number, dashed = false): string {
@@ -484,8 +484,7 @@ export function drawErdCards(svg: string, radius: number, stroke: number, marks?
     const node = svg.slice(start, end);
     const table = marks ? titleOf(node) : "";
     let drawn = drawCard(node, radius, stroke, marks?.dashed.has(table) ?? false);
-    const opacity = marks?.dimmed?.has(table) ? 0.08 : marks?.faded.has(table) ? ERD_FADED_OPACITY : null;
-    if (opacity !== null) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${opacity}"`);
+    if (marks?.faded.has(table)) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${ERD_FADED_OPACITY}"`);
     // a soft halo in the status colour under a table that changed, drawn first so the card stands on it.
     const haloColour = marks?.halo?.get(table);
     const card = haloColour ? /<rect fill="white" stroke="none" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/.exec(drawn) : null;

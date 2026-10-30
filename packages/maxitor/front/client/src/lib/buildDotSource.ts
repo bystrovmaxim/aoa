@@ -117,25 +117,19 @@ function markOf(diff: ErdDiff | undefined): Exclude<ErdDiff, "unchanged"> | null
  * What the SVG post-pass draws for Diff, by table id: the tables to fade — unchanged, with no marked row — and the
  * removed ones, whose frame is dashed. Empty while one version is drawn.
  */
-export function erdDiffMarks(
-  entities: readonly ErdEntity[],
-  offChanges: ReadonlySet<string> = new Set(),
-): { faded: Set<string>; dashed: Set<string>; halo: Map<string, string>; dimmed: Set<string> } {
+export function erdDiffMarks(entities: readonly ErdEntity[]): { faded: Set<string>; dashed: Set<string>; halo: Map<string, string> } {
   const faded = new Set<string>();
   const dashed = new Set<string>();
   const halo = new Map<string, string>();
-  const dimmed = new Set<string>();
   for (const entity of entities) {
     if (entity.diff === undefined) continue;
     if (entity.diff === "removed") dashed.add(entity.id);
     // only painted by change are the tables that did not change faded; by domains or kinds they stay as drawn.
     if (paintByChange() && erdGlance(entity) === "unchanged") faded.add(entity.id);
-    // a table whose kind of change is switched off in the filter is dimmed, like a domain switched off.
-    if (offChanges.has(erdGlance(entity))) dimmed.add(entity.id);
     // a halo under a table that changed — its own status, else amber for a table whose rows changed.
-    else if (erdGlance(entity) !== "unchanged") halo.set(entity.id, ERD_DIFF_COLOUR[markOf(entity.diff) ?? "changed"]);
+    if (erdGlance(entity) !== "unchanged") halo.set(entity.id, ERD_DIFF_COLOUR[markOf(entity.diff) ?? "changed"]);
   }
-  return { faded, dashed, halo, dimmed };
+  return { faded, dashed, halo };
 }
 
 /**

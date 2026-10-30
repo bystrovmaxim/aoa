@@ -1,7 +1,7 @@
 // src/lib/erdFilterPresence.test.ts
 import { describe, expect, it } from "vitest";
-import type { ErdDiff, ErdEntity } from "@/lib/buildDotSource";
-import { changesOnDiagram, onScreen } from "./erdFilterPresence";
+import type { ErdDiff, ErdEntity, ErdGraphPayload } from "@/lib/buildDotSource";
+import { changesOnDiagram, filterGraphByChanges, onScreen, withOneHop } from "./erdFilterPresence";
 
 const table = (id: string, domain: string, kind: string, diff?: ErdDiff, rowDiff?: ErdDiff): ErdEntity =>
   ({ id, label: id, domain_qualname: domain, entity_kind: kind, diff, fields: [{ name: "id", type: "str", diff: rowDiff }] }) as unknown as ErdEntity;
@@ -22,19 +22,29 @@ describe("the Changes rows of a diagram (its base)", () => {
 });
 
 describe("what the screen shows of each filter", () => {
-  const drawn = [table("w", "inventory", "core", "added"), table("n", "catalog", "detail", "unchanged")];
-
-  it("is every domain, kind and change of the tables drawn — a 1-hop neighbour counts like any table", () => {
-    const shown = onScreen(drawn, new Set(), domainOf);
+  it("is every domain, kind and change of the tables shown — a 1-hop neighbour counts like any table, for its own domain", () => {
+    const shown = onScreen([table("w", "inventory", "core", "added"), table("n", "catalog", "detail", "unchanged")], domainOf);
     expect([...shown.domains].sort()).toEqual(["catalog", "inventory"]);
     expect([...shown.kinds].sort()).toEqual(["core", "detail"]);
     expect([...shown.changes].sort()).toEqual(["added", "unchanged"]);
   });
+});
 
-  it("leaves out the tables of a kind of change switched off, and with them their domain and kind", () => {
-    const shown = onScreen(drawn, new Set(["unchanged"]), domainOf);
-    expect([...shown.ids]).toEqual(["w"]);
-    expect([...shown.domains]).toEqual(["inventory"]);
-    expect([...shown.kinds]).toEqual(["core"]);
+describe("a kind of change switched off", () => {
+  const graph = {
+    entities: [table("New", "d", "core", "added"), table("Same", "d", "core", "unchanged"), table("Far", "d", "core", "unchanged")],
+    relations: [{ source: "New", target: "Same" }, { source: "Same", target: "Far" }],
+  } as unknown as ErdGraphPayload;
+
+  it("hides its tables and their lines, as a domain or a kind switched off does", () => {
+    const kept = filterGraphByChanges(graph, new Set(["unchanged"]));
+    expect(kept.entities.map((entity) => entity.id)).toEqual(["New"]);
+    expect(kept.relations).toEqual([]);
+  });
+
+  it("is brought back by 1-hop one line away from the tables left — and no further", () => {
+    const shown = withOneHop(filterGraphByChanges(graph, new Set(["unchanged"])), graph);
+    expect(shown.entities.map((entity) => entity.id)).toEqual(["New", "Same"]);
+    expect(shown.relations).toEqual([{ source: "New", target: "Same" }]);
   });
 });
