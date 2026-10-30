@@ -14,6 +14,7 @@ import { enabledKeys } from "@/lib/freshGraph";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
+import { setPaintSections, setPaintSource, useErdPaint, type PaintSection } from "@/lib/erdPaint";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
@@ -22,6 +23,10 @@ import {
   buildErdDot,
   ERD_CARD_RADIUS,
   ERD_CARD_STROKE,
+  ERD_DIFF_COLOUR,
+  ERD_DIFF_SIGN,
+  ERD_KIND_PAINT_PALETTE,
+  setErdPaint,
   erdDiffMarks,
   erdGraphvizEngine,
   type ErdEntity,
@@ -275,6 +280,14 @@ export function ErdGraphvizCanvas({
   useEffect(() => setDiffCounts(counts), [counts]);
   // A click on a marked table or row opens its card (spec 038, FR-028).
   const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
+  // which filter section paints the headers in Diff, and the kinds of change switched off.
+  const { source: paintSection } = useErdPaint();
+  const [offChanges, setOffChanges] = useState<ReadonlySet<string>>(new Set());
+  const kindPaint = useMemo(
+    () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
+    [bundle.entity_kinds, beforeKinds.entities],
+  );
+  const paintKey = `${paintSection}|${[...offChanges].sort().join(",")}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
   useEffect(() => () => setDiffCounts(null), []);
 
@@ -302,12 +315,13 @@ export function ErdGraphvizCanvas({
       .then((gv) => {
         if (cancelled) return;
         // Every table of a specialization block as wide as its widest table (spec 029): measured first.
+        setErdPaint(paintSection === "domains" ? "domain" : paintSection === "kinds" ? "kind" : "change", kindPaint);
         const svg = gv.layout(buildErdDot(drawnData, layout, (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", engine);
         if (cancelled) return;
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
-        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities, offChanges)), drawnData.entities, kindGlyphSvg));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
@@ -319,7 +333,8 @@ export function ErdGraphvizCanvas({
     return () => {
       cancelled = true;
     };
-  }, [dot, drawnData, layout, bundleVersion, resetFitFlag]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dot, drawnData, layout, bundleVersion, resetFitFlag, paintKey]);
 
   useLayoutEffect(() => {
     if (!svgMarkup) return;
@@ -446,17 +461,38 @@ export function ErdGraphvizCanvas({
     setDisabledKindList([...next].sort());
   };
 
+  // a section that does not paint shows its disks grey — the colours on screen are one section's.
+  const choosing = true;
+  const domainsGrey = choosing && paintSection !== "domains";
+  // One grey for every disk that does not paint: the domains' light grey.
+  const IDLE_DISK = "#cbd5e1";
+  const changesGrey = choosing && paintSection !== "changes";
+  const changeRows: ErdFilterRow[] = bundle.diff
+    ? (["added", "removed", "changed", "unchanged"] as const).map((status) => ({
+        key: status,
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+        iconSrc: statusDiskUri(status === "unchanged" || changesGrey ? IDLE_DISK : ERD_DIFF_COLOUR[status], status === "unchanged" ? "" : ERD_DIFF_SIGN[status]),
+        on: !offChanges.has(status),
+      }))
+    : [];
+  const toggleChange = (status: string) => {
+    const next = new Set(offChanges);
+    if (next.has(status)) next.delete(status);
+    else next.add(status);
+    setOffChanges(next);
+  };
+
   const domainRows: ErdFilterRow[] = multiTab
     ? domainKeyList.map((key) => ({
         key,
         label: bundle.domain_tab_labels?.[key] ?? key,
-        iconSrc: svgDataUriForInterchangeDomainLegend(tabAccents[key] || "#3b82f6"),
+        iconSrc: svgDataUriForInterchangeDomainLegend(domainsGrey ? "#cbd5e1" : tabAccents[key] || "#3b82f6"),
         on: enabledDomains.has(key),
       }))
     : entityQualList.map((qual) => ({
         key: qual,
         label: qualRowLabels?.[qual] ?? qual,
-        iconSrc: svgDataUriForInterchangeDomainLegend(qualAccents[qual] || "#3b82f6"),
+        iconSrc: svgDataUriForInterchangeDomainLegend(domainsGrey ? "#cbd5e1" : qualAccents[qual] || "#3b82f6"),
         on: enabledEntityQualifiers.has(qual),
       }));
 
@@ -464,9 +500,15 @@ export function ErdGraphvizCanvas({
   const kindRows: ErdFilterRow[] = kindsOnDiagram(bundle.entity_kinds ?? [], beforeKinds.entities).map((row) => ({
     key: row.entity_kind,
     label: row.label,
-    iconSrc: kindLegendDiskUri(row.entity_kind),
+    iconSrc: choosing ? kindLegendDiskUri(row.entity_kind, paintSection === "kinds" ? kindPaint[row.entity_kind] : IDLE_DISK) : kindLegendDiskUri(row.entity_kind),
     on: !disabledKinds.has(row.entity_kind),
   }));
+
+  // the sections this diagram offers to paint by, in the filter's order.
+  const paintSections: PaintSection[] = choosing ? ["domains", ...(kindRows.length > 1 ? (["kinds"] as const) : []), ...(changeRows.length > 0 ? (["changes"] as const) : [])] : [];
+  const paintSectionsKey = paintSections.join();
+  useEffect(() => setPaintSections(paintSectionsKey ? (paintSectionsKey.split(",") as PaintSection[]) : [], Boolean(bundle.diff)), [paintSectionsKey, bundle.diff]);
+  useEffect(() => () => setPaintSections([], false), []);
 
   const toggleEntityQual = (qual: string) => {
     const next = new Set(disabledEntityList);
@@ -498,6 +540,9 @@ export function ErdGraphvizCanvas({
             kindRows={kindRows}
             onToggleDomain={multiTab ? toggleDomain : toggleEntityQual}
             onToggleKind={toggleKind}
+            changeRows={changeRows}
+            onToggleChange={toggleChange}
+            paint={choosing ? { source: paintSection, onPaint: setPaintSource } : null}
           />
         )}
         {erdEmptyOverlay}
@@ -640,4 +685,13 @@ export function ErdGraphvizCanvas({
       </Box>
     </Box>
   );
+}
+
+/** a legend disk for a kind of change — the status colour with its sign in white. */
+function statusDiskUri(fill: string, sign: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${fill}"/>` +
+    (sign ? `<text x="12" y="16.5" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#fff">${sign}</text>` : "") +
+    `</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

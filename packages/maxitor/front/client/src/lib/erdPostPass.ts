@@ -14,7 +14,7 @@
  * drawing check runs this very function in plain Node; the glyph drawing is passed in.
  */
 
-import type { ErdEntity } from "@/lib/buildDotSource";
+import { erdHeadInk, type ErdEntity } from "@/lib/buildDotSource";
 
 /** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
 export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
@@ -106,7 +106,7 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
       remove: 0,
       text:
         `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${iconY.toFixed(2)}) ` +
-        `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, "#ffffff", HEADER_GLYPH_STROKE)}</g>`,
+        `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, erdHeadInk(entity), HEADER_GLYPH_STROKE)}</g>`,
     });
   });
   let out = markup;
@@ -322,10 +322,10 @@ export function focusTables(root: ParentNode, tables: ReadonlySet<string>, lines
   });
 }
 
-/** Every table and line bright again. */
+/** Every table and line as drawn again — a table Diff fades stays faded. */
 export function clearTableFocus(root: ParentNode): void {
   root.querySelectorAll<SVGElement>("g.node, g.edge").forEach((element) => {
-    element.style.opacity = "1";
+    element.style.opacity = "";
   });
 }
 
@@ -435,7 +435,7 @@ export const ERD_FADED_OPACITY = 0.32;
 export const ERD_REMOVED_DASH = "5 3";
 
 /** What Diff adds to the cards, by table id: the tables to fade and those whose frame is dashed. */
-export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string> };
+export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string>; halo?: ReadonlyMap<string, string>; dimmed?: ReadonlySet<string> };
 
 /** One node's markup drawn as the designed card, or as it was when it is not a card. */
 function drawCard(node: string, radius: number, stroke: number, dashed = false): string {
@@ -484,8 +484,19 @@ export function drawErdCards(svg: string, radius: number, stroke: number, marks?
     const node = svg.slice(start, end);
     const table = marks ? titleOf(node) : "";
     let drawn = drawCard(node, radius, stroke, marks?.dashed.has(table) ?? false);
-    if (marks?.faded.has(table)) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${ERD_FADED_OPACITY}"`);
+    const opacity = marks?.dimmed?.has(table) ? 0.08 : marks?.faded.has(table) ? ERD_FADED_OPACITY : null;
+    if (opacity !== null) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${opacity}"`);
+    // a soft halo in the status colour under a table that changed, drawn first so the card stands on it.
+    const haloColour = marks?.halo?.get(table);
+    const card = haloColour ? /<rect fill="white" stroke="none" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/.exec(drawn) : null;
+    if (haloColour && card) {
+      const [x, y, w, h] = card.slice(1).map(Number);
+      const pad = 40;
+      const haloRect = `<rect x="${x - pad}" y="${y - pad}" width="${w + 2 * pad}" height="${h + 2 * pad}" rx="${pad + 6}" fill="${haloColour}" fill-opacity="0.16" filter="url(#erd-halo)"/>`;
+      drawn = drawn.replace(/^(<g id="node\d+" class="node"[^>]*>)/, `$1${haloRect}`);
+    }
     out += drawn + svg.slice(end, next);
   });
-  return out;
+  // the halo's blur, once per drawing.
+  return marks?.halo?.size ? out.replace(/(<svg\b[^>]*>)/, `$1<defs><filter id="erd-halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter></defs>`) : out;
 }

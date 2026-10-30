@@ -87,6 +87,28 @@ export const ERD_FADED_COLOUR = "#94a3b8";
 export const ERD_DIFF_TINT_ALPHA = "24";
 
 /** A status that marks something, or ``null`` for unchanged and for one version. */
+// how Diff paints the ERD — the chosen variant "2 + 3": the body is neutral (grey frame,
+// grey zebra), the filter's gear shift chooses what paints the headers, and a halo lies under every table that changed.
+export type ErdPaintSource = "domain" | "kind" | "change";
+let paintSource: ErdPaintSource = "change";
+let kindColours: Readonly<Record<string, string>> = {};
+/** what paints the headers now, and each kind's colour when kinds do; the canvas sets it before it draws. */
+export function setErdPaint(source: ErdPaintSource, colours: Readonly<Record<string, string>>): void {
+  paintSource = source;
+  kindColours = colours;
+}
+const paintByChange = () => paintSource === "change";
+/** kinds' colours when they paint — mid tones of the whole wheel, like the domains' own. */
+export const ERD_KIND_PAINT_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#a855f7", "#ec4899", "#14b8a6", "#eab308", "#6366f1"];
+/** What a table says at a glance, as the Changes filter sorts it: its own status, else "changed" when a row changed. */
+export function erdGlance(entity: ErdEntity): ErdDiff {
+  return markOf(entity.diff) ?? ((entity.fields ?? []).some((field) => markOf(field.diff)) ? "changed" : "unchanged");
+}
+/** the ink of a header's name and kind glyph — dark on the quiet grey header of a table that did not itself change. */
+export function erdHeadInk(entity: ErdEntity): string {
+  return entity.diff !== undefined && erdGlance(entity) === "unchanged" && paintByChange() ? "#334155" : "#ffffff";
+}
+
 function markOf(diff: ErdDiff | undefined): Exclude<ErdDiff, "unchanged"> | null {
   return diff && diff !== "unchanged" ? diff : null;
 }
@@ -95,15 +117,25 @@ function markOf(diff: ErdDiff | undefined): Exclude<ErdDiff, "unchanged"> | null
  * What the SVG post-pass draws for Diff, by table id: the tables to fade — unchanged, with no marked row — and the
  * removed ones, whose frame is dashed. Empty while one version is drawn.
  */
-export function erdDiffMarks(entities: readonly ErdEntity[]): { faded: Set<string>; dashed: Set<string> } {
+export function erdDiffMarks(
+  entities: readonly ErdEntity[],
+  offChanges: ReadonlySet<string> = new Set(),
+): { faded: Set<string>; dashed: Set<string>; halo: Map<string, string>; dimmed: Set<string> } {
   const faded = new Set<string>();
   const dashed = new Set<string>();
+  const halo = new Map<string, string>();
+  const dimmed = new Set<string>();
   for (const entity of entities) {
     if (entity.diff === undefined) continue;
     if (entity.diff === "removed") dashed.add(entity.id);
-    if (entity.diff === "unchanged" && !(entity.fields ?? []).some((field) => markOf(field.diff))) faded.add(entity.id);
+    // only painted by change are the tables that did not change faded; by domains or kinds they stay as drawn.
+    if (paintByChange() && erdGlance(entity) === "unchanged") faded.add(entity.id);
+    // a table whose kind of change is switched off in the filter is dimmed, like a domain switched off.
+    if (offChanges.has(erdGlance(entity))) dimmed.add(entity.id);
+    // a halo under a table that changed — its own status, else amber for a table whose rows changed.
+    else if (erdGlance(entity) !== "unchanged") halo.set(entity.id, ERD_DIFF_COLOUR[markOf(entity.diff) ?? "changed"]);
   }
-  return { faded, dashed };
+  return { faded, dashed, halo, dimmed };
 }
 
 /**
@@ -401,7 +433,25 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
   const nodeSource = (nd: ErdEntity): string => {
     const own = markOf(nd.diff);
     // In Diff a table that came, went or changed itself takes its status's colour, frame and header alike.
-    const color = own ? ERD_DIFF_COLOUR[own] : nd.color || "#3b82f6";
+    const domainColour = nd.color || "#3b82f6";
+    const inDiff = nd.diff !== undefined;
+    const neutral = inDiff;
+    // painted by change, only a table that came or went whole wears its status on the header and frame;
+    // a table that changed inside keeps a quiet header and frame — its rows carry the change.
+    // painted by change, the header and frame say what happened to the table as a whole: green added,
+    // red removed, amber changed inside (its own properties or any row); grey when nothing changed.
+    const glance = inDiff ? erdGlance(nd) : "unchanged";
+    const quietHead = inDiff && paintByChange() && glance === "unchanged";
+    const changeHead = inDiff && paintByChange() && glance !== "unchanged" ? ERD_DIFF_COLOUR[glance] : null;
+    const base = paintSource === "kind" ? (kindColours[nd.entity_kind?.trim() || "unknown"] ?? "#64748b") : domainColour;
+    // the header's fill, the frame and the zebra, as the painting asks. Where the filter chooses what
+    // paints, the header takes that section's colour alone — a changed table's header too, when domains or kinds
+    // paint; its change is then told by its frame, its sign, its rows and its halo.
+    const chosenHead = inDiff && !paintByChange();
+    const color = chosenHead ? base : changeHead ?? (quietHead ? "#e2e8f0" : own ? ERD_DIFF_COLOUR[own] : base);
+    const frameColour = changeHead ?? (quietHead ? "#cbd5e1" : own ? ERD_DIFF_COLOUR[own] : neutral ? "#cbd5e1" : color);
+    const zebraColour = neutral ? "#94a3b8" : color;
+    const headInk = quietHead ? "#334155" : "white";
     const title = own ? `${ERD_DIFF_SIGN[own]} ${nd.label || nd.id}` : nd.label || nd.id;
     const table = tableIndex.get(nd.id) ?? 0;
     const kind = nd.entity_kind?.trim() || "unknown";
@@ -412,9 +462,10 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
         // Every second row carries the domain colour faintly; keys are told by their word, not by a fill. In Diff a
         // marked row is tinted with its status's colour instead.
         const rowMark = markOf(f.diff);
-        const bg = rowMark ? `${ERD_DIFF_COLOUR[rowMark]}${ERD_DIFF_TINT_ALPHA}` : row % 2 === 1 ? `${color}${ERD_ROW_TINT_ALPHA}` : "#ffffff";
+        const bg = rowMark ? `${ERD_DIFF_COLOUR[rowMark]}${ERD_DIFF_TINT_ALPHA}` : row % 2 === 1 ? `${zebraColour}${ERD_ROW_TINT_ALPHA}` : "#ffffff";
         const icon = f.primary_key ? "PK" : f.foreign_key ? "FK" : "";
-        const iconColour = f.primary_key ? ERD_PK_COLOUR : ERD_FK_COLOUR;
+        // in Diff the key words are grey — their colour drew the eye away from the change.
+        const iconColour = inDiff ? "#94a3b8" : f.primary_key ? ERD_PK_COLOUR : ERD_FK_COLOUR;
         const iconTd = icon
           ? `<TD BGCOLOR="${bg}" ALIGN="LEFT" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"><FONT POINT-SIZE="8.5" COLOR="${iconColour}"><B>${icon}</B></FONT></TD>`
           : `<TD BGCOLOR="${bg}" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"></TD>`;
@@ -459,7 +510,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       .join("\n      ");
 
     return (
-      `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
+      `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${frameColour}">` +
       // One header cell with the domain fill, flush with the frame (the card's rounding trims it);
       // inside, the kind icon slot and the name, each filled with the same colour so Graphviz emits
       // their boxes. The post-pass puts icon and name at the left, after an inset (FR-110).
@@ -470,7 +521,7 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
       `<TD WIDTH="4"></TD>` +
       `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="Click to copy" BGCOLOR="${color}">` +
-      `<FONT COLOR="white" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>` +
+      `<FONT COLOR="${headInk}" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>` +
       `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
     );
   };

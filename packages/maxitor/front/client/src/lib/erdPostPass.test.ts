@@ -154,8 +154,9 @@ describe("markRows", () => {
 });
 
 describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
+  // Bright: lit by the hover, or back as drawn once it is left.
   const bright = (root: ParentNode) =>
-    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1").map((n) => n.querySelector("title")!.textContent).sort();
+    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1" || n.style.opacity === "").map((n) => n.querySelector("title")!.textContent).sort();
   const brightLines = (root: ParentNode) =>
     [...root.querySelectorAll<SVGElement>("g.edge")].filter((e) => e.style.opacity === "1").map((e) => e.id).sort();
 
