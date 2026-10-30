@@ -296,10 +296,14 @@ export function ErdGraphvizCanvas({
   // A click on a marked table or row opens its card (spec 038, FR-028).
   const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
   // which filter section paints the headers in Diff, and the kinds of change switched off.
-  const kindPaint = useMemo(
-    () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
-    [bundle.entity_kinds, baseEntities],
-  );
+  // A kind's colour is its place in the model's list of kinds, not in this diagram's: the same kind is the same
+  // colour on every diagram, for everyone.
+  const kindPaint = useMemo(() => {
+    const place = new Map((bundle.entity_kinds ?? []).map((row, index) => [row.entity_kind, index]));
+    return Object.fromEntries(
+      kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[(place.get(row.entity_kind) ?? 0) % ERD_KIND_PAINT_PALETTE.length]]),
+    );
+  }, [bundle.entity_kinds, baseEntities]);
   // What paints the headers is a page setting, One's and Diff's apart: a room shares it, the address carries it.
   const diffDrawing = Boolean(bundle.diff);
   const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffDrawing), defaultPaint(diffDrawing));
@@ -313,19 +317,25 @@ export function ErdGraphvizCanvas({
   const diffNames = useDiffNames();
   useEffect(() => () => setDiffCounts(null), []);
 
-  const dot = useMemo(() => buildDotSource(drawnData, layout), [drawnData, layout]);
+  // The text Graphviz is given carries the colours too: two tabs painting differently must not claim one input.
+  const dot = useMemo(() => {
+    setErdPaint(paintSection === "domains" ? "domain" : paintSection === "kinds" ? "kind" : "change", kindPaint);
+    return buildDotSource(drawnData, layout);
+  }, [drawnData, layout, paintSection, kindPaint]);
   // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
   const layoutInputDigest = useSvgLayoutHash(rawSvg ? `${erdGraphvizEngine(layout)}\n${dot}` : "");
 
   // Reset fit flag whenever the DOT source changes (new diagram, layout mode, or 1-hop toggle)
   // so the next SVG insertion always re-fits
-  const prevDotRef = useRef<string>("");
+  // A new drawing — other tables, another layout mode — fits again; new colours alone keep the view.
+  const prevDrawingRef = useRef<{ data: unknown; layout: unknown } | null>(null);
   useLayoutEffect(() => {
-    if (dot !== prevDotRef.current) {
-      prevDotRef.current = dot;
+    const previous = prevDrawingRef.current;
+    if (!previous || previous.data !== drawnData || previous.layout !== layout) {
+      prevDrawingRef.current = { data: drawnData, layout };
       resetFitFlag();
     }
-  }, [dot, resetFitFlag]);
+  }, [drawnData, layout, resetFitFlag]);
 
   useEffect(() => {
     let cancelled = false;
