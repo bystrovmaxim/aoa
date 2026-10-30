@@ -15,7 +15,7 @@ import { roomLink } from "@/lib/urlState";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { Circles } from "@/rooms/Circles";
 import { InviteCard, copyRoomLink } from "@/rooms/InviteCard";
-import { followerCount, youFirst } from "@/rooms/roomStore";
+import { followerNames, youFirst } from "@/rooms/roomStore";
 import { ROW_BUTTON_PRIMARY_SX, ROW_BUTTON_SX, WORKSPACE_SURFACE } from "@/rooms/roomStyles";
 import type { RoomSession } from "@/rooms/useRoomSession";
 
@@ -100,7 +100,7 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo, on
       youId={room.youId}
       yourPage={page}
       pageLabel={pageLabel}
-      followers={(id) => followerCount(room, id)}
+      followers={(id) => followerNames(room, id)}
       onRename={session.requestRename}
       onGoTo={(participant) => onGoTo(participant.id, participant.page)}
       follows={room.follows}

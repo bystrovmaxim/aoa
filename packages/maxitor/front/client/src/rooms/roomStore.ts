@@ -118,5 +118,10 @@ export function youFirst(state: RoomState): Participant[] {
 
 /** How many participants follow ``id``, directly. */
 export function followerCount(state: RoomState, id: string): number {
-  return Object.values(state.follows).filter((target) => target === id).length;
+  return followerNames(state, id).length;
+}
+
+/** The names of those who follow ``id`` directly, in the order they joined — not who follows them in turn. */
+export function followerNames(state: RoomState, id: string): string[] {
+  return state.participants.filter((participant) => state.follows[participant.id] === id).map((participant) => participant.name);
 }

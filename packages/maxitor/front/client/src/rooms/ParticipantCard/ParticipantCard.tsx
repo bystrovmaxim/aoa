@@ -29,8 +29,8 @@ export type ParticipantCardProps = {
   /** The participant's page in words. */
   pageLabel: string;
   isYou: boolean;
-  /** How many follow this participant; shown on your own card. */
-  followers: number;
+  /** Who follows this participant directly, by name; shown on your own card. */
+  followers: string[];
   onClose: () => void;
   /** **Change name**, on your own card only. */
   onRename: () => void;
@@ -107,9 +107,17 @@ export function ParticipantCard({
               </Box>
             </Box>
           </Box>
-          {isYou && followers > 0 && (
+          {isYou && followers.length > 0 && (
+            // How many follow you, and who: the badge on your circle says how many, the card says who.
             <Box sx={{ ...HINT_SX, mt: "8px" }}>
-              {followers === 1 ? "1 person follows you." : `${followers} people follow you.`}
+              {followers.length === 1 ? "1 person follows you:" : `${followers.length} people follow you:`}
+              <Box component="ul" aria-label="Following you" sx={{ listStyle: "none", m: "4px 0 0", p: 0, color: "#334155" }}>
+                {followers.map((name, index) => (
+                  <Box component="li" key={`${name}-${index}`} sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {name}
+                  </Box>
+                ))}
+              </Box>
             </Box>
           )}
           {!isYou && (
