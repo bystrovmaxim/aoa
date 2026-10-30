@@ -17,6 +17,8 @@ services:
       frontend:
         aliases:
           - dev_aoa_maxitor
+      # The stand's own network, where Maxitor reaches its own port (maxitor-public-port).
+      default:
 
   repo-graph-port:
     networks:
@@ -25,6 +27,14 @@ services:
           - dev_aoa_repo_graph_port
       # The port reaches GitHub through a network of its own: the host's interface carries 1450-byte
       # packets, the front end's network sends 1500, and a TLS handshake then never completes.
+      egress:
+        gw_priority: 1
+
+  # Maxitor's own port reaches GitHub like repo-graph-port; it stays off the front end's network,
+  # and Maxitor reaches it on the stand's own (default) network.
+  maxitor-public-port:
+    networks:
+      default:
       egress:
         gw_priority: 1
 

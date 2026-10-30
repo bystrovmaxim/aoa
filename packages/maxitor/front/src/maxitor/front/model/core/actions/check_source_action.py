@@ -42,6 +42,7 @@ from maxitor.front.model.core.resources.graph_source_gateway import (
     Unreachable,
 )
 from maxitor.front.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
+from maxitor.front.model.core.source_label import label
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 from pydantic import Field
 
@@ -127,18 +128,18 @@ async def _check(
     if not params.force:
         answer = await gateway.fetch_if_changed(params.source, held.etag, held.last_modified)
         if isinstance(answer, Unreachable):
-            await box.warning(Channel.error, "Source {%var.source} unreachable: {%var.reason}", source=params.source, reason=answer.reason)
+            await box.warning(Channel.error, "Source {%var.source} unreachable: {%var.reason}", source=label(params.source), reason=answer.reason)
             return "unreachable"
         if not isinstance(answer, Document) or answer.sha256 == held.content_sha256:
-            await box.info(Channel.business, "Source {%var.source} unchanged", source=params.source)
+            await box.info(Channel.business, "Source {%var.source} unchanged", source=label(params.source))
             return "unchanged"
     try:
         rebuilt = await store.replace(params.source)
     except (GraphBuildError, GraphStoreBusyError) as exc:
-        await box.warning(Channel.error, "Source {%var.source} not rebuilt: {%var.reason}", source=params.source, reason=str(exc))
+        await box.warning(Channel.error, "Source {%var.source} not rebuilt: {%var.reason}", source=label(params.source), reason=str(exc))
         return "failed"
     if rebuilt.fingerprint != held.fingerprint:
         for room in rooms.rooms_of_source(params.source):
             rooms.broadcast(room, {"type": "graph_changed", "fingerprint": rebuilt.fingerprint})
-    await box.info(Channel.business, "Source {%var.source} rebuilt", source=params.source)
+    await box.info(Channel.business, "Source {%var.source} rebuilt", source=label(params.source))
     return "rebuilt"

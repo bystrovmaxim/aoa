@@ -1,0 +1,59 @@
+// src/components/history/VersionButton/VersionButton.tsx
+import ButtonBase from "@mui/material/ButtonBase";
+import { forwardRef } from "react";
+
+export type VersionButtonProps = {
+  /** The name of the version shown: ``Live``, ``#147`` (its pull request), ``#57`` (its place in the history). */
+  name: string;
+  open: boolean;
+  /** Called with the button itself, which the picker opens under. */
+  onClick: (button: HTMLElement) => void;
+};
+
+/** The mockup's history icon: a clock with the arrow of time turned back. */
+export function HistoryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ flexShrink: 0, color: "#64748b" }}>
+      <g fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3.75 12a8.25 8.25 0 1 0 2.42-5.83" />
+        <path d="M3.75 4.5v3.75H7.5" />
+        <path d="M12 7.75V12l2.75 1.75" />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * The one button that says which version is shown (spec 037, FR-013), as the mockup draws it: at the
+ * left of the top row, the history's clock, the version's name in bold, a chevron. It opens the picker;
+ * it exists only while a history with something to pick is open (M2–M6).
+ */
+export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick }, ref) {
+  return (
+    <ButtonBase
+      ref={ref}
+      onClick={(event) => onClick(event.currentTarget)}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-label={`Version: ${name}`}
+      sx={{
+        height: 28,
+        pl: "8px",
+        pr: "6px",
+        gap: "6px",
+        borderRadius: "8px",
+        bgcolor: open ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)",
+        fontSize: 12.5,
+        color: "#334155",
+        whiteSpace: "nowrap",
+        "&:hover": { bgcolor: "rgba(15, 23, 42, 0.1)" },
+      }}
+    >
+      <HistoryIcon />
+      <b style={{ color: "#0f172a", fontWeight: 600 }}>{name}</b>
+      <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#64748b" }}>
+        <path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z" />
+      </svg>
+    </ButtonBase>
+  );
+});

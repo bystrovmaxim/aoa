@@ -50,6 +50,7 @@ from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.histories_config import HistoriesConfig
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
+from maxitor.repo_graph_port.security_reporter import SecurityReporter
 from maxitor.repo_graph_port.too_many_wrong_keys_error import TooManyWrongKeysError
 from maxitor.repo_graph_port.version_file_middleware import VersionFileMiddleware
 from maxitor.repo_graph_port.webhook_signature_middleware import WebhookSignatureMiddleware
@@ -74,9 +75,11 @@ def create_app(histories: Path | None = None, cache: Path | None = None, host: G
     if host is None:
         host = GitHubHost.from_settings(github)
     connections = {"HistoriesConfig": config, "GitMirror": GitMirror(folder), "VersionCache": VersionCache(folder), "GitHubHost": host}
+    machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
+    reporter = SecurityReporter(machine)
     adapter = FastApiAdapter(
-        machine=ActionProductMachine(graph_coordinator=create_node_graph_coordinator()),
-        auth_coordinator=HistoryKeyAuthCoordinator(config),
+        machine=machine,
+        auth_coordinator=HistoryKeyAuthCoordinator(config, reporter),
         title="repo-graph-port",
         version=version("maxitor"),
     )
@@ -97,5 +100,5 @@ def create_app(histories: Path | None = None, cache: Path | None = None, host: G
         return JSONResponse(status_code=429, content={"detail": "too many requests"})
 
     app.add_middleware(VersionFileMiddleware)
-    app.add_middleware(WebhookSignatureMiddleware, verify=host.verify_webhook)
+    app.add_middleware(WebhookSignatureMiddleware, verify=host.verify_webhook, reporter=reporter)
     return app

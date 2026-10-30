@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 from maxitor.repo_graph_port.git_error import GitError
-from maxitor.repo_graph_port.history_versions import graph_facts, place_tags
+from maxitor.repo_graph_port.history_versions import graph_change, graph_facts, place_tags, pull_request_in_message
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 
 from tests.repo_builder import GRAPH_FILE, BuiltRepository, add_version, build_repository, graph
@@ -129,3 +130,37 @@ def test_a_clone_that_times_out_leaves_no_mirror_behind(tmp_path: Path) -> None:
     with pytest.raises(GitError, match="no answer"):
         mirror.open("owner/slow", url="https://example.invalid/owner/slow.git")
     assert list((tmp_path / "cache" / "mirrors").iterdir()) == []
+
+
+def test_a_merge_commit_names_its_pull_request_without_the_merge_line() -> None:
+    message = "Merge pull request #147 from owner/offer-regions\n\nOffer regions: an offer is shown only in the regions it lists\n\nModel\n- regions is a list."
+    assert pull_request_in_message(message, "https://github.com/owner/repo/pull/") == {
+        "number": 147,
+        "title": "Offer regions: an offer is shown only in the regions it lists",
+        "body": "Model\n- regions is a list.",
+        "url": "https://github.com/owner/repo/pull/147",
+    }
+
+
+def test_a_squash_commit_names_its_pull_request() -> None:
+    assert pull_request_in_message("Ticket import from CSV (#142)\n\nTickets come from a CSV file.", "") == {
+        "number": 142,
+        "title": "Ticket import from CSV",
+        "body": "Tickets come from a CSV file.",
+        "url": "",
+    }
+
+
+def test_a_direct_commit_names_no_pull_request() -> None:
+    assert pull_request_in_message("Fix a typo in #12's description", "") is None
+
+
+def test_a_versions_change_counts_nodes_by_kind_nodes_changed_and_links() -> None:
+    """Nodes by id — added and removed by kind, kept but different; edges by id, or by their ends when they have none."""
+    before = json.dumps({"nodes": [{"id": "a", "type": "Entity"}, {"id": "b", "type": "Field", "label": "x"}, {"id": "c", "type": "Field"}],
+                         "edges": [{"id": "a-b"}, {"source_id": "a", "relationship": "has", "target_id": "c"}]}).encode()
+    after = json.dumps({"nodes": [{"id": "a", "type": "Entity"}, {"id": "b", "type": "Field", "label": "y"}, {"id": "d", "type": "Action"}],
+                        "edges": [{"id": "a-b"}, {"id": "a-d"}, {"id": "b-d"}]}).encode()
+    assert graph_change(before, after) == {"added": {"Action": 1}, "removed": {"Field": 1}, "changed": 1, "links": {"added": 2, "removed": 1}}
+    assert graph_change(None, after)["added"] == {"Action": 1, "Entity": 1, "Field": 1}
+    assert graph_change(b"not json", after)["links"] == {"added": 3, "removed": 0}

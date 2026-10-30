@@ -12,7 +12,8 @@ the coordinator graph into DuckDB.
 Aspect sequence:
   1. validate_url — verify the input is a well-formed HTTP/HTTPS URL
   2. normalize_url — resolve to canonical ``/examples/model/graph-json`` endpoint path
-  3. validate_service — download through ``GraphSourceGateway``; verify the answer and its coordinator_json field
+  3. validate_service — download through ``GraphSourceGateway``; take the envelope's coordinator_json, or a bare graph
+     (``nodes`` and ``edges`` at the top, as a graph file keeps it) as it is
   4. parse_service_graph — parse coordinator_json string, validate nodes/edges structure
   5. build_duckdb_graph (summary) — ingest service_graph_data into DuckDB, return counts
 """
@@ -30,6 +31,7 @@ from maxitor.front.model.core.resources.graph_source_gateway import (
     GraphSourceGateway,
     Unreachable,
 )
+from maxitor.front.model.core.source_label import label
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 from pydantic import ConfigDict, Field
 
@@ -113,12 +115,12 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(
-                f"service_url must be an HTTP or HTTPS URL, got: {params.service_url!r}. "
+                f"service_url must be an HTTP or HTTPS URL, got: {label(params.service_url)}. "
                 "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
             )
         if not parsed.netloc:
             raise ValueError(
-                f"service_url has no host: {params.service_url!r}. "
+                f"service_url has no host: {label(params.service_url)}. "
                 "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
             )
         return {"service_graph_json_url": url}
@@ -162,26 +164,29 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         if isinstance(answer, Unreachable):
             if answer.status is not None:
                 raise ValueError(
-                    f"AOA service returned HTTP {answer.status} at {url!r}. "
+                    f"AOA service returned HTTP {answer.status} at {label(url)}. "
                     "Check that the service is running and the URL is correct."
                 )
             raise ValueError(
-                f"Cannot reach AOA service at {url!r}: {answer.reason}. "
+                f"Cannot reach AOA service at {label(url)}: {answer.reason}. "
                 "Check that the host and port are correct."
             )
 
         try:
             envelope = json.loads(answer.body)
         except Exception as exc:
-            raise ValueError(f"Response from {url!r} is not valid JSON: {exc}") from exc
+            raise ValueError(f"Response from {label(url)} is not valid JSON: {exc}") from exc
 
         if not isinstance(envelope, dict):
-            raise ValueError(f"Expected a JSON object from {url!r}, got {type(envelope).__name__}.")
+            raise ValueError(f"Expected a JSON object from {label(url)}, got {type(envelope).__name__}.")
 
         coordinator_json_raw = envelope.get("coordinator_json")
+        if coordinator_json_raw is None and isinstance(envelope.get("nodes"), list) and isinstance(envelope.get("edges"), list):
+            # A bare graph — a graph file as a repository keeps it, a history's version — is the graph itself.
+            coordinator_json_raw = answer.body.decode("utf-8")
         if not isinstance(coordinator_json_raw, str):
             raise ValueError(
-                f"Response from {url!r} is missing 'coordinator_json' string field. "
+                f"Response from {label(url)} is neither a graph nor an envelope with a 'coordinator_json' string field. "
                 "Ensure the endpoint is a valid AOA graph-json endpoint."
             )
 
@@ -215,15 +220,15 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         try:
             service_graph_data = cast(dict[str, Any], json.loads(coordinator_json_raw))
         except json.JSONDecodeError as exc:
-            raise ValueError(f"'coordinator_json' from {url!r} is not valid JSON: {exc}") from exc
+            raise ValueError(f"'coordinator_json' from {label(url)} is not valid JSON: {exc}") from exc
 
         if not isinstance(service_graph_data, dict):
             raise ValueError(
-                f"'coordinator_json' from {url!r} decoded to {type(service_graph_data).__name__}, expected object."
+                f"'coordinator_json' from {label(url)} decoded to {type(service_graph_data).__name__}, expected object."
             )
         if "nodes" not in service_graph_data or "edges" not in service_graph_data:
             raise ValueError(
-                f"Coordinator JSON from {url!r} is missing 'nodes' or 'edges'. "
+                f"Coordinator JSON from {label(url)} is missing 'nodes' or 'edges'. "
                 "The service may be running an incompatible version."
             )
 

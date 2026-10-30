@@ -1,4 +1,6 @@
 // src/lib/urlState.ts
+import { withKey } from "@/lib/historyAddress";
+import { keyFor } from "@/lib/historyKey";
 import type { DiagramSelection } from "@/model/diagramSelection";
 
 const PARAM_SOURCE = "source";
@@ -7,6 +9,19 @@ const PARAM_DOMAIN = "domain";
 const PARAM_NODE = "node";
 const PARAM_HOST = "host";
 const PARAM_ROOM = "room";
+const PARAM_HISTORY = "history";
+const PARAM_VERSION = "b";
+
+/**
+ * The history this tab shows and its version, or ``null``. While one is set, every address this
+ * module writes names it as ``history`` and ``b`` in place of ``source``, and never its key (spec 037, FR-022).
+ */
+let currentHistory: { name: string; b: string | null } | null = null;
+
+/** Name the history and version every later address carries, or ``null`` for a plain source. */
+export function setUrlHistory(history: { name: string; b: string | null } | null): void {
+  currentHistory = history;
+}
 
 /**
  * The room this tab is in, or ``null``. Kept here rather than passed to every navigation, so that
@@ -29,6 +44,10 @@ export type UrlDeepLink = {
   node: string | null;
   host: string | null;
   room: string | null;
+  /** The history the address names, its address without a key, or ``null``. */
+  history?: string | null;
+  /** The version the address names: a short sha, ``live``, or ``null``. */
+  b?: string | null;
 };
 
 export function readUrlDeepLink(): UrlDeepLink {
@@ -40,6 +59,8 @@ export function readUrlDeepLink(): UrlDeepLink {
     node: params.get(PARAM_NODE),
     host: params.get(PARAM_HOST),
     room: params.get(PARAM_ROOM),
+    history: params.get(PARAM_HISTORY),
+    b: params.get(PARAM_VERSION),
   };
 }
 
@@ -71,13 +92,26 @@ export function selectionToParams(sel: DiagramSelection): Record<string, string>
 
 function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null): string {
   const params = new URLSearchParams();
-  if (serviceUrl) params.set(PARAM_SOURCE, serviceUrl);
+  if (currentHistory) {
+    params.set(PARAM_HISTORY, currentHistory.name);
+    if (currentHistory.b) params.set(PARAM_VERSION, currentHistory.b);
+  } else if (serviceUrl) params.set(PARAM_SOURCE, serviceUrl);
   if (selection) {
     for (const [k, v] of Object.entries(selectionToParams(selection))) params.set(k, v);
   }
   if (currentRoom) params.set(PARAM_ROOM, currentRoom);
   const qs = params.toString();
-  return qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  return withHistoryKey(qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+}
+
+/**
+ * ``address`` with the read key of the history it names after ``#key=``, when this tab holds one: the address
+ * bar is the link to share, so copying it opens the same private history elsewhere (spec 037, FR-010a). No
+ * browser sends what follows ``#`` to a server.
+ */
+function withHistoryKey(address: string): string {
+  const history = new URL(address, window.location.origin).searchParams.get("history");
+  return withKey(address, history ? keyFor(history) : "");
 }
 
 /**
@@ -114,12 +148,19 @@ export function setUrlRoom(room: string | null): void {
   const url = new URL(window.location.href);
   if (room) url.searchParams.set(PARAM_ROOM, room);
   else url.searchParams.delete(PARAM_ROOM);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  window.history.replaceState(null, "", withHistoryKey(`${url.pathname}${url.search}`));
 }
 
-/** ``href`` with ``room`` set: the link Copy link hands out is the page being looked at, in the room. */
+/**
+ * ``href`` with ``room`` set: the link Copy link hands out is the page being looked at, in the room.
+ * On a private history it also carries the tab's read key after ``#key=``, since that is what opens
+ * the history elsewhere; it is shown with the key as dots (spec 037, FR-010).
+ */
 export function roomLink(href: string, room: string): string {
   const url = new URL(href);
   url.searchParams.set(PARAM_ROOM, room);
-  return url.toString();
+  url.hash = "";
+  const history = url.searchParams.get("history");
+  const key = history ? keyFor(history) : "";
+  return withKey(url.toString(), key);
 }

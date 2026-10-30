@@ -70,7 +70,7 @@ class _Store:
     running = 0
     queued = 0
 
-    async def acquire(self, source: str) -> GraphEntry:
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
         """Return the fixture entry the graph routes read."""
         return GraphEntry(source=source, graph=_graph(), sidebar=_SIDEBAR, last_read=0.0)
 
@@ -82,7 +82,7 @@ class _BusyStore:
     running = 0
     queued = 0
 
-    async def acquire(self, source: str) -> GraphEntry:
+    async def acquire(self, source: str, key: str = "") -> GraphEntry:
         """Refuse the read, as a store that waited out its slot limit does."""
         raise GraphStoreBusyError(BUSY_DETAIL)
 

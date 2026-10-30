@@ -204,12 +204,30 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:live",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:live",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
       "is_dag": false,
       "properties": {},
       "relationship": "Composition",
       "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
       "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:reader",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:reader",
       "type": "field"
     },
     {
@@ -380,6 +398,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
       "is_dag": false,
       "properties": {},
@@ -538,6 +565,87 @@
       "relationship": "Composition",
       "source_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult",
       "target_id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventResult:changed",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction|@summary_aspect|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction:report_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction:report_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction|domain|maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "target_id": "maxitor.repo_graph_port.repo_graph_domain.RepoGraphDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction|generic:params|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction|generic:result|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams|field|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:client",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:client",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams|field|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:count",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:count",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams|field|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:history",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:history",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams|field|maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:kind",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "target_id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:kind",
       "type": "field"
     },
     {
@@ -916,10 +1024,32 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:live",
+      "label": "live",
+      "properties": {
+        "description": "The running service whose graph is Live; none when the config names none, and for a public link",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:newest",
       "label": "newest",
       "properties": {
         "description": "The newest version's sha; none when there is no version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:reader",
+      "label": "reader",
+      "properties": {
+        "description": "The name of the key that opened the history; none for a public link",
         "entity_schema": false,
         "json_schema_value": false,
         "required": false
@@ -1032,6 +1162,17 @@
       "label": "HistoryResult",
       "properties": {},
       "type": "Result"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "label": "proposals",
+      "properties": {
+        "description": "Pull requests still open into the branch that change the graph, each with its state",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
     },
     {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:versions",
@@ -1148,6 +1289,78 @@
         "required": true
       },
       "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction",
+      "label": "ReportSecurityEventAction",
+      "properties": {
+        "description": "Write one security event of the port to its log"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventAction:report_summary",
+      "label": "report_summary",
+      "properties": {
+        "description": "Write the event"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams",
+      "label": "ReportSecurityEventParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:client",
+      "label": "client",
+      "properties": {
+        "description": "The client's address",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:count",
+      "label": "count",
+      "properties": {
+        "description": "How many wrong keys the client sent within the minute, for a block",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:history",
+      "label": "history",
+      "properties": {
+        "description": "The history's id the wrong key was sent for; empty when none was named",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventParams:kind",
+      "label": "kind",
+      "properties": {
+        "description": "What was refused",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.report_security_event_action.ReportSecurityEventResult",
+      "label": "ReportSecurityEventResult",
+      "properties": {},
+      "type": "Result"
     },
     {
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction",

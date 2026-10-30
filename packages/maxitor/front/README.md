@@ -212,6 +212,18 @@ JSON from endpoints can be embedded in your portal, CI pipeline, or documentatio
 
 ---
 
+### Graph histories
+
+Maxitor opens a service's graph history served by [`repo-graph-port`](../tools/repo_graph_port/README.md) and shows any version ([how-to](../../../docs/how-to/open-a-graph-history.md)). Its own routes, outside the diagram reads:
+
+```
+GET /api/history/open?history=<address without the key>       — the history: versions, open pull requests, Live,
+                                                                  live_same_as, a room ticket
+GET /api/history/versions?history=<address without the key>   — the same lists again; ETag, 304 when unchanged
+```
+
+A private history's key comes only in the header `X-Maxitor-History-Key`, never in a URL or a log. A version's graph is read like any source: `?source=<port>/api/v1/history/<id>/versions/<sha>` with the same header. `live_same_as` names the newest version when Live runs exactly its graph. `MAXITOR_PUBLIC_PORT` names Maxitor's own port, through which public GitHub links are read; without it they are refused.
+
 ## 7. How to Run
 
 ### Backend

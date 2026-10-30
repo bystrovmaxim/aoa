@@ -127,3 +127,63 @@ def test_a_refusal_reads_as_one_line(tmp_path: Path) -> None:
     with pytest.raises(ConfigRefused) as refused:
         read_config(_config(tmp_path, DEMO.replace('file = "packages/aoa-demo/graph.json"\n', "")))
     assert str(refused.value) == "graph 'demo', file: required"
+
+
+@pytest.mark.parametrize(
+    "setup",
+    [
+        'skill = "1"\ndecided = []\ndeferred = []',
+        'skill = "2"\ndecided = ["local-update", "ci-graph-check", "version-tags"]\ndeferred = ["local-update"]',
+        'skill = "2"\ndecided = ["config", "graph:demo", "exporter:demo"]\ndeferred = []',
+    ],
+    ids=["older-checklist", "optional-deferral", "dynamic-items"],
+)
+def test_setup_decisions_preserve_graph_builds(tmp_path: Path, setup: str) -> None:
+    """Wizard metadata leaves graph commands and paths unchanged."""
+    path = _config(tmp_path, DEMO)
+    graphs = read_config(path)
+    path.write_text(path.read_text(encoding="utf-8") + "\n[setup]\n" + setup, encoding="utf-8")
+    assert read_config(path) == graphs
+
+
+@pytest.mark.parametrize(
+    "setup",
+    [
+        'skill = "2"\ndecided = ["version-tags"]\ndeferred = ["version-tags"]',
+        'skill = "2"\ndecided = ["config"]\ndeferred = ["config"]',
+        'skill = "2"\ndecided = ["graph:demo"]\ndeferred = ["graph:demo"]',
+        'skill = "2"\ndecided = ["exporter:demo"]\ndeferred = ["exporter:demo"]',
+        'skill = "2"\ndecided = []\ndeferred = ["local-update"]',
+        'skill = "2"\ndecided = []\ndeferred = ["ci-graph-check"]',
+        'skill = "2"\ndecided = ["unknown"]\ndeferred = []',
+        'skill = "2"\ndecided = ["graph:"]\ndeferred = []',
+        'skill = "2"\ndecided = ["version-tags", "version-tags"]\ndeferred = []',
+        'skill = "2"\ndecided = ["local-update"]\ndeferred = ["local-update", "local-update"]',
+        'skill = "2"\ndecided = []\ndeferred = []\nextra = true',
+        'skill = "2"\ndecided = []',
+        'skill = "0"\ndecided = []\ndeferred = []',
+        "skill = 2\ndecided = []\ndeferred = []",
+    ],
+    ids=[
+        "version-required",
+        "config-required",
+        "graph-required",
+        "exporter-required",
+        "local-not-decided",
+        "ci-not-decided",
+        "unknown-id",
+        "empty-graph-id",
+        "duplicate-decision",
+        "duplicate-deferral",
+        "unknown-field",
+        "missing-field",
+        "invalid-revision",
+        "numeric-revision",
+    ],
+)
+def test_invalid_setup_decisions_are_refused(tmp_path: Path, setup: str) -> None:
+    """Reject mandatory deferrals and malformed persisted decisions."""
+    with pytest.raises(ConfigRefused) as refused:
+        read_config(_config(tmp_path, DEMO + "\n[setup]\n" + setup))
+    assert refused.value.graph is None
+    assert refused.value.field.startswith("setup")

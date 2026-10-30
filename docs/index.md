@@ -121,6 +121,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 - **[Diagnosing a specialization declaration](how-to/specialization-declaration-fails.md)** — one mistake per experiment, its actual error, and a verified repair
 - **[Running the checks](how-to/run-the-checks.md)** — the one command that finishes a change: what runs together, the limit, reading the log, failures and stopping
 - **[Running the repo-graph-port](how-to/run-the-repo-graph-port.md)** — a service's graph history from its repository, on a server: the GitHub App, the config, the secrets, the keys
+- **[Opening a graph history in Maxitor](how-to/open-a-graph-history.md)** — one address opens a history; reading the track: versions, releases, open pull requests, Live; sharing what you see
 
 ### Reference materials
 
