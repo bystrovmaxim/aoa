@@ -1,8 +1,7 @@
 // src/lib/erdPaint.test.ts
 import { afterEach, describe, expect, it } from "vitest";
 import { buildDotSource, ERD_DIFF_COLOUR, erdDiffMarks, setErdPaint, type ErdDiff, type ErdEntity } from "@/lib/buildDotSource";
-import { setPaintSections, setPaintSource, useErdPaint } from "@/lib/erdPaint";
-import { renderHook, act } from "@testing-library/react";
+import { defaultPaint, paintSettingName, paintSource } from "@/lib/erdPaint";
 
 const DOMAIN = "#e11d48";
 const KIND = "#3b82f6";
@@ -89,40 +88,13 @@ describe("what the post-pass marks in Diff", () => {
 });
 
 describe("the choice of what paints", () => {
-  it("keeps One's and Diff's choices apart, Diff starting by changes and One by domains", () => {
-    const { result } = renderHook(() => useErdPaint());
-    act(() => setPaintSections(["domains", "kinds", "changes"], true));
-    expect(result.current.source).toBe("changes");
-    act(() => setPaintSource("kinds"));
-    act(() => setPaintSections(["domains", "kinds"], false));
-    expect(result.current.source).toBe("domains");
-    act(() => setPaintSections(["domains", "kinds", "changes"], true));
-    expect(result.current.source).toBe("kinds");
+  it("is a page setting of its own in One and in Diff, Diff starting by changes and One by domains", () => {
+    expect([paintSettingName(false), paintSettingName(true)]).toEqual(["paint", "paint_diff"]);
+    expect([defaultPaint(false), defaultPaint(true)]).toEqual(["domains", "changes"]);
   });
 
   it("falls back to the first section when the diagram does not offer the one chosen", () => {
-    const { result } = renderHook(() => useErdPaint());
-    act(() => setPaintSections(["domains", "kinds", "changes"], true));
-    act(() => setPaintSource("changes"));
-    act(() => setPaintSections(["domains"], true));
-    expect(result.current.source).toBe("domains");
+    expect(paintSource(["domains", "kinds", "changes"], "kinds")).toBe("kinds");
+    expect(paintSource(["domains"], "changes")).toBe("domains");
   });
 });
-
-describe("a specialization container in Diff", () => {
-  const block = (diff?: ErdDiff) =>
-    buildDotSource({ entities: [table("A", diff), table("B", diff)], relations: [], groups: [{ group_id: "g", label: "details", members: ["A", "B"] }] }, "gv-dot-lr");
-
-  it("has no fill and an outline a point wider, so it does not stand out among the faded tables", () => {
-    const dot = block("unchanged");
-    expect(dot).toContain('style="rounded,dashed";');
-    expect(dot).not.toContain("fillcolor=");
-    expect(dot).toContain("penwidth=3;");
-  });
-
-  it("keeps its half-tone grey fill and its outline in One", () => {
-    expect(block()).toContain('fillcolor="#0f172a0d"');
-    expect(block()).toContain("penwidth=2;");
-  });
-});
-

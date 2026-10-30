@@ -12,23 +12,19 @@ afterEach(() => {
 
 describe("the view in the address (spec 038)", () => {
   it("writes every setting as a parameter of its own, readable in the address bar", () => {
-    const params = viewToParams(
-      { layout: "gv-neato", domains: ["a.Orders", "b.Billing"], disabled_kinds: ["core"], disabled_changes: [], one_hop: false, boundary: true, rankdir: "TB" },
-      "kinds",
-    );
+    const params = viewToParams({ layout: "gv-neato", domains: ["a.Orders", "b.Billing"], disabled_kinds: ["core"], disabled_changes: [], one_hop: false, boundary: true, rankdir: "TB", paint: "kinds" });
     expect(params).toEqual({ layout: "gv-neato", domains: "a.Orders,b.Billing", off_kinds: "core", off_changes: "", one_hop: "0", boundary: "1", rankdir: "TB", paint: "kinds" });
   });
 
   it("reads back exactly what it wrote — an empty list too, which is not the same as no setting", () => {
-    const settings = { domains: [], disabled_entities: ["x.Player"], disabled_changes: ["unchanged", "added"], one_hop: true, layout: "gv-dot-tb" };
-    const view = paramsToView(new URLSearchParams(viewToParams(settings, "changes")));
-    expect(view).toEqual({ settings, paint: "changes" });
+    const settings = { domains: [], disabled_entities: ["x.Player"], disabled_changes: ["unchanged", "added"], one_hop: true, layout: "gv-dot-tb", paint: "kinds", paint_diff: "domains" };
+    const view = paramsToView(new URLSearchParams(viewToParams(settings)));
+    expect(view).toEqual({ settings });
     expect(paramsToView(new URLSearchParams("")).settings).toEqual({});
   });
 
   it("ignores a parameter out of shape rather than guess", () => {
-    expect(paramsToView(new URLSearchParams("one_hop=yes&paint=rainbow&layout=")).settings).toEqual({});
-    expect(paramsToView(new URLSearchParams("paint=rainbow")).paint).toBeNull();
+    expect(paramsToView(new URLSearchParams("one_hop=yes&layout=")).settings).toEqual({});
   });
 
   it("is put into the address keeping every other parameter, and stays there through the next navigation", () => {

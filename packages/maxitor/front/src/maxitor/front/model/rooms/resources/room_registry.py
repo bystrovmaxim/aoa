@@ -76,7 +76,7 @@ _FOCUS_TEXT_MAX = 512
 #: The most open left-panel branches a ``focus`` may list, and the filter-panel states it may name
 #: besides ``null`` (closed): open with no section, or open on a section.
 _FOCUS_SIDEBAR_MAX = 200
-_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds"})
+_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds", "changes"})
 
 
 @dataclass

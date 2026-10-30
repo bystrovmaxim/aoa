@@ -6,7 +6,6 @@
  * with nothing after it is an empty list), a switch is ``1`` or ``0``, a choice is its name.
  */
 
-import type { PaintSection } from "@/lib/erdPaint";
 import type { SavedView } from "@/rooms/diagramSurface";
 
 type Kind = "list" | "switch" | "choice";
@@ -21,11 +20,9 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   one_hop: { param: "one_hop", kind: "switch" },
   boundary: { param: "boundary", kind: "switch" },
   rankdir: { param: "rankdir", kind: "choice" },
+  paint: { param: "paint", kind: "choice" },
+  paint_diff: { param: "paint_diff", kind: "choice" },
 };
-
-/** The parameter that names what paints the ERD's headers. */
-export const PAINT_PARAM = "paint";
-const PAINTS: readonly PaintSection[] = ["domains", "kinds", "changes"];
 
 /**
  * Where the diagram is looked at: ``zoom`` and the diagram point at the centre of the screen, ``at=x,y`` — in the
@@ -35,7 +32,7 @@ export const ZOOM_PARAM = "zoom";
 export const AT_PARAM = "at";
 
 /** Every parameter this module writes: the address keeps the others as they are. */
-export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((setting) => setting.param), PAINT_PARAM, ZOOM_PARAM, AT_PARAM];
+export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((setting) => setting.param), ZOOM_PARAM, AT_PARAM];
 
 /** A view of the diagram as address parameters, rounded so the address stays short. */
 export function cameraToParams(view: SavedView | null): Record<string, string> {
@@ -51,8 +48,8 @@ export function paramsToCamera(params: URLSearchParams): SavedView | null {
   return zoom > 0 && Number.isFinite(x) && Number.isFinite(y) && params.get(AT_PARAM)?.includes(",") ? { x, y, zoom } : null;
 }
 
-/** A page's settings, and what paints, as address parameters; a setting nobody set is left out. */
-export function viewToParams(settings: Readonly<Record<string, unknown>>, paint: PaintSection | null): Record<string, string> {
+/** A page's settings — what paints among them — as address parameters; a setting nobody set is left out. */
+export function viewToParams(settings: Readonly<Record<string, unknown>>): Record<string, string> {
   const params: Record<string, string> = {};
   for (const [name, value] of Object.entries(settings)) {
     const setting = SETTINGS[name];
@@ -61,12 +58,11 @@ export function viewToParams(settings: Readonly<Record<string, unknown>>, paint:
     else if (setting.kind === "switch" && typeof value === "boolean") params[setting.param] = value ? "1" : "0";
     else if (setting.kind === "choice" && typeof value === "string") params[setting.param] = value;
   }
-  if (paint) params[PAINT_PARAM] = paint;
   return params;
 }
 
-/** The page settings, and what paints, an address names; a parameter out of shape is ignored. */
-export function paramsToView(params: URLSearchParams): { settings: Record<string, unknown>; paint: PaintSection | null } {
+/** The page settings an address names; a parameter out of shape is ignored. */
+export function paramsToView(params: URLSearchParams): { settings: Record<string, unknown> } {
   const settings: Record<string, unknown> = {};
   for (const [name, setting] of Object.entries(SETTINGS)) {
     const raw = params.get(setting.param);
@@ -75,6 +71,5 @@ export function paramsToView(params: URLSearchParams): { settings: Record<string
     else if (setting.kind === "switch" && (raw === "1" || raw === "0")) settings[name] = raw === "1";
     else if (setting.kind === "choice" && raw !== "") settings[name] = raw;
   }
-  const paint = params.get(PAINT_PARAM);
-  return { settings, paint: PAINTS.includes(paint as PaintSection) ? (paint as PaintSection) : null };
+  return { settings };
 }
