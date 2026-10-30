@@ -54,6 +54,7 @@ _FOCUS: dict[str, Any] = {
         ({"hover": {"kind": "node", "id": "x" * 513}}, False),
         ({"page": 7}, False),
         ({"panels": {**_PANELS, "sidebar": ["b"] * 201}}, False),
+        ({"panels": {**_PANELS, "filter": "changes"}}, True),
         ({"panels": {**_PANELS, "filter": "colours"}}, False),
         ({"panels": {**_PANELS, "legend": "yes"}}, False),
         ({"selection": {"kind": "row", "id": "Orders:id"}}, True),

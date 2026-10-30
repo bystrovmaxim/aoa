@@ -14,7 +14,7 @@ import { enabledKeys } from "@/lib/freshGraph";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
-import { setPaintSections, setPaintSource, useErdPaint, type PaintSection } from "@/lib/erdPaint";
+import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
@@ -296,11 +296,19 @@ export function ErdGraphvizCanvas({
   // A click on a marked table or row opens its card (spec 038, FR-028).
   const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
   // which filter section paints the headers in Diff, and the kinds of change switched off.
-  const { source: paintSection } = useErdPaint();
   const kindPaint = useMemo(
     () => Object.fromEntries(kindsOnDiagram(bundle.entity_kinds ?? [], baseEntities).map((row, index) => [row.entity_kind, ERD_KIND_PAINT_PALETTE[index % ERD_KIND_PAINT_PALETTE.length]])),
     [bundle.entity_kinds, baseEntities],
   );
+  // What paints the headers is a page setting, One's and Diff's apart: a room shares it, the address carries it.
+  const diffDrawing = Boolean(bundle.diff);
+  const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffDrawing), defaultPaint(diffDrawing));
+  const paintSections: PaintSection[] = [
+    "domains",
+    ...(Object.keys(kindPaint).length > 1 ? (["kinds"] as const) : []),
+    ...(diffDrawing && changesOnDiagram(baseEntities).length > 0 ? (["changes"] as const) : []),
+  ];
+  const paintSection = paintSource(paintSections, chosenPaint);
   const paintKey = `${paintSection}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
   useEffect(() => () => setDiffCounts(null), []);
@@ -526,11 +534,6 @@ export function ErdGraphvizCanvas({
     absent: !shown.kinds.has(row.entity_kind),
   }));
 
-  // the sections this diagram offers to paint by, in the filter's order.
-  const paintSections: PaintSection[] = choosing ? ["domains", ...(kindRows.length > 1 ? (["kinds"] as const) : []), ...(changeRows.length > 0 ? (["changes"] as const) : [])] : [];
-  const paintSectionsKey = paintSections.join();
-  useEffect(() => setPaintSections(paintSectionsKey ? (paintSectionsKey.split(",") as PaintSection[]) : [], Boolean(bundle.diff)), [paintSectionsKey, bundle.diff]);
-  useEffect(() => () => setPaintSections([], false), []);
 
   const toggleEntityQual = (qual: string) => {
     const next = new Set(disabledEntityList);
@@ -564,7 +567,7 @@ export function ErdGraphvizCanvas({
             onToggleKind={toggleKind}
             changeRows={changeRows}
             onToggleChange={toggleChange}
-            paint={choosing ? { source: paintSection, onPaint: setPaintSource } : null}
+            paint={choosing ? { source: paintSection, onPaint: setChosenPaint } : null}
           />
         )}
         {erdEmptyOverlay}

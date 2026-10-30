@@ -42,7 +42,6 @@ import {
   type UrlDeepLink,
 } from "@/lib/urlState";
 import { PageSettingsProvider, seedPageSettings, shownPageSettings, usePageSettingsVersion, type RoomSettings } from "@/lib/pageSettings";
-import { presetPaint, useErdPaint } from "@/lib/erdPaint";
 import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "@/lib/viewUrl";
 import type { SavedView } from "@/rooms/diagramSurface";
 import { NameDialog } from "@/rooms/NameDialog";
@@ -87,7 +86,6 @@ export function App() {
     openingCamera.current = paramsToCamera(readUrlParams());
     const opening = deepLinkToSelection(initialLinkRef.current);
     if (opening) seedPageSettings(pageKeyOf(opening), view.settings);
-    if (view.paint) presetPaint(Boolean(initialLinkRef.current.a), view.paint);
   }
 
   const page = diagram ? pageKeyOf(diagram) : null;
@@ -166,8 +164,6 @@ export function App() {
 
   // The address always carries the view on screen — the room's inside one —, so a reload or a copied link shows it.
   const settingsVersion = usePageSettingsVersion();
-  const paint = useErdPaint();
-  const paintChoice = diagram?.kind === "erd" ? (shown?.a ? paint.inDiff : paint.one) : null;
   // Where the diagram is looked at, too: every pan and zoom, a moment after it settles.
   // Until the first diagram is drawn the address keeps the view it opened with, so a second reload loses nothing.
   const [camera, setCamera] = useState<SavedView | null>(() => openingCamera.current);
@@ -190,8 +186,8 @@ export function App() {
     };
   }, [surface]);
   useEffect(() => {
-    setUrlView(page ? { ...viewToParams(shownPageSettings(page, sharedSettings), paintChoice), ...cameraToParams(camera) } : {});
-  }, [page, settingsVersion, sharedSettings, paintChoice, camera]);
+    setUrlView(page ? { ...viewToParams(shownPageSettings(page, sharedSettings)), ...cameraToParams(camera) } : {});
+  }, [page, settingsVersion, sharedSettings, camera]);
   /**
    * Going to someone opens their page like any navigation: the left panel and the address follow.
    * Following replaces the history entry instead, so Back is not flooded (FR-057).
