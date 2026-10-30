@@ -18,7 +18,7 @@ export type ElementRef = { kind: "node" | "row" | "edge" | "table"; id: string }
  * The open panels: the open left-panel branches; the filter panel — closed (``null``), open with no
  * section (``"open"``) or open on a section; and whether the legend is expanded.
  */
-export type Panels = { sidebar: string[]; filter: "open" | "domains" | "kinds" | null; legend: boolean };
+export type Panels = { sidebar: string[]; filter: "open" | "domains" | "kinds" | "changes" | null; legend: boolean };
 
 export type FocusState = {
   page: string;

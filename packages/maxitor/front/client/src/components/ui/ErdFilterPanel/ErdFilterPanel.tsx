@@ -10,6 +10,7 @@ import { useTheme } from "@mui/material/styles";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { floatingLegendPanelSx, floatingLegendTitleSx, legendDiskImgSx, legendRowLabelSx, legendRowSx } from "@/lib/ui";
 import { useShownPanel, type Panels } from "@/rooms/focusStore";
+import type { PaintSection } from "@/lib/erdPaint";
 
 /** One toggle row: a domain or an entity kind. */
 export type ErdFilterRow = {
@@ -24,9 +25,75 @@ export type ErdFilterPanelProps = {
   kindRows: ErdFilterRow[];
   onToggleDomain: (key: string) => void;
   onToggleKind: (key: string) => void;
+  /** (spec 038) in Diff, the kinds of change — Added, Removed, Changed, Unchanged. */
+  changeRows?: ErdFilterRow[];
+  onToggleChange?: (key: string) => void;
+  /** which section paints the diagram, chosen by the gear shift at the panel's foot; absent, none. */
+  paint?: { source: PaintSection; onPaint: (source: PaintSection) => void } | null;
 };
 
-type SectionId = "domains" | "kinds";
+type SectionId = "domains" | "kinds" | "changes";
+
+
+const PAINT_TITLES: Record<PaintSection, string> = { domains: "Domains", kinds: "Kinds", changes: "Changes" };
+
+/**
+ * the gear shift — one point per section joined by a line, like a gearbox's shift pattern, with no
+ * words; left to right in the order the sections stand top to bottom. The painting section's point is the
+ * stronger one; a click on another shifts the colours to its section.
+ */
+export function GearShift({ sections, source, onPaint }: { sections: readonly PaintSection[]; source: PaintSection; onPaint: (source: PaintSection) => void }) {
+  const step = 18;
+  const width = step * (sections.length - 1) + 16;
+  return (
+    <Box role="radiogroup" aria-label="Paint the diagram by" sx={{ display: "inline-flex", position: "relative", width, height: 20 }}>
+      <Box component="span" aria-hidden sx={{ position: "absolute", left: 8, right: 8, top: 9.5, height: "1px", bgcolor: "#cbd5e1" }} />
+      {sections.map((section, index) => {
+        const on = section === source;
+        return (
+          <Tooltip key={section} title={PAINT_TITLES[section]} placement="bottom" disableInteractive>
+            <Box
+              component="button"
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={`Paint by ${PAINT_TITLES[section]}`}
+              onClick={() => onPaint(section)}
+              sx={{
+                position: "absolute",
+                left: index * step,
+                top: 0,
+                width: 16,
+                height: 20,
+                m: 0,
+                p: 0,
+                border: "none",
+                bgcolor: "transparent",
+                cursor: on ? "default" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "& > span": {
+                  width: on ? 8 : 6,
+                  height: on ? 8 : 6,
+                  borderRadius: "50%",
+                  bgcolor: on ? "#475569" : "#fff",
+                  border: on ? "none" : "1px solid #cbd5e1",
+                  boxShadow: on ? "0 0 0 3px rgba(71, 85, 105, 0.12)" : "none",
+                  transition: "all 120ms ease",
+                },
+                "&:hover > span": { borderColor: "#94a3b8" },
+                "&:focus-visible": { outline: "2px solid rgba(59, 130, 246, 0.45)", outlineOffset: 1, borderRadius: "50%" },
+              }}
+            >
+              <span />
+            </Box>
+          </Tooltip>
+        );
+      })}
+    </Box>
+  );
+}
 
 /** The panel's fixed width: the production Domains legend measured 148 CSS px; labels cut, never widen it. */
 export const ERD_FILTER_PANEL_WIDTH = 148;
@@ -152,7 +219,7 @@ function SectionHeader({
  * panel stops above the zoom toolbar and scrolls inside itself. On a narrow screen it starts as a
  * "Filter" pill; opened, it shows the sections straight away, without the word "Filter".
  */
-export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind }: ErdFilterPanelProps) {
+export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [ownOpen, setOpen] = useState<SectionId | null>("domains");
@@ -222,6 +289,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
     </IconButton>
   ) : null;
   const showKinds = kindRows.length > 1;
+  const paintSections: PaintSection[] = ["domains", ...(showKinds ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
 
   return (
     <Box
@@ -251,7 +319,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
         </Box>
       )}
       {showKinds && (
-        <Box sx={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}>
+        <Box>
           <SectionHeader title="Kinds" open={open === "kinds"} onClick={() => toggleSection("kinds")} />
           {open === "kinds" && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
@@ -260,6 +328,24 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
               ))}
             </Box>
           )}
+        </Box>
+      )}
+      {changeRows.length > 0 && onToggleChange && (
+        <Box>
+          <SectionHeader title="Changes" open={open === "changes"} onClick={() => toggleSection("changes")} />
+          {open === "changes" && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
+              {changeRows.map((row) => (
+                <FilterRow key={row.key} row={row} onToggle={onToggleChange} />
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+      {paint && paintSections.length > 1 && (
+        // the gear shift, the panel's last block, centred: one point per section above, in their order.
+        <Box sx={{ borderTop: "1px solid rgba(0,0,0,0.07)", display: "flex", justifyContent: "center", pt: 0.75, pb: 0.25 }}>
+          <GearShift sections={paintSections} source={paint.source} onPaint={paint.onPaint} />
         </Box>
       )}
     </Box>
