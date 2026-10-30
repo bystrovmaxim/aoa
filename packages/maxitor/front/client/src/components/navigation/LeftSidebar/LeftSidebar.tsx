@@ -16,7 +16,8 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import type { DiagramSelection } from "@/model/diagramSelection";
-import type { SidebarPayload } from "@/model/sidebar";
+import type { NodeRow, SidebarPayload } from "@/model/sidebar";
+import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN } from "@/lib/buildDotSource";
 import { prefetchInterchangeG6 } from "@/lib/prefetch/g6Prefetch";
 import { prefetchErdGraphviz } from "@/lib/prefetch/erdGraphviz";
 import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/lib/sidebarNavigation";
@@ -154,6 +155,22 @@ function openBranches(expanded: Record<string, boolean>): string[] {
 /** An expand map from the open branches a focus names. */
 function expandedFromList(ids: string[]): Record<string, boolean> {
   return Object.fromEntries(ids.map((id) => [id, true]));
+}
+
+/** In Diff (spec 038, FR-032): ``+`` on a page only B has, ``−`` on one only A has, in the ERD's colours. */
+function OnlyMark({ row }: { row: NodeRow }) {
+  if (!row.only) return null;
+  const status = row.only === "b" ? "added" : "removed";
+  return (
+    <Box
+      component="span"
+      data-testid="only-mark"
+      aria-label={row.only === "b" ? "only in B" : "only in A"}
+      sx={{ flexShrink: 0, ml: 0.75, fontSize: 13, fontWeight: 700, color: ERD_DIFF_COLOUR[status] }}
+    >
+      {ERD_DIFF_SIGN[status]}
+    </Box>
+  );
 }
 
 export function LeftSidebar({
@@ -411,6 +428,7 @@ export function LeftSidebar({
                                 primary={node.label}
                                 primaryTypographyProps={rowTypography}
                               />
+                              <OnlyMark row={node} />
                             </ListItemButton>
                           </Box>
                         </Tooltip>
@@ -464,6 +482,7 @@ export function LeftSidebar({
                                     },
                                   }}
                                 />
+                                <OnlyMark row={cnode} />
                               </ListItemButton>
                               {childOpen ? (
                                 <List
@@ -525,6 +544,7 @@ export function LeftSidebar({
                                               primary={primary}
                                               primaryTypographyProps={rowTypography}
                                             />
+                                            <OnlyMark row={e} />
                                           </ListItemButton>
                                         </Box>
                                       </Tooltip>
@@ -565,6 +585,7 @@ export function LeftSidebar({
                                   {cnode.label}
                                 </Typography>
                               </Tooltip>
+                              <OnlyMark row={cnode} />
                             </Box>
                           )}
                         </Box>

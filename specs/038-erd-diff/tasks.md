@@ -125,10 +125,10 @@
 
 **Goal**: the left panel lists A's and B's pages together, `+`/`−` on a page in one only; on it everything is added or removed (FR-032; research R15).
 
-- [ ] T047 [P] [US6] `FC/lib/sidebarDiff.ts`: `mergeSidebars(a, b)` — the union by page key (domain qualname, entity id for a lifecycle, and so on, as `FC/lib/sidebarNavigation.ts` keys them), `only: "a" | "b"` on a page in one only (data-model "SidebarMark").
-- [ ] T048 [US6] `FC/components/navigation/LeftSidebar/`: in Diff read the sidebar of A and of B and show the merged one with `+` (only in B) and `−` (only in A); in One unchanged. A one-sided ERD page: the side without it contributes nothing, so `markErd` marks everything added or removed.
-- [ ] T049 [P] [US6] Tests: `FC/lib/sidebarDiff.test.ts` — union and marks; the left panel's test — marks in Diff, none in One; a page only in B is all green (via `markErd`). Adversarial: merge by label instead of page key → only the union test fails. Restore. Record here.
-- [ ] T050 Check run green; prepare commit 8: `feat(maxitor): pages that exist in one version only (#290)`; tick #290 phase 7.
+- [X] T047 [P] [US6] `FC/lib/sidebarDiff.ts`: `mergeSidebars(a, b)` — the union by page key (domain qualname, entity id for a lifecycle, and so on, as `FC/lib/sidebarNavigation.ts` keys them), `only: "a" | "b"` on a page in one only (data-model "SidebarMark"). **Done**: `pageKey` = kind, node and parent; `NodeRow.only`.
+- [X] T048 [US6] `FC/components/navigation/LeftSidebar/`: in Diff read the sidebar of A and of B and show the merged one with `+` (only in B) and `−` (only in A); in One unchanged. A one-sided ERD page: the side without it contributes nothing, so `markErd` marks everything added or removed. **Done**: `useSidebarPayload` merges A's sidebar while `getActiveBase()` is set (A refused → B's alone); App rereads the panel when A changes; `OnlyMark` after the label on diagram, group and domain rows. A one-sided ERD page was already read as all added or removed (phase 4's `loadErdDiffBundle`). Browser: forecast-admin A #1 → Live marks `CompareVersionsAction +`, `CompareElementAction +`, and pages gone since #1 `−`; back to One, no mark.
+- [X] T049 [P] [US6] Tests: `FC/lib/sidebarDiff.test.ts` — union and marks; the left panel's test — marks in Diff, none in One; a page only in B is all green (via `markErd`). Adversarial: merge by label instead of page key → only the union test fails. Restore. Record here. **Done**: 3 tests in `sidebarDiff.test.ts`, 2 in the new `LeftSidebar.test.tsx`. Adversarial: merge by label → exactly the two union tests fail (411 of 413 pass); `OnlyMark` drawing nothing → only the marks test fails. Restored; 413 pass.
+- [X] T050 Check run green; prepare commit 8: `feat(maxitor): pages that exist in one version only (#290)`; tick #290 phase 7. **Done**: as T046 — whole client suite (413), type check, browser; full run left to T055.
 
 ---
 
