@@ -7,7 +7,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
-import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
@@ -47,7 +47,7 @@ import { DiffCard } from "@/components/history/DiffCard";
 import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
 import { bindNameCopy } from "@/lib/erdCopy";
-import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
+import { addEdgeHitAreas, addEndLabelBadges, bindLineHover, clearTableFocus, drawErdCards, erdEndLabelSx, erdLineHoverSx, focusTables, placeKindIcons } from "@/lib/erdPostPass";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { kindGlyphSvg, kindLegendDiskUri, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -173,7 +173,6 @@ export function ErdGraphvizCanvas({
   const [svgMarkup, setSvgMarkup] = useState("");
   /** Graphviz's output before the post-passes; its hash fixes every node's position (FR-005, FR-090). */
   const [rawSvg, setRawSvg] = useState("");
-  const layoutHashValue = useSvgLayoutHash(rawSvg);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [gvBusy, setGvBusy] = useState(false);
@@ -324,8 +323,9 @@ export function ErdGraphvizCanvas({
     setErdPaint(paintSection === "domains" ? "domain" : paintSection === "kinds" ? "kind" : "change", kindPaint);
     return buildDotSource(drawnData, layout);
   }, [drawnData, layout, paintSection, kindPaint]);
-  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
-  const layoutInputDigest = useSvgLayoutHash(rawSvg ? `${erdGraphvizEngine(layout)}\n${dot}` : "");
+  // The picture's hash and the text Graphviz was given, hashed with it as one pair: the settings digest a room
+  // compares layouts under (FR-093).
+  const layoutPair = useSvgLayoutPair(rawSvg, `${erdGraphvizEngine(layout)}\n${dot}`);
 
   // Reset fit flag whenever the DOT source changes (new diagram, layout mode, or 1-hop toggle)
   // so the next SVG insertion always re-fits
@@ -598,8 +598,8 @@ export function ErdGraphvizCanvas({
 
         <Box
           ref={viewportRef}
-          data-layout-hash={layoutHashValue}
-          data-layout-input={layoutInputDigest}
+          data-layout-hash={layoutPair?.hash}
+          data-layout-input={layoutPair?.digest}
           className="erd-svg-viewport"
           sx={{
             position: "absolute",
@@ -626,12 +626,8 @@ export function ErdGraphvizCanvas({
               top: 0,
               transformOrigin: "0 0",
               display: "block",
-              // A hovered line (or every line of a hovered row): thicker, darker, ends and roles following.
-              "& g.edge path": { transition: "stroke-width 100ms ease, stroke 100ms ease" },
-              "& g.edge.is-hovered path:not(.erd-hit)": { stroke: "#475569", strokeWidth: 2.4 },
-              "& g.edge.is-hovered polygon": { stroke: "#475569" },
-              "& g.edge.is-hovered polygon:not([fill='none'])": { fill: "#475569" },
-              "& g.edge.is-hovered text": { fill: "#334155", fontWeight: 700 },
+              // A hovered line (or every line of a hovered row): thicker, a grey one darker, ends and roles following.
+              ...erdLineHoverSx,
               // A line's end labels show only on hover, on a white plate (spec 029, FR-042).
               ...erdEndLabelSx,
               "@media (prefers-reduced-motion: reduce)": { "& g.edge path": { transition: "none" } },

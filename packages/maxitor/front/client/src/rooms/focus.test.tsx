@@ -10,10 +10,11 @@ import {
   reportHover,
   reportPanels,
   setFollowTarget,
+  sameFocus,
   useShownPanel,
   type FocusState,
 } from "@/rooms/focusStore";
-import { elementRefOf, elementsOf, tooltipOf, useGraphvizFocus } from "@/rooms/graphvizFocus";
+import { elementRefOf, elementsOf, placeLabel, tooltipOf, useGraphvizFocus } from "@/rooms/graphvizFocus";
 import type { RoomState } from "@/rooms/roomStore";
 
 const ERD = "view=domain-erd";
@@ -23,7 +24,7 @@ const annasFocus: FocusState = {
   hover: { kind: "row", id: "fn0_1" },
   tooltip: { kind: "row", id: "fn0_1" },
   selection: null,
-  panels: { sidebar: ["domains_root"], filter: "kinds", legend: false },
+  panels: { sidebar: ["domains_root"], filter: "kinds", legend: false, versions: false },
 };
 
 /** A Graphviz-like drawing: one table with a row cell, and a line. */
@@ -38,6 +39,16 @@ function drawing(): HTMLDivElement {
     </svg>`;
   document.body.appendChild(root);
   return root;
+}
+
+/** A real mouse moving over ``target``: only a trusted event is your own hover. */
+function hoverTrusted(target: Element): void {
+  // jsdom marks every ``dispatchEvent`` untrusted, so the event goes through the implementation's own dispatch, as
+  // the browser's does for a real mouse.
+  const implOf = (wrapper: object) => (wrapper as Record<symbol, Record<string, unknown>>)[Object.getOwnPropertySymbols(wrapper).find((key) => key.description === "impl")!];
+  const event = implOf(new MouseEvent("mouseover", { bubbles: true }));
+  event.isTrusted = true;
+  (implOf(target)._dispatch as (event: unknown) => void).call(implOf(target), event);
 }
 
 afterEach(() => {
@@ -118,6 +129,93 @@ describe("a Graphviz drawing's hover", () => {
     expect(parseFloat(label.style.left)).toBeLessThanOrEqual(window.innerWidth);
   });
 
+  it("takes the native tooltip off the drawing, keeping its text (spec 038)", () => {
+    const root = drawing();
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    const link = root.querySelector("a")!;
+    expect(link.getAttribute("xlink:title")).toBeNull();
+    expect(link.getAttribute("data-tooltip")).toBe("customer_id: str");
+  });
+
+  it("quiets a node's and a line's <title>, which the browser shows over a frame, yet still reads them", () => {
+    const root = drawing();
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    const titles = [...root.querySelectorAll("title")];
+    expect(titles.map((title) => title.textContent)).toEqual(["Orders", "Orders->Customers"]);
+    expect(titles.every((title) => title.namespaceURI !== "http://www.w3.org/2000/svg")).toBe(true);
+    expect(elementRefOf(root.querySelector("g.node")!, "table")).toEqual({ kind: "table", id: "Orders" });
+    expect(elementsOf(root, { kind: "table", id: "Orders" })).toEqual([root.querySelector("g.node")]);
+  });
+
+  it("puts the label under the element, inside the window", () => {
+    const element = document.createElement("div");
+    const label = document.createElement("div");
+    element.getBoundingClientRect = () => ({ left: 100, top: 200, right: 220, bottom: 320, width: 120, height: 120, x: 100, y: 200, toJSON: () => null });
+    Object.defineProperty(label, "offsetHeight", { value: 24 });
+    placeLabel(label, element);
+    expect([label.style.left, label.style.top]).toEqual(["100px", "326px"]);
+  });
+
+  it("puts it above only when there is no room below", () => {
+    const element = document.createElement("div");
+    const label = document.createElement("div");
+    element.getBoundingClientRect = () => ({ left: 100, top: 300, right: 220, bottom: window.innerHeight - 10, width: 120, height: 0, x: 100, y: 300, toJSON: () => null });
+    Object.defineProperty(label, "offsetHeight", { value: 24 });
+    placeLabel(label, element);
+    expect(label.style.top).toBe("270px");
+  });
+
+  it("shows a row's tooltip under its whole table, as a table's own — for you and for a follower alike", () => {
+    vi.useFakeTimers();
+    const root = drawing();
+    const table = root.querySelector("g.node")!;
+    table.getBoundingClientRect = () => ({ left: 100, top: 200, right: 220, bottom: 320, width: 120, height: 120, x: 100, y: 200, toJSON: () => null });
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    hoverTrusted(root.querySelector("#a_fn0_1 text")!);
+    act(() => vi.advanceTimersByTime(600));
+    expect(document.querySelector<HTMLElement>("[data-own-tooltip]")!.style.top).toBe("326px");
+    act(() => {
+      putFocus("anna", annasFocus);
+      setFollowTarget("anna");
+    });
+    act(() => vi.advanceTimersByTime(600));
+    expect(document.querySelector<HTMLElement>("[data-follow-tooltip]")!.style.top).toBe("326px");
+  });
+
+  it("takes it off a drawing placed after the hook ran, as the viewer places its SVG", async () => {
+    const root = drawing();
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    root.innerHTML = '<svg><g class="node"><title>Orders</title><g id="a_ft0_1"><a xlink:title="int"><text>int</text></a></g></g></svg>';
+    await Promise.resolve();
+    expect(root.querySelector("a")!.getAttribute("xlink:title")).toBeNull();
+    expect(root.querySelector("a")!.getAttribute("data-tooltip")).toBe("int");
+  });
+
+  it("shows your own hover's tooltip as the app's label, drawn as a follower's is", () => {
+    vi.useFakeTimers();
+    const root = drawing();
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    hoverTrusted(root.querySelector("#a_fn0_1 text")!);
+    expect(focusToSend(ERD).hover).toEqual({ kind: "row", id: "fn0_1" });
+    act(() => vi.advanceTimersByTime(600));
+    const own = document.querySelector<HTMLElement>("[data-own-tooltip]")!;
+    const follower = document.querySelector<HTMLElement>("[data-follow-tooltip]")!;
+    expect(own.style.display).toBe("block");
+    expect(own.textContent).toBe("customer_id: str");
+    const look = (label: HTMLElement) => [label.style.background, label.style.color, label.style.font, label.style.padding, label.style.borderRadius];
+    expect(look(own)).toEqual(look(follower));
+  });
+
+  it("shows no label over a cell whose tooltip is blank", () => {
+    vi.useFakeTimers();
+    const root = drawing();
+    root.querySelector("#a_fn0_1 a")!.setAttribute("xlink:title", " ");
+    renderHook(() => useGraphvizFocus(root, "svg-1", ERD, "table"));
+    hoverTrusted(root.querySelector("#a_fn0_1 text")!);
+    act(() => vi.advanceTimersByTime(600));
+    expect(document.querySelector<HTMLElement>("[data-own-tooltip]")!.style.display).toBe("none");
+  });
+
   it("is not replayed from a focus about another page", () => {
     putFocus("anna", { ...annasFocus, page: "view=full-graph" });
     setFollowTarget("anna");
@@ -147,5 +245,26 @@ describe("a panel while following (spec 029, FR-012)", () => {
     expect(panel.result.current.shown).toBe("kinds");
     act(() => setFollowTarget(null));
     expect(panel.result.current).toEqual({ own: "kinds", shown: "kinds" });
+  });
+
+  it("opens the version picker while the person followed has it open, and reports your own (spec 038)", () => {
+    const picker = renderHook(() => {
+      const [own, setOwn] = useState(false);
+      return { setOwn, shown: useShownPanel(own, setOwn, (panels) => panels.versions, (open) => ({ versions: open })) };
+    });
+    act(() => picker.result.current.setOwn(true));
+    expect(focusToSend(ERD).panels.versions).toBe(true);
+    act(() => {
+      putFocus("anna", { ...annasFocus, panels: { ...annasFocus.panels, versions: false } });
+      setFollowTarget("anna");
+    });
+    expect(picker.result.current.shown).toBe(false);
+    act(() => putFocus("anna", { ...annasFocus, panels: { ...annasFocus.panels, versions: true } }));
+    expect(picker.result.current.shown).toBe(true);
+  });
+
+  it("sends a change of the picker alone, as any change of what shows", () => {
+    const shut = { ...annasFocus, panels: { ...annasFocus.panels, versions: false } };
+    expect(sameFocus(shut, { ...shut, panels: { ...shut.panels, versions: true } })).toBe(false);
   });
 });

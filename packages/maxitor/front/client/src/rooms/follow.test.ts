@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "@/rooms/coordinates";
 import type { DiagramSurface, SavedView } from "@/rooms/diagramSurface";
-import { GLIDE_MAX_MS, createGlide, followCentre, followNavigation, followTarget, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
+import { GLIDE_MAX_MS, createGlide, followCentre, followHead, followNavigation, followTarget, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
 import { clearPointers, putViewport } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -232,5 +232,21 @@ describe("the follower's glide (spec 029, FR-014, SC-003)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("following a follower (spec 038)", () => {
+  it("takes the view from the end of the chain, while whom you follow stays whom you chose", () => {
+    // Anna follows Boris, who follows Vera.
+    expect(followHead(roomWith({ anna: "boris", boris: "vera", vera: null }, ERD))?.id).toBe("vera");
+  });
+
+  it("takes it from the one you follow once they follow nobody", () => {
+    expect(followHead(roomWith({ anna: "boris", boris: null, vera: null }, ERD))?.id).toBe("boris");
+    expect(followHead(roomWith({ anna: null, boris: null, vera: null }, ERD))).toBeNull();
+  });
+
+  it("never comes back to you, even through a circle the server would refuse", () => {
+    expect(followHead(roomWith({ anna: "boris", boris: "anna", vera: null }, ERD))?.id).toBe("boris");
   });
 });

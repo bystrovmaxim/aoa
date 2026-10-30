@@ -355,12 +355,15 @@ def test_a_click_reaches_the_same_page_and_is_not_kept(client: TestClient, sourc
         click = _expect(boris, "click")
         anna.send_json({"type": "pointer", "kind": "mouse", "x": 30, "y": 40, "frame": "screen"})
         over_a_panel = _expect(boris, "pointer")
-        anna.send_json({"type": "pointer", "kind": "mouse", "x": 31, "y": 40, "frame": "planet"})
-        unknown_frame = _expect(boris, "pointer")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 31, "y": 40, "frame": "version-track"})
+        over_the_track = _expect(boris, "pointer")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 32, "y": 40, "frame": "<b>Not a frame</b>"})
+        bad_frame = _expect(boris, "pointer")
 
     assert click == {"type": "click", "participant": "anna", "x": 4, "y": 5.5}
     assert over_a_panel == {"type": "pointer", "participant": "anna", "x": 30, "y": 40, "kind": "mouse", "frame": "screen"}
-    assert "frame" not in unknown_frame
+    assert over_the_track["frame"] == "version-track"
+    assert "frame" not in bad_frame
 
 
 def test_a_screen_carries_its_size_in_pixels(client: TestClient, source: str) -> None:

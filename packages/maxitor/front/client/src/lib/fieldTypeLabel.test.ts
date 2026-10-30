@@ -57,3 +57,20 @@ describe("an ERD row's type cell (spec 029, FR-030)", () => {
     expect(dot).toContain('TOOLTIP="UnionType[str, NoneType]"');
   });
 });
+
+describe("an ERD card's names (spec 038)", () => {
+  it("carry themselves as their tooltip, so a small drawing is read by hovering", () => {
+    const dot = buildDotSource(
+      {
+        entities: [
+          { id: "shop.PlayerCoreEntity", label: "PlayerCoreEntity", color: "#16a34a", entity_kind: "core", fields: [{ name: "region", type: "str" }] },
+        ],
+        relations: [],
+      },
+      "gv-dot-lr",
+    );
+    expect(dot).toMatch(/ID="fn0_0" TOOLTIP="region"/);
+    expect(dot).toMatch(/ID="hn0" TOOLTIP="PlayerCoreEntity"/);
+    expect(dot).not.toContain("Click to copy");
+  });
+});

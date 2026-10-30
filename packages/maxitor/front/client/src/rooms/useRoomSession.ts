@@ -13,7 +13,7 @@ import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
-import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
+import { checkNotice, decideCheck, lastLayoutReload, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
 import { clearFocus, putFocus } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putClick, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
@@ -167,7 +167,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const onEvent = useCallback((event: ServerEvent) => {
     // Pointers and screens change many times a second: they bypass React state.
     if (event.type === "pointer") {
-      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame === "screen" && { frame: "screen" as const }) });
+      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame && { frame: event.frame }) });
       return;
     }
     if (event.type === "viewport") {
@@ -175,7 +175,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       return;
     }
     if (event.type === "click") {
-      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame === "screen" && { frame: "screen" as const }) });
+      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame && { frame: event.frame }) });
       return;
     }
     if (event.type === "focus") {
@@ -184,10 +184,10 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       return;
     }
     if (event.type === "check") {
-      const outcome = decideCheck(event, Date.now(), lastSelfReload());
+      const outcome = decideCheck(event, Date.now(), lastSelfReload(), lastLayoutReload());
       setPageNotice(checkNotice(outcome));
       setPointersOffPage(outcome.pointersOff ? pageRef.current : null);
-      if (outcome.reload) reloadKeepingView(surfaceRef.current?.view() ?? null, Date.now(), () => window.location.reload());
+      if (outcome.reload) reloadKeepingView(surfaceRef.current?.view() ?? null, Date.now(), () => window.location.reload(), outcome.layoutReload);
       else if (outcome.reread) callbacks.current.onGraphChanged();
       return;
     }

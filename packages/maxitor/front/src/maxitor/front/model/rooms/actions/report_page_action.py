@@ -10,9 +10,11 @@ A tab reports its page on arrival, on every navigation and after every redraw, a
 its visibility when it goes to the background (spec 028, FR-013, FR-044). Each report
 marks the tab as the participant's active one. A report that carries what the tab
 drew is checked (FR-090 … FR-093): the app build and the graph fingerprint against the
-server's own values, the layout hash against the first one the room heard for the
-same page and settings. The tab gets the verdict as ``check``; everyone else learns
-where the participant is as ``presence``.
+server's own values, the layout hash against the one the room takes as right for the
+same page and settings — the followed person's, else the vote of the tabs there
+(``layout_authority``, spec 038). The tab gets the verdict as ``check``; every other tab
+whose layout verdict the report changed gets its new one; everyone else learns where the
+participant is as ``presence``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -23,7 +25,8 @@ ARCHITECTURE / DATA FLOW
     {"type": "page", page, build, fingerprint, layout_hash, settings_digest}
     {"type": "activity", visible}
         └► tab: page, visibility, last activity
-        └► check: build vs StaticBundle · fingerprint vs GraphStore · layout vs the room's first
+        └► check: build vs StaticBundle · fingerprint vs GraphStore · layout vs the room's right one
+        └► recheck: every other tab whose layout verdict moved
         └► presence to the room
 """
 
@@ -37,6 +40,7 @@ from maxitor.front.model.core.resources.static_bundle_resource import (
     StaticBundleResource,
 )
 from maxitor.front.model.rooms.actions.room_action_support import RoomAnswer, located
+from maxitor.front.model.rooms.layout_authority import layout_verdict, recheck_layouts
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, Room, RoomRegistry, Tab
 from maxitor.front.model.rooms.rooms_domain import RoomsDomain
 from pydantic import Field
@@ -60,6 +64,7 @@ class ReportPageParams(BaseParams):
     fingerprint: str | None = Field(default=None, description="Fingerprint of the graph the tab drew")
     layout_hash: str | None = Field(default=None, description="Layout hash of the picture the tab drew")
     settings_digest: str | None = Field(default=None, description="Digest of the page settings the picture used")
+    layout_reloaded: bool | None = Field(default=None, description="Whether the tab reloaded for its layout lately")
     visible: bool | None = Field(default=None, description="Whether the tab is visible")
 
 
@@ -69,14 +74,10 @@ def _differs(reported: str | None, held: str) -> bool:
 
 
 def _verdict(params: ReportPageParams, tab: Tab, room: Room, server_build: str, held_fingerprint: str) -> dict[str, str]:
-    """Compare what the tab drew with the server's build and graph, and its layout with the room's first."""
+    """Compare what the tab drew with the server's build and graph, and its layout with the room's right one."""
     build = "reload" if _differs(params.build, server_build) else "ok"
     fingerprint = "reread" if _differs(params.fingerprint, held_fingerprint) else "ok"
-    layout = "ok"
-    if params.layout_hash:
-        first = room.reported_hashes.setdefault((tab.page, tab.settings_digest), params.layout_hash)
-        if first != params.layout_hash and build == "ok" and fingerprint == "ok":
-            layout = "off"
+    layout = layout_verdict(room, tab) if build == "ok" and fingerprint == "ok" else "ok"
     return {"build": build, "fingerprint": fingerprint, "layout": layout}
 
 
@@ -90,8 +91,8 @@ class ReportPageAction(BaseAction[ReportPageParams, RoomAnswer]):
     """
     AI-CORE-BEGIN
     ROLE: Keep a tab's page and visibility current, and judge whether its picture is the room's.
-    CONTRACT: Build and fingerprint are compared with the server's values; the layout hash with the first
-    hash the room heard for the same page and settings digest, and only when build and graph agree.
+    CONTRACT: Build and fingerprint are compared with the server's values; the layout hash with the one the
+    room takes as right for the same page and settings digest, and only when build and graph agree.
     INVARIANTS: Every report makes the tab the participant's active one; others are told by ``presence``.
     AI-CORE-END
     """
@@ -121,9 +122,14 @@ class ReportPageAction(BaseAction[ReportPageParams, RoomAnswer]):
                 tab.build = params.build or ""
                 tab.fingerprint = params.fingerprint or ""
                 tab.layout_hash = params.layout_hash or ""
+                tab.layout_reloaded = bool(params.layout_reloaded)
+                if tab.layout_hash:
+                    heard = room.layout_first_heard.setdefault((tab.page, tab.settings_digest), {})
+                    heard.setdefault(tab.layout_hash, registry.clock())
                 entry = store.entry(room.source)
-                verdict = _verdict(params, tab, room, bundle.build(), entry.fingerprint if entry else "")
-                socket.send({"type": "check", **verdict})
+                tab.check = _verdict(params, tab, room, bundle.build(), entry.fingerprint if entry else "")
+                socket.send({"type": "check", **tab.check})
+                recheck_layouts(room)
                 if arrived:
                     registry.catch_up(room, tab, participant.id)
             registry.broadcast(room, {"type": "presence", **participant.public()}, except_participant=participant.id)

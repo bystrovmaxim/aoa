@@ -28,6 +28,24 @@
  * follower's circle all drawn at once. The leader's name is 40 characters, the longest a name may
  * be, and the follower's card for it must keep its buttons inside the card without one running into
  * another (FR-052).
+ *
+ * Last, following on every kind of diagram (spec 038) — the full graph, the ERD of all domains, one
+ * domain's ERD, a use case and a lifecycle — in every directed pair of four browsers: the three
+ * engines and the real Safari, driven through `safaridriver` (`browserTab.ts`), since Playwright's
+ * WebKit paints in software and never shows what Safari's compositor does to a large drawing. The
+ * leader goes to each page and zooms in; the follower must draw the same page, take the same zoom and
+ * the same top-left corner within 2 px, and show the diagram on screen: its share of drawn pixels
+ * (`pngInk.ts`) at least 60 % of the leader's. Safari runs one session at a time, so its pairs run one
+ * after another. On macOS Safari must be drivable — Develop → "Allow remote automation" — or the check
+ * fails; elsewhere its pairs are skipped and a line says so.
+ *
+ * Then every change of the picture in one frame (spec 038): in a room, on the ERD of all domains and on a
+ * use case, the leader turns a domain off and on, paints by kinds and by domains, changes the layout mode,
+ * turns 1-hop off and on, and the use case's direction and boundary. Each browser records, frame by frame,
+ * what its diagram shows — the drawing and the camera. After each change the leader and the follower must
+ * each show at most one new picture, the follower one whenever the leader does — no blank, no new drawing at
+ * an old view, no fit to its own screen and then a glide — and the follower must never be told its pointers
+ * are off.
  */
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -41,6 +59,10 @@ import { gunzipSync } from "node:zlib";
 
 import { chromium, firefox, webkit } from "playwright";
 import type { Browser, BrowserType, Page } from "playwright";
+
+import { playwrightTab, safariTab, safariUnavailable, waitInPage } from "./browserTab.ts";
+import type { BrowserTab } from "./browserTab.ts";
+import { decodePng, inkOf } from "./pngInk.ts";
 
 const CLIENT = process.cwd();
 const REPO = resolve(CLIENT, "../../../..");
@@ -62,6 +84,14 @@ const POINTER_TOLERANCE_PX = 2;
 const API_START_TIMEOUT_MS = 60_000;
 /** How soon a follower must show the leader's hover (spec 029, SC-002). */
 const FOLLOW_HOVER_MS = 500;
+/** The least share of the leader's drawn pixels a follower must show on the same diagram (spec 038). */
+const FOLLOW_INK_SHARE = 0.6;
+/** A leader's screen with less ink than this has nothing to compare: an empty diagram. */
+const EMPTY_INK = 0.002;
+/** How much a follower's zoom may differ from its leader's, as a share. */
+const ZOOM_TOLERANCE = 0.002;
+/** Time for a camera to settle and be written to the address (the client waits 250 ms). */
+const SETTLE_MS = 1500;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -540,6 +570,267 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
   }
 }
 
+/** One page of each kind the left panel lists, in its order: full graph, ERD of all domains, a domain's ERD, a use case, a lifecycle. */
+function oneOfEachKind(targets: Target[]): Target[] {
+  const kinds = ["full graph", "ERD, all domains", "ERD ", "use case ", "lifecycle "];
+  return kinds.flatMap((kind) => targets.filter((target) => target.label.startsWith(kind)).slice(0, 1));
+}
+
+/** How a follower drew one page against its leader. */
+type PageFollow = { label: string; same: boolean; apartPx: number; zoomOff: number; inkShare: number | null };
+
+/** The diagram's camera as the address says it — its zoom and the diagram point at the screen's top-left — and where the diagram stands. */
+const cameraInPage = () => {
+  const params = new URLSearchParams(location.search);
+  const zoom = Number(params.get("zoom"));
+  const [x, y] = (params.get("at") ?? "").split(",").map(Number);
+  const view = document.querySelector("[data-layout-hash]")!.getBoundingClientRect();
+  return { zoom, left: x - view.width / (2 * zoom), top: y - view.height / (2 * zoom), view: { x: view.left, y: view.top, width: view.width, height: view.height }, inner: innerWidth };
+};
+const hashInPage = () => document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") ?? null;
+const clickButtonInPage = (text: string) => {
+  const button = [...document.querySelectorAll<HTMLElement>("button, [role=button]")].find((each) => each.textContent?.trim() === text || each.getAttribute("aria-label") === text);
+  button?.click();
+  return Boolean(button);
+};
+
+/**
+ * The share of ``tab``'s diagram on screen that is drawn on — the diagram alone: for the screenshot every panel, button,
+ * banner and pointer over it is hidden, so a follower with an empty diagram cannot pass on the panels both screens show.
+ */
+async function inkOfDiagram(tab: BrowserTab): Promise<number> {
+  await tab.evaluate(() => {
+    const style = document.createElement("style");
+    style.id = "ink-only-the-diagram";
+    style.textContent =
+      "[data-layout-hash] * { visibility: hidden !important; }" +
+      "[data-layout-hash] svg:not(.MuiSvgIcon-root), [data-layout-hash] svg:not(.MuiSvgIcon-root) *, [data-layout-hash] canvas { visibility: visible !important; }" +
+      "[data-testid=pointer-layer], [data-follow-tooltip], [data-own-tooltip] { display: none !important; }";
+    document.head.appendChild(style);
+    return true;
+  }, null);
+  try {
+    const camera = await tab.evaluate(cameraInPage, null);
+    const image = decodePng(await tab.screenshot());
+    const scale = image.width / camera.inner;
+    // A few pixels in from the edge, past the frame a follower's screen wears.
+    const inset = 6;
+    return inkOf(image, { x: (camera.view.x + inset) * scale, y: (camera.view.y + inset) * scale, width: (camera.view.width - 2 * inset) * scale, height: (camera.view.height - 2 * inset) * scale });
+  } finally {
+    await tab.evaluate(() => (document.getElementById("ink-only-the-diagram")?.remove(), true), null);
+  }
+}
+
+/** The leader opens ``url`` and a room there; the follower joins it and follows the leader. */
+async function openRoomAndFollow(leader: BrowserTab, follower: BrowserTab, url: string): Promise<void> {
+  await leader.goto(url);
+  await waitInPage(leader, hashInPage, null, HASH_TIMEOUT_MS, "the leader's first diagram");
+  await waitInPage(leader, clickButtonInPage, "Open room", HASH_TIMEOUT_MS, "Open room");
+  await leader.fill("#room-name-input", "Leader");
+  await waitInPage(leader, (selector: string) => (document.querySelector<HTMLElement>(selector)?.click(), true), 'form button[type="submit"]', HASH_TIMEOUT_MS, "the name's button");
+  await waitInPage(leader, () => location.search.includes("room=") && Boolean(document.querySelector(".MuiPopover-paper")), null, HASH_TIMEOUT_MS, "the room and its invite");
+  await leader.press("Escape");
+  await waitInPage(leader, () => !document.querySelector(".MuiPopover-paper"), null, HASH_TIMEOUT_MS, "the invite to close");
+
+  await follower.goto(await leader.url());
+  await waitInPage(follower, hashInPage, null, HASH_TIMEOUT_MS, "the follower's first diagram");
+  await follower.fill("#room-name-input", "Follower");
+  await waitInPage(follower, (selector: string) => (document.querySelector<HTMLElement>(selector)?.click(), true), 'form button[type="submit"]', HASH_TIMEOUT_MS, "the name's button");
+  // A click with no pointer — Enter — opens the leader's card; Follow there starts following.
+  await waitInPage(follower, () => Boolean(document.querySelector('[aria-label^="Leader"]')), null, HASH_TIMEOUT_MS, "the leader's circle");
+  await waitInPage(
+    follower,
+    () => {
+      const follow = [...document.querySelectorAll<HTMLElement>('[role="dialog"] button')].find((button) => button.textContent?.trim() === "Follow");
+      if (follow) follow.click();
+      else document.querySelector<HTMLElement>('[aria-label^="Leader"]')?.click();
+      return Boolean(follow);
+    },
+    null,
+    HASH_TIMEOUT_MS,
+    "Follow on the leader's card",
+  );
+  await waitInPage(follower, () => document.body.textContent?.includes("Following Leader") ?? false, null, HASH_TIMEOUT_MS, "following");
+}
+
+/** The leader goes to ``page`` in the room; whether the follower then draws the same picture. */
+async function goTo(leader: BrowserTab, follower: BrowserTab, page: Target): Promise<boolean> {
+  const before = await leader.evaluate(hashInPage, null);
+  await leader.evaluate((query: Record<string, string>) => {
+    const url = new URL(location.href);
+    for (const name of ["view", "domain", "node", "host", "zoom", "at"]) url.searchParams.delete(name);
+    for (const [name, value] of Object.entries(query)) url.searchParams.set(name, value);
+    history.pushState(null, "", url);
+    dispatchEvent(new PopStateEvent("popstate"));
+    return true;
+  }, page.query);
+  const hash = await waitInPage(leader, (previous: string | null) => {
+    const now = document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") ?? null;
+    return now && now !== previous ? now : null;
+  }, before, HASH_TIMEOUT_MS, `the leader on ${page.label}`).catch(() => before);
+  const same = await waitInPage(follower, (wanted: string | null) => document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") === wanted, hash, HASH_TIMEOUT_MS, `the follower on ${page.label}`).then(
+    () => true,
+    () => false,
+  );
+  return same;
+}
+
+/**
+ * The leader opens a room, the follower joins and follows; then the leader goes to each page and zooms in,
+ * and the follower is measured against it there.
+ */
+async function followEveryDiagram(openLead: () => Promise<BrowserTab>, openFollow: () => Promise<BrowserTab>, front: string, source: string, pages: Target[]): Promise<PageFollow[]> {
+  const leader = await openLead();
+  const follower = await openFollow().catch(async (error: unknown) => {
+    await leader.close();
+    throw error;
+  });
+  try {
+    await openRoomAndFollow(leader, follower, `${front}/?${new URLSearchParams({ source, ...pages[0].query }).toString()}`);
+
+    const outcomes: PageFollow[] = [];
+    for (const page of pages) {
+      const same = await goTo(leader, follower, page);
+      await leader.evaluate(clickButtonInPage, "Zoom in");
+      await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+      const [a, b] = [await leader.evaluate(cameraInPage, null), await follower.evaluate(cameraInPage, null)];
+      const [leaderInk, followerInk] = [await inkOfDiagram(leader), await inkOfDiagram(follower)];
+      outcomes.push({
+        label: page.label,
+        same,
+        apartPx: Math.hypot(a.left - b.left, a.top - b.top) * a.zoom,
+        zoomOff: Math.abs(b.zoom / a.zoom - 1),
+        inkShare: leaderInk < EMPTY_INK ? null : followerInk / leaderInk,
+      });
+    }
+    return outcomes;
+  } finally {
+    await follower.close();
+    await leader.close();
+  }
+}
+
+/** One change of the picture the leader makes, and how it is made on its page. */
+type VisualChange = { label: string; act: (tab: BrowserTab) => Promise<void> };
+
+const clickInPage = (selector: string) => {
+  const element = document.querySelector<HTMLElement>(selector);
+  element?.click();
+  return Boolean(element);
+};
+const clickLabelInPage = (text: string) => {
+  const label = [...document.querySelectorAll<HTMLElement>("label")].find((each) => each.textContent?.trim() === text);
+  label?.querySelector<HTMLElement>("input")?.click();
+  return Boolean(label);
+};
+const clickFirstFilterRowInPage = () => {
+  const row = document.querySelector<HTMLElement>('[aria-label="Filter"] button[aria-pressed]');
+  row?.click();
+  return Boolean(row);
+};
+
+const click = (selector: string) => async (tab: BrowserTab) => void (await waitInPage(tab, clickInPage, selector, HASH_TIMEOUT_MS, selector));
+const ERD_CHANGES: VisualChange[] = [
+  // With 1-hop on, a domain switched off may come back whole as its neighbours' neighbours; off, it surely goes.
+  { label: "1-hop off", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "1-hop", HASH_TIMEOUT_MS, "1-hop")) },
+  { label: "a domain off", act: async (tab) => void (await waitInPage(tab, clickFirstFilterRowInPage, null, HASH_TIMEOUT_MS, "a filter row")) },
+  { label: "the domain on", act: async (tab) => void (await waitInPage(tab, clickFirstFilterRowInPage, null, HASH_TIMEOUT_MS, "a filter row")) },
+  { label: "paint by kinds", act: click('[aria-label="Paint by Kinds"]') },
+  { label: "paint by domains", act: click('[aria-label="Paint by Domains"]') },
+  { label: "top to bottom", act: click('[aria-label="Dot — top to bottom"]') },
+  { label: "left to right", act: click('[aria-label="Dot — left to right"]') },
+  { label: "1-hop on", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "1-hop", HASH_TIMEOUT_MS, "1-hop")) },
+];
+const ONE_DOMAIN_CHANGES: VisualChange[] = [
+  { label: "1-hop off", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "1-hop", HASH_TIMEOUT_MS, "1-hop")) },
+  { label: "1-hop on", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "1-hop", HASH_TIMEOUT_MS, "1-hop")) },
+];
+const USE_CASE_CHANGES: VisualChange[] = [
+  { label: "top to bottom", act: click('[aria-label="Dot — top to bottom"]') },
+  { label: "left to right", act: click('[aria-label="Dot — left to right"]') },
+  { label: "boundary off", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "Boundary", HASH_TIMEOUT_MS, "Boundary")) },
+  { label: "boundary on", act: async (tab) => void (await waitInPage(tab, clickLabelInPage, "Boundary", HASH_TIMEOUT_MS, "Boundary")) },
+];
+
+/**
+ * Start recording, once a frame, what the diagram shows: its drawing — the view box, the number of nodes, the first
+ * node's fill — and the camera, the pan and zoom rounded to half a pixel; a new entry each time it changes. Whether
+ * the page told of pointers off is kept too.
+ */
+const startFramesInPage = () => {
+  const w = window as unknown as { __frames?: { states: string[]; pointersOff: boolean; stop: boolean } };
+  if (w.__frames) w.__frames.stop = true;
+  const record = { states: [] as string[], pointersOff: false, stop: false };
+  w.__frames = record;
+  let last: { drawing: string; camera: number[] } | null = null;
+  const tick = () => {
+    if (record.stop) return;
+    // The drawing is the SVG its pan and zoom move — not found through ``data-layout-hash``, which is absent for a
+    // moment while a new drawing is hashed, though the drawing stays on screen.
+    const svg = [...document.querySelectorAll<SVGSVGElement>("svg:not(.MuiSvgIcon-root)")].find((each) => each.parentElement?.style.transform.startsWith("matrix"));
+    let drawing = "nothing";
+    let camera: number[] = [];
+    if (svg) {
+      let fill = 0;
+      for (const element of svg.querySelectorAll("[fill]")) for (const char of element.getAttribute("fill") ?? "") fill = (fill * 31 + char.charCodeAt(0)) | 0;
+      drawing = [svg.getAttribute("viewBox"), svg.querySelectorAll("g.node").length, fill].join("|");
+      camera = (svg.parentElement?.style.transform.match(/-?[\d.]+(e-?\d+)?/g) ?? []).map(Number);
+    }
+    // A new picture: another drawing, or the camera moved by a pixel or more — a hundredth of a pixel is no frame.
+    const moved = !last || camera.length < 6 || last.camera.length < 6 || Math.abs(camera[0] / last.camera[0] - 1) > 0.001 || Math.abs(camera[4] - last.camera[4]) >= 1 || Math.abs(camera[5] - last.camera[5]) >= 1;
+    if (!last || drawing !== last.drawing || moved) {
+      record.states.push(`${drawing}|${camera.map((n) => n.toFixed(3)).join(",")}`);
+      last = { drawing, camera };
+    }
+    if (document.body.textContent?.includes("Pointers are off")) record.pointersOff = true;
+    requestAnimationFrame(tick);
+  };
+  tick();
+  return true;
+};
+const readFramesInPage = () => {
+  const record = (window as unknown as { __frames?: { states: string[]; pointersOff: boolean } }).__frames;
+  return record ? { pictures: record.states.length - 1, states: record.states, pointersOff: record.pointersOff } : { pictures: -1, states: [], pointersOff: false };
+};
+
+/** How one change showed on both screens: the number of new pictures each drew, and whether pointers went off. */
+type ChangeFrames = { page: string; change: string; leader: number; follower: number; pointersOff: boolean; followerStates: string[] };
+
+/** The leader makes every change on each page; both screens are recorded frame by frame. */
+async function everyChangeInOneFrame(openLead: () => Promise<BrowserTab>, openFollow: () => Promise<BrowserTab>, front: string, source: string, pages: { target: Target; changes: VisualChange[] }[]): Promise<ChangeFrames[]> {
+  const leader = await openLead();
+  const follower = await openFollow().catch(async (error: unknown) => {
+    await leader.close();
+    throw error;
+  });
+  try {
+    await openRoomAndFollow(leader, follower, `${front}/?${new URLSearchParams({ source, ...pages[0].target.query }).toString()}`);
+    const outcomes: ChangeFrames[] = [];
+    for (const { target, changes } of pages) {
+      await goTo(leader, follower, target);
+      await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+      for (const change of changes) {
+        await leader.evaluate(startFramesInPage, null);
+        await follower.evaluate(startFramesInPage, null);
+        await change.act(leader);
+        await new Promise((resolve) => setTimeout(resolve, SETTLE_MS * 2));
+        const [a, b] = [await leader.evaluate(readFramesInPage, null), await follower.evaluate(readFramesInPage, null)];
+        outcomes.push({ page: target.label, change: change.label, leader: a.pictures, follower: b.pictures, pointersOff: b.pointersOff || a.pointersOff, followerStates: b.states });
+      }
+    }
+    return outcomes;
+  } finally {
+    await follower.close();
+    await leader.close();
+  }
+}
+
+/** Whether a follower drew a page as its leader did. */
+function followFits(outcome: PageFollow): boolean {
+  const zoomFits = outcome.zoomOff <= ZOOM_TOLERANCE;
+  return outcome.same && zoomFits && outcome.apartPx <= POINTER_TOLERANCE_PX && (outcome.inkShare === null || outcome.inkShare >= FOLLOW_INK_SHARE);
+}
+
 /** Check every page and mode; print one line each; return whether all of them agree. */
 /**
  * Print one line per page and mode — pages in the left panel's order, modes in the order the
@@ -627,6 +918,49 @@ async function main(): Promise<void> {
     const following = await timed(() =>
       allEnded(pairs.map((pair) => followCase(pair.leadEngine, pair.followEngine, frontUrl, source))),
     );
+    // Following on every kind of diagram, in every directed pair of four browsers. Playwright's pairs run at
+    // once; Safari's one after another, since Safari drives one session at a time.
+    const pages = oneOfEachKind(targets);
+    const safariPort = await freePort();
+    const safariWhy = await safariUnavailable(safariPort);
+    const openers: [string, () => Promise<BrowserTab>][] = [
+      ...ENGINES.map(([name, engine]): [string, () => Promise<BrowserTab>] => [
+        name,
+        async () => {
+          const browser = await engine.launch();
+          const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+          return playwrightTab(name, page, () => browser.close());
+        },
+      ]),
+      ...(safariWhy === null ? [["safari", () => safariTab(safariPort, 1440, 900)] as [string, () => Promise<BrowserTab>]] : []),
+    ];
+    const everyPair = openers.flatMap(([leadName, lead]) =>
+      openers.filter(([followName]) => followName !== leadName).map(([followName, follow]) => ({ leadName, followName, lead, follow })),
+    );
+    const isSafari = (pair: { leadName: string; followName: string }) => pair.leadName === "safari" || pair.followName === "safari";
+    const everyDiagram = await timed(async () => {
+      const byPair = new Map<string, PageFollow[]>();
+      const parallel = everyPair.filter((pair) => !isSafari(pair));
+      const outcomes = await allEnded(parallel.map((pair) => followEveryDiagram(pair.lead, pair.follow, frontUrl, source, pages)));
+      parallel.forEach((pair, i) => byPair.set(`${pair.leadName} → ${pair.followName}`, outcomes[i]));
+      for (const pair of everyPair.filter(isSafari)) byPair.set(`${pair.leadName} → ${pair.followName}`, await followEveryDiagram(pair.lead, pair.follow, frontUrl, source, pages));
+      return byPair;
+    });
+    // Every change of the picture in one frame, in the same pairs: Playwright's at once, Safari's one after another.
+    const byLabel = (prefix: string) => pages.find((page) => page.label.startsWith(prefix));
+    const changePages = [
+      { target: byLabel("ERD, all domains"), changes: ERD_CHANGES },
+      { target: byLabel("ERD "), changes: ONE_DOMAIN_CHANGES },
+      { target: byLabel("use case "), changes: USE_CASE_CHANGES },
+    ].filter((page): page is { target: Target; changes: VisualChange[] } => page.target !== undefined);
+    const oneFrame = await timed(async () => {
+      const byPair = new Map<string, ChangeFrames[]>();
+      const parallel = everyPair.filter((pair) => !isSafari(pair));
+      const outcomes = await allEnded(parallel.map((pair) => everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages)));
+      parallel.forEach((pair, i) => byPair.set(`${pair.leadName} → ${pair.followName}`, outcomes[i]));
+      for (const pair of everyPair.filter(isSafari)) byPair.set(`${pair.leadName} → ${pair.followName}`, await everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages));
+      return byPair;
+    });
     const [partASeconds, partBSeconds, partCSeconds] = [layout.seconds, pointers.seconds, following.seconds];
     ok = report(results, seen, targets.length);
     const offsets = pointers.value;
@@ -647,9 +981,39 @@ async function main(): Promise<void> {
         `${fits ? "ok  " : "DIFF"}  following | ${leadName} → ${followName}  screens apart ${apartPx.toFixed(3)} px, hover after ${hoverMs} ms, circles ${gapPx.toFixed(1)} px apart, card buttons overrun ${cardPx.toFixed(1)} px`,
       );
     });
+    for (const [pair, outcomes] of everyDiagram.value) {
+      for (const outcome of outcomes) {
+        const fits = followFits(outcome);
+        ok &&= fits;
+        const ink = outcome.inkShare === null ? "nothing drawn" : `${Math.round(outcome.inkShare * 100)} % of the leader's ink`;
+        console.log(
+          `${fits ? "ok  " : "DIFF"}  following ${outcome.label} | ${pair}  ${outcome.same ? "same diagram" : "ANOTHER diagram"}, corners ${outcome.apartPx.toFixed(3)} px apart, zoom off ${(outcome.zoomOff * 100).toFixed(2)} %, ${ink}`,
+        );
+      }
+    }
+    for (const [pair, outcomes] of oneFrame.value) {
+      for (const outcome of outcomes) {
+        // At most one new picture each: none when a change happens to leave the picture as it was.
+        const fits = outcome.leader <= 1 && outcome.follower <= 1 && outcome.follower >= outcome.leader && !outcome.pointersOff;
+        ok &&= fits;
+        console.log(
+          `${fits ? "ok  " : "DIFF"}  one frame | ${outcome.page}: ${outcome.change} | ${pair}  leader ${outcome.leader} picture(s), follower ${outcome.follower} picture(s)${outcome.pointersOff ? ", POINTERS OFF" : ""}`,
+        );
+        // A follower that drew more than one picture shows each, so the frame in between can be read.
+        if (!fits) for (const state of outcome.followerStates) console.log(`        ${state}`);
+      }
+    }
+    if (safariWhy !== null) {
+      // On macOS Safari is part of the check; elsewhere it cannot be.
+      const required = process.platform === "darwin";
+      ok &&= !required;
+      console.log(`${required ? "DIFF" : "skip"}  Safari | ${safariWhy}`);
+    }
     console.log(`part A (layout hashes) ${partASeconds} s`);
     console.log(`part B (pointer in a room) ${partBSeconds} s`);
     console.log(`part C (following) ${partCSeconds} s`);
+    console.log(`part D (following on every diagram) ${everyDiagram.seconds} s`);
+    console.log(`part E (every change in one frame) ${oneFrame.seconds} s`);
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );

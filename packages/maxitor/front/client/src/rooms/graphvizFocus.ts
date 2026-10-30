@@ -8,7 +8,8 @@
  * they follow, and the followed person's hover is replayed by sending ``mouseenter`` / ``mouseleave``
  * to the same elements, so the viewer's own hover code dims, raises and marks exactly as it does for
  * a real mouse. A browser cannot be made to show a native tooltip, so the follower sees the hovered
- * element's tooltip text in a small label beside it.
+ * element's tooltip text in a small label beside it — and so does everyone over their own diagram: the native tooltip
+ * is taken off, its text kept as ``data-tooltip``, so the two always look alike (spec 038).
  */
 import { useEffect } from "react";
 import { isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
@@ -47,11 +48,36 @@ export function elementsOf(root: ParentNode, ref: ElementRef): Element[] {
   return found ? [found] : [];
 }
 
-/** The tooltip text a browser would show over ``element``. */
+/** The tooltip text over ``element``: its link's, taken off the native tooltip, else its title. */
 export function tooltipOf(element: Element): string {
   const link = element.querySelector("a");
-  const linked = link?.getAttribute("xlink:title") ?? link?.getAttribute("title");
+  const linked = link?.getAttribute("data-tooltip") ?? link?.getAttribute("xlink:title") ?? link?.getAttribute("title");
   return (linked ?? titleOf(element)).trim();
+}
+
+/** The namespace of a ``<title>`` taken off the drawing: the browser shows no tooltip for it, the selector ``title`` still finds it. */
+const QUIET_TITLE_NS = "urn:maxitor:quiet-title";
+
+/**
+ * Take the native tooltips off the drawing in ``root``: a link's text is kept as ``data-tooltip``, and each SVG
+ * ``<title>`` — a table's or a line's id, which the browser shows over its frame — becomes an element of the same name
+ * and text in another namespace, so whatever reads a node's title still reads it.
+ */
+export function takeOffNativeTooltips(root: ParentNode): void {
+  for (const title of root.querySelectorAll("title")) {
+    if (title.namespaceURI !== "http://www.w3.org/2000/svg") continue;
+    const quiet = document.createElementNS(QUIET_TITLE_NS, "title");
+    quiet.textContent = title.textContent;
+    title.replaceWith(quiet);
+  }
+  for (const link of root.querySelectorAll("a")) {
+    const text = link.getAttribute("xlink:title") ?? link.getAttributeNS("http://www.w3.org/1999/xlink", "title") ?? link.getAttribute("title");
+    if (text === null) continue;
+    link.setAttribute("data-tooltip", text);
+    link.removeAttribute("xlink:title");
+    link.removeAttributeNS("http://www.w3.org/1999/xlink", "title");
+    link.removeAttribute("title");
+  }
 }
 
 function sendMouse(elements: Element[], type: "mouseenter" | "mouseleave"): void {
@@ -59,10 +85,12 @@ function sendMouse(elements: Element[], type: "mouseenter" | "mouseleave"): void
   for (const element of ordered) element.dispatchEvent(new MouseEvent(type, { bubbles: false }));
 }
 
-function makeLabel(): HTMLDivElement {
+/** A tooltip label: ``follow`` for the followed person's hover, ``own`` for your own — both drawn alike. */
+function makeLabel(kind: "follow" | "own" = "follow"): HTMLDivElement {
   const label = document.createElement("div");
   label.setAttribute("aria-hidden", "true");
-  label.dataset.followTooltip = "";
+  if (kind === "follow") label.dataset.followTooltip = "";
+  else label.dataset.ownTooltip = "";
   Object.assign(label.style, {
     position: "fixed",
     zIndex: "1400",
@@ -79,8 +107,11 @@ function makeLabel(): HTMLDivElement {
   return label;
 }
 
-/** Keep ``label`` beside ``element`` and inside the window. */
-function placeLabel(label: HTMLDivElement, element: Element): void {
+/**
+ * Keep ``label`` under ``element`` — the whole table for a table or any of its rows — and inside the window; above it
+ * only when there is no room below. The mouse is on the table, so under the card nothing covers the label.
+ */
+export function placeLabel(label: HTMLDivElement, element: Element): void {
   const box = element.getBoundingClientRect();
   const width = label.offsetWidth;
   const height = label.offsetHeight;
@@ -97,17 +128,61 @@ function placeLabel(label: HTMLDivElement, element: Element): void {
  * new one. ``nodeKind`` names a node: ``table`` on the ERD, ``node`` elsewhere.
  */
 export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, page: string | null, nodeKind: "node" | "table"): void {
-  // The followed person's own mouse: report what it is over.
+  // No native tooltip on any drawing: the app's own label shows instead, the same for everyone. The viewer places its
+  // SVG after this hook's effects run, and may place it again, so every new drawing is caught as it lands.
+  useEffect(() => {
+    if (!root) return undefined;
+    takeOffNativeTooltips(root);
+    const observer = new MutationObserver(() => takeOffNativeTooltips(root));
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [root]);
+
+  // Your own mouse: report what it is over, and show its tooltip as a follower sees it.
   useEffect(() => {
     if (!root) return undefined;
     const ac = new AbortController();
+    const label = makeLabel("own");
+    document.body.appendChild(label);
+    let shown: ElementRef | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const hide = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      label.style.display = "none";
+    };
+    const show = (ref: ElementRef | null) => {
+      if (sameRef(ref, shown)) return;
+      hide();
+      shown = ref;
+      const elements = ref ? elementsOf(root, ref) : [];
+      const anchor = elements.at(-1);
+      const text = anchor ? tooltipOf(anchor) : "";
+      if (!anchor || !text) return;
+      label.textContent = text;
+      timer = setTimeout(() => {
+        label.style.display = "block";
+        placeLabel(label, elements[0]);
+      }, TOOLTIP_DELAY_MS);
+    };
     const onOver = (event: MouseEvent) => {
       if (!event.isTrusted || isFollowing() || !(event.target instanceof Element)) return;
-      reportHover(elementRefOf(event.target, nodeKind));
+      const ref = elementRefOf(event.target, nodeKind);
+      reportHover(ref);
+      show(ref);
     };
     const onLeave = (event: MouseEvent) => {
-      if (event.isTrusted && !isFollowing()) reportHover(null);
+      if (!event.isTrusted || isFollowing()) return;
+      reportHover(null);
+      show(null);
     };
+    // A press or a wheel hides it, as a native tooltip goes away.
+    root.addEventListener("pointerdown", () => show(null), { signal: ac.signal });
+    root.addEventListener("wheel", () => show(null), { signal: ac.signal, passive: true });
+    ac.signal.addEventListener("abort", () => {
+      hide();
+      label.remove();
+    });
     // A follower's own mouse is held back before it reaches the viewer's handlers.
     const holdBack = (event: Event) => {
       if (event.isTrusted && isFollowing()) event.stopPropagation();
@@ -131,9 +206,9 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     const follow = () => {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
-      const anchor = entered.at(-1);
-      if (label.style.display === "none" || !anchor) return;
-      placeLabel(label, anchor);
+      const outer = entered[0];
+      if (label.style.display === "none" || !outer) return;
+      placeLabel(label, outer);
       frame = requestAnimationFrame(follow);
     };
     const hideLabel = () => {

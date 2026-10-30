@@ -50,11 +50,11 @@ export type ServerEvent =
   | { type: "setting"; page: string; name: string; value: unknown; by: string }
   | { type: "follows"; follows: FollowLinks }
   | { type: "follow_refused"; target: string; reason: string }
-  | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: "screen" }
-  | { type: "click"; participant: string; x: number; y: number; frame?: "screen" }
+  | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: string }
+  | { type: "click"; participant: string; x: number; y: number; frame?: string }
   | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
   | ({ type: "focus"; participant: string } & FocusState)
-  | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" }
+  | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "reload" | "off" }
   | { type: "graph_changed"; fingerprint: string }
   | { type: "version"; b: string | null; a?: string | null; by: string | null }
   | { type: "history_changed" }
@@ -62,7 +62,7 @@ export type ServerEvent =
   | { type: "error"; reason: string };
 
 export type ClientMessage =
-  | { type: "page"; page: string; build?: string; fingerprint?: string; layout_hash?: string; settings_digest?: string }
+  | { type: "page"; page: string; build?: string; fingerprint?: string; layout_hash?: string; settings_digest?: string; layout_reloaded?: boolean }
   | { type: "activity"; visible: boolean }
   | { type: "setting"; page: string; name: string; value: unknown }
   | { type: "seed"; page: string; settings: Record<string, unknown> }
@@ -72,8 +72,8 @@ export type ClientMessage =
   | { type: "leave" }
   | { type: "reload" }
   | { type: "version"; b: string; a?: string | null }
-  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: "screen" }
-  | { type: "click"; x: number; y: number; frame?: "screen" }
+  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: string }
+  | { type: "click"; x: number; y: number; frame?: string }
   | { type: "viewport"; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
   | ({ type: "focus" } & FocusState);
 

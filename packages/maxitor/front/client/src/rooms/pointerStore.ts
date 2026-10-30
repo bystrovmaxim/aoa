@@ -9,10 +9,11 @@
 import type { DiagramViewport, Point } from "@/rooms/coordinates";
 
 /**
- * ``frame: "screen"`` — over a panel, the version picker or the left panel: the position is in screen pixels from the
- * diagram's top-left corner, where those panels stand, not in the diagram's coordinates (spec 038).
+ * ``frame: "screen"`` — over a panel or the left panel: the position is in screen pixels from the diagram's top-left
+ * corner, where those panels stand, not in the diagram's coordinates. Any other name — over a panel that names its
+ * frame, as the version picker does — is that panel's own frame (``pointerFrames``, spec 038).
  */
-export type PointerFrame = { frame?: "screen" };
+export type PointerFrame = { frame?: string };
 
 export type RemotePointer = Point & PointerFrame & { kind: "mouse" | "touch"; at: number };
 
