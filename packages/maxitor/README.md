@@ -38,11 +38,13 @@ If I do not understand a question, give a concrete example and come back to the 
 
 The agent follows a four-stage wizard in your language: discover the project, settle each service's choices, choose updating and checking, then review the proposed changes. Each question explains one decision, a recommendation and the consequences of the alternatives. You can ask for an example, go back, change an answer or pause. Nothing is applied to the target project until the proposed changes are reviewed and authorized. Asking to review or edit the skill itself does not start setup.
 
-The wizard proves exports in a temporary folder, then applies the accepted exporters, graph files and integrations. A deferred integration remains explicitly manual. It leaves the result for you to review and commit; serving graph history from the main branch requires those files to reach that branch.
+The wizard proves exports in a temporary folder, then applies the accepted exporters, graph files and integrations. A deferred optional integration remains explicitly manual; mandatory release versioning cannot be deferred. It leaves the result for you to review and commit; serving graph history from the main branch requires those files to reach that branch.
 
 Already have the package? `graph-builder skill > .claude/skills/aoa-graph-builder-setup/SKILL.md` (or `.cursor/skills/…`), then ask the agent to *run aoa-graph-builder-setup*. Run it again any time: on a configured project it is an audit.
 
 ### What the wizard asks you to decide
+
+Revision 2 also audits mandatory release versions on every run. Broken existing items come first, the new required version decision next, optional choices afterward. The familiar per-service questions below are unchanged. Decisions are retained in `[setup]` in `graph-builder.toml`; a version refusal leaves setup incomplete. See [mandatory release versions](../../docs/how-to/graph-setup-version-tags.md) for the audit, first-tag consent, CI and monorepo cases.
 
 It finishes one service before moving to the next. First decide whether to connect a newly discovered service (including its exporter if needed), then where to save its map if that is not already established. After the services, choose how to refresh their maps and how to detect a forgotten refresh. Existing working arrangements are retained, not turned into repeat questions. Technical commands and proof accompany the final review rather than crowding each question.
 
@@ -71,7 +73,7 @@ If you answer “leave it out”, the wizard acknowledges that consequence and s
 | Update only after a dependency update | Explains that service-code changes still require a refresh; asks about the extra integration separately |
 | Missing CI | Offers a check for the actual hosting provider or deferral; deferral leaves checks manual |
 | No included services | Creates no empty config and asks no irrelevant integration questions |
-| Fully healthy audit | Reports evidence and finishes without asking permission to change nothing |
+| Fully healthy audit | All mandatory items, including version tags and enforcing CI, are done; reports evidence without a redundant question |
 | “Details” or “show my choices” | Shows the requested information while retaining the current unanswered decision |
 | “Back” or a changed answer | Revisits that decision and removes invalid dependent choices; retains unrelated answers |
 | Ambiguous answer, silence or “I do not understand” | Keeps the choice pending; clarifies or explains |
