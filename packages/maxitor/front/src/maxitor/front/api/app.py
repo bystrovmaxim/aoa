@@ -317,7 +317,7 @@ def create_app() -> FastAPI:
                 "version": SetRoomVersionAction,
             },
             on_close=DisconnectTabAction,
-            relay=frozenset({"pointer", "viewport", "focus"}),
+            relay=frozenset({"pointer", "viewport", "focus", "click"}),
             relay_key=ROOM_REGISTRY_KEY,
             # Pointer 20 + screen 20 + focus 10 a second at most (spec 029, R3), with room to spare.
             max_messages_per_second=80,

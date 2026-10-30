@@ -68,6 +68,8 @@ PALETTE: tuple[str, ...] = (
 _RELAYED_FIELDS: dict[str, tuple[str, ...]] = {
     "pointer": ("x", "y"),
     "viewport": ("cx", "cy", "w", "h"),
+    # A click: shown where it happened as a ripple, and not kept (spec 038).
+    "click": ("x", "y"),
 }
 
 #: The diagram elements a ``focus`` may name, and the longest id or page key it may carry.
@@ -397,7 +399,7 @@ class RoomRegistry(BaseController):
         if kind == "pointer":
             values["kind"] = "touch" if message.get("kind") == "touch" else "mouse"
             tab.pointer = values
-        else:
+        elif kind == "viewport":
             tab.viewport = values
         event = {"type": kind, "participant": sender.id, **values}
         for other in _tabs_on_page(room, tab.page, except_participant=sender.id):

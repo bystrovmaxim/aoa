@@ -2,7 +2,8 @@
 /**
  * Send this tab's pointer and screen to the room, in diagram coordinates (FR-040, FR-043).
  *
- * Pointer Events on the diagram's element give mouse and touch alike; a pan or zoom gives the screen.
+ * Pointer Events anywhere on the page give mouse and touch alike — over the filter panel, the version picker or the
+ * left panel too, mapped into the diagram's coordinates —, a click as well; a pan or zoom gives the screen (spec 038).
  * Nothing goes out from a hidden tab, while pointers are off on this page, or outside a room.
  */
 import { useEffect } from "react";
@@ -27,20 +28,27 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
     const point = surface.toDiagram({ x: event.clientX, y: event.clientY });
     if (point) pointer.push({ ...point, kind: event.pointerType === "touch" ? "touch" : "mouse" });
   };
+  // A click goes out at once, unthrottled: the ripple shows where and when it happened.
+  const onPress = (event: PointerEvent) => {
+    onPointer(event);
+    if (hidden() || event.pointerType === "touch" || event.button !== 0) return;
+    const point = surface.toDiagram({ x: event.clientX, y: event.clientY });
+    if (point) send({ type: "click", x: point.x, y: point.y });
+  };
   const onTransform = () => {
     if (hidden()) return;
     const v = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
     if (v) viewport.push(v);
   };
 
-  const element = surface.element;
-  element.addEventListener("pointermove", onPointer, { passive: true });
-  element.addEventListener("pointerdown", onPointer, { passive: true });
+  // The whole page, captured before a panel or a picker can stop the event.
+  window.addEventListener("pointermove", onPointer, { passive: true, capture: true });
+  window.addEventListener("pointerdown", onPress, { passive: true, capture: true });
   const unsubscribe = surface.subscribe(onTransform);
   onTransform();
   return () => {
-    element.removeEventListener("pointermove", onPointer);
-    element.removeEventListener("pointerdown", onPointer);
+    window.removeEventListener("pointermove", onPointer, { capture: true });
+    window.removeEventListener("pointerdown", onPress, { capture: true });
     unsubscribe();
     pointer.cancel();
     viewport.cancel();
