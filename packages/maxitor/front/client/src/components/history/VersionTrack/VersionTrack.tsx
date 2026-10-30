@@ -5,7 +5,7 @@ import Popper from "@mui/material/Popper";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
-import { PROPOSAL_LOOK } from "./proposalLook";
+import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
 import { thinLabels } from "./thinLabels";
 
@@ -145,11 +145,15 @@ const TIP_SX = {
 const TIP_OFFSET = [0, HEIGHT + 2 - (AXIS_Y + MIN_STEP / 2)] as const;
 
 /** The chosen version's knob on the axis: dark, a white ring, a soft shadow. */
-/** The chosen point's knob and chip keep what the point is: a merged version dark, an open pull request in its state's colour, Live hollow. */
+/**
+ * Each point's colour says how it came, the same on the track, in its card and in the legend: merged purple, a
+ * direct push grey, an open pull request its state's colour, Live hollow grey. The chosen point keeps it.
+ */
 function lookOf(point: Point): { colour: string; hollow: boolean } {
-  if (point.b === "live") return { colour: INK, hollow: true };
+  if (point.b === "live") return { colour: LIVE_LOOK.colour, hollow: true };
   if (point.state) return { colour: PROPOSAL_LOOK[point.state].colour, hollow: false };
-  return { colour: INK, hollow: false };
+  if (point.refused) return { colour: "#dc2626", hollow: true };
+  return { colour: point.version?.pr ? MERGED_LOOK.colour : DIRECT_LOOK.colour, hollow: false };
 }
 
 /** The radius of the chosen point's knob. */
@@ -313,16 +317,11 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
 
   // The points are drawn once per choice, hover or pin — not once per scrolled pixel.
   const body = useMemo(() => {
-    const history = points.filter((point) => !point.state && point.b !== "live");
-    const lastVersionX = history.at(-1)?.x ?? PAD;
-    const lastProposal = points.filter((point) => point.state).at(-1);
-    const livePoint = points.find((point) => point.b === "live");
     // No name stands where the chosen version's chip does.
     const underChip = (x: number) => chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20;
     // Names under the track: a version's own point by its number (``0.8.0``), as the mockup names it, and Live;
     // no dates. Names thin out where they would collide, never under the chip.
     const shown = trackLabels(points, (point) => point.b !== value && !underChip(point.x));
-    const versionCount = history.length;
     return (
       <svg width={length} height={HEIGHT} viewBox={`0 0 ${length} ${HEIGHT}`} fontFamily="ui-sans-serif, system-ui, sans-serif" style={{ display: "block" }}>
         <defs>
@@ -338,13 +337,23 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             </g>
           ) : null,
         )}
-        {versionCount > 1 && <line x1={points[0].x} y1={AXIS_Y} x2={lastVersionX} y2={AXIS_Y} stroke="#e2e8f0" strokeWidth={2} strokeLinecap="round" />}
-        {lastProposal && versionCount > 0 && (
-          <line data-testid="proposals-gap" x1={lastVersionX} y1={AXIS_Y} x2={lastProposal.x} y2={AXIS_Y} stroke="#e2e8f0" strokeWidth={1.5} strokeDasharray="1 4" strokeLinecap="round" />
-        )}
-        {livePoint && (versionCount > 0 || lastProposal) && (
-          <line data-testid="live-gap" x1={lastProposal?.x ?? lastVersionX} y1={AXIS_Y} x2={livePoint.x} y2={AXIS_Y} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="2 4" strokeLinecap="round" />
-        )}
+        {/* Each stretch of the line takes the colour of the point it leads to: solid to a version in the history,
+            dashed to what is not in it yet — an open pull request or Live. */}
+        {points.slice(1).map((point, at) => (
+          <line
+            key={`line-${point.b}`}
+            data-testid={point.b === "live" ? "live-gap" : point.state && !points[at].state ? "proposals-gap" : undefined}
+            x1={points[at].x}
+            y1={AXIS_Y}
+            x2={point.x}
+            y2={AXIS_Y}
+            stroke={lookOf(point).colour}
+            strokeOpacity={0.35}
+            strokeWidth={2}
+            strokeDasharray={point.b === "live" || point.state ? "2 4" : undefined}
+            strokeLinecap="round"
+          />
+        ))}
         {points.map((point) => (
           <g
             key={point.b}
@@ -359,7 +368,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             <circle data-testid={`target-${point.b}`} cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
             {hovered === point.b && point.b !== value && <circle data-testid="hover-ring" cx={point.x} cy={AXIS_Y} r={KNOB + 1} fill="none" stroke={MUTED} strokeWidth={1.4} style={{ pointerEvents: "none" }} />}
             {point.b === "live" ? (
-              <circle cx={point.x} cy={AXIS_Y} r={4} fill="#fff" stroke={MUTED} strokeWidth={1.5} style={{ pointerEvents: "none" }} />
+              <circle cx={point.x} cy={AXIS_Y} r={4} fill="#fff" stroke={LIVE_LOOK.colour} strokeWidth={1.5} style={{ pointerEvents: "none" }} />
             ) : point.state && !point.refused ? (
               <circle
                 data-state={point.state}
@@ -374,7 +383,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             ) : point.refused ? (
               <circle cx={point.x} cy={AXIS_Y} r={3.2} fill="#fff" stroke="#dc2626" strokeWidth={1.4} style={{ pointerEvents: "none" }} />
             ) : (
-              <circle cx={point.x} cy={AXIS_Y} r={point.release ? 3.4 : 2.2} fill={point.release ? "#cbd5e1" : "#dbe2ea"} style={{ pointerEvents: "none" }} />
+              <circle cx={point.x} cy={AXIS_Y} r={point.release ? 3.4 : 2.4} fill={lookOf(point).colour} style={{ pointerEvents: "none" }} />
             )}
             {shown.has(point.b) && (
               <text data-testid={`label-${point.b}`} x={point.x} y={LABEL_Y + 4} fontSize={10.5} fill={MUTED} textAnchor="middle">

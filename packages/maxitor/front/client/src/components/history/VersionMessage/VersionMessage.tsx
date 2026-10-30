@@ -1,6 +1,5 @@
 // src/components/history/VersionMessage/VersionMessage.tsx
 import Box from "@mui/material/Box";
-import { useEffect, useRef, useState } from "react";
 import type { HistoryVersion } from "@/api/history";
 import { linkify } from "@/lib/linkify";
 
@@ -40,19 +39,11 @@ function LiveIcon() {
  * below a thin line, in a light grey box, whole, with nothing above it, line breaks kept, long lines
  * wrapped by words; plain text whose only links are addresses and ``#123``, each opening in a new tab
  * without telling the page it opens where it came from. The box stops at nine lines and scrolls inside
- * with a thin scrollbar, its lower edge fading while more is below. Live has no message: a closing line
+ * with a thin scrollbar that shows how much more there is; nothing is faded. Live has no message: a closing line
  * with its icon says when it was checked, or since when it cannot be reached.
  */
 export function VersionMessage({ version, repository, liveLine }: VersionMessageProps) {
-  const box = useRef<HTMLDivElement | null>(null);
-  const [moreBelow, setMoreBelow] = useState(false);
   const text = version ? messageOf(version) : "";
-
-  const measure = () => {
-    const element = box.current;
-    if (element) setMoreBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 1);
-  };
-  useEffect(measure, [text]);
 
   const foot = liveLine !== undefined && (
     <Box
@@ -69,14 +60,10 @@ export function VersionMessage({ version, repository, liveLine }: VersionMessage
 
   if (!version) return foot || null;
 
-  const fade = moreBelow ? "linear-gradient(#000 calc(100% - 26px), transparent)" : "none";
   return (
     <Box sx={{ mt: 1, pt: "6px", borderTop: DIVIDER }}>
       <Box
-        ref={box}
         data-testid="message"
-        data-more-below={moreBelow || undefined}
-        onScroll={measure}
         sx={{
           m: "2px 0 6px",
           p: "8px 10px",
@@ -96,8 +83,6 @@ export function VersionMessage({ version, repository, liveLine }: VersionMessage
           "&::-webkit-scrollbar": { width: 6 },
           "&::-webkit-scrollbar-thumb": { background: "#cbd5e1", borderRadius: 3 },
           "&::-webkit-scrollbar-track": { background: "transparent", margin: "4px 0" },
-          maskImage: fade,
-          WebkitMaskImage: fade,
           "& a": { color: "#2563eb" },
         }}
       >

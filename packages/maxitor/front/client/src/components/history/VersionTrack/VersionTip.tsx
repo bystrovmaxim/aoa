@@ -2,7 +2,7 @@
 import Box from "@mui/material/Box";
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { releaseNoteOf } from "@/lib/versionNames";
-import { MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
+import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MUTED = "#64748b";
@@ -65,9 +65,10 @@ function Person({ name, avatar }: { name: string; avatar?: string }) {
 }
 
 /** A small pill: a merged pull request, a version number, a size. */
-function Pill({ children, tone }: { children: React.ReactNode; tone: "live" | "merged" | "release" | "plain" }) {
+function Pill({ children, tone }: { children: React.ReactNode; tone: "live" | "merged" | "direct" | "release" | "plain" }) {
   const colours = {
-    live: { bgcolor: "#dcfce7", color: "#15803d" },
+    direct: { bgcolor: DIRECT_LOOK.tint, color: "#59636e" },
+    live: { bgcolor: "#fff", color: "#59636e", boxShadow: `inset 0 0 0 1.2px ${LIVE_LOOK.colour}` },
     merged: { bgcolor: MERGED_LOOK.tint, color: MERGED_LOOK.colour },
     release: { bgcolor: "#0f172a", color: "#fff" },
     plain: { bgcolor: "#f1f5f9", color: "#475569" },
@@ -157,7 +158,7 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
           </Box>
         )}
         {!version.pr && !state && (
-          <Pill tone="plain">
+          <Pill tone="direct">
             <CommitIcon />
             Direct push
           </Pill>
@@ -183,7 +184,12 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
           <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.title}</Box>
         </Box>
       )}
-      {title && <Box sx={{ mt: "8px", fontSize: 13, fontWeight: 500, color: "#0f172a", lineHeight: 1.4 }}>{title}</Box>}
+      {/* The title only, at most two lines: the whole description is under the track, for the chosen point. */}
+      {title && (
+        <Box sx={{ mt: "8px", fontSize: 13, fontWeight: 500, color: "#0f172a", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {title}
+        </Box>
+      )}
       {others.length > 0 && <Box sx={{ mt: "4px", color: MUTED, fontSize: 11.5 }}>tags: {others.join(", ")}</Box>}
       {who && (
         <Box sx={{ mt: "8px", display: "flex", alignItems: "center", gap: "6px", color: MUTED, fontSize: 12, minWidth: 0 }}>
