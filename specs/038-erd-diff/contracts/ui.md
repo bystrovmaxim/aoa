@@ -29,14 +29,15 @@ Two handles, chips in their handle's style (`A 0.8.0`, `B 0.9.0`), the stretch b
 ## Under the track
 
 ```text
-┌ A · 0.8.0 · #128 ───────────┐ ┌ B · 0.9.0 · #129 ───────────┐
-│ message, ≤ 9 lines, scrolls │ │ message, ≤ 9 lines, scrolls │
+┌─────────────────────────────┐ ┌─────────────────────────────┐
+│ A's message, ≤ 9 lines,     │ │ B's message, ≤ 9 lines,     │
+│ scrolls                     │ │ scrolls                     │
 └─────────────────────────────┘ └─────────────────────────────┘
 ▸ 3 versions between
    #127  Offer request log — first line…
 ```
 
-Live as B: B's box holds Live's closing line. A phone stacks A over B.
+No header above either box: the side says which is which — A left, B right, as the track's handles stand. Live as B: B's side holds Live's closing line. A phone stacks A over B.
 
 ## ERD marks
 

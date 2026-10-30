@@ -46,9 +46,9 @@ export function VersionMessage({ version, repository, liveLine }: VersionMessage
   const foot = liveLine !== undefined && (
     <Box
       data-testid="live-line"
-      sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1, pt: "10px", borderTop: DIVIDER, fontSize: 12, color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+      sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 1, rowGap: "2px", mt: 1, pt: "10px", borderTop: DIVIDER, fontSize: 12, color: "#475569" }}
     >
-      <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600, color: "#0f172a" }}>
+      <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
         <LiveIcon />
         Live
       </Box>
