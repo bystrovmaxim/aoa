@@ -116,10 +116,10 @@ export type RoomSessionOptions = {
   surface: DiagramSurface | null;
   /** The fingerprint of the graph the left panel was read from. */
   fingerprint: string | null;
-  /** The history the tab shows, for a room on it (spec 037): its name, version and key; ``null`` for a service. */
-  history?: { name: string; version: string | null; key: string } | null;
-  /** The room moved to a version, or a newcomer learned the room's. */
-  onVersion?: (b: string) => void;
+  /** The history the tab shows, for a room on it (spec 037): its name, version — and in Diff its A (spec 038) — and key; ``null`` for a service. */
+  history?: { name: string; version: string | null; versionA?: string | null; key: string } | null;
+  /** The room moved to a version or, with ``a``, to two compared; or a newcomer learned the room's. */
+  onVersion?: (b: string, a: string | null) => void;
   /** The room's history changed: read its list again. */
   onHistoryChanged?: () => void;
 };
@@ -191,7 +191,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       dropPointer(event.type === "left" ? event.participant.id : event.id);
     }
     if (event.type === "version") {
-      if (event.b) callbacks.current.onVersion?.(event.b);
+      if (event.b) callbacks.current.onVersion?.(event.b, event.a ?? null);
       return;
     }
     if (event.type === "history_changed") {
@@ -200,7 +200,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     }
     if (event.type === "welcome" && event.room.history && event.room.version) {
       // A newcomer takes the room's version, whatever their link named (FR-022a).
-      callbacks.current.onVersion?.(event.room.version);
+      callbacks.current.onVersion?.(event.room.version, event.room.version_a ?? null);
     }
     if (event.type === "welcome") {
       target.current = event.room.id;
@@ -250,7 +250,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       const next = new RoomConnection({
         room: roomId,
         source: source ?? undefined,
-        history: onHistory ? { name: onHistory.name, version: onHistory.version } : undefined,
+        history: onHistory ? { name: onHistory.name, version: onHistory.version, versionA: onHistory.versionA ?? null } : undefined,
         ticket: onHistory?.key ? async () => (await openHistory(onHistory.name, onHistory.key)).room_ticket : undefined,
         name,
         page: pageRef.current ?? "",

@@ -18,7 +18,9 @@ import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
 import { shownNameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
-import { sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
+import { keysOf, sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
+import { diffOffered, oneToDiff, type Range } from "@/lib/versionRange";
+import type { PickerMode } from "@/components/history/VersionPicker";
 import { loadGraph } from "@/api/load";
 import { getGraphFingerprint } from "@/api/graphFingerprint";
 import { useFingerprintPoll, useModelRefresh } from "@/lib/freshGraph";
@@ -78,6 +80,10 @@ export function App() {
   const shownSource = shown ? sourceOf(shown) : null;
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
   const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals) : null;
+  // In Diff (spec 038) the tab compares A with B; the diagram shows B until the comparison draws both.
+  const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals) : null;
+  const trackPoints = shown ? keysOf(shown) : [];
+  const pickerMode: PickerMode = shown?.a ? "diff" : "one";
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
   const [pickerOpen, setPickerOpen] = useState(false);
   const versionButton = useRef<HTMLButtonElement | null>(null);
@@ -114,8 +120,8 @@ export function App() {
     onGraphChanged: handleGraphChanged,
     surface,
     fingerprint: sidebar?.fingerprint ?? null,
-    history: shown ? { name: shown.name, version: shown.b, key: shown.key } : null,
-    onVersion: opened.pick,
+    history: shown ? { name: shown.name, version: shown.b, versionA: shown.a, key: shown.key } : null,
+    onVersion: (b, a) => (a ? opened.pickRange({ a, b }) : opened.pick(b)),
     onHistoryChanged: () => {
       if (!shown) return;
       void historyVersions(shown.name, shown.key)
@@ -194,10 +200,10 @@ export function App() {
   }
 
   /** Open the history an address names, with the key this tab or Recent holds; a refusal is a notice. */
-  async function openHistoryOf(name: string, b: string | null) {
+  async function openHistoryOf(name: string, b: string | null, a: string | null = null) {
     const key = keyFor(name);
     try {
-      opened.show(await openHistory(name, key), key, b);
+      opened.show(await openHistory(name, key), key, b, a);
     } catch (e) {
       setUrlHistory(null);
       opened.close();
@@ -209,11 +215,12 @@ export function App() {
   function applyDeepLink(link: UrlDeepLink, activeServiceUrl: string | null, activeSidebar: SidebarPayload | null) {
     if (link.history) {
       // Named at once, so the address keeps ``history`` and ``b`` while the history is still being opened.
-      setUrlHistory({ name: link.history, b: link.b ?? null });
+      setUrlHistory({ name: link.history, b: link.b ?? null, a: link.a ?? null });
       const resolvedHistory = deepLinkToSelection(link);
       if (resolvedHistory) setDiagram(resolvedHistory);
-      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null);
-      else if (link.b && link.b !== shown.b) opened.pick(link.b);
+      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null, link.a ?? null);
+      else if (link.a && link.b && (link.a !== shown.a || link.b !== shown.b)) opened.pickRange({ a: link.a, b: link.b });
+      else if (link.b && (link.b !== shown.b || (!link.a && shown.a))) opened.pick(link.b);
       return;
     }
     setUrlHistory(null);
@@ -270,7 +277,7 @@ export function App() {
   // A history's chosen version is what the page reads: its source, its key, and the address that names it.
   useEffect(() => {
     if (!shown) return;
-    setUrlHistory({ name: shown.name, b: shown.b });
+    setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
     setActiveHistoryKey(shown.b === "live" ? "" : shown.key);
     if (shownSource && shownSource !== serviceUrl) {
       setActiveSource(shownSource);
@@ -285,6 +292,13 @@ export function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown?.name, shown?.b, shownSource]);
+
+  // The address follows A as well: it names the two compared (spec 038, FR-014).
+  useEffect(() => {
+    if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
+    syncUrlToState(serviceUrl, diagram);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown?.a]);
 
   // The tab's title names the history and its version, never its address (FR-011c).
   useEffect(() => {
@@ -314,6 +328,22 @@ export function App() {
   function pickVersion(b: string) {
     if (room.inRoom) room.send({ type: "version", b });
     else opened.pick(b);
+  }
+
+  /** Pick two versions, A before B: in a room the whole room moves, outside one only this tab (spec 038, FR-016). */
+  function pickRange(range: Range) {
+    if (room.inRoom) room.send({ type: "version", b: range.b, a: range.a });
+    else opened.pickRange(range);
+  }
+
+  /** One → Diff keeps the version as B and puts A on the one before it; Diff → One keeps B (spec 038, FR-013). */
+  function pickMode(mode: PickerMode) {
+    if (!shown?.b) return;
+    if (mode === "one") pickVersion(shown.b);
+    else {
+      const range = oneToDiff(trackPoints, shown.b);
+      if (range) pickRange(range);
+    }
   }
 
   function handleLoaded(url: string) {
@@ -372,7 +402,12 @@ export function App() {
       topRow={(compact) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
           {shown && hasPicker(opened.mode) && (
-            <VersionButton ref={versionButton} name={shownName ?? "—"} open={pickerOpen} onClick={() => setPickerOpen((open) => !open)} />
+            <VersionButton
+              ref={versionButton}
+              name={shown.a ? `A ${olderName ?? "—"} → B ${shownName ?? "—"}` : (shownName ?? "—")}
+              open={pickerOpen}
+              onClick={() => setPickerOpen((open) => !open)}
+            />
           )}
           <Box sx={{ flex: 1 }} />
         <RoomBar
@@ -449,6 +484,11 @@ export function App() {
           value={shown.b}
           onChange={pickVersion}
           phone={phone}
+          mode={pickerMode}
+          onMode={pickMode}
+          diffOffered={diffOffered(trackPoints)}
+          range={shown.a && shown.b ? { a: shown.a, b: shown.b } : null}
+          onRange={pickRange}
         >
           <VersionMessage
             version={shownVersion ?? (shown.b === "live" ? versionOf(shown, shown.liveSameAs) : null)}

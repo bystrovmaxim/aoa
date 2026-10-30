@@ -2911,6 +2911,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version_a",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
+      "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version_a",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.leave_room_action.LeaveRoomAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
       "is_dag": false,
       "properties": {},
@@ -3541,6 +3550,15 @@
       "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction",
       "target_id": "maxitor.front.model.rooms.actions.room_action_support.RoomAnswer",
       "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams|field|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:a",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:a",
+      "type": "field"
     },
     {
       "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams|field|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",
@@ -6376,6 +6394,17 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:version_a",
+      "label": "version_a",
+      "properties": {
+        "description": "In Diff, the older version a new room compares with ``version``; empty for one version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.leave_room_action.LeaveRoomAction",
       "label": "LeaveRoomAction",
       "properties": {
@@ -6666,6 +6695,17 @@
       "label": "SetRoomVersionParams",
       "properties": {},
       "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:a",
+      "label": "a",
+      "properties": {
+        "description": "In Diff, the older version compared with ``b``; absent or null for one version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
     },
     {
       "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",

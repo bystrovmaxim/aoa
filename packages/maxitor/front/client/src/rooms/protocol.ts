@@ -30,6 +30,8 @@ export type WelcomeEvent = {
     /** The history a room on one shows, its address without a key, and its version (spec 037). */
     history?: string | null;
     version?: string | null;
+    /** In Diff, the room's A — the older version; ``null`` while it shows one version (spec 038). */
+    version_a?: string | null;
     created_by: string;
     participants: Participant[];
     settings: PageSettings;
@@ -53,7 +55,7 @@ export type ServerEvent =
   | ({ type: "focus"; participant: string } & FocusState)
   | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "off" }
   | { type: "graph_changed"; fingerprint: string }
-  | { type: "version"; b: string | null; by: string | null }
+  | { type: "version"; b: string | null; a?: string | null; by: string | null }
   | { type: "history_changed" }
   | { type: "refused"; code: number; reason: string }
   | { type: "error"; reason: string };
@@ -68,7 +70,7 @@ export type ClientMessage =
   | { type: "stop_following" }
   | { type: "leave" }
   | { type: "reload" }
-  | { type: "version"; b: string }
+  | { type: "version"; b: string; a?: string | null }
   | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number }
   | { type: "viewport"; cx: number; cy: number; w: number; h: number }
   | ({ type: "focus" } & FocusState);

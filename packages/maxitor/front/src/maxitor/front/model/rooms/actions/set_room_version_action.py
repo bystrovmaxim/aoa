@@ -12,20 +12,26 @@ everyone, sent as a value, never a step, so two picks at once end with the last 
 version the history does not have, a refused one, or Live where there is none is refused
 to the participant who picked it alone, with the reason, and the room does not move.
 
+In Diff (spec 038, FR-016) the pick carries ``a`` as well — the older of two versions
+compared — and the room's mode, A and B move as one value. A pair that breaks the range's
+rules (the same version twice, Live as A, A not before B) is refused the same way; a client
+puts a reversed pair in order before it sends it, so a refusal means a stale client.
+
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 ::
 
-    {"type": "version", "b"} ──► room on a history? ──► offered? ──no──► {"type": "error", "reason"} to the sender
-        └─ yes ──► room.version, room.source ──► {"type": "version", "b", "by"} to the room
+    {"type": "version", "b", "a"?} ──► room on a history? ──► offered? a range that holds? ──no──► {"type": "error", "reason"} to the sender
+        └─ yes ──► room.version, room.version_a, room.source ──► {"type": "version", "b", "a", "by"} to the room
 """
 
 from __future__ import annotations
 
 from typing import cast
 
+from maxitor.front.model.core.history_entry import HistoryEntry
 from maxitor.front.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.front.model.rooms.actions.room_action_support import RoomAnswer, located
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
@@ -45,9 +51,10 @@ from aoa.fastapi import SocketChannel
 
 
 class SetRoomVersionParams(BaseParams):
-    """The version picked."""
+    """The version picked — or, with ``a``, the two compared."""
 
     b: str = Field(min_length=1, max_length=40, description="The version: the first 12 hex characters of its commit, or 'live'")
+    a: str | None = Field(default=None, max_length=40, description="In Diff, the older version compared with ``b``; absent or null for one version")
 
 
 @meta(description="Move a room on a history to another version", domain=RoomsDomain)
@@ -79,13 +86,30 @@ class SetRoomVersionAction(BaseAction[SetRoomVersionParams, RoomAnswer]):
         room, participant, _ = located(registry, socket)
         history = cast(HistoryStore, connections[HISTORY_STORE_CONNECTION_KEY]).peek(room.history) if room.history else None
         source = history.source_of(params.b) if history is not None else None
+        reason = None
         if history is None or source is None:
             reason = "this room shows no history" if room.history is None else f"the history has no version {params.b} to show"
+        elif params.a is not None:
+            reason = _range_refusal(history, params.a, params.b)
+        if reason is not None:
             socket.send({"type": "error", "reason": reason})
             await box.info(Channel.business, "Version refused in room {%var.room}", room=room.id)
             return RoomAnswer()
         async with room.lock:
-            room.version, room.source = params.b, source
-            registry.broadcast(room, {"type": "version", "b": params.b, "by": participant.id})
+            room.version, room.version_a, room.source = params.b, params.a, cast(str, source)
+            registry.broadcast(room, {"type": "version", "b": params.b, "a": params.a, "by": participant.id})
         await box.info(Channel.business, "Room {%var.room} moved to version {%var.version}", room=room.id, version=params.b)
         return RoomAnswer()
+
+
+def _range_refusal(history: HistoryEntry, a: str, b: str) -> str | None:
+    """Why ``a`` and ``b`` cannot be the room's two versions (spec 038, FR-011, FR-016), or ``None`` when they can."""
+    if a == b:
+        return "the two versions of a comparison must differ"
+    if a == "live":
+        return "Live can only be the newer version"
+    if not history.offers(a):
+        return f"the history has no version {a} to compare"
+    if not history.older(a, b):
+        return "the older version must come first"
+    return None

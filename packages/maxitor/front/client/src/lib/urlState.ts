@@ -11,15 +11,18 @@ const PARAM_HOST = "host";
 const PARAM_ROOM = "room";
 const PARAM_HISTORY = "history";
 const PARAM_VERSION = "b";
+const PARAM_OLDER = "a";
+const PARAM_MODE = "mode";
 
 /**
  * The history this tab shows and its version, or ``null``. While one is set, every address this
- * module writes names it as ``history`` and ``b`` in place of ``source``, and never its key (spec 037, FR-022).
+ * module writes names it as ``history`` and ``b`` in place of ``source``, and never its key (spec 037, FR-022);
+ * in Diff also ``mode=diff`` and ``a``, the older version (spec 038, FR-014).
  */
-let currentHistory: { name: string; b: string | null } | null = null;
+let currentHistory: { name: string; b: string | null; a?: string | null } | null = null;
 
-/** Name the history and version every later address carries, or ``null`` for a plain source. */
-export function setUrlHistory(history: { name: string; b: string | null } | null): void {
+/** Name the history and version — or, with ``a``, the two compared — every later address carries; ``null`` for a plain source. */
+export function setUrlHistory(history: { name: string; b: string | null; a?: string | null } | null): void {
   currentHistory = history;
 }
 
@@ -46,8 +49,10 @@ export type UrlDeepLink = {
   room: string | null;
   /** The history the address names, its address without a key, or ``null``. */
   history?: string | null;
-  /** The version the address names: a short sha, ``live``, or ``null``. */
+  /** The version the address names: a short sha, ``live``, or ``null``. In Diff, B. */
   b?: string | null;
+  /** In Diff (``mode=diff``), A — the older version; ``null`` otherwise. */
+  a?: string | null;
 };
 
 export function readUrlDeepLink(): UrlDeepLink {
@@ -61,6 +66,7 @@ export function readUrlDeepLink(): UrlDeepLink {
     room: params.get(PARAM_ROOM),
     history: params.get(PARAM_HISTORY),
     b: params.get(PARAM_VERSION),
+    a: params.get(PARAM_MODE) === "diff" ? params.get(PARAM_OLDER) : null,
   };
 }
 
@@ -94,6 +100,10 @@ function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null)
   const params = new URLSearchParams();
   if (currentHistory) {
     params.set(PARAM_HISTORY, currentHistory.name);
+    if (currentHistory.a && currentHistory.b) {
+      params.set(PARAM_MODE, "diff");
+      params.set(PARAM_OLDER, currentHistory.a);
+    }
     if (currentHistory.b) params.set(PARAM_VERSION, currentHistory.b);
   } else if (serviceUrl) params.set(PARAM_SOURCE, serviceUrl);
   if (selection) {
