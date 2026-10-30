@@ -113,7 +113,7 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo, on
 
   if (compact) {
     return (
-      <Box sx={{ display: "flex", alignItems: "center", gap: "2px", minWidth: 0 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: "2px", minWidth: 0, flexShrink: 0 }}>
         {circles}
         <IconButton
           ref={copyButton}
@@ -163,7 +163,7 @@ export function RoomBar({ session, page, pageLabel, canOpen, compact, onGoTo, on
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, flexShrink: 0 }}>
       <StatusText session={session} />
       {circles}
       <Box sx={{ width: "1px", height: 18, bgcolor: "rgba(15, 23, 42, 0.12)", mx: "2px", flexShrink: 0 }} />
