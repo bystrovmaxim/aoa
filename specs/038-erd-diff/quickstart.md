@@ -6,8 +6,18 @@
 
 ## Automated
 
+Each folder has its own `tests` package, so each runs on its own, as the check run runs them:
+
 ```bash
-cd /Users/bystrovmaxim/PythonDev/aoa && uv run pytest packages/maxitor/core/graph_compare/tests packages/maxitor/tools/graph_builder/tests packages/maxitor/front/tests -q
+cd /Users/bystrovmaxim/PythonDev/aoa && uv run pytest packages/maxitor/core/graph_compare/tests -q
+```
+
+```bash
+cd /Users/bystrovmaxim/PythonDev/aoa && uv run pytest packages/maxitor/tools/graph_builder/tests -q
+```
+
+```bash
+cd /Users/bystrovmaxim/PythonDev/aoa && uv run pytest packages/maxitor/front/tests -q
 ```
 
 ```bash
