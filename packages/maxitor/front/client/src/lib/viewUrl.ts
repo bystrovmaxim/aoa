@@ -7,6 +7,7 @@
  */
 
 import type { PaintSection } from "@/lib/erdPaint";
+import type { SavedView } from "@/rooms/diagramSurface";
 
 type Kind = "list" | "switch" | "choice";
 
@@ -26,8 +27,29 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
 export const PAINT_PARAM = "paint";
 const PAINTS: readonly PaintSection[] = ["domains", "kinds", "changes"];
 
+/**
+ * Where the diagram is looked at: ``zoom`` and the diagram point at the centre of the screen, ``at=x,y`` — in the
+ * diagram's own coordinates, so the same picture opens on a screen of another size.
+ */
+export const ZOOM_PARAM = "zoom";
+export const AT_PARAM = "at";
+
 /** Every parameter this module writes: the address keeps the others as they are. */
-export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((setting) => setting.param), PAINT_PARAM];
+export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((setting) => setting.param), PAINT_PARAM, ZOOM_PARAM, AT_PARAM];
+
+/** A view of the diagram as address parameters, rounded so the address stays short. */
+export function cameraToParams(view: SavedView | null): Record<string, string> {
+  if (!view || !(view.zoom > 0)) return {};
+  const round = (value: number, places: number) => String(Number(value.toFixed(places)));
+  return { [ZOOM_PARAM]: round(view.zoom, 3), [AT_PARAM]: `${round(view.x, 1)},${round(view.y, 1)}` };
+}
+
+/** The view of the diagram an address names, or ``null`` when it names none or one out of shape. */
+export function paramsToCamera(params: URLSearchParams): SavedView | null {
+  const zoom = Number(params.get(ZOOM_PARAM));
+  const [x, y] = (params.get(AT_PARAM) ?? "").split(",").map(Number);
+  return zoom > 0 && Number.isFinite(x) && Number.isFinite(y) && params.get(AT_PARAM)?.includes(",") ? { x, y, zoom } : null;
+}
 
 /** A page's settings, and what paints, as address parameters; a setting nobody set is left out. */
 export function viewToParams(settings: Readonly<Record<string, unknown>>, paint: PaintSection | null): Record<string, string> {
