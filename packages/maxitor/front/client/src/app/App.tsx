@@ -303,7 +303,11 @@ export function App() {
     if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
     syncUrlToState(serviceUrl, diagram);
     setActiveBase(olderVersion && !olderVersion.refused ? { source: olderVersion.source, key: shown?.key ?? "" } : null);
-    if (shown) setWorkspaceKey((count) => count + 1);
+    if (shown) {
+      setWorkspaceKey((count) => count + 1);
+      // The left panel lists A's pages beside B's in Diff, B's alone in One.
+      rereadSidebar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown?.a, olderVersion?.source]);
 

@@ -6,6 +6,8 @@ export type NodeRow = {
   type: string;
   /** Lower sorts earlier among siblings; omit for label-only sort (e.g. level-2 nodes). */
   ordinal?: number;
+  /** In Diff (spec 038): the page exists only in A, or only in B. */
+  only?: "a" | "b";
 };
 
 export type SidebarPayload = {
