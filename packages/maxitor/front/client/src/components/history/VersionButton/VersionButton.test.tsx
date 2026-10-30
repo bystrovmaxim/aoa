@@ -1,6 +1,6 @@
 // src/components/history/VersionButton/VersionButton.test.tsx
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { VersionButton } from "./VersionButton";
 
 afterEach(cleanup);
@@ -34,5 +34,28 @@ describe("the version button", () => {
     expect(getComputedStyle(screen.getByRole("button")).maxWidth).toBe("100%");
     expect(screen.getByTestId("version-name").style.textOverflow).toBe("ellipsis");
     expect(screen.getByTestId("diff-counts").style.flexShrink).toBe("0");
+  });
+
+  it("carries the step arrows in its pill, each stepping one version, greyed out at the end of the track", () => {
+    const onStep = vi.fn();
+    render(<VersionButton name="A #2 → B #3" open={false} onClick={() => undefined} onStep={onStep} canStep={{ older: true, newer: false }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Older version" }));
+    expect(onStep).toHaveBeenCalledWith(-1);
+    expect((screen.getByRole("button", { name: "Newer version" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("group", { name: "Versions" }).contains(screen.getByRole("button", { name: /^Versions?:/ }))).toBe(true);
+  });
+
+  it("tells the keys when one reaches for an arrow", async () => {
+    render(<VersionButton name="#2" open={false} onClick={() => undefined} onStep={() => undefined} />);
+    fireEvent.mouseOver(screen.getByRole("button", { name: "Older version" }));
+    expect((await screen.findByRole("tooltip")).textContent).toBe("Older version⇧←");
+  });
+
+  it("gives each arrow a 44 px target on a phone, and no key hint", () => {
+    render(<VersionButton name="#2" open={false} onClick={() => undefined} onStep={() => undefined} compact />);
+    const arrow = screen.getByRole("button", { name: "Newer version" });
+    expect(getComputedStyle(arrow).minWidth).toBe("44px");
+    fireEvent.mouseOver(arrow);
+    expect(screen.queryByRole("tooltip")).toBeNull();
   });
 });

@@ -79,6 +79,19 @@ export function shiftBoth(points: readonly string[], range: Range, delta: -1 | 1
 }
 
 /**
+ * One step older (−1) or newer (+1) without the picker: in One the version next to ``b``; in Diff the whole range one
+ * point, keeping its width. ``null`` at the end of the track, where there is no step to take.
+ */
+export function stepShown(points: readonly string[], a: string | null, b: string, delta: -1 | 1): { a: string | null; b: string } | null {
+  if (a === null) {
+    const next = points[points.indexOf(b) + delta];
+    return points.includes(b) && next !== undefined ? { a: null, b: next } : null;
+  }
+  const moved = shiftBoth(points, { a, b }, delta);
+  return moved.a === a ? null : moved;
+}
+
+/**
  * The whole range dragged ``delta`` points (negative to the left): both handles move together and the range keeps its
  * width; at an end of the track it stops there — so Live, the last point, can still only be B.
  */
