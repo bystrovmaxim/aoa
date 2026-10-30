@@ -1114,6 +1114,15 @@
       "type": "@result_checker"
     },
     {
+      "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect|@result_checker|maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect:coordinator_json_raw",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect",
+      "target_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect:coordinator_json_raw",
+      "type": "@result_checker"
+    },
+    {
       "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect|@result_checker|maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect:service_graph_data",
       "is_dag": false,
       "properties": {},
@@ -1311,6 +1320,15 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult",
       "target_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_resource",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult|field|maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_text",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult",
+      "target_id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_text",
       "type": "field"
     },
     {
@@ -1719,6 +1737,181 @@
       "source_id": "maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
       "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Comparisons"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|@summary_aspect|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction:element_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction:element_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|generic:params|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|generic:result|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams|field|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams|field|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:kind",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:kind",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult|field|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:differences",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:differences",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult|field|maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:status",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:status",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Comparisons"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|@summary_aspect|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction:compare_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction:compare_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|generic:result|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult|field|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:counts",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:counts",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult|field|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:edges",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:edges",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult|field|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:nodes",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:nodes",
+      "type": "field"
     },
     {
       "id": "maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params|field|maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params:domain_id",
@@ -2390,6 +2583,15 @@
       "source_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
       "target_id": "aoa.action_machine.application.application.Application",
       "type": "application"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
     },
     {
       "id": "maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
@@ -4418,6 +4620,19 @@
       "type": "RegularAspect"
     },
     {
+      "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect:coordinator_json_raw",
+      "label": "coordinator_json_raw",
+      "properties": {
+        "TypeChecker": "String",
+        "max_length": null,
+        "min_length": null,
+        "not_empty": true,
+        "opaque": false,
+        "required": true
+      },
+      "type": "Checker"
+    },
+    {
       "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:parse_service_graph_aspect:service_graph_data",
       "label": "service_graph_data",
       "properties": {
@@ -4582,6 +4797,17 @@
       "label": "graph_resource",
       "properties": {
         "description": "Populated DuckDB graph resource.",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_text",
+      "label": "graph_text",
+      "properties": {
+        "description": "The graph's JSON text as built: the envelope's coordinator_json, or the bare graph.",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -4926,6 +5152,133 @@
         "description": "The installed client bundle and the id of its build"
       },
       "type": "Resource"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
+      "label": "CompareElementAction",
+      "properties": {
+        "description": "Compare one element of two versions of a history, property by property"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction:element_summary",
+      "label": "element_summary",
+      "properties": {
+        "description": "Give one element's status and differences"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams",
+      "label": "CompareElementParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:id",
+      "label": "id",
+      "properties": {
+        "description": "The element's id, as the protocol gives it (an edge of a 1.0 graph by #285's rule)",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementParams:kind",
+      "label": "kind",
+      "properties": {
+        "description": "Whether ``id`` names a node or an edge",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult",
+      "label": "CompareElementResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:differences",
+      "label": "differences",
+      "properties": {
+        "description": "Each changed property: its path from the element's top, 'added', 'removed' or 'changed', and its value before and after",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementResult:status",
+      "label": "status",
+      "properties": {
+        "description": "'added', 'removed', 'changed' or 'unchanged'",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction",
+      "label": "CompareVersionsAction",
+      "properties": {
+        "description": "Compare two versions of a history: the elements that changed and the counts"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction:compare_summary",
+      "label": "compare_summary",
+      "properties": {
+        "description": "Give the changed elements and the counts"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "label": "CompareVersionsResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:counts",
+      "label": "counts",
+      "properties": {
+        "description": "Per kind ('nodes', 'edges'): how many were added, removed and changed",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:edges",
+      "label": "edges",
+      "properties": {
+        "description": "Edge id → 'added', 'removed' or 'changed'; an edge left out is unchanged",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:nodes",
+      "label": "nodes",
+      "properties": {
+        "description": "Node id → 'added', 'removed' or 'changed'; a node left out is unchanged",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
     },
     {
       "id": "maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction",
@@ -6087,6 +6440,14 @@
         "name": "diagrams"
       },
       "type": "Domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "label": "ComparisonStore",
+      "properties": {
+        "description": "The comparison of two held versions, computed once per pair"
+      },
+      "type": "Resource"
     },
     {
       "id": "maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",

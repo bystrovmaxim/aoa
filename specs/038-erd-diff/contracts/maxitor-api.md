@@ -46,4 +46,4 @@ Only elements that are not unchanged are listed (research R10).
 
 ## Logs
 
-Nothing new names an address or a key; a comparison computed is logged at `debug` as `Comparison <sha_a[:8]>…<sha_b[:8]> computed in <ms> ms, <counts>`.
+Nothing new names an address or a key; a comparison computed is logged on the `debug` channel as `Comparison computed in <ms> ms: nodes +<added> −<removed> ~<changed>, edges +… −… ~…`.

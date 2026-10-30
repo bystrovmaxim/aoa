@@ -241,9 +241,10 @@ async def test_build_summary_returns_correct_counts() -> None:
         ],
     }
     identity = {"sha256": "a" * 64, "etag": '"v1"', "last_modified": ""}
-    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity=identity)
+    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity=identity, coordinator_json_raw=json.dumps(coordinator))
     result = await _ACTION.build_duckdb_graph_summary(None, state, None, {})  # type: ignore[arg-type]
     assert isinstance(result, LoadAOAServiceResult)
+    assert json.loads(result.graph_text) == coordinator
     assert result.node_count == 2
     assert result.edge_count == 1
     assert result.service_graph_json_url == _URL
@@ -252,7 +253,7 @@ async def test_build_summary_returns_correct_counts() -> None:
 
 async def test_build_summary_empty_graph() -> None:
     coordinator = {"nodes": [], "edges": []}
-    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity={"sha256": "0" * 64, "etag": "", "last_modified": ""})
+    state = _state(service_graph_json_url=_URL, service_graph_data=coordinator, source_identity={"sha256": "0" * 64, "etag": "", "last_modified": ""}, coordinator_json_raw=json.dumps(coordinator))
     result = await _ACTION.build_duckdb_graph_summary(None, state, None, {})  # type: ignore[arg-type]
     assert result.node_count == 0
     assert result.edge_count == 0
