@@ -502,13 +502,17 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const zoomIn = useCallback(() => zoomFromViewportCenter(1.25), [zoomFromViewportCenter]);
   const zoomOut = useCallback(() => zoomFromViewportCenter(0.8), [zoomFromViewportCenter]);
 
+  /**
+   * Ask for a fit of the next drawing placed. The view on screen stays as it is until then: resetting it here showed the
+   * old drawing at 100 % for the moment the new one took to come (spec 038).
+   */
   const resetFitFlag = useCallback(() => {
     hasFittedRef.current = false;
     setFitted(false);
-    panRef.current = { scale: 1, tx: 0, ty: 0 };
-    applyTransform(false);
-    setZoomPct(100);
-  }, [applyTransform]);
+  }, []);
+
+  /** Whether the drawing placed next is to be fitted. */
+  const needsFit = useCallback(() => !hasFittedRef.current, []);
 
   return {
     viewportRef,
@@ -519,6 +523,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     zoomOut,
     bindInteractions,
     resetFitFlag,
+    needsFit,
     onTransform,
     centreOnClient,
     getScale,
