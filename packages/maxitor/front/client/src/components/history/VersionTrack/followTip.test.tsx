@@ -1,6 +1,6 @@
 // src/components/history/VersionTrack/followTip.test.tsx
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { clearFocus, focusToSend, putFocus, setFollowTarget } from "@/rooms/focusStore";
 import { VersionTrack } from "./VersionTrack";
@@ -31,9 +31,46 @@ describe("a version's tooltip in a room (spec 038)", () => {
   });
 
   it("shows for a follower the version the person they follow has under the pointer", () => {
-    putFocus("anna", { page: PAGE, hover: { kind: "version", id: id(1) }, tooltip: { kind: "version", id: id(1) }, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true } });
+    putFocus("anna", { page: PAGE, hover: { kind: "version", id: id(1) }, tooltip: { kind: "version", id: id(1) }, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track: null } });
     setFollowTarget("anna");
     drawTrack();
     expect(screen.getByTestId("version-tip").textContent).toContain("Change 1");
+  });
+});
+
+describe("a range being dragged in a room (spec 038)", () => {
+  const following = (track: { a: string | null; b: string | null; offset: number }) => {
+    putFocus("anna", { page: PAGE, hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track } });
+    setFollowTarget("anna");
+  };
+  const drawRange = () =>
+    render(<VersionTrack versions={[version(1), version(2), version(3)]} live={null} value={null} range={{ a: id(1), b: id(3) }} onRange={() => undefined} onChange={() => undefined} width={400} />);
+  const chipA = () => screen.getAllByText(/^A /).map((chip) => chip.textContent);
+
+  it("is drawn for a follower where the person they follow is dragging it, before it is let go", () => {
+    drawRange();
+    const own = chipA();
+    cleanup();
+    following({ a: id(2), b: id(3), offset: 0 });
+    drawRange();
+    expect(chipA()).not.toEqual(own);
+    expect(chipA().join(" ")).toContain("2");
+  });
+
+  it("scrolls a follower's track as theirs is scrolled", () => {
+    following({ a: null, b: null, offset: 140 });
+    drawRange();
+    expect(screen.getByTestId("track-view").scrollLeft).toBe(140);
+  });
+
+  it("tells the people who follow how far the track is scrolled", () => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame"] });
+    drawRange();
+    const view = screen.getByTestId("track-view");
+    view.scrollLeft = 90;
+    fireEvent.scroll(view);
+    act(() => vi.advanceTimersByTime(20));
+    expect(focusToSend(PAGE).panels.track).toEqual({ a: null, b: null, offset: 90 });
+    vi.useRealTimers();
   });
 });

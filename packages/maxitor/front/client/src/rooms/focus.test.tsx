@@ -24,7 +24,7 @@ const annasFocus: FocusState = {
   hover: { kind: "row", id: "fn0_1" },
   tooltip: { kind: "row", id: "fn0_1" },
   selection: null,
-  panels: { sidebar: ["domains_root"], filter: "kinds", legend: false, versions: false },
+  panels: { sidebar: ["domains_root"], filter: "kinds", legend: false, versions: false, track: null },
 };
 
 /** A Graphviz-like drawing: one table with a row cell, and a line. */
