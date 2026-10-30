@@ -138,10 +138,21 @@ export function apiUrl(path: string): string {
  * ``URLSearchParams`` encodes the source, so a literal ``+`` travels as ``%2B`` and a space as
  * ``+`` — the server reads the source back unchanged and every read of one source names one key.
  */
+/**
+ * A read asked for before the tab knows its source — a history still opening, say. Not a failure: the read is asked
+ * again once the source is named, so the page waits rather than reports it.
+ */
+export class NoSourceYetError extends Error {
+  constructor() {
+    super("No active source: name the AOA service graph-json URL before reading its graph.");
+    this.name = "NoSourceYetError";
+  }
+}
+
 export function graphApiUrl(path: string, query?: URLSearchParams, source?: string): string {
   const named = source ?? activeSource;
   if (named === null) {
-    throw new Error("No active source: name the AOA service graph-json URL before reading its graph.");
+    throw new NoSourceYetError();
   }
   const params = query === undefined ? new URLSearchParams() : new URLSearchParams(query);
   params.set("source", named);
