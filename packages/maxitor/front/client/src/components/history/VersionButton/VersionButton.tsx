@@ -40,6 +40,7 @@ function StepArrow({ delta, enabled, onStep, touch }: { delta: -1 | 1; enabled: 
       onClick={() => onStep(delta)}
       sx={{
         alignSelf: "stretch",
+        flexShrink: 0,
         minWidth: touch ? 44 : 24,
         px: "2px",
         color: "#64748b",
@@ -119,12 +120,14 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
         fontSize: 12.5,
         color: "#334155",
         whiteSpace: "nowrap",
-        ...(compact && { maxWidth: "100%", minWidth: 0 }),
+        // It gives way to the row: the name is cut with an ellipsis, never the counts, the arrows or the chevron.
+        minWidth: 0,
+        ...(compact && { maxWidth: "100%" }),
         "&:hover": { bgcolor: onStep ? "rgba(15, 23, 42, 0.06)" : "rgba(15, 23, 42, 0.1)" },
       }}
     >
       <HistoryIcon />
-      <b data-testid="version-name" style={{ color: "#0f172a", fontWeight: 600, ...(compact && { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }) }}>
+      <b data-testid="version-name" style={{ color: "#0f172a", fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
         {name}
       </b>
       {counts &&
@@ -148,7 +151,7 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
   // The arrows share the button's pill, a hairline apart: one control, not three.
   const divider = <Box component="span" aria-hidden sx={{ width: "1px", alignSelf: "center", height: 14, bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0 }} />;
   return (
-    <Box role="group" aria-label="Versions" sx={{ display: "inline-flex", alignItems: "stretch", height: 28, borderRadius: "8px", bgcolor: open ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)", minWidth: 0, maxWidth: compact ? "100%" : undefined }}>
+    <Box role="group" aria-label="Versions" sx={{ display: "inline-flex", alignItems: "stretch", height: 28, borderRadius: "8px", bgcolor: open ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)", minWidth: 0, maxWidth: "100%" }}>
       <StepArrow delta={-1} enabled={canStep.older} onStep={onStep} touch={compact} />
       {divider}
       {button}

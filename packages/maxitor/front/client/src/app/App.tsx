@@ -454,7 +454,7 @@ export function App() {
   return (
     <MainLayout
       topRow={(compact) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", minWidth: 0 }}>
           {shown && hasPicker(opened.mode) && (
             <VersionButton
               ref={versionButton}
