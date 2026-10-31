@@ -14,7 +14,8 @@
  * drawing check runs this very function in plain Node; the glyph drawing is passed in.
  */
 
-import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity } from "@/lib/buildDotSource";
+// Relative, with its extension: the ERD checks in ``scripts/`` run this module under plain Node, which knows no ``@/``.
+import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity } from "./buildDotSource.ts";
 
 /** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
 export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
