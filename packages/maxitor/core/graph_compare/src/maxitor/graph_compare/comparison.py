@@ -111,6 +111,27 @@ class Comparison:
     edge_counts: Counts
 
 
+@dataclass(frozen=True, slots=True)
+class ChangedPart:
+    """
+    One changed thing inside an element a diagram draws without its parts.
+
+    AI-CORE-BEGIN
+    ROLE: Names one added, removed or changed node or edge an element owns.
+    CONTRACT: ``label`` is a node's own, an edge's target's; ``group`` is the part of the element it belongs to; ``differences`` as the comparison gives them.
+    INVARIANTS: ``status`` is never unchanged.
+    AI-CORE-END
+    """
+
+    kind: str
+    id: str
+    label: str
+    type: str
+    group: str
+    status: Status
+    differences: tuple[Difference, ...] = ()
+
+
 class GraphNotComparableError(ValueError):
     """
     A document cannot be compared; the message says why.

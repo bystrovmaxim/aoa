@@ -22,9 +22,11 @@ the front or a tool; ``scripts/check_package_boundaries.py`` and its own test
 extra is enough to use it.
 """
 
+from maxitor.graph_compare.changed_inside import changed_inside
 from maxitor.graph_compare.compare import KNOWN_VERSIONS, compare
 from maxitor.graph_compare.comparison import (
     Change,
+    ChangedPart,
     Comparison,
     Counts,
     Difference,
@@ -36,11 +38,13 @@ from maxitor.graph_compare.comparison import (
 __all__ = [
     "KNOWN_VERSIONS",
     "Change",
+    "ChangedPart",
     "Comparison",
     "Counts",
     "Difference",
     "ElementComparison",
     "GraphNotComparableError",
     "Status",
+    "changed_inside",
     "compare",
 ]

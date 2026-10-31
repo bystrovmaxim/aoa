@@ -66,14 +66,14 @@ def compare(a: Mapping[str, Any], b: Mapping[str, Any]) -> Comparison:
     FAILURES: ``GraphNotComparableError`` when either document cannot be compared (see that class).
     AI-CORE-END
     """
-    nodes_a, edges_a = _indexed(a, "A")
-    nodes_b, edges_b = _indexed(b, "B")
+    nodes_a, edges_a = indexed(a, "A")
+    nodes_b, edges_b = indexed(b, "B")
     nodes, node_counts = _compared(nodes_a, nodes_b)
     edges, edge_counts = _compared(edges_a, edges_b)
     return Comparison(nodes=nodes, edges=edges, node_counts=node_counts, edge_counts=edge_counts)
 
 
-def _indexed(document: Mapping[str, Any], side: str) -> tuple[dict[str, Mapping[str, Any]], dict[str, Mapping[str, Any]]]:
+def indexed(document: Mapping[str, Any], side: str) -> tuple[dict[str, Mapping[str, Any]], dict[str, Mapping[str, Any]]]:
     """A document's nodes and edges, each keyed by id in document order; refuse what cannot be compared."""
     if not isinstance(document, Mapping):
         raise GraphNotComparableError(f"Graph {side} is not an object.")

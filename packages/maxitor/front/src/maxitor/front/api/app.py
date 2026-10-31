@@ -97,6 +97,7 @@ from maxitor.front.model.core.resources.static_bundle_resource import (
     STATIC_BUNDLE_CONNECTION_KEY,
     StaticBundleResource,
 )
+from maxitor.front.model.diagrams.actions.changed_inside_action import ChangedInsideAction
 from maxitor.front.model.diagrams.actions.compare_element_action import CompareElementAction, ElementNotComparedError
 from maxitor.front.model.diagrams.actions.compare_versions_action import CompareVersionsAction
 from maxitor.front.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
@@ -334,6 +335,11 @@ def create_app() -> FastAPI:
         .get(
             "/compare-element",
             CompareElementAction,
+            connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
+        )
+        .get(
+            "/compare/changed-inside",
+            ChangedInsideAction,
             connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
         )
         .get(
