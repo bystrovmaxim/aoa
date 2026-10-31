@@ -10,14 +10,17 @@ its own license file carries.
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
-| `@antv/g6` | 5.1.1 | MIT | Copyright (c) 2018 Alipay.inc |
 | `@emotion/react` | 11.14.0 | MIT | Copyright (c) Emotion team and other contributors |
 | `@emotion/styled` | 11.14.1 | MIT | Copyright (c) Emotion team and other contributors |
 | `@hpcc-js/wasm-graphviz` | 1.21.5 | Apache-2.0 | see below |
 | `@mui/icons-material` | 6.5.0 | MIT | Copyright (c) 2014 Call-Em-All |
 | `@mui/material` | 6.5.0 | MIT | Copyright (c) 2014 Call-Em-All |
+| `@sigma/node-border` | 4.0.0 | MIT | Copyright (C) 2012-2026, Alexis Jacomy, Guillaume Plique, Benoît Simard |
+| `@sigma/node-image` | 4.0.1 | MIT | Copyright (C) 2012-2026, Alexis Jacomy, Guillaume Plique, Benoît Simard |
+| `graphology` | 0.26.0 | MIT | Copyright (c) 2016-2021 Guillaume Plique (Yomguithereal) |
 | `react` | 19.2.6 | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
 | `react-dom` | 19.2.6 | MIT | Copyright (c) Meta Platforms, Inc. and affiliates. |
+| `sigma` | 4.0.4 | MIT | Copyright (C) 2012-2026, Alexis Jacomy, Guillaume Plique, Benoît Simard |
 
 ## About `@hpcc-js/wasm-graphviz`
 
