@@ -56,10 +56,10 @@
 
 **Independent Test**: The contract's answers on the demo graph; sizes on the generated graph.
 
-- [ ] T016 [US1] `F/.../actions/map_overview_action.py`, `map_area_action.py` per contracts/maxitor-api.md: `laying-out` until ready; spec 037's rules for keys and logs. **A version with a stored map must not build its DuckDB first**: 23.6 s at this size; the middleware lets map reads through with the source named, and the store finds the map by the version's sha.
-- [ ] T017 [US1] `F/tests/test_map_actions.py`: shapes; a refused version; a wrong key reads "not found"; level 2 holds no level 3 node; `across` lists links to other areas.
-- [ ] T018 [US1] `FC/scripts/generate-large-graph.ts`: 30 copies of the stand's graph, linked across copies, with a version changing one domain (spec, "The acceptance stand").
-- [ ] T019 Check run green; prepare commit 4: `feat(maxitor): read the map in parts (#319)`.
+- [X] T016 [US1] `F/.../actions/map_overview_action.py`, `map_area_action.py` per contracts/maxitor-api.md: `laying-out` until ready; spec 037's rules for keys and logs. **A version with a stored map must not build its DuckDB first**: 23.6 s at this size; the middleware lets map reads through with the source named, and the store finds the map by the version's sha.
+- [X] T017 [US1] `F/tests/test_map_actions.py`: shapes; a refused version; a wrong key reads "not found"; level 2 holds no level 3 node; `across` lists links to other areas.
+- [X] T018 [US1] `FC/scripts/generate-large-graph.ts`: 30 copies of the stand's graph, linked across copies, with a version changing one domain (spec, "The acceptance stand").
+- [X] T019 Check run green; prepare commit 4: `feat(maxitor): read the map in parts (#319)`.
 
 ---
 
@@ -114,7 +114,7 @@
 - [ ] T044 [US6] `MapViewer`: hide without layout; filters under 50 ms, trying Sigma's data textures before a full refresh; re-measure.
 - [ ] T045 [US6] `FC/src/lib/viewUrl.ts` and test: `disabled_node_types`, `disabled_domains`.
 - [ ] T046 [US8] `FC/.../MapViewer/mapSurface.ts`: the room's surface in map coordinates: pointers, following, hover; the cross-engine check covers the map (research R10).
-- [ ] T047 [US8] Phones: pinch, tap, the Filter pill; real Safari again.
+- [ ] T047 [US8] Phones: pinch, tap, the Filter pill, about 1 500 nodes kept; real Safari again; SC-018 measured on a real phone, with the maintainer.
 - [ ] T048 No WebGL: the page says so and offers the ERD (FR-036). README of `MapViewer`.
 - [ ] T049 Walk the filters on the stand at every level, a room of two browsers, a phone. Adversarial: move a node on a filter; hide a node in no domain; leave an outline unchanged; restore. Check run green; prepare commit 7: `feat(maxitor): filters and paint on the map (#319)`.
 

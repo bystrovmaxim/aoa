@@ -72,6 +72,11 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 - **Rationale**: in the mockup, outlines from the stand's real nodes took 23–95 ms for all 21 areas. The sketch is what lets this work with no node in the browser; it is small because a cell only holds counts, and bundles are recounted the same way, from links per pair of areas and types.
 - **Open**: **the sketch is designed, not measured.** Outlines add to the filter's 50 ms, so they may run after the picture has hidden the nodes, within the next frames.
 
+## R6b. Phones and Next.js
+
+- **Decision**: stay with the client as it is. Next.js renders pages on a server and splits bundles; the time here goes into the graph and its drawing, both already moved to the server and the GPU, so it would change neither, and it would add a Node server to run.
+- **Phones**: levels help them most, because little is on screen. The browser keeps fewer nodes there, about 1 500 against 3 000 on a desktop, and a simple label layer. **Nothing has been measured on a phone yet**; SC-018 is taken on a real device in T047. The simulator does not stand for a phone's GPU.
+
 ## R7. First paint
 
 - **Decision**: the overview's areas are painted at once by a plain canvas layer, and Sigma takes over when ready, so the page shows the map before the WebGL program is compiled.

@@ -27,6 +27,8 @@ ARCHITECTURE / DATA FLOW
 
     action ──area(id)──► maps/<version>/areas/<hash of id>.json
 
+    middleware ──stored(source)──► index/<hash of source>.json ──► read with no graph built
+
 A version's map is written with its overview last, so an overview on disk means the whole
 map is there. An area ``sfdp`` fails on is listed as failed, and the rest of the map reads.
 """
@@ -74,9 +76,26 @@ LAYING_OUT: dict[str, Any] = {"state": "laying-out", "types": [], "areas": [], "
 class MappedGraph(Protocol):
     """What a held graph offers the map: where it came from, what it was built from, and its text."""
 
+    @property
+    def source(self) -> str:
+        """Where the graph came from."""
+
+    @property
+    def content_sha256(self) -> str:
+        """The hash of what the graph was built from."""
+
+    @property
+    def document(self) -> str:
+        """The graph's text."""
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class StoredVersion:
+    """A version whose map is on disk: enough to read it, with no graph built."""
+
     source: str
     content_sha256: str
-    document: str
+    document: str = ""
 
 
 class MapRefusedError(ValueError):
@@ -130,6 +149,7 @@ class MapStore(BaseController):
         graph: Callable[[], MappedGraph | None],
         scope: Callable[[str], str],
         colours: Sequence[str],
+        immutable: Callable[[str], bool] = lambda _source: False,
         run: Callable[[str], str] = run_sfdp,
         workers: int | None = None,
     ) -> None:
@@ -137,6 +157,7 @@ class MapStore(BaseController):
         self._graph = graph
         self._scope = scope
         self._colours = colours
+        self._immutable = immutable
         self._run = run
         self._workers = workers or os.cpu_count() or 1
         self._running: dict[str, asyncio.Task[None]] = {}
@@ -158,6 +179,13 @@ class MapStore(BaseController):
         if graph is None:
             raise NoGraphError("This read names no graph.")
         return graph
+
+    def stored(self, source: str) -> StoredVersion | None:
+        """The map of ``source`` when it is on disk and its content cannot change, so no graph need be built."""
+        path = self._root / "index" / f"{_digest(source)}.json"
+        if not path.exists():
+            return None
+        return StoredVersion(source, _read(path))
 
     def _version(self, graph: MappedGraph) -> Path:
         """Where a version's map stands."""
@@ -206,6 +234,8 @@ class MapStore(BaseController):
         for area_id, detail in made.details.items():
             _write(version / "areas" / f"{_digest(area_id)}.json", detail)
         _write(version / "overview.json", made.overview)
+        if self._immutable(graph.source):
+            _write(self._root / "index" / f"{_digest(graph.source)}.json", graph.content_sha256)
 
     def _layouts(self, areas: GraphAreas) -> dict[str, AreaLayout]:
         """Every area's layout: kept under its content hash, or laid out now."""
