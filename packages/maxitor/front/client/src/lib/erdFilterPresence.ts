@@ -40,6 +40,27 @@ export function withOneHop(kept: ErdGraphPayload, base: ErdGraphPayload): ErdGra
   return pruneGraphToEntities(base, (entity) => reach.has(entity.id));
 }
 
+/** The domains of the tabs switched on: only these own the tables a diagram draws without 1-hop. */
+export function domainsOn(domainQualifiers: Record<string, string>, tabsOn: ReadonlySet<string>): Set<string> {
+  return new Set(Object.entries(domainQualifiers).filter(([tab]) => tabsOn.has(tab)).map(([, qual]) => qual.trim()));
+}
+
+/**
+ * What a diagram draws: the tables the filters left that belong to a domain switched on — a slice also carries its
+ * 1-hop neighbours, and a neighbour from a domain switched off is not that domain's way back onto the screen —, and
+ * with 1-hop on, the base's tables one line away from those.
+ */
+export function tablesToDraw(
+  filtered: ErdGraphPayload,
+  base: ErdGraphPayload,
+  domains: ReadonlySet<string>,
+  domainOf: (entity: ErdEntity) => string | null,
+  includeOneHop: boolean,
+): ErdGraphPayload {
+  const own = pruneGraphToEntities(filtered, (entity) => domains.has(domainOf(entity) ?? ""));
+  return includeOneHop ? withOneHop(own, base) : own;
+}
+
 /** What the screen shows of each filter. */
 export type OnScreen = { ids: ReadonlySet<string>; domains: ReadonlySet<string | null>; kinds: ReadonlySet<string>; changes: ReadonlySet<ErdDiff> };
 
