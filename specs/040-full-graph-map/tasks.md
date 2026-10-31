@@ -93,13 +93,16 @@
 
 **Independent Test**: Every pair on the stand: marks and counts equal the comparison at every level.
 
-- [ ] T035 [US3] `GM/.../union.py`: the union of two maps: B's positions, an element only in A beside its neighbours, `was` on a retargeted relation, rules from spec 039; tests.
-- [ ] T036 [US3] The actions answer a pair with `a`; `F/.../actions/map_changes_action.py` lists the changes in the stepping order (FR-025b); tests.
-- [ ] T037 [US3] `FC/.../MapViewer`: rings, dashed removed nodes and links, fading, counts on folded domains, marked bundles.
-- [ ] T038 [US3] `FC/src/lib/diffCounts.ts`, `FC/src/lib/erdDiff.ts`, the version button: `edgesMarked`, `+0 −0 ~0`, counts from the overview, whatever the zoom; `App.tsx` passes counts on every diagram.
-- [ ] T039 [US7] The card on a marked node; on a touch screen too; `MARK_LOOK` moves to `erdDiffCard.ts`.
-- [ ] T040 [US3] Stepping: a click on a domain's count, and `FC/.../MapViewer/ChangeStepper.tsx` beside the version button, with the halo, per the mockup.
-- [ ] T041 Walk every pair of the stand, B on Live with the live file changed. Adversarial: count an edge; propagate a mark to a neighbour; step past the last; restore. Check run green; prepare commit 6: `feat(maxitor): compare two versions on the map (#319)`.
+- [X] T035 [US3] `GM/.../union.py`: the union of two maps: B's positions, an element only in A beside its neighbours, `was` on a retargeted relation, rules from spec 039; tests.
+- [X] T036 [US3] The actions answer a pair with `a`; `F/.../actions/map_changes_action.py` lists the changes in the stepping order (FR-025b); tests.
+- [X] T037 [US3] `FC/.../MapViewer`: rings, dashed removed nodes and links, fading, counts on folded domains, marked bundles; a domain where nothing changed is grey and dim at every level (FR-023).
+- [X] T038 [US3] `FC/src/lib/diffCounts.ts`, `FC/src/lib/erdDiff.ts`, the version button: counts from the list of changes, nodes and links, whatever the zoom, so that they add up to the stepper's total; `App.tsx` passes counts on every diagram.
+- [X] T039 [US7] The card on a marked node; on a touch screen too; `MARK_LOOK` moves to `erdDiffCard.ts`.
+- [X] T040 [US3] Stepping: a click on a domain's count, and `FC/.../MapViewer/ChangeStepper.tsx` beside the version button, with the halo, per the mockup.
+- [X] T040a [US3] FR-025d: `ChangeStepper.tsx` shares the version button's pill, arrows and chevron, and opens the list of changes, windowed, grouped by domain or table.
+- [X] T040b [US3] FR-025e: the ERD steps too: `erdChanges` in `FC/src/lib/erdDiffCard.ts`, the drawn tables, rows and lines in order, each with its cell; `ErdGraphvizCanvas` goes to one and marks it.
+- [X] T040c [US8] FR-025f: `Panels.changes` in `FC/src/rooms/focusStore.ts` and in the room's contract (`room_registry.py`): open, where the person stands, whether the card is open, the scroll; frames `change-steps` and `changes` for the pointer.
+- [X] T041 Walk every pair of the stand, B on Live with the live file changed. Adversarial: count an edge; propagate a mark to a neighbour; step past the last; restore. Check run green; prepare commit 6: `feat(maxitor): compare two versions on the map (#319)`.
 
 ---
 
@@ -110,7 +113,7 @@
 **Independent Test**: Switch every filter at every level; a room of two browsers; a phone.
 
 - [ ] T042 [US6] `ErdFilterPanel`: `kindsTitle`; the full graph's panel with Domains, Node types and, in Diff, Changes; paint per FR-030, starting from Domains in One and Changes in Diff.
-- [ ] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md, **a hidden node taking what it contains with it (FR-028a)**; rows dim on their own axis and say what hides them (FR-028b, FR-028c), with `GM/.../assemble.py` counting nodes by type and the types above them; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**.
+- [ ] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md, **a hidden node taking what it contains with it (FR-028a)**; rows dim on their own axis and say what hides them (FR-028b, FR-028c), with `GM/.../assemble.py` counting nodes by type and the types above them; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**. Switching off Unchanged in Changes takes the grey domains off the map with their tags and bundles.
 - [ ] T044 [US6] `MapViewer`: hide without layout; filters under 50 ms, trying Sigma's data textures before a full refresh; re-measure.
 - [ ] T045 [US6] `FC/src/lib/viewUrl.ts` and test: `disabled_node_types`, `disabled_domains`.
 - [ ] T046 [US8] `FC/.../MapViewer/mapSurface.ts`: the room's surface in map coordinates: pointers, following, hover; the cross-engine check covers the map (research R10).

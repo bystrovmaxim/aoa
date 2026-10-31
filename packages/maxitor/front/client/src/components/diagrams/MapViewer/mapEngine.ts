@@ -10,9 +10,13 @@ import Graph from "graphology";
 import Sigma from "sigma";
 import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigma/rendering";
 
-import { mapArea, type MapArea, type MapDetail, type MapLink, type MapNode, type MapOverview } from "@/api/map";
+import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview } from "@/api/map";
+import type { DiagramCounts } from "@/lib/erdDiff";
+import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
+import { changesByArea, firstChangeOf } from "@/lib/mapDiff";
 import { LEVEL_THREE_BAND, LEVEL_TWO_BAND, levelAt, revealOf } from "@/lib/mapLevels";
+import { WHEEL_CHUNK_PX, WHEEL_ZOOM_SENSITIVITY, isZoomWheel, wheelPan } from "@/lib/wheelGesture";
 import { outlineOf, type FieldPoint, type OutlineLoop } from "@/lib/mapOutline";
 import { registerDiagramSurface, type DiagramSurface } from "@/rooms/diagramSurface";
 
@@ -35,14 +39,34 @@ const OUTSIDE_ID = "(outside)";
 const OUTSIDE_NAME = "Outside domains";
 /** How close the map goes: nodes at about their full size, no closer. */
 const CLOSEST_RATIO = 0.55;
+const UNCHANGED_COLOUR = "#cbd5e1";
+/** A domain where nothing changed: grey and dim, as an unchanged table on the ERD. */
+const UNTOUCHED_AREA_COLOUR = "#94a3b8";
+/** How much of itself what did not change keeps beside what did. */
+const FADED_NODE = 0.42;
+const FADED_LINK = 0.3;
+const FADED_AREA = 0.45;
+/** How wide a view a step arrives at, in map units, by the level of the change: wide enough to see what stands around it. */
+const ARRIVAL_WIDTH: Record<number, number> = { 2: 3200, 3: 1500 };
+const ARRIVAL_MS = 750;
+/** How much wider than a link the view it arrives at is, so that both its ends show. */
+const LINK_MARGIN = 1.3;
+const LINK_HALO_PX = 12;
+const CARD_WIDTH = 312;
 
 /** What the viewer gives the engine to draw in. */
 export type MapElements = { stage: HTMLElement; sigma: HTMLElement; under: HTMLCanvasElement; over: HTMLCanvasElement; label: HTMLElement };
 
+/** The card of a marked node, and where it stands on the stage. */
+export type MapCard = { target: CardTarget; at: { x: number; y: number } };
+
 /** What the viewer hears from the engine. */
-export type MapEvents = { onZoom: (zoom: number) => void };
+export type MapEvents = { onZoom: (zoom: number) => void; onCard: (card: MapCard | null) => void; onStep: (position: number | null) => void };
 
 type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
+
+/** The map's view in map units, kept across versions: switching to another version moves nothing on screen. */
+let keptView: { x: number; y: number; zoom: number } | null = null;
 
 /** ``#rrggbb`` with an alpha. */
 function faded(colour: string, alpha: number): string {
@@ -104,7 +128,27 @@ export class MapEngine {
   private readonly areaIndex: Map<string, number>;
   private readonly outlines: Path2D[];
   private readonly loaded = new Map<number, Loaded>();
-  private readonly reading = new Set<string>();
+  private readonly reading = new Map<string, Promise<void>>();
+  /** Drawn on the canvas above: WebGL has no dashes. */
+  private removedNodes: MapNode[] = [];
+  private removedLinks: MapLink[] = [];
+  private retargeted: MapLink[] = [];
+  /** Where a folded domain's count stands on the stage, for a click on it. */
+  private badges: { x: number; y: number; width: number; height: number; area: string }[] = [];
+  private readonly marking: boolean;
+  private readonly areaCounts: Map<string, DiagramCounts>;
+  /** Whatever changed claims its tag first, then the larger areas. */
+  private readonly tagOrder: { area: MapArea; index: number }[];
+  private position: number | null = null;
+  private flight = 0;
+  private cardOpen = false;
+  /** Wheel zoom left to apply, a chunk a frame, and the point it zooms around. */
+  private wheelLeft = 0;
+  private wheelPoint = { x: 0, y: 0 };
+  private wheeling = false;
+  private readonly listening = new AbortController();
+  /** While following: the node whose card the followed person has open. */
+  private mirroredCard: MapChange | null = null;
   private readonly mostNodes = window.matchMedia("(max-width: 600px)").matches ? MOST_NODES_ON_A_PHONE : MOST_NODES;
   private levelTwo = 0;
   private levelThree = 0;
@@ -118,6 +162,7 @@ export class MapEngine {
 
   private constructor(
     private readonly overview: MapOverview,
+    private readonly changes: readonly MapChange[],
     private readonly icons: Record<string, string>,
     private readonly elements: MapElements,
     private readonly events: MapEvents,
@@ -125,7 +170,10 @@ export class MapEngine {
     this.areaIndex = new Map(overview.areas.map((area, index) => [area.id, index]));
     this.outlines = overview.areas.map(circleOf);
     overview.areas.forEach((area, index) => this.graph.addNode(`@${index}`, { x: area.x, y: area.y, size: 0.1, area: index, centre: true, label: "" }));
-    for (const [one, other, count] of overview.bundles) this.graph.addDirectedEdge(`@${this.areaIndex.get(one)}`, `@${this.areaIndex.get(other)}`, { bundle: true, count });
+    for (const [one, other, count, , changed = 0] of overview.bundles) this.graph.addDirectedEdge(`@${this.areaIndex.get(one)}`, `@${this.areaIndex.get(other)}`, { bundle: true, count, changed });
+    this.marking = changes.length > 0;
+    this.areaCounts = changesByArea(changes);
+    this.tagOrder = overview.areas.map((area, index) => ({ area, index })).sort((a, b) => Number(this.areaCounts.has(b.area.id)) - Number(this.areaCounts.has(a.area.id)) || b.area.radius - a.area.radius);
     this.fitRatio = this.ratioToFit();
     this.sigma = new Sigma(this.graph, elements.sigma, {
       primitives: {
@@ -139,16 +187,22 @@ export class MapEngine {
         nodes: { opacity: { attribute: "opacity", defaultValue: 1 }, visibility: { attribute: "visibility", defaultValue: "visible" }, labelVisibility: { attribute: "labelVisibility", defaultValue: "auto" }, labelSize: 12, labelColor: "#0f172a", labelFont: "system-ui", zIndex: { attribute: "zIndex", defaultValue: 0 } },
         edges: { opacity: { attribute: "opacity", defaultValue: 1 }, visibility: { attribute: "visibility", defaultValue: "visible" }, head: { attribute: "head", defaultValue: "arrow" } },
       },
-      settings: { itemSizesReference: "positions", zoomToSizeRatioFunction: (ratio: number) => ratio, autoRescale: false, labelRenderedSizeThreshold: 11, minCameraRatio: CLOSEST_RATIO, maxCameraRatio: Math.max(40, this.fitRatio * 1.5), renderEdgeLabels: false, enableEdgeEvents: false },
+      settings: { itemSizesReference: "positions", zoomToSizeRatioFunction: (ratio: number) => ratio, autoRescale: false, labelRenderedSizeThreshold: 11, minCameraRatio: CLOSEST_RATIO, maxCameraRatio: Math.max(40, this.fitRatio * 1.5), renderEdgeLabels: false, enableEdgeEvents: this.marking, inertiaRatio: 0, doubleClickZoomingRatio: 1 },
       nodeReducer: (id: string, data: object, attributes: Record<string, unknown>) => ({ ...data, ...this.nodeLook(id, attributes) }),
       edgeReducer: (id: string, data: object, attributes: Record<string, unknown>) => ({ ...data, ...this.edgeLook(id, attributes) }),
     } as never);
     this.sigma.getCamera().on("updated", () => this.onCamera());
+    // The stage takes the wheel before Sigma does: it moves and zooms as every other diagram (spec 029, FR-053).
+    elements.stage.addEventListener("wheel", (event) => this.onWheel(event), { capture: true, passive: false, signal: this.listening.signal });
     this.sigma.on("afterRender", () => this.drawCanvases());
     this.sigma.on("enterNode", ({ node }) => this.onHover(node));
     this.sigma.on("leaveNode", () => this.onHover(null));
-    this.sigma.on("clickStage", ({ event }) => this.flyToAreaAt(event.x, event.y));
+    this.sigma.on("clickStage", ({ event }) => this.onClickStage(event.x, event.y));
+    this.sigma.on("clickNode", ({ node }) => this.onClickNode(node));
+    this.sigma.on("enterEdge", ({ edge, event }) => this.onHoverBundle(edge, event.x, event.y));
+    this.sigma.on("leaveEdge", () => this.onHover(null));
     this.fit();
+    this.restoreKeptView();
     this.unregister = registerDiagramSurface(this.surface());
     this.drawOutlines(0);
   }
@@ -165,13 +219,21 @@ export class MapEngine {
   }
 
   /** Make the map; loads the icons first, so that no node is drawn without one. */
-  static async create(overview: MapOverview, elements: MapElements, events: MapEvents): Promise<MapEngine> {
-    return new MapEngine(overview, await rasterIcons(overview.types), elements, events);
+  static async create(overview: MapOverview, changes: readonly MapChange[], elements: MapElements, events: MapEvents): Promise<MapEngine> {
+    return new MapEngine(overview, changes, await rasterIcons(overview.types), elements, events);
+  }
+
+  /** Stay where the last map stood, when that place is on this one. */
+  private restoreKeptView(): void {
+    const view = keptView;
+    if (view && this.overview.areas.some((area) => Math.hypot(area.x - view.x, area.y - view.y) < area.radius)) this.surface().restore(view);
   }
 
   /** Let go of everything. */
   destroy(): void {
     this.killed = true;
+    keptView = this.surface().view();
+    this.listening.abort();
     this.unregister();
     this.sigma.kill();
   }
@@ -210,6 +272,39 @@ export class MapEngine {
         camera.setState({ x: framed.x, y: framed.y });
       },
     };
+  }
+
+  /** A swipe or a plain wheel moves the picture; a pinch or Ctrl / ⌘ + wheel zooms it around the pointer. */
+  private onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const { stage } = this.elements;
+    if (!isZoomWheel(event)) {
+      const { dx, dy } = wheelPan(event, stage.clientHeight);
+      const camera = this.sigma.getCamera();
+      const from = this.sigma.viewportToFramedGraph({ x: 0, y: 0 });
+      const to = this.sigma.viewportToFramedGraph({ x: dx, y: dy });
+      camera.setState({ x: camera.x + to.x - from.x, y: camera.y + to.y - from.y });
+      return;
+    }
+    const box = stage.getBoundingClientRect();
+    this.wheelPoint = { x: event.clientX - box.left, y: event.clientY - box.top };
+    this.wheelLeft += event.deltaY;
+    if (this.wheeling) return;
+    this.wheeling = true;
+    requestAnimationFrame(() => this.applyWheel());
+  }
+
+  private applyWheel(): void {
+    this.wheeling = false;
+    if (this.killed) return;
+    const chunk = Math.max(-WHEEL_CHUNK_PX, Math.min(WHEEL_CHUNK_PX, this.wheelLeft));
+    this.wheelLeft -= chunk;
+    const camera = this.sigma.getCamera();
+    camera.setState(this.sigma.getViewportZoomedState(this.wheelPoint, camera.getBoundedRatio(camera.ratio * Math.exp(chunk * WHEEL_ZOOM_SENSITIVITY))));
+    if (Math.abs(this.wheelLeft) <= 0.5) return;
+    this.wheeling = true;
+    requestAnimationFrame(() => this.applyWheel());
   }
 
   /** The zoom of the toolbar: 1 shows the whole map. */
@@ -271,6 +366,8 @@ export class MapEngine {
     this.levelThree = three;
     this.elements.stage.style.backgroundPosition = `${-this.sigma.getCamera().x * 2000}px ${this.sigma.getCamera().y * 2000}px`;
     this.events.onZoom(this.zoom());
+    if (this.mirroredCard) this.openCard(this.mirroredCard);
+    else if (this.cardOpen) this.closeCard();
     const level = levelAt(width);
     if (level >= 2) this.readInView(level as 2 | 3);
     if (changed) this.refreshSoon();
@@ -287,16 +384,29 @@ export class MapEngine {
 
   private readInView(level: 2 | 3): void {
     for (const area of this.areasInView()) {
-      const index = this.areaIndex.get(area.id)!;
-      const held = this.loaded.get(index);
+      const held = this.loaded.get(this.areaIndex.get(area.id)!);
       if (held) held.usedAt = (this.clock += 1);
       if ((held && held.level >= level) || this.reading.has(area.id) || area.failed) continue;
-      this.reading.add(area.id);
-      void mapArea(area.id, level)
-        .then((detail) => this.take(index, detail, level))
-        .catch(() => undefined)
-        .finally(() => this.reading.delete(area.id));
+      void this.read(area.id, level);
     }
+  }
+
+  /** Read one area up to a level, once however many ask. */
+  private read(area: string, level: 2 | 3): Promise<void> {
+    const running = this.reading.get(area);
+    if (running) return running;
+    const reading = mapArea(area, level)
+      .then((detail) => this.take(this.areaIndex.get(area)!, detail, level))
+      .catch(() => undefined)
+      .finally(() => this.reading.delete(area));
+    this.reading.set(area, reading);
+    return reading;
+  }
+
+  /** Have an area on the map up to a level, whatever is being read: what a step arrives at may not have been read yet. */
+  private async ensure(area: string, level: 2 | 3): Promise<void> {
+    await this.reading.get(area);
+    if ((this.loaded.get(this.areaIndex.get(area)!)?.level ?? 0) < level) await this.read(area, level);
   }
 
   /** Put one area's detail on the map, and let go of what is furthest from use. */
@@ -306,12 +416,23 @@ export class MapEngine {
     this.addLinks(index);
     for (const [other, held] of this.loaded) if (other !== index) this.addAcross(held.detail.across, other);
     this.letGo();
+    this.collectStruck();
     this.sigma.scheduleRefresh();
+  }
+
+  /** What the canvas above draws dashed, from what is loaded. */
+  private collectStruck(): void {
+    if (!this.marking) return;
+    const details = [...this.loaded.values()].map((entry) => entry.detail);
+    const links = details.flatMap((detail) => [...detail.edges, ...detail.across]);
+    this.removedNodes = details.flatMap((detail) => detail.nodes.filter((node) => node.diff === "removed"));
+    this.removedLinks = links.filter((link) => link.diff === "removed");
+    this.retargeted = links.filter((link) => link.was);
   }
 
   private addNode(node: MapNode, area: number): void {
     if (this.graph.hasNode(node.id)) return;
-    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type] });
+    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type], diff: node.diff });
   }
 
   private addLinks(index: number): void {
@@ -326,7 +447,7 @@ export class MapEngine {
 
   private addLink(link: MapLink): void {
     if (this.graph.hasEdge(link.id) || !this.graph.hasNode(link.source) || !this.graph.hasNode(link.target)) return;
-    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level });
+    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level, diff: link.diff });
   }
 
   private letGo(): void {
@@ -347,10 +468,18 @@ export class MapEngine {
     const reveal = node.level === 2 ? this.levelTwo : this.levelThree;
     if (reveal <= 0.01) return { visibility: "hidden", label: "" };
     const area = this.overview.areas[node.area as number];
+    const mark = this.marking ? (node.diff as MapMark | undefined) : undefined;
     let opacity = reveal;
+    if (this.marking && !mark) opacity *= FADED_NODE;
     if (this.near && !this.near.has(id)) opacity *= 0.25;
     const named = id === this.hovered ? "visible" : this.levelTwo < 0.9 ? "hidden" : node.level === 2 || this.levelThree > 0.9 ? "auto" : "hidden";
-    return { ...node, color: area?.colour ?? TYPE_COLOURS_FALLBACK, opacity, size: (node.size as number) * (0.7 + 0.3 * reveal), visibility: "visible", labelVisibility: named, zIndex: 1 };
+    return { ...node, color: this.nodeColour(area, mark), ring: mark && mark !== "removed" ? MARK_LOOK[mark].colour : "#00000000", opacity, size: (node.size as number) * (0.7 + 0.3 * reveal), visibility: "visible", labelVisibility: named, zIndex: mark ? 2 : 1 };
+  }
+
+  private nodeColour(area: MapArea | undefined, mark: MapMark | undefined): string {
+    if (!this.marking) return area?.colour ?? TYPE_COLOURS_FALLBACK;
+    if (mark === "removed") return "#ffffff";
+    return mark ? MARK_LOOK[mark].colour : UNCHANGED_COLOUR;
   }
 
   private edgeLook(id: string, edge: Record<string, unknown>): Record<string, unknown> {
@@ -358,18 +487,23 @@ export class MapEngine {
     if (edge.bundle) {
       const fading = 1 - this.levelTwo;
       if (fading <= 0.01) return { visibility: "hidden" };
-      return { color: LINK_COLOUR, size: Math.min(13, 2 + Math.log2(edge.count as number) * 1.5) * ratio, opacity: 0.4 * fading, head: "none" };
+      const marked = this.marking && (edge.changed as number) > 0;
+      return { color: marked ? MARK_LOOK.changed.colour : LINK_COLOUR, size: Math.min(13, 2 + Math.log2(edge.count as number) * 1.5) * ratio, opacity: (marked ? 0.7 : this.marking ? 0.4 * FADED_AREA : 0.4) * fading, head: "none" };
     }
     const [source, target] = this.graph.extremities(id);
     const reveal = edge.level === 2 ? this.levelTwo : this.levelThree;
     if (reveal <= 0.01) return { visibility: "hidden" };
+    const mark = this.marking ? (edge.diff as MapMark | undefined) : undefined;
+    if (mark === "removed") return { visibility: "hidden" };
     const lit = this.near !== null && (source === this.hovered || target === this.hovered);
-    return { color: lit ? "#475569" : LINK_COLOUR, size: (lit ? 3.6 : 2.2) * ratio, opacity: reveal * (this.near && !lit ? 0.1 : 0.65) };
+    const fade = this.marking && !mark ? FADED_LINK : 1;
+    return { color: mark ? MARK_LOOK[mark].colour : lit ? "#475569" : LINK_COLOUR, size: (mark ? 4 : lit ? 3.6 : 2.2) * ratio, opacity: reveal * fade * (this.near && !lit ? 0.1 : 0.65) };
   }
 
   private onHover(node: string | null): void {
-    const { label } = this.elements;
+    const { label, stage } = this.elements;
     const attributes = node ? this.graph.getNodeAttributes(node) : null;
+    stage.style.cursor = attributes && !attributes.centre ? "pointer" : "";
     if (!node || !attributes || attributes.centre) {
       this.hovered = null;
       this.near = null;
@@ -378,13 +512,97 @@ export class MapEngine {
       this.hovered = node;
       this.near = new Set([node, ...this.graph.neighbors(node)]);
       const place = this.sigma.graphToViewport(attributes as never);
-      label.textContent = attributes.label as string;
+      const mark = this.marking ? (attributes.diff as MapMark | undefined) : undefined;
+      label.textContent = `${mark ? `${MARK_LOOK[mark].sign} ` : ""}${attributes.label as string}`;
       label.style.display = "block";
       label.style.left = `${place.x}px`;
       label.style.top = `${place.y + this.sigma.scaleSize(attributes.size as number) + 6}px`;
       label.style.borderLeftColor = this.overview.areas[attributes.area as number]?.colour ?? LINK_COLOUR;
     }
     this.sigma.refresh({ skipIndexation: true });
+  }
+
+  /** A bundle says how many of its links changed (FR-023). */
+  private onHoverBundle(edge: string, x: number, y: number): void {
+    const { bundle, count, changed } = this.graph.getEdgeAttributes(edge);
+    if (!bundle || !changed) return;
+    const { label } = this.elements;
+    label.textContent = `${changed as number} of ${count as number} ${(count as number) === 1 ? "link" : "links"} changed`;
+    label.style.display = "block";
+    label.style.left = `${x}px`;
+    label.style.top = `${y + 12}px`;
+    label.style.borderLeftColor = MARK_LOOK.changed.colour;
+  }
+
+  /** A click on a domain's count goes to its first change; on a folded domain, flies to it. */
+  private onClickStage(x: number, y: number): void {
+    this.closeCard();
+    const badge = this.badges.find((each) => x >= each.x && x <= each.x + each.width && y >= each.y && y <= each.y + each.height);
+    const first = badge ? firstChangeOf(this.changes, badge.area) : -1;
+    if (first >= 0) this.goTo(first);
+    else this.flyToAreaAt(x, y);
+  }
+
+  private onClickNode(node: string): void {
+    const attributes = this.graph.getNodeAttributes(node);
+    if (!this.marking || !attributes.diff) {
+      this.closeCard();
+      return;
+    }
+    this.position = this.changes.findIndex((change) => change.id === node);
+    this.events.onStep(this.position);
+    this.sigma.scheduleRefresh();
+    this.openCard(this.changes[this.position]);
+  }
+
+  private openCard(change: MapChange): void {
+    const place = this.sigma.graphToViewport(change);
+    const at = { x: Math.max(8, Math.min(place.x + 24, this.elements.stage.clientWidth - CARD_WIDTH)), y: Math.max(8, place.y + 18) };
+    this.cardOpen = true;
+    this.events.onCard({ target: { title: change.label, status: change.status, elements: [{ kind: change.span === undefined ? "node" : "edge", id: change.id }] }, at });
+  }
+
+  private closeCard(): void {
+    this.cardOpen = false;
+    this.events.onCard(null);
+  }
+
+  /** Show what a followed person stands on: the mark and the card, where following has brought the view (FR-025f). */
+  mirror(position: number | null, card: boolean): void {
+    const change = position === null ? null : this.changes[position];
+    this.position = position;
+    this.events.onStep(position);
+    this.mirroredCard = card ? change : null;
+    if (!this.mirroredCard && this.cardOpen) this.closeCard();
+    this.sigma.scheduleRefresh();
+    if (!change) return;
+    void this.ensure(change.area, change.level as 2 | 3).then(() => {
+      if (this.mirroredCard) this.openCard(this.mirroredCard);
+      this.sigma.scheduleRefresh();
+    });
+  }
+
+  /** Go to a change. */
+  goTo(position: number): void {
+    void this.flyTo(position);
+  }
+
+  /** Fly to a change, read what it stands in if that has not been read, and open its card (FR-025a, FR-025c). */
+  private async flyTo(position: number): Promise<void> {
+    const change = this.changes[position];
+    const level = change.level as 2 | 3;
+    this.position = position;
+    this.flight += 1;
+    const flight = this.flight;
+    this.closeCard();
+    this.events.onStep(position);
+    const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport({ x: change.x, y: change.y }));
+    const { clientWidth, clientHeight } = this.elements.stage;
+    const ratio = Math.max(CLOSEST_RATIO, ARRIVAL_WIDTH[level] / clientWidth, ((change.span ?? 0) * LINK_MARGIN) / Math.min(clientWidth, clientHeight));
+    await Promise.all([this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio }, { duration: ARRIVAL_MS, easing: "cubicInOut" }), this.ensure(change.area, level)]);
+    if (flight !== this.flight || this.killed) return;
+    this.sigma.scheduleRefresh();
+    this.openCard(change);
   }
 
   /** A click on a folded domain flies to it (FR-007). */
@@ -423,23 +641,85 @@ export class MapEngine {
     const scale = Math.hypot(m[0], m[1]);
     const folded = 1 - this.levelTwo;
     const tags: [number, number, number, number][] = [];
-    const biggestFirst = this.overview.areas.map((area, index) => ({ area, index })).sort((a, b) => b.area.radius - a.area.radius);
-    for (const { area, index } of biggestFirst) {
+    this.badges = [];
+    for (const { area, index } of this.tagOrder) {
       const [cx, cy] = [m[0] * area.x + m[2] * area.y + m[4], m[1] * area.x + m[3] * area.y + m[5]];
       const radius = area.radius * scale;
       if (cx + radius < 0 || cx - radius > width || cy + radius < 0 || cy - radius > height) continue;
       below.setTransform(ratio * m[0], ratio * m[1], ratio * m[2], ratio * m[3], ratio * m[4], ratio * m[5]);
-      below.fillStyle = faded(area.colour, 0.1 + 0.13 * folded);
+      const untouched = this.marking && !this.areaCounts.has(area.id);
+      const fade = untouched ? FADED_AREA : 1;
+      const colour = untouched ? UNTOUCHED_AREA_COLOUR : this.marking && area.status ? MARK_LOOK[area.status].colour : area.colour;
+      below.fillStyle = faded(colour, (0.1 + 0.13 * folded) * fade);
       below.fill(this.outlines[index]);
-      below.strokeStyle = faded(area.colour, 0.5);
+      below.strokeStyle = faded(colour, 0.5 * fade);
       below.lineWidth = 1.4 / scale;
+      below.setLineDash(this.marking && area.status === "removed" ? [8 / scale, 6 / scale] : []);
       below.stroke(this.outlines[index]);
-      this.drawTag(above, area, cx, cy, radius, folded, tags, ratio);
+      this.drawTag(above, area, colour, fade, cx, cy, radius, folded, tags, ratio);
     }
+    below.setLineDash([]);
+    if (this.marking && this.levelTwo > 0.2) this.drawStruck(above, ratio);
+    this.drawHalo(above, ratio);
   }
 
-  private drawTag(canvas: CanvasRenderingContext2D, area: MapArea, cx: number, cy: number, radius: number, folded: number, tags: [number, number, number, number][], ratio: number): void {
-    if (radius < 14) return;
+  private shows(node: string): boolean {
+    return this.graph.hasNode(node) && (this.graph.getNodeAttribute(node, "level") === 2 ? this.levelTwo : this.levelThree) >= 0.5;
+  }
+
+  /** A dashed line between two nodes on the map. */
+  private drawDashed(canvas: CanvasRenderingContext2D, source: string, target: string): void {
+    if (!this.shows(source) || !this.shows(target)) return;
+    const from = this.sigma.graphToViewport(this.graph.getNodeAttributes(source) as never);
+    const to = this.sigma.graphToViewport(this.graph.getNodeAttributes(target) as never);
+    canvas.beginPath();
+    canvas.moveTo(from.x, from.y);
+    canvas.lineTo(to.x, to.y);
+    canvas.stroke();
+  }
+
+  /** What was removed is dashed and red; a relation that points elsewhere now has a thin line to its target in A (FR-022). */
+  private drawStruck(canvas: CanvasRenderingContext2D, ratio: number): void {
+    canvas.setTransform(ratio, 0, 0, ratio, 0, 0);
+    canvas.strokeStyle = MARK_LOOK.removed.colour;
+    canvas.lineWidth = 2;
+    canvas.setLineDash([6, 5]);
+    for (const link of this.removedLinks) this.drawDashed(canvas, link.source, link.target);
+    canvas.strokeStyle = MARK_LOOK.changed.colour;
+    canvas.lineWidth = 1;
+    canvas.setLineDash([3, 3]);
+    for (const link of this.retargeted) this.drawDashed(canvas, link.source, link.was!);
+    canvas.strokeStyle = MARK_LOOK.removed.colour;
+    canvas.lineWidth = 1.8;
+    canvas.setLineDash([3, 2.4]);
+    for (const node of this.removedNodes) {
+      if (!this.shows(node.id)) continue;
+      const place = this.sigma.graphToViewport(node);
+      canvas.beginPath();
+      canvas.arc(place.x, place.y, this.sigma.scaleSize(this.graph.getNodeAttribute(node.id, "size") as number), 0, Math.PI * 2);
+      canvas.stroke();
+    }
+    canvas.setLineDash([]);
+  }
+
+  /** The change a step arrived at wears a soft halo. */
+  private drawHalo(canvas: CanvasRenderingContext2D, ratio: number): void {
+    const change = this.position === null ? null : this.changes[this.position];
+    const link = change?.span !== undefined;
+    if (!change || (link ? !this.graph.hasEdge(change.id) : !this.shows(change.id))) return;
+    const place = this.sigma.graphToViewport(change);
+    canvas.setTransform(ratio, 0, 0, ratio, 0, 0);
+    canvas.strokeStyle = MARK_LOOK[change.status].colour;
+    canvas.globalAlpha = 0.28;
+    canvas.lineWidth = 9;
+    canvas.beginPath();
+    canvas.arc(place.x, place.y, link ? LINK_HALO_PX : this.sigma.scaleSize(this.graph.getNodeAttribute(change.id, "size") as number) + 8, 0, Math.PI * 2);
+    canvas.stroke();
+    canvas.globalAlpha = 1;
+  }
+
+  private drawTag(canvas: CanvasRenderingContext2D, area: MapArea, colour: string, fade: number, cx: number, cy: number, radius: number, folded: number, tags: [number, number, number, number][], ratio: number): void {
+    if (radius < 14 && !this.areaCounts.has(area.id)) return;
     const { clientWidth: width, clientHeight: height } = this.elements.stage;
     if (this.levelTwo > 0.5 && Math.hypot(Math.min(Math.max(cx, 0), width) - width / 2, Math.min(Math.max(cy, 0), height) - height / 2) > radius + Math.min(width, height) * 0.42) return;
     const size = 11 + 3 * folded;
@@ -452,22 +732,54 @@ export class MapEngine {
     const box: [number, number, number, number] = [x - 10, y - 5, text + 20, size + 12 + (folded > 0.25 ? 22 : 0)];
     if (tags.some((tag) => box[0] < tag[0] + tag[2] && tag[0] < box[0] + box[2] && box[1] < tag[1] + tag[3] && tag[1] < box[1] + box[3])) return;
     tags.push(box);
-    canvas.fillStyle = area.colour;
+    canvas.globalAlpha = fade;
+    canvas.fillStyle = colour;
     canvas.beginPath();
     canvas.roundRect(x - 8, y - 3, text + 16, size + 8, 6);
     canvas.fill();
     canvas.fillStyle = "#fff";
     canvas.textBaseline = "top";
     canvas.fillText(name, x, y + 1);
+    canvas.globalAlpha = 1;
     if (folded <= 0.25) return;
+    const counted = this.areaCounts.get(area.id);
+    if (counted) {
+      const parts = (["added", "removed", "changed"] as const).filter((status) => counted[status] > 0);
+      this.drawBadges(canvas, area.id, cx, cy + 12, parts.map((status) => ({ status, text: `${MARK_LOOK[status].sign}${counted[status]}` })), folded);
+      return;
+    }
     const entities = area.counts.Entity ?? 0;
     const actions = area.counts.Action ?? 0;
     const total = Object.values(area.counts).reduce((sum, count) => sum + count, 0);
     const says = [entities && `${entities} ${entities === 1 ? "entity" : "entities"}`, actions && `${actions} ${actions === 1 ? "action" : "actions"}`].filter(Boolean).join(" · ") || `${total} ${total === 1 ? "element" : "elements"}`;
-    canvas.globalAlpha = folded;
+    canvas.globalAlpha = folded * fade;
     canvas.font = "11px system-ui";
     canvas.fillStyle = "#475569";
     canvas.fillText(says, cx - canvas.measureText(says).width / 2, cy + 14);
+    canvas.globalAlpha = 1;
+  }
+
+  /** A folded domain's count of its nodes by status, as pills a click takes to its first change. */
+  private drawBadges(canvas: CanvasRenderingContext2D, area: string, cx: number, y: number, parts: { status: MapMark; text: string }[], alpha: number): void {
+    canvas.font = "700 12px system-ui";
+    canvas.globalAlpha = alpha;
+    const widths = parts.map((part) => canvas.measureText(part.text).width + 12);
+    const total = widths.reduce((sum, width) => sum + width + 4, -4);
+    let x = cx - total / 2;
+    this.badges.push({ x, y, width: total, height: 20, area });
+    parts.forEach((part, index) => {
+      const { colour } = MARK_LOOK[part.status];
+      canvas.fillStyle = "#fff";
+      canvas.beginPath();
+      canvas.roundRect(x, y, widths[index], 20, 10);
+      canvas.fill();
+      canvas.strokeStyle = colour;
+      canvas.lineWidth = 1.2;
+      canvas.stroke();
+      canvas.fillStyle = colour;
+      canvas.fillText(part.text, x + 6, y + 4);
+      x += widths[index] + 4;
+    });
     canvas.globalAlpha = 1;
   }
 }

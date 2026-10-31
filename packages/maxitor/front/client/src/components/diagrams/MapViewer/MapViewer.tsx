@@ -4,9 +4,13 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { mapOverview } from "@/api/map";
+import { DiffCard } from "@/components/history/DiffCard";
+import { mapChanges, mapOverview } from "@/api/map";
+import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
+import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { layoutHash } from "@/lib/layoutHash";
-import type { MapEngine } from "./mapEngine";
+import { countChanges } from "@/lib/mapDiff";
+import type { MapCard, MapEngine } from "./mapEngine";
 
 const LAYERS_SX = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
 
@@ -24,8 +28,13 @@ export function MapViewer() {
   const [layingOut, setLayingOut] = useState(false);
   const [zoomPct, setZoomPct] = useState(100);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [card, setCard] = useState<MapCard | null>(null);
+  const names = useDiffNames();
 
-  const load = useCallback(() => Promise.all([mapOverview(() => setLayingOut(true)), import("./mapEngine")]).then(([overview, module]) => ({ overview, module })), []);
+  const load = useCallback(async () => {
+    const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true)), import("./mapEngine")]);
+    return { overview, module, changes: overview.links_changed === undefined ? [] : await mapChanges() };
+  }, []);
   const { data, loading, error } = useDiagramLoader(load);
 
   useEffect(() => {
@@ -33,8 +42,29 @@ export function MapViewer() {
     if (!data || !stage || !sigma || !under || !over || !label) return undefined;
     setLayingOut(false);
     let gone = false;
-    const { overview, module } = data;
-    module.MapEngine.create(overview, { stage, sigma, under, over, label }, { onZoom: (zoom) => setZoomPct(Math.round(zoom * 100)) })
+    const { overview, module, changes } = data;
+    if (overview.links_changed !== undefined) setDiffCounts(countChanges(changes));
+    const areaNames = new Map(overview.areas.map((area) => [area.id, area.name]));
+    const entries: ChangeEntry[] = changes.map((change) => ({ key: change.id, title: change.label, detail: change.type, status: change.status, group: areaNames.get(change.area) ?? change.area }));
+    let position: number | null = null;
+    let cardOpen = false;
+    const go = (next: number) => engineRef.current?.goTo(next);
+    const mirror = (next: number | null, open: boolean) => engineRef.current?.mirror(next, open);
+    const say = () => setChangeStepping(entries.length ? { entries, position, card: cardOpen, go, mirror } : null);
+    say();
+    const events = {
+      onZoom: (zoom: number) => setZoomPct(Math.round(zoom * 100)),
+      onCard: (next: MapCard | null) => {
+        setCard(next);
+        cardOpen = next !== null;
+        say();
+      },
+      onStep: (next: number | null) => {
+        position = next;
+        say();
+      },
+    };
+    module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events)
       .then(async (engine) => {
         if (gone) {
           engine.destroy();
@@ -50,6 +80,8 @@ export function MapViewer() {
       stage.removeAttribute("data-layout-hash");
       engineRef.current?.destroy();
       engineRef.current = null;
+      setDiffCounts(null);
+      setChangeStepping(null);
     };
   }, [data]);
 
@@ -58,7 +90,7 @@ export function MapViewer() {
       <Box
         ref={stageRef}
         className="ix-interchange-viewport"
-        sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative", overflow: "hidden", bgcolor: "#fbfcfd", backgroundImage: "radial-gradient(#d5dbe3 1px, transparent 1.2px)", backgroundSize: "22px 22px" }}
+        sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative", overflow: "hidden", cursor: "grab", touchAction: "none", "&:active": { cursor: "grabbing" }, bgcolor: "#fbfcfd", backgroundImage: "radial-gradient(#d5dbe3 1px, transparent 1.2px)", backgroundSize: "22px 22px" }}
       >
         <Box component="canvas" ref={underRef} sx={{ ...LAYERS_SX, zIndex: 1 }} />
         <Box ref={sigmaRef} sx={{ ...LAYERS_SX, zIndex: 2 }} />
@@ -69,6 +101,7 @@ export function MapViewer() {
             Laying this version out…
           </Typography>
         )}
+        {card && <DiffCard target={card.target} newer={names?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
         <ZoomToolbar zoomPct={zoomPct} onZoomIn={() => engineRef.current?.zoomBy(1.5)} onZoomOut={() => engineRef.current?.zoomBy(1 / 1.5)} onFit={() => engineRef.current?.fit()} />
       </Box>
     </DiagramShell>

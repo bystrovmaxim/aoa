@@ -134,11 +134,11 @@ def _hash(nodes: list[MapNode], inner: list[MapEdge]) -> str:
     return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
 
 
-def split_areas(document: Mapping[str, Any]) -> GraphAreas:
+def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = None) -> GraphAreas:
     """
     AI-CORE-BEGIN
     ROLE: Cut a graph document into the areas of its map.
-    CONTRACT: Every node stands in exactly one area; a node in several domains stands in the first in id order.
+    CONTRACT: Every node stands in exactly one area; a node in several domains stands in the first in id order, unless ``homes`` names its area.
     INVARIANTS: Pure; the same document gives the same areas, in the same order.
     AI-CORE-END
     """
@@ -150,7 +150,7 @@ def split_areas(document: Mapping[str, Any]) -> GraphAreas:
     for domain in domains:
         for node_id in members[domain]:
             memberships.setdefault(node_id, []).append(domain)
-    home = {node_id: held[0] for node_id, held in memberships.items()}
+    home = {node_id: held[0] for node_id, held in memberships.items()} | dict(homes or {})
     standing: dict[str, list[MapNode]] = {}
     for node_id in sorted(nodes):
         node = MapNode(node_id, _text(nodes[node_id].get("label")) or node_id, types[node_id], 2 if types[node_id] in LEVEL_TWO else 3)

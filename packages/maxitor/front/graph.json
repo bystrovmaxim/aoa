@@ -2677,6 +2677,71 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Maps"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@summary_aspect|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|generic:result|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult|field|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
       "is_dag": false,
       "properties": {},
@@ -2748,6 +2813,15 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
       "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:bundles",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
       "type": "field"
     },
     {
@@ -6736,6 +6810,39 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "label": "MapChangesAction",
+      "properties": {
+        "description": "List the changes of two versions, in stepping order"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "label": "changes_summary",
+      "properties": {
+        "description": "Give the pair's changes"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "label": "MapChangesResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "label": "changes",
+      "properties": {
+        "description": "Each changed node: id, area, type, status, place and level",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
       "label": "MapOverviewAction",
       "properties": {
@@ -6776,6 +6883,17 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
+      "label": "links_changed",
+      "properties": {
+        "description": "In a comparison, how many drawn links changed; absent for one version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },

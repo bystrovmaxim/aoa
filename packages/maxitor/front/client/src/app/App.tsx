@@ -15,6 +15,7 @@ import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory }
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "@/components/history/VersionPicker";
+import { ChangeStepper } from "@/components/diagrams/MapViewer/ChangeStepper";
 import { VersionsBetween } from "@/components/history/VersionsBetween";
 import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
@@ -487,13 +488,14 @@ export function App() {
               ref={versionButton}
               name={shown.a ? (phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`) : (shownName ?? "—")}
               compact={phone}
-              counts={shown.a && diagram?.kind === "erd" ? diffCounts : null}
+              counts={shown.a ? diffCounts : null}
               open={pickerOpen}
               onClick={() => setPickerOpen((open) => !open)}
               onStep={step}
               canStep={{ older: shown.b ? stepShown(trackPoints, shown.a, shown.b, -1) !== null : false, newer: shown.b ? stepShown(trackPoints, shown.a, shown.b, 1) !== null : false }}
             />
           )}
+          {shown?.a && <ChangeStepper compact={phone} />}
           <Box sx={{ flex: 1 }} />
         <RoomBar
           session={room}

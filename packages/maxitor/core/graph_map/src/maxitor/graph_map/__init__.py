@@ -26,9 +26,10 @@ ARCHITECTURE / DATA FLOW
 """
 
 from maxitor.graph_map.areas import OUTSIDE, Area, GraphAreas, MapNode, split_areas
-from maxitor.graph_map.assemble import VersionMap, assemble
+from maxitor.graph_map.assemble import Marks, VersionMap, assemble
 from maxitor.graph_map.layout import AreaLayout, area_dot, read_layout
 from maxitor.graph_map.places import Place, settle_places
+from maxitor.graph_map.union import union_document, union_layouts
 
 __all__ = [
     "OUTSIDE",
@@ -36,6 +37,7 @@ __all__ = [
     "AreaLayout",
     "GraphAreas",
     "MapNode",
+    "Marks",
     "Place",
     "VersionMap",
     "area_dot",
@@ -43,4 +45,6 @@ __all__ = [
     "read_layout",
     "settle_places",
     "split_areas",
+    "union_document",
+    "union_layouts",
 ]

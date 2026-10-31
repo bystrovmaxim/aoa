@@ -13,7 +13,7 @@ import type { ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
 /** One domain's slice of the ERD, as ``list-entities`` gives it. */
 export type ErdSlice = { entities?: ErdEntity[]; relations?: ErdRelation[]; groups?: unknown[] };
 
-/** The tables, rows and lines the diagram draws in each status, each element once. */
+/** The tables, rows and lines the diagram draws in each status, each element once; on the map, its nodes and links. */
 export type DiagramCounts = { added: number; removed: number; changed: number };
 
 /** Which of two statuses says more: a row is as marked as the most marked of its parts. */

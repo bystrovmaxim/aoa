@@ -120,4 +120,4 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 
 ## R12. The branch of #291
 
-- **Decision**: taken over: the rules of the comparison, the filter panel's `kindsTitle`, the filters in the address, `edgesMarked` on the counts, `MARK_LOOK`, the stand. Rewritten: the union, on the server. Left behind: the G6 marks, and `@antv/g6` itself once nothing imports it.
+- **Decision**: taken over: the rules of the comparison, the filter panel's `kindsTitle`, the filters in the address, `MARK_LOOK`, the stand. Rewritten: the union, on the server. Left behind: the G6 marks, and `@antv/g6` itself once nothing imports it.

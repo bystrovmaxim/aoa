@@ -6,7 +6,19 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from maxitor.graph_map import OUTSIDE, AreaLayout, Place, area_dot, assemble, read_layout, settle_places, split_areas
+from maxitor.graph_map import (
+    OUTSIDE,
+    AreaLayout,
+    Marks,
+    Place,
+    area_dot,
+    assemble,
+    read_layout,
+    settle_places,
+    split_areas,
+    union_document,
+    union_layouts,
+)
 
 
 def node(identifier: str, kind: str = "Entity") -> dict[str, Any]:
@@ -166,3 +178,66 @@ def test_an_area_with_no_layout_leaves_the_rest_readable() -> None:
     result = assemble(graph, layouts, places, ("#111111",))
     assert next(item for item in result.overview["areas"] if item["id"] == "d2")["failed"] is True
     assert "d2" not in result.details and "d1" in result.details
+
+
+def test_a_union_keeps_b_and_remembers_where_a_relation_pointed() -> None:
+    older, newer = document(), document()
+    newer["nodes"] = [item for item in newer["nodes"] if item["id"] != "free"]
+    newer["edges"][6]["target_id"] = "c"
+    joined, was = union_document(older, newer)
+    assert "free" in {item["id"] for item in joined["nodes"]}
+    assert was == {"a|entity_relation|b": "b"}
+
+
+def test_a_node_in_b_stands_where_b_has_it_and_a_node_only_in_a_beside_it() -> None:
+    older, newer = document(), document()
+    older["nodes"].append(node("gone"))
+    older["edges"].append(edge("gone", "domain", "d1", "Aggregation"))
+    joined, _ = union_document(older, newer)
+    union = split_areas(joined)
+    positions = {item.id: (float(index * 100), 0.0) for index, item in enumerate(by_id(newer)["d1"].nodes)}
+    b = {"d1": AreaLayout(positions, 300.0)}
+    a = {"d1": AreaLayout({**positions, "gone": positions["a"]}, 300.0)}
+    merged = union_layouts(union, a, b)["d1"]
+    assert all(merged.positions[key] == value for key, value in positions.items())
+    x, y = merged.positions["gone"]
+    assert min(((x - px) ** 2 + (y - py) ** 2) ** 0.5 for px, py in positions.values()) >= 45
+
+
+def test_homes_name_where_a_node_stands_whatever_its_domains() -> None:
+    areas = {area.id: area for area in split_areas(document(), {"a": "d2"}).areas}
+    assert "a" in {item.id for item in areas["d2"].nodes} and "a" not in {item.id for item in areas["d1"].nodes}
+
+
+def test_a_changed_domain_is_said_by_its_count_and_not_as_a_whole() -> None:
+    graph = split_areas(document())
+    layouts = {area.id: AreaLayout({item.id: (0.0, 0.0) for item in area.nodes}, 200.0) for area in graph.areas}
+    places = {area.id: Place(0.0, 0.0, 230.0) for area in graph.areas}
+    made = assemble(graph, layouts, places, ("#111111",), Marks({"d2": "changed"}, {}, {}))
+    assert "status" not in next(item for item in made.overview["areas"] if item["id"] == "d2")
+
+
+def test_an_area_only_in_a_takes_a_layout_from_a() -> None:
+    older, newer = document(), document()
+    newer["nodes"] = [item for item in newer["nodes"] if item["id"] != "d2"]
+    joined, _ = union_document(older, newer)
+    union = split_areas(joined)
+    layouts = union_layouts(union, {"d2": AreaLayout({"d2": (5.0, 6.0)}, 200.0)}, {})
+    assert layouts["d2"].positions["d2"] == (5.0, 6.0)
+
+
+def test_marks_reach_the_overview_the_detail_and_the_changes() -> None:
+    graph = split_areas(document())
+    layouts = {area.id: AreaLayout({item.id: (0.0, 0.0) for item in area.nodes}, 200.0) for area in graph.areas}
+    places = {area.id: Place(0.0, 0.0, 230.0) for area in graph.areas}
+    marks = Marks({"a": "changed", "b": "added", "d2": "added"}, {"a|entity_relation|b": "changed"}, {"a|entity_relation|b": "c"})
+    made = assemble(graph, layouts, places, ("#111111",), marks)
+    area = next(item for item in made.overview["areas"] if item["id"] == "d2")
+    assert area["status"] == "added" and area["changes"] == {"Domain": {"added": 1}, "Entity": {"added": 1}}
+    assert made.overview["links_changed"] == 1 and made.overview["bundles"][0][4] == 1
+    assert next(item for item in made.details["d1"]["across"] if item["id"] == "a|entity_relation|b")["was"] == "c"
+    assert [item["id"] for item in made.changes] == ["a", "a|entity_relation|b", "b", "d2"]
+    d1_nodes = {item["id"]: item for item in made.details["d1"]["nodes"]}
+    assert d1_nodes["a"]["diff"] == "changed" and "diff" not in d1_nodes["shared"]
+    link = made.changes[1]
+    assert link["span"] == 0.0 and link["label"] == "A → B" and link["status"] == "changed"
