@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** Main workspace route — switches between **`FullGraphViewer`**, **`ErdViewer`**, and empty onboarding copy.
+**Role:** Main workspace route — switches between **`MapViewer`**, **`ErdViewer`**, and empty onboarding copy.
 
 ## Files
 

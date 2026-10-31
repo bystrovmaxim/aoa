@@ -212,6 +212,7 @@ STEPS: tuple[Step, ...] = (
             "maxitor/tools/repo_graph_port",
             "maxitor/tools/graph_builder",
             "maxitor/core/graph_compare",
+            "maxitor/core/graph_map",
             "aoa-demo",
             "aoa-otel",
             "aoa-langgraph",

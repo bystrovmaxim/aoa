@@ -11,7 +11,7 @@ import "./index.css";
 adoptKeyFromLocation();
 
 // The same chunk the viewer imports later; starting it here only begins the download earlier.
-if (readUrlDeepLink().view === "full-graph") void import("@antv/g6");
+if (readUrlDeepLink().view === "full-graph") void import("@/components/diagrams/MapViewer/mapEngine");
 
 const rootEl = document.getElementById("root");
 if (rootEl) {

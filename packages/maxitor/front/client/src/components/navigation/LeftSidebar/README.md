@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** Left navigation tree — **`useSidebarPayload`** runs inside **`LeftSidebar`** only (§2.3); parents pass **`diagram`** / **`onSelectDiagram`**; rows prefetch G6 / Graphviz WASM on hover. In Diff (spec 038, FR-032) it lists the pages of A and B together, `+` on a page only B has and `−` on one only A has.
+**Role:** Left navigation tree — **`useSidebarPayload`** runs inside **`LeftSidebar`** only (§2.3); parents pass **`diagram`** / **`onSelectDiagram`**; rows prefetch the map engine / Graphviz WASM on hover. In Diff (spec 038, FR-032) it lists the pages of A and B together, `+` on a page only B has and `−` on one only A has.
 
 While a source is open the header shows **`ReloadServiceButton`** ("Reload from service"): one click sends one `POST /api/load` for the current source, the sidebar is read again and the diagram workspace is remounted; the URL and the selected diagram stay. The button is disabled while the reload runs, and a failed reload is reported in the footer without clearing the diagram. A busy server is reported there too, while the page waits and retries its reads.
 

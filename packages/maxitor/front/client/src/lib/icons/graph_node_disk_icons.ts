@@ -1,7 +1,7 @@
 // src/lib/icons/graph_node_disk_icons.ts
 /**
  * App-wide Lucide-derived SVG ``data:`` URLs for Action Machine graph node types (colored
- * disk + glyph, or transparent glyph for stacked canvas layers such as G6).
+ * disk + glyph, or transparent glyph for the map, whose nodes draw their own disk).
  *
  * Paths match ``lucide-static`` (ISC, https://github.com/lucide-icons/lucide).
  */
@@ -123,7 +123,7 @@ function innerForNodeType(nodeType: string): string {
   return GRAPH_NODE_TYPE_LUCIDE_INNER_SVG[nt] ?? GRAPH_NODE_TYPE_LUCIDE_INNER_SVG.unknown;
 }
 
-/** Transparent glyph for G6 ``circle`` nodes (fill comes from node ``style``). */
+/** Transparent glyph for the map's nodes (the fill is the node's colour). */
 export function svgDataUriForGraphNodeGlyphOnly(nodeType: string): string {
   const nt = String(nodeType).trim();
   const inner = innerForNodeType(nt);

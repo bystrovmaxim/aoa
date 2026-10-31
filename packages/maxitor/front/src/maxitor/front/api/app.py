@@ -60,7 +60,7 @@ from fastapi.responses import JSONResponse
 from maxitor.front.api.access_log import install as install_access_log
 from maxitor.front.api.cached_static_files import CachedStaticFiles
 from maxitor.front.api.duckdb_graph_holder import DuckDBGraphHolder
-from maxitor.front.api.graph_source_middleware import GraphSourceMiddleware, current_pair
+from maxitor.front.api.graph_source_middleware import GraphSourceMiddleware, current_mapped, current_pair
 from maxitor.front.api.graph_store import GraphStore, build_graph_entry
 from maxitor.front.api.history_key_auth_coordinator import HistoryKeyAuthCoordinator
 from maxitor.front.api.routes.load import router as load_router
@@ -73,7 +73,11 @@ from maxitor.front.model.core.actions.get_own_graph_json_action import GetOwnGra
 from maxitor.front.model.core.actions.graph_fingerprint_action import GraphFingerprintAction
 from maxitor.front.model.core.actions.history_versions_action import HistoryVersionsAction
 from maxitor.front.model.core.actions.open_history_action import OpenHistoryAction
-from maxitor.front.model.core.history_address import HistoryAddressError, PublicHistoriesNotSetUpError
+from maxitor.front.model.core.history_address import (
+    HistoryAddressError,
+    PublicHistoriesNotSetUpError,
+    parse_version_source,
+)
 from maxitor.front.model.core.history_errors import HistoryNotFoundError, HistoryUnreachableError, TooManyWrongKeysError
 from maxitor.front.model.core.resources.graph_source_gateway import GRAPH_SOURCE_CONNECTION_KEY, GraphSourceGateway
 from maxitor.front.model.core.resources.graph_store_controller import GRAPH_STORE_CONNECTION_KEY, GraphStoreController
@@ -100,10 +104,13 @@ from maxitor.front.model.diagrams.actions.full_graph_action import FullGraphActi
 from maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action import (
     GetLifecycleFiniteAutomatonAction,
 )
-from maxitor.front.model.diagrams.actions.list_domains_action import ListDomainsAction
+from maxitor.front.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS, ListDomainsAction
 from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from maxitor.front.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
-from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
+from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction, fill_color_for_node_type
+from maxitor.front.model.diagrams.actions.map_area_action import MapAreaAction, MapAreaNotFoundError
+from maxitor.front.model.diagrams.actions.map_changes_action import MapChangesAction
+from maxitor.front.model.diagrams.actions.map_overview_action import MapOverviewAction
 from maxitor.front.model.diagrams.resources.comparison_store import (
     COMPARISON_STORE_CONNECTION_KEY,
     ComparisonRefusedError,
@@ -111,6 +118,12 @@ from maxitor.front.model.diagrams.resources.comparison_store import (
     NotComparingError,
 )
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
+from maxitor.front.model.diagrams.resources.map_store import (
+    MAP_STORE_CONNECTION_KEY,
+    MapRefusedError,
+    MapStore,
+    NoGraphError,
+)
 from maxitor.front.model.rooms.actions import (
     DisconnectTabAction,
     FollowAction,
@@ -154,6 +167,27 @@ def _positive_int_env(name: str, default: int) -> int:
 def _origins_env(name: str) -> tuple[str, ...]:
     """Read a comma-separated list of origins, ignoring blanks."""
     return tuple(origin.strip() for origin in os.environ.get(name, "").split(",") if origin.strip())
+
+
+def _map_scope(source: str) -> str:
+    """What the places on a map are kept for: a version's history, or the source itself."""
+    version = parse_version_source(source)
+    return version[0] if version else source
+
+
+def _map_store(fastapi_app: FastAPI) -> MapStore:
+    """The maps of versions, laid out once and kept on disk (spec 040)."""
+    maps = MapStore(
+        Path(os.environ.get("MAXITOR_MAP_CACHE") or Path.home() / ".cache" / "maxitor" / "map"),
+        graph=current_mapped,
+        scope=_map_scope,
+        colours=_LIST_DOMAINS_DISTINCT_COLORS,
+        immutable=lambda source: parse_version_source(source) is not None,
+        pair=current_pair,
+        type_colour=fill_color_for_node_type,
+    )
+    fastapi_app.state.maps = maps
+    return maps
 
 
 def create_app() -> FastAPI:
@@ -230,6 +264,7 @@ def create_app() -> FastAPI:
     }
 
     duckdb_graph = DuckDBGraphHolder()
+    maps = _map_store(fastapi_app)
     # Two versions compared once per pair, whoever reads them (spec 038, research R9).
     comparisons = ComparisonStore(pair=current_pair)
     fastapi_app.state.comparisons = comparisons
@@ -300,6 +335,21 @@ def create_app() -> FastAPI:
             "/compare-element",
             CompareElementAction,
             connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
+        )
+        .get(
+            "/map/overview",
+            MapOverviewAction,
+            connections={MAP_STORE_CONNECTION_KEY: maps},
+        )
+        .get(
+            "/map/area",
+            MapAreaAction,
+            connections={MAP_STORE_CONNECTION_KEY: maps},
+        )
+        .get(
+            "/map/changes",
+            MapChangesAction,
+            connections={MAP_STORE_CONNECTION_KEY: maps},
         )
         .websocket(
             "/rooms/{room_id}/live",
@@ -422,6 +472,9 @@ def _answer_comparison_refusals(app: FastAPI) -> None:
     answers: dict[type[Exception], int] = {
         NotComparingError: 400,
         ElementNotComparedError: 404,
+        MapAreaNotFoundError: 404,
+        MapRefusedError: 422,
+        NoGraphError: 400,
         ComparisonRefusedError: 422,
     }
     for error, status in answers.items():

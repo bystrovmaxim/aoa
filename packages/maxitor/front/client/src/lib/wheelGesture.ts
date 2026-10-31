@@ -9,6 +9,11 @@
 /** Pixels per line when a browser counts a mouse wheel in lines (Firefox does). */
 const LINE_PX = 16;
 
+/** How much one wheel pixel zooms, on every diagram. */
+export const WHEEL_ZOOM_SENSITIVITY = 0.0045;
+/** One wheel chunk (device pixels) applied per animation frame — avoids huge jumps when delta batches. */
+export const WHEEL_CHUNK_PX = 56;
+
 /** True when the wheel event zooms: a pinch on a trackpad, or the wheel with Ctrl or ⌘ held. */
 export function isZoomWheel(event: Pick<WheelEvent, "ctrlKey" | "metaKey">): boolean {
   return event.ctrlKey || event.metaKey;

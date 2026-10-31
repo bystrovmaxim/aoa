@@ -2576,6 +2576,300 @@
       "type": "generic:result"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Maps"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|@summary_aspect|maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction:area_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction:area_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|generic:params|maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|generic:result|maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams|field|maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams|field|maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:level",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:level",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult|field|maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:across",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:across",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult|field|maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:edges",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:edges",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult|field|maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:nodes",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:nodes",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Maps"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@summary_aspect|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|generic:result|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult|field|maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Maps"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|@summary_aspect|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction:overview_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction:overview_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|generic:result|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:areas",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:areas",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:bundles",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:bundles",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:shared",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:shared",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:state",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:state",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:types",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:types",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -2599,6 +2893,15 @@
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.resources.map_store.MapStore|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
       "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
       "type": "domain"
     },
@@ -6442,6 +6745,232 @@
       "type": "SummaryAspect"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction",
+      "label": "MapAreaAction",
+      "properties": {
+        "description": "Read one area of a version's map"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction:area_summary",
+      "label": "area_summary",
+      "properties": {
+        "description": "Give one area of the map"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams",
+      "label": "MapAreaParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:id",
+      "label": "id",
+      "properties": {
+        "description": "The area's id, as the overview gives it",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaParams:level",
+      "label": "level",
+      "properties": {
+        "description": "2 for entities and operations, 3 for everything",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult",
+      "label": "MapAreaResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:across",
+      "label": "across",
+      "properties": {
+        "description": "Each link to another area, drawn once both ends are loaded",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:edges",
+      "label": "edges",
+      "properties": {
+        "description": "Each link inside the area whose ends both show",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaResult:nodes",
+      "label": "nodes",
+      "properties": {
+        "description": "Each node: id, label, type, level, and its place on the map",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction",
+      "label": "MapChangesAction",
+      "properties": {
+        "description": "List the changes of two versions, in stepping order"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction:changes_summary",
+      "label": "changes_summary",
+      "properties": {
+        "description": "Give the pair's changes"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult",
+      "label": "MapChangesResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesResult:changes",
+      "label": "changes",
+      "properties": {
+        "description": "Each changed node: id, area, type, status, place and level",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction",
+      "label": "MapOverviewAction",
+      "properties": {
+        "description": "Read the overview of a version's map"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction:overview_summary",
+      "label": "overview_summary",
+      "properties": {
+        "description": "Give the map's overview"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "label": "MapOverviewResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:areas",
+      "label": "areas",
+      "properties": {
+        "description": "Each area: id, name, colour, place, counts by type and sketch",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:bundles",
+      "label": "bundles",
+      "properties": {
+        "description": "Each pair of linked areas: both ids, the number of links, links by the types of their ends",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "label": "chains",
+      "properties": {
+        "description": "The distinct lists of types above a node; a sketch's chain index reads here",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
+      "label": "links_changed",
+      "properties": {
+        "description": "In a comparison, how many drawn links changed; absent for one version",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:shared",
+      "label": "shared",
+      "properties": {
+        "description": "Each node in more than one domain, with its domains",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:state",
+      "label": "state",
+      "properties": {
+        "description": "'ready', or 'laying-out' while the map is made",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
+      "label": "type_colours",
+      "properties": {
+        "description": "Each node type's colour",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:types",
+      "label": "types",
+      "properties": {
+        "description": "The node types of the graph; a sketch's cells index into this list",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
       "label": "DiagramsDomain",
       "properties": {
@@ -6463,6 +6992,14 @@
       "label": "DuckDBGraphResource",
       "properties": {
         "description": "DuckDB in-memory store for coordinator graph JSON (HTTP + entity/domain helpers)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.resources.map_store.MapStore",
+      "label": "MapStore",
+      "properties": {
+        "description": "The map of a version, laid out once and kept on disk"
       },
       "type": "Resource"
     },
