@@ -10,9 +10,11 @@ import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
-import { setDiffCounts } from "@/lib/diffCounts";
+import { DiffCard } from "@/components/history/DiffCard";
+import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { nothingChanged } from "@/lib/erdDiff";
-import { lifecycleCounts, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle } from "@/lib/lifecycleDiff";
+import { lifecycleCard, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle } from "@/lib/lifecycleDiff";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
@@ -32,6 +34,9 @@ const GRID_SX = {
   backgroundSize: "20px 20px",
 };
 
+/** A press that moved further than this is a pan, not a click. */
+const CLICK_SLOP_PX = 5;
+
 export type LifecycleFsmViewerProps = {
   lifecycleGraphNodeId: string;
 };
@@ -49,6 +54,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const drawn = useMemo(() => (data && counts && nothingChanged(counts) ? unmarkedLifecycle(data) : data), [data, counts]);
   useEffect(() => setDiffCounts(counts), [counts]);
   useEffect(() => () => setDiffCounts(null), []);
+  const diffNames = useDiffNames();
+  const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? lifecycleChanges(drawn) : []), [drawn, counts]);
 
   const dot = useMemo(
     () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir) : ""),
@@ -66,6 +73,9 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const layoutPair = useSvgLayoutPair(svgMarkup, `dot\n${dot}`);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const { card, setCard, openCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
+  const cardId = card?.target.elements[0]?.id;
+  const cardTarget = useMemo(() => (cardId && drawn ? lifecycleCard(drawn, cardId) : null), [cardId, drawn]);
   const [firstFitDone, setFirstFitDone] = useState(false);
   // Registered after the second fit (one frame after the first), so a placed view is not undone.
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
@@ -144,6 +154,30 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     };
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, needsFit]);
 
+  useEffect(() => {
+    const panner = pannerRef.current;
+    if (!panner || !drawn || !diffing) return;
+    let press: { x: number; y: number } | null = null;
+    const onDown = (event: PointerEvent) => {
+      press = { x: event.clientX, y: event.clientY };
+    };
+    const onUp = (event: PointerEvent) => {
+      const started = press;
+      press = null;
+      if (!started || Math.hypot(event.clientX - started.x, event.clientY - started.y) > CLICK_SLOP_PX) return;
+      const id = lifecycleIdAt(event.target as Element | null, drawn);
+      const box = viewportRef.current?.getBoundingClientRect();
+      const target = id ? lifecycleCard(drawn, id) : null;
+      if (target && box) openCard(target, cardPlace(box, event.clientX - box.left + 8, event.clientY - box.top + 8));
+    };
+    panner.addEventListener("pointerdown", onDown);
+    panner.addEventListener("pointerup", onUp);
+    return () => {
+      panner.removeEventListener("pointerdown", onDown);
+      panner.removeEventListener("pointerup", onUp);
+    };
+  }, [pannerRef, viewportRef, drawn, diffing, openCard]);
+
   return (
     <DiagramShell loading={loading} error={error}>
       {!loading && !error && data === null ? (
@@ -199,6 +233,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                 }}
               />
             </Box>
+
+            {cardTarget && card && <DiffCard target={cardTarget} newer={diffNames?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
 
             <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
               <Box

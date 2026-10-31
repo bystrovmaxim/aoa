@@ -1,7 +1,6 @@
 // src/lib/sidebarDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { NodeRow, SidebarPayload } from "@/model/sidebar";
-import type { NodeRow } from "@/model/sidebar";
 import { mergeSidebars } from "./sidebarDiff";
 
 const domain = (id: string, label = id): NodeRow => ({ id, parent_id: "domains", label, type: "domain" });

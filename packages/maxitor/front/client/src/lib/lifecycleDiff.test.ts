@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
-import { lifecycleCounts, markLifecycle, mergeLifecycles, unmarkedLifecycle } from "@/lib/lifecycleDiff";
+import { lifecycleCard, lifecycleChanges, lifecycleCounts, markLifecycle, mergeLifecycles, unmarkedLifecycle } from "@/lib/lifecycleDiff";
 import type { LifecycleFiniteAutomatonPayload, LifecycleFsmStateWire } from "@/model/lifecycleFiniteAutomaton";
 
 const life = "a.Offer:lifecycle:status";
@@ -80,5 +80,26 @@ describe("lifecycleCounts", () => {
   it("counts states and transitions, and never the dots", () => {
     const all = markLifecycle(mergeLifecycles(null, older), compared({ [`${life}:open`]: "added", [`${life}:busy`]: "added", [`${life}:done`]: "added" }, { [edge("open", "busy").id]: "added", [edge("busy", "done").id]: "added" }));
     expect(lifecycleCounts(all)).toEqual({ added: 5, removed: 0, changed: 0 });
+  });
+});
+
+describe("lifecycleCard", () => {
+  const marked = markLifecycle(older, compared({ [`${life}:busy`]: "changed" }, { [edge("open", "busy").id]: "removed" }));
+
+  it("names a transition by its two states, never by an id", () => {
+    expect(lifecycleCard(marked, edge("open", "busy").id)).toEqual({ title: "open → busy", status: "removed", elements: [{ kind: "edge", id: edge("open", "busy").id }] });
+  });
+
+  it("gives a changed state its card and an unchanged element none", () => {
+    expect(lifecycleCard(marked, `${life}:busy`)?.status).toBe("changed");
+    expect(lifecycleCard(marked, `${life}:open`)).toBeNull();
+    expect(lifecycleCard(marked, edge("busy", "done").id)).toBeNull();
+  });
+});
+
+describe("lifecycleChanges", () => {
+  it("lists each change once, states before transitions, in one order", () => {
+    const marked = markLifecycle(older, compared({ [`${life}:open`]: "changed", [`${life}:busy`]: "changed" }, { [edge("busy", "done").id]: "added" }));
+    expect(lifecycleChanges(marked).map((change) => [change.group, change.title])).toEqual([["States", "busy"], ["States", "open"], ["Transitions", "busy → done"]]);
   });
 });
