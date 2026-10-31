@@ -174,9 +174,24 @@ The developer steps through the changes with the same control as on the ERD and 
 **Filters**
 
 - **FR-020**: The diagram MUST have the ERD's filter panel with Domains, and in Diff Changes, replacing the domain legend, in One and in Diff.
+- **FR-021a**: The panel MUST have an Elements section, Actions and Roles, with grey disks: it paints nothing and has no place on the gear shift. What it switches off MUST hide with its links; 1-hop MAY bring it back, as on the ERD, where it stands one link from what is left. The counts and the steps MUST follow what is drawn.
 - **FR-021**: A switched-off domain or change MUST hide its elements and their links. A 1-hop switch, on at first as on the ERD, MUST bring back what stands one link away from what the filters left.
 - **FR-022**: The gear shift MUST paint as on the ERD: Domains in One, Changes in Diff (spec 040, FR-030 – FR-032). Painted by changes, everything unchanged MUST be grey and dim; painted by domains it keeps its colour, dim.
 - **FR-023**: Filters and paint MUST be carried by the address and shared by a room, One's paint and Diff's kept apart.
+
+**The left panel and the lifecycles** (the maintainer's request of 2026-11-01)
+
+- **FR-027**: The left panel MUST hold only rows that open something: Applications with Full graph view, ERD all domains view and Use case all domains view; Domains with each domain's Entity domain view, Use case view and its lifecycles. The Application row and the Roles, Actions, Entities and Resources sections MUST go.
+- **FR-028**: Use case all domains view MUST draw every action and every role on one diagram, with everything a domain's use cases have, Diff included.
+- **FR-029**: A domain MUST hold one lifecycle row per lifecycle of its entities, each opening that lifecycle's own diagram: as many rows as entities have one. An entity with several lifecycles has a row for each, named by its field.
+
+**Open pull requests on the track** (the maintainer's decision of 2026-11-01; it replaces spec 037, FR-016 "Live last" and spec 038, FR-011 "Live MUST only ever be B")
+
+- **FR-032**: The track MUST read: versions, Live, then the open pull requests by date, the oldest first. Their work is ahead of what runs, so A = Live, B = a pull request MUST read as progress. Roles still follow position, so Live MAY be A when a pull request is B.
+
+**Hover**
+
+- **FR-033**: Hovering an action, a role or a link on a use-case diagram MUST light it, its links and what they reach, and dim the rest, as on the ERD, in One and in Diff; a room follows it. A link MUST be easy to hit at every zoom, and a hover MUST show names, never an internal id.
 
 **The server and the tail**
 

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChangedInside, CompareResult } from "@/api/compare";
 import { buildActionGlyphDataUrl, buildDomainUseCaseDotBundle, buildRoleActorDataUrl } from "@/lib/buildDomainUseCaseDotSource";
-import { filterUseCaseByChanges, markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt, withUseCaseOneHop } from "@/lib/useCaseDiff";
+import { filterUseCaseByChanges, filterUseCaseByElements, markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt, withUseCaseOneHop } from "@/lib/useCaseDiff";
 import type { DomainUseCaseDiagramPayload, DomainUseCaseEdgeWire } from "@/model/domainUseCaseDiagram";
 
 const action = (id: string, role_ids: string[] = []) => ({ id, label: id, short_label: id, domain_id: "d", domain_short_label: "d", accent_color: "#8b5cf6", role_ids });
@@ -106,7 +106,14 @@ describe("the drawing", () => {
   const one = diagram(["a", "b"], ["r"], [link("a", "r"), link("b", "r")]);
 
   it("in One carries no mark", () => {
-    expect(dot(one)).not.toMatch(/class=|tooltip=|color="#16a34a"/);
+    expect(dot(one)).not.toMatch(/class=|color="#16a34a"/);
+  });
+
+  it("names what a hover shows, never an internal id", () => {
+    const text = dot(one);
+    expect(text).toContain('tooltip="a"');
+    expect(text).toContain('tooltip="a → r"');
+    expect(dot(markUseCaseDiagram(one, compared({}, { "a|@check_roles|r": "added" }), {}))).toContain('tooltip="+ a → r"');
   });
 
   it("with the marks taken off is One's text", () => {
@@ -225,6 +232,39 @@ describe("painting by domains", () => {
     expect(glyph(true)).toContain('stroke="#dc2626"');
     expect(glyph(false)).toContain('stroke="#8b5cf6"');
     expect(glyph(false)).toContain("stroke-dasharray");
+  });
+});
+
+describe("the Elements filter", () => {
+  const base = markUseCaseDiagram(diagram(["a", "b"], ["r"], [link("a", "r"), { ...link("a", "b"), id: "a|@depends|b", edge_kind: "include" }]), compared({ a: "added" }), {});
+
+  it("without roles keeps the actions and the links between them", () => {
+    const left = filterUseCaseByElements(base, new Set(["roles"]));
+    expect(left.roles).toEqual([]);
+    expect(left.actions).toHaveLength(2);
+    expect(left.edges.map((one) => one.id)).toEqual(["a|@depends|b"]);
+  });
+
+  it("without actions keeps the roles and no link to an action", () => {
+    const left = filterUseCaseByElements(base, new Set(["actions"]));
+    expect(left.actions).toEqual([]);
+    expect(left.roles).toHaveLength(1);
+    expect(left.edges).toEqual([]);
+  });
+
+  it("gives way to 1-hop, which brings the roles next to the actions back, as on the ERD", () => {
+    const kept = filterUseCaseByElements(base, new Set(["roles"]));
+    expect(kept.roles).toEqual([]);
+    expect(withUseCaseOneHop(kept, base).roles.map((one) => one.id)).toEqual(["r"]);
+  });
+
+  it("is followed by the steps", () => {
+    const left = filterUseCaseByElements(base, new Set(["actions"]));
+    expect(useCaseChanges(left)).toEqual([]);
+  });
+
+  it("does nothing with nothing off", () => {
+    expect(filterUseCaseByElements(base, new Set())).toBe(base);
   });
 });
 

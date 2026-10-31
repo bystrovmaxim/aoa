@@ -156,19 +156,19 @@ export function useCaseCellId(id: string): string {
   return `change_${id.replace(/[^0-9A-Za-z_]/g, "_")}`;
 }
 
-/** A node's attributes in Diff: the sign on hover, or fading; nothing in One. */
+/** A node's attributes: its name on hover, in Diff with its sign, or fading. */
 function nodeMark(diff: DiffStatus | undefined, label: string, id: string): string {
-  if (!diff) return "";
-  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}"`;
+  if (!diff) return ` tooltip="${dotEscAttr(label)}"`;
+  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(label)}"`;
   return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${MARK_LOOK[diff].sign} ${label}`)}"`;
 }
 
-/** A link's attributes in Diff, after its own so they win: its status's colour, dashed when removed, or fading; nothing in One. */
-function edgeMark(diff: DiffStatus | undefined, id: string): string {
-  if (!diff) return "";
-  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}"`;
-  const { colour } = MARK_LOOK[diff];
-  return ` id="${useCaseCellId(id)}" color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
+/** A link's attributes, after its own so they win: its two ends on hover and, in Diff, its status's colour, dashed when removed, or fading. */
+function edgeMark(diff: DiffStatus | undefined, id: string, ends: string): string {
+  if (!diff) return ` tooltip="${dotEscAttr(ends)}"`;
+  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(ends)}"`;
+  const { colour, sign } = MARK_LOOK[diff];
+  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${sign} ${ends}`)}" color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
 }
 
 /** A marked role's actor: the same figure drawn in its status's colour, dashed when removed; ``null`` in One or when unchanged. */
@@ -269,29 +269,31 @@ export function buildDomainUseCaseDotBundle(
     );
   }
 
+  const nameOf = new Map([...actions, ...roles].map((element) => [element.id, element.short_label || element.label]));
   for (const e of edges) {
     const ek = e.edge_kind;
+    const ends = `${nameOf.get(e.source_id) ?? e.source_id} → ${nameOf.get(e.target_id) ?? e.target_id}`;
     if (ek === "action_generalization") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id)}];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "role_generalization") {
       const s = domainUseCaseDotNodeId("r", e.source_id);
       const t = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id)}];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "association") {
       const act = domainUseCaseDotNodeId("a", e.source_id);
       const rol = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee${edgeMark(e.diff, e.id)}];`);
+      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "include" || ek === "extend") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
       const lab = e.stereotype ? dotEscLabel(e.stereotype) : ek === "include" ? "\u00abinclude\u00bb" : "\u00abextend\u00bb";
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5${edgeMark(e.diff, e.id)}];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "depends") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8${edgeMark(e.diff, e.id)}];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8${edgeMark(e.diff, e.id, ends)}];`);
     }
   }
 

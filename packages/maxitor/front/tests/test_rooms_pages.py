@@ -20,6 +20,12 @@ from maxitor.front.model.rooms.pages import page_key, setting_error
         (page_key("domain-erd"), "one_hop", False),
         (page_key("use-case", domain="players"), "layout", "dot_tb"),
         (page_key("use-case", domain="players"), "boundary", True),
+        (page_key("use-case", domain="players"), "disabled_changes", ["unchanged"]),
+        (page_key("use-case", domain="players"), "one_hop", False),
+        (page_key("use-case", domain="players"), "disabled_kinds", ["roles"]),
+        (page_key("use-case", domain="players"), "paint_diff", "domains"),
+        (page_key("use-case-all"), "domains", ["players"]),
+        (page_key("use-case-all"), "paint", "domains"),
         (page_key("lifecycle-fsm", node="n", host="h"), "rankdir", "TB"),
     ],
 )

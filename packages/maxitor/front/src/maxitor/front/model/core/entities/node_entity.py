@@ -40,3 +40,4 @@ class NodeCoreEntity(BaseCoreEntity):
         default=None,
         description="Optional sort rank among siblings (lower first); used for level-3 diagram order",
     )
+    host_id: str | None = Field(default=None, description="On a lifecycle's row: the entity that holds it")

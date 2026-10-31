@@ -4,7 +4,7 @@
 
 **Tests**: included: the project's rule is that a change ships with tests, and adversarial breaks are part of verification.
 
-Each phase is one commit, made only on the maintainer's word. Phase 6 is three commits, in order (Principle VI).
+Each phase is one commit, made only on the maintainer's word. Phase 7 is three commits, in order (Principle VI).
 
 ## Phase 1: The server says what changed inside (blocks all)
 
@@ -53,7 +53,20 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 - [X] T027 [US4] Replace the domain legend in UseCaseDiagramViewer.tsx with the panel, Changes in Diff, the gear shift, settings in the address and the room, One's paint and Diff's apart; extend packages/maxitor/front/client/src/lib/filterUseCaseDiagramByDomains.ts
 - [X] T028 [US4] Walk the panel on `erd-full`, phone width and a room; a card whose element is hidden closes; adversarial: count before filtering, the test fails, restore
 
-## Phase 6: The closing three (Principle VI)
+## Phase 6: The left panel, Use case all domains, the track's order
+
+- [X] T032 Reduce the panel to rows that open something in packages/maxitor/front/src/maxitor/front/model/core/actions/left_sidebar_action.py, with room pages in packages/maxitor/front/src/maxitor/front/model/rooms/pages.py and tests in packages/maxitor/front/tests/test_left_sidebar_action.py
+- [X] T033 Add `GetAllUseCasesDiagramAction` in packages/maxitor/front/src/maxitor/front/model/diagrams/actions/all_use_cases_diagram_action.py, sharing `use_case_diagram`, and draw it in UseCaseDiagramViewer.tsx
+- [X] T034 Give a domain one row per lifecycle in left_sidebar_action.py, with `host_id` on the row in packages/maxitor/front/src/maxitor/front/model/core/entities/node_entity.py
+- [X] T036 Allow the use-case settings of phase 5 in a room in packages/maxitor/front/src/maxitor/front/model/rooms/pages.py, with tests in packages/maxitor/front/tests/test_rooms_pages.py
+- [X] T037 Keep room beside the panel when fitting: `fitLeftInset` in useSvgPanZoom.ts
+- [X] T038 Put open pull requests after Live by date in packages/maxitor/front/client/src/lib/versionRange.ts and VersionTrack.tsx, and read Live as A in packages/maxitor/front/client/src/app/App.tsx
+- [X] T040 Add the Elements filter, Actions and Roles, with no colour, in packages/maxitor/front/client/src/lib/useCaseDiff.ts, ErdFilterPanel.tsx and UseCaseDiagramViewer.tsx
+- [X] T041 Light what a hover touches on a use-case diagram in packages/maxitor/front/client/src/lib/useCaseHover.ts, with tests
+- [X] T042 Keep a link easy to hit: a hit area of 14 px on screen at every zoom, nodes above links, a readable name on hover, in packages/maxitor/front/client/src/lib/useCaseHover.ts and buildDomainUseCaseDotSource.ts
+- [ ] T039 Walk a room on use cases, and a phone width, on `erd-full`
+
+## Phase 7: The closing three (Principle VI)
 
 - [ ] T029 Closing check run: `bash scripts/run_checks_with_log.sh` taken to zero
 - [ ] T030 Documentation: docs/how-to/compare-two-versions.md, docs/tutorials/step-26-maxitor.md, examples/step_26_maxitor/19_changed_inside.py and its notebook, every case, run while written; the Russian draft docs/how-to/compare-two-versions.ru_draft.md beside the page
@@ -61,7 +74,7 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 
 ## Dependencies
 
-Phase 1 blocks all. 2 needs 1; 3 needs 2; 4 needs 3; 5 needs 4 (the list follows filters); 6 is last. [P] tasks are tests that touch their own file.
+Phase 1 blocks all. 2 needs 1; 3 needs 2; 4 needs 3; 5 needs 4 (the list follows filters); 7 is last. [P] tasks are tests that touch their own file.
 
 ## Strategy
 

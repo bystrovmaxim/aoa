@@ -97,6 +97,7 @@ from maxitor.front.model.core.resources.static_bundle_resource import (
     STATIC_BUNDLE_CONNECTION_KEY,
     StaticBundleResource,
 )
+from maxitor.front.model.diagrams.actions.all_use_cases_diagram_action import GetAllUseCasesDiagramAction
 from maxitor.front.model.diagrams.actions.changed_inside_action import ChangedInsideAction
 from maxitor.front.model.diagrams.actions.compare_element_action import CompareElementAction, ElementNotComparedError
 from maxitor.front.model.diagrams.actions.compare_versions_action import CompareVersionsAction
@@ -316,6 +317,11 @@ def create_app() -> FastAPI:
         .get(
             "/domain-use-case-diagram",
             GetDomainUseCaseDiagramAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+        )
+        .get(
+            "/use-case-diagram",
+            GetAllUseCasesDiagramAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
