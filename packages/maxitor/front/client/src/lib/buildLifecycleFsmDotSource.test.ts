@@ -67,6 +67,12 @@ describe("buildLifecycleFsmDotSource", () => {
     expect(dot).not.toContain('id="change_');
   });
 
+  it("fills a state by its kind when the kinds paint, the outline still saying the status", () => {
+    const dot = buildLifecycleFsmDotSource(marked("added"), "LR", true);
+    expect(dot).toContain('fillcolor="#ecfdf5", color="#16a34a"');
+    expect(buildLifecycleFsmDotSource(marked("unchanged"), "LR", true)).toContain('fillcolor="#ecfdf5", color="#059669"');
+  });
+
   it("colours a dot only when all its arrows agree", () => {
     const mixed = { ...marked("added"), entries: [{ key: "open", diff: "added" as const }, { key: "done", diff: "unchanged" as const }] };
     expect(buildLifecycleFsmDotSource(mixed).split("\n").find((line) => line.includes("__gv_lifecycle_entry [label"))).toContain(LIFECYCLE_FADED_CLASS);

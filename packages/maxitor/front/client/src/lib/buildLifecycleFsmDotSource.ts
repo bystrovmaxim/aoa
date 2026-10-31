@@ -63,16 +63,16 @@ const MARK_FILL = { added: "#f0fdf4", removed: "#fef2f2", changed: "#fffbeb" } a
 /** A state's text in Diff: a plain label is centred, and the margin leaves room for what Graphviz measures short in bold. */
 const MARKED_LABEL = `fontname="Helvetica-Bold", margin="0.2,0.08"`;
 
-/** A state in Diff: its status's colour in place of what it declares, its sign in the name, its shape as in One. */
-function markedState(key: string, title: string, id: string, diff: DiffStatus): string {
+/** A state in Diff: its status's colour in place of what it declares, its sign in the name, its shape as in One; painted by kinds, the kind fills it and the outline says the status. */
+function markedState(key: string, title: string, id: string, diff: DiffStatus, kindPaint: { fill: string; stroke: string } | null): string {
   const tooltip = title.replace(/\\/g, "").replace(/"/g, "'");
   if (diff === "unchanged") {
-    return `  ${dotQuoteId(key)} [label="${tooltip}", ${MARKED_LABEL}, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#64748b", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
+    return `  ${dotQuoteId(key)} [label="${tooltip}", ${MARKED_LABEL}, shape=box, style="rounded,filled", fillcolor="${kindPaint?.fill ?? "#ffffff"}", color="${kindPaint?.stroke ?? "#64748b"}", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
   }
   const sign = ERD_DIFF_SIGN[diff];
   const colour = ERD_DIFF_COLOUR[diff];
   const line = diff === "removed" ? "rounded,filled,dashed" : "rounded,filled";
-  return `  ${dotQuoteId(key)} [label="${sign} ${tooltip}", ${MARKED_LABEL}, shape=box, style="${line}", fillcolor="${MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${lifecycleCellId(id)}", tooltip="${sign} ${tooltip}"];`;
+  return `  ${dotQuoteId(key)} [label="${sign} ${tooltip}", ${MARKED_LABEL}, shape=box, style="${line}", fillcolor="${kindPaint?.fill ?? MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${lifecycleCellId(id)}", tooltip="${sign} ${tooltip}"];`;
 }
 
 /** A line's attributes in Diff: its status's colour, dashed when removed, or fading. */
@@ -95,7 +95,7 @@ function markedDot(diff: DiffStatus): string {
 }
 
 /** DOT source for Graphviz ``dot`` layout (UML-style entry / exit pseudostates). */
-export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload, rankdir: LifecycleFsmRankdir = "LR"): string {
+export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload, rankdir: LifecycleFsmRankdir = "LR", paintByKinds = false): string {
   const stateKeys = new Set(data.states.map((s) => s.key));
   const initialOk = data.initial_state_keys.filter((k) => stateKeys.has(k));
   const finals = data.states.filter((s) => (s.state_type ?? "") === "final" && stateKeys.has(s.key));
@@ -130,7 +130,7 @@ export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload
 
   for (const s of data.states) {
     if (s.diff) {
-      lines.push(markedState(s.key, formatStateTitle(s.display_name, s.key), s.id, s.diff));
+      lines.push(markedState(s.key, formatStateTitle(s.display_name, s.key), s.id, s.diff, paintByKinds ? paletteForStateType(s.state_type ?? "") : null));
       continue;
     }
     const id = dotQuoteId(s.key);

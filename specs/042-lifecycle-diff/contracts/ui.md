@@ -15,7 +15,7 @@ Controls:
 
 - **Click** on a marked state or transition: `DiffCard`. Outside or Escape closes.
 - **Stepper** beside the version button, Shift + ↑ ↓, its list.
-- **Panel**: Elements (kinds present) and, in Diff, Changes; 1-hop on at first; no gear shift, each mode having one thing to paint.
+- **Panel**: Elements (kinds present) and, in Diff, Changes; 1-hop on at first; gear shift in Diff between Elements and Changes, on Changes at first.
 - **Hover**: an element, its transitions and what they reach stay lit; names only.
 - **Address and room**: filters and paint are page settings; One's paint and Diff's kept apart.
 - **Both directions**, left to right and top to bottom, in One and Diff.

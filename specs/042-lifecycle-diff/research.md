@@ -37,8 +37,8 @@ All questions were settled from the code on 2026-11-01; none is open.
 
 ## R7. The filter panel
 
-- **Decision**: `ErdFilterPanel` with an Elements section of state kinds and, in Diff, Changes. `usePageSetting` holds the switches, as in `UseCaseDiagramViewer`. The kinds' disks take the palette of `paletteForStateType`. The gear shift stands on Changes in Diff and offers no other position there.
-- **Rationale**: FR-020 – FR-024. Unchanged is always grey in Diff, so a paint by kinds would have nothing to paint.
+- **Decision**: `ErdFilterPanel` with an Elements section of state kinds and, in Diff, Changes. `usePageSetting` holds the switches, as in `UseCaseDiagramViewer`. The kinds' disks take the palette of `paletteForStateType`. The gear shift stands in Diff between Elements and Changes, on Changes at first.
+- **Rationale**: FR-020 – FR-024.
 - **Details**: 1-hop uses the same walk as `withUseCaseOneHop`. Default keys stay out of the address, so One's untouched page keeps its address and its DOT.
 
 ## R8. `~` in the left panel

@@ -17,6 +17,7 @@ import { nothingChanged } from "@/lib/erdDiff";
 import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
 import { MARK_LOOK } from "@/lib/erdDiffCard";
 import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { svgDataUriForGraphNodeIcon } from "@/lib/icons";
 import { bindUseCaseHover } from "@/lib/useCaseHover";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
@@ -71,6 +72,9 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     return includeOneHop ? withLifecycleOneHop(kept, data) : kept;
   }, [data, diffing, offChanges, offKinds, includeOneHop]);
   const baseChanges = useMemo(() => (diffing && data ? lifecycleChangeKinds(data) : []), [diffing, data]);
+  // What paints is a page setting, One's and Diff's apart: in Diff the changes at first, unchanged grey and dim (spec 042, FR-023).
+  const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffing), defaultPaint(diffing));
+  const paintSection = paintSource(["kinds", ...(baseChanges.length > 0 ? (["changes"] as const) : [])], chosenPaint);
 
   // In Diff the diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 042, FR-010 – FR-012).
   const counts = useMemo(() => (diffing && filtered ? lifecycleCounts(filtered) : null), [diffing, filtered]);
@@ -81,17 +85,17 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? lifecycleChanges(drawn) : []), [drawn, counts]);
 
   const dot = useMemo(
-    () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir) : ""),
-    [drawn, rankdir],
+    () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir, paintSection === "kinds") : ""),
+    [drawn, rankdir, paintSection],
   );
 
   // Each change is sent as the whole new set, never as a toggle.
   const toggled = (list: readonly string[], key: string) => (list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort());
-  // In One the kinds show the states' own colours; in Diff the changes paint, so the kinds' disks stay grey (spec 042, FR-023).
+  // A section that does not paint shows its disks grey: the colours on screen are one section's.
   const kindRows: ErdFilterRow[] = LIFECYCLE_KINDS.filter((kind) => data?.states.some((state) => state.state_type === kind)).map((kind) => ({
     key: kind,
     label: kind.charAt(0).toUpperCase() + kind.slice(1),
-    iconSrc: svgDataUriForGraphNodeIcon(diffing ? IDLE_DISK : paletteForStateType(kind).stroke, STATE_NODE_TYPE[kind]),
+    iconSrc: svgDataUriForGraphNodeIcon(paintSection === "kinds" ? paletteForStateType(kind).stroke : IDLE_DISK, STATE_NODE_TYPE[kind]),
     on: !offKinds.has(kind),
     absent: !filtered?.states.some((state) => state.state_type === kind),
   }));
@@ -99,7 +103,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
     key: status,
     label: status.charAt(0).toUpperCase() + status.slice(1),
-    iconSrc: statusDiskUri(status === "unchanged" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
+    iconSrc: statusDiskUri(status === "unchanged" || paintSection !== "changes" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
     on: !offChanges.has(status),
     absent: !shownChanges.has(status),
   }));
@@ -239,12 +243,11 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                 withDomains={false}
                 kindRows={kindRows}
                 kindsTitle="Elements"
-                kindsPaint={!diffing}
                 onToggleDomain={() => undefined}
                 onToggleKind={(kind) => setOffKindList(toggled(offKindList, kind))}
                 changeRows={changeRows}
                 onToggleChange={(status) => setOffChangeList(toggled(offChangeList, status))}
-                paint={{ source: changeRows.length > 0 ? "changes" : "kinds", onPaint: () => undefined }}
+                paint={{ source: paintSection, onPaint: setChosenPaint }}
               />
             ) : null}
             {filtered != null && filtered.states.length === 0 && (
@@ -284,8 +287,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                   opacity: firstFitDone ? 1 : 0,
                   pointerEvents: firstFitDone ? "auto" : "none",
                   transition: "none",
-                  // Unchanged in Diff: grey and dim, whatever colour a state declares (spec 042, FR-005).
-                  [`& .${LIFECYCLE_FADED_CLASS}`]: { opacity: 0.3, filter: "grayscale(1)" },
+                  // Unchanged in Diff: grey and dim, whatever colour a state declares (spec 042, FR-005); painted by kinds it keeps its kind, dim.
+                  [`& .${LIFECYCLE_FADED_CLASS}`]: { opacity: 0.3, ...(paintSection === "changes" && { filter: "grayscale(1)" }) },
                   "& svg": {
                     display: "block",
                     maxWidth: "none",
