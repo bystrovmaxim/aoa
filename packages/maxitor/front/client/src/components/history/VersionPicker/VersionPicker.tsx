@@ -224,10 +224,10 @@ export function VersionPicker({
         <>
           {/* No header above either message: A is on the left and B on the right, as their handles stand. */}
           <Box sx={{ display: "grid", gridTemplateColumns: phone ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 2 }}>
-            <Box data-testid="message-a" sx={{ minWidth: 0 }}>
+            <Box data-testid="message-a" sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
               {older}
             </Box>
-            <Box data-testid="message-b" sx={{ minWidth: 0 }}>
+            <Box data-testid="message-b" sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
               {children}
             </Box>
           </Box>
