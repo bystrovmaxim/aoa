@@ -1,6 +1,7 @@
 // src/lib/sidebarDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { NodeRow, SidebarPayload } from "@/model/sidebar";
+import type { NodeRow } from "@/model/sidebar";
 import { mergeSidebars } from "./sidebarDiff";
 
 const domain = (id: string, label = id): NodeRow => ({ id, parent_id: "domains", label, type: "domain" });
@@ -38,5 +39,15 @@ describe("the left panel of two versions", () => {
 
   it("keeps B's fingerprint: the tab reports the version it shows", () => {
     expect(mergeSidebars({ ...panel([]), fingerprint: "A" }, { ...panel([]), fingerprint: "B" }).fingerprint).toBe("B");
+  });
+
+  it("marks a changed lifecycle of both versions, and nothing for the lifecycle's own node", () => {
+    const life = (id: string, only?: "a" | "b"): NodeRow => ({ id, parent_id: "d", label: id, type: "lifecycle_state_diagram", only });
+    const panelOf = (rows: NodeRow[]) => ({ ...panel([]), level3_diagrams: rows });
+    const compared = (nodes: Record<string, "changed">, edges: Record<string, "added"> = {}) => ({ counts: { nodes: { added: 0, removed: 0, changed: 0 }, edges: { added: 0, removed: 0, changed: 0 } }, nodes, edges });
+    const rows = (result: ReturnType<typeof compared>) => mergeSidebars(panelOf([life("e:lifecycle:s"), life("e:lifecycle:t")]), panelOf([life("e:lifecycle:s"), life("e:lifecycle:t")]), result).level3_diagrams;
+    expect(rows(compared({ "e:lifecycle:s:open": "changed" })).map((row) => row.changed)).toEqual([true, undefined]);
+    expect(rows(compared({}, { "e:lifecycle:t:a|lifecycle_transition|e:lifecycle:t:b|a": "added" })).map((row) => row.changed)).toEqual([undefined, true]);
+    expect(rows(compared({ "e:lifecycle:s": "changed" })).some((row) => row.changed)).toBe(false);
   });
 });

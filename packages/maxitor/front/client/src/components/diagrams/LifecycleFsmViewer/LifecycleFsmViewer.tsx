@@ -4,19 +4,23 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { getActiveBase } from "@/api/client";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
-import { fetchLifecycleFiniteAutomaton } from "@/api/lifecycleFiniteAutomaton";
+import { setDiffCounts } from "@/lib/diffCounts";
+import { nothingChanged } from "@/lib/erdDiff";
+import { lifecycleCounts, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle } from "@/lib/lifecycleDiff";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { buildLifecycleFsmDotSource, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
+import { buildLifecycleFsmDotSource, LIFECYCLE_FADED_CLASS, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
+import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
 
 const GRID_SX = {
   flex: 1,
@@ -33,15 +37,22 @@ export type LifecycleFsmViewerProps = {
 };
 
 export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerProps) {
-  const load = useCallback(() => fetchLifecycleFiniteAutomaton(lifecycleGraphNodeId), [lifecycleGraphNodeId]);
+  const diffing = getActiveBase() !== null;
+  const load = useCallback(() => (diffing ? loadLifecycleDiff(lifecycleGraphNodeId) : loadLifecycle(lifecycleGraphNodeId)), [diffing, lifecycleGraphNodeId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
 
   // A page setting: shared inside a room (spec 028, FR-030).
   const [rankdir, setRankdir] = usePageSetting<LifecycleFsmRankdir>("rankdir", "LR");
 
+  // In Diff the diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 042, FR-010 – FR-012).
+  const counts = useMemo(() => (diffing && data ? lifecycleCounts(data) : null), [diffing, data]);
+  const drawn = useMemo(() => (data && counts && nothingChanged(counts) ? unmarkedLifecycle(data) : data), [data, counts]);
+  useEffect(() => setDiffCounts(counts), [counts]);
+  useEffect(() => () => setDiffCounts(null), []);
+
   const dot = useMemo(
-    () => (data != null ? buildLifecycleFsmDotSource(data, rankdir) : ""),
-    [data, rankdir],
+    () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir) : ""),
+    [drawn, rankdir],
   );
 
   // Reserve space for the floating zoom + rankdir toolbar (bottom: 10 + ~36px button row)
@@ -135,6 +146,11 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
 
   return (
     <DiagramShell loading={loading} error={error}>
+      {!loading && !error && data === null ? (
+        <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
+          This lifecycle is not in this version. Move the range, or open another page from the left panel.
+        </Typography>
+      ) : null}
       {data != null ? (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <Box sx={GRID_SX}>
@@ -170,6 +186,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                   opacity: firstFitDone ? 1 : 0,
                   pointerEvents: firstFitDone ? "auto" : "none",
                   transition: "none",
+                  // Unchanged in Diff: grey and dim, whatever colour a state declares (spec 042, FR-005).
+                  [`& .${LIFECYCLE_FADED_CLASS}`]: { opacity: 0.3, filter: "grayscale(1)" },
                   "& svg": {
                     display: "block",
                     maxWidth: "none",
