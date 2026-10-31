@@ -74,7 +74,7 @@ function wrapLabel(label: string, maxChars = 15): string[] {
  * Returned as a ``data:image/svg+xml;base64,...`` URL so Graphviz WASM can embed it via
  * ``images: [{ path: dataUrl, width, height }]`` — the browser loads ``href=dataUrl`` fine.
  */
-export function buildActionGlyphDataUrl(label: string, accentColor: string, diff?: DiffStatus): string {
+export function buildActionGlyphDataUrl(label: string, accentColor: string, diff?: DiffStatus, paintChanges = true): string {
   const lines = wrapLabel(label);
   const lineCount = lines.length;
 
@@ -87,10 +87,10 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string, diff
   const cy = H / 2;
   const rx = 74;
   const ry = H / 2 - 4;
-  const mark = diff && diff !== "unchanged" ? MARK_LOOK[diff].colour : null;
-  const stroke = mark ?? accentColor;
+  const marked = diff !== undefined && diff !== "unchanged";
+  const stroke = marked && paintChanges ? MARK_LOOK[diff].colour : accentColor;
   const fill = opaqueAccentFill(stroke);
-  const outline = mark ? ` stroke-width="2.4"${diff === "removed" ? ' stroke-dasharray="6 4"' : ""}` : ' stroke-width="1.6"';
+  const outline = marked ? ` stroke-width="2.4"${diff === "removed" ? ' stroke-dasharray="6 4"' : ""}` : ' stroke-width="1.6"';
 
   // Right-shifted chord on the ellipse.
   const frac1 = 0.50;
@@ -144,6 +144,8 @@ export type DomainUseCaseDotLayoutOptions = {
    * Default ``dot``.
    */
   layoutEngine?: DomainUseCaseLayoutEngine;
+  /** In Diff, what colours the actions: their status (default) or their domain, the outline still saying the status. */
+  paint?: "changes" | "domains";
 };
 
 /** The class Graphviz writes on what a comparison leaves unchanged; the viewer fades it. */
@@ -231,7 +233,7 @@ export function buildDomainUseCaseDotBundle(
       const W = 160;
       const wIn = (W / 96).toFixed(3);
       const hIn = (H / 96).toFixed(3);
-      const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color, a.diff);
+      const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color, a.diff, layout?.paint !== "domains");
       actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
       lines.push(
         `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true${nodeMark(a.diff, a.short_label || a.label, a.id)}];`,

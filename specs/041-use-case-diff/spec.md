@@ -113,7 +113,7 @@ The developer steps through the changes with the same control as on the ERD and 
 
 **Acceptance Scenarios**:
 
-1. **Given** Diff with changes, **When** the stepper is used or Shift + ↑ ↓ pressed, **Then** the diagram goes to each change in turn, with the position and the total shown and an action's or role's card open.
+1. **Given** Diff with changes, **When** the stepper is used or Shift + ↑ ↓ pressed, **Then** the diagram goes to each change in turn, with the position and the total shown and its card open.
 2. **Given** a change that is a link, **When** stepped to, **Then** the link is brought into view and marked.
 3. **Given** the filter panel in Diff, **When** a domain or a change kind is switched off, **Then** those elements leave, and the counts, the stepper and "no changes" follow what is left.
 4. **Given** a room, **When** a participant steps or filters, **Then** the room behaves as on the ERD.
@@ -159,7 +159,7 @@ The developer steps through the changes with the same control as on the ERD and 
 
 **The card**
 
-- **FR-012**: A click on a marked action or role MUST open spec 038's card (FR-028, FR-029); for an action changed inside it MUST say in one line that the action is the same, then list the changed parts by name, grouped by the part they belong to, each with its values in A and B.
+- **FR-012**: A click on a marked action, role or link MUST open spec 038's card (FR-028, FR-029); for an action changed inside it MUST say in one line that the action is the same, then list the changed parts by name, grouped by the part they belong to, each with its values in A and B.
 - **FR-013**: When nothing drawn changed, the button MUST say "no changes" and the diagram MUST be drawn as in One. A change inside an action is drawn, so it is a change.
 - **FR-014**: When B is Live and the live graph changes, marks, counts and an open card MUST follow without a reload.
 - **FR-015**: The left panel's `+` and `−` pages MUST open on a domain found in one version only (spec 038, FR-032).
@@ -168,14 +168,14 @@ The developer steps through the changes with the same control as on the ERD and 
 
 - **FR-016**: The change stepper of spec 040 (FR-025b, FR-025d, FR-025e) MUST stand on this diagram with the same look, list, keys and legend.
 - **FR-017**: The list of changes MUST be built from the whole drawn diagram, not from what is in view, in one defined order, and hold every change the diagram marks, links as well as nodes.
-- **FR-018**: A step MUST bring the change into view and, on an action or a role, open its card; a link has no card and is shown marked.
+- **FR-018**: A step MUST bring the change into view and open its card, a link's too.
 - **FR-019**: In a room a follower MUST see the control as on the ERD (spec 040, FR-025f).
 
 **Filters**
 
 - **FR-020**: The diagram MUST have the ERD's filter panel with Domains, and in Diff Changes, replacing the domain legend, in One and in Diff.
-- **FR-021**: A switched-off domain or change MUST hide its elements and their links.
-- **FR-022**: The gear shift MUST paint as on the ERD: Domains in One, Changes in Diff (spec 040, FR-030 – FR-032).
+- **FR-021**: A switched-off domain or change MUST hide its elements and their links. A 1-hop switch, on at first as on the ERD, MUST bring back what stands one link away from what the filters left.
+- **FR-022**: The gear shift MUST paint as on the ERD: Domains in One, Changes in Diff (spec 040, FR-030 – FR-032). Painted by changes, everything unchanged MUST be grey and dim; painted by domains it keeps its colour, dim.
 - **FR-023**: Filters and paint MUST be carried by the address and shared by a room, One's paint and Diff's kept apart.
 
 **The server and the tail**
@@ -209,7 +209,7 @@ The developer steps through the changes with the same control as on the ERD and 
 ## Assumptions
 
 - **Graphviz stays** the engine of use-case diagrams, and the union is laid out as the ERD's is: switching to Diff may move elements. The map's rule that nodes stand where they stand in B is the map's own, for a layout it holds on the server.
-- **A card opens on nodes**, as on the ERD's and the map's; a link has its colour.
+- **A link has a card here**, unlike on the ERD and the map: on this diagram links are half of what a release changes, and the maintainer asked for it on 2026-10-31.
 - **The issue's criteria are checked on gameoffer by the maintainer after the merge**, as in #291; being done is accepted on the stand.
 - **A parent's change does not reach its children**, and an entity's change does not reach an action: a parent is drawn, and `entity_schema` only points at an entity the action does not own. On gameoffer, if a field's items are such an entity, their change shows on the ERD and not here; the maintainer's check after the merge settles it.
 - **The mockup's picture is a stand-in**; its marks and its card are the reference.

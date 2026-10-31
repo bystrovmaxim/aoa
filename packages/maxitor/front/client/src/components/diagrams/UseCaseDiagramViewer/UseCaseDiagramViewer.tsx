@@ -22,7 +22,7 @@ import {
   LayoutGlyphFdp,
   LayoutGlyphNeato,
 } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
-import { DomainLegend } from "@/components/ui/DomainLegend";
+import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import useCaseRoleActorUrl from "@/assets/useCaseRoleActor.svg?url";
@@ -34,11 +34,15 @@ import {
 } from "@/lib/buildDomainUseCaseDotSource";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { nothingChanged } from "@/lib/erdDiff";
+import { MARK_LOOK } from "@/lib/erdDiffCard";
+import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
+import { svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
-import { loadUseCaseDiff, unmarkedUseCase, useCaseCard, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { filterUseCaseByChanges, loadUseCaseDiff, unmarkedUseCase, withUseCaseOneHop, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 
 
@@ -51,6 +55,9 @@ const GRID_SX = {
   backgroundImage: "radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px)",
   backgroundSize: "20px 20px",
 };
+
+/** The grey of a filter disk that does not paint. */
+const IDLE_DISK = "#cbd5e1";
 
 /** How far a press may move and still be a click. */
 const CLICK_SLOP_PX = 5;
@@ -147,10 +154,20 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     [data, chosenDomains],
   );
 
-  const filtered = useMemo(
-    () => (data != null ? filterUseCaseDiagramByDomains(data, effectiveEnabled) : null),
-    [data, effectiveEnabled],
-  );
+  // A kind of change switched off hides what is of that kind, as a domain switched off does (spec 041, FR-021).
+  const [offChangeList, setOffChangeList] = usePageSetting<string[]>("disabled_changes", []);
+  const offChanges = useMemo(() => new Set(offChangeList), [offChangeList]);
+  const [includeOneHop, setIncludeOneHop] = usePageSetting("one_hop", true);
+  const filtered = useMemo(() => {
+    if (data == null) return null;
+    const kept = filterUseCaseByChanges(filterUseCaseDiagramByDomains(data, effectiveEnabled), diffing ? offChanges : new Set<string>());
+    return includeOneHop ? withUseCaseOneHop(kept, data) : kept;
+  }, [data, effectiveEnabled, diffing, offChanges, includeOneHop]);
+
+  // What paints the actions is a page setting, One's and Diff's apart; a room shares it, the address carries it (spec 041, FR-022, FR-023).
+  const baseChanges = useMemo(() => (diffing && data ? useCaseChangeKinds(data) : []), [diffing, data]);
+  const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffing), defaultPaint(diffing));
+  const paintSection = paintSource(["domains", ...(baseChanges.length > 0 ? (["changes"] as const) : [])], chosenPaint);
 
   // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 041, FR-010 – FR-013).
   const counts = useMemo(() => (diffing && filtered ? useCaseCounts(filtered) : null), [diffing, filtered]);
@@ -167,10 +184,10 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
             drawn,
             presetToRankdir(layoutForBundler),
             { roleActorImageUrl: useCaseRoleActorUrl },
-            { boundary, layoutEngine: presetToLayoutEngine(layoutForBundler) },
+            { boundary, layoutEngine: presetToLayoutEngine(layoutForBundler), paint: paintSection === "domains" ? "domains" : "changes" },
           )
         : null,
-    [drawn, layoutForBundler, boundary],
+    [drawn, layoutForBundler, boundary, paintSection],
   );
 
   const graphvizEngineForBundle = useMemo(
@@ -190,6 +207,34 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     },
     [effectiveEnabled, setChosenDomains],
   );
+
+  const toggleChange = useCallback(
+    (status: string) => {
+      const next = new Set(offChanges);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      setOffChangeList([...next].sort());
+    },
+    [offChanges, setOffChangeList],
+  );
+
+  // A section that does not paint shows its disks grey: the colours on screen are one section's.
+  const shownChanges = new Set(filtered ? useCaseChangeKinds(filtered) : []);
+  const shownDomains = new Set(filtered?.actions.map((action) => action.domain_id));
+  const domainRows: ErdFilterRow[] = domainKeyList.map((key) => ({
+    key,
+    label: rowLabels[key] ?? key,
+    iconSrc: svgDataUriForInterchangeDomainLegend(paintSection === "domains" ? accents[key] || "#3b82f6" : IDLE_DISK),
+    on: effectiveEnabled.has(key),
+    absent: !shownDomains.has(key),
+  }));
+  const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
+    key: status,
+    label: status.charAt(0).toUpperCase() + status.slice(1),
+    iconSrc: statusDiskUri(status === "unchanged" || paintSection !== "changes" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
+    on: !offChanges.has(status),
+    absent: !shownChanges.has(status),
+  }));
 
   const panZoom = useSvgPanZoom({
     fitBottomInset: 56,
@@ -326,13 +371,14 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
       {data != null ? (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <Box sx={GRID_SX}>
-            <DomainLegend
-              domainKeys={domainKeyList}
-              enabledDomains={effectiveEnabled}
-              accents={accents}
-              rowLabels={rowLabels}
-              showWhenSingle
-              onToggle={toggleDomain}
+            <ErdFilterPanel
+              domainRows={domainRows}
+              kindRows={[]}
+              onToggleDomain={toggleDomain}
+              onToggleKind={() => undefined}
+              changeRows={changeRows}
+              onToggleChange={toggleChange}
+              paint={{ source: paintSection, onPaint: setChosenPaint }}
             />
             {filtered != null && filtered.actions.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
@@ -373,7 +419,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                   opacity: firstFitDone ? 1 : 0,
                   pointerEvents: firstFitDone ? "auto" : "none",
                   transition: "none",
-                  [`& .${USE_CASE_FADED_CLASS}`]: { opacity: 0.3 },
+                  // Painted by changes, the unchanged lose their colour as well, as on the ERD; painted by domains they keep it.
+                  [`& .${USE_CASE_FADED_CLASS}`]: { opacity: 0.3, ...(paintSection === "changes" && { filter: "grayscale(1)" }) },
                   "& svg": {
                     display: "block",
                     maxWidth: "none",
@@ -431,6 +478,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                 sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
               />
               <OneHopToggle checked={boundary} onChange={setBoundary} label="Boundary" />
+              <OneHopToggle checked={includeOneHop} onChange={setIncludeOneHop} />
             </ZoomToolbar>
           </Box>
         </Box>

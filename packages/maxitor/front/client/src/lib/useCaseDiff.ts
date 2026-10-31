@@ -5,12 +5,13 @@
  * the server says changed inside is marked changed; its own added or removed status stands.
  */
 import { getActiveBase } from "@/api/client";
-import { compareChangedInside, compareVersions, type ChangedInside, type CompareResult } from "@/api/compare";
+import { compareChangedInside, compareVersions, type ChangedInside, type CompareResult, type DiffStatus } from "@/api/compare";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { listDomains } from "@/api/erd";
 import { domainUseCaseDotNodeId, useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import type { CardTarget } from "@/lib/erdDiffCard";
+import { CHANGE_ORDER } from "@/lib/erdFilterPresence";
 import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
@@ -56,6 +57,39 @@ export function useCaseCounts(diagram: DomainUseCaseDiagramPayload): DiagramCoun
   return counts;
 }
 
+/** The kinds of change the diagram holds, in the filter's order; none when nothing on it changed. */
+export function useCaseChangeKinds(diagram: DomainUseCaseDiagramPayload): DiffStatus[] {
+  const present = new Set([...diagram.actions, ...diagram.roles, ...diagram.edges].map((element) => element.diff));
+  if (![...present].some((status) => status && status !== "unchanged")) return [];
+  return CHANGE_ORDER.filter((status) => present.has(status));
+}
+
+/** Hide what is of a kind of change switched off, and every link touching it (spec 041, FR-021). */
+export function filterUseCaseByChanges(diagram: DomainUseCaseDiagramPayload, off: ReadonlySet<string>): DomainUseCaseDiagramPayload {
+  if (off.size === 0) return diagram;
+  const kept = (element: { diff?: DiffStatus }) => !element.diff || !off.has(element.diff);
+  const actions = diagram.actions.filter(kept);
+  const roles = diagram.roles.filter(kept);
+  const ids = new Set([...actions, ...roles].map((element) => element.id));
+  return { ...diagram, actions, roles, edges: diagram.edges.filter((edge) => kept(edge) && ids.has(edge.source_id) && ids.has(edge.target_id)) };
+}
+
+/** 1-hop over the filters: what they left, and everything of the base one link away from it, even what a filter hid. */
+export function withUseCaseOneHop(kept: DomainUseCaseDiagramPayload, base: DomainUseCaseDiagramPayload): DomainUseCaseDiagramPayload {
+  const ids = new Set([...kept.actions, ...kept.roles].map((element) => element.id));
+  const reach = new Set(ids);
+  for (const edge of base.edges) {
+    if (ids.has(edge.source_id)) reach.add(edge.target_id);
+    if (ids.has(edge.target_id)) reach.add(edge.source_id);
+  }
+  return {
+    ...base,
+    actions: base.actions.filter((action) => reach.has(action.id)),
+    roles: base.roles.filter((role) => reach.has(role.id)),
+    edges: base.edges.filter((edge) => reach.has(edge.source_id) && reach.has(edge.target_id)),
+  };
+}
+
 /** The same diagram with every mark taken off, as One draws it. */
 export function unmarkedUseCase(diagram: DomainUseCaseDiagramPayload): DomainUseCaseDiagramPayload {
   return {
@@ -66,8 +100,18 @@ export function unmarkedUseCase(diagram: DomainUseCaseDiagramPayload): DomainUse
   };
 }
 
-/** The card of a marked action or role by its id, or ``null`` when it is unchanged or no longer drawn. */
+/** The last part of a dotted id: what a link's ends are called on its card and its row in a list. */
+function shortName(id: string): string {
+  return id.split(".").pop() ?? id;
+}
+
+/** The card of a marked action, role or link by its id, or ``null`` when it is unchanged or no longer drawn. */
 export function useCaseCard(diagram: DomainUseCaseDiagramPayload, id: string): CardTarget | null {
+  const edge = diagram.edges.find((each) => each.id === id);
+  if (edge) {
+    if (!edge.diff || edge.diff === "unchanged") return null;
+    return { title: `${shortName(edge.source_id)} → ${shortName(edge.target_id)}`, status: edge.diff, elements: [{ kind: "edge", id }] };
+  }
   const action = diagram.actions.find((each) => each.id === id);
   const element = action ?? diagram.roles.find((each) => each.id === id);
   const status = element?.diff;
@@ -75,17 +119,12 @@ export function useCaseCard(diagram: DomainUseCaseDiagramPayload, id: string): C
   return { title: element.short_label || element.label, status, elements: [{ kind: "node", id }], parts: action?.parts };
 }
 
-/** The last part of a dotted id: what a link's ends are called on its row in a list. */
-function shortName(id: string): string {
-  return id.split(".").pop() ?? id;
-}
-
 /** Sorts by a text, then by id, so a list has one order. */
 function byName<T extends { id: string }>(elements: readonly T[], name: (element: T) => string): T[] {
   return [...elements].sort((one, other) => name(one).localeCompare(name(other)) || (one.id < other.id ? -1 : 1));
 }
 
-/** Every change the drawn diagram marks, once each: its actions, its roles, then its links, which have no card (spec 041, FR-017). */
+/** Every change the drawn diagram marks, once each: its actions, its roles, then its links (spec 041, FR-017). */
 export function useCaseChanges(diagram: DomainUseCaseDiagramPayload): GraphvizChange[] {
   const name = (element: { short_label: string; label: string }) => element.short_label || element.label;
   const node = (element: DomainUseCaseDiagramPayload["actions" | "roles"][number], group: string, detail: string): GraphvizChange[] => {
@@ -95,18 +134,19 @@ export function useCaseChanges(diagram: DomainUseCaseDiagramPayload): GraphvizCh
   return [
     ...byName(diagram.actions, name).flatMap((action) => node(action, "Actions", action.parts?.length ? "Changed inside" : "Action")),
     ...byName(diagram.roles, name).flatMap((role) => node(role, "Roles", "Role")),
-    ...byName(diagram.edges, (edge) => `${edge.edge_kind}|${edge.source_id}|${edge.target_id}`).flatMap((edge) =>
-      edge.diff && edge.diff !== "unchanged"
-        ? [{ key: edge.id, title: `${shortName(edge.source_id)} → ${shortName(edge.target_id)}`, detail: edge.stereotype ?? edge.edge_kind, status: edge.diff, group: "Links", cell: useCaseCellId(edge.id), card: null }]
-        : [],
-    ),
+    ...byName(diagram.edges, (edge) => `${edge.edge_kind}|${edge.source_id}|${edge.target_id}`).flatMap((edge) => {
+      const card = useCaseCard(diagram, edge.id);
+      return card ? [{ key: edge.id, title: card.title, detail: edge.stereotype ?? edge.edge_kind, status: card.status, group: "Links", cell: useCaseCellId(edge.id), card }] : [];
+    }),
   ];
 }
 
-/** The id of the marked action or role a click landed on, by the node Graphviz wrote for it. */
+/** The id of the marked action, role or link a click landed on, by what Graphviz wrote for it. */
 export function useCaseIdAt(target: Element | null, diagram: DomainUseCaseDiagramPayload): string | null {
-  const name = target?.closest?.("g.node")?.querySelector("title")?.textContent;
-  if (!name) return null;
+  const drawn = target?.closest?.("g.node, g.edge");
+  if (!drawn) return null;
+  if (drawn.classList.contains("edge")) return diagram.edges.find((each) => each.diff !== "unchanged" && useCaseCellId(each.id) === drawn.id)?.id ?? null;
+  const name = drawn.querySelector("title")?.textContent;
   const action = diagram.actions.find((each) => domainUseCaseDotNodeId("a", each.id) === name);
   const role = diagram.roles.find((each) => domainUseCaseDotNodeId("r", each.id) === name);
   const element = action ?? role;

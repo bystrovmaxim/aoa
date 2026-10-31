@@ -1,8 +1,8 @@
 // src/lib/useCaseDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { ChangedInside, CompareResult } from "@/api/compare";
-import { buildDomainUseCaseDotBundle, buildRoleActorDataUrl } from "@/lib/buildDomainUseCaseDotSource";
-import { markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { buildActionGlyphDataUrl, buildDomainUseCaseDotBundle, buildRoleActorDataUrl } from "@/lib/buildDomainUseCaseDotSource";
+import { filterUseCaseByChanges, markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt, withUseCaseOneHop } from "@/lib/useCaseDiff";
 import type { DomainUseCaseDiagramPayload, DomainUseCaseEdgeWire } from "@/model/domainUseCaseDiagram";
 
 const action = (id: string, role_ids: string[] = []) => ({ id, label: id, short_label: id, domain_id: "d", domain_short_label: "d", accent_color: "#8b5cf6", role_ids });
@@ -147,6 +147,15 @@ describe("the card", () => {
     expect(useCaseIdAt(svg.querySelectorAll("image")[1], marked)).toBeNull();
     expect(useCaseIdAt(svg.querySelector("rect"), marked)).toBeNull();
   });
+
+  it("is found from a click on a marked link, not on an unchanged one", () => {
+    const withLinks = markUseCaseDiagram(diagram(["a", "b"], ["r"], [link("a", "r"), link("b", "r")]), compared({}, { "a|@check_roles|r": "added" }), {});
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = '<g class="edge" id="change_a__check_roles_r"><path/></g><g class="edge" id="edge2"><path/></g>';
+    expect(useCaseIdAt(svg.querySelectorAll("path")[0], withLinks)).toBe("a|@check_roles|r");
+    expect(useCaseIdAt(svg.querySelectorAll("path")[1], withLinks)).toBeNull();
+    expect(useCaseCard(withLinks, "b|@check_roles|r")).toBeNull();
+  });
 });
 
 describe("the steps", () => {
@@ -164,14 +173,75 @@ describe("the steps", () => {
     expect(changes).toHaveLength(counts.added + counts.removed + counts.changed);
   });
 
-  it("say an action changed inside, give a node its card and a link none", () => {
+  it("say an action changed inside, and give a node and a link each its card", () => {
     expect(changes[0].detail).toBe("Changed inside");
     expect(changes[0].card?.parts).toHaveLength(1);
-    expect(changes[3].card).toBeNull();
+    expect(changes[3].card).toEqual({ title: "c → r", status: "removed", elements: [{ kind: "edge", id: "c|@check_roles|r" }] });
   });
 
   it("each name an element the drawing carries", () => {
     const text = buildDomainUseCaseDotBundle(marked, "LR", options).dot;
     for (const change of changes) expect(text).toContain(`id="${change.cell}"`);
+  });
+});
+
+describe("the Changes filter", () => {
+  const marked = markUseCaseDiagram(diagram(["a", "b", "c"], ["r"], [link("a", "r"), link("b", "r"), link("c", "r")]), compared({ a: "added", b: "removed" }, { "a|@check_roles|r": "added", "b|@check_roles|r": "removed" }), { c: [part("f")] });
+
+  it("lists the kinds the diagram holds, in the filter's order, none when nothing changed", () => {
+    expect(useCaseChangeKinds(marked)).toEqual(["added", "removed", "changed", "unchanged"]);
+    expect(useCaseChangeKinds(markUseCaseDiagram(diagram(["a"], []), compared(), {}))).toEqual([]);
+  });
+
+  it("hides a kind with the links touching it, and the counts and steps follow", () => {
+    const left = filterUseCaseByChanges(marked, new Set(["removed"]));
+    expect(left.actions.map((one) => one.id)).toEqual(["a", "c"]);
+    expect(left.edges.map((one) => one.source_id)).toEqual(["a", "c"]);
+    expect(useCaseCounts(left)).toEqual({ added: 2, removed: 0, changed: 1 });
+    expect(useCaseChanges(left).map((change) => change.key)).not.toContain("b");
+  });
+
+  it("hides a link of a kind switched off even when both its ends stay", () => {
+    const drawn = markUseCaseDiagram(diagram(["a"], ["r"], [link("a", "r")]), compared({}, { "a|@check_roles|r": "removed" }), {});
+    const left = filterUseCaseByChanges(drawn, new Set(["removed"]));
+    expect(left.actions).toHaveLength(1);
+    expect(left.edges).toEqual([]);
+  });
+
+  it("leaves nothing to say when only the unchanged are left", () => {
+    const left = filterUseCaseByChanges(marked, new Set(["added", "removed", "changed"]));
+    expect(useCaseCounts(left)).toEqual({ added: 0, removed: 0, changed: 0 });
+    expect(useCaseChangeKinds(left)).toEqual([]);
+  });
+
+  it("does nothing with nothing off", () => {
+    expect(filterUseCaseByChanges(marked, new Set())).toBe(marked);
+  });
+});
+
+describe("painting by domains", () => {
+  it("keeps the action's own colour and its status in the outline", () => {
+    const glyph = (paintChanges: boolean) => atob(buildActionGlyphDataUrl("a", "#8b5cf6", "removed", paintChanges).split(",")[1]);
+    expect(glyph(true)).toContain('stroke="#dc2626"');
+    expect(glyph(false)).toContain('stroke="#8b5cf6"');
+    expect(glyph(false)).toContain("stroke-dasharray");
+  });
+});
+
+describe("1-hop", () => {
+  const base = markUseCaseDiagram(diagram(["a", "b", "far"], ["r", "lonely"], [link("a", "r"), link("b", "r"), link("far", "lonely")]), compared({ a: "added" }), {});
+
+  it("brings back what is one link away from what the filters left, and no further", () => {
+    const kept = filterUseCaseByChanges(base, new Set(["unchanged"]));
+    expect(kept.actions.map((one) => one.id)).toEqual(["a"]);
+    const hop = withUseCaseOneHop(kept, base);
+    expect(hop.actions.map((one) => one.id)).toEqual(["a"]);
+    expect(hop.roles.map((one) => one.id)).toEqual(["r"]);
+    expect(hop.edges.map((one) => one.source_id)).toEqual(["a"]);
+  });
+
+  it("from a role reaches every action it serves", () => {
+    const kept = { ...base, actions: [], roles: base.roles.filter((one) => one.id === "r"), edges: [] };
+    expect(withUseCaseOneHop(kept, base).actions.map((one) => one.id)).toEqual(["a", "b"]);
   });
 });
