@@ -1,8 +1,6 @@
 // src/lib/buildLifecycleFsmDotSource.ts
-import type { DiffStatus } from "@/api/compare";
-import { useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
-import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN } from "@/lib/buildDotSource";
-import type { LifecycleFiniteAutomatonPayload, LifecycleFsmArrow } from "@/model/lifecycleFiniteAutomaton";
+import type { DiffStatus } from "../api/compare";
+import type { LifecycleFiniteAutomatonPayload, LifecycleFsmArrow } from "../model/lifecycleFiniteAutomaton";
 
 const ENTRY = "__gv_lifecycle_entry";
 const EXIT = "__gv_lifecycle_exit";
@@ -50,26 +48,38 @@ export type LifecycleFsmRankdir = "LR" | "TB";
 /** The class Graphviz writes on what a comparison leaves unchanged; the viewer turns it grey and dim. */
 export const LIFECYCLE_FADED_CLASS = "lifecycle-faded";
 
+/** The colours and signs of a status, here too: the engines' comparison runs this file alone, with nothing else to import. */
+const ERD_DIFF_COLOUR = { added: "#16a34a", removed: "#dc2626", changed: "#d97706" } as const;
+const ERD_DIFF_SIGN = { added: "+", removed: "−", changed: "~" } as const;
+
+/** The SVG id a marked state or transition is drawn under, which a step goes to. */
+export function lifecycleCellId(id: string): string {
+  return `change_${id.replace(/[^0-9A-Za-z_]/g, "_")}`;
+}
+
 /** The tint inside a marked state. */
 const MARK_FILL = { added: "#f0fdf4", removed: "#fef2f2", changed: "#fffbeb" } as const;
 
+/** A state's text in Diff: a plain label is centred, and the margin leaves room for what Graphviz measures short in bold. */
+const MARKED_LABEL = `fontname="Helvetica-Bold", margin="0.2,0.08"`;
+
 /** A state in Diff: its status's colour in place of what it declares, its sign in the name, its shape as in One. */
 function markedState(key: string, title: string, id: string, diff: DiffStatus): string {
-  const tooltip = title.replace(/"/g, "'");
+  const tooltip = title.replace(/\\/g, "").replace(/"/g, "'");
   if (diff === "unchanged") {
-    return `  ${dotQuoteId(key)} [label=<<B>${htmlEscape(title)}</B>>, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#64748b", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
+    return `  ${dotQuoteId(key)} [label="${tooltip}", ${MARKED_LABEL}, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#64748b", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
   }
   const sign = ERD_DIFF_SIGN[diff];
   const colour = ERD_DIFF_COLOUR[diff];
   const line = diff === "removed" ? "rounded,filled,dashed" : "rounded,filled";
-  return `  ${dotQuoteId(key)} [label=<<B>${sign} ${htmlEscape(title)}</B>>, shape=box, style="${line}", fillcolor="${MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${useCaseCellId(id)}", tooltip="${sign} ${tooltip}"];`;
+  return `  ${dotQuoteId(key)} [label="${sign} ${tooltip}", ${MARKED_LABEL}, shape=box, style="${line}", fillcolor="${MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${lifecycleCellId(id)}", tooltip="${sign} ${tooltip}"];`;
 }
 
 /** A line's attributes in Diff: its status's colour, dashed when removed, or fading. */
 function markedLine(diff: DiffStatus, id: string | null): string {
   if (diff === "unchanged") return ` [class="${LIFECYCLE_FADED_CLASS}"]`;
   const colour = ERD_DIFF_COLOUR[diff];
-  return ` [color="${colour}", penwidth=1.8${diff === "removed" ? ", style=dashed" : ""}${id ? `, id="${useCaseCellId(id)}"` : ""}]`;
+  return ` [color="${colour}", penwidth=1.8${diff === "removed" ? ", style=dashed" : ""}${id ? `, id="${lifecycleCellId(id)}"` : ""}]`;
 }
 
 /** A dot takes a status's colour only when every arrow on it has that status; otherwise it stays grey. */
