@@ -21,14 +21,14 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 
 **Independent test**: a pair with only a result field changed: one amber action, the button `+0 −0 ~1`.
 
-- [ ] T009 [P] [US1] Write tests in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: union of two diagrams, one side empty, A's order independent, statuses, changed inside, added stands over inside, counts, nothing changed
-- [ ] T010 [US1] Write packages/maxitor/front/client/src/lib/useCaseDiff.ts: `mergeUseCaseDiagrams`, `markUseCaseDiagram`, `useCaseCounts`, sorted by id per data-model
-- [ ] T011 [US1] Add `compareChangedInside` to packages/maxitor/front/client/src/api/compare.ts, and the diagram read for version A in packages/maxitor/front/client/src/api/domainUseCaseDiagram.ts, an unknown domain answering empty
-- [ ] T012 [US1] Draw marks in packages/maxitor/front/client/src/lib/buildDomainUseCaseDotSource.ts: colours from `MARK_LOOK`, removed dashed, unchanged faded, the sign in the tooltip; no change to the DOT in One, proven by a test
-- [ ] T013 [US1] Wire Diff in packages/maxitor/front/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx: load both, follow Live, `setDiffCounts`, "no changes" drawn as One; update its README
-- [ ] T014 [US2] Prove on packages/maxitor/front/client/src/lib/useCaseDiff.test.ts that a shared `Result` marks each action, and in the browser that the ERD and the map mark the same pair as before (SC-005)
-- [ ] T015 [US1] Check the left panel's `+` and `−` pages open a domain only in A or B, in packages/maxitor/front/client/src/lib/sidebarDiff.ts; fix if they do not
-- [ ] T016 [US1] Walk User Stories 1 and 2 on `erd-full` in every layout mode; adversarial: drop a mark, confirm the test fails, restore
+- [X] T009 [P] [US1] Write tests in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: union of two diagrams, one side empty, A's order independent, statuses, changed inside, added stands over inside, counts, nothing changed
+- [X] T010 [US1] Write packages/maxitor/front/client/src/lib/useCaseDiff.ts: `mergeUseCaseDiagrams`, `markUseCaseDiagram`, `useCaseCounts`, sorted by id per data-model
+- [X] T011 [US1] Add `compareChangedInside` to packages/maxitor/front/client/src/api/compare.ts, and the diagram read for version A in packages/maxitor/front/client/src/api/domainUseCaseDiagram.ts, an unknown domain answering empty
+- [X] T012 [US1] Draw marks in packages/maxitor/front/client/src/lib/buildDomainUseCaseDotSource.ts: colours from `MARK_LOOK`, removed dashed, unchanged faded, the sign in the tooltip; no change to the DOT in One, proven by a test
+- [X] T013 [US1] Wire Diff in packages/maxitor/front/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx: load both, follow Live, `setDiffCounts`, "no changes" drawn as One; update its README
+- [X] T014 [US2] Prove on packages/maxitor/front/client/src/lib/useCaseDiff.test.ts that a shared `Result` marks each action, and in the browser that the ERD and the map mark the same pair as before (SC-005)
+- [X] T015 [US1] Check the left panel's `+` and `−` pages open a domain only in A or B, in packages/maxitor/front/client/src/lib/sidebarDiff.ts; fix if they do not
+- [X] T016 [US1] Walk User Stories 1 and 2 on `erd-full` in every layout mode; adversarial: drop a mark, confirm the test fails, restore
 
 ## Phase 3: The card (US3)
 
