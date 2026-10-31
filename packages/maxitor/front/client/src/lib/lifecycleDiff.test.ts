@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
-import { lifecycleCard, lifecycleChanges, lifecycleCounts, markLifecycle, mergeLifecycles, unmarkedLifecycle } from "@/lib/lifecycleDiff";
+import { filterLifecycleByChanges, filterLifecycleByKinds, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, markLifecycle, mergeLifecycles, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
 import type { LifecycleFiniteAutomatonPayload, LifecycleFsmStateWire } from "@/model/lifecycleFiniteAutomaton";
 
 const life = "a.Offer:lifecycle:status";
@@ -101,5 +101,33 @@ describe("lifecycleChanges", () => {
   it("lists each change once, states before transitions, in one order", () => {
     const marked = markLifecycle(older, compared({ [`${life}:open`]: "changed", [`${life}:busy`]: "changed" }, { [edge("busy", "done").id]: "added" }));
     expect(lifecycleChanges(marked).map((change) => [change.group, change.title])).toEqual([["States", "busy"], ["States", "open"], ["Transitions", "busy → done"]]);
+  });
+});
+
+describe("the filters", () => {
+  const marked = markLifecycle(older, compared({ [`${life}:busy`]: "added" }, { [edge("open", "busy").id]: "added" }));
+
+  it("names the kinds of change present, and none when nothing changed", () => {
+    expect(lifecycleChangeKinds(marked)).toEqual(["added", "unchanged"]);
+    expect(lifecycleChangeKinds(markLifecycle(older, nothing))).toEqual([]);
+  });
+
+  it("takes a hidden state's transitions with it", () => {
+    const left = filterLifecycleByChanges(marked, new Set(["added"]));
+    expect(left.states.map((state) => state.key)).toEqual(["open", "done"]);
+    expect(left.transitions).toEqual([]);
+    expect(filterLifecycleByKinds(older, new Set(["final"])).transitions.map((each) => each.target)).toEqual(["busy"]);
+  });
+
+  it("hides a transition of a kind of change switched off between two states left", () => {
+    const left = filterLifecycleByChanges(markLifecycle(older, compared({}, { [edge("open", "busy").id]: "added" })), new Set(["added"]));
+    expect(left.states).toHaveLength(3);
+    expect(left.transitions.map((each) => each.source)).toEqual(["busy"]);
+  });
+
+  it("brings back what stands one transition away, and changes nothing when nothing is off", () => {
+    const hop = withLifecycleOneHop(filterLifecycleByKinds(older, new Set(["final", "intermediate"])), older);
+    expect(hop.states.map((state) => state.key)).toEqual(["open", "busy"]);
+    expect(withLifecycleOneHop(older, older)).toEqual(older);
   });
 });

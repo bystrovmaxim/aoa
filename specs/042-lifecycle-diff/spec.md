@@ -159,7 +159,7 @@ The developer steps through the changes with the same control as on the other di
 
 - **FR-005**: Added elements MUST be green, changed amber, removed red with a dashed outline, unchanged grey and dim, whatever colour they declare.
 - **FR-005a**: A state MUST be marked changed when any of its properties differs, a property the diagram does not draw included (spec 038, FR-003); the drawing never decides a status.
-- **FR-006**: Each mark's status MUST also be readable as `+`, `−` or `~`, on the element itself and on its card, so that colour is not the only signal, and a final state MUST still read as final whatever its status.
+- **FR-006**: Each mark's status MUST also be readable as `+`, `−` or `~`, on the element itself and on its card, so that colour is not the only signal. A state MUST keep its shape from One: a final state reads as final by its arrow to the exit dot, with no second outline.
 - **FR-007**: A transition MUST carry its own status, inherited from neither end.
 - **FR-008**: A transition leading to another state, or leaving another state, MUST be a removal plus an addition, because its identity is its lifecycle, the state it leaves and the state it enters. Nothing on this diagram is drawn as a retargeted link.
 - **FR-009**: The entry and exit dots and their arrows MUST follow FR-005 as the Edge Cases say, and MUST NOT be counted, stepped to or opened.
@@ -188,7 +188,7 @@ The developer steps through the changes with the same control as on the other di
 - **FR-020**: The diagram MUST have the ERD's filter panel, in One and in Diff, with an Elements section of the state kinds present (Initial, Intermediate, Final) and, in Diff, Changes. It has no Domains section: a lifecycle belongs to one entity.
 - **FR-021**: A switched-off state kind or change MUST hide its elements and the transitions touching them; a transition's own change kind switched off MUST hide that transition.
 - **FR-022**: A 1-hop switch, on at first as on the ERD, MUST bring back what stands one transition away from what the filters left.
-- **FR-023**: The gear shift MUST paint by Elements in One. In Diff it MUST stand on Changes alone, unlike spec 040, FR-030 – FR-032: everything unchanged is grey and dim here (FR-005), so another position would have nothing to paint.
+- **FR-023**: This panel MUST show no gear shift, unlike spec 040, FR-030 – FR-032, because each mode has one thing to paint: One the kinds, Diff the changes, everything unchanged being grey and dim (FR-005).
 - **FR-024**: Filters and paint MUST be carried by the address and shared by a room, One's paint and Diff's kept apart. Untouched, the panel MUST leave One's picture as it is today.
 
 **Hover**

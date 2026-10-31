@@ -23,7 +23,7 @@ All questions were settled from the code on 2026-11-01; none is open.
 
 - **Decision**: `buildLifecycleFsmDotSource` adds attributes only for an element that has `diff`; without `diff` the text is byte for byte today's, proved by a test against a recorded text.
 - **Rationale**: FR-030, SC-008. A room compares layouts by that text.
-- **Details**: A marked state uses `MARK_LOOK`'s colours; removed is dashed; the sign `+ − ~` stands in the label; a final state keeps its look through its entry in the union. Unchanged is grey and dim, not the declared colour (FR-005). Transitions get `id=` from `useCaseCellId`'s rule so that the stepper can reach them; only in Diff.
+- **Details**: A marked state uses `MARK_LOOK`'s colours; removed is dashed; the sign `+ − ~` stands in the label; the shape stays One's, with no second outline. Unchanged is grey and dim, not the declared colour (FR-005). Transitions get `id=` from `useCaseCellId`'s rule so that the stepper can reach them; only in Diff.
 
 ## R5. Entry and exit arrows
 
