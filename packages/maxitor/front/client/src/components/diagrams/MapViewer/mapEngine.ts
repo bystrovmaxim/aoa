@@ -16,10 +16,10 @@ import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
 import { changesByArea, firstChangeOf } from "@/lib/mapDiff";
 import type { PaintSection } from "@/lib/erdPaint";
-import { LEVEL_THREE_BAND, LEVEL_TWO_BAND, levelAt, revealOf } from "@/lib/mapLevels";
+import { LEVEL_SCREEN_PX, LEVEL_THREE_BAND, LEVEL_TWO_BAND, levelAt, openingRatio, revealOf, widthAtRatio } from "@/lib/mapLevels";
 import { WHEEL_CHUNK_PX, WHEEL_ZOOM_SENSITIVITY, isZoomWheel, wheelPan } from "@/lib/wheelGesture";
 import { outlineOf, type FieldPoint, type OutlineLoop } from "@/lib/mapOutline";
-import { areaLeft, bundleLeft, cellsLeft, mapFacts, nodeLeft, type MapFacts, type MapFilters } from "@/lib/mapVisibility";
+import { areaHolds, areaLeft, bundleLeft, bundleSays, cellsLeft, mapFacts, nodeLeft, type MapFacts, type MapFilters } from "@/lib/mapVisibility";
 import { registerDiagramSurface, type DiagramSurface } from "@/rooms/diagramSurface";
 import { isFollowing, mirroredFocus, reportHover, subscribeFocus } from "@/rooms/focusStore";
 
@@ -173,6 +173,7 @@ export class MapEngine {
   private levelTwo = 0;
   private levelThree = 0;
   private hovered: string | null = null;
+  private onBundle = false;
   private near: Set<string> | null = null;
   private refreshing = false;
   private clock = 0;
@@ -199,7 +200,7 @@ export class MapEngine {
       this.bundles.push({ key: this.graph.addDirectedEdge(`@${this.areaIndex.get(one)}`, `@${this.areaIndex.get(other)}`, { bundle: true, count, changed: marked }), bundle });
     }
     this.measure();
-    this.fitRatio = this.ratioToFit();
+    this.fitRatio = openingRatio(this.ratioToFit(), overview.areas.length);
     this.sigma = new Sigma(this.graph, elements.sigma, {
       primitives: {
         nodes: {
@@ -212,7 +213,7 @@ export class MapEngine {
         nodes: { opacity: { attribute: "opacity", defaultValue: 1 }, visibility: { attribute: "visibility", defaultValue: "visible" }, labelVisibility: { attribute: "labelVisibility", defaultValue: "auto" }, labelSize: 12, labelColor: "#0f172a", labelFont: "system-ui", zIndex: { attribute: "zIndex", defaultValue: 0 } },
         edges: { opacity: { attribute: "opacity", defaultValue: 1 }, visibility: { attribute: "visibility", defaultValue: "visible" }, head: { attribute: "head", defaultValue: "arrow" } },
       },
-      settings: { itemSizesReference: "positions", zoomToSizeRatioFunction: (ratio: number) => ratio, autoRescale: false, labelRenderedSizeThreshold: 11, minCameraRatio: CLOSEST_RATIO, maxCameraRatio: Math.max(40, this.fitRatio * 1.5), renderEdgeLabels: false, enableEdgeEvents: overview.links_changed !== undefined, inertiaRatio: 0, doubleClickZoomingRatio: 1 },
+      settings: { itemSizesReference: "positions", zoomToSizeRatioFunction: (ratio: number) => ratio, autoRescale: false, labelRenderedSizeThreshold: 11, minCameraRatio: CLOSEST_RATIO, maxCameraRatio: Math.max(40, this.fitRatio * 1.5), renderEdgeLabels: false, enableEdgeEvents: true, inertiaRatio: 0, doubleClickZoomingRatio: 1 },
       nodeReducer: (id: string, data: object, attributes: Record<string, unknown>) => ({ ...data, ...this.nodeLook(id, attributes) }),
       edgeReducer: (id: string, data: object, attributes: Record<string, unknown>) => ({ ...data, ...this.edgeLook(id, attributes) }),
     } as never);
@@ -225,7 +226,7 @@ export class MapEngine {
     this.sigma.on("clickStage", ({ event }) => this.onClickStage(event.x, event.y));
     this.sigma.on("clickNode", ({ node }) => this.onClickNode(node));
     this.sigma.on("enterEdge", ({ edge, event }) => this.onHoverBundle(edge, event.x, event.y));
-    this.sigma.on("leaveEdge", () => this.onHover(null));
+    this.sigma.on("leaveEdge", () => this.onLeaveBundle());
     this.fit();
     this.restoreKeptView();
     this.unregister = registerDiagramSurface(this.surface());
@@ -413,12 +414,6 @@ export class MapEngine {
     return Math.max(width / Math.max(1, clientWidth - 40), height / Math.max(1, clientHeight - 40));
   }
 
-  private viewWidth(): number {
-    const left = this.sigma.viewportToGraph({ x: 0, y: 0 });
-    const right = this.sigma.viewportToGraph({ x: this.elements.stage.clientWidth, y: 0 });
-    return Math.abs(right.x - left.x);
-  }
-
   private areasInView(): MapArea[] {
     const { clientWidth, clientHeight } = this.elements.stage;
     const a = this.sigma.viewportToGraph({ x: 0, y: 0 });
@@ -429,7 +424,7 @@ export class MapEngine {
   }
 
   private onCamera(): void {
-    const width = this.viewWidth();
+    const width = widthAtRatio(this.sigma.getCamera().ratio);
     const two = revealOf(width, LEVEL_TWO_BAND);
     const three = revealOf(width, LEVEL_THREE_BAND);
     const changed = two !== this.levelTwo || three !== this.levelThree;
@@ -566,7 +561,7 @@ export class MapEngine {
       if (fading <= 0.01) return { visibility: "hidden" };
       const left = this.bundlesLeft.get(id) ?? 0;
       if (left === 0) return { visibility: "hidden" };
-      const marked = this.fading && (edge.changed as number) > 0;
+      const marked = this.marking && (edge.changed as number) > 0;
       return { color: marked ? MARK_LOOK.changed.colour : LINK_COLOUR, size: Math.min(13, 2 + Math.log2(left) * 1.5) * ratio, opacity: (marked ? 0.7 : this.fading ? 0.4 * FADED_AREA : 0.4) * fading, head: "none" };
     }
     const [source, target] = this.graph.extremities(id);
@@ -617,16 +612,25 @@ export class MapEngine {
     this.sigma.refresh({ skipIndexation: true });
   }
 
-  /** A bundle says how many of its links changed (FR-023). */
+  /** A bundle says how many links it holds and how many of them changed (FR-005, FR-023). */
   private onHoverBundle(edge: string, x: number, y: number): void {
-    const { bundle, count, changed } = this.graph.getEdgeAttributes(edge);
-    if (!bundle || !changed || isFollowing()) return;
+    const { bundle, changed } = this.graph.getEdgeAttributes(edge);
+    const left = this.bundlesLeft.get(edge) ?? 0;
+    if (!bundle || left === 0 || isFollowing()) return;
+    const marked = this.marking ? (changed as number) : 0;
     const { label } = this.elements;
-    label.textContent = `${changed as number} of ${count as number} ${(count as number) === 1 ? "link" : "links"} changed`;
+    this.onBundle = true;
+    label.textContent = bundleSays(left, marked);
     label.style.display = "block";
     label.style.left = `${x}px`;
     label.style.top = `${y + 12}px`;
-    label.style.borderLeftColor = MARK_LOOK.changed.colour;
+    label.style.borderLeftColor = marked ? MARK_LOOK.changed.colour : LINK_COLOUR;
+  }
+
+  private onLeaveBundle(): void {
+    if (!this.onBundle) return;
+    this.onBundle = false;
+    this.elements.label.style.display = "none";
   }
 
   /** A click on a domain's count goes to its first change; on a folded domain, flies to it. */
@@ -695,7 +699,7 @@ export class MapEngine {
     this.events.onStep(position);
     const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport({ x: change.x, y: change.y }));
     const { clientWidth, clientHeight } = this.elements.stage;
-    const ratio = Math.max(CLOSEST_RATIO, ARRIVAL_WIDTH[level] / clientWidth, ((change.span ?? 0) * LINK_MARGIN) / Math.min(clientWidth, clientHeight));
+    const ratio = Math.max(CLOSEST_RATIO, ARRIVAL_WIDTH[level] / LEVEL_SCREEN_PX, ((change.span ?? 0) * LINK_MARGIN) / Math.min(clientWidth, clientHeight));
     await Promise.all([this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio }, { duration: ARRIVAL_MS, easing: "cubicInOut" }), this.ensure(change.area, level)]);
     if (flight !== this.flight || this.killed) return;
     this.sigma.scheduleRefresh();
@@ -711,7 +715,7 @@ export class MapEngine {
     const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport({ x: area.x, y: area.y }));
     const width = this.elements.stage.clientWidth;
     const ratio = Math.min(this.sigma.getCamera().ratio, ((area.radius * 2.6) / width) * 1);
-    void this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio: Math.min(ratio, (LEVEL_THREE_BAND[0] * 1.6) / width) }, { duration: 650, easing: "cubicInOut" });
+    void this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio: Math.min(ratio, (LEVEL_THREE_BAND[0] * 1.6) / LEVEL_SCREEN_PX) }, { duration: 650, easing: "cubicInOut" });
   }
 
   private drawCanvases(): void {
@@ -858,10 +862,7 @@ export class MapEngine {
       this.drawCut(canvas, cut, cx, cy + 14, folded * fade);
       return;
     }
-    const entities = area.counts.Entity ?? 0;
-    const actions = area.counts.Action ?? 0;
-    const total = Object.values(area.counts).reduce((sum, count) => sum + count, 0);
-    const says = [entities && `${entities} ${entities === 1 ? "entity" : "entities"}`, actions && `${actions} ${actions === 1 ? "action" : "actions"}`].filter(Boolean).join(" · ") || `${total} ${total === 1 ? "element" : "elements"}`;
+    const says = areaHolds(area);
     canvas.globalAlpha = folded * fade;
     canvas.font = "11px system-ui";
     canvas.fillStyle = "#475569";

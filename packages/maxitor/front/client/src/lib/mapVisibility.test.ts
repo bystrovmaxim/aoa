@@ -1,7 +1,7 @@
 // src/lib/mapVisibility.test.ts
 import { describe, expect, it } from "vitest";
 import type { MapArea, MapBundle, MapChange, MapOverview } from "@/api/map";
-import { areaLeft, bundleLeft, cellsLeft, changesLeft, mapFacts, nodeLeft, presence, type MapFilters } from "./mapVisibility";
+import { areaHolds, areaLeft, bundleLeft, bundleSays, cellsLeft, changesLeft, mapFacts, nodeLeft, presence, type MapFilters } from "./mapVisibility";
 
 const SALES: MapArea = {
   id: "sales",
@@ -93,6 +93,25 @@ describe("what is left of an area", () => {
     const failed = { ...SALES, sketch: undefined };
     expect(areaLeft(failed, off({}), FACTS)).toMatchObject({ left: 1, total: 1 });
     expect(areaLeft(failed, off({ domains: ["sales"] }), FACTS).left).toBe(0);
+  });
+});
+
+describe("what a tag says", () => {
+  it("names what an area holds", () => {
+    expect(areaHolds({ ...SALES, counts: { Entity: 1, Action: 8 } })).toBe("1 entity · 8 actions");
+    expect(areaHolds({ ...SALES, counts: { Role: 2 } })).toBe("2 elements");
+  });
+
+  it("says a domain could not be drawn", () => {
+    expect(areaHolds({ ...SALES, failed: true })).toBe("Could not be drawn");
+  });
+});
+
+describe("what a bundle says on hover", () => {
+  it("gives its number of links, in One as in Diff", () => {
+    expect(bundleSays(14, 0)).toBe("14 links");
+    expect(bundleSays(1, 0)).toBe("1 link");
+    expect(bundleSays(14, 3)).toBe("3 of 14 links changed");
   });
 });
 

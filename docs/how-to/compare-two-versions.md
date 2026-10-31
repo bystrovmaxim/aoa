@@ -33,7 +33,7 @@ Fields carry the same marks. A field whose type changed reads `~~str~~ → str |
 
 Click a marked table or field: its card lists every property that changed, before and after.
 
-Beside the version button a stepper walks through what changed: the arrows go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step goes to the table, field or line, marks it and opens its card. The [full graph](read-the-full-graph-map.md) steps the same way.
+Beside the version button a stepper walks through what changed: the arrows or Shift + ↑ ↓ go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step goes to the table, field or line, marks it and opens its card. The [full graph](read-the-full-graph-map.md) steps the same way.
 
 ## Filter and paint
 

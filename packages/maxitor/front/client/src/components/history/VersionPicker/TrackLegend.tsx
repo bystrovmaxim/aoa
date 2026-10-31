@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
 import type { ReactNode } from "react";
+import { Key } from "@/components/history/VersionButton";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "@/components/history/VersionTrack/proposalLook";
 
 const INK = "#0f172a";
@@ -51,8 +52,53 @@ function PointSample({ colour, hollow = false, dash }: { colour: string; hollow?
   );
 }
 
-/** What the track's marks mean: one row per kind of point, in the order they stand, then the other marks. */
+/** One shortcut: its keys and what they do. */
+function Shortcut({ keys, children }: { keys: string[]; children: ReactNode }) {
+  return (
+    <Box>
+      <Box sx={{ display: "inline-flex", alignItems: "center", gap: "3px", "& kbd": { ml: 0, color: INK, bgcolor: "#f1f5f9", border: "1px solid rgba(15, 23, 42, 0.1)", borderRadius: "4px", fontFamily: "inherit", fontSize: 11 } }}>
+        {keys.map((key) => (
+          <Key key={key}>{key}</Key>
+        ))}
+      </Box>
+      <Box sx={{ fontSize: 12, color: "#475569", mt: "2px" }}>{children}</Box>
+    </Box>
+  );
+}
+
+/** The keys that move through versions and changes. */
+function Shortcuts() {
+  return (
+    <Box sx={{ display: "grid", gap: "16px", alignContent: "start" }}>
+      <Group title="Anywhere">
+        <Shortcut keys={["⇧", "←", "→"]}>One version older or newer; with two compared, both move and keep their distance</Shortcut>
+        <Shortcut keys={["⇧", "↑", "↓"]}>The previous or the next change, when two versions are compared</Shortcut>
+        <Shortcut keys={["Esc"]}>Close a card or a list</Shortcut>
+      </Group>
+      <Group title="On a handle">
+        <Shortcut keys={["←", "→"]}>Move it</Shortcut>
+        <Shortcut keys={["Home", "End"]}>Take it to an end of the track</Shortcut>
+      </Group>
+      <Group title="On a diagram">
+        <Shortcut keys={["Ctrl / ⌘", "wheel"]}>Zoom around the pointer</Shortcut>
+        <Shortcut keys={["⇧", "wheel"]}>Move sideways</Shortcut>
+      </Group>
+    </Box>
+  );
+}
+
+/** What the track's marks mean: one row per kind of point, in the order they stand, then the other marks; the keys beside them. */
 function Legend() {
+  return (
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 200px" }, gap: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+      <Marks />
+      <Shortcuts />
+    </Box>
+  );
+}
+
+/** The track's marks. */
+function Marks() {
   return (
     <Box sx={{ display: "grid", gap: "16px" }}>
       <Group title="Points">
@@ -121,7 +167,7 @@ function Legend() {
 
 /**
  * What the track's marks mean, behind a small "i" before the picker's mode switch: what is on the track, how
- * the chosen point looks, what stands after the history — each beside the mark itself.
+ * the chosen point looks, what stands after the history — each beside the mark itself — and, on the right, the keys.
  */
 export function TrackLegend() {
   return (
@@ -130,8 +176,9 @@ export function TrackLegend() {
       slotProps={{
         tooltip: {
           sx: {
-            width: 400,
-            maxWidth: 400,
+            width: 640,
+            maxWidth: "calc(100vw - 20px)",
+            boxSizing: "border-box",
             bgcolor: "#fff",
             color: "#1e293b",
             border: "1px solid rgba(15, 23, 42, 0.1)",

@@ -65,7 +65,7 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 - **Decision**: keep only what is near the view in the browser, about 3 000 nodes, letting the rest go; the panel works from the overview's counts.
 - **Rationale**: a filter costs in proportion to what is loaded: 15 ms at 1 400 nodes, 192 ms at 10 600. Sigma's data textures may allow updating one attribute without a full refresh; the first viewer task tries that before anything else.
 - **Measured** on the generated graph in the production build, from the click to the second frame after it, so with up to a frame of waiting: **42–56 ms up close, 50–74 ms far away**; the worst frame 33–67 ms. Most of the first figures were not the map at all: every filter redrew the left panel, 30 ms on this graph, until the address stopped hanging on the page. Outlines take about 80 ms in all, a few at a time after the picture has answered, and the panel's rows follow in the next moment.
-- **Open**: **SC-003 is met up close and missed far away by up to 24 ms.** Data textures were not needed: reducers cost little at 3 000 nodes, and the rest is the canvases of 571 areas.
+- **Accepted**: on the generated graph, the production build gives a filter in 54–61 ms against 50, and one pan frame of 109 ms against 100. The maintainer accepted both on 2026-10-31: a graph of this size is not yet in use, and neither can be felt. Data textures were not needed: reducers cost little at 3 000 nodes, and the rest is the canvases of 571 areas.
 
 ## R6a. Outlines that follow the filters
 
@@ -91,7 +91,7 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 
 ## R8. Levels
 
-- **Decision**: the level follows the visible width of the map: thresholds of 9 000 and 2 200 units in the prototype, tuned on the stand.
+- **Decision**: the level follows the zoom alone, as the map width a 1 400 px screen would show at that zoom, so that two screens at one zoom see one level: bands of 7 600–5 200 and 3 000–2 000 units, tuned on the stand.
 - **Rationale**: at these thresholds a walk across the map held about 1 400 nodes at most.
 
 ## R9. The look

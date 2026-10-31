@@ -131,6 +131,17 @@
 
 ---
 
+## Phase 9: Convergence
+
+- [X] T053 Take the level from the zoom alone, not from the visible width, in `FC/src/lib/mapLevels.ts` and `mapEngine.ts`, so that two screens at one zoom see one level per FR-002 (contradicts)
+- [X] T054 Say the number of links on hover of every bundle, in One as in Diff, and what is left of it under the filters, per FR-005 (partial)
+- [X] T055 Read the left panel once in one opening per FR-013 (partial)
+- [X] T056 Mark a bundle holding a change under any paint per FR-023 (partial)
+- [X] T057 Say on a domain whose layout failed that it could not be drawn per Edge Cases (missing)
+- [X] T058 Open a graph of one domain or none one level closer per Edge Cases (partial)
+- [X] T060 Step by Shift + ↑ ↓, and list the keys in the picker's legend, per FR-025h (missing)
+- [X] T059 Walk on the stand a click on a domain's count, hover in a room, and the ERD's stepper in a room per FR-025a, FR-025f, FR-034 (partial)
+
 ## Dependencies
 
 Phase 2 stands alone. Phases 3 to 7 run in order. T033 stops the work until the maintainer approves the look. Phase 8 is last.

@@ -14,6 +14,14 @@ describe("the track's legend", () => {
     for (const term of terms) expect(await screen.findByText(term)).toBeTruthy();
   });
 
+  it("tells the keys beside the marks", async () => {
+    render(<TrackLegend />);
+    fireEvent.mouseOver(screen.getByRole("button", { name: "Reading the track" }));
+    expect(await screen.findByText(/One version older or newer/)).toBeTruthy();
+    expect(screen.getByText(/The previous or the next change/)).toBeTruthy();
+    expect(screen.getByText("Take it to an end of the track")).toBeTruthy();
+  });
+
   it("shows no draft: a draft pull request is not on the track", async () => {
     render(<TrackLegend />);
     fireEvent.mouseOver(screen.getByRole("button", { name: "Reading the track" }));
