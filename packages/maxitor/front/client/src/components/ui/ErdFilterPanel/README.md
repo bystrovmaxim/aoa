@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** The ERD's one filter panel. Two sections, **Domains** and **Kinds**, behave as a strict accordion: exactly one is open at a time (Domains when the diagram mounts), opening one folds the other, and clicking the open header folds it. Rows use the same chrome as `DomainLegend` (shared `floatingLegend*` styles from `@/lib/ui`): a 20 px disk and a label, dimmed when switched off.
+**Role:** The ERD's one filter panel. Two sections, **Domains** and **Kinds**, behave as a strict accordion: exactly one is open at a time (the section that paints when the diagram mounts, else Domains), opening one folds the others, and clicking the open header folds it. Moving the gear shift opens the section it paints by and folds the others; opening a section by hand leaves the paint alone. Rows use the same chrome as `DomainLegend` (shared `floatingLegend*` styles from `@/lib/ui`): a 20 px disk and a label, dimmed when switched off.
 
 - **Width:** fixed at 148 px (`ERD_FILTER_PANEL_WIDTH`, the width the production Domains legend had); the panel never widens. A label that does not fit is cut with an ellipsis and shows its full text in a tooltip — only when it was actually cut.
 - **Height:** the panel ends above the zoom toolbar and scrolls inside itself; wheel events stop at the panel, so scrolling it never zooms or pans the canvas.
