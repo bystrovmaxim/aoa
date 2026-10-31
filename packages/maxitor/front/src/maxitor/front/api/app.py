@@ -107,7 +107,7 @@ from maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action 
 from maxitor.front.model.diagrams.actions.list_domains_action import _LIST_DOMAINS_DISTINCT_COLORS, ListDomainsAction
 from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from maxitor.front.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
-from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
+from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction, fill_color_for_node_type
 from maxitor.front.model.diagrams.actions.map_area_action import MapAreaAction, MapAreaNotFoundError
 from maxitor.front.model.diagrams.actions.map_changes_action import MapChangesAction
 from maxitor.front.model.diagrams.actions.map_overview_action import MapOverviewAction
@@ -184,6 +184,7 @@ def _map_store(fastapi_app: FastAPI) -> MapStore:
         colours=_LIST_DOMAINS_DISTINCT_COLORS,
         immutable=lambda source: parse_version_source(source) is not None,
         pair=current_pair,
+        type_colour=fill_color_for_node_type,
     )
     fastapi_app.state.maps = maps
     return maps

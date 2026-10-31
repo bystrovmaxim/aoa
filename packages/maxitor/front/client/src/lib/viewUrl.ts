@@ -17,6 +17,8 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   disabled_entities: { param: "off_entities", kind: "list" },
   disabled_kinds: { param: "off_kinds", kind: "list" },
   disabled_changes: { param: "off_changes", kind: "list" },
+  disabled_node_types: { param: "off_types", kind: "list" },
+  disabled_domains: { param: "off_domains", kind: "list" },
   one_hop: { param: "one_hop", kind: "switch" },
   boundary: { param: "boundary", kind: "switch" },
   rankdir: { param: "rankdir", kind: "choice" },

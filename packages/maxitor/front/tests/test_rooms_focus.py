@@ -35,7 +35,7 @@ from tests.test_rooms_server import _ALL_DOMAINS, _FULL_GRAPH, _connect, _expect
 
 __all__ = ["client", "source"]
 
-_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None}
+_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None, "why": None}
 _FOCUS: dict[str, Any] = {
     "type": "focus",
     "page": _FULL_GRAPH,
@@ -63,6 +63,8 @@ _FOCUS: dict[str, Any] = {
         ({"panels": {**_PANELS, "changes": {"open": True, "at": None, "card": False, "offset": 0}}}, True),
         ({"panels": {**_PANELS, "changes": {"open": "yes", "at": None, "card": False, "offset": 0}}}, False),
         ({"panels": {**_PANELS, "changes": {"open": True, "at": None, "card": False}}}, False),
+        ({"panels": {**_PANELS, "why": "types:EntityField"}}, True),
+        ({"panels": {**_PANELS, "why": 7}}, False),
         ({"panels": {**_PANELS, "changes": {"open": True, "at": "x" * 513, "card": False, "offset": 0}}}, False),
         ({"panels": {**_PANELS, "versions": True, "track": {"a": "abc123", "b": "live", "offset": 120.5}}}, True),
         ({"panels": {**_PANELS, "track": {"a": None, "b": None, "offset": 0}}}, True),

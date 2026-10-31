@@ -60,6 +60,18 @@ import { useShownPanel } from "@/rooms/focusStore";
 /** How long a pan or zoom must rest before the address takes it: the address does not chase every frame. */
 const CAMERA_SETTLE_MS = 250;
 
+/**
+ * The address always carries the view on screen — the room's inside one —, so a reload or a copied link shows it. It
+ * follows every page setting on its own: a filter's click must not draw the page again around the diagram.
+ */
+function ViewInAddress({ page, shared, camera }: { page: string | null; shared: RoomSettings | null; camera: SavedView | null }) {
+  const settingsVersion = usePageSettingsVersion();
+  useEffect(() => {
+    setUrlView(page ? { ...viewToParams(shownPageSettings(page, shared)), ...cameraToParams(camera) } : {});
+  }, [page, settingsVersion, shared, camera]);
+  return null;
+}
+
 export function App() {
   const [diagram, setDiagram] = useState<DiagramSelection | null>(null);
   const [serviceUrl, setServiceUrl] = useState<string | null>(null);
@@ -166,9 +178,7 @@ export function App() {
     [roomSettings, setPageSetting],
   );
 
-  // The address always carries the view on screen — the room's inside one —, so a reload or a copied link shows it.
-  const settingsVersion = usePageSettingsVersion();
-  // Where the diagram is looked at, too: every pan and zoom, a moment after it settles.
+  // Where the diagram is looked at goes into the address too: every pan and zoom, a moment after it settles.
   // Until the first diagram is drawn the address keeps the view it opened with, so a second reload loses nothing.
   const [camera, setCamera] = useState<SavedView | null>(() => openingCamera.current);
   useEffect(() => {
@@ -189,9 +199,6 @@ export function App() {
       stop();
     };
   }, [surface]);
-  useEffect(() => {
-    setUrlView(page ? { ...viewToParams(shownPageSettings(page, sharedSettings)), ...cameraToParams(camera) } : {});
-  }, [page, settingsVersion, sharedSettings, camera]);
   /**
    * Going to someone opens their page like any navigation: the left panel and the address follow.
    * Following replaces the history entry instead, so Back is not flooded (FR-057).
@@ -558,7 +565,7 @@ export function App() {
         <WorkspaceNote text={`A ${olderName ?? "This version"} is refused: ${olderVersion.refused}`} />
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
-          <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
+          <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} />
         </PageSettingsProvider>
       )}
       {shown && (
@@ -592,6 +599,7 @@ export function App() {
           />
         </VersionPicker>
       )}
+      <ViewInAddress page={page} shared={sharedSettings} camera={camera} />
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={lead?.id ?? null} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}

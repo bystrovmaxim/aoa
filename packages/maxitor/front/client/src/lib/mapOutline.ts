@@ -15,7 +15,8 @@ const DEFAULT_REACH = 120;
 const THRESHOLD = 0.34;
 const SHORTEST_LOOP = 8;
 
-type P = [number, number];
+/** Where the contour crosses a grid edge, in grid units, and the edge it crosses: two crossings can round alike, two edges never are one. */
+type P = [x: number, y: number, edge: number];
 
 /** The two ends of the contour crossing one grid square, per pattern of its corners. */
 function crossings(code: number, n: P, e: P, s: P, w: P): [P, P][] {
@@ -25,18 +26,17 @@ function crossings(code: number, n: P, e: P, s: P, w: P): [P, P][] {
 
 /** Join the crossings into closed loops. */
 function loopsOf(pieces: [P, P][]): P[][] {
-  const key = (point: P) => `${point[0].toFixed(3)},${point[1].toFixed(3)}`;
-  const next = new Map(pieces.map((piece) => [key(piece[0]), piece]));
-  const seen = new Set<string>();
+  const next = new Map(pieces.map((piece) => [piece[0][2], piece]));
+  const seen = new Set<number>();
   const loops: P[][] = [];
   for (const [start] of pieces) {
     const loop: P[] = [];
-    let at = key(start);
+    let at = start[2];
     while (next.has(at) && !seen.has(at)) {
       seen.add(at);
       const [from, to] = next.get(at)!;
       loop.push(from);
-      at = key(to);
+      at = to[2];
     }
     if (loop.length > SHORTEST_LOOP) loops.push(loop);
   }
@@ -68,13 +68,15 @@ export function outlineOf(points: readonly FieldPoint[], reach = DEFAULT_REACH):
   }
   const at = (i: number, j: number) => field[j * (width + 1) + i];
   const along = (from: number, to: number) => (THRESHOLD - from) / (to - from);
+  const across = (i: number, j: number) => 2 * (j * (width + 1) + i);
+  const down = (i: number, j: number) => across(i, j) + 1;
   const pieces: [P, P][] = [];
   for (let j = 0; j < height; j += 1) {
     for (let i = 0; i < width; i += 1) {
       const [a, b, c, d] = [at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1)];
       const code = (a > THRESHOLD ? 1 : 0) | (b > THRESHOLD ? 2 : 0) | (c > THRESHOLD ? 4 : 0) | (d > THRESHOLD ? 8 : 0);
       if (code === 0 || code === 15) continue;
-      pieces.push(...crossings(code, [i + along(a, b), j], [i + 1, j + along(b, c)], [i + along(d, c), j + 1], [i, j + along(a, d)]));
+      pieces.push(...crossings(code, [i + along(a, b), j, across(i, j)], [i + 1, j + along(b, c), down(i + 1, j)], [i + along(d, c), j + 1, across(i, j + 1)], [i, j + along(a, d), down(i, j)]));
     }
   }
   return loopsOf(pieces).map((loop) => loop.filter((_, index) => index % 2 === 0).map(([i, j]): [number, number] => [left + i * GRID, top + j * GRID]));

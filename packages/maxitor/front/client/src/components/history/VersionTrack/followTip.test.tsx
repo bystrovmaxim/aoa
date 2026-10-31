@@ -31,7 +31,7 @@ describe("a version's tooltip in a room (spec 038)", () => {
   });
 
   it("shows for a follower the version the person they follow has under the pointer", () => {
-    putFocus("anna", { page: PAGE, hover: { kind: "version", id: id(1) }, tooltip: { kind: "version", id: id(1) }, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track: null, changes: null } });
+    putFocus("anna", { page: PAGE, hover: { kind: "version", id: id(1) }, tooltip: { kind: "version", id: id(1) }, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track: null, changes: null, why: null } });
     setFollowTarget("anna");
     drawTrack();
     expect(screen.getByTestId("version-tip").textContent).toContain("Change 1");
@@ -40,7 +40,7 @@ describe("a version's tooltip in a room (spec 038)", () => {
 
 describe("a range being dragged in a room (spec 038)", () => {
   const following = (track: { a: string | null; b: string | null; offset: number }) => {
-    putFocus("anna", { page: PAGE, hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track, changes: null } });
+    putFocus("anna", { page: PAGE, hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: true, track, changes: null, why: null } });
     setFollowTarget("anna");
   };
   const drawRange = () =>

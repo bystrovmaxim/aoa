@@ -64,18 +64,19 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 
 - **Decision**: keep only what is near the view in the browser, about 3 000 nodes, letting the rest go; the panel works from the overview's counts.
 - **Rationale**: a filter costs in proportion to what is loaded: 15 ms at 1 400 nodes, 192 ms at 10 600. Sigma's data textures may allow updating one attribute without a full refresh; the first viewer task tries that before anything else.
-- **Open**: **SC-003 is not met yet at 10 thousand loaded nodes.**
+- **Measured** on the generated graph in the production build, from the click to the second frame after it, so with up to a frame of waiting: **42–56 ms up close, 50–74 ms far away**; the worst frame 33–67 ms. Most of the first figures were not the map at all: every filter redrew the left panel, 30 ms on this graph, until the address stopped hanging on the page. Outlines take about 80 ms in all, a few at a time after the picture has answered, and the panel's rows follow in the next moment.
+- **Open**: **SC-003 is met up close and missed far away by up to 24 ms.** Data textures were not needed: reducers cost little at 3 000 nodes, and the rest is the canvases of 571 areas.
 
 ## R6a. Outlines that follow the filters
 
 - **Decision**: a smooth field over what is left, contoured in the browser. Away from the detail, the browser has no nodes, so the overview carries a **sketch** per area: how many nodes of each type, and in a pair of each status, stand in each cell of a coarse grid. The outline is drawn from the sketch at the far level and from the loaded nodes up close.
 - **Rationale**: in the mockup, outlines from the stand's real nodes took 23–95 ms for all 21 areas. The sketch is what lets this work with no node in the browser; it is small because a cell only holds counts, and bundles are recounted the same way, from links per pair of areas and types.
-- **Open**: **the sketch is designed, not measured.** Outlines add to the filter's 50 ms, so they may run after the picture has hidden the nodes, within the next frames.
+- **Tested**: outlines run after the picture has hidden the nodes, within the next frames. A contour is joined by the grid edge it crosses: joined by rounded coordinates, two crossings near one corner of the grid fell together, and the loop closed with a straight line.
 
 ## R6a2. What a hidden node takes with it
 
 - **Decision**: each node's containment parents go into its sketch key, so the overview counts nodes by their type and the types above them. A filter set then says, with no node in the browser, what is off the screen and why; a dimmed row names the switched-off types that hide it (FR-028a – FR-028c).
-- **Open**: how many distinct chains of types a graph has; on the demo graph they are few, and the sketch grows only with them.
+- **Measured**: 12 distinct chains on the stand; the sketch grows only with them.
 
 ## R6b. Phones and Next.js
 

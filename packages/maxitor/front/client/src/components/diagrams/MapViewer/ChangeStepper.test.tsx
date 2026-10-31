@@ -90,7 +90,7 @@ describe("the change stepper", () => {
 });
 
 describe("the change stepper of a follower", () => {
-  const PANELS: Panels = { sidebar: [], filter: null, legend: false, versions: false, track: null, changes: { open: true, at: "c", card: true, offset: 0 } };
+  const PANELS: Panels = { sidebar: [], filter: null, legend: false, versions: false, track: null, changes: { open: true, at: "c", card: true, offset: 0 }, why: null };
 
   function following(mirror: ChangeStepping["mirror"], go: ChangeStepping["go"] = () => undefined) {
     render(<ChangeStepper />);

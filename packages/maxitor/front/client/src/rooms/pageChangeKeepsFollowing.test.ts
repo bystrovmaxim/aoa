@@ -22,7 +22,7 @@ describe("a page a follower is led to (spec 038)", () => {
       initialProps: { page: "view=domain-erd" },
     });
     setFollowTarget("anna");
-    putFocus("anna", { page: "view=use-case", hover: null, tooltip: null, selection: null, panels: { sidebar: ["domains"], filter: "changes", legend: false, versions: false, track: null, changes: null } });
+    putFocus("anna", { page: "view=use-case", hover: null, tooltip: null, selection: null, panels: { sidebar: ["domains"], filter: "changes", legend: false, versions: false, track: null, changes: null, why: null } });
     reportHover({ kind: "table", id: "Orders" });
     session.rerender({ page: "view=use-case" });
     expect(followedParticipant()).toBe("anna");

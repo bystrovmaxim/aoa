@@ -38,7 +38,7 @@ import {
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
-import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw } from "@/lib/erdFilterPresence";
+import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, statusDiskUri, tablesToDraw } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
@@ -773,13 +773,4 @@ export function ErdGraphvizCanvas({
       </Box>
     </Box>
   );
-}
-
-/** a legend disk for a kind of change — the status colour with its sign in white. */
-function statusDiskUri(fill: string, sign: string): string {
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${fill}"/>` +
-    (sign ? `<text x="12" y="16.5" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#fff">${sign}</text>` : "") +
-    `</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
