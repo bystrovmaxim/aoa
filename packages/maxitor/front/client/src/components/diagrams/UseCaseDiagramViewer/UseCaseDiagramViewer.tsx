@@ -42,7 +42,8 @@ import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomai
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
-import { filterUseCaseByChanges, loadUseCaseDiff, unmarkedUseCase, withUseCaseOneHop, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { filterUseCaseByChanges, filterUseCaseByElements, loadUseCaseDiff, USE_CASE_ELEMENTS, unmarkedUseCase, withUseCaseOneHop, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { bindUseCaseHover } from "@/lib/useCaseHover";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 
 
@@ -55,6 +56,9 @@ const GRID_SX = {
   backgroundImage: "radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px)",
   backgroundSize: "20px 20px",
 };
+
+/** How wide a link's hit area is on screen. */
+const LINK_HIT_PX = 14;
 
 /** The grey of a filter disk that does not paint. */
 const IDLE_DISK = "#cbd5e1";
@@ -98,7 +102,8 @@ const graphvizRoleActorImage = {
 } as const;
 
 export type UseCaseDiagramViewerProps = {
-  domainId: string;
+  /** The domain drawn; ``null`` draws every domain on one diagram. */
+  domainId: string | null;
 };
 
 export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
@@ -158,11 +163,14 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const [offChangeList, setOffChangeList] = usePageSetting<string[]>("disabled_changes", []);
   const offChanges = useMemo(() => new Set(offChangeList), [offChangeList]);
   const [includeOneHop, setIncludeOneHop] = usePageSetting("one_hop", true);
+  // As on the ERD, 1-hop brings back what stands one link from what the filters left, even what a filter hid.
+  const [offElementList, setOffElementList] = usePageSetting<string[]>("disabled_kinds", []);
+  const offElements = useMemo(() => new Set(offElementList), [offElementList]);
   const filtered = useMemo(() => {
     if (data == null) return null;
-    const kept = filterUseCaseByChanges(filterUseCaseDiagramByDomains(data, effectiveEnabled), diffing ? offChanges : new Set<string>());
+    const kept = filterUseCaseByElements(filterUseCaseByChanges(filterUseCaseDiagramByDomains(data, effectiveEnabled), diffing ? offChanges : new Set<string>()), offElements);
     return includeOneHop ? withUseCaseOneHop(kept, data) : kept;
-  }, [data, effectiveEnabled, diffing, offChanges, includeOneHop]);
+  }, [data, effectiveEnabled, diffing, offChanges, includeOneHop, offElements]);
 
   // What paints the actions is a page setting, One's and Diff's apart; a room shares it, the address carries it (spec 041, FR-022, FR-023).
   const baseChanges = useMemo(() => (diffing && data ? useCaseChangeKinds(data) : []), [diffing, data]);
@@ -218,6 +226,16 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     [offChanges, setOffChangeList],
   );
 
+  const toggleElement = useCallback(
+    (element: string) => {
+      const next = new Set(offElements);
+      if (next.has(element)) next.delete(element);
+      else next.add(element);
+      setOffElementList([...next].sort());
+    },
+    [offElements, setOffElementList],
+  );
+
   // A section that does not paint shows its disks grey: the colours on screen are one section's.
   const shownChanges = new Set(filtered ? useCaseChangeKinds(filtered) : []);
   const shownDomains = new Set(filtered?.actions.map((action) => action.domain_id));
@@ -227,6 +245,14 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     iconSrc: svgDataUriForInterchangeDomainLegend(paintSection === "domains" ? accents[key] || "#3b82f6" : IDLE_DISK),
     on: effectiveEnabled.has(key),
     absent: !shownDomains.has(key),
+  }));
+  // The elements paint nothing: their disks stay grey whatever paints.
+  const elementRows: ErdFilterRow[] = USE_CASE_ELEMENTS.map((element) => ({
+    key: element,
+    label: element.charAt(0).toUpperCase() + element.slice(1),
+    iconSrc: statusDiskUri(IDLE_DISK, ""),
+    on: !offElements.has(element),
+    absent: (filtered?.[element].length ?? 0) === 0,
   }));
   const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
     key: status,
@@ -238,11 +264,19 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
 
   const panZoom = useSvgPanZoom({
     fitBottomInset: 56,
+    fitLeftInset: 168,
     fitMarginPx: 14,
     fitBoundsSelector: "g.graph g.node, g.graph g.edge, g.graph g.cluster",
     fitToViewBox: true,
   });
-  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag, needsFit } = panZoom;
+  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag, needsFit, getScale, onTransform } = panZoom;
+
+  // A link's hit area stays as wide on screen at every zoom: on a big diagram, far out, it would shrink to nothing.
+  useEffect(() => {
+    const keep = () => pannerRef.current?.style.setProperty("--use-case-hit", `${LINK_HIT_PX / getScale()}px`);
+    keep();
+    return onTransform(keep);
+  }, [pannerRef, getScale, onTransform]);
 
   const [svgMarkup, setSvgMarkup] = useState("");
   // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090); the text Graphviz
@@ -330,6 +364,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     // or a hidden panner (spec 038). One frame later it is fitted again only if this one could not measure.
     fitToContainer();
     const unbindPan = bindInteractions();
+    const hover = new AbortController();
+    bindUseCaseHover(panner, hover.signal);
     setFirstFitDone(true);
     const raf = requestAnimationFrame(() => {
       if (needsFit()) fitToContainer();
@@ -337,6 +373,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
 
     return () => {
       unbindPan();
+      hover.abort();
       cancelAnimationFrame(raf);
     };
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, needsFit]);
@@ -373,18 +410,18 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
           <Box sx={GRID_SX}>
             <ErdFilterPanel
               domainRows={domainRows}
-              kindRows={[]}
+              kindRows={elementRows}
+              kindsTitle="Elements"
+              kindsPaint={false}
               onToggleDomain={toggleDomain}
-              onToggleKind={() => undefined}
+              onToggleKind={toggleElement}
               changeRows={changeRows}
               onToggleChange={toggleChange}
               paint={{ source: paintSection, onPaint: setChosenPaint }}
             />
-            {filtered != null && filtered.actions.length === 0 && (
+            {filtered != null && filtered.actions.length + filtered.roles.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
-                {data.actions.length === 0
-                  ? "No actions in this domain."
-                  : "No actions for the selected domains."}
+                {data.actions.length + data.roles.length === 0 ? "No actions in this domain." : "Everything is filtered out."}
               </Typography>
             )}
             {renderError != null && (
@@ -420,6 +457,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                   pointerEvents: firstFitDone ? "auto" : "none",
                   transition: "none",
                   // Painted by changes, the unchanged lose their colour as well, as on the ERD; painted by domains they keep it.
+                  "& path.erd-hit": { strokeWidth: "var(--use-case-hit, 14px)" },
                   [`& .${USE_CASE_FADED_CLASS}`]: { opacity: 0.3, ...(paintSection === "changes" && { filter: "grayscale(1)" }) },
                   "& svg": {
                     display: "block",

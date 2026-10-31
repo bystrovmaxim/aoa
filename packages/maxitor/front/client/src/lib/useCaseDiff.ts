@@ -74,6 +74,18 @@ export function filterUseCaseByChanges(diagram: DomainUseCaseDiagramPayload, off
   return { ...diagram, actions, roles, edges: diagram.edges.filter((edge) => kept(edge) && ids.has(edge.source_id) && ids.has(edge.target_id)) };
 }
 
+/** The kinds of element a use-case diagram draws, as the Elements filter lists them. */
+export const USE_CASE_ELEMENTS = ["actions", "roles"] as const;
+
+/** Hide the actions or the roles switched off and their links; 1-hop may bring back those next to what is left. */
+export function filterUseCaseByElements(diagram: DomainUseCaseDiagramPayload, off: ReadonlySet<string>): DomainUseCaseDiagramPayload {
+  if (off.size === 0) return diagram;
+  const actions = off.has("actions") ? [] : diagram.actions;
+  const roles = off.has("roles") ? [] : diagram.roles;
+  const ids = new Set([...actions, ...roles].map((element) => element.id));
+  return { ...diagram, actions, roles, edges: diagram.edges.filter((edge) => ids.has(edge.source_id) && ids.has(edge.target_id)) };
+}
+
 /** 1-hop over the filters: what they left, and everything of the base one link away from it, even what a filter hid. */
 export function withUseCaseOneHop(kept: DomainUseCaseDiagramPayload, base: DomainUseCaseDiagramPayload): DomainUseCaseDiagramPayload {
   const ids = new Set([...kept.actions, ...kept.roles].map((element) => element.id));
@@ -153,12 +165,12 @@ export function useCaseIdAt(target: Element | null, diagram: DomainUseCaseDiagra
   return element?.diff && element.diff !== "unchanged" ? element.id : null;
 }
 
-/** A domain's use cases in the pair being compared, read from each version that has the domain, merged and marked. */
-export async function loadUseCaseDiff(domainId: string): Promise<DomainUseCaseDiagramPayload> {
+/** A domain's use cases, or all of them, in the pair being compared, read from each version that has the domain, merged and marked. */
+export async function loadUseCaseDiff(domainId: string | null): Promise<DomainUseCaseDiagramPayload> {
   const base = getActiveBase();
   if (!base) throw new Error("No two versions to compare.");
   const [newerListing, olderListing, compared, inside] = await Promise.all([listDomains(), listDomains(base), compareVersions(), compareChangedInside()]);
-  const has = (listing: typeof newerListing) => listing.list_domains.some((row) => row.qualname === domainId);
+  const has = (listing: typeof newerListing) => domainId === null || listing.list_domains.some((row) => row.qualname === domainId);
   const [newer, older] = await Promise.all([
     has(newerListing) ? fetchDomainUseCaseDiagram(domainId) : null,
     has(olderListing) ? fetchDomainUseCaseDiagram(domainId, base) : null,

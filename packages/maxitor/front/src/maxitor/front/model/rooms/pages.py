@@ -59,8 +59,10 @@ def page_keys(sidebar: Any) -> set[str]:
             keys.add(page_key("domain-erd", domain=str(parent)))
         elif kind == "use_case_domain" and parent:
             keys.add(page_key("use-case", domain=str(parent)))
-        elif kind == "lifecycle_state_diagram" and parent:
-            keys.add(page_key("lifecycle-fsm", node=str(getattr(row, "id", "")), host=str(parent)))
+        elif kind == "use_case_all":
+            keys.add(page_key("use-case-all"))
+        elif kind == "lifecycle_state_diagram" and getattr(row, "host_id", None):
+            keys.add(page_key("lifecycle-fsm", node=str(getattr(row, "id", "")), host=str(row.host_id)))
     return keys
 
 
@@ -79,6 +81,18 @@ def _boolean(value: Any) -> bool:
     return isinstance(value, bool)
 
 
+#: The settings of a use-case diagram, of one domain or of all (spec 041).
+_USE_CASE_SETTINGS: dict[str, Callable[[Any], bool]] = {
+    "layout": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
+    "domains": _strings,
+    "boundary": _boolean,
+    "disabled_kinds": _strings,
+    "disabled_changes": _strings,
+    "one_hop": _boolean,
+    "paint": _one_of("domains", "changes"),
+    "paint_diff": _one_of("domains", "changes"),
+}
+
 #: The settings of each kind of page and the check of each one's value (data-model.md "PageSettings").
 SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "domain-erd": {
@@ -91,11 +105,8 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
         "paint": _one_of("domains", "kinds", "changes"),
         "paint_diff": _one_of("domains", "kinds", "changes"),
     },
-    "use-case": {
-        "layout": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
-        "domains": _strings,
-        "boundary": _boolean,
-    },
+    "use-case": _USE_CASE_SETTINGS,
+    "use-case-all": _USE_CASE_SETTINGS,
     "lifecycle-fsm": {
         "rankdir": _one_of("LR", "TB"),
     },

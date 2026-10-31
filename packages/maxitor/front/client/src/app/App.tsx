@@ -116,6 +116,8 @@ export function App() {
   const trackPoints = shown ? keysOf(shown) : [];
   const pickerMode: PickerMode = shown?.a ? "diff" : "one";
   const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
+  // A is Live when a pull request, which stands after it, is B (spec 041).
+  const olderSource = shown?.a === "live" ? shown.live : olderVersion && !olderVersion.refused ? olderVersion.source : null;
   const diffCounts = useDiffCounts();
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
   // A follower sees the version picker open while the person they follow has it open (spec 038).
@@ -355,14 +357,14 @@ export function App() {
   useEffect(() => {
     if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
     syncUrlToState(serviceUrl, diagram);
-    setActiveBase(olderVersion && !olderVersion.refused ? { source: olderVersion.source, key: shown?.key ?? "" } : null);
+    setActiveBase(olderSource ? { source: olderSource, key: shown?.key ?? "" } : null);
     if (shown) {
       setWorkspaceKey((count) => count + 1);
       // The left panel lists A's pages beside B's in Diff, B's alone in One.
       rereadSidebar();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.a, olderVersion?.source]);
+  }, [shown?.a, olderSource]);
 
   // A changed element's card says what it was added or removed in: the two versions' names.
   useEffect(() => setDiffNames(shown?.a ? { a: olderName ?? "A", b: shownName ?? "B" } : null), [shown?.a, olderName, shownName]);
@@ -585,7 +587,15 @@ export function App() {
           diffOffered={diffOffered(trackPoints)}
           range={shown.a && shown.b ? { a: shown.a, b: shown.b } : null}
           onRange={pickRange}
-          older={shown.a ? <VersionMessage version={olderVersion} repository={shown.host === "github" ? shown.repository : null} /> : undefined}
+          older={
+            shown.a ? (
+              <VersionMessage
+                version={shown.a === "live" ? versionOf(shown, shown.liveSameAs) : olderVersion}
+                repository={shown.host === "github" ? shown.repository : null}
+                liveLine={shown.a === "live" ? liveLine(shown.versions, liveState) : undefined}
+              />
+            ) : undefined
+          }
           between={
             shown.a && shown.b ? (
               <VersionsBetween versions={shown.versions} live={shown.live} liveIs={shown.liveSameAs} proposals={shown.proposals} range={{ a: shown.a, b: shown.b }} repository={shown.host === "github" ? shown.repository : null} />

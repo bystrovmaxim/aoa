@@ -42,6 +42,9 @@ def sidebar_payload(sidebar_result: Any) -> dict[str, Any]:
         ord_ = getattr(n, "ordinal", None)
         if ord_ is not None:
             out["ordinal"] = int(ord_)
+        host = getattr(n, "host_id", None)
+        if host is not None:
+            out["host_id"] = str(host)
         return out
 
     return {

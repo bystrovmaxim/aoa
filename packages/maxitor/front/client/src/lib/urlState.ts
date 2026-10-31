@@ -59,6 +59,7 @@ const VIEW_SLUG_BY_KIND: Record<DiagramSelection["kind"], string> = {
   interchange_graph: "full-graph",
   erd: "domain-erd",
   use_case: "use-case",
+  use_case_all: "use-case-all",
   lifecycle_fsm: "lifecycle-fsm",
 };
 
@@ -97,6 +98,7 @@ export function deepLinkToSelection(link: UrlDeepLink): DiagramSelection | null 
   if (link.view === "full-graph") return { kind: "interchange_graph" };
   if (link.view === "domain-erd") return { kind: "erd", qualifier: link.domain };
   if (link.view === "use-case" && link.domain) return { kind: "use_case", domain_qualifier: link.domain };
+  if (link.view === "use-case-all") return { kind: "use_case_all" };
   if (link.view === "lifecycle-fsm" && link.node && link.host) {
     return { kind: "lifecycle_fsm", lifecycle_graph_node_id: link.node, host_entity_interchange_id: link.host };
   }

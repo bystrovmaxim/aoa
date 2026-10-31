@@ -32,6 +32,8 @@ export type ErdFilterPanelProps = {
   onToggleKind: (key: string) => void;
   /** The heading of ``kindRows``; on the map they are node types. */
   kindsTitle?: string;
+  /** Whether ``kindRows`` can paint the diagram; a filter with no colour of its own cannot. */
+  kindsPaint?: boolean;
   /** (spec 038) in Diff, the kinds of change — Added, Removed, Changed, Unchanged. */
   changeRows?: ErdFilterRow[];
   onToggleChange?: (key: string) => void;
@@ -235,7 +237,7 @@ function SectionHeader({
  * panel stops above the zoom toolbar and scrolls inside itself. On a narrow screen it starts as a
  * "Filter" pill; opened, it shows the sections straight away, without the word "Filter".
  */
-export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
+export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", kindsPaint = true, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   // The section that paints is the one open first; without a gear shift, Domains (spec 040, FR-032).
@@ -323,7 +325,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
     </IconButton>
   ) : null;
   const showKinds = kindRows.length > 1;
-  const paintSections: PaintSection[] = ["domains", ...(showKinds ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
+  const paintSections: PaintSection[] = ["domains", ...(showKinds && kindsPaint ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
 
   return (
     <Box
