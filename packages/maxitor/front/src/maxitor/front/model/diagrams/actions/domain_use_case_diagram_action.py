@@ -136,28 +136,25 @@ def _depends_rows_for_action_closure(
     return duck.execute_fetch_dicts(sql.strip(), ids + ids)
 
 
+def _link(edge_kind: str, edge_type: str, source_id: str, target_id: str, stereotype: str | None = None) -> dict[str, Any]:
+    """One drawn link, with the protocol ``id`` of the graph edge it stands for (#285's rule)."""
+    return {
+        "id": f"{source_id}|{edge_type}|{target_id}",
+        "edge_kind": edge_kind,
+        "source_id": source_id,
+        "target_id": target_id,
+        "stereotype": stereotype,
+    }
+
+
 def _append_depends_edges(edges_out: list[dict[str, Any]], drows: list[dict[str, Any]]) -> None:
     for r in drows:
         mode_raw = r.get("mode")
         mode = str(mode_raw).strip() if mode_raw is not None else ""
         if mode in VALID_USE_CASE_MODES:
-            edges_out.append(
-                {
-                    "edge_kind": mode,
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": f"«{mode}»",
-                },
-            )
+            edges_out.append(_link(mode, "@depends", str(r["source_id"]), str(r["target_id"]), f"«{mode}»"))
         else:
-            edges_out.append(
-                {
-                    "edge_kind": "depends",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
+            edges_out.append(_link("depends", "@depends", str(r["source_id"]), str(r["target_id"])))
 
 
 def _depends_targets_in_actions(
@@ -321,35 +318,14 @@ class GetDomainUseCaseDiagramAction(
         edges_out: list[dict[str, Any]] = []
 
         for r in _action_generalizations_within_actions(duck, actions_final):
-            edges_out.append(
-                {
-                    "edge_kind": "action_generalization",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
+            edges_out.append(_link("action_generalization", "parent_action", str(r["source_id"]), str(r["target_id"])))
 
         for r in _role_generalizations_within_roles(duck, roles_final):
-            edges_out.append(
-                {
-                    "edge_kind": "role_generalization",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
+            edges_out.append(_link("role_generalization", "parent_role", str(r["source_id"]), str(r["target_id"])))
 
         for aid, targets in sorted(role_edges_by_action.items()):
             for tid in sorted(frozenset(targets)):
-                edges_out.append(
-                    {
-                        "edge_kind": "association",
-                        "source_id": aid,
-                        "target_id": tid,
-                        "stereotype": None,
-                    },
-                )
+                edges_out.append(_link("association", "@check_roles", aid, tid))
 
         _append_depends_edges(edges_out, _depends_rows_for_action_closure(duck, actions_final))
 

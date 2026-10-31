@@ -163,6 +163,8 @@ async def test_domain_use_case_diagram_closure_and_edges() -> None:
     assert ("include", "a.child.Action", "a.peer.Action") in kinds
     inc = next(e for e in j["edges"] if e["edge_kind"] == "include")
     assert inc.get("stereotype") == "«include»"
+    type_of = {"action_generalization": "parent_action", "role_generalization": "parent_role", "association": "@check_roles", "include": "@depends"}
+    assert {e["id"] for e in j["edges"]} == {f"{e['source_id']}|{type_of[e['edge_kind']]}|{e['target_id']}" for e in j["edges"]}
 
 
 @pytest.mark.asyncio

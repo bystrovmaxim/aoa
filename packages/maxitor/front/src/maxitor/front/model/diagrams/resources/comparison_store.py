@@ -25,6 +25,7 @@ ARCHITECTURE / DATA FLOW
                  (sha A, sha B) held? ──yes──► Comparison
                               │
                               └─no──► one lock per pair ──► compare(json A, json B) in a thread
+                                                              + changed_inside
                                                               ──► held, at most ``capacity`` pairs,
                                                                   the one read longest ago leaving
 
@@ -42,7 +43,7 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 from maxitor.front.model.diagrams.diagrams_domain import DiagramsDomain
-from maxitor.graph_compare import Comparison, GraphNotComparableError, compare
+from maxitor.graph_compare import ChangedPart, Comparison, GraphNotComparableError, changed_inside, compare
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_controller import BaseController
@@ -52,6 +53,14 @@ COMPARISON_STORE_CONNECTION_KEY = "Comparisons"
 
 #: How many compared pairs are held at once.
 DEFAULT_CAPACITY = 32
+
+#: What a use-case diagram draws: an action's parts are everything else it owns or links to (spec 041, research R1).
+ACTION_TYPE = "Action"
+DRAWN_TYPES = frozenset({"Action", "Role"})
+THROUGH_EDGES = frozenset({"generic:params", "generic:result"})
+
+#: Each action's changed parts, by action id.
+ChangedInside = dict[str, tuple[ChangedPart, ...]]
 
 
 class ComparedGraph(Protocol):
@@ -74,7 +83,7 @@ class ComparisonStore(BaseController):
     """
     AI-CORE-BEGIN
     ROLE: Compare the two versions the current read names, once per pair, and hold the result.
-    CONTRACT: ``current()`` returns the ``Comparison`` of A with B for the read it serves; a graph that cannot be compared raises ``ComparisonRefusedError`` naming the version.
+    CONTRACT: ``current()`` returns the ``Comparison`` of A with B for the read it serves, ``changed_inside()`` each action's changed parts; a graph that cannot be compared raises ``ComparisonRefusedError`` naming the version.
     INVARIANTS: A pair is keyed by both graphs' content, so a rebuilt Live is a new pair; at most ``capacity`` pairs are held; one computation per pair at a time; ``computed`` counts the computations made.
     AI-CORE-END
     """
@@ -82,7 +91,7 @@ class ComparisonStore(BaseController):
     def __init__(self, pair: Callable[[], tuple[ComparedGraph, ComparedGraph] | None], capacity: int = DEFAULT_CAPACITY) -> None:
         self._pair = pair
         self._capacity = capacity
-        self._held: OrderedDict[tuple[str, str], Comparison] = OrderedDict()
+        self._held: OrderedDict[tuple[str, str], tuple[Comparison, ChangedInside]] = OrderedDict()
         self._locks: dict[tuple[str, str], asyncio.Lock] = {}
         self.computed = 0
         """How many comparisons were computed, not served from what is held."""
@@ -104,6 +113,14 @@ class ComparisonStore(BaseController):
 
     async def current(self) -> Comparison:
         """The comparison of the read's A with its B, computed on the first read of the pair."""
+        return (await self._read())[0]
+
+    async def changed_inside(self) -> ChangedInside:
+        """What changed inside each action of the read's pair, computed with its comparison."""
+        return (await self._read())[1]
+
+    async def _read(self) -> tuple[Comparison, ChangedInside]:
+        """The read's pair as held, computed on its first read."""
         pair = self._pair()
         if pair is None:
             raise NotComparingError("This read names no two versions to compare.")
@@ -129,8 +146,8 @@ class ComparisonStore(BaseController):
         return held
 
 
-def _compared(older: str, newer: str) -> Comparison:
-    """Parse both texts and compare them; a refusal names the version it came from."""
+def _compared(older: str, newer: str) -> tuple[Comparison, ChangedInside]:
+    """Parse both texts, compare them and walk the actions; a refusal names the version it came from."""
     documents: list[Any] = []
     for side, text in (("A", older), ("B", newer)):
         try:
@@ -138,7 +155,8 @@ def _compared(older: str, newer: str) -> Comparison:
         except ValueError as exc:
             raise ComparisonRefusedError(f"{side}: the graph is not JSON: {exc}") from exc
     try:
-        return compare(documents[0], documents[1])
+        comparison = compare(documents[0], documents[1])
+        return comparison, changed_inside(documents[0], documents[1], comparison, root_type=ACTION_TYPE, drawn_types=DRAWN_TYPES, through=THROUGH_EDGES)
     except GraphNotComparableError as exc:
         raise ComparisonRefusedError(f"{_refused_side(documents[0])}: {exc}") from exc
 

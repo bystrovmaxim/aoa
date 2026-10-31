@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from maxitor.graph_compare import Counts, Status, compare
+from maxitor.graph_compare import Counts, Status, changed_inside, compare
 
 DEMO_GRAPH = Path(__file__).resolve().parents[5] / "packages" / "aoa-demo" / "graph.json"
 
@@ -52,3 +52,16 @@ def test_two_versions_of_the_demo_graph_compare_within_the_bound() -> None:
     assert result.node_counts == node_counts
     assert result.edge_counts == edge_counts
     assert sum(item.status is Status.UNCHANGED for item in result.nodes.values()) == len(original["nodes"]) - 330
+
+
+def test_walking_every_action_of_the_demo_graph_stays_within_the_bound() -> None:
+    """Every action's parts are walked in both documents, in far under the bound."""
+    original = json.loads(DEMO_GRAPH.read_text(encoding="utf-8"))
+    newer, _, _ = _edited(original)
+    comparison = compare(original, newer)
+
+    started = time.perf_counter()
+    changed_inside(original, newer, comparison, root_type="Action", drawn_types={"Action", "Role"}, through={"generic:params", "generic:result"})
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < BOUND_SECONDS

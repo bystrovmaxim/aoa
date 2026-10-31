@@ -34,6 +34,8 @@ export type DomainUseCaseEdgeKind =
   | "depends";
 
 export type DomainUseCaseEdgeWire = {
+  /** The protocol id of the graph edge this link stands for. */
+  id: string;
   edge_kind: DomainUseCaseEdgeKind;
   source_id: string;
   target_id: string;
