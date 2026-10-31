@@ -8,7 +8,10 @@ import { getActiveBase, type GraphRead } from "@/api/client";
 import { compareVersions, type CompareResult, type DiffStatus } from "@/api/compare";
 import { fetchLifecycleFiniteAutomaton } from "@/api/lifecycleFiniteAutomaton";
 import { getSidebar } from "@/api/sidebar";
+import { useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
+import type { CardTarget } from "@/lib/erdDiffCard";
+import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import type { LifecycleFiniteAutomatonPayload, LifecycleFsmArrow, LifecycleFsmStateWire } from "@/model/lifecycleFiniteAutomaton";
 
 /** B's elements in B's order, then those only A has: a pair with nothing changed is exactly B. */
@@ -70,6 +73,56 @@ export function unmarkedLifecycle(diagram: LifecycleFiniteAutomatonPayload): Lif
     states: diagram.states.map(({ diff: _diff, ...state }) => state),
     transitions: diagram.transitions.map(({ diff: _diff, ...transition }) => transition),
   };
+}
+
+/** A state's name, as its card and its row in a list say it. */
+function stateName(state: LifecycleFsmStateWire | undefined, key: string): string {
+  return state?.display_name.trim() || key;
+}
+
+/** A transition's name: the names of the state it leaves and the state it enters, never an id. */
+function transitionName(diagram: LifecycleFiniteAutomatonPayload, source: string, target: string): string {
+  const named = (key: string) => stateName(diagram.states.find((state) => state.key === key), key);
+  return `${named(source)} → ${named(target)}`;
+}
+
+/** The card of a marked state or transition by its id, or ``null`` when it is unchanged or no longer drawn. */
+export function lifecycleCard(diagram: LifecycleFiniteAutomatonPayload, id: string): CardTarget | null {
+  const transition = diagram.transitions.find((each) => each.id === id);
+  if (transition) {
+    if (!transition.diff || transition.diff === "unchanged") return null;
+    return { title: transitionName(diagram, transition.source, transition.target), status: transition.diff, elements: [{ kind: "edge", id }] };
+  }
+  const state = diagram.states.find((each) => each.id === id);
+  if (!state?.diff || state.diff === "unchanged") return null;
+  return { title: stateName(state, state.key), status: state.diff, elements: [{ kind: "node", id }] };
+}
+
+/** Sorts by a text, then by id, so a list has one order. */
+function byName<T extends { id: string }>(elements: readonly T[], name: (element: T) => string): T[] {
+  return [...elements].sort((one, other) => name(one).localeCompare(name(other)) || (one.id < other.id ? -1 : 1));
+}
+
+/** Every change the drawn diagram marks, once each: its states, then its transitions (spec 042, FR-017). */
+export function lifecycleChanges(diagram: LifecycleFiniteAutomatonPayload): GraphvizChange[] {
+  const change = (id: string, group: string, detail: string): GraphvizChange[] => {
+    const card = lifecycleCard(diagram, id);
+    return card ? [{ key: id, title: card.title, detail, status: card.status, group, cell: useCaseCellId(id), card }] : [];
+  };
+  return [
+    ...byName(diagram.states, (state) => stateName(state, state.key)).flatMap((state) => change(state.id, "States", "State")),
+    ...byName(diagram.transitions, (transition) => transitionName(diagram, transition.source, transition.target)).flatMap((transition) => change(transition.id, "Transitions", "Transition")),
+  ];
+}
+
+/** The id of the marked state or transition a click landed on, by what Graphviz wrote for it. */
+export function lifecycleIdAt(target: Element | null, diagram: LifecycleFiniteAutomatonPayload): string | null {
+  const drawn = target?.closest?.("g.node, g.edge");
+  if (!drawn) return null;
+  if (drawn.classList.contains("edge")) return diagram.transitions.find((each) => each.diff !== "unchanged" && useCaseCellId(each.id) === drawn.id)?.id ?? null;
+  const key = drawn.querySelector("title")?.textContent;
+  const state = diagram.states.find((each) => each.key === key);
+  return state?.diff && state.diff !== "unchanged" ? state.id : null;
 }
 
 /** Whether a version's left panel lists this lifecycle. */
