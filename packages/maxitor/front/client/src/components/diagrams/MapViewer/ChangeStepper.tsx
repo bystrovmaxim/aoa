@@ -9,6 +9,7 @@ import { PillArrow, PillChevron, PillDivider, pillSx } from "@/components/histor
 import { changeLines, useChangeStepping, type ChangeLine } from "@/lib/changeStepping";
 import { MARK_LOOK } from "@/lib/erdDiffCard";
 import { nextChange } from "@/lib/mapDiff";
+import { changeStepOfKey } from "@/lib/stepKeys";
 import { useMirroredFocus, useShownPanel, type ChangeListState } from "@/rooms/focusStore";
 
 const ROW_PX = 30;
@@ -146,6 +147,19 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
     steppingRef.current?.mirror(found >= 0 ? found : null, shown.card);
   }, [following, shown.at, shown.card, entries]);
 
+  // Shift + ↑ ↓ step through the changes from anywhere on the page, when there are any.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const by = changeStepOfKey(event);
+      const now = steppingRef.current;
+      if (by === null || !now || now.entries.length === 0) return;
+      event.preventDefault();
+      if (!following) now.go(nextChange(now.position, by, now.entries.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [following]);
+
   useEffect(() => {
     if (!ownOpen) return undefined;
     const onKey = (event: KeyboardEvent) => {
@@ -174,7 +188,7 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
   return (
     <>
       <Box ref={pill} role="group" aria-label="Changes" data-pointer-frame="change-steps" data-testid="change-stepper" sx={{ ...pillSx(open), flexShrink: 0, ...(compact && PHONE_SX) }}>
-        <PillArrow delta={-1} label="Previous change" title="Previous change" onStep={step} touch={compact} />
+        <PillArrow delta={-1} label="Previous change" title="Previous change (Shift + ↑)" aria-keyshortcuts="Shift+ArrowUp" onStep={step} touch={compact} />
         <PillDivider />
         <ButtonBase
           aria-haspopup="dialog"
@@ -189,7 +203,7 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
           <PillChevron />
         </ButtonBase>
         <PillDivider />
-        <PillArrow delta={1} label="Next change" title="Next change" onStep={step} touch={compact} />
+        <PillArrow delta={1} label="Next change" title="Next change (Shift + ↓)" aria-keyshortcuts="Shift+ArrowDown" onStep={step} touch={compact} />
       </Box>
       <Popper open={open} anchorEl={() => pill.current ?? document.body} placement={compact ? "top-end" : "bottom-start"} modifiers={[{ name: "offset", options: { offset: [0, 11] } }]} sx={{ zIndex: 1300 }}>
         <ClickAwayListener onClickAway={onClickAway}>

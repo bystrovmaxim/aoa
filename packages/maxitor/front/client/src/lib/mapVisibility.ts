@@ -74,6 +74,21 @@ export function areaLeft(area: MapArea, filters: MapFilters, facts: MapFacts): A
   return { left, total, x, y, radius: Math.max(LEAST_LEFT_REACH, ...placed.map((each) => Math.hypot(each.x - x, each.y - y))) + LEFT_MARGIN };
 }
 
+/** What a domain's tag says it holds; a domain that could not be laid out says that instead. */
+export function areaHolds(area: MapArea): string {
+  if (area.failed) return "Could not be drawn";
+  const entities = area.counts.Entity ?? 0;
+  const actions = area.counts.Action ?? 0;
+  const total = Object.values(area.counts).reduce((sum, count) => sum + count, 0);
+  const named = [entities && `${entities} ${entities === 1 ? "entity" : "entities"}`, actions && `${actions} ${actions === 1 ? "action" : "actions"}`].filter(Boolean);
+  return named.join(" · ") || `${total} ${total === 1 ? "element" : "elements"}`;
+}
+
+/** What a bundle says on hover: how many links are left of it and, in a comparison, how many of those changed. */
+export function bundleSays(left: number, changed: number): string {
+  return changed > 0 ? `${changed} of ${left} ${left === 1 ? "link" : "links"} changed` : `${left} ${left === 1 ? "link" : "links"}`;
+}
+
 /** How many links of a bundle stay. */
 export function bundleLeft(bundle: MapBundle, filters: MapFilters): number {
   const [one, other, , ends, changed = {}] = bundle;

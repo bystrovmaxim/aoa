@@ -55,7 +55,7 @@ The gear shift at the foot of the panel chooses what paints the picture: domains
 
 Switch off **Unchanged** to take the grey domains off the map. Fading and grey domains belong to painting by changes; rings stay under any paint.
 
-The version button counts every change drawn, nodes and links, whatever the zoom. Beside it the stepper walks through them: the arrows go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step flies to the change, marks it with a halo and opens its card. A click on a domain's count goes to its first change. All of it follows the filters, and with no change left the button says "no changes" and nothing fades.
+The version button counts every change drawn, nodes and links, whatever the zoom. Beside it the stepper walks through them: the arrows or Shift + ↑ ↓ go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step flies to the change, marks it with a halo and opens its card. A click on a domain's count goes to its first change. All of it follows the filters, and with no change left the button says "no changes" and nothing fades.
 
 ## In a room
 

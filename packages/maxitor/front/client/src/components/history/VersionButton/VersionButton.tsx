@@ -22,7 +22,7 @@ export type VersionButtonProps = {
 };
 
 /** A key as the hint draws it: a small plate. */
-function Key({ children }: { children: ReactNode }) {
+export function Key({ children }: { children: ReactNode }) {
   return (
     <Box component="kbd" sx={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 16, height: 16, px: "3px", ml: "3px", borderRadius: "4px", bgcolor: "rgba(255, 255, 255, 0.16)", border: "1px solid rgba(255, 255, 255, 0.28)", fontFamily: "inherit", fontSize: 11, lineHeight: 1 }}>
       {children}

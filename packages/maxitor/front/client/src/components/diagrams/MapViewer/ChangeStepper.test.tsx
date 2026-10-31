@@ -49,6 +49,19 @@ describe("the change stepper", () => {
     expect(go.mock.calls).toEqual([[0], [2]]);
   });
 
+  it("steps by Shift + up and down, from anywhere, and leaves a field being typed in alone", () => {
+    const go = vi.fn();
+    render(<ChangeStepper />);
+    act(() => setChangeStepping(stepping({ position: 0, go })));
+    fireEvent.keyDown(window, { key: "ArrowDown", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowUp", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    const field = document.body.appendChild(document.createElement("input"));
+    fireEvent.keyDown(field, { key: "ArrowDown", shiftKey: true });
+    field.remove();
+    expect(go.mock.calls).toEqual([[1], [2]]);
+  });
+
   it("opens the list by group, and a pick goes to that change and closes it", () => {
     const go = vi.fn();
     render(<ChangeStepper />);
@@ -113,6 +126,13 @@ describe("the change stepper of a follower", () => {
     following(() => undefined, go);
     fireEvent.click(screen.getByText("Stock"));
     fireEvent.click(screen.getByLabelText("Next change"));
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it("does not act on the follower's own keys", () => {
+    const go = vi.fn();
+    following(() => undefined, go);
+    fireEvent.keyDown(window, { key: "ArrowDown", shiftKey: true });
     expect(go).not.toHaveBeenCalled();
   });
 
