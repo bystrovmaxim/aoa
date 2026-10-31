@@ -36,17 +36,17 @@
 
 **Independent Test**: Lay out two versions differing in one domain; compare positions.
 
-- [ ] T005 `GM`: a new package like `packages/maxitor/core/graph_compare`: standard library only; `pyproject.toml`, workspace entry, `scripts/package_boundaries.toml`.
-- [ ] T006 [US5] `GM/.../areas.py`: from a graph document: drawn edges, membership by the client's rule, homes (first domain in order), `(outside)`, levels per data-model.md, content hash per area.
-- [ ] T007 [US5] `GM/.../bundles.py`: bundles between areas, with links by the types of their ends; counts by type.
-- [ ] T008 [US5] `GM/.../sketch.py`: the coarse grid per area, counts by type and status (research R6a).
-- [ ] T009 [US5] `GM/.../layout.py`: the DOT input of an area, stable by sorted ids, and reading `sfdp -Tjson0` with `overlap=scale`, the program passed in, so the package runs no process itself.
-- [ ] T010 [US5] `GM/.../places.py`: the registry of places (research R3): first placement by `sfdp` with `overlap=prism`, then packed tighter; a new area takes the nearest free place; a removed one keeps its place; one that outgrows its reserve moves alone.
-- [ ] T011 [P] [US5] Tests beside each module: homes for a node in several domains and in none; levels; bundle counts; the sketch's totals equal the counts; a place never overlaps; removing an element moves no other area.
-- [ ] T012 [US5] `F/src/maxitor/front/model/diagrams/resources/map_store.py`: a resource holding area layouts by content hash, places per history or source, and maps per version, on disk under the history cache; one layout at a time per version (FR-018); Live is laid out the same way, only its changed domains again (FR-019); it calls native `sfdp`, and refuses with a clear message when Graphviz is missing.
-- [ ] T013 `F/Dockerfile`: install Graphviz in the runtime image; `docs` of the local setup says `brew install graphviz`. Measure native `sfdp` on the generated graph and record it in research.md.
-- [ ] T014 Tests in `F/tests/test_map_store.py`: a second version lays out only the changed area; two readers share one layout; a restart reads what is stored; a failed area leaves the rest.
-- [ ] T015 Adversarial: drop the sort in the DOT; recompute all places per version; store by version, not by content; restore. Check run green; prepare commit 3: `feat(maxitor): lay the map out on the server, domain by domain (#319)`.
+- [X] T005 `GM`: a new package like `packages/maxitor/core/graph_compare`: standard library only; `pyproject.toml`, workspace entry, `scripts/package_boundaries.toml`.
+- [X] T006 [US5] `GM/.../areas.py`: from a graph document: drawn edges, membership by the client's rule, homes (first domain in order), `(outside)`, levels per data-model.md, content hash per area.
+- [X] T007 [US5] `GM/.../bundles.py`: bundles between areas, with links by the types of their ends; counts by type.
+- [X] T008 [US5] `GM/.../sketch.py`: the coarse grid per area, counts by type and status (research R6a).
+- [X] T009 [US5] `GM/.../layout.py`: the DOT input of an area, stable by sorted ids, and reading `sfdp -Tjson0` with `overlap=scale`, the program passed in, so the package runs no process itself.
+- [X] T010 [US5] `GM/.../places.py`: the registry of places (research R3): largest first, the nearest free spot beside what an area links to; a removed one keeps its place; one that outgrows its reserve moves alone.
+- [X] T011 [P] [US5] Tests beside each module: homes for a node in several domains and in none; levels; bundle counts; the sketch's totals equal the counts; a place never overlaps; removing an element moves no other area.
+- [X] T012 [US5] `F/src/maxitor/front/model/diagrams/resources/map_store.py`: a resource holding area layouts by content hash, places per history or source, and maps per version, on disk under the history cache; one layout at a time per version (FR-018); Live is laid out the same way, only its changed domains again (FR-019); it calls native `sfdp`, and refuses with a clear message when Graphviz is missing.
+- [X] T013 `F/Dockerfile`: install Graphviz in the runtime image; `docs` of the local setup says `brew install graphviz`. Measure native `sfdp` on the generated graph and record it in research.md.
+- [X] T014 Tests in `F/tests/test_map_store.py`: a second version lays out only the changed area; two readers share one layout; a restart reads what is stored; a failed area leaves the rest.
+- [X] T015 Adversarial: drop the sort in the DOT; recompute all places per version; store by version, not by content; restore. Check run green; prepare commit 3: `feat(maxitor): lay the map out on the server, domain by domain (#319)`.
 
 ---
 
@@ -56,7 +56,7 @@
 
 **Independent Test**: The contract's answers on the demo graph; sizes on the generated graph.
 
-- [ ] T016 [US1] `F/.../actions/map_overview_action.py`, `map_area_action.py` per contracts/maxitor-api.md: `laying-out` until ready; spec 037's rules for keys and logs.
+- [ ] T016 [US1] `F/.../actions/map_overview_action.py`, `map_area_action.py` per contracts/maxitor-api.md: `laying-out` until ready; spec 037's rules for keys and logs. **A version with a stored map must not build its DuckDB first**: 23.6 s at this size; the middleware lets map reads through with the source named, and the store finds the map by the version's sha.
 - [ ] T017 [US1] `F/tests/test_map_actions.py`: shapes; a refused version; a wrong key reads "not found"; level 2 holds no level 3 node; `across` lists links to other areas.
 - [ ] T018 [US1] `FC/scripts/generate-large-graph.ts`: 30 copies of the stand's graph, linked across copies, with a version changing one domain (spec, "The acceptance stand").
 - [ ] T019 Check run green; prepare commit 4: `feat(maxitor): read the map in parts (#319)`.

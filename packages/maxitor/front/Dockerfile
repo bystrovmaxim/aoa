@@ -12,6 +12,8 @@ COPY packages/maxitor/front/client/ ./
 RUN npm run build
 
 FROM python:3.12-slim AS runtime
+# The map's layouts: ``sfdp`` runs on the server (spec 040).
+RUN apt-get update && apt-get install -y --no-install-recommends graphviz && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./

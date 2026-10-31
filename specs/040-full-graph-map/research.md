@@ -40,14 +40,15 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 
 - **Decision**: `sfdp` with `overlap=scale`, each area on its own, using the native Graphviz binary called from a resource. The Docker image installs it, and developers install it with Homebrew. An area's result is stored under the hash of its content, so a version changing one domain lays out one area.
 - **Rationale**: measured stable: of 571 areas, only the two whose content changed moved inside. `overlap=scale` matters: without it the picture is a blob.
-- **Open**: the native binary was not measured; the numbers are WebAssembly's, and native is expected to be faster.
+- **Measured** on the generated graph with native `sfdp`, areas in parallel, with places, assembling and writing: first version **23.2 s**, next version with one domain changed **3.0 s**, one area laid out; a ready overview read in 12 ms, an area in 1 ms. The threshold of 1 minute holds.
 
 ## R3. Places of the areas: a registry, not a layout per version
 
-- **Decision**: where each area stands is kept per history. The first version places them; a new area takes the nearest free place; a removed area keeps its place, so a domain only in A stands in free space; an area that outgrows its place moves alone.
+- **Decision**: where each area stands is kept per history. Largest first, each area takes the nearest free spot beside what it links to, on a spiral, in plain Python; a new area does the same; a removed area keeps its place, so a domain only in A stands in free space; an area that outgrows its place moves alone.
 - **Rationale**: running `sfdp` on the areas per version fails FR-016. One removed field moved 571 of 571 areas, and rounding the sizes into classes did not help.
 - **Consequence**: a place depends on the history, not on the version alone. Inside an area, positions still depend only on its content, as the clarification says.
-- **Open**: this was reasoned, not prototyped. The areas also stood too far apart (extent 97 000 for a median radius of 770); a tighter packing is part of the first task.
+- **Tested**: a kept area keeps its place to the digit, no rooms overlap, a removed area keeps its place, one that outgrows its room moves alone.
+- **Open**: the map is still loose (extent 154 000 on the generated graph). Tighter packing is settled with the look, in phase 5.
 
 ## R4. The map does not stand on DuckDB
 
