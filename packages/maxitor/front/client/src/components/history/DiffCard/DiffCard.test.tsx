@@ -55,6 +55,29 @@ describe("the card of a changed element", () => {
     expect(row.querySelector("script, b")).toBeNull();
   });
 
+  it("says an action changed inside is the same and lists its parts by group, with both values", async () => {
+    compareElement.mockResolvedValue({ status: "unchanged", differences: [] });
+    const parts = [
+      { kind: "node" as const, id: "p:key", label: "key", type: "Field", group: "Params", status: "added" as const, differences: [] },
+      { kind: "node" as const, id: "r:ref", label: "ref", type: "Field", group: "Result", status: "changed" as const, differences: [{ path: ["properties", "description"], change: "changed" as const, before: "old", after: "new" }] },
+    ];
+    render(<DiffCard target={{ title: "SettleAction", status: "changed", elements: [{ kind: "node", id: "a" }], parts }} newer="0.9.0" at={{ x: 0, y: 0 }} onClose={() => undefined} />);
+    expect((await screen.findByTestId("diff-inside")).textContent).toBe("The action is the same; its parts changed.");
+    expect(screen.queryByText("No property differs.")).toBeNull();
+    expect(screen.getAllByTestId("diff-part-group").map((group) => group.firstChild?.textContent)).toEqual(["Params", "Result"]);
+    expect(screen.getAllByTestId("diff-part")[0].textContent).toBe("+ key");
+    expect(screen.getByTestId("diff-row").textContent).toBe("properties.descriptionold → new");
+  });
+
+  it("lists an action's own differences above its parts, with no line that it is the same", async () => {
+    compareElement.mockResolvedValue({ status: "changed", differences: [{ path: ["label"], change: "changed", before: "A", after: "B" }] });
+    const parts = [{ kind: "node" as const, id: "r:ref", label: "ref", type: "Field", group: "Result", status: "added" as const, differences: [] }];
+    render(<DiffCard target={{ title: "SettleAction", status: "changed", elements: [{ kind: "node", id: "a" }], parts }} newer="0.9.0" at={{ x: 0, y: 0 }} onClose={() => undefined} />);
+    await screen.findByTestId("diff-row");
+    expect(screen.queryByTestId("diff-inside")).toBeNull();
+    expect(screen.getAllByTestId("diff-part-group")).toHaveLength(1);
+  });
+
   it("closes with Escape", () => {
     const onClose = vi.fn();
     render(<DiffCard target={{ ...CHANGED, status: "added" }} newer="0.9.0" at={{ x: 0, y: 0 }} onClose={onClose} />);

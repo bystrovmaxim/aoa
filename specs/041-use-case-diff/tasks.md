@@ -34,10 +34,10 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 
 **Independent test**: click each kind of element and compare with the read.
 
-- [ ] T017 [P] [US3] Test grouped parts in packages/maxitor/front/client/src/components/history/DiffCard/DiffCard.test.tsx
-- [ ] T018 [US3] Add optional `parts` to `CardTarget` in packages/maxitor/front/client/src/lib/erdDiffCard.ts and render them in packages/maxitor/front/client/src/components/history/DiffCard/DiffCard.tsx: the line "The action is the same; its parts changed", `diff-part-group` groups, own differences above them; the ERD's card unchanged
-- [ ] T019 [US3] Open the card from a click in packages/maxitor/front/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx; close by Escape, click outside, Live; update DiffCard's README
-- [ ] T020 [US3] Walk User Story 3 on `erd-full`; adversarial: drop one group, the test fails, restore
+- [X] T017 [P] [US3] Test grouped parts in packages/maxitor/front/client/src/components/history/DiffCard/DiffCard.test.tsx
+- [X] T018 [US3] Add optional `parts` to `CardTarget` in packages/maxitor/front/client/src/lib/erdDiffCard.ts and render them in packages/maxitor/front/client/src/components/history/DiffCard/DiffCard.tsx: the line "The action is the same; its parts changed", `diff-part-group` groups, own differences above them; the ERD's card unchanged
+- [X] T019 [US3] Open the card from a click in packages/maxitor/front/client/src/components/diagrams/UseCaseDiagramViewer/UseCaseDiagramViewer.tsx; close by Escape, click outside, Live; update DiffCard's README
+- [X] T020 [US3] Walk User Story 3 on `erd-full`; adversarial: drop one group, the test fails, restore
 
 ## Phase 4: The stepper (US4)
 
