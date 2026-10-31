@@ -72,6 +72,12 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         base = str(name).strip()
         return base if base.endswith(" view") else f"{base} view"
 
+    @staticmethod
+    def _domains_holding(duck: DuckDBGraphResource, table: str) -> set[str]:
+        """The domains with at least one member in ``table``, a fixed name of this module."""
+        rows = duck.execute_fetch_dicts(f"SELECT DISTINCT de.target_id AS domain_id FROM domain_edges de JOIN {table} m ON m.id = de.source_id")
+        return {str(r["domain_id"]) for r in rows}
+
     # ─── Aspect 1 ─────────────────────────────────────────────────────────────
 
     @result_instance("level1_nodes", list, required=True)  # type: ignore[untyped-decorator]
@@ -176,10 +182,15 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
         rows: list[NodeCoreEntity] = []
 
+        # A diagram with nothing to draw has no row; a domain left with no rows shows dim in the panel.
+        with_entities = self._domains_holding(duck, "entity")
+        with_actions = self._domains_holding(duck, "action")
         for d in duck.execute_fetch_dicts("SELECT id, label FROM domain ORDER BY lower(label), id"):
             did, dlabel = str(d["id"]), str(d["label"])
-            rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
-            rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
+            if did in with_entities:
+                rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
+            if did in with_actions:
+                rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
 
         # One row per lifecycle, under the domain of the entity that holds it.
         lifecycles = duck.execute_fetch_dicts("""
