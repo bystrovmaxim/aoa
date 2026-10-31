@@ -36,8 +36,9 @@
  * leader goes to each page and zooms in; the follower must draw the same page, take the same zoom and
  * the same top-left corner within 2 px, and show the diagram on screen: its share of drawn pixels
  * (`pngInk.ts`) at least 60 % of the leader's. Safari runs one session at a time, so its pairs run one
- * after another, with Chromium only, both ways. On macOS Safari must be drivable — Develop → "Allow remote automation" — or the check
- * fails; elsewhere its pairs are skipped and a line says so.
+ * after another, with Chromium only, both ways. Safari only paints in a window on screen, so it runs when asked:
+ * MAXITOR_CHECK_SAFARI=1 adds it here, =full to every change in one frame too; asked for, it must be drivable —
+ * Develop → "Allow remote automation" — and its window uncovered. Not asked for, a line says it was skipped.
  *
  * Then every change of the picture in one frame (spec 038): in a room, on the ERD of all domains and on a
  * use case, the leader turns a domain off and on, paints by kinds and by domains, changes the layout mode,
@@ -584,7 +585,10 @@ const cameraInPage = () => {
   const params = new URLSearchParams(location.search);
   const zoom = Number(params.get("zoom"));
   const [x, y] = (params.get("at") ?? "").split(",").map(Number);
-  const view = document.querySelector("[data-layout-hash]")!.getBoundingClientRect();
+  // ``data-layout-hash`` is absent for a moment while a new drawing is hashed: no camera to read then.
+  const element = document.querySelector("[data-layout-hash]");
+  if (!element) return null;
+  const view = element.getBoundingClientRect();
   return { zoom, left: x - view.width / (2 * zoom), top: y - view.height / (2 * zoom), view: { x: view.left, y: view.top, width: view.width, height: view.height }, inner: innerWidth };
 };
 const hashInPage = () => document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") ?? null;
@@ -610,7 +614,7 @@ async function inkOfDiagram(tab: BrowserTab): Promise<number> {
     return true;
   }, null);
   try {
-    const camera = await tab.evaluate(cameraInPage, null);
+    const camera = await waitInPage(tab, cameraInPage, null, HASH_TIMEOUT_MS, "the diagram");
     const image = decodePng(await tab.screenshot());
     const scale = image.width / camera.inner;
     // A few pixels in from the edge, past the frame a follower's screen wears.
@@ -693,7 +697,7 @@ async function followEveryDiagram(openLead: () => Promise<BrowserTab>, openFollo
       const same = await goTo(leader, follower, page);
       await leader.evaluate(clickButtonInPage, "Zoom in");
       await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
-      const [a, b] = [await leader.evaluate(cameraInPage, null), await follower.evaluate(cameraInPage, null)];
+      const [a, b] = [await waitInPage(leader, cameraInPage, null, HASH_TIMEOUT_MS, "the leader's diagram"), await waitInPage(follower, cameraInPage, null, HASH_TIMEOUT_MS, "the follower's diagram")];
       const [leaderInk, followerInk] = [await inkOfDiagram(leader), await inkOfDiagram(follower)];
       outcomes.push({
         label: page.label,
@@ -940,8 +944,11 @@ async function main(): Promise<void> {
     // Following on every kind of diagram, in every directed pair of four browsers. Playwright's pairs run at
     // once; Safari's one after another, since Safari drives one session at a time.
     const pages = oneOfEachKind(targets);
+    // The real Safari only paints in a window on screen, so it runs when asked: MAXITOR_CHECK_SAFARI=1 adds it to
+    // following on every diagram, =full to every change in one frame too. Its window must stay uncovered meanwhile.
+    const safariAsked = process.env.MAXITOR_CHECK_SAFARI ?? "";
     const safariPort = await freePort();
-    const safariWhy = await safariUnavailable(safariPort);
+    const safariWhy = safariAsked ? await safariUnavailable(safariPort) : "not asked for (MAXITOR_CHECK_SAFARI=1 or full)";
     const openers: [string, () => Promise<BrowserTab>][] = [
       ...ENGINES.map(([name, engine]): [string, () => Promise<BrowserTab>] => [
         name,
@@ -981,7 +988,7 @@ async function main(): Promise<void> {
       const parallel = everyPair.filter((pair) => !isSafari(pair));
       const outcomes = await allEnded(parallel.map((pair) => everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages)));
       parallel.forEach((pair, i) => byPair.set(`${pair.leadName} → ${pair.followName}`, outcomes[i]));
-      for (const pair of everyPair.filter(isSafari)) byPair.set(`${pair.leadName} → ${pair.followName}`, await everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages));
+      if (safariAsked === "full") for (const pair of everyPair.filter(isSafari)) byPair.set(`${pair.leadName} → ${pair.followName}`, await everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages));
       return byPair;
     });
     const [partASeconds, partBSeconds, partCSeconds] = [layout.seconds, pointers.seconds, following.seconds];
@@ -1027,8 +1034,8 @@ async function main(): Promise<void> {
       }
     }
     if (safariWhy !== null) {
-      // On macOS Safari is part of the check; elsewhere it cannot be.
-      const required = process.platform === "darwin";
+      // Asked for on macOS, Safari must answer; not asked for, or elsewhere, it is skipped with a line saying so.
+      const required = Boolean(safariAsked) && process.platform === "darwin";
       ok &&= !required;
       console.log(`${required ? "DIFF" : "skip"}  Safari | ${safariWhy}`);
     }

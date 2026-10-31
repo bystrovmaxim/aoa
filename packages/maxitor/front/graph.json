@@ -3470,6 +3470,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageParams|field|maxitor.front.model.rooms.actions.report_page_action.ReportPageParams:layout_reloaded",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageParams",
+      "target_id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageParams:layout_reloaded",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageParams|field|maxitor.front.model.rooms.actions.report_page_action.ReportPageParams:page",
       "is_dag": false,
       "properties": {},
@@ -6891,6 +6900,17 @@
       "label": "layout_hash",
       "properties": {
         "description": "Layout hash of the picture the tab drew",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageParams:layout_reloaded",
+      "label": "layout_reloaded",
+      "properties": {
+        "description": "Whether the tab reloaded for its layout lately",
         "entity_schema": false,
         "json_schema_value": false,
         "required": false
