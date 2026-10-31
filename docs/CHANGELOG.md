@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-10-31] — A domain switched off in the Maxitor ERD stays off
+
+Switching a domain off in the ERD filter now does what it says. Before, with 1-hop off, tables of that domain could stay on the diagram whenever a table of another domain pointed at them, so the filter looked broken. Now they leave together with the domain. Turn 1-hop on and those neighbours come back on purpose, one line away from the tables you kept and no further.
+
 ## [2026-10-31] — Maxitor compares two versions of a service's graph, and rooms keep everyone on one picture
 
 Switch the version picker from One to Diff and the track holds two handles: A, the older version, and B, the newer one. Drag either, or the whole stretch between them, and the ERD shows what changed from A to B — added tables green, removed ones red with a dashed frame, changed ones amber, untouched ones faded — and every field carries the same mark. The version button counts the changes on the diagram you are looking at, or says "no changes". A click on a marked table or field opens its card with every property before and after. A Changes section joins the filter panel next to Domains and Kinds, and three points at its foot choose what paints the headers. The two pull request messages stand side by side under the track, the versions between them one click away, and the address keeps both versions, so a link opens the same comparison.

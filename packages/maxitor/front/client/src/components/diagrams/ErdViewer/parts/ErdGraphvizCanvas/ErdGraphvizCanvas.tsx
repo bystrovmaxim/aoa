@@ -38,7 +38,7 @@ import {
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
-import { changesOnDiagram, filterGraphByChanges, onScreen, withOneHop } from "@/lib/erdFilterPresence";
+import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
@@ -223,14 +223,9 @@ export function ErdGraphvizCanvas({
   useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table");
 
 
-  const mergedByTabs = useMemo(
-    () =>
-      getMergedFromDomains(
-        enriched,
-        multiTab ? enabledDomains : new Set(domainKeyList),
-      ),
-    [enriched, multiTab, enabledDomains, domainKeyList],
-  );
+  const tabsOn = useMemo(() => (multiTab ? enabledDomains : new Set(domainKeyList)), [multiTab, enabledDomains, domainKeyList]);
+
+  const mergedByTabs = useMemo(() => getMergedFromDomains(enriched, tabsOn), [enriched, tabsOn]);
 
   const fallbackQual = useMemo(() => {
     if (multiTab || domainKeyList.length === 0) return null;
@@ -263,14 +258,13 @@ export function ErdGraphvizCanvas({
   // so a filter never adds or removes another filter's rows (spec 038).
   const baseGraph = useMemo(() => getMergedFromDomains(enriched, new Set(domainKeyList)), [enriched, domainKeyList]);
   const baseEntities = baseGraph.entities ?? [];
-  // The open domains' own tables, filtered; 1-hop then brings back the base's tables one line away from those left —
-  // the neighbours from other domains, and any table a filter hid.
-  const openQuals = useMemo(() => new Set(Object.values(bundle.domain_qualifiers).map((qual) => qual.trim())), [bundle.domain_qualifiers]);
+  // The own tables of the domains switched on, filtered; 1-hop then brings back the base's tables one line away from
+  // those left — the neighbours from other domains, and any table a filter hid.
+  const qualsOn = useMemo(() => domainsOn(bundle.domain_qualifiers, tabsOn), [bundle.domain_qualifiers, tabsOn]);
   const mergedData = useMemo(() => {
     const filtered = filterGraphByChanges(filterGraphByKinds(beforeKinds, disabledKinds), offChanges);
-    const own = pruneGraphToEntities(filtered, (entity) => openQuals.has(readEntityQual(entity) ?? fallbackQual ?? ""));
-    return includeOneHop ? withOneHop(own, baseGraph) : own;
-  }, [beforeKinds, disabledKinds, offChanges, includeOneHop, baseGraph, openQuals, fallbackQual]);
+    return tablesToDraw(filtered, baseGraph, qualsOn, (entity) => readEntityQual(entity) ?? fallbackQual, includeOneHop);
+  }, [beforeKinds, disabledKinds, offChanges, includeOneHop, baseGraph, qualsOn, fallbackQual]);
 
   const erdEmptyOverlay =
     mergedData.entities.length === 0 ? (
