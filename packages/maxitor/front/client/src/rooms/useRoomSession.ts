@@ -13,9 +13,9 @@ import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
-import { checkNotice, decideCheck, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
-import { clearFocus, putFocus } from "@/rooms/focusStore";
-import { clearPointers, dropPointer, putPointer, putViewport } from "@/rooms/pointerStore";
+import { checkNotice, decideCheck, lastLayoutReload, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
+import { clearFocus, putFocus, reportHover } from "@/rooms/focusStore";
+import { clearPointers, dropPointer, putClick, putPointer, putViewport } from "@/rooms/pointerStore";
 import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
 import { openHistory } from "@/api/history";
@@ -116,10 +116,10 @@ export type RoomSessionOptions = {
   surface: DiagramSurface | null;
   /** The fingerprint of the graph the left panel was read from. */
   fingerprint: string | null;
-  /** The history the tab shows, for a room on it (spec 037): its name, version and key; ``null`` for a service. */
-  history?: { name: string; version: string | null; key: string } | null;
-  /** The room moved to a version, or a newcomer learned the room's. */
-  onVersion?: (b: string) => void;
+  /** The history the tab shows, for a room on it (spec 037): its name, version — and in Diff its A (spec 038) — and key; ``null`` for a service. */
+  history?: { name: string; version: string | null; versionA?: string | null; key: string } | null;
+  /** The room moved to a version or, with ``a``, to two compared; or a newcomer learned the room's. */
+  onVersion?: (b: string, a: string | null) => void;
   /** The room's history changed: read its list again. */
   onHistoryChanged?: () => void;
 };
@@ -167,11 +167,15 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const onEvent = useCallback((event: ServerEvent) => {
     // Pointers and screens change many times a second: they bypass React state.
     if (event.type === "pointer") {
-      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now() });
+      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame && { frame: event.frame }) });
       return;
     }
     if (event.type === "viewport") {
-      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h });
+      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h, ...(event.pw && event.ph && { pw: event.pw, ph: event.ph }) });
+      return;
+    }
+    if (event.type === "click") {
+      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame && { frame: event.frame }) });
       return;
     }
     if (event.type === "focus") {
@@ -180,10 +184,10 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       return;
     }
     if (event.type === "check") {
-      const outcome = decideCheck(event, Date.now(), lastSelfReload());
+      const outcome = decideCheck(event, Date.now(), lastSelfReload(), lastLayoutReload());
       setPageNotice(checkNotice(outcome));
       setPointersOffPage(outcome.pointersOff ? pageRef.current : null);
-      if (outcome.reload) reloadKeepingView(surfaceRef.current?.view() ?? null, Date.now(), () => window.location.reload());
+      if (outcome.reload) reloadKeepingView(surfaceRef.current?.view() ?? null, Date.now(), () => window.location.reload(), outcome.layoutReload);
       else if (outcome.reread) callbacks.current.onGraphChanged();
       return;
     }
@@ -191,7 +195,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       dropPointer(event.type === "left" ? event.participant.id : event.id);
     }
     if (event.type === "version") {
-      if (event.b) callbacks.current.onVersion?.(event.b);
+      if (event.b) callbacks.current.onVersion?.(event.b, event.a ?? null);
       return;
     }
     if (event.type === "history_changed") {
@@ -200,7 +204,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     }
     if (event.type === "welcome" && event.room.history && event.room.version) {
       // A newcomer takes the room's version, whatever their link named (FR-022a).
-      callbacks.current.onVersion?.(event.room.version);
+      callbacks.current.onVersion?.(event.room.version, event.room.version_a ?? null);
     }
     if (event.type === "welcome") {
       target.current = event.room.id;
@@ -250,7 +254,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       const next = new RoomConnection({
         room: roomId,
         source: source ?? undefined,
-        history: onHistory ? { name: onHistory.name, version: onHistory.version } : undefined,
+        history: onHistory ? { name: onHistory.name, version: onHistory.version, versionA: onHistory.versionA ?? null } : undefined,
         ticket: onHistory?.key ? async () => (await openHistory(onHistory.name, onHistory.key)).room_ticket : undefined,
         name,
         page: pageRef.current ?? "",
@@ -293,10 +297,21 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
         return;
       }
       opening.current = dialog.mode === "open";
-      connect(name);
+      // A page on a private history joins with a ticket its key buys: before the history is read there is no key yet,
+      // and the server would refuse the room as ended. The join waits for it (spec 038).
+      const historyAwaited = new URLSearchParams(window.location.search).has("history") && !historyRef.current;
+      if (historyAwaited) waitingName.current = name;
+      else connect(name);
     },
     [dialog, connect, send],
   );
+  const waitingName = useRef<string | null>(null);
+  useEffect(() => {
+    if (!history || waitingName.current === null) return;
+    const name = waitingName.current;
+    waitingName.current = null;
+    connect(name);
+  }, [history, connect]);
 
   /** **Leave room**: close the connection, keep the page, take ``room`` out of the address. */
   const leave = useCallback(() => {
@@ -336,10 +351,12 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     });
   }, []);
 
-  // Another page: pointers seen on the old one do not belong here.
+  // Another page: pointers seen on the old one do not belong here, nor your own hover. Whom you follow and what they
+  // look at stay — each focus names its page — or a follower lost them on every page they were led to, fitted the new
+  // one to its own screen and showed its own panels until the leader changed something (spec 038).
   useEffect(() => {
     clearPointers();
-    clearFocus();
+    reportHover(null);
   }, [page]);
 
   // Every page the tab opens is reported, so the room knows where its participants are (FR-013),

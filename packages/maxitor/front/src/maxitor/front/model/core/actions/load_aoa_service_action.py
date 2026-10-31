@@ -82,6 +82,7 @@ class LoadAOAServiceResult(BaseResult):
     content_sha256: str = Field(min_length=64, max_length=64, description="SHA-256 of the graph-json body the graph was built from.")
     etag: str = Field(description="The service's ETag for that body; empty when it gave none.")
     last_modified: str = Field(description="The service's Last-Modified for that body; empty when it gave none.")
+    graph_text: str = Field(min_length=1, description="The graph's JSON text as built: the envelope's coordinator_json, or the bare graph.")
 
 
 @meta(description="Validate and load a remote AOA service graph into Maxitor.", domain=CoreDomain)
@@ -92,7 +93,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
     AI-CORE-BEGIN
     ROLE: Five-aspect pipeline — validate URL format, normalize to endpoint path, validate service reachability, parse graph data, build DuckDB graph.
     CONTRACT: Params.service_url accepts both a bare base URL (http://host:8001) and a full graph-json endpoint (http://host:8001/examples/model/graph-json); Result.graph_resource holds the populated DuckDB resource ready for catalog queries.
-    INVARIANTS: Only one download is made, through ``connections[GraphSource]`` in validate_service_aspect; subsequent aspects read from state without re-fetching; the body's SHA-256 and validators travel to the result.
+    INVARIANTS: Only one download is made, through ``connections[GraphSource]`` in validate_service_aspect; subsequent aspects read from state without re-fetching; the body's SHA-256, validators and the graph's text travel to the result.
     AI-CORE-END
     """
 
@@ -205,6 +206,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
     @result_string("service_graph_json_url", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @result_instance("service_graph_data", dict, required=True)  # type: ignore[untyped-decorator]
     @result_instance("source_identity", dict, required=True)  # type: ignore[untyped-decorator]
+    @result_string("coordinator_json_raw", required=True, not_empty=True)  # type: ignore[untyped-decorator]
     @regular_aspect("Parse coordinator_json string and validate the graph structure contains nodes and edges.")
     async def parse_service_graph_aspect(
         self,
@@ -236,6 +238,7 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
             "service_graph_json_url": url,
             "service_graph_data": service_graph_data,
             "source_identity": state["source_identity"],
+            "coordinator_json_raw": coordinator_json_raw,
         }
 
     # ─── Aspect 5 (summary) ──────────────────────────────────────────────────
@@ -266,4 +269,5 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
             content_sha256=identity["sha256"],
             etag=identity["etag"],
             last_modified=identity["last_modified"],
+            graph_text=cast(str, state["coordinator_json_raw"]),
         )

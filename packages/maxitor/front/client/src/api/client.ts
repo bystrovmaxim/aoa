@@ -30,6 +30,25 @@ export function getActiveSource(): string | null {
   return activeSource;
 }
 
+/** One graph read's own source and key, in place of the tab's: how the older version of a comparison is read. */
+export type GraphRead = { source: string; key: string };
+
+/**
+ * In Diff (spec 038), the older version A — its source and the history's key —, or ``null``: the tab's active
+ * source is B, and the diagrams read A as well, to draw the two together.
+ */
+let activeBase: GraphRead | null = null;
+
+/** Set the older version the diagrams compare with, or ``null`` to show one version. */
+export function setActiveBase(base: GraphRead | null): void {
+  activeBase = base;
+}
+
+/** The older version the diagrams compare with, or ``null``. */
+export function getActiveBase(): GraphRead | null {
+  return activeBase;
+}
+
 /** A graph read answered with a refusal; ``status`` tells a failure of the source from a busy server. */
 export class GraphReadError extends Error {
   constructor(
@@ -86,14 +105,15 @@ function waitForBusyRetry(response: Response): Promise<void> {
 }
 
 /**
- * Read a graph endpoint for the active source, waiting out a busy server and retrying.
+ * Read a graph endpoint for the active source — or for ``read``'s, with its key —, waiting out a busy server and retrying.
  *
  * A 503 means "no build slot right now": the source is fine, so the read keeps asking after the
  * pause the server named. Every other answer is returned as is, refusal included.
  */
-export async function graphFetch(path: string, query?: URLSearchParams): Promise<Response> {
+export async function graphFetch(path: string, query?: URLSearchParams, read?: GraphRead): Promise<Response> {
+  const key = read ? read.key : activeHistoryKey;
   for (;;) {
-    const response = await fetch(graphApiUrl(path, query), activeHistoryKey ? { headers: { "X-Maxitor-History-Key": activeHistoryKey } } : undefined);
+    const response = await fetch(graphApiUrl(path, query, read?.source), key ? { headers: { "X-Maxitor-History-Key": key } } : undefined);
     if (response.status !== 503) {
       nextBusySeconds = BUSY_FALLBACK_SECONDS;
       return response;
@@ -118,11 +138,23 @@ export function apiUrl(path: string): string {
  * ``URLSearchParams`` encodes the source, so a literal ``+`` travels as ``%2B`` and a space as
  * ``+`` — the server reads the source back unchanged and every read of one source names one key.
  */
-export function graphApiUrl(path: string, query?: URLSearchParams): string {
-  if (activeSource === null) {
-    throw new Error("No active source: name the AOA service graph-json URL before reading its graph.");
+/**
+ * A read asked for before the tab knows its source — a history still opening, say. Not a failure: the read is asked
+ * again once the source is named, so the page waits rather than reports it.
+ */
+export class NoSourceYetError extends Error {
+  constructor() {
+    super("No active source: name the AOA service graph-json URL before reading its graph.");
+    this.name = "NoSourceYetError";
+  }
+}
+
+export function graphApiUrl(path: string, query?: URLSearchParams, source?: string): string {
+  const named = source ?? activeSource;
+  if (named === null) {
+    throw new NoSourceYetError();
   }
   const params = query === undefined ? new URLSearchParams() : new URLSearchParams(query);
-  params.set("source", activeSource);
+  params.set("source", named);
   return `${apiUrl(path)}?${params.toString()}`;
 }

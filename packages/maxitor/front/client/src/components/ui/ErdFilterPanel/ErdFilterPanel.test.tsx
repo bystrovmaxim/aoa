@@ -125,4 +125,41 @@ describe("ErdFilterPanel", () => {
     expect(within(panel).queryByText("Filter")).toBeNull();
     expect(within(panel).getByRole("button", { name: "Hide filter" }).parentElement).toBe(header("Domains").parentElement);
   });
+
+  it("dims the name of a row with nothing of it on screen, and leaves it on (spec 038)", () => {
+    render(<ErdFilterPanel domainRows={[row("Billing"), { ...row("Gone"), absent: true }]} kindRows={kinds} onToggleDomain={() => undefined} onToggleKind={() => undefined} />);
+    const label = (name: string) => within(screen.getByRole("button", { name })).getByTestId("erd-filter-label");
+    expect(getComputedStyle(label("Gone")).opacity).toBe("0.4");
+    expect(getComputedStyle(label("Billing")).opacity).toBe("1");
+    expect(screen.getByRole("button", { name: "Gone" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("lists the kinds of change in a Changes section and toggles them through its callback", () => {
+    const onToggleChange = vi.fn();
+    render(<ErdFilterPanel domainRows={domains} kindRows={kinds} onToggleDomain={() => undefined} onToggleKind={() => undefined} changeRows={[row("added", "Added"), row("unchanged", "Unchanged")]} onToggleChange={onToggleChange} />);
+    fireEvent.click(header("Changes"));
+    fireEvent.click(screen.getByRole("button", { name: "Added" }));
+    expect(onToggleChange).toHaveBeenCalledWith("added");
+  });
+
+  it("puts the gear shift at its foot, one point per section in their order, below the panel's one divider", () => {
+    const onPaint = vi.fn();
+    render(
+      <ErdFilterPanel domainRows={domains} kindRows={kinds} onToggleDomain={() => undefined} onToggleKind={() => undefined} changeRows={[row("added", "Added")]} onToggleChange={() => undefined} paint={{ source: "changes", onPaint }} />,
+    );
+    const points = screen.getAllByRole("radio");
+    expect(points.map((point) => point.getAttribute("aria-label"))).toEqual(["Paint by Domains", "Paint by Kinds", "Paint by Changes"]);
+    expect(points[2].getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(points[0]);
+    expect(onPaint).toHaveBeenCalledWith("domains");
+    const panel = screen.getByTestId("erd-filter-panel");
+    const divided = [...panel.querySelectorAll("div")].filter((element) => /rgba\(0, ?0, ?0, ?0\.07\)/.test(getComputedStyle(element).borderTop));
+    expect(divided).toHaveLength(1);
+    expect(divided[0].contains(points[0])).toBe(true);
+  });
+
+  it("has no gear shift when there is one section to paint by", () => {
+    render(<ErdFilterPanel domainRows={domains} kindRows={kinds.slice(0, 1)} onToggleDomain={() => undefined} onToggleKind={() => undefined} paint={{ source: "domains", onPaint: () => undefined }} />);
+    expect(screen.queryByRole("radio")).toBeNull();
+  });
 });

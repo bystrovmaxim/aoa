@@ -83,3 +83,15 @@ label remains unchanged, including with a stale dictionary_label beside it.
 
 Nothing here knows a domain's vocabulary: every name comes from the payload, and a model that declares
 no dictionary has an empty `values` array, and ordinary scalar fields have no `reference_qualname`.
+
+## Two versions at once (spec 038)
+
+In Diff the bundle holds A's and B's slices merged and marked (`@/lib/erdDiff`, loaded by
+`loadErdDomainsBundle` when `@/api/client` names an older version): every table, row and line carries
+`diff` — `added`, `removed`, `changed` or `unchanged`. `buildDotSource` draws added green, removed red,
+changed amber, each with its sign (`+`, `−`, `~`) as well as its colour; a removed row is struck through; a
+type that changed reads `~~old~~ → new` when it fits; a field that now points at another table is one amber
+line, solid to where it points now, with a thin dashed line (`rp<k>`) to where it pointed. `drawErdCards`
+fades the tables that did not change and dashes the frame of a removed one. The drawn diagram's counts go to
+the version button through `@/lib/diffCounts`; when they are all zero the diagram is drawn unmarked, as One
+draws it. `scripts/check-erd-table-style.ts` checks each mark on the real WASM build.

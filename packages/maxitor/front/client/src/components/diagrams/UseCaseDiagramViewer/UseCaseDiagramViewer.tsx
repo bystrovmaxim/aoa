@@ -6,7 +6,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
-import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
@@ -176,14 +176,14 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     fitBottomInset: 56,
     fitMarginPx: 14,
     fitBoundsSelector: "g.graph g.node, g.graph g.edge, g.graph g.cluster",
+    fitToViewBox: true,
   });
-  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } = panZoom;
+  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag, needsFit } = panZoom;
 
   const [svgMarkup, setSvgMarkup] = useState("");
-  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090).
-  const layoutHashValue = useSvgLayoutHash(svgMarkup);
-  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
-  const layoutInputDigest = useSvgLayoutHash(svgMarkup ? `${graphvizEngineForBundle}\n${dot}` : "");
+  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090); the text Graphviz
+  // was given, hashed with it as one pair, is the settings digest a room compares layouts under (FR-093).
+  const layoutPair = useSvgLayoutPair(svgMarkup, `${graphvizEngineForBundle}\n${dot}`);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
@@ -196,13 +196,9 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   useLayoutEffect(() => {
     const d = bundle?.dot ?? "";
     if (d === prevDotRef.current) return;
-    const prev = prevDotRef.current;
     prevDotRef.current = d;
-    setFirstFitDone(false);
     resetFitFlag();
-    if (prev !== null) {
-      setSvgMarkup("");
-    }
+    // The previous drawing stays until the new one is placed and fitted in one frame (spec 038): no blank frame.
   }, [dot, resetFitFlag]);
 
   useEffect(() => {
@@ -241,6 +237,10 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     if (!svgMarkup) return;
     const panner = pannerRef.current;
     if (!panner) return;
+    // The markup is placed here, not through ``dangerouslySetInnerHTML``: React put it back on every render (a zoom
+    // click is enough) as Graphviz wrote it — a third larger, in points, and without the steps below — so the drawing
+    // on screen was not the one just fitted (spec 038; ErdGraphvizCanvas places its own the same way).
+    panner.innerHTML = svgMarkup;
 
     const svg = panner.querySelector("svg");
     if (svg instanceof SVGSVGElement) {
@@ -257,39 +257,20 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
       postProcessGraphvizSvgDom(svg);
     }
 
-    let unbindPan: (() => void) | undefined;
-    let cancelled = false;
-    let raf1: number;
-    let raf2: number;
-    let raf3: number;
-    let raf4: number | undefined;
-
-    const doFitAndBind = () => {
-      if (cancelled) return;
-      fitToContainer();
-      raf4 = requestAnimationFrame(() => {
-        if (cancelled) return;
-        fitToContainer();
-        unbindPan = bindInteractions();
-        setFirstFitDone(true);
-      });
-    };
-
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        raf3 = requestAnimationFrame(doFitAndBind);
-      });
+    // A new drawing is fitted here, before the frame is painted, and shown at once: no frame with the old view, a blank
+    // or a hidden panner (spec 038). One frame later it is fitted again only if this one could not measure.
+    fitToContainer();
+    const unbindPan = bindInteractions();
+    setFirstFitDone(true);
+    const raf = requestAnimationFrame(() => {
+      if (needsFit()) fitToContainer();
     });
 
     return () => {
-      cancelled = true;
-      unbindPan?.();
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      cancelAnimationFrame(raf3);
-      if (raf4 !== undefined) cancelAnimationFrame(raf4);
+      unbindPan();
+      cancelAnimationFrame(raf);
     };
-  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
+  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, needsFit]);
 
   return (
     <DiagramShell loading={loading} error={error}>
@@ -318,8 +299,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
             )}
             <Box
               ref={viewportRef}
-              data-layout-hash={layoutHashValue}
-              data-layout-input={layoutInputDigest}
+              data-layout-hash={layoutPair?.hash}
+              data-layout-input={layoutPair?.digest}
               sx={{
                 position: "absolute",
                 inset: 0,
@@ -352,7 +333,6 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                     transformOrigin: "0 0",
                   },
                 }}
-                dangerouslySetInnerHTML={{ __html: svgMarkup }}
               />
             </Box>
 

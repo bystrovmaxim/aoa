@@ -9,16 +9,21 @@ import type { SidebarPayload } from "@/model/sidebar";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { GraphReadError, onGraphBusy, setActiveHistoryKey, setActiveSource } from "@/api/client";
+import { GraphReadError, onGraphBusy, setActiveBase, setActiveHistoryKey, setActiveSource } from "@/api/client";
+import { setDiffNames, useDiffCounts } from "@/lib/diffCounts";
 import { HistoryRequestError, historyVersions, openHistory, type OpenedHistory } from "@/api/history";
 import { VersionButton } from "@/components/history/VersionButton";
 import { VersionMessage } from "@/components/history/VersionMessage";
 import { VersionPicker } from "@/components/history/VersionPicker";
+import { VersionsBetween } from "@/components/history/VersionsBetween";
 import { keyFor } from "@/lib/historyKey";
 import { liveLine } from "@/lib/liveLine";
-import { shownNameOf } from "@/lib/versionNames";
+import { shortNameOf, shownNameOf } from "@/lib/versionNames";
 import { hasPicker } from "@/model/historyMode";
-import { sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
+import { keysOf, sourceOf, useOpenHistory, versionOf } from "./useOpenHistory";
+import { diffOffered, oneToDiff, stepShown, type Range } from "@/lib/versionRange";
+import { stepOfKey } from "@/lib/stepKeys";
+import type { PickerMode } from "@/components/history/VersionPicker";
 import { loadGraph } from "@/api/load";
 import { getGraphFingerprint } from "@/api/graphFingerprint";
 import { useFingerprintPoll, useModelRefresh } from "@/lib/freshGraph";
@@ -32,9 +37,13 @@ import {
   setUrlHistory,
   setUrlRoom,
   syncUrlToState,
+  readUrlParams,
+  setUrlView,
   type UrlDeepLink,
 } from "@/lib/urlState";
-import { PageSettingsProvider, type RoomSettings } from "@/lib/pageSettings";
+import { PageSettingsProvider, seedPageSettings, shownPageSettings, usePageSettingsVersion, type RoomSettings } from "@/lib/pageSettings";
+import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "@/lib/viewUrl";
+import type { SavedView } from "@/rooms/diagramSurface";
 import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
@@ -45,6 +54,10 @@ import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
 import { lastName, useRoomSession } from "@/rooms/useRoomSession";
+import { useShownPanel } from "@/rooms/focusStore";
+
+/** How long a pan or zoom must rest before the address takes it: the address does not chase every frame. */
+const CAMERA_SETTLE_MS = 250;
 
 export function App() {
   const [diagram, setDiagram] = useState<DiagramSelection | null>(null);
@@ -61,12 +74,19 @@ export function App() {
   // as it runs, so a second read (e.g. React StrictMode's dev-only double-invoke of mount
   // effects) would see an already-rewritten URL and silently drop the deep link.
   const initialLinkRef = useRef<UrlDeepLink | undefined>(undefined);
+  /** The zoom and centre the address opened with, placed on the first diagram drawn, then forgotten. */
+  const openingCamera = useRef<SavedView | null>(null);
   if (!initialLinkRef.current) {
     initialLinkRef.current = readUrlDeepLink();
     // The source must be known before the page's first read: the read below goes out with it.
     setActiveSource(initialLinkRef.current.source ?? null);
     // A room link keeps ``room`` in the address while its name dialog is open.
     setUrlRoom(initialLinkRef.current.room ?? null);
+    // The view the address names — filters, layout, modes, paint — is the page's own from the first render (spec 038).
+    const view = paramsToView(readUrlParams());
+    openingCamera.current = paramsToCamera(readUrlParams());
+    const opening = deepLinkToSelection(initialLinkRef.current);
+    if (opening) seedPageSettings(pageKeyOf(opening), view.settings);
   }
 
   const page = diagram ? pageKeyOf(diagram) : null;
@@ -78,8 +98,16 @@ export function App() {
   const shownSource = shown ? sourceOf(shown) : null;
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
   const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals) : null;
+  // In Diff (spec 038) the tab compares A with B; the diagram shows B until the comparison draws both.
+  const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals) : null;
+  const trackPoints = shown ? keysOf(shown) : [];
+  const pickerMode: PickerMode = shown?.a ? "diff" : "one";
+  const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
+  const diffCounts = useDiffCounts();
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // A follower sees the version picker open while the person they follow has it open (spec 038).
+  const [ownPickerOpen, setPickerOpen] = useState(false);
+  const pickerOpen = useShownPanel(ownPickerOpen, setPickerOpen, (panels) => panels.versions, (open) => ({ versions: open }));
   const versionButton = useRef<HTMLButtonElement | null>(null);
   // On a phone the picker is a sheet from the bottom (FR-031), at the width MainLayout calls a phone.
   const phone = useMediaQuery(useTheme().breakpoints.down("sm"));
@@ -114,8 +142,8 @@ export function App() {
     onGraphChanged: handleGraphChanged,
     surface,
     fingerprint: sidebar?.fingerprint ?? null,
-    history: shown ? { name: shown.name, version: shown.b, key: shown.key } : null,
-    onVersion: opened.pick,
+    history: shown ? { name: shown.name, version: shown.b, versionA: shown.a, key: shown.key } : null,
+    onVersion: (b, a) => (a ? opened.pickRange({ a, b }) : opened.pick(b)),
     onHistoryChanged: () => {
       if (!shown) return;
       void historyVersions(shown.name, shown.key)
@@ -136,6 +164,33 @@ export function App() {
     () => (roomSettings ? { settings: roomSettings, set: setPageSetting } : null),
     [roomSettings, setPageSetting],
   );
+
+  // The address always carries the view on screen — the room's inside one —, so a reload or a copied link shows it.
+  const settingsVersion = usePageSettingsVersion();
+  // Where the diagram is looked at, too: every pan and zoom, a moment after it settles.
+  // Until the first diagram is drawn the address keeps the view it opened with, so a second reload loses nothing.
+  const [camera, setCamera] = useState<SavedView | null>(() => openingCamera.current);
+  useEffect(() => {
+    if (!surface) return undefined;
+    if (openingCamera.current) {
+      surface.restore(openingCamera.current);
+      openingCamera.current = null;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const note = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setCamera(surface.view()), CAMERA_SETTLE_MS);
+    };
+    note();
+    const stop = surface.subscribe(note);
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+  }, [surface]);
+  useEffect(() => {
+    setUrlView(page ? { ...viewToParams(shownPageSettings(page, sharedSettings)), ...cameraToParams(camera) } : {});
+  }, [page, settingsVersion, sharedSettings, camera]);
   /**
    * Going to someone opens their page like any navigation: the left panel and the address follow.
    * Following replaces the history entry instead, so Back is not flooded (FR-057).
@@ -150,7 +205,7 @@ export function App() {
     [serviceUrl],
   );
   const goTo = useGoTo({ surface, page, navigate: navigateToPage });
-  const { following, follow, stop: stopFollowing } = useFollow({
+  const { following, lead, follow, stop: stopFollowing } = useFollow({
     room: room.room,
     send: room.send,
     surface,
@@ -194,10 +249,10 @@ export function App() {
   }
 
   /** Open the history an address names, with the key this tab or Recent holds; a refusal is a notice. */
-  async function openHistoryOf(name: string, b: string | null) {
+  async function openHistoryOf(name: string, b: string | null, a: string | null = null) {
     const key = keyFor(name);
     try {
-      opened.show(await openHistory(name, key), key, b);
+      opened.show(await openHistory(name, key), key, b, a);
     } catch (e) {
       setUrlHistory(null);
       opened.close();
@@ -209,11 +264,12 @@ export function App() {
   function applyDeepLink(link: UrlDeepLink, activeServiceUrl: string | null, activeSidebar: SidebarPayload | null) {
     if (link.history) {
       // Named at once, so the address keeps ``history`` and ``b`` while the history is still being opened.
-      setUrlHistory({ name: link.history, b: link.b ?? null });
+      setUrlHistory({ name: link.history, b: link.b ?? null, a: link.a ?? null });
       const resolvedHistory = deepLinkToSelection(link);
       if (resolvedHistory) setDiagram(resolvedHistory);
-      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null);
-      else if (link.b && link.b !== shown.b) opened.pick(link.b);
+      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null, link.a ?? null);
+      else if (link.a && link.b && (link.a !== shown.a || link.b !== shown.b)) opened.pickRange({ a: link.a, b: link.b });
+      else if (link.b && (link.b !== shown.b || (!link.a && shown.a))) opened.pick(link.b);
       return;
     }
     setUrlHistory(null);
@@ -270,7 +326,7 @@ export function App() {
   // A history's chosen version is what the page reads: its source, its key, and the address that names it.
   useEffect(() => {
     if (!shown) return;
-    setUrlHistory({ name: shown.name, b: shown.b });
+    setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
     setActiveHistoryKey(shown.b === "live" ? "" : shown.key);
     if (shownSource && shownSource !== serviceUrl) {
       setActiveSource(shownSource);
@@ -285,6 +341,23 @@ export function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown?.name, shown?.b, shownSource]);
+
+  // The address follows A as well: it names the two compared (spec 038, FR-014). The diagrams read A beside B, with
+  // the history's key — B may be Live, which needs none —, and the diagram on screen is drawn again from both.
+  useEffect(() => {
+    if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
+    syncUrlToState(serviceUrl, diagram);
+    setActiveBase(olderVersion && !olderVersion.refused ? { source: olderVersion.source, key: shown?.key ?? "" } : null);
+    if (shown) {
+      setWorkspaceKey((count) => count + 1);
+      // The left panel lists A's pages beside B's in Diff, B's alone in One.
+      rereadSidebar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown?.a, olderVersion?.source]);
+
+  // A changed element's card says what it was added or removed in: the two versions' names.
+  useEffect(() => setDiffNames(shown?.a ? { a: olderName ?? "A", b: shownName ?? "B" } : null), [shown?.a, olderName, shownName]);
 
   // The tab's title names the history and its version, never its address (FR-011c).
   useEffect(() => {
@@ -314,6 +387,44 @@ export function App() {
   function pickVersion(b: string) {
     if (room.inRoom) room.send({ type: "version", b });
     else opened.pick(b);
+  }
+
+  /** Pick two versions, A before B: in a room the whole room moves, outside one only this tab (spec 038, FR-016). */
+  function pickRange(range: Range) {
+    if (room.inRoom) room.send({ type: "version", b: range.b, a: range.a });
+    else opened.pickRange(range);
+  }
+
+  /** One step older or newer without the picker — the version in One, the whole range in Diff — as a pick would. */
+  function step(delta: -1 | 1) {
+    if (!shown?.b) return;
+    const next = stepShown(trackPoints, shown.a, shown.b, delta);
+    if (next?.a) pickRange({ a: next.a, b: next.b });
+    else if (next) pickVersion(next.b);
+  }
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  // Shift + ← → step the same way anywhere on the page.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const delta = stepOfKey(event);
+      if (delta === null) return;
+      event.preventDefault();
+      stepRef.current(delta);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /** One → Diff keeps the version as B and puts A on the one before it; Diff → One keeps B (spec 038, FR-013). */
+  function pickMode(mode: PickerMode) {
+    if (!shown?.b) return;
+    if (mode === "one") pickVersion(shown.b);
+    else {
+      const range = oneToDiff(trackPoints, shown.b);
+      if (range) pickRange(range);
+    }
   }
 
   function handleLoaded(url: string) {
@@ -370,9 +481,18 @@ export function App() {
   return (
     <MainLayout
       topRow={(compact) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", minWidth: 0 }}>
           {shown && hasPicker(opened.mode) && (
-            <VersionButton ref={versionButton} name={shownName ?? "—"} open={pickerOpen} onClick={() => setPickerOpen((open) => !open)} />
+            <VersionButton
+              ref={versionButton}
+              name={shown.a ? (phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`) : (shownName ?? "—")}
+              compact={phone}
+              counts={shown.a && diagram?.kind === "erd" ? diffCounts : null}
+              open={pickerOpen}
+              onClick={() => setPickerOpen((open) => !open)}
+              onStep={step}
+              canStep={{ older: shown.b ? stepShown(trackPoints, shown.a, shown.b, -1) !== null : false, newer: shown.b ? stepShown(trackPoints, shown.a, shown.b, 1) !== null : false }}
+            />
           )}
           <Box sx={{ flex: 1 }} />
         <RoomBar
@@ -431,7 +551,9 @@ export function App() {
       {shown && opened.mode === "M7" ? (
         <WorkspaceNote text="This history has no version yet." />
       ) : shownVersion?.refused ? (
-        <WorkspaceNote text={`${shownName ?? "This version"} is refused: ${shownVersion.refused}`} />
+        <WorkspaceNote text={`${shown?.a ? "B " : ""}${shownName ?? "This version"} is refused: ${shownVersion.refused}`} />
+      ) : olderVersion?.refused ? (
+        <WorkspaceNote text={`A ${olderName ?? "This version"} is refused: ${olderVersion.refused}`} />
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
           <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} />
@@ -449,6 +571,17 @@ export function App() {
           value={shown.b}
           onChange={pickVersion}
           phone={phone}
+          mode={pickerMode}
+          onMode={pickMode}
+          diffOffered={diffOffered(trackPoints)}
+          range={shown.a && shown.b ? { a: shown.a, b: shown.b } : null}
+          onRange={pickRange}
+          older={shown.a ? <VersionMessage version={olderVersion} repository={shown.host === "github" ? shown.repository : null} /> : undefined}
+          between={
+            shown.a && shown.b ? (
+              <VersionsBetween versions={shown.versions} live={shown.live} liveIs={shown.liveSameAs} proposals={shown.proposals} range={{ a: shown.a, b: shown.b }} repository={shown.host === "github" ? shown.repository : null} />
+            ) : undefined
+          }
         >
           <VersionMessage
             version={shownVersion ?? (shown.b === "live" ? versionOf(shown, shown.liveSameAs) : null)}
@@ -457,7 +590,7 @@ export function App() {
           />
         </VersionPicker>
       )}
-      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} />}
+      {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={lead?.id ?? null} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}
         initialName={room.dialog?.mode === "rename" ? (room.room?.participants.find((p) => p.id === room.room?.youId)?.name ?? lastName()) : lastName()}

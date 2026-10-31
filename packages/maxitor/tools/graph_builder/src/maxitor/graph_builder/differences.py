@@ -14,18 +14,32 @@ by it wherever it sits in the file, and each change is one line.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-Generic over JSON: objects are compared key by key; an array whose items are all
-objects with an ``id`` is compared by ``id``; anything else by equality. Nothing
-here knows what a node or an edge means.
+::
+
+    old, new ──► maxitor.graph_compare.compare ──► one line per element added or removed,
+                                                   one per property of a changed one
+             └─ the other top-level keys (``schema_version``) ──► walked as plain JSON
+             └─ a document compare refuses ──► the whole of it walked as plain JSON
+
+The comparison itself is ``maxitor.graph_compare``'s, the one Maxitor draws from:
+a ``1.0`` graph's edges get their ids by #285's rule. Only a document that cannot be
+compared — a broken file ``check`` still has to explain — falls back to a generic walk:
+objects key by key, an array whose items all carry an ``id`` by ``id``, anything else
+by equality.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from typing import Any
 
+from maxitor.graph_compare import Change, Comparison, GraphNotComparableError, Status, compare
+
 SHOWN_CHARACTERS = 60
+
+_ELEMENTS = ("nodes", "edges")
+"""The top-level keys whose items the comparison matches by id."""
 
 
 def _shown(value: Any) -> str:
@@ -45,7 +59,7 @@ def _by_id(items: list[Any]) -> dict[str, Any] | None:
 
 
 def _walk(old: Any, new: Any, path: str) -> Iterator[str]:
-    """Every difference under ``path``, one line each, in a stable order."""
+    """Every difference under ``path``, one line each, in a stable order — for what the comparison does not read."""
     if isinstance(old, dict) and isinstance(new, dict):
         for key in sorted(old.keys() | new.keys()):
             inner = f"{path}.{key}" if path else key
@@ -72,6 +86,41 @@ def _walk(old: Any, new: Any, path: str) -> Iterator[str]:
         yield f"{path}: {_shown(old)} → {_shown(new)}"
 
 
+def _compared(comparison: Comparison, kind: str) -> Iterator[str]:
+    """One kind's lines from the comparison: an element added or removed, or each changed property by its path."""
+    for element_id, item in (comparison.nodes if kind == "nodes" else comparison.edges).items():
+        head = f"{kind}[id={element_id}]"
+        if item.status is Status.ADDED or item.status is Status.REMOVED:
+            yield f"{head}: {item.status.value}"
+        for difference in item.differences:
+            path = head + "".join(f".{key}" for key in difference.path)
+            if difference.change is Change.CHANGED:
+                yield f"{path}: {_shown(difference.before)} → {_shown(difference.after)}"
+            else:
+                yield f"{path}: {difference.change.value}"
+
+
+def _lines(old: Any, new: Any) -> Iterator[str]:
+    """Every line, top-level keys in order: nodes and edges from the comparison, the rest walked."""
+    if not (isinstance(old, Mapping) and isinstance(new, Mapping)):
+        yield from _walk(old, new, "")
+        return
+    try:
+        comparison = compare(old, new)
+    except GraphNotComparableError:
+        yield from _walk(old, new, "")
+        return
+    for key in sorted(old.keys() | new.keys()):
+        if key in _ELEMENTS:
+            yield from _compared(comparison, key)
+        elif key not in new:
+            yield f"{key}: removed"
+        elif key not in old:
+            yield f"{key}: added"
+        else:
+            yield from _walk(old[key], new[key], key)
+
+
 def differences(old: Any, new: Any, limit: int = 20) -> list[str]:
     """
     AI-CORE-BEGIN
@@ -79,7 +128,7 @@ def differences(old: Any, new: Any, limit: int = 20) -> list[str]:
     CONTRACT: Returns ``[]`` when the documents are equal; otherwise at most ``limit`` lines, then ``… and N more``.
     AI-CORE-END
     """
-    lines = list(_walk(old, new, ""))
+    lines = list(_lines(old, new))
     if len(lines) > limit:
         return [*lines[:limit], f"… and {len(lines) - limit} more"]
     return lines

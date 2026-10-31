@@ -86,7 +86,10 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
         "domains": _strings,
         "disabled_entities": _strings,
         "disabled_kinds": _strings,
+        "disabled_changes": _strings,
         "one_hop": _boolean,
+        "paint": _one_of("domains", "kinds", "changes"),
+        "paint_diff": _one_of("domains", "kinds", "changes"),
     },
     "use-case": {
         "layout": _one_of("dot_lr", "dot_tb", "neato", "fdp"),

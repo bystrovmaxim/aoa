@@ -4,6 +4,9 @@
  * (Graphviz renderer only; other engines omitted).
  */
 
+/** What happened to a table, a row or a line between two versions (spec 038); absent while one version is drawn. */
+export type ErdDiff = "added" | "removed" | "changed" | "unchanged";
+
 export type ErdField = {
   name: string;
   type?: string;
@@ -13,6 +16,10 @@ export type ErdField = {
   reference_qualname?: string | null;
   /** The full annotation, for the type cell's tooltip; absent from a service on an older aoa-action-machine. */
   annotation?: string | null;
+  /** In Diff: what happened to the row. */
+  diff?: ErdDiff;
+  /** In Diff: the row's type in A, when it differs from B's — written struck through before it. */
+  previous_type?: string;
 };
 
 export type ErdEntity = {
@@ -31,6 +38,8 @@ export type ErdEntity = {
   /** Interchange domain qualname (for legend / filter when 1-hop adds neighbors). */
   domain_qualname?: string;
   fields?: ErdField[];
+  /** In Diff: what happened to the table itself — its own properties, not its rows. */
+  diff?: ErdDiff;
 };
 
 /** One value of a closed dictionary, as the entity card shows it. */
@@ -54,10 +63,74 @@ export type ErdRelation = {
   source_field?: string | null;
   /** Its declared inverse on the target table, or null: the role written at the source's end. */
   target_field?: string | null;
+  /** In Diff: what happened to the line. */
+  diff?: ErdDiff;
+  /** In Diff: where the line pointed in A, when its field now points elsewhere — drawn thin and dashed. */
+  previous_target?: string;
 };
 
 /** Id Graphviz writes on the ``k``-th relation's edge group, so the post-pass finds its fields. */
 export const erdEdgeId = (k: number) => `re${k}`;
+
+/** Id of the thin dashed line to where the ``k``-th relation pointed in A (spec 038, FR-024). */
+export const erdPreviousEdgeId = (k: number) => `rp${k}`;
+
+/**
+ * The marks of Diff (spec 038, FR-022): added green, removed red, changed amber, each with its sign as well as
+ * its colour; what did not change is faded.
+ */
+export const ERD_DIFF_COLOUR: Readonly<Record<Exclude<ErdDiff, "unchanged">, string>> = { added: "#16a34a", removed: "#dc2626", changed: "#d97706" };
+export const ERD_DIFF_SIGN: Readonly<Record<Exclude<ErdDiff, "unchanged">, string>> = { added: "+", removed: "−", changed: "~" };
+/** The ink of an unchanged row's name and of an unchanged line in Diff. */
+export const ERD_FADED_COLOUR = "#94a3b8";
+/** The alpha appended to a status colour for a marked row's tint: 0x24 / 0xff ≈ 14 %. */
+export const ERD_DIFF_TINT_ALPHA = "24";
+
+/** A status that marks something, or ``null`` for unchanged and for one version. */
+// how Diff paints the ERD — the chosen variant "2 + 3": the body is neutral (grey frame,
+// grey zebra), the filter's gear shift chooses what paints the headers, and a halo lies under every table that changed.
+export type ErdPaintSource = "domain" | "kind" | "change";
+let paintSource: ErdPaintSource = "change";
+let kindColours: Readonly<Record<string, string>> = {};
+/** what paints the headers now, and each kind's colour when kinds do; the canvas sets it before it draws. */
+export function setErdPaint(source: ErdPaintSource, colours: Readonly<Record<string, string>>): void {
+  paintSource = source;
+  kindColours = colours;
+}
+const paintByChange = () => paintSource === "change";
+/** kinds' colours when they paint — mid tones of the whole wheel, like the domains' own. */
+export const ERD_KIND_PAINT_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#a855f7", "#ec4899", "#14b8a6", "#eab308", "#6366f1"];
+/** What a table says at a glance, as the Changes filter sorts it: its own status, else "changed" when a row changed. */
+export function erdGlance(entity: ErdEntity): ErdDiff {
+  return markOf(entity.diff) ?? ((entity.fields ?? []).some((field) => markOf(field.diff)) ? "changed" : "unchanged");
+}
+/** the ink of a header's name and kind glyph — dark on the quiet grey header of a table that did not itself change. */
+export function erdHeadInk(entity: ErdEntity): string {
+  return entity.diff !== undefined && erdGlance(entity) === "unchanged" && paintByChange() ? "#334155" : "#ffffff";
+}
+
+function markOf(diff: ErdDiff | undefined): Exclude<ErdDiff, "unchanged"> | null {
+  return diff && diff !== "unchanged" ? diff : null;
+}
+
+/**
+ * What the SVG post-pass draws for Diff, by table id: the tables to fade — unchanged, with no marked row — and the
+ * removed ones, whose frame is dashed. Empty while one version is drawn.
+ */
+export function erdDiffMarks(entities: readonly ErdEntity[]): { faded: Set<string>; dashed: Set<string>; halo: Map<string, string> } {
+  const faded = new Set<string>();
+  const dashed = new Set<string>();
+  const halo = new Map<string, string>();
+  for (const entity of entities) {
+    if (entity.diff === undefined) continue;
+    if (entity.diff === "removed") dashed.add(entity.id);
+    // only painted by change are the tables that did not change faded; by domains or kinds they stay as drawn.
+    if (paintByChange() && erdGlance(entity) === "unchanged") faded.add(entity.id);
+    // a halo under a table that changed — its own status, else amber for a table whose rows changed.
+    if (erdGlance(entity) !== "unchanged") halo.set(entity.id, ERD_DIFF_COLOUR[markOf(entity.diff) ?? "changed"]);
+  }
+  return { faded, dashed, halo };
+}
 
 /**
  * The crow's-foot end for a cardinality, as Graphviz arrow shapes, the first one nearest the table
@@ -352,17 +425,43 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
   const tableIndex = new Map((entities ?? []).map((e, i) => [e.id, i]));
 
   const nodeSource = (nd: ErdEntity): string => {
-    const color = nd.color || "#3b82f6";
+    const own = markOf(nd.diff);
+    // In Diff a table that came, went or changed itself takes its status's colour, frame and header alike.
+    const domainColour = nd.color || "#3b82f6";
+    const inDiff = nd.diff !== undefined;
+    const neutral = inDiff;
+    // painted by change, only a table that came or went whole wears its status on the header and frame;
+    // a table that changed inside keeps a quiet header and frame — its rows carry the change.
+    // painted by change, the header and frame say what happened to the table as a whole: green added,
+    // red removed, amber changed inside (its own properties or any row); grey when nothing changed.
+    const glance = inDiff ? erdGlance(nd) : "unchanged";
+    const quietHead = inDiff && paintByChange() && glance === "unchanged";
+    const changeHead = inDiff && paintByChange() && glance !== "unchanged" ? ERD_DIFF_COLOUR[glance] : null;
+    const base = paintSource === "kind" ? (kindColours[nd.entity_kind?.trim() || "unknown"] ?? "#64748b") : domainColour;
+    // the header's fill, the frame and the zebra, as the painting asks. Where the filter chooses what
+    // paints, the header takes that section's colour alone — a changed table's header too, when domains or kinds
+    // paint; its change is then told by its frame, its sign, its rows and its halo.
+    const chosenHead = inDiff && !paintByChange();
+    const color = chosenHead ? base : changeHead ?? (quietHead ? "#e2e8f0" : own ? ERD_DIFF_COLOUR[own] : base);
+    const frameColour = changeHead ?? (quietHead ? "#cbd5e1" : own ? ERD_DIFF_COLOUR[own] : neutral ? "#cbd5e1" : color);
+    const zebraColour = neutral ? "#94a3b8" : color;
+    const headInk = quietHead ? "#334155" : "white";
+    // The name carries what happened to the table as a whole: ``~`` for any change inside, its own properties or a row.
+    const sign = glance !== "unchanged" ? ERD_DIFF_SIGN[glance] : null;
+    const title = sign ? `${sign} ${nd.label || nd.id}` : nd.label || nd.id;
     const table = tableIndex.get(nd.id) ?? 0;
     const kind = nd.entity_kind?.trim() || "unknown";
     const kindLabel = nd.entity_kind_label || kind.charAt(0).toUpperCase() + kind.slice(1);
 
     const rows = (nd.fields || [])
       .map((f, row) => {
-        // Every second row carries the domain colour faintly; keys are told by their word, not by a fill.
-        const bg = row % 2 === 1 ? `${color}${ERD_ROW_TINT_ALPHA}` : "#ffffff";
+        // Every second row carries the domain colour faintly; keys are told by their word, not by a fill. In Diff a
+        // marked row is tinted with its status's colour instead.
+        const rowMark = markOf(f.diff);
+        const bg = rowMark ? `${ERD_DIFF_COLOUR[rowMark]}${ERD_DIFF_TINT_ALPHA}` : row % 2 === 1 ? `${zebraColour}${ERD_ROW_TINT_ALPHA}` : "#ffffff";
         const icon = f.primary_key ? "PK" : f.foreign_key ? "FK" : "";
-        const iconColour = f.primary_key ? ERD_PK_COLOUR : ERD_FK_COLOUR;
+        // in Diff the key words are grey — their colour drew the eye away from the change.
+        const iconColour = inDiff ? "#94a3b8" : f.primary_key ? ERD_PK_COLOUR : ERD_FK_COLOUR;
         const iconTd = icon
           ? `<TD BGCOLOR="${bg}" ALIGN="LEFT" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"><FONT POINT-SIZE="8.5" COLOR="${iconColour}"><B>${icon}</B></FONT></TD>`
           : `<TD BGCOLOR="${bg}" WIDTH="28" HEIGHT="${ERD_ROW_HEIGHT_PT}"></TD>`;
@@ -373,6 +472,22 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
         // (spec 029, FR-030).
         const specialization = parseSpecializationType(f.type || "");
         const typeText = specialization !== null ? `Specialization ${specialization.alternatives.length}+` : fitFieldType(cleanFieldType(f.type || ""));
+        // A type that changed reads ``~~old~~ → new`` when both fit the column; otherwise the card says it.
+        const before = f.previous_type !== undefined && specialization === null ? cleanFieldType(f.previous_type) : null;
+        const typeMarkup =
+          before !== null && before.length + typeText.length + 3 <= FIELD_TYPE_MAX_CHARS
+            ? `<S>${escHtml(before)}</S> → ${escHtml(typeText)}`
+            : escHtml(typeText);
+        // The row's name carries its sign; a removed row's is struck through; an unchanged row is faded in Diff.
+        const nameText = rowMark ? `${ERD_DIFF_SIGN[rowMark]} ${f.name}` : f.name;
+        const nameMarkup =
+          rowMark === "removed"
+            ? `<FONT COLOR="${ERD_DIFF_COLOUR.removed}"><S>${escHtml(nameText)}</S></FONT>`
+            : rowMark
+              ? `<FONT COLOR="${ERD_DIFF_COLOUR[rowMark]}">${escHtml(nameText)}</FONT>`
+              : f.diff === "unchanged"
+                ? `<FONT COLOR="${ERD_FADED_COLOUR}">${escHtml(nameText)}</FONT>`
+                : escHtml(nameText);
         const tooltipAttr =
           specialization !== null
             ? ` TOOLTIP="${specialization.alternatives
@@ -383,30 +498,31 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
         return (
           "<TR>" +
           iconTd +
-          `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="Click to copy">${escHtml(f.name)}</TD>` +
-          `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="${ERD_TYPE_COLOUR}" POINT-SIZE="10">${escHtml(typeText)}</FONT></TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="LEFT" ID="${erdCellId.fieldName(table, row)}" TOOLTIP="${escHtml(nameText)}">${nameMarkup}</TD>` +
+          `<TD BGCOLOR="${bg}" ALIGN="RIGHT" ID="${erdCellId.fieldType(table, row)}"${tooltipAttr}><FONT COLOR="${ERD_TYPE_COLOUR}" POINT-SIZE="10">${typeMarkup}</FONT></TD>` +
           "</TR>"
         );
       })
       .join("\n      ");
 
     return (
-      `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${color}">` +
+      `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${frameColour}">` +
       // One header cell with the domain fill, flush with the frame (the card's rounding trims it);
       // inside, the kind icon slot and the name, each filled with the same colour so Graphviz emits
       // their boxes. The post-pass puts icon and name at the left, after an inset (FR-110).
       `<TR><TD COLSPAN="3" BGCOLOR="${color}" ALIGN="LEFT" WIDTH="${blockWidths?.get(nd.id) ?? ERD_TABLE_MIN_WIDTH_PT}" HEIGHT="${ERD_HEADER_HEIGHT_PT}" ` +
-      `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(nd.label || nd.id)}">` +
+      `ID="${erdCellId.header(table)}" TOOLTIP="${escHtml(title)}">` +
       `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>` +
       `<TD ID="${erdCellId.kindSlot(table)}" TOOLTIP="${escHtml(kindLabel)}" BGCOLOR="${color}" ` +
       `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
       `<TD WIDTH="4"></TD>` +
-      `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="Click to copy" BGCOLOR="${color}">` +
-      `<FONT COLOR="white" POINT-SIZE="12.5"><B>${escHtml(nd.label || nd.id)}</B></FONT></TD>` +
+      `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="${escHtml(title)}" BGCOLOR="${color}">` +
+      `<FONT COLOR="${headInk}" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>` +
       `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
     );
   };
 
+  const inDiffDrawing = (entities ?? []).some((entity) => entity.diff !== undefined);
   for (const group of groups) {
     const members = group.members
       .map((id) => entityById.get(id))
@@ -416,9 +532,8 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       `  subgraph "cluster_${group.group_id}" {`,
       `    label="${escHtml(group.label)}";`,
       // See-through but half a tone darker than the canvas, with an outline one point wider than before.
-      '    style="rounded,dashed,filled";',
-      '    fillcolor="#0f172a0d";',
-      '    penwidth=2;',
+      // In Diff no fill at all and an outline a point wider, so the container does not stand out among the faded tables.
+      ...(inDiffDrawing ? ['    style="rounded,dashed";', "    penwidth=3;"] : ['    style="rounded,dashed,filled";', '    fillcolor="#0f172a0d";', "    penwidth=2;"]),
       '    color="#94a3b8";',
       '    fontsize=10;',
       '    margin=12;',
@@ -437,7 +552,21 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
     // The axis relation is already carried by the head's field row ("details (by variant_code)")
     // and by the container that holds the alternatives — no edge is drawn for it.
     if (ed.relationship_kind === "specialization") return;
-    const id = `id="${erdEdgeId(k)}" `;
+    // In Diff a line takes its status's colour — removed also dashed —, an unchanged one is faded (FR-022, FR-024).
+    const lineMark = markOf(ed.diff);
+    const look = lineMark
+      ? `color="${ERD_DIFF_COLOUR[lineMark]}" penwidth=1.6 ${lineMark === "removed" && ed.relationship_kind !== "generalization" ? "style=dashed " : ""}`
+      : ed.diff === "unchanged"
+        ? `color="${ERD_FADED_COLOUR}55" `
+        : "";
+    const id = `id="${erdEdgeId(k)}" ${look}`;
+    // A field that now points at another table is one changed line: solid to where it points in B, and thin and
+    // dashed to where it pointed in A — never a red line and a green one.
+    if (ed.previous_target && entityById.has(ed.previous_target) && ed.previous_target !== ed.target) {
+      lines.push(
+        `  "${ed.source}" -> "${ed.previous_target}" [id="${erdPreviousEdgeId(k)}" color="${ERD_DIFF_COLOUR.changed}" style=dashed penwidth=0.8 arrowhead=none constraint=false]`,
+      );
+    }
     if (ed.relationship_kind === "generalization" || !ed.source_field) {
       // ERD notation has no arrows (spec 029, FR-043). A generalization is dashed and ends like any
       // other line — zero or one at the variant, exactly one at the head; a row from an older server

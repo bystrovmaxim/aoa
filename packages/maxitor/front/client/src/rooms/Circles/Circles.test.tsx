@@ -16,7 +16,7 @@ function circles() {
       youId="Anna"
       yourPage="view=domain-erd"
       pageLabel={() => "ERD"}
-      followers={() => 1}
+      followers={() => ["Anna"]}
       onRename={vi.fn()}
       onGoTo={vi.fn()}
       follows={{ Anna: null, Boris: null, Vera: null }}
@@ -71,4 +71,32 @@ describe("the follow pill while a card is open (spec 029, FR-052)", () => {
     act(() => setParticipantCardOpen(false));
     expect(getComputedStyle(pill).visibility).toBe("visible");
   });
+
+  it("say on your own card who follows you, by name, beside how many (spec 038)", () => {
+    vi.useFakeTimers();
+    render(
+      <Circles
+        participants={people}
+        youId="Anna"
+        yourPage="view=domain-erd"
+        pageLabel={() => "ERD"}
+        followers={(id) => (id === "Anna" ? ["Boris", "Vera"] : [])}
+        onRename={vi.fn()}
+        onGoTo={vi.fn()}
+        follows={{ Anna: null, Boris: "Anna", Vera: "Anna" }}
+        onFollow={vi.fn()}
+        onStopFollowing={vi.fn()}
+        compact={false}
+      />,
+    );
+    expect(screen.getByLabelText("2 following you")).toBeTruthy();
+    act(() => {
+      screen.getByRole("button", { name: /^Anna \(you\)/ }).dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      vi.runAllTimers();
+    });
+    vi.useRealTimers();
+    expect(screen.getByText("2 people follow you:")).toBeTruthy();
+    expect([...screen.getByRole("list", { name: "Following you" }).querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Boris", "Vera"]);
+  });
 });
+

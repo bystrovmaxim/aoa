@@ -61,4 +61,15 @@ describe("a room on a private history", () => {
     FakeSocket.instances[0].serverSends({ type: "history_changed" });
     expect(events.map((event) => event.type)).toEqual(["version", "history_changed"]);
   });
+
+  it("opens a new room in Diff with both versions, and hands a range on with its A (spec 038)", async () => {
+    const events: ServerEvent[] = [];
+    const connection = new RoomConnection({ room: "new", history: { name: NAME, version: "bbbbbbbbbbbb", versionA: "aaaaaaaaaaaa" }, name: "Anna", page: "", onEvent: (event) => events.push(event), onState: () => undefined });
+    connection.open();
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1));
+    const query = new URL(FakeSocket.instances[0].url).searchParams;
+    expect([query.get("version"), query.get("version_a")]).toEqual(["bbbbbbbbbbbb", "aaaaaaaaaaaa"]);
+    FakeSocket.instances[0].serverSends({ type: "version", b: "bbbbbbbbbbbb", a: "aaaaaaaaaaaa", by: "boris" });
+    expect(events).toEqual([{ type: "version", b: "bbbbbbbbbbbb", a: "aaaaaaaaaaaa", by: "boris" }]);
+  });
 });

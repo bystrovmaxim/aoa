@@ -28,6 +28,31 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 
+def chain_head(follows: Mapping[str, str | None], participant: str) -> str:
+    """
+    The end of the chain ``participant`` starts: whom they follow, whom that one follows, and so on, to someone who
+    follows nobody. Following Ваня while Ваня follows Лёша, the view comes from Лёша (spec 038).
+    """
+    seen = {participant}
+    current = participant
+    while (next_one := follows.get(current)) is not None and next_one not in seen:
+        seen.add(next_one)
+        current = next_one
+    return current
+
+
+def leads_to(follows: Mapping[str, str | None], follower: str, target: str) -> bool:
+    """Whether ``follower``'s chain passes ``target``: they follow ``target``, or someone who does, and so on."""
+    seen = {follower}
+    current = follows.get(follower)
+    while current is not None and current not in seen:
+        if current == target:
+            return True
+        seen.add(current)
+        current = follows.get(current)
+    return False
+
+
 def would_close_circle(follows: Mapping[str, str | None], follower: str, target: str) -> bool:
     """Whether ``follower`` following ``target`` closes a circle: ``target``'s own links lead back to ``follower``."""
     seen: set[str] = set()

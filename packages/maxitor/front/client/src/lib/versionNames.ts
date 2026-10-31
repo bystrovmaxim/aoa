@@ -100,6 +100,11 @@ export function nameOf(versions: readonly HistoryVersion[], b: string | null): s
   return index < 0 ? null : versionNames(versions)[index];
 }
 
+/** The short name a phone's version button writes (spec 038, FR-033): the name alone, never the version number — ``#147``, ``Live``, an open pull request's ``#160``; ``—`` when the list has none. */
+export function shortNameOf(versions: readonly HistoryVersion[], key: string | null, proposals: readonly HistoryVersion[] = []): string {
+  return nameOf(versions, key) ?? shownNameOf(versions, key, proposals) ?? "—";
+}
+
 /** The version a history opens on (FR-021): Live, else the newest unrefused one, else the newest; ``null`` in M7. */
 export function defaultVersion(versions: readonly HistoryVersion[], live: string | null): string | null {
   if (live) return "live";

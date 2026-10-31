@@ -35,7 +35,7 @@ from tests.test_rooms_server import _ALL_DOMAINS, _FULL_GRAPH, _connect, _expect
 
 __all__ = ["client", "source"]
 
-_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False}
+_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None}
 _FOCUS: dict[str, Any] = {
     "type": "focus",
     "page": _FULL_GRAPH,
@@ -54,8 +54,15 @@ _FOCUS: dict[str, Any] = {
         ({"hover": {"kind": "node", "id": "x" * 513}}, False),
         ({"page": 7}, False),
         ({"panels": {**_PANELS, "sidebar": ["b"] * 201}}, False),
+        ({"panels": {**_PANELS, "filter": "changes"}}, True),
         ({"panels": {**_PANELS, "filter": "colours"}}, False),
         ({"panels": {**_PANELS, "legend": "yes"}}, False),
+        ({"panels": {**_PANELS, "versions": True}}, True),
+        ({"panels": {**_PANELS, "versions": "open"}}, False),
+        ({"panels": {**_PANELS, "versions": True, "track": {"a": "abc123", "b": "live", "offset": 120.5}}}, True),
+        ({"panels": {**_PANELS, "track": {"a": None, "b": None, "offset": 0}}}, True),
+        ({"panels": {**_PANELS, "track": {"a": "x" * 513, "b": "live", "offset": 0}}}, False),
+        ({"panels": {**_PANELS, "track": {"a": "abc", "b": "live"}}}, False),
         ({"selection": {"kind": "row", "id": "Orders:id"}}, True),
     ],
 )
@@ -86,6 +93,24 @@ def test_a_focus_reaches_followers_only(client: TestClient, source: str, capsys:
     assert "Orders" not in capsys.readouterr().out
 
 
+def test_a_focus_reaches_a_follower_of_a_follower(client: TestClient, source: str) -> None:
+    """Vera follows Boris, who follows Anna: Anna's focus reaches Vera too, so she takes the view from Anna (spec 038)."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        vera = stack.enter_context(_connect(client, room_id, "vera"))
+        _expect(vera, "welcome")
+        boris.send_json({"type": "follow", "target": "anna"})
+        _until(vera, "follows")
+        vera.send_json({"type": "follow", "target": "boris"})
+        _until(vera, "follows")
+        anna.send_json(_FOCUS)
+        seen_by_vera = _events_until(vera, "focus")
+    assert seen_by_vera[-1]["participant"] == "anna"
+    assert seen_by_vera[-1]["hover"] == {"kind": "node", "id": "Orders"}
+
+
 def test_a_new_follower_gets_the_last_focus_at_once(client: TestClient, source: str) -> None:
     """Anna looked at something before Boris followed her: he sees it without her moving again."""
     with ExitStack() as stack:
@@ -98,6 +123,13 @@ def test_a_new_follower_gets_the_last_focus_at_once(client: TestClient, source: 
         boris.send_json({"type": "follow", "target": "anna"})
         seen = _events_until(boris, "focus")
     assert seen[-1]["selection"] is None and seen[-1]["panels"] == _PANELS
+
+
+def test_an_older_client_s_panels_say_the_version_picker_is_closed() -> None:
+    """A focus without ``versions`` still passes, with the picker closed (spec 038)."""
+    older = {key: value for key, value in _PANELS.items() if key not in ("versions", "track")}
+    values = focus_values({**_FOCUS, "panels": older})
+    assert values is not None and values["panels"]["versions"] is False
 
 
 def _events_until(ws: Any, kind: str, seconds: float = 3.0) -> list[dict[str, Any]]:

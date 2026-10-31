@@ -27,6 +27,22 @@ describe("SVG diagram coordinates", () => {
     expect(svgDiagramToClient(boris, sent)).toEqual({ x: 165 * 2.6 - 400, y: 52 * 2.6 + 44 });
   });
 
+  it("read the zoom from the SVG's box on the screen, which every browser gives with the pan and zoom in it (spec 038)", () => {
+    // Safari's screen transform leaves an ancestor's CSS transform out: here it says scale 1 though the box shows 0.5.
+    const safari = {
+      getScreenCTM: () => ({ a: 1, b: 0, c: 0, d: 1, e: 300, f: 40 }) as DOMMatrixReadOnly,
+      getBoundingClientRect: () => new DOMRect(300, 40, 413, 364),
+      viewBox: { baseVal: { x: 0, y: 0, width: 826, height: 728 } },
+    };
+    expect(svgClientToDiagram(safari, { x: 713, y: 404 })).toEqual({ x: 826, y: 728 });
+    expect(svgDiagramToClient(safari, { x: 413, y: 364 })).toEqual({ x: 506.5, y: 222 });
+  });
+
+  it("centre a viewBox of another shape in its box, as an SVG shows it", () => {
+    const wide = { getScreenCTM: () => null, getBoundingClientRect: () => new DOMRect(0, 0, 200, 200), viewBox: { baseVal: { x: 10, y: 0, width: 100, height: 50 } } };
+    expect(svgDiagramToClient(wide, { x: 10, y: 0 })).toEqual({ x: 0, y: 50 });
+  });
+
   it("know nothing before the SVG is laid out", () => {
     const none = { getScreenCTM: () => null };
     expect(svgClientToDiagram(none, { x: 1, y: 1 })).toBeNull();

@@ -17,7 +17,8 @@ export type CirclesProps = {
   /** The page you are on, so circles of people elsewhere get a grey dot. */
   yourPage: string | null;
   pageLabel: (page: string | null) => string;
-  followers: (id: string) => number;
+  /** The names of those who follow a participant directly; their number is the badge on your own circle. */
+  followers: (id: string) => string[];
   onRename: () => void;
   /** Go to a participant: their page, centred on them, at your zoom (FR-050). */
   onGoTo: (participant: Participant) => void;
@@ -105,7 +106,7 @@ export function Circles({
 
   function circle(participant: Participant) {
     const label = `${participant.name}${participant.id === youId ? " (you)" : ""} — ${pageLabel(participant.page)}`;
-    const count = participant.id === youId ? followers(youId) : 0;
+    const count = participant.id === youId ? followers(youId).length : 0;
     return (
       <ButtonBase
         key={participant.id}
