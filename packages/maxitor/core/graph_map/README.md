@@ -10,6 +10,7 @@ It cuts a graph document into areas, one per domain and one for everything outsi
 | `layout.py` | The DOT of an area, and reading `sfdp -Tjson0` |
 | `places.py` | Where each area stands: places are kept, so one area's change moves no other |
 | `assemble.py` | The overview, with counts, bundles and sketches, and each area's detail |
+| `union.py` | The map of two versions: B's positions, what only A has beside them |
 
 To run `sfdp` locally, install Graphviz:
 

@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from maxitor.front.model.diagrams.resources.map_store import MapRefusedError, MapStore, run_sfdp
+from maxitor.graph_compare import KNOWN_VERSIONS
 
 
 @dataclass
@@ -156,3 +157,38 @@ def test_native_graphviz_gives_the_same_positions_twice(tmp_path: Path) -> None:
     second = overview(store(tmp_path / "two", [graph()], run_sfdp))
     assert first == second
     assert all("sketch" in area for area in first["areas"])
+
+
+def versioned(document: dict[str, Any], name: str) -> Held:
+    """A graph the comparison reads."""
+    return Held(f"https://port/history/{name}", name, json.dumps({**document, "schema_version": max(KNOWN_VERSIONS)}))
+
+
+def pair_store(root: Path, older: Held, newer: Held) -> tuple[MapStore, list[tuple[Held, Held]]]:
+    """A store over ``newer``, and the list that binds the read to the pair once it holds it."""
+    bound: list[tuple[Held, Held]] = []
+    return MapStore(root, lambda: newer, lambda _source: "history", ("#111111", "#222222"), pair=lambda: (older, newer) if bound else None, run=Sfdp()), bound
+
+
+def test_a_pair_moves_no_area_however_much_only_a_held(tmp_path: Path) -> None:
+    crowded = json.loads(graph().document)
+    crowded["nodes"] += [node(f"old{index}") for index in range(40)]
+    crowded["edges"] += [link(f"old{index}", "d1") for index in range(40)]
+    maps, bound = pair_store(tmp_path, versioned(crowded, "a"), versioned(json.loads(graph().document), "b"))
+    alone = {area["id"]: (area["x"], area["y"]) for area in overview(maps)["areas"]}
+    bound.append(("older", "newer"))  # type: ignore[arg-type]
+    both = {area["id"]: (area["x"], area["y"]) for area in overview(maps)["areas"]}
+    assert all(both[area] == place for area, place in alone.items())
+
+
+def test_a_node_stands_in_the_domain_b_gives_it_whatever_a_said(tmp_path: Path) -> None:
+    moved = json.loads(graph().document)
+    moved["edges"] = [link("a", "d2") if edge["source_id"] == "a" else edge for edge in moved["edges"]]
+    maps, bound = pair_store(tmp_path, versioned(json.loads(graph().document), "a"), versioned(moved, "b"))
+    overview(maps)
+    where = {item["id"]: (item["x"], item["y"]) for item in asyncio.run(maps.area("d2"))["nodes"]}  # type: ignore[index]
+    bound.append(("older", "newer"))  # type: ignore[arg-type]
+    overview(maps)
+    both = {item["id"]: (item["x"], item["y"]) for item in asyncio.run(maps.area("d2"))["nodes"]}  # type: ignore[index]
+    assert both["a"] == where["a"]
+    assert "a" not in {item["id"] for item in asyncio.run(maps.area("d1"))["nodes"]}  # type: ignore[index]

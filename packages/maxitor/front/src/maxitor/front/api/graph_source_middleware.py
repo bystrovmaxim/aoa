@@ -59,6 +59,7 @@ A comparison (spec 038) reads two versions: ``/api/v1/compare*`` names the newer
 and the older as ``a``. The middleware guards ``a`` exactly as it guards ``source`` — the
 same key header, the same refusals, ``a`` first — and binds its entry to a second context
 variable, read through ``current_base_entry``; a comparison read without ``a`` is a 400.
+A read of the map may name ``a`` too (spec 040), and is then guarded the same way.
 
 One request sees one entry for as long as it runs (FR-007), so a reload of the same source
 in the middle of a request cannot mix two graphs in one answer. ``OPTIONS`` passes through
@@ -178,8 +179,9 @@ class GraphSourceMiddleware:
             return
 
         base: GraphEntry | None = None
-        if str(scope.get("path", "")).startswith(COMPARE_PATH_PREFIX):
-            older = _query_of(scope, "a")
+        path = str(scope.get("path", ""))
+        older = _query_of(scope, "a")
+        if path.startswith(COMPARE_PATH_PREFIX) or (path.startswith(MAP_PATH_PREFIX) and older):
             if not older:
                 await _refuse(send, 400, MISSING_BASE_DETAIL)
                 return
@@ -199,10 +201,11 @@ class GraphSourceMiddleware:
         """Answer a map read from what is on disk, with no graph built; whether it was answered."""
         if not str(scope.get("path", "")).startswith(MAP_PATH_PREFIX):
             return False
-        stored = scope["app"].state.maps.stored(source)
+        older = _query_of(scope, "a")
+        stored = scope["app"].state.maps.stored(source, older)
         if stored is None:
             return False
-        if await _let_in(scope, send, source) is not None:
+        if (not older or await _let_in(scope, send, older) is not None) and await _let_in(scope, send, source) is not None:
             token = _MAP_VERSION.set(stored)
             try:
                 await self._app(scope, receive, send)

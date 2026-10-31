@@ -8,14 +8,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isZoomWheel, wheelPan } from "@/lib/wheelGesture";
+import { WHEEL_CHUNK_PX, WHEEL_ZOOM_SENSITIVITY, isZoomWheel, wheelPan } from "@/lib/wheelGesture";
 import { followedScreen } from "@/rooms/follow";
 
 const MIN_SCALE = 0.005;
 const MAX_SCALE = 2.5;
-const WHEEL_ZOOM_SENSITIVITY = 0.0045;
-/** One wheel chunk (device pixels) applied per animation frame — avoids huge jumps when delta batches. */
-const WHEEL_CHUNK_PX = 56;
 
 function clampUserScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));

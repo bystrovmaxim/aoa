@@ -45,6 +45,7 @@ class MapOverviewResult(BaseResult):
     areas: list[dict[str, Any]] = Field(description="Each area: id, name, colour, place, counts by type and sketch")
     bundles: list[list[Any]] = Field(description="Each pair of linked areas: both ids, the number of links, links by the types of their ends")
     shared: list[dict[str, Any]] = Field(description="Each node in more than one domain, with its domains")
+    links_changed: int | None = Field(default=None, description="In a comparison, how many drawn links changed; absent for one version")
 
 
 @meta(description="Read the overview of a version's map", domain=DiagramsDomain)

@@ -4,13 +4,51 @@
  * ``Entity`` node; a marked row is its ``EntityField`` node with its ``entity_field`` edge, or — a relation's row —
  * its ``entity_relation`` edge. The card asks the server for each and shows what changed in those it has.
  */
-import type { ErdDiff, ErdEntity } from "@/lib/buildDotSource";
+import type { ErdDiff, ErdEntity, ErdRelation } from "@/lib/buildDotSource";
+import type { ChangeEntry } from "@/lib/changeStepping";
+import { relationKey } from "@/lib/erdDiff";
+
+/** The colours and signs of the three marks, the ERD's own. */
+export const MARK_LOOK = { added: { colour: "#16a34a", sign: "+" }, removed: { colour: "#dc2626", sign: "−" }, changed: { colour: "#d97706", sign: "~" } } as const;
 
 /** One graph element a card reads. */
 export type CardElement = { kind: "node" | "edge"; id: string };
 
 /** What a click opened a card for: its title, its status, and the elements it reads. */
 export type CardTarget = { title: string; status: Exclude<ErdDiff, "unchanged">; elements: CardElement[] };
+
+/** One change of the drawn ERD: what it steps to, and its card where it has one. */
+export type ErdChange = ChangeEntry & { cell: string; card: CardTarget | null };
+
+type Marked = Exclude<ErdDiff, "unchanged">;
+
+function marked(status: ErdDiff | undefined): status is Marked {
+  return status !== undefined && status !== "unchanged";
+}
+
+/** The last part of a dotted id: what a line's ends are called on its row in a list. */
+function shortName(id: string): string {
+  return id.split(".").pop() ?? id;
+}
+
+/**
+ * Every change the ERD draws, in the order it draws them: each table, then its rows, then the lines that have no row,
+ * each element once, as ``diagramCounts`` counts them.
+ */
+export function erdChanges(entities: readonly ErdEntity[], relations: readonly ErdRelation[]): ErdChange[] {
+  const changes: ErdChange[] = [];
+  entities.forEach((entity, table) => {
+    const title = entity.label || entity.id;
+    if (marked(entity.diff)) changes.push({ key: entity.id, title, detail: "Table", status: entity.diff, group: title, cell: `a_hd${table}`, card: { title, status: entity.diff, elements: [{ kind: "node", id: entity.id }] } });
+    (entity.fields ?? []).forEach((field, row) => {
+      if (marked(field.diff)) changes.push({ key: `${entity.id}:${field.name}`, title: field.name, detail: field.type ?? "", status: field.diff, group: title, cell: `a_fn${table}_${row}`, card: { title: field.name, status: field.diff, elements: rowElements(entity.id, field.name) } });
+    });
+  });
+  relations.forEach((relation, line) => {
+    if (!relation.source_field && marked(relation.diff)) changes.push({ key: relationKey(relation), title: `${shortName(relation.source)} → ${shortName(relation.target)}`, detail: relation.relationship_kind ?? "", status: relation.diff, group: "Lines", cell: `re${line}`, card: null });
+  });
+  return changes;
+}
 
 /** The ids ``erdCellId`` writes on a header's cells and a row's cells, as Graphviz wraps them (``a_<id>``). */
 const HEADER = /^a_(?:hd|hn|ks)(\d+)$/;

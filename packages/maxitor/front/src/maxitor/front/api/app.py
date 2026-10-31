@@ -109,6 +109,7 @@ from maxitor.front.model.diagrams.actions.list_entities_action import ListEntiti
 from maxitor.front.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
 from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
 from maxitor.front.model.diagrams.actions.map_area_action import MapAreaAction, MapAreaNotFoundError
+from maxitor.front.model.diagrams.actions.map_changes_action import MapChangesAction
 from maxitor.front.model.diagrams.actions.map_overview_action import MapOverviewAction
 from maxitor.front.model.diagrams.resources.comparison_store import (
     COMPARISON_STORE_CONNECTION_KEY,
@@ -182,6 +183,7 @@ def _map_store(fastapi_app: FastAPI) -> MapStore:
         scope=_map_scope,
         colours=_LIST_DOMAINS_DISTINCT_COLORS,
         immutable=lambda source: parse_version_source(source) is not None,
+        pair=current_pair,
     )
     fastapi_app.state.maps = maps
     return maps
@@ -341,6 +343,11 @@ def create_app() -> FastAPI:
         .get(
             "/map/area",
             MapAreaAction,
+            connections={MAP_STORE_CONNECTION_KEY: maps},
+        )
+        .get(
+            "/map/changes",
+            MapChangesAction,
             connections={MAP_STORE_CONNECTION_KEY: maps},
         )
         .websocket(

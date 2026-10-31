@@ -4,7 +4,7 @@ import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Paper from "@mui/material/Paper";
 import { useEffect, useState } from "react";
 import { compareElement, type ElementDifference } from "@/api/compare";
-import type { CardTarget } from "@/lib/erdDiffCard";
+import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 
 export type DiffCardProps = {
   target: CardTarget;
@@ -14,9 +14,6 @@ export type DiffCardProps = {
   at: { x: number; y: number };
   onClose: () => void;
 };
-
-/** The colours and signs of the three marks, the ERD's own. */
-const LOOK = { added: { colour: "#16a34a", sign: "+" }, removed: { colour: "#dc2626", sign: "−" }, changed: { colour: "#d97706", sign: "~" } } as const;
 
 /** A value as the card writes it: text as it is, anything else as JSON — never as markup. */
 export function shownValue(value: unknown): string {
@@ -44,7 +41,7 @@ async function differencesOf(target: CardTarget): Promise<ElementDifference[]> {
  */
 export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
   const [differences, setDifferences] = useState<ElementDifference[] | null>(null);
-  const look = LOOK[target.status];
+  const look = MARK_LOOK[target.status];
 
   useEffect(() => {
     let live = true;

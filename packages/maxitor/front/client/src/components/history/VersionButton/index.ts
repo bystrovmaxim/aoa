@@ -1,2 +1,2 @@
-export { VersionButton } from "./VersionButton";
+export { PillArrow, PillChevron, PillDivider, VersionButton, pillSx } from "./VersionButton";
 export type { VersionButtonProps } from "./VersionButton";

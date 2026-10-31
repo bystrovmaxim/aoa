@@ -210,24 +210,38 @@ def _element_ref(value: Any) -> tuple[bool, dict[str, str] | None]:
     return True, {"kind": value["kind"], "id": value["id"]}
 
 
+def _panels_fit(value: Any) -> bool:
+    """Whether ``value`` fits the contract of a ``focus``'s open panels."""
+    if not isinstance(value, dict):
+        return False
+    sidebar, section = value.get("sidebar"), value.get("filter")
+    return (
+        isinstance(sidebar, list)
+        and len(sidebar) <= _FOCUS_SIDEBAR_MAX
+        and all(_short_text(branch) for branch in sidebar)
+        and (section is None or section in _FOCUS_FILTER_SECTIONS)
+        and isinstance(value.get("legend"), bool)
+        # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
+        and isinstance(value.get("versions", False), bool)
+        # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
+        and (value.get("track") is None or _track(value["track"]))
+        # The list of a comparison's changes as its person moves it: open or not, where they stand, the scroll (spec 040).
+        and (value.get("changes") is None or _change_list(value["changes"]))
+    )
+
+
 def _panels(value: Any) -> dict[str, Any] | None:
     """The open panels of a ``focus``, or ``None`` when they do not fit the contract."""
-    if not isinstance(value, dict):
+    if not _panels_fit(value):
         return None
-    sidebar, section, legend = value.get("sidebar"), value.get("filter"), value.get("legend")
-    if not isinstance(sidebar, list) or len(sidebar) > _FOCUS_SIDEBAR_MAX or not all(_short_text(b) for b in sidebar):
-        return None
-    if (section is not None and section not in _FOCUS_FILTER_SECTIONS) or not isinstance(legend, bool):
-        return None
-    # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
-    versions = value.get("versions", False)
-    if not isinstance(versions, bool):
-        return None
-    # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
-    track = value.get("track")
-    if track is not None and not _track(track):
-        return None
-    return {"sidebar": list(sidebar), "filter": section, "legend": legend, "versions": versions, "track": track}
+    return {
+        "sidebar": list(value["sidebar"]),
+        "filter": value.get("filter"),
+        "legend": value["legend"],
+        "versions": value.get("versions", False),
+        "track": value.get("track"),
+        "changes": value.get("changes"),
+    }
 
 
 def _track(value: Any) -> bool:
@@ -236,6 +250,18 @@ def _track(value: Any) -> bool:
         isinstance(value, dict)
         and set(value) == {"a", "b", "offset"}
         and all(value[end] is None or _short_text(value[end]) for end in ("a", "b"))
+        and _is_number(value["offset"])
+    )
+
+
+def _change_list(value: Any) -> bool:
+    """Whether ``value`` is a list of changes: ``open`` and ``card`` flags, ``at`` a short text or ``null``, and an ``offset`` number."""
+    return (
+        isinstance(value, dict)
+        and set(value) == {"open", "at", "card", "offset"}
+        and isinstance(value["open"], bool)
+        and isinstance(value["card"], bool)
+        and (value["at"] is None or _short_text(value["at"]))
         and _is_number(value["offset"])
     )
 

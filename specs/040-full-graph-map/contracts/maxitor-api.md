@@ -18,7 +18,7 @@ Both are AOA actions, read for the active source, with `a` naming the older vers
 ```
 
 - `state` is `laying-out` until the map is ready; then `areas` is empty, and the client asks again.
-- In a comparison an area adds `status` and `changes`, and a bundle adds a fourth item, its changed links.
+- In a comparison an area adds `status` and `changes`, and a bundle adds a last item, its changed links. The overview adds `links_changed`, how many drawn links changed.
 - Each area carries `sketch`, and each bundle its links by the types of their ends, so the outlines, the counts and the bundles follow a filter with no other read.
 
 ## `GET /api/v1/map/area?id=<area>&level=<2|3>`
@@ -36,10 +36,10 @@ Both are AOA actions, read for the active source, with `a` naming the older vers
 
 ## `GET /api/v1/map/changes`
 
-Only with `a`. Every changed node, in the stepping order (FR-025b):
+Only with `a`. Every changed node and drawn link, in the stepping order (FR-025b); a link stands at its middle and adds `span`, how far apart its ends are:
 
 ```json
-{"changes": [{"id": "shop.Order", "area": "shop.OrdersDomain", "type": "Entity", "status": "changed", "x": 10.5, "y": 20.0, "level": 2}]}
+{"changes": [{"id": "shop.Order", "label": "Order", "area": "shop.OrdersDomain", "type": "Entity", "status": "changed", "x": 10.5, "y": 20.0, "level": 2}]}
 ```
 
 The client steps through this list and skips what its filters hide, so stepping needs no other read until it arrives.

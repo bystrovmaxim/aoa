@@ -30,7 +30,7 @@ Start `design-preview`, `repo-graph-port-demo`, `maxitor` and `maxitor-client` f
 | zoom in to a field and out | things fade in and out; nothing moves |
 | open a pair | counts on folded domains, the button equal to the comparison |
 | a domain only in A, one only in B | areas of their own, marked |
-| a pair where only a link changed | `+0 −0 ~0` |
+| a pair where only a link changed | `+0 −0 ~1`, `1 change` beside it, a step goes to the link |
 | a pair with nothing drawn changed | "no changes", nothing faded |
 | click a marked node | the card |
 | click a folded domain's count | the map flies to its first change, card open |

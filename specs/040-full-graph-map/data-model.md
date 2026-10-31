@@ -16,7 +16,7 @@ Stored through a resource; what is stored survives a restart (FR-015). A layout 
 - `id`: the domain's id, or `(outside)`.
 - `name`, `colour`, `x`, `y`, `radius`.
 - `counts`: nodes by type.
-- In a pair: `status` (`added`, `removed` or none) and `changes`: nodes by type and status.
+- In a pair: `status` (`added`, `removed` or none) and `changes`: nodes by type and status. A domain none of the pair's changes stands in, node or link, is drawn grey and dim; a link stands in the domain it starts from.
 - `sketch`: a coarse grid over the area, each cell counting its nodes by type and, in a pair, by status; outlines at the far level are drawn from it.
 
 ## Levels of a node

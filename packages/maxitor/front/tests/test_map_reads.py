@@ -80,3 +80,43 @@ def test_a_stored_version_is_read_with_no_graph_built(maxitor: TestClient, port:
     store = maxitor.app.state.graph_store  # type: ignore[attr-defined]
     store.acquire = None
     assert _read(maxitor, port, "overview", source=source).json() == expected
+
+
+def test_a_pair_is_marked_and_lists_its_changes(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    source = _version(maxitor, port)
+    older = open_history(maxitor, port, "live").json()["versions"][0]["source"]
+    overview = _ready_pair(maxitor, port, source, older)
+    assert "links_changed" in overview
+    assert any(area.get("changes") for area in overview["areas"])
+    changes = _read(maxitor, port, "changes", source=source, a=older).json()["changes"]
+    assert changes and {"id", "area", "status", "x", "y", "level"} <= set(changes[0])
+    assert maxitor.app.state.maps.stored(source, older) is not None  # type: ignore[attr-defined]
+
+
+def test_switching_one_to_diff_moves_nothing(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    source = _version(maxitor, port)
+    older = open_history(maxitor, port, "live").json()["versions"][0]["source"]
+    alone = _ready(maxitor, port, source)
+    paired = _ready_pair(maxitor, port, source, older)
+    areas = {area["id"]: area for area in paired["areas"]}
+    for area in alone["areas"]:
+        assert (areas[area["id"]]["x"], areas[area["id"]]["y"]) == (area["x"], area["y"])
+        one = _read(maxitor, port, "area", source=source, id=area["id"], level=3).json()["nodes"]
+        both = {item["id"]: item for item in _read(maxitor, port, "area", source=source, a=older, id=area["id"], level=3).json()["nodes"]}
+        assert all((both[item["id"]]["x"], both[item["id"]]["y"]) == (item["x"], item["y"]) for item in one)
+
+
+def test_a_pair_is_refused_when_the_key_does_not_open_the_older_version(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    source = _version(maxitor, port)
+    older = open_history(maxitor, port, "two").json()["versions"][0]["source"]
+    assert _read(maxitor, port, "overview", source=source, a=older).status_code == 404
+
+
+def _ready_pair(maxitor: TestClient, port: StandInPort, source: str, older: str) -> dict[str, Any]:  # noqa: F811
+    """Read a pair's overview until its map is made."""
+    for _ in range(600):
+        body = _read(maxitor, port, "overview", source=source, a=older).json()
+        if body.get("state") == "ready":
+            return body
+        time.sleep(0.02)
+    raise AssertionError("the pair's map was never ready")
