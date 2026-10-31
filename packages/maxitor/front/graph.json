@@ -6268,6 +6268,9 @@
                   "display_name": {
                     "type": "string"
                   },
+                  "id": {
+                    "type": "string"
+                  },
                   "key": {
                     "type": "string"
                   },
@@ -6282,6 +6285,7 @@
                   }
                 },
                 "required": [
+                  "id",
                   "key",
                   "display_name",
                   "state_type",
@@ -6295,6 +6299,9 @@
               "items": {
                 "additionalProperties": false,
                 "properties": {
+                  "id": {
+                    "type": "string"
+                  },
                   "source": {
                     "type": "string"
                   },
@@ -6303,6 +6310,7 @@
                   }
                 },
                 "required": [
+                  "id",
                   "source",
                   "target"
                 ],
