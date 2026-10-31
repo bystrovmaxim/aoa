@@ -38,7 +38,8 @@ import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomai
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
-import { loadUseCaseDiff, unmarkedUseCase, useCaseCard, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { loadUseCaseDiff, unmarkedUseCase, useCaseCard, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 
 
 const GRID_SX = {
@@ -50,10 +51,6 @@ const GRID_SX = {
   backgroundImage: "radial-gradient(rgba(160, 168, 180, 0.42) 1px, transparent 1px)",
   backgroundSize: "20px 20px",
 };
-
-/** The card's width with a margin, and the room kept for it under its top edge. */
-const CARD_WIDTH_PX = 312;
-const CARD_MIN_ROOM_PX = 320;
 
 /** How far a press may move and still be a click. */
 const CLICK_SLOP_PX = 5;
@@ -160,10 +157,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedUseCase(filtered) : filtered), [filtered, counts]);
   useEffect(() => setDiffCounts(counts), [counts]);
   useEffect(() => () => setDiffCounts(null), []);
-  // A click on a marked action or role opens its card. The card is found by id in what is drawn, so it follows Live and closes by itself when its element is no longer marked (spec 041, FR-012, FR-014).
-  const [opened, setOpened] = useState<{ id: string; at: { x: number; y: number } } | null>(null);
-  const cardTarget = useMemo(() => (opened && drawn ? useCaseCard(drawn, opened.id) : null), [opened, drawn]);
   const diffNames = useDiffNames();
+  const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? useCaseChanges(drawn) : []), [drawn, counts]);
 
   const bundle = useMemo(
     () =>
@@ -209,6 +204,11 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   // was given, hashed with it as one pair, is the settings digest a room compares layouts under (FR-093).
   const layoutPair = useSvgLayoutPair(svgMarkup, `${graphvizEngineForBundle}\n${dot}`);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
+  // The steps through what the drawing marks, and the card of a click or a step. The card is read again from what is
+  // drawn, so it follows Live and closes by itself when its element is no longer marked (spec 041, FR-012 – FR-018).
+  const { card, setCard, openCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
+  const cardId = card?.target.elements[0]?.id;
+  const cardTarget = useMemo(() => (cardId && drawn ? useCaseCard(drawn, cardId) : null), [cardId, drawn]);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
   // Registered after the second fit (one frame after the first), so a placed view is not undone.
@@ -310,7 +310,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
       if (!started || Math.hypot(event.clientX - started.x, event.clientY - started.y) > CLICK_SLOP_PX) return;
       const id = useCaseIdAt(event.target as Element | null, drawn);
       const box = viewportRef.current?.getBoundingClientRect();
-      if (id && box) setOpened({ id, at: { x: Math.min(event.clientX - box.left + 8, box.width - CARD_WIDTH_PX), y: Math.max(8, Math.min(event.clientY - box.top + 8, box.height - CARD_MIN_ROOM_PX)) } });
+      const target = id ? useCaseCard(drawn, id) : null;
+      if (target && box) openCard(target, cardPlace(box, event.clientX - box.left + 8, event.clientY - box.top + 8));
     };
     panner.addEventListener("pointerdown", onDown);
     panner.addEventListener("pointerup", onUp);
@@ -318,7 +319,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
       panner.removeEventListener("pointerdown", onDown);
       panner.removeEventListener("pointerup", onUp);
     };
-  }, [pannerRef, viewportRef, drawn, diffing]);
+  }, [pannerRef, viewportRef, drawn, diffing, openCard]);
 
   return (
     <DiagramShell loading={loading} error={error}>
@@ -385,7 +386,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
               />
             </Box>
 
-            {cardTarget && opened && <DiffCard target={cardTarget} newer={diffNames?.b ?? "B"} at={opened.at} onClose={() => setOpened(null)} />}
+            {cardTarget && card && <DiffCard target={cardTarget} newer={diffNames?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
 
             <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
               <Box

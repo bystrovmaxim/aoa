@@ -149,25 +149,35 @@ export type DomainUseCaseDotLayoutOptions = {
 /** The class Graphviz writes on what a comparison leaves unchanged; the viewer fades it. */
 export const USE_CASE_FADED_CLASS = "use-case-faded";
 
+/** The SVG id a marked action, role or link is drawn under, which a step goes to. */
+export function useCaseCellId(id: string): string {
+  return `change_${id.replace(/[^0-9A-Za-z_]/g, "_")}`;
+}
+
 /** A node's attributes in Diff: the sign on hover, or fading; nothing in One. */
-function nodeMark(diff: DiffStatus | undefined, label: string): string {
+function nodeMark(diff: DiffStatus | undefined, label: string, id: string): string {
   if (!diff) return "";
   if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}"`;
-  return ` tooltip="${dotEscAttr(`${MARK_LOOK[diff].sign} ${label}`)}"`;
+  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${MARK_LOOK[diff].sign} ${label}`)}"`;
 }
 
 /** A link's attributes in Diff, after its own so they win: its status's colour, dashed when removed, or fading; nothing in One. */
-function edgeMark(diff: DiffStatus | undefined): string {
+function edgeMark(diff: DiffStatus | undefined, id: string): string {
   if (!diff) return "";
   if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}"`;
   const { colour } = MARK_LOOK[diff];
-  return ` color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
+  return ` id="${useCaseCellId(id)}" color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
 }
 
-/** A role's table attributes in Diff: a frame of its status's colour; nothing in One or when unchanged. */
-function roleFrame(diff: DiffStatus | undefined): string {
-  if (!diff || diff === "unchanged") return 'BORDER="0"';
-  return `BORDER="2" COLOR="${MARK_LOOK[diff].colour}" STYLE="${diff === "removed" ? "DASHED" : "ROUNDED"}"`;
+/** A marked role's actor: the same figure drawn in its status's colour, dashed when removed; ``null`` in One or when unchanged. */
+export function buildRoleActorDataUrl(diff: DiffStatus | undefined): string | null {
+  if (!diff || diff === "unchanged") return null;
+  const dash = diff === "removed" ? ' stroke-dasharray="5 3.5"' : "";
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="74" viewBox="0 0 64 92">` +
+    `<g fill="none" stroke="${MARK_LOOK[diff].colour}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"${dash}>` +
+    `<circle cx="32" cy="14" r="10" fill="#ffffff"/><path d="M29.42 22.58L40.58 11.42M32 24V54M9 39H55M32 54L16 84M32 54L48 84"/></g></svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 /**
@@ -224,7 +234,7 @@ export function buildDomainUseCaseDotBundle(
       const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color, a.diff);
       actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
       lines.push(
-        `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true${nodeMark(a.diff, a.short_label || a.label)}];`,
+        `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true${nodeMark(a.diff, a.short_label || a.label, a.id)}];`,
       );
     }
   };
@@ -248,8 +258,12 @@ export function buildDomainUseCaseDotBundle(
   for (const r of roles) {
     const nid = domainUseCaseDotNodeId("r", r.id);
     const rl = htmlEsc(r.short_label || r.label);
+    const actor = buildRoleActorDataUrl(r.diff);
+    if (actor) actionImages.push({ path: actor, width: "52px", height: "74px" });
+    const img = actor ? dotEscAttr(actor) : imgUrl;
+    const text = r.diff && r.diff !== "unchanged" ? `<FONT POINT-SIZE="10" COLOR="${MARK_LOOK[r.diff].colour}">${rl}</FONT>` : `<FONT POINT-SIZE="10">${rl}</FONT>`;
     lines.push(
-      `  ${nid} [shape=plaintext margin=0 label=<<TABLE ${roleFrame(r.diff)} CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${imgUrl}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12"><FONT POINT-SIZE="10">${rl}</FONT></TD></TR></TABLE>>${nodeMark(r.diff, r.short_label || r.label)}];`,
+      `  ${nid} [shape=plaintext margin=0 label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${img}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12">${text}</TD></TR></TABLE>>${nodeMark(r.diff, r.short_label || r.label, r.id)}];`,
     );
   }
 
@@ -258,24 +272,24 @@ export function buildDomainUseCaseDotBundle(
     if (ek === "action_generalization") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff)}];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id)}];`);
     } else if (ek === "role_generalization") {
       const s = domainUseCaseDotNodeId("r", e.source_id);
       const t = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff)}];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id)}];`);
     } else if (ek === "association") {
       const act = domainUseCaseDotNodeId("a", e.source_id);
       const rol = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee${edgeMark(e.diff)}];`);
+      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee${edgeMark(e.diff, e.id)}];`);
     } else if (ek === "include" || ek === "extend") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
       const lab = e.stereotype ? dotEscLabel(e.stereotype) : ek === "include" ? "\u00abinclude\u00bb" : "\u00abextend\u00bb";
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5${edgeMark(e.diff)}];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5${edgeMark(e.diff, e.id)}];`);
     } else if (ek === "depends") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8${edgeMark(e.diff)}];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8${edgeMark(e.diff, e.id)}];`);
     }
   }
 

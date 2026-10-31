@@ -1,8 +1,8 @@
 // src/lib/useCaseDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { ChangedInside, CompareResult } from "@/api/compare";
-import { buildDomainUseCaseDotBundle } from "@/lib/buildDomainUseCaseDotSource";
-import { markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
+import { buildDomainUseCaseDotBundle, buildRoleActorDataUrl } from "@/lib/buildDomainUseCaseDotSource";
+import { markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChanges, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
 import type { DomainUseCaseDiagramPayload, DomainUseCaseEdgeWire } from "@/model/domainUseCaseDiagram";
 
 const action = (id: string, role_ids: string[] = []) => ({ id, label: id, short_label: id, domain_id: "d", domain_short_label: "d", accent_color: "#8b5cf6", role_ids });
@@ -84,6 +84,23 @@ describe("useCaseCounts", () => {
   });
 });
 
+describe("a marked role", () => {
+  const actor = (data: string | null) => atob((data ?? "").split(",")[1]);
+
+  it("is its own figure in its status's colour, dashed only when removed, and carries no frame", () => {
+    expect(buildRoleActorDataUrl(undefined)).toBeNull();
+    expect(buildRoleActorDataUrl("unchanged")).toBeNull();
+    expect(actor(buildRoleActorDataUrl("added"))).toContain("#16a34a");
+    expect(actor(buildRoleActorDataUrl("added"))).not.toContain("dasharray");
+    expect(actor(buildRoleActorDataUrl("removed"))).toContain("#dc2626");
+    expect(actor(buildRoleActorDataUrl("removed"))).toContain("dasharray");
+    const bundle = buildDomainUseCaseDotBundle(markUseCaseDiagram(diagram([], ["r"]), compared({ r: "removed" }), {}), "LR", options);
+    expect(bundle.dot).toContain('TABLE BORDER="0"');
+    expect(bundle.dot).toContain('COLOR="#dc2626"');
+    expect(bundle.actionImages.map((image) => image.path)).toEqual([buildRoleActorDataUrl("removed")]);
+  });
+});
+
 describe("the drawing", () => {
   const dot = (data: DomainUseCaseDiagramPayload) => buildDomainUseCaseDotBundle(data, "LR", options).dot;
   const one = diagram(["a", "b"], ["r"], [link("a", "r"), link("b", "r")]);
@@ -129,5 +146,32 @@ describe("the card", () => {
     expect(useCaseIdAt(svg.querySelectorAll("image")[0], marked)).toBe("a");
     expect(useCaseIdAt(svg.querySelectorAll("image")[1], marked)).toBeNull();
     expect(useCaseIdAt(svg.querySelector("rect"), marked)).toBeNull();
+  });
+});
+
+describe("the steps", () => {
+  const marked = markUseCaseDiagram(diagram(["z", "b", "c"], ["r"], [link("c", "r"), link("b", "r")]), compared({ z: "added", r: "changed" }, { "c|@check_roles|r": "removed" }), { b: [part("f")] });
+  const changes = useCaseChanges(marked);
+
+  it("hold every mark once, actions, then roles, then links, as the counts do", () => {
+    expect(changes.map((change) => [change.group, change.title, change.status])).toEqual([
+      ["Actions", "b", "changed"],
+      ["Actions", "z", "added"],
+      ["Roles", "r", "changed"],
+      ["Links", "c → r", "removed"],
+    ]);
+    const counts = useCaseCounts(marked);
+    expect(changes).toHaveLength(counts.added + counts.removed + counts.changed);
+  });
+
+  it("say an action changed inside, give a node its card and a link none", () => {
+    expect(changes[0].detail).toBe("Changed inside");
+    expect(changes[0].card?.parts).toHaveLength(1);
+    expect(changes[3].card).toBeNull();
+  });
+
+  it("each name an element the drawing carries", () => {
+    const text = buildDomainUseCaseDotBundle(marked, "LR", options).dot;
+    for (const change of changes) expect(text).toContain(`id="${change.cell}"`);
   });
 });

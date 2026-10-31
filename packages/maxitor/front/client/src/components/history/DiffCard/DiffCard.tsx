@@ -34,6 +34,11 @@ async function differencesOf(target: CardTarget): Promise<ElementDifference[]> {
     });
 }
 
+/** Whether a click landed on the change stepper: that click moves the card to the next change, it does not close it. */
+function inStepper(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('[data-testid="change-stepper"]') !== null;
+}
+
 /** One property that changed: its path, and its value in A and in B. */
 function DifferenceRow({ difference }: { difference: ElementDifference }) {
   return (
@@ -90,7 +95,7 @@ export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
   }, [onClose]);
 
   return (
-    <ClickAwayListener onClickAway={onClose}>
+    <ClickAwayListener onClickAway={(event) => !inStepper(event.target) && onClose()}>
       <Paper
         role="dialog"
         aria-label={`What changed in ${target.title}`}
