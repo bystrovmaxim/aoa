@@ -64,13 +64,13 @@ Each phase is one commit, made only on the maintainer's word. Phase 7 is three c
 - [X] T040 Add the Elements filter, Actions and Roles, with no colour, in packages/maxitor/front/client/src/lib/useCaseDiff.ts, ErdFilterPanel.tsx and UseCaseDiagramViewer.tsx
 - [X] T041 Light what a hover touches on a use-case diagram in packages/maxitor/front/client/src/lib/useCaseHover.ts, with tests
 - [X] T042 Keep a link easy to hit: a hit area of 14 px on screen at every zoom, nodes above links, a readable name on hover, in packages/maxitor/front/client/src/lib/useCaseHover.ts and buildDomainUseCaseDotSource.ts
-- [ ] T039 Walk a room on use cases, and a phone width, on `erd-full`
+- [X] T039 Walk a room on use cases, and a phone width, on `erd-full`
 
 ## Phase 7: The closing three (Principle VI)
 
-- [ ] T029 Closing check run: `bash scripts/run_checks_with_log.sh` taken to zero
-- [ ] T030 Documentation: docs/how-to/compare-two-versions.md, docs/tutorials/step-26-maxitor.md, examples/step_26_maxitor/19_changed_inside.py and its notebook, every case, run while written; the Russian draft docs/how-to/compare-two-versions.ru_draft.md beside the page
-- [ ] T031 Changelog: one article in docs/CHANGELOG.md
+- [X] T029 Closing check run: `bash scripts/run_checks_with_log.sh` taken to zero
+- [X] T030 Documentation: docs/how-to/compare-two-versions.md, docs/tutorials/step-26-maxitor.md, examples/step_26_maxitor/19_changed_inside.py and its notebook, every case, run while written; the Russian draft docs/how-to/compare-two-versions.ru_draft.md beside the page
+- [X] T031 Changelog: one article in docs/CHANGELOG.md
 
 ## Dependencies
 
