@@ -46,3 +46,23 @@ export async function compareVersions(): Promise<CompareResult> {
 export async function compareElement(kind: "node" | "edge", id: string): Promise<CompareElementResult> {
   return (await (await compareFetch("/api/v1/compare-element", new URLSearchParams({ kind, id }))).json()) as CompareElementResult;
 }
+
+/** One changed thing inside an action, which a use-case diagram does not draw. */
+export type ChangedPart = {
+  kind: "node" | "edge";
+  id: string;
+  label: string;
+  type: string;
+  /** What of the action it belongs to: ``Params``, ``Result``, an aspect, or ``Links``. */
+  group: string;
+  status: Exclude<DiffStatus, "unchanged">;
+  differences: ElementDifference[];
+};
+
+/** Each action's changed parts by its id; an action with none is left out. */
+export type ChangedInside = Record<string, ChangedPart[]>;
+
+/** What changed inside the actions of the pair being compared. */
+export async function compareChangedInside(): Promise<ChangedInside> {
+  return ((await (await compareFetch("/api/v1/compare/changed-inside", new URLSearchParams())).json()) as { actions: ChangedInside }).actions;
+}

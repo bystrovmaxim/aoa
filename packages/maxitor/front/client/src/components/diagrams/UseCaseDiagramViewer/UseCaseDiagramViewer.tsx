@@ -6,6 +6,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
+import { getActiveBase } from "@/api/client";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
@@ -26,13 +27,17 @@ import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import useCaseRoleActorUrl from "@/assets/useCaseRoleActor.svg?url";
 import {
   buildDomainUseCaseDotBundle,
+  USE_CASE_FADED_CLASS,
   type DomainUseCaseLayoutEngine,
   type DomainUseCaseRankdir,
 } from "@/lib/buildDomainUseCaseDotSource";
+import { setDiffCounts } from "@/lib/diffCounts";
+import { nothingChanged } from "@/lib/erdDiff";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
+import { loadUseCaseDiff, unmarkedUseCase, useCaseCounts } from "@/lib/useCaseDiff";
 
 
 const GRID_SX = {
@@ -85,7 +90,8 @@ export type UseCaseDiagramViewerProps = {
 };
 
 export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
-  const load = useCallback(() => fetchDomainUseCaseDiagram(domainId), [domainId]);
+  const diffing = getActiveBase() !== null;
+  const load = useCallback(() => (diffing ? loadUseCaseDiff(domainId) : fetchDomainUseCaseDiagram(domainId)), [diffing, domainId]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
 
   // Page settings: the person's own outside a room, the room's inside one (spec 028, FR-030). The
@@ -141,17 +147,23 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     [data, effectiveEnabled],
   );
 
+  // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 041, FR-010 – FR-013).
+  const counts = useMemo(() => (diffing && filtered ? useCaseCounts(filtered) : null), [diffing, filtered]);
+  const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedUseCase(filtered) : filtered), [filtered, counts]);
+  useEffect(() => setDiffCounts(counts), [counts]);
+  useEffect(() => () => setDiffCounts(null), []);
+
   const bundle = useMemo(
     () =>
-      filtered != null
+      drawn != null
         ? buildDomainUseCaseDotBundle(
-            filtered,
+            drawn,
             presetToRankdir(layoutForBundler),
             { roleActorImageUrl: useCaseRoleActorUrl },
             { boundary, layoutEngine: presetToLayoutEngine(layoutForBundler) },
           )
         : null,
-    [filtered, layoutForBundler, boundary],
+    [drawn, layoutForBundler, boundary],
   );
 
   const graphvizEngineForBundle = useMemo(
@@ -324,6 +336,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                   opacity: firstFitDone ? 1 : 0,
                   pointerEvents: firstFitDone ? "auto" : "none",
                   transition: "none",
+                  [`& .${USE_CASE_FADED_CLASS}`]: { opacity: 0.3 },
                   "& svg": {
                     display: "block",
                     maxWidth: "none",
