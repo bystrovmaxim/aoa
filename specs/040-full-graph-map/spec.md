@@ -309,6 +309,10 @@ On the stand:
 - **SC-013**: The check run passes, every step.
 - **SC-015**: The maintainer, shown the map and today's full graph side by side on the stand, approves the look.
 
+On a real phone, with the stand and with the generated graph:
+
+- **SC-018**: The overview appears in under 2 seconds, pan and pinch hold 30 frames a second, and no frame takes over 200 ms.
+
 After the merge, on the real stand, by the maintainer:
 
 - **SC-014**: gameoffer's 0.8.0 → 0.9.0 reads `+23 −1 ~5`.
