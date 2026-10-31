@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChangedInside, CompareResult } from "@/api/compare";
 import { buildDomainUseCaseDotBundle } from "@/lib/buildDomainUseCaseDotSource";
-import { markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCounts } from "@/lib/useCaseDiff";
+import { markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseCounts, useCaseIdAt } from "@/lib/useCaseDiff";
 import type { DomainUseCaseDiagramPayload, DomainUseCaseEdgeWire } from "@/model/domainUseCaseDiagram";
 
 const action = (id: string, role_ids: string[] = []) => ({ id, label: id, short_label: id, domain_id: "d", domain_short_label: "d", accent_color: "#8b5cf6", role_ids });
@@ -103,5 +103,31 @@ describe("the drawing", () => {
     expect(text).toMatch(/a_b \[[^\n]*class="use-case-faded"/);
     expect(text).toMatch(/r_r -> a_a \[[^\n]*color="#16a34a"/);
     expect(text).toMatch(/r_r -> a_b \[[^\n]*color="#dc2626"[^\n]*style=dashed/);
+  });
+});
+
+describe("the card", () => {
+  const marked = markUseCaseDiagram(diagram(["a", "b", "c"], ["r"]), compared({ b: "added", r: "changed" }), { a: [part("f")], b: [part("f")] });
+
+  it("of an action changed inside carries its parts", () => {
+    expect(useCaseCard(marked, "a")).toMatchObject({ title: "a", status: "changed", elements: [{ kind: "node", id: "a" }], parts: [{ id: "f" }] });
+  });
+
+  it("of an added action carries no parts", () => {
+    expect(useCaseCard(marked, "b")?.parts).toBeUndefined();
+  });
+
+  it("is there for a changed role, and not for an unchanged or undrawn element", () => {
+    expect(useCaseCard(marked, "r")?.status).toBe("changed");
+    expect(useCaseCard(marked, "c")).toBeNull();
+    expect(useCaseCard(marked, "gone")).toBeNull();
+  });
+
+  it("is found from a click inside a marked node, not on an unchanged one or the canvas", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = '<g class="node"><title>a_a</title><image/></g><g class="node"><title>a_c</title><image/></g><rect/>';
+    expect(useCaseIdAt(svg.querySelectorAll("image")[0], marked)).toBe("a");
+    expect(useCaseIdAt(svg.querySelectorAll("image")[1], marked)).toBeNull();
+    expect(useCaseIdAt(svg.querySelector("rect"), marked)).toBeNull();
   });
 });

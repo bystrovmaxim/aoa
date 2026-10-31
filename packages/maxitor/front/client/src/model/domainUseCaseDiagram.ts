@@ -1,5 +1,5 @@
 // src/model/domainUseCaseDiagram.ts
-import type { DiffStatus } from "@/api/compare";
+import type { ChangedPart, DiffStatus } from "@/api/compare";
 
 /** Wire shape for ``GET /api/v1/domain-use-case-diagram`` (``GetDomainUseCaseDiagramAction.Result``). */
 
@@ -21,6 +21,8 @@ export type DomainUseCaseActionWire = {
   role_ids: string[];
   /** In Diff: what happened to it from A to B; an action changed inside is ``changed``. */
   diff?: DiffStatus;
+  /** In Diff: what changed inside it, by the server's answer. */
+  parts?: ChangedPart[];
 };
 
 export type DomainUseCaseRoleWire = {

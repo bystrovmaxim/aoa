@@ -8,7 +8,9 @@ import { getActiveBase } from "@/api/client";
 import { compareChangedInside, compareVersions, type ChangedInside, type CompareResult } from "@/api/compare";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { listDomains } from "@/api/erd";
+import { domainUseCaseDotNodeId } from "@/lib/buildDomainUseCaseDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
+import type { CardTarget } from "@/lib/erdDiffCard";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 /** Every element of two lists, each once by id: B's where both have it; sorted, so a pair has one DOT text. */
@@ -35,7 +37,10 @@ export function mergeUseCaseDiagrams(older: DomainUseCaseDiagramPayload | null, 
 export function markUseCaseDiagram(diagram: DomainUseCaseDiagramPayload, compared: CompareResult, inside: ChangedInside): DomainUseCaseDiagramPayload {
   return {
     ...diagram,
-    actions: diagram.actions.map((action) => ({ ...action, diff: compared.nodes[action.id] ?? (inside[action.id]?.length ? "changed" : "unchanged") })),
+    actions: diagram.actions.map((action) => {
+      const diff = compared.nodes[action.id] ?? (inside[action.id]?.length ? "changed" : "unchanged");
+      return { ...action, diff, parts: diff === "changed" ? inside[action.id] : undefined };
+    }),
     roles: diagram.roles.map((role) => ({ ...role, diff: compared.nodes[role.id] ?? "unchanged" })),
     edges: diagram.edges.map((edge) => ({ ...edge, diff: compared.edges[edge.id] ?? "unchanged" })),
   };
@@ -54,10 +59,29 @@ export function useCaseCounts(diagram: DomainUseCaseDiagramPayload): DiagramCoun
 export function unmarkedUseCase(diagram: DomainUseCaseDiagramPayload): DomainUseCaseDiagramPayload {
   return {
     ...diagram,
-    actions: diagram.actions.map(({ diff: _diff, ...action }) => action),
+    actions: diagram.actions.map(({ diff: _diff, parts: _parts, ...action }) => action),
     roles: diagram.roles.map(({ diff: _diff, ...role }) => role),
     edges: diagram.edges.map(({ diff: _diff, ...edge }) => edge),
   };
+}
+
+/** The card of a marked action or role by its id, or ``null`` when it is unchanged or no longer drawn. */
+export function useCaseCard(diagram: DomainUseCaseDiagramPayload, id: string): CardTarget | null {
+  const action = diagram.actions.find((each) => each.id === id);
+  const element = action ?? diagram.roles.find((each) => each.id === id);
+  const status = element?.diff;
+  if (!element || !status || status === "unchanged") return null;
+  return { title: element.short_label || element.label, status, elements: [{ kind: "node", id }], parts: action?.parts };
+}
+
+/** The id of the marked action or role a click landed on, by the node Graphviz wrote for it. */
+export function useCaseIdAt(target: Element | null, diagram: DomainUseCaseDiagramPayload): string | null {
+  const name = target?.closest?.("g.node")?.querySelector("title")?.textContent;
+  if (!name) return null;
+  const action = diagram.actions.find((each) => domainUseCaseDotNodeId("a", each.id) === name);
+  const role = diagram.roles.find((each) => domainUseCaseDotNodeId("r", each.id) === name);
+  const element = action ?? role;
+  return element?.diff && element.diff !== "unchanged" ? element.id : null;
 }
 
 /** A domain's use cases in the pair being compared, read from each version that has the domain, merged and marked. */
