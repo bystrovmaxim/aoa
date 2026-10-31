@@ -11,8 +11,9 @@ import { getSidebar } from "@/api/sidebar";
 import { useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import type { CardTarget } from "@/lib/erdDiffCard";
+import { CHANGE_ORDER } from "@/lib/erdFilterPresence";
 import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
-import type { LifecycleFiniteAutomatonPayload, LifecycleFsmArrow, LifecycleFsmStateWire } from "@/model/lifecycleFiniteAutomaton";
+import type { LifecycleFiniteAutomatonPayload, LifecycleFsmArrow, LifecycleFsmStateWire, LifecycleFsmTransitionWire } from "@/model/lifecycleFiniteAutomaton";
 
 /** B's elements in B's order, then those only A has: a pair with nothing changed is exactly B. */
 function union<T extends { id: string }>(older: readonly T[], newer: readonly T[]): T[] {
@@ -73,6 +74,46 @@ export function unmarkedLifecycle(diagram: LifecycleFiniteAutomatonPayload): Lif
     states: diagram.states.map(({ diff: _diff, ...state }) => state),
     transitions: diagram.transitions.map(({ diff: _diff, ...transition }) => transition),
   };
+}
+
+/** The kinds of state, as the Elements filter lists them. */
+export const LIFECYCLE_KINDS = ["initial", "intermediate", "final"] as const;
+
+/** The kinds of change the diagram holds, in the filter's order; none when nothing on it changed. */
+export function lifecycleChangeKinds(diagram: LifecycleFiniteAutomatonPayload): DiffStatus[] {
+  const present = new Set([...diagram.states, ...diagram.transitions].map((element) => element.diff));
+  if (![...present].some((status) => status && status !== "unchanged")) return [];
+  return CHANGE_ORDER.filter((status) => present.has(status));
+}
+
+/** The diagram with only these states and the transitions that pass ``keep`` between them. */
+function withStates(diagram: LifecycleFiniteAutomatonPayload, states: LifecycleFsmStateWire[], keep: (transition: LifecycleFsmTransitionWire) => boolean = () => true): LifecycleFiniteAutomatonPayload {
+  const keys = new Set(states.map((state) => state.key));
+  return { ...diagram, states, transitions: diagram.transitions.filter((transition) => keep(transition) && keys.has(transition.source) && keys.has(transition.target)) };
+}
+
+/** Hide what is of a kind of change switched off, and every transition touching a hidden state (spec 042, FR-021). */
+export function filterLifecycleByChanges(diagram: LifecycleFiniteAutomatonPayload, off: ReadonlySet<string>): LifecycleFiniteAutomatonPayload {
+  if (off.size === 0) return diagram;
+  const kept = (element: { diff?: DiffStatus }) => !element.diff || !off.has(element.diff);
+  return withStates(diagram, diagram.states.filter(kept), kept);
+}
+
+/** Hide the states of a kind switched off, with their transitions. */
+export function filterLifecycleByKinds(diagram: LifecycleFiniteAutomatonPayload, off: ReadonlySet<string>): LifecycleFiniteAutomatonPayload {
+  if (off.size === 0) return diagram;
+  return withStates(diagram, diagram.states.filter((state) => !off.has(state.state_type)));
+}
+
+/** 1-hop over the filters: what they left, and every state of the base one transition away from it, even what a filter hid. */
+export function withLifecycleOneHop(kept: LifecycleFiniteAutomatonPayload, base: LifecycleFiniteAutomatonPayload): LifecycleFiniteAutomatonPayload {
+  const keys = new Set(kept.states.map((state) => state.key));
+  const reach = new Set(keys);
+  for (const transition of base.transitions) {
+    if (keys.has(transition.source)) reach.add(transition.target);
+    if (keys.has(transition.target)) reach.add(transition.source);
+  }
+  return withStates(base, base.states.filter((state) => reach.has(state.key)));
 }
 
 /** A state's name, as its card and its row in a list say it. */

@@ -14,12 +14,17 @@ import { DiffCard } from "@/components/history/DiffCard";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { nothingChanged } from "@/lib/erdDiff";
-import { lifecycleCard, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle } from "@/lib/lifecycleDiff";
+import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
+import { MARK_LOOK } from "@/lib/erdDiffCard";
+import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { bindUseCaseHover } from "@/lib/useCaseHover";
+import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
+import { OneHopToggle } from "@/components/ui/OneHopToggle";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
-import { buildLifecycleFsmDotSource, LIFECYCLE_FADED_CLASS, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
+import { buildLifecycleFsmDotSource, LIFECYCLE_FADED_CLASS, paletteForStateType, type LifecycleFsmRankdir } from "@/lib/buildLifecycleFsmDotSource";
 import { loadGraphvizWasm } from "@/lib/prefetch/erdGraphviz";
 import { postProcessGraphvizSvgDom } from "@/lib/sanitizeGraphvizSvgOverlays";
 import { diagramCanvasEmptyMessageSx } from "@/lib/ui";
@@ -36,6 +41,8 @@ const GRID_SX = {
 
 /** A press that moved further than this is a pan, not a click. */
 const CLICK_SLOP_PX = 5;
+/** A filter disk with no colour of its own. */
+const IDLE_DISK = "#cbd5e1";
 
 export type LifecycleFsmViewerProps = {
   lifecycleGraphNodeId: string;
@@ -49,9 +56,22 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   // A page setting: shared inside a room (spec 028, FR-030).
   const [rankdir, setRankdir] = usePageSetting<LifecycleFsmRankdir>("rankdir", "LR");
 
+  // Page settings like the direction: a room shares them, the address carries them (spec 042, FR-024).
+  const [offChangeList, setOffChangeList] = usePageSetting<string[]>("disabled_changes", []);
+  const [offKindList, setOffKindList] = usePageSetting<string[]>("disabled_kinds", []);
+  const [includeOneHop, setIncludeOneHop] = usePageSetting("one_hop", true);
+  const offChanges = useMemo(() => new Set(offChangeList), [offChangeList]);
+  const offKinds = useMemo(() => new Set(offKindList), [offKindList]);
+  const filtered = useMemo(() => {
+    if (data == null) return null;
+    const kept = filterLifecycleByKinds(filterLifecycleByChanges(data, diffing ? offChanges : new Set<string>()), offKinds);
+    return includeOneHop ? withLifecycleOneHop(kept, data) : kept;
+  }, [data, diffing, offChanges, offKinds, includeOneHop]);
+  const baseChanges = useMemo(() => (diffing && data ? lifecycleChangeKinds(data) : []), [diffing, data]);
+
   // In Diff the diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 042, FR-010 – FR-012).
-  const counts = useMemo(() => (diffing && data ? lifecycleCounts(data) : null), [diffing, data]);
-  const drawn = useMemo(() => (data && counts && nothingChanged(counts) ? unmarkedLifecycle(data) : data), [data, counts]);
+  const counts = useMemo(() => (diffing && filtered ? lifecycleCounts(filtered) : null), [diffing, filtered]);
+  const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedLifecycle(filtered) : filtered), [filtered, counts]);
   useEffect(() => setDiffCounts(counts), [counts]);
   useEffect(() => () => setDiffCounts(null), []);
   const diffNames = useDiffNames();
@@ -61,6 +81,25 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir) : ""),
     [drawn, rankdir],
   );
+
+  // Each change is sent as the whole new set, never as a toggle.
+  const toggled = (list: readonly string[], key: string) => (list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort());
+  // In One the kinds show the states' own colours; in Diff the changes paint, so the kinds' disks stay grey (spec 042, FR-023).
+  const kindRows: ErdFilterRow[] = LIFECYCLE_KINDS.filter((kind) => data?.states.some((state) => state.state_type === kind)).map((kind) => ({
+    key: kind,
+    label: kind.charAt(0).toUpperCase() + kind.slice(1),
+    iconSrc: statusDiskUri(diffing ? IDLE_DISK : paletteForStateType(kind).stroke, ""),
+    on: !offKinds.has(kind),
+    absent: !filtered?.states.some((state) => state.state_type === kind),
+  }));
+  const shownChanges = new Set(filtered ? lifecycleChangeKinds(filtered) : []);
+  const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
+    key: status,
+    label: status.charAt(0).toUpperCase() + status.slice(1),
+    iconSrc: statusDiskUri(status === "unchanged" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
+    on: !offChanges.has(status),
+    absent: !shownChanges.has(status),
+  }));
 
   // Reserve space for the floating zoom + rankdir toolbar (bottom: 10 + ~36px button row)
   // so vertical fit doesn't push the diagram under the controls in TB mode.
@@ -143,6 +182,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     // or a hidden panner (spec 038). One frame later it is fitted again only if this one could not measure.
     fitToContainer();
     const unbindPan = bindInteractions();
+    const hover = new AbortController();
+    bindUseCaseHover(panner, hover.signal);
     setFirstFitDone(true);
     const raf = requestAnimationFrame(() => {
       if (needsFit()) fitToContainer();
@@ -150,6 +191,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
 
     return () => {
       unbindPan();
+      hover.abort();
       cancelAnimationFrame(raf);
     };
   }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, needsFit]);
@@ -188,6 +230,25 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
       {data != null ? (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <Box sx={GRID_SX}>
+            {kindRows.length > 1 || changeRows.length > 0 ? (
+              <ErdFilterPanel
+                domainRows={[]}
+                withDomains={false}
+                kindRows={kindRows}
+                kindsTitle="Elements"
+                kindsPaint={!diffing}
+                onToggleDomain={() => undefined}
+                onToggleKind={(kind) => setOffKindList(toggled(offKindList, kind))}
+                changeRows={changeRows}
+                onToggleChange={(status) => setOffChangeList(toggled(offChangeList, status))}
+                paint={{ source: changeRows.length > 0 ? "changes" : "kinds", onPaint: () => undefined }}
+              />
+            ) : null}
+            {filtered != null && filtered.states.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
+                Everything is filtered out.
+              </Typography>
+            )}
             {renderError != null && (
               <Typography color="error" variant="body2" sx={{ position: "absolute", left: 8, top: 8, zIndex: 2 }}>
                 {renderError}
@@ -237,6 +298,12 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
             {cardTarget && card && <DiffCard target={cardTarget} newer={diffNames?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
 
             <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
+              <Box
+                component="span"
+                aria-hidden
+                sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
+              />
+              <OneHopToggle checked={includeOneHop} onChange={setIncludeOneHop} />
               <Box
                 component="span"
                 aria-hidden

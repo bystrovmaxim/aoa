@@ -53,11 +53,11 @@ describe("buildLifecycleFsmDotSource", () => {
     expect(dot).not.toContain("dashed");
   });
 
-  it("draws a removed element dashed, and a final state still final", () => {
+  it("draws a removed element dashed, a final state in One's shape", () => {
     const dot = buildLifecycleFsmDotSource(marked("removed"));
     expect(dot).toContain('"rounded,filled,dashed"');
     expect(dot).toContain("style=dashed");
-    expect(dot).toMatch(/"done" \[[^\]]*peripheries=2/);
+    expect(dot).not.toContain("peripheries");
   });
 
   it("makes an unchanged state grey, whatever colour it declares", () => {

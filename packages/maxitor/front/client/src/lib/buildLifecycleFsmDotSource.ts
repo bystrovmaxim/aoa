@@ -32,7 +32,7 @@ function formatStateTitle(displayName: string, key: string): string {
     .join(" ");
 }
 
-function paletteForStateType(t: string): { fill: string; stroke: string } {
+export function paletteForStateType(t: string): { fill: string; stroke: string } {
   if (t === "initial") return { fill: "#ecfdf5", stroke: "#059669" };
   if (t === "final") return { fill: "#f8fafc", stroke: "#64748b" };
   return { fill: "#eff6ff", stroke: "#2563eb" };
@@ -53,17 +53,16 @@ export const LIFECYCLE_FADED_CLASS = "lifecycle-faded";
 /** The tint inside a marked state. */
 const MARK_FILL = { added: "#f0fdf4", removed: "#fef2f2", changed: "#fffbeb" } as const;
 
-/** A state in Diff: its status's colour in place of what it declares, its sign in the name, two lines round a final one. */
-function markedState(key: string, title: string, id: string, diff: DiffStatus, final: boolean): string {
-  const shape = `shape=box, ${final ? "peripheries=2, " : ""}`;
+/** A state in Diff: its status's colour in place of what it declares, its sign in the name, its shape as in One. */
+function markedState(key: string, title: string, id: string, diff: DiffStatus): string {
   const tooltip = title.replace(/"/g, "'");
   if (diff === "unchanged") {
-    return `  ${dotQuoteId(key)} [label=<<B>${htmlEscape(title)}</B>>, ${shape}style="rounded,filled", fillcolor="#ffffff", color="#64748b", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
+    return `  ${dotQuoteId(key)} [label=<<B>${htmlEscape(title)}</B>>, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#64748b", penwidth=1.15, class="${LIFECYCLE_FADED_CLASS}", tooltip="${tooltip}"];`;
   }
   const sign = ERD_DIFF_SIGN[diff];
   const colour = ERD_DIFF_COLOUR[diff];
   const line = diff === "removed" ? "rounded,filled,dashed" : "rounded,filled";
-  return `  ${dotQuoteId(key)} [label=<<B>${sign} ${htmlEscape(title)}</B>>, ${shape}style="${line}", fillcolor="${MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${useCaseCellId(id)}", tooltip="${sign} ${tooltip}"];`;
+  return `  ${dotQuoteId(key)} [label=<<B>${sign} ${htmlEscape(title)}</B>>, shape=box, style="${line}", fillcolor="${MARK_FILL[diff]}", color="${colour}", fontcolor="${colour}", penwidth=1.8, id="${useCaseCellId(id)}", tooltip="${sign} ${tooltip}"];`;
 }
 
 /** A line's attributes in Diff: its status's colour, dashed when removed, or fading. */
@@ -121,7 +120,7 @@ export function buildLifecycleFsmDotSource(data: LifecycleFiniteAutomatonPayload
 
   for (const s of data.states) {
     if (s.diff) {
-      lines.push(markedState(s.key, formatStateTitle(s.display_name, s.key), s.id, s.diff, s.state_type === "final"));
+      lines.push(markedState(s.key, formatStateTitle(s.display_name, s.key), s.id, s.diff));
       continue;
     }
     const id = dotQuoteId(s.key);
