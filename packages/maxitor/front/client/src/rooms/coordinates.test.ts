@@ -1,6 +1,6 @@
 // src/rooms/coordinates.test.ts
 import { describe, expect, it } from "vitest";
-import { g6ClientToDiagram, g6DiagramToClient, svgClientToDiagram, svgDiagramToClient, viewportOf } from "@/rooms/coordinates";
+import { svgClientToDiagram, svgDiagramToClient, viewportOf } from "@/rooms/coordinates";
 import { place } from "@/rooms/PointerLayer";
 
 /** An SVG whose screen transform is ``scale`` then a shift, as a pan and zoom make it. */
@@ -47,17 +47,6 @@ describe("SVG diagram coordinates", () => {
     const none = { getScreenCTM: () => null };
     expect(svgClientToDiagram(none, { x: 1, y: 1 })).toBeNull();
     expect(svgDiagramToClient(none, { x: 1, y: 1 })).toBeNull();
-  });
-});
-
-describe("G6 diagram coordinates", () => {
-  it("use the graph's own canvas maps", () => {
-    const graph = {
-      getCanvasByClient: ([x, y]: [number, number]) => [(x - 10) / 2, (y - 20) / 2],
-      getClientByCanvas: ([x, y]: [number, number]) => [x * 2 + 10, y * 2 + 20],
-    };
-    expect(g6ClientToDiagram(graph, { x: 110, y: 220 })).toEqual({ x: 50, y: 100 });
-    expect(g6DiagramToClient(graph, { x: 50, y: 100 })).toEqual({ x: 110, y: 220 });
   });
 });
 

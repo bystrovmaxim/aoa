@@ -151,7 +151,7 @@ GraphStore — one DuckDB snapshot per source (?source=)
         ↓
 GraphSourceMiddleware → FastAPI Actions → JSON endpoints
         ↓
-React SPA (G6 + Graphviz WASM)
+React SPA (Sigma + Graphviz WASM)
 ```
 
 On backend startup, `NodeGraphCoordinator` scans all registered AOA code and builds the process graph. A diagram read names the AOA service it wants as `?source=<graph-json URL>`; the graph store builds that service's DuckDB snapshot on the first read and keeps it, so a repeat open costs nothing and two users of two services never see each other's graph. At most 50 graphs are held — a built graph stays until then, kept current with its service — and at most 4 builds run at once.
@@ -171,7 +171,8 @@ GET /api/health                          — health check, plus the store's load
 
 GET /api/sidebar?source=<url>            — navigation: domains, entities
 
-GET /api/v1/full-graph?source=<url>      — full graph (G6 payload)
+GET /api/v1/map/overview?source=<url>    — the full graph's map: areas, bundles, counts
+GET /api/v1/map/area?source=<url>&id=&level= — one area of the map
 GET /api/v1/list-domains?source=<url>    — domain list with colors
 GET /api/v1/list-entities?source=<url>   — ERD slice by domain
 GET /api/v1/list-entity-kinds?source=<url> — the graph's entity kinds and their names
@@ -287,7 +288,7 @@ The React SPA is layered:
 | ---------------------- | ----------------------------------------------------------------- |
 | `app/`                 | Entry: `App.tsx`, `AppProviders.tsx`. No business logic           |
 | `components/`          | All UI: `layout/`, `pages/`, `navigation/`, `diagrams/`          |
-| `components/diagrams/` | `FullGraphViewer/` (G6), `ErdViewer/` (Graphviz WASM)             |
+| `components/diagrams/` | `MapViewer/` (Sigma, WebGL), `ErdViewer/` (Graphviz WASM)             |
 | `api/`                 | HTTP clients mirroring FastAPI routes                             |
 | `model/`               | TypeScript contracts between UI and API                           |
 | `lib/`                 | Pure helpers, layout constants                                    |
@@ -296,7 +297,7 @@ The React SPA is layered:
 
 Graph rendering:
 
-- **G6** (`@antv/g6`) — full graph, force-directed layout
+- **Sigma.js** — the full graph as a map, in WebGL, laid out on the server by Graphviz
 - **`@hpcc-js/wasm-graphviz`** — ERD, deterministic Graphviz layout
 
 ---

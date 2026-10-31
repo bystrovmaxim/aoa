@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** Multi-domain ERD legend with visibility toggles in the Graphviz viewport. Row chrome matches `NodeTypeLegend` (shared `floatingLegend*` styles from `@/lib/ui`). Each row uses the shared Domain disk from `@/lib/icons` (`svgDataUriForInterchangeDomainLegend`) tinted with the domain accent; off rows are dimmed (opacity), no bordered chips.
+**Role:** Multi-domain ERD legend with visibility toggles in the Graphviz viewport. Row chrome uses the shared `floatingLegend*` styles from `@/lib/ui`. Each row uses the shared Domain disk from `@/lib/icons` (`svgDataUriForInterchangeDomainLegend`) tinted with the domain accent; off rows are dimmed (opacity), no bordered chips.
 
 ## Files
 

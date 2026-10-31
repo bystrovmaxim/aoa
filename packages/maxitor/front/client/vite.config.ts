@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,26 +32,8 @@ function buildId(): Plugin {
   };
 }
 
-/**
- * ``@antv/layout`` 2.0.0 ships source maps that name sources it does not ship
- * (``../../src/util/src/util/format.ts``), so every module of it made Vite warn "points to missing
- * source files". Its modules are served without the dangling reference; nothing else changes.
- */
-function dropDanglingSourceMaps(packageName: string): Plugin {
-  const folder = `/node_modules/${packageName}/`;
-  return {
-    name: "maxitor-drop-dangling-source-maps",
-    enforce: "pre",
-    load(id) {
-      const file = id.split("?")[0]!;
-      if (!file.includes(folder) || !file.endsWith(".js")) return null;
-      return readFileSync(file, "utf8").replace(/^\/\/# sourceMappingURL=.*$/m, "");
-    },
-  };
-}
-
 export default defineConfig({
-  plugins: [react(), buildId(), dropDanglingSourceMaps("@antv/layout")],
+  plugins: [react(), buildId()],
   define: {
     __MAXITOR_BUILD__: JSON.stringify(BUILD_ID),
   },

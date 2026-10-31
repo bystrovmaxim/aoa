@@ -2,7 +2,7 @@
 import Box from "@mui/material/Box";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import { ErdViewer } from "@/components/diagrams/ErdViewer";
-import { FullGraphViewer } from "@/components/diagrams/FullGraphViewer";
+import { MapViewer } from "@/components/diagrams/MapViewer";
 import { LifecycleFsmViewer } from "@/components/diagrams/LifecycleFsmViewer";
 import { UseCaseDiagramViewer } from "@/components/diagrams/UseCaseDiagramViewer";
 
@@ -35,7 +35,7 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
       }}
     >
       {diagram?.kind === "interchange_graph" ? (
-        <FullGraphViewer key="full-graph" />
+        <MapViewer key="full-graph" />
       ) : diagram?.kind === "erd" ? (
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
       ) : diagram?.kind === "lifecycle_fsm" ? (

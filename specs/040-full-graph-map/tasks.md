@@ -69,21 +69,21 @@
 
 **Independent Test**: The measured session; the walk on the stand; **the maintainer's approval**.
 
-- [ ] T020 `FC/package.json`: `sigma` 4, `graphology`, `@sigma/node-border`, `@sigma/node-image`.
-- [ ] T021 [US1] `FC/src/api/map.ts`: the reads; one opening reads each thing once (FR-013).
-- [ ] T022 [US2] `FC/src/lib/mapLevels.ts` and test: the level from the visible width, the reveal between thresholds, pure.
-- [ ] T023 [US2] `FC/src/components/diagrams/MapViewer/MapViewer.tsx`: Sigma set up per the mockup (`settings`, `primitives`, reducers): nodes with their icons rasterized once per type, links with arrows, camera, zoom and pan.
-- [ ] T024 [US1] `FC/.../MapViewer/areasLayer.ts`: areas on a canvas below the nodes: outlines as paths in graph space, tags that stay on screen and do not collide, what an area holds.
-- [ ] T025 [US1] `FC/.../MapViewer/bundles`: bundles between folded areas, fading out as detail comes.
-- [ ] T026 [US2] `FC/.../MapViewer/useAreaDetail.ts`: read what comes into view, keep about 3 000 nodes, let go the rest (FR-010 – FR-012); a folded area stays until its detail arrives.
-- [ ] T027 [US2] `MapViewer.tsx`: hover as today, with the HTML label; names by level; a click on a folded domain flies to it (FR-007 – FR-009).
-- [ ] T028 [US1] First paint: areas painted at once, Sigma taking over (research R7).
-- [ ] T029 [US4] Keep the overview's domain hull look: the outline from the sketch, with the mockup's field and contour, in `FC/src/lib/mapOutline.ts` and test.
-- [ ] T030 Replace `FullGraphViewer` with `MapViewer` where the diagram is chosen; remove `FullGraphViewer`, G6 and `@antv/layout` if nothing else imports them.
-- [ ] T031 [US4] `FC/scripts/measure-map.ts`: the scripted session on the generated graph, printing each SC-001 – SC-006 beside its threshold. Re-measure filters with `visibility`, as research.md asks.
-- [ ] T032 Run the walk in **real Safari** with the existing `safariTab`; record it.
-- [ ] T033 **The look gate.** Show the map beside today's graph on the stand. Stop here until the maintainer approves (FR-009a, SC-015).
-- [ ] T034 Adversarial: move a node between levels; drop the cap on loaded detail; restore. Check run green; prepare commit 5: `feat(maxitor): the full graph is a map (#319)`.
+- [X] T020 `FC/package.json`: `sigma` 4, `graphology`, `@sigma/node-border`, `@sigma/node-image`.
+- [X] T021 [US1] `FC/src/api/map.ts`: the reads; one opening reads each thing once (FR-013).
+- [X] T022 [US2] `FC/src/lib/mapLevels.ts` and test: the level from the visible width, the reveal between thresholds, pure.
+- [X] T023 [US2] `FC/src/components/diagrams/MapViewer/MapViewer.tsx`: Sigma set up per the mockup (`settings`, `primitives`, reducers): nodes with their icons rasterized once per type, links with arrows, camera, zoom and pan.
+- [X] T024 [US1] `FC/.../MapViewer/areasLayer.ts`: areas on a canvas below the nodes: outlines as paths in graph space, tags that stay on screen and do not collide, what an area holds.
+- [X] T025 [US1] `FC/.../MapViewer/bundles`: bundles between folded areas, fading out as detail comes.
+- [X] T026 [US2] `FC/.../MapViewer/useAreaDetail.ts`: read what comes into view, keep about 3 000 nodes, let go the rest (FR-010 – FR-012); a folded area stays until its detail arrives.
+- [X] T027 [US2] `MapViewer.tsx`: hover as today, with the HTML label; names by level; a click on a folded domain flies to it (FR-007 – FR-009).
+- [X] T028 [US1] First paint: areas painted at once, Sigma taking over (research R7).
+- [X] T029 [US4] Keep the overview's domain hull look: the outline from the sketch, with the mockup's field and contour, in `FC/src/lib/mapOutline.ts` and test.
+- [X] T030 Replace `FullGraphViewer` with `MapViewer` where the diagram is chosen; remove `FullGraphViewer`, G6 and `@antv/layout` if nothing else imports them.
+- [X] T031 [US4] `FC/scripts/measure-map.ts`: the scripted session on the generated graph, printing each SC-001 – SC-006 beside its threshold. Re-measure filters with `visibility`, as research.md asks.
+- [ ] T032 Run the walk in **real Safari** with the existing `safariTab`; record it. **Moved to T047**, with the phone: it needs the maintainer at the machine.
+- [X] T033 **The look gate.** Show the map beside today's graph on the stand. Stop here until the maintainer approves (FR-009a, SC-015).
+- [X] T034 Adversarial: move a node between levels; drop the cap on loaded detail; restore. Check run green; prepare commit 5: `feat(maxitor): the full graph is a map (#319)`.
 
 ---
 
@@ -110,7 +110,7 @@
 **Independent Test**: Switch every filter at every level; a room of two browsers; a phone.
 
 - [ ] T042 [US6] `ErdFilterPanel`: `kindsTitle`; the full graph's panel with Domains, Node types and, in Diff, Changes; paint per FR-030, starting from Domains in One and Changes in Diff.
-- [ ] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**.
+- [ ] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md, **a hidden node taking what it contains with it (FR-028a)**; rows dim on their own axis and say what hides them (FR-028b, FR-028c), with `GM/.../assemble.py` counting nodes by type and the types above them; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**.
 - [ ] T044 [US6] `MapViewer`: hide without layout; filters under 50 ms, trying Sigma's data textures before a full refresh; re-measure.
 - [ ] T045 [US6] `FC/src/lib/viewUrl.ts` and test: `disabled_node_types`, `disabled_domains`.
 - [ ] T046 [US8] `FC/.../MapViewer/mapSurface.ts`: the room's surface in map coordinates: pointers, following, hover; the cross-engine check covers the map (research R10).

@@ -3,7 +3,7 @@
  * Diagram coordinates ⇄ screen coordinates.
  *
  * A pointer travels in the coordinates of the diagram itself, which every participant's picture
- * shares to the bit (spec 028, FR-006): the user space of the Graphviz SVG, or G6's canvas space for
+ * shares to the bit (spec 028, FR-006): the user space of the Graphviz SVG, or the map's own units for
  * the full graph. Each tab maps them to its own screen with its own zoom and pan (FR-040).
  */
 
@@ -57,24 +57,6 @@ export function svgDiagramToClient(svg: ScreenTransformed, point: Point): Point 
   const ctm = screenTransform(svg);
   if (!ctm) return null;
   return { x: ctm.a * point.x + ctm.c * point.y + ctm.e, y: ctm.b * point.x + ctm.d * point.y + ctm.f };
-}
-
-/** The parts of a G6 graph the maps use. */
-export type CanvasMapped = {
-  getCanvasByClient(point: [number, number]): ArrayLike<number>;
-  getClientByCanvas(point: [number, number]): ArrayLike<number>;
-};
-
-/** Client pixels → G6's canvas space. */
-export function g6ClientToDiagram(graph: CanvasMapped, client: Point): Point | null {
-  const [x, y] = Array.from(graph.getCanvasByClient([client.x, client.y]));
-  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
-}
-
-/** G6's canvas space → client pixels. */
-export function g6DiagramToClient(graph: CanvasMapped, point: Point): Point | null {
-  const [x, y] = Array.from(graph.getClientByCanvas([point.x, point.y]));
-  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
 /** What a tab sees of the diagram, in diagram coordinates: centre and size (the ``viewport`` message). */
