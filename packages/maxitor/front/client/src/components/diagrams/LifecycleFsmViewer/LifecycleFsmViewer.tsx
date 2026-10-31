@@ -17,6 +17,7 @@ import { nothingChanged } from "@/lib/erdDiff";
 import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
 import { MARK_LOOK } from "@/lib/erdDiffCard";
 import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { svgDataUriForGraphNodeIcon } from "@/lib/icons";
 import { bindUseCaseHover } from "@/lib/useCaseHover";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
@@ -41,6 +42,8 @@ const GRID_SX = {
 
 /** A press that moved further than this is a pan, not a click. */
 const CLICK_SLOP_PX = 5;
+/** The graph's node type of each kind of state: the filter shows the full graph's icon for it. */
+const STATE_NODE_TYPE = { initial: "StateInitial", intermediate: "StateIntermediate", final: "StateFinal" } as const;
 /** A filter disk with no colour of its own. */
 const IDLE_DISK = "#cbd5e1";
 
@@ -88,7 +91,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const kindRows: ErdFilterRow[] = LIFECYCLE_KINDS.filter((kind) => data?.states.some((state) => state.state_type === kind)).map((kind) => ({
     key: kind,
     label: kind.charAt(0).toUpperCase() + kind.slice(1),
-    iconSrc: statusDiskUri(diffing ? IDLE_DISK : paletteForStateType(kind).stroke, ""),
+    iconSrc: svgDataUriForGraphNodeIcon(diffing ? IDLE_DISK : paletteForStateType(kind).stroke, STATE_NODE_TYPE[kind]),
     on: !offKinds.has(kind),
     absent: !filtered?.states.some((state) => state.state_type === kind),
   }));
@@ -303,12 +306,6 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                 aria-hidden
                 sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
               />
-              <OneHopToggle checked={includeOneHop} onChange={setIncludeOneHop} />
-              <Box
-                component="span"
-                aria-hidden
-                sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
-              />
               <ToggleButtonGroup
                 exclusive
                 size="small"
@@ -345,6 +342,12 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                   </Tooltip>
                 </ToggleButton>
               </ToggleButtonGroup>
+              <Box
+                component="span"
+                aria-hidden
+                sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
+              />
+              <OneHopToggle checked={includeOneHop} onChange={setIncludeOneHop} />
             </ZoomToolbar>
           </Box>
         </Box>

@@ -129,5 +129,7 @@ describe("the filters", () => {
     const hop = withLifecycleOneHop(filterLifecycleByKinds(older, new Set(["final", "intermediate"])), older);
     expect(hop.states.map((state) => state.key)).toEqual(["open", "busy"]);
     expect(withLifecycleOneHop(older, older)).toEqual(older);
+    const back = withLifecycleOneHop(filterLifecycleByKinds(older, new Set(["initial", "intermediate"])), older);
+    expect(back.states.map((state) => state.key)).toEqual(["busy", "done"]);
   });
 });

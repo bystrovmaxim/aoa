@@ -47,7 +47,7 @@ describe("buildLifecycleFsmDotSource", () => {
 
   it("gives an added state its colour, its sign and an id a step can go to", () => {
     const dot = buildLifecycleFsmDotSource(marked("added"));
-    expect(dot).toContain("<B>+ Open</B>");
+    expect(dot).toContain('label="+ Open"');
     expect(dot).toContain('color="#16a34a"');
     expect(dot).toContain('id="change_a_lifecycle_s_open"');
     expect(dot).not.toContain("dashed");

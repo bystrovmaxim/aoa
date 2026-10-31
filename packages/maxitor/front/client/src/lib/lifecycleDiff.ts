@@ -8,7 +8,7 @@ import { getActiveBase, type GraphRead } from "@/api/client";
 import { compareVersions, type CompareResult, type DiffStatus } from "@/api/compare";
 import { fetchLifecycleFiniteAutomaton } from "@/api/lifecycleFiniteAutomaton";
 import { getSidebar } from "@/api/sidebar";
-import { useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
+import { lifecycleCellId } from "@/lib/buildLifecycleFsmDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import type { CardTarget } from "@/lib/erdDiffCard";
 import { CHANGE_ORDER } from "@/lib/erdFilterPresence";
@@ -148,7 +148,7 @@ function byName<T extends { id: string }>(elements: readonly T[], name: (element
 export function lifecycleChanges(diagram: LifecycleFiniteAutomatonPayload): GraphvizChange[] {
   const change = (id: string, group: string, detail: string): GraphvizChange[] => {
     const card = lifecycleCard(diagram, id);
-    return card ? [{ key: id, title: card.title, detail, status: card.status, group, cell: useCaseCellId(id), card }] : [];
+    return card ? [{ key: id, title: card.title, detail, status: card.status, group, cell: lifecycleCellId(id), card }] : [];
   };
   return [
     ...byName(diagram.states, (state) => stateName(state, state.key)).flatMap((state) => change(state.id, "States", "State")),
@@ -160,7 +160,7 @@ export function lifecycleChanges(diagram: LifecycleFiniteAutomatonPayload): Grap
 export function lifecycleIdAt(target: Element | null, diagram: LifecycleFiniteAutomatonPayload): string | null {
   const drawn = target?.closest?.("g.node, g.edge");
   if (!drawn) return null;
-  if (drawn.classList.contains("edge")) return diagram.transitions.find((each) => each.diff !== "unchanged" && useCaseCellId(each.id) === drawn.id)?.id ?? null;
+  if (drawn.classList.contains("edge")) return diagram.transitions.find((each) => each.diff !== "unchanged" && lifecycleCellId(each.id) === drawn.id)?.id ?? null;
   const key = drawn.querySelector("title")?.textContent;
   const state = diagram.states.find((each) => each.key === key);
   return state?.diff && state.diff !== "unchanged" ? state.id : null;
