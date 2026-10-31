@@ -16,6 +16,8 @@ const LIST_PX = 360;
 /** How many rows are drawn past each edge of the list: only what can show is on the page. */
 const OVERSCAN = 8;
 const CLOSED: ChangeListState = { open: false, at: null, card: false, offset: 0 };
+/** On a phone the top row has no room for it: it floats over the map's corner, clear of the zoom bar. */
+const PHONE_SX = { position: "fixed", right: 10, bottom: 10, zIndex: 40, bgcolor: "rgba(255, 255, 255, 0.92)", boxShadow: "0 2px 10px rgba(0, 0, 0, 0.12)" } as const;
 
 function GroupRow({ group, top }: { group: string; top: number }) {
   return (
@@ -171,7 +173,7 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
 
   return (
     <>
-      <Box ref={pill} role="group" aria-label="Changes" data-pointer-frame="change-steps" data-testid="change-stepper" sx={{ ...pillSx(open), flexShrink: 0 }}>
+      <Box ref={pill} role="group" aria-label="Changes" data-pointer-frame="change-steps" data-testid="change-stepper" sx={{ ...pillSx(open), flexShrink: 0, ...(compact && PHONE_SX) }}>
         <PillArrow delta={-1} label="Previous change" title="Previous change" onStep={step} touch={compact} />
         <PillDivider />
         <ButtonBase
@@ -189,7 +191,7 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
         <PillDivider />
         <PillArrow delta={1} label="Next change" title="Next change" onStep={step} touch={compact} />
       </Box>
-      <Popper open={open} anchorEl={() => pill.current ?? document.body} placement="bottom-start" modifiers={[{ name: "offset", options: { offset: [0, 11] } }]} sx={{ zIndex: 1300 }}>
+      <Popper open={open} anchorEl={() => pill.current ?? document.body} placement={compact ? "top-end" : "bottom-start"} modifiers={[{ name: "offset", options: { offset: [0, 11] } }]} sx={{ zIndex: 1300 }}>
         <ClickAwayListener onClickAway={onClickAway}>
           <Paper
             role="dialog"

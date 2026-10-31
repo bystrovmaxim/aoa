@@ -171,6 +171,7 @@ class MapStore(BaseController):
         colours: Sequence[str],
         immutable: Callable[[str], bool] = lambda _source: False,
         pair: Callable[[], tuple[MappedGraph, MappedGraph] | None] = lambda: None,
+        type_colour: Callable[[str], str] = lambda _type: "#64748b",
         run: Callable[[str], str] = run_sfdp,
         workers: int | None = None,
     ) -> None:
@@ -180,6 +181,7 @@ class MapStore(BaseController):
         self._colours = colours
         self._immutable = immutable
         self._pair = pair
+        self._type_colour = type_colour
         self._run = run
         self._workers = workers or os.cpu_count() or 1
         self._running: dict[str, asyncio.Task[None]] = {}
@@ -273,7 +275,7 @@ class MapStore(BaseController):
         """One version: lay out what has no layout yet, and settle the places."""
         areas = split_areas(json.loads(graph.document))
         layouts = self._layouts(areas)
-        return assemble(areas, layouts, self._places(graph, areas, layouts), self._colours)
+        return assemble(areas, layouts, self._places(graph, areas, layouts), self._colours, type_colour=self._type_colour)
 
     def _pair_map(self, older: MappedGraph, newer: MappedGraph) -> VersionMap:
         """Two versions as one map: B's positions, every area where it stands, and what the comparison says."""
@@ -291,7 +293,7 @@ class MapStore(BaseController):
             {key: item.status.value for key, item in comparison.edges.items() if item.status is not Status.UNCHANGED},
             was,
         )
-        return assemble(union, layouts, self._places(newer, union, layouts, stay=True), self._colours, marks)
+        return assemble(union, layouts, self._places(newer, union, layouts, stay=True), self._colours, marks, self._type_colour)
 
     def _layouts(self, areas: GraphAreas) -> dict[str, AreaLayout]:
         """Every area's layout: kept under its content hash, or laid out now."""

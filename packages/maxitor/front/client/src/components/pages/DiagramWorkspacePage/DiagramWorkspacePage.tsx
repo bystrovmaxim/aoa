@@ -18,10 +18,12 @@ const EMPTY_WORKSPACE_SX = {
 
 type DiagramWorkspacePageProps = {
   diagram: DiagramSelection | null;
+  /** Go to the ERD of all domains, for a browser that cannot draw the map. */
+  onOpenErd?: () => void;
 };
 
 /** Central workspace: full graph, ERD, use-case, lifecycle, or empty dotted surface from sidebar selection. */
-export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
+export function DiagramWorkspacePage({ diagram, onOpenErd }: DiagramWorkspacePageProps) {
   return (
     <Box
       sx={{
@@ -35,7 +37,7 @@ export function DiagramWorkspacePage({ diagram }: DiagramWorkspacePageProps) {
       }}
     >
       {diagram?.kind === "interchange_graph" ? (
-        <MapViewer key="full-graph" />
+        <MapViewer key="full-graph" onOpenErd={onOpenErd} />
       ) : diagram?.kind === "erd" ? (
         <ErdViewer key={diagram.qualifier ?? "all"} selection={diagram} />
       ) : diagram?.kind === "lifecycle_fsm" ? (

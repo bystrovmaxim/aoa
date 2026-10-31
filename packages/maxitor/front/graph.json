@@ -2816,6 +2816,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
       "is_dag": false,
       "properties": {},
@@ -2840,6 +2849,15 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
       "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:state",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult|field|maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult",
+      "target_id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
       "type": "field"
     },
     {
@@ -6887,6 +6905,17 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:chains",
+      "label": "chains",
+      "properties": {
+        "description": "The distinct lists of types above a node; a sketch's chain index reads here",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:links_changed",
       "label": "links_changed",
       "properties": {
@@ -6916,6 +6945,17 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewResult:type_colours",
+      "label": "type_colours",
+      "properties": {
+        "description": "Each node type's colour",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },

@@ -45,6 +45,8 @@ class MapOverviewResult(BaseResult):
     areas: list[dict[str, Any]] = Field(description="Each area: id, name, colour, place, counts by type and sketch")
     bundles: list[list[Any]] = Field(description="Each pair of linked areas: both ids, the number of links, links by the types of their ends")
     shared: list[dict[str, Any]] = Field(description="Each node in more than one domain, with its domains")
+    type_colours: dict[str, str] = Field(default_factory=dict, description="Each node type's colour")
+    chains: list[list[str]] = Field(default_factory=list, description="The distinct lists of types above a node; a sketch's chain index reads here")
     links_changed: int | None = Field(default=None, description="In a comparison, how many drawn links changed; absent for one version")
 
 

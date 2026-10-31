@@ -227,6 +227,8 @@ def _panels_fit(value: Any) -> bool:
         and (value.get("track") is None or _track(value["track"]))
         # The list of a comparison's changes as its person moves it: open or not, where they stand, the scroll (spec 040).
         and (value.get("changes") is None or _change_list(value["changes"]))
+        # The filter row whose card says what keeps it hidden (spec 040).
+        and (value.get("why") is None or _short_text(value["why"]))
     )
 
 
@@ -241,6 +243,7 @@ def _panels(value: Any) -> dict[str, Any] | None:
         "versions": value.get("versions", False),
         "track": value.get("track"),
         "changes": value.get("changes"),
+        "why": value.get("why"),
     }
 
 

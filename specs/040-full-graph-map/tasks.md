@@ -112,14 +112,14 @@
 
 **Independent Test**: Switch every filter at every level; a room of two browsers; a phone.
 
-- [ ] T042 [US6] `ErdFilterPanel`: `kindsTitle`; the full graph's panel with Domains, Node types and, in Diff, Changes; paint per FR-030, starting from Domains in One and Changes in Diff.
-- [ ] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md, **a hidden node taking what it contains with it (FR-028a)**; rows dim on their own axis and say what hides them (FR-028b, FR-028c), with `GM/.../assemble.py` counting nodes by type and the types above them; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**. Switching off Unchanged in Changes takes the grey domains off the map with their tags and bundles.
-- [ ] T044 [US6] `MapViewer`: hide without layout; filters under 50 ms, trying Sigma's data textures before a full refresh; re-measure.
-- [ ] T045 [US6] `FC/src/lib/viewUrl.ts` and test: `disabled_node_types`, `disabled_domains`.
-- [ ] T046 [US8] `FC/.../MapViewer/mapSurface.ts`: the room's surface in map coordinates: pointers, following, hover; the cross-engine check covers the map (research R10).
-- [ ] T047 [US8] Phones: pinch, tap, the Filter pill, about 1 500 nodes kept; real Safari again; SC-018 measured on a real phone, with the maintainer.
-- [ ] T048 No WebGL: the page says so and offers the ERD (FR-036). README of `MapViewer`.
-- [ ] T049 Walk the filters on the stand at every level, a room of two browsers, a phone. Adversarial: move a node on a filter; hide a node in no domain; leave an outline unchanged; restore. Check run green; prepare commit 7: `feat(maxitor): filters and paint on the map (#319)`.
+- [X] T042 [US6] `ErdFilterPanel`: `kindsTitle`; the full graph's panel with Domains, Node types and, in Diff, Changes; paint per FR-030, starting from Domains in One and Changes in Diff.
+- [X] T043 [US6] `FC/src/lib/mapVisibility.ts` and test: what a filter set leaves, by the rule of data-model.md, **a hidden node taking what it contains with it (FR-028a)**; rows dim on their own axis and say what hides them (FR-028b, FR-028c), with `GM/.../assemble.py` counting nodes by type and the types above them; counts and bundles from the overview; **outlines, names and `45 of 394 left` follow at every level (FR-029a)**. Switching off Unchanged in Changes takes the grey domains off the map with their tags and bundles.
+- [X] T044 [US6] `MapViewer`: hide without layout; filters under 50 ms, trying Sigma's data textures before a full refresh; re-measure.
+- [X] T045 [US6] `FC/src/lib/viewUrl.ts` and test: `disabled_node_types`, `disabled_domains`.
+- [X] T046 [US8] `FC/.../MapViewer/mapSurface.ts`: the room's surface in map coordinates: pointers, following, hover; the cross-engine check covers the map (research R10).
+- [ ] T047 [US8] Phones: pinch, tap, the Filter pill, about 1 500 nodes kept; real Safari again; SC-018 measured on a real phone, with the maintainer. Done in emulation; the real phone and real Safari, with T032, need the maintainer at the device.
+- [X] T048 No WebGL: the page says so and offers the ERD (FR-036). README of `MapViewer`.
+- [X] T049 Walk the filters on the stand at every level, a room of two browsers, a phone. Adversarial: move a node on a filter; hide a node in no domain; leave an outline unchanged; restore. Check run green; prepare commit 7: `feat(maxitor): filters and paint on the map (#319)`.
 
 ---
 

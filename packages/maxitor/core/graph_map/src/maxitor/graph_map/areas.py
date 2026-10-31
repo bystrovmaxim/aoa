@@ -10,6 +10,9 @@ An area is what the map folds and unfolds. A node belongs to the domains it is l
 and to those of whatever contains it; it stands in one of them, its home, the first in the
 domains' order. Generalization links are not drawn, as on the full graph. An area's
 content hash covers what its layout depends on, so a layout can be reused across versions.
+A node also knows the types of everything above it, from the application down: a filter
+that hides one of those takes it along, and with no node in the browser the map still knows
+what that leaves.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -25,7 +28,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 OUTSIDE = "(outside)"
@@ -36,6 +39,10 @@ APPLICATION = "Application"
 GENERALIZATION = "Generalization"
 CONTAINMENT = frozenset({"Composition", "Aggregation"})
 DOMAIN_LINK = "domain"
+APPLICATION_LINK = "application"
+
+NOT_HOLDING = frozenset({"lifecycle_transition", "entity_schema"})
+"""Containment links that hold nothing: a transition moves between states, and a schema points at an entity."""
 
 LEVEL_TWO = frozenset({"Entity", "Action", "Role", "Resource", DOMAIN, APPLICATION})
 """What shows once a domain unfolds; everything else waits for the closest level."""
@@ -49,6 +56,8 @@ class MapNode:
     label: str
     type: str
     level: int
+    above: tuple[str, ...] = ()
+    """The types of everything above this node, at any depth, sorted."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,10 +96,12 @@ class GraphAreas:
 
     areas: tuple[Area, ...]
     links: Mapping[tuple[str, str], Mapping[str, int]]
-    """Each pair of areas, ids sorted → its links, counted by the types of their ends."""
+    """Each pair of areas, ids sorted → its links, counted by their ends: ``Type>Above>Above|Type``."""
     memberships: Mapping[str, tuple[str, ...]]
     """A node in more than one domain → all of them."""
     types: tuple[str, ...]
+    containers: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    """A node → what stands directly above it."""
 
 
 def _text(value: Any) -> str:
@@ -108,21 +119,59 @@ def _drawn_edges(document: Mapping[str, Any], nodes: Mapping[str, Any]) -> list[
     return edges
 
 
-def _members(document: Mapping[str, Any], types: Mapping[str, str], domains: list[str]) -> dict[str, set[str]]:
+def _contained(document: Mapping[str, Any], types: Mapping[str, str]) -> dict[str, list[str]]:
+    """What each node contains directly; a link to a domain is membership, and a domain or an application is never held."""
+    children: dict[str, list[str]] = {}
+    for edge in document.get("edges", []):
+        source, target = _text(edge.get("source_id")), _text(edge.get("target_id"))
+        linked_to_domain = edge.get("type") == DOMAIN_LINK and types.get(target) == DOMAIN
+        if not linked_to_domain and edge.get("relationship") in CONTAINMENT and source in types and types.get(target, DOMAIN) not in (DOMAIN, APPLICATION):
+            children.setdefault(source, []).append(target)
+    return children
+
+
+def _held(document: Mapping[str, Any], types: Mapping[str, str]) -> dict[str, list[str]]:
+    """What stands directly below each node: a domain's and an application's members, and what containment holds."""
+    held: dict[str, list[str]] = {}
+    for edge in document.get("edges", []):
+        source, target, kind = _text(edge.get("source_id")), _text(edge.get("target_id")), edge.get("type")
+        if source not in types or target not in types:
+            continue
+        if types[target] in (DOMAIN, APPLICATION):
+            if kind in (DOMAIN_LINK, APPLICATION_LINK):
+                held.setdefault(target, []).append(source)
+        elif edge.get("relationship") in CONTAINMENT and kind not in NOT_HOLDING:
+            held.setdefault(source, []).append(target)
+    return held
+
+
+def _above(below: Mapping[str, list[str]], types: Mapping[str, str]) -> dict[str, set[str]]:
+    """The types above each node, at any depth."""
+    above: dict[str, set[str]] = {}
+    queue = list(below)
+    while queue:
+        parent = queue.pop()
+        passed = above.get(parent, set()) | {types[parent]}
+        for child in below.get(parent, ()):
+            known = above.setdefault(child, set())
+            if not passed <= known:
+                known |= passed
+                queue.append(child)
+    return above
+
+
+def _members(document: Mapping[str, Any], types: Mapping[str, str], domains: list[str], children: Mapping[str, list[str]]) -> dict[str, set[str]]:
     """Each domain's members: what is linked to it and, through containment, what those hold."""
     members = {domain: {domain} for domain in domains}
-    children: dict[str, list[str]] = {}
     for edge in document.get("edges", []):
         source, target = _text(edge.get("source_id")), _text(edge.get("target_id"))
         if edge.get("type") == DOMAIN_LINK and types.get(target) == DOMAIN and source in types:
             members[target].add(source)
-        elif edge.get("relationship") in CONTAINMENT and source in types and target in types:
-            children.setdefault(source, []).append(target)
     for member_set in members.values():
         queue = sorted(member_set)
         while queue:
             for child in children.get(queue.pop(), ()):
-                if child not in member_set and types[child] not in (DOMAIN, APPLICATION):
+                if child not in member_set:
                     member_set.add(child)
                     queue.append(child)
     return members
@@ -145,7 +194,9 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
     nodes = {_text(node.get("id")): node for node in document.get("nodes", [])}
     types = {node_id: _text(node.get("type")) for node_id, node in nodes.items()}
     domains = sorted(node_id for node_id, node_type in types.items() if node_type == DOMAIN)
-    members = _members(document, types, domains)
+    held = _held(document, types)
+    above = {node_id: tuple(sorted(parents)) for node_id, parents in _above(held, types).items()}
+    members = _members(document, types, domains, _contained(document, types))
     memberships: dict[str, list[str]] = {}
     for domain in domains:
         for node_id in members[domain]:
@@ -153,7 +204,7 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
     home = {node_id: held[0] for node_id, held in memberships.items()} | dict(homes or {})
     standing: dict[str, list[MapNode]] = {}
     for node_id in sorted(nodes):
-        node = MapNode(node_id, _text(nodes[node_id].get("label")) or node_id, types[node_id], 2 if types[node_id] in LEVEL_TWO else 3)
+        node = MapNode(node_id, _text(nodes[node_id].get("label")) or node_id, types[node_id], 2 if types[node_id] in LEVEL_TWO else 3, above.get(node_id, ()))
         standing.setdefault(home.get(node_id, OUTSIDE), []).append(node)
     inner: dict[str, list[MapEdge]] = {}
     across: dict[str, list[MapEdge]] = {}
@@ -164,7 +215,7 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
             inner.setdefault(start, []).append(edge)
             continue
         across.setdefault(start, []).append(edge)
-        ends = f"{types[edge.source]}|{types[edge.target]}"
+        ends = "|".join(">".join((types[each], *above.get(each, ()))) for each in (edge.source, edge.target))
         pair = links.setdefault((min(start, end), max(start, end)), {})
         pair[ends] = pair.get(ends, 0) + 1
     areas = tuple(
@@ -179,4 +230,8 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
         for area_id in sorted(standing)
     )
     shared = {node_id: tuple(held) for node_id, held in memberships.items() if len(held) > 1}
-    return GraphAreas(areas, links, shared, tuple(sorted(set(types.values()))))
+    containers: dict[str, list[str]] = {}
+    for parent, below in held.items():
+        for child in below:
+            containers.setdefault(child, []).append(parent)
+    return GraphAreas(areas, links, shared, tuple(sorted(set(types.values()))), {node_id: tuple(sorted(parents)) for node_id, parents in containers.items()})

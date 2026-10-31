@@ -8,6 +8,8 @@ Both are AOA actions, read for the active source, with `a` naming the older vers
 {
   "state": "ready",
   "types": ["Action", "Entity", "EntityField"],
+  "type_colours": {"Action": "#2563eb", "Entity": "#059669", "EntityField": "#94a3b8"},
+  "chains": [[], ["Entity"]],
   "areas": [
     {"id": "shop.OrdersDomain", "name": "OrdersDomain", "colour": "#3b82f6", "x": 120.0, "y": -40.0, "radius": 770.0,
      "counts": {"Entity": 12, "EntityField": 90}}
@@ -18,8 +20,8 @@ Both are AOA actions, read for the active source, with `a` naming the older vers
 ```
 
 - `state` is `laying-out` until the map is ready; then `areas` is empty, and the client asks again.
-- In a comparison an area adds `status` and `changes`, and a bundle adds a last item, its changed links. The overview adds `links_changed`, how many drawn links changed.
-- Each area carries `sketch`, and each bundle its links by the types of their ends, so the outlines, the counts and the bundles follow a filter with no other read.
+- In a comparison an area adds `status` and `changes`, and a bundle adds a last item, its changed links by status. The overview adds `links_changed`, how many drawn links changed.
+- Each area carries `sketch`, `{"cell": 60.0, "cells": [[column, row, type index, count, chain index, status index]]}`, status counting in `unchanged`, `added`, `removed`, `changed`; each bundle carries its links by their ends, `"EntityField>Entity|Action"`: a type, then the types above it. So the outlines, the counts and the bundles follow a filter with no other read.
 
 ## `GET /api/v1/map/area?id=<area>&level=<2|3>`
 
@@ -32,14 +34,16 @@ Both are AOA actions, read for the active source, with `a` naming the older vers
 ```
 
 - `across` lists links to other areas, drawn once both ends are loaded.
-- In a comparison a node or edge adds `diff`, and a retargeted edge adds `was`, its target in A.
+- A contained node adds `chain`, its index in `chains`.
+- In a comparison a node or edge adds `diff`, and a retargeted edge adds `was`, its target in A. A node that holds a change or ends a changed link adds `glance`: `changed`.
 
 ## `GET /api/v1/map/changes`
 
-Only with `a`. Every changed node and drawn link, in the stepping order (FR-025b); a link stands at its middle and adds `span`, how far apart its ends are:
+Only with `a`. Every changed node and drawn link, in the stepping order (FR-025b); a link stands at its middle and adds `span`, how far apart its ends are. `ends` says what a filter asks of the node or of both ends of the link: `[id, home area, type, chain index, status]`:
 
 ```json
-{"changes": [{"id": "shop.Order", "label": "Order", "area": "shop.OrdersDomain", "type": "Entity", "status": "changed", "x": 10.5, "y": 20.0, "level": 2}]}
+{"changes": [{"id": "shop.Order", "label": "Order", "area": "shop.OrdersDomain", "type": "Entity", "status": "changed", "x": 10.5, "y": 20.0, "level": 2,
+  "ends": [["shop.Order", "shop.OrdersDomain", "Entity", 0, "changed"]]}]}
 ```
 
 The client steps through this list and skips what its filters hide, so stepping needs no other read until it arrives.
