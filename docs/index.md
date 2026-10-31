@@ -122,6 +122,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 - **[Running the checks](how-to/run-the-checks.md)** — the one command that finishes a change: what runs together, the limit, reading the log, failures and stopping
 - **[Running the repo-graph-port](how-to/run-the-repo-graph-port.md)** — a service's graph history from its repository, on a server: the GitHub App, the config, the secrets, the keys
 - **[Opening a graph history in Maxitor](how-to/open-a-graph-history.md)** — one address opens a history; reading the track: versions, releases, open pull requests, Live; sharing what you see
+- **[Reading the full graph as a map](how-to/read-the-full-graph-map.md)** — domains far away, what they hold closer: zoom, filters that take what stands below, changes stepped through one by one
 - **[Comparing two versions in Maxitor](how-to/compare-two-versions.md)** — Diff: two versions on the track, the ERD painted by what changed, the card of a change, filtering and painting by changes
 
 ### Reference materials

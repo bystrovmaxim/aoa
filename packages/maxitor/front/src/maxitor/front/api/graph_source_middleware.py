@@ -59,6 +59,7 @@ A comparison (spec 038) reads two versions: ``/api/v1/compare*`` names the newer
 and the older as ``a``. The middleware guards ``a`` exactly as it guards ``source`` — the
 same key header, the same refusals, ``a`` first — and binds its entry to a second context
 variable, read through ``current_base_entry``; a comparison read without ``a`` is a 400.
+A read of the map may name ``a`` too (spec 040), and is then guarded the same way.
 
 One request sees one entry for as long as it runs (FR-007), so a reload of the same source
 in the middle of a request cannot mix two graphs in one answer. ``OPTIONS`` passes through
@@ -89,6 +90,7 @@ from maxitor.front.model.core.actions.check_version_access_action import (
 from maxitor.front.model.core.history_address import HistoryAddressError, parse_version_source
 from maxitor.front.model.core.history_errors import HistoryNotFoundError, HistoryUnreachableError, TooManyWrongKeysError
 from maxitor.front.model.core.history_key_holder import HistoryKeyHolder
+from maxitor.front.model.diagrams.resources.map_store import StoredVersion
 from starlette.types import Receive, Scope, Send
 
 from aoa.action_machine.context import Context, RequestInfo
@@ -102,16 +104,25 @@ MISSING_BASE_DETAIL = "Missing query parameter 'a': name the older version this 
 #: The reads that compare two versions: they name the older one as ``a`` as well.
 COMPARE_PATH_PREFIX = "/api/v1/compare"
 
+#: The reads of the map: a version with its map on disk is read with no graph built (spec 040).
+MAP_PATH_PREFIX = "/api/v1/map/"
+
 #: The pause the 503 asks a client to honour, in seconds.
 RETRY_AFTER_SECONDS = 5
 
 _CURRENT_ENTRY: ContextVar[GraphEntry | None] = ContextVar("maxitor_graph_entry", default=None)
 _BASE_ENTRY: ContextVar[GraphEntry | None] = ContextVar("maxitor_base_graph_entry", default=None)
+_MAP_VERSION: ContextVar[StoredVersion | None] = ContextVar("maxitor_map_version", default=None)
 
 
 def current_graph_entry() -> GraphEntry | None:
     """Return the entry bound to the current request, or ``None`` outside a graph read."""
     return _CURRENT_ENTRY.get()
+
+
+def current_mapped() -> GraphEntry | StoredVersion | None:
+    """Return what the current read's map is read from: a stored version, or the bound entry."""
+    return _MAP_VERSION.get() or _CURRENT_ENTRY.get()
 
 
 def current_base_entry() -> GraphEntry | None:
@@ -164,9 +175,13 @@ class GraphSourceMiddleware:
             await _refuse(send, 400, MISSING_SOURCE_DETAIL)
             return
 
+        if await self._read_stored_map(scope, receive, send, source):
+            return
+
         base: GraphEntry | None = None
-        if str(scope.get("path", "")).startswith(COMPARE_PATH_PREFIX):
-            older = _query_of(scope, "a")
+        path = str(scope.get("path", ""))
+        older = _query_of(scope, "a")
+        if path.startswith(COMPARE_PATH_PREFIX) or (path.startswith(MAP_PATH_PREFIX) and older):
             if not older:
                 await _refuse(send, 400, MISSING_BASE_DETAIL)
                 return
@@ -182,16 +197,28 @@ class GraphSourceMiddleware:
             await self._app(scope, receive, send)
 
 
+    async def _read_stored_map(self, scope: Scope, receive: Receive, send: Send, source: str) -> bool:
+        """Answer a map read from what is on disk, with no graph built; whether it was answered."""
+        if not str(scope.get("path", "")).startswith(MAP_PATH_PREFIX):
+            return False
+        older = _query_of(scope, "a")
+        stored = scope["app"].state.maps.stored(source, older)
+        if stored is None:
+            return False
+        if (not older or await _let_in(scope, send, older) is not None) and await _let_in(scope, send, source) is not None:
+            token = _MAP_VERSION.set(stored)
+            try:
+                await self._app(scope, receive, send)
+            finally:
+                _MAP_VERSION.reset(token)
+        return True
+
+
 async def _guarded(scope: Scope, send: Send, source: str) -> GraphEntry | None:
     """The built entry of ``source`` once a version's reader is let in; ``None`` after answering the refusal."""
-    key = ""
-    if parse_version_source(source) is not None:
-        key = _history_key_of(scope)
-        refusal = await _version_refusal(scope, source, key)
-        if refusal is not None:
-            status, detail = refusal
-            await _refuse(send, status, detail, retry_after=RETRY_AFTER_SECONDS if status == 503 else None)
-            return None
+    key = await _let_in(scope, send, source)
+    if key is None:
+        return None
 
     store = scope["app"].state.graph_store
     try:
@@ -200,6 +227,19 @@ async def _guarded(scope: Scope, send: Send, source: str) -> GraphEntry | None:
         await _refuse(send, 503, BUSY_DETAIL, retry_after=RETRY_AFTER_SECONDS)
     except GraphBuildError as exc:
         await _refuse(send, 422, exc.reason)
+    return None
+
+
+async def _let_in(scope: Scope, send: Send, source: str) -> str | None:
+    """The read key once a version's reader is let in, empty for any other source; ``None`` after answering the refusal."""
+    if parse_version_source(source) is None:
+        return ""
+    key = _history_key_of(scope)
+    refusal = await _version_refusal(scope, source, key)
+    if refusal is None:
+        return key
+    status, detail = refusal
+    await _refuse(send, status, detail, retry_after=RETRY_AFTER_SECONDS if status == 503 else None)
     return None
 
 

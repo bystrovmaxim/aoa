@@ -110,7 +110,7 @@ def interchange_node_type_from_duck(duck_type: str) -> str:
 
 
 def fill_color_for_node_type(node_type: str) -> str:
-    """Return the G6 disk fill for a DuckDB or interchange ``node_type`` string."""
+    """Return the disk fill for a DuckDB or interchange ``node_type`` string."""
     canonical = interchange_node_type_from_duck(node_type)
     if canonical == "unknown":
         return DEFAULT_NODE_TYPE_COLOR

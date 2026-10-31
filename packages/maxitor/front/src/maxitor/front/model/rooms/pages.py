@@ -99,7 +99,13 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "lifecycle-fsm": {
         "rankdir": _one_of("LR", "TB"),
     },
-    "full-graph": {},
+    "full-graph": {
+        "disabled_node_types": _strings,
+        "disabled_domains": _strings,
+        "disabled_changes": _strings,
+        "paint": _one_of("domains", "kinds"),
+        "paint_diff": _one_of("domains", "kinds", "changes"),
+    },
 }
 
 

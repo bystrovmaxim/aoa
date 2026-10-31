@@ -1,8 +1,9 @@
 // src/components/history/VersionButton/VersionButton.tsx
 import Box from "@mui/material/Box";
-import ButtonBase from "@mui/material/ButtonBase";
+import ButtonBase, { type ButtonBaseProps } from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
 import { forwardRef, type ReactNode } from "react";
+import { nothingChanged, type DiagramCounts } from "@/lib/erdDiff";
 
 export type VersionButtonProps = {
   /** The name of the version shown: ``Live``, ``#147`` (its pull request), ``#57`` (its place in the history). */
@@ -11,7 +12,7 @@ export type VersionButtonProps = {
   /** Called with the button itself, which the picker opens under. */
   onClick: (button: HTMLElement) => void;
   /** In Diff, what the diagram on screen counts (spec 038, FR-025); ``null`` or absent shows no counts. */
-  counts?: { added: number; removed: number; changed: number } | null;
+  counts?: DiagramCounts | null;
   /** On a phone (spec 038, FR-033): the button never grows past its row, its name cut with an ellipsis before the counts are. */
   compact?: boolean;
   /** One step older (−1) or newer (+1) without the picker; absent, no arrows. */
@@ -21,7 +22,7 @@ export type VersionButtonProps = {
 };
 
 /** A key as the hint draws it: a small plate. */
-function Key({ children }: { children: ReactNode }) {
+export function Key({ children }: { children: ReactNode }) {
   return (
     <Box component="kbd" sx={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 16, height: 16, px: "3px", ml: "3px", borderRadius: "4px", bgcolor: "rgba(255, 255, 255, 0.16)", border: "1px solid rgba(255, 255, 255, 0.28)", fontFamily: "inherit", fontSize: 11, lineHeight: 1 }}>
       {children}
@@ -29,13 +30,22 @@ function Key({ children }: { children: ReactNode }) {
   );
 }
 
-/** A step arrow inside the button's pill: the same grey, the same hover; greyed out at the end of the track. */
-function StepArrow({ delta, enabled, onStep, touch }: { delta: -1 | 1; enabled: boolean; onStep: (delta: -1 | 1) => void; touch: boolean }) {
-  const label = delta < 0 ? "Older version" : "Newer version";
-  const arrow = (
+export type PillArrowProps = Omit<ButtonBaseProps, "onClick"> & {
+  delta: -1 | 1;
+  label: string;
+  onStep: (delta: -1 | 1) => void;
+  /** On a phone an arrow is as wide as a finger. */
+  touch?: boolean;
+  enabled?: boolean;
+};
+
+/** An arrow inside a pill: the same grey, the same hover; greyed out when there is no step that way. */
+export const PillArrow = forwardRef<HTMLButtonElement, PillArrowProps>(function PillArrow({ delta, label, onStep, touch = false, enabled = true, ...rest }, ref) {
+  return (
     <ButtonBase
+      {...rest}
+      ref={ref}
       aria-label={label}
-      aria-keyshortcuts={delta < 0 ? "Shift+ArrowLeft" : "Shift+ArrowRight"}
       disabled={!enabled}
       onClick={() => onStep(delta)}
       sx={{
@@ -54,6 +64,31 @@ function StepArrow({ delta, enabled, onStep, touch }: { delta: -1 | 1; enabled: 
       </svg>
     </ButtonBase>
   );
+});
+
+/** The hairline between an arrow and the middle of a pill. */
+export function PillDivider() {
+  return <Box component="span" aria-hidden sx={{ width: "1px", alignSelf: "center", height: 14, bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0 }} />;
+}
+
+/** The pill itself: arrows and a middle, one control. */
+export function pillSx(open: boolean) {
+  return { display: "inline-flex", alignItems: "stretch", height: 28, borderRadius: "8px", bgcolor: open ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)" } as const;
+}
+
+/** The chevron of a control that opens something. */
+export function PillChevron() {
+  return (
+    <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#64748b", flexShrink: 0 }}>
+      <path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z" />
+    </svg>
+  );
+}
+
+/** A version's step arrow: older or newer, with its keys. */
+function StepArrow({ delta, enabled, onStep, touch }: { delta: -1 | 1; enabled: boolean; onStep: (delta: -1 | 1) => void; touch: boolean }) {
+  const label = delta < 0 ? "Older version" : "Newer version";
+  const arrow = <PillArrow delta={delta} label={label} enabled={enabled} onStep={onStep} touch={touch} aria-keyshortcuts={delta < 0 ? "Shift+ArrowLeft" : "Shift+ArrowRight"} />;
   // The hint says the keys only when one reaches for the arrow; a phone has no keys to tell.
   return touch || !enabled ? (
     arrow
@@ -77,8 +112,8 @@ function StepArrow({ delta, enabled, onStep, touch }: { delta: -1 | 1; enabled: 
 const COUNT_COLOUR = { added: "#16a34a", removed: "#dc2626", changed: "#d97706" } as const;
 
 /** The counts as the button says them: ``+15 −1 ~3``, or ``no changes``. */
-export function countsText(counts: { added: number; removed: number; changed: number }): string {
-  return counts.added + counts.removed + counts.changed === 0 ? "no changes" : `+${counts.added} −${counts.removed} ~${counts.changed}`;
+export function countsText(counts: DiagramCounts): string {
+  return nothingChanged(counts) ? "no changes" : `+${counts.added} −${counts.removed} ~${counts.changed}`;
 }
 
 /** The mockup's history icon: a clock with the arrow of time turned back. */
@@ -142,20 +177,17 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
             <span style={{ color: COUNT_COLOUR.changed }}>~{counts.changed}</span>
           </span>
         ))}
-      <svg viewBox="0 0 24 24" width={15} height={15} aria-hidden style={{ color: "#64748b", flexShrink: 0 }}>
-        <path fill="currentColor" d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z" />
-      </svg>
+      <PillChevron />
     </ButtonBase>
   );
   if (!onStep) return button;
   // The arrows share the button's pill, a hairline apart: one control, not three.
-  const divider = <Box component="span" aria-hidden sx={{ width: "1px", alignSelf: "center", height: 14, bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0 }} />;
   return (
-    <Box role="group" aria-label="Versions" sx={{ display: "inline-flex", alignItems: "stretch", height: 28, borderRadius: "8px", bgcolor: open ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)", minWidth: 0, maxWidth: "100%" }}>
+    <Box role="group" aria-label="Versions" sx={{ ...pillSx(open), minWidth: 0, maxWidth: "100%" }}>
       <StepArrow delta={-1} enabled={canStep.older} onStep={onStep} touch={compact} />
-      {divider}
+      <PillDivider />
       {button}
-      {divider}
+      <PillDivider />
       <StepArrow delta={1} enabled={canStep.newer} onStep={onStep} touch={compact} />
     </Box>
   );

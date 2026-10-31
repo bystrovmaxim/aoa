@@ -5,17 +5,10 @@
  * The workspace shows one diagram at a time. Its viewer registers a surface — the element it draws
  * in, the coordinate maps, a way to hear about every pan and zoom, and a way to centre and restore
  * the view — and the room's pointer layer, pointer sender and page check work through it, the same
- * way for the three Graphviz viewers and for G6.
+ * way for the three Graphviz viewers and for the map.
  */
 import { useEffect, useSyncExternalStore, type RefObject } from "react";
-import {
-  g6ClientToDiagram,
-  g6DiagramToClient,
-  svgClientToDiagram,
-  svgDiagramToClient,
-  type CanvasMapped,
-  type Point,
-} from "@/rooms/coordinates";
+import { svgClientToDiagram, svgDiagramToClient, type Point } from "@/rooms/coordinates";
 
 /** Zoom and centre of a view, for restoring it after Maxitor reloads itself (FR-090). */
 export type SavedView = { x: number; y: number; zoom: number };
@@ -31,6 +24,8 @@ export type DiagramSurface = {
   centreOn(point: Point): void;
   view(): SavedView | null;
   restore(view: SavedView): void;
+  /** How far zooms may differ before following moves yours, where a surface zooms finer than the default leaves alone. */
+  zoomTolerance?: number;
 };
 
 let current: DiagramSurface | null = null;
@@ -122,44 +117,4 @@ export function useSvgDiagramSurface(
     });
     // ``fitCount``: a refit (new data, a new size) undoes a placed view, so it is a new surface.
   }, [elementRef, ready, onTransform, centreOnClient, getScale, setScale, fitCount]);
-}
-
-/** What the full graph's G6 instance offers the room. */
-export type G6Like = CanvasMapped & {
-  on(event: string, listener: () => void): unknown;
-  off(event: string, listener: () => void): unknown;
-  getZoom(): number;
-  zoomTo(zoom: number, animation?: false): Promise<void>;
-  translateBy(offset: [number, number], animation?: false): Promise<void>;
-};
-
-/** Register the full graph's surface: diagram coordinates are G6's canvas space. */
-export function registerG6DiagramSurface(element: HTMLElement, graph: G6Like): () => void {
-  const toDiagram = (client: Point) => g6ClientToDiagram(graph, client);
-  const toClient = (point: Point) => g6DiagramToClient(graph, point);
-  const centreOn = async (point: Point) => {
-    const client = toClient(point);
-    if (!client) return;
-    const centre = centreOf(element);
-    await graph.translateBy([centre.x - client.x, centre.y - client.y], false);
-  };
-  return registerDiagramSurface({
-    element,
-    toDiagram,
-    toClient,
-    subscribe: (listener) => {
-      graph.on("aftertransform", listener);
-      return () => {
-        graph.off("aftertransform", listener);
-      };
-    },
-    centreOn: (point) => void centreOn(point),
-    view: () => {
-      const centre = toDiagram(centreOf(element));
-      return centre ? { ...centre, zoom: graph.getZoom() } : null;
-    },
-    restore: (view) => {
-      void graph.zoomTo(view.zoom, false).then(() => centreOn(view));
-    },
-  });
 }

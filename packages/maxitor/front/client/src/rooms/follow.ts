@@ -123,10 +123,10 @@ const ZOOM_TOLERANCE = 0.01;
  * The zoom that shows what they see (spec 038): yours, times what fits their screen's area into yours — the same zoom
  * on a screen of the same size, all of their area on another; ``null`` when yours already is it.
  */
-export function followZoom(yours: DiagramViewport, theirs: DiagramViewport, zoom: number): number | null {
+export function followZoom(yours: DiagramViewport, theirs: DiagramViewport, zoom: number, tolerance = ZOOM_TOLERANCE): number | null {
   if (!(theirs.w > 0 && theirs.h > 0 && yours.w > 0 && yours.h > 0 && zoom > 0)) return null;
   const next = zoom * Math.min(yours.w / theirs.w, yours.h / theirs.h);
-  return Math.abs(next - zoom) / zoom > ZOOM_TOLERANCE ? next : null;
+  return Math.abs(next - zoom) / zoom > tolerance ? next : null;
 }
 
 /**
@@ -135,17 +135,17 @@ export function followZoom(yours: DiagramViewport, theirs: DiagramViewport, zoom
  * corner; a smaller screen then shows less on the right and below, a bigger one more. Without it: their centre, at the
  * zoom that shows all of their area. ``zoom`` in the answer is ``null`` when yours already is it.
  */
-export function followTarget(yourPixels: { w: number; h: number }, yours: DiagramViewport, theirs: DiagramViewport, zoom: number): { centre: Point; zoom: number | null } {
+export function followTarget(yourPixels: { w: number; h: number }, yours: DiagramViewport, theirs: DiagramViewport, zoom: number, tolerance = ZOOM_TOLERANCE): { centre: Point; zoom: number | null } {
   const { pw, ph } = theirs;
   if (pw && ph && pw > 0 && ph > 0 && theirs.w > 0 && yours.w > 0 && yourPixels.w > 0 && zoom > 0) {
     const scale = pw / theirs.w;
     const next = (zoom * scale) / (yourPixels.w / yours.w);
     return {
       centre: { x: theirs.cx - theirs.w / 2 + yourPixels.w / scale / 2, y: theirs.cy - theirs.h / 2 + yourPixels.h / scale / 2 },
-      zoom: Math.abs(next - zoom) / zoom > ZOOM_TOLERANCE ? next : null,
+      zoom: Math.abs(next - zoom) / zoom > tolerance ? next : null,
     };
   }
-  return { centre: { x: theirs.cx, y: theirs.cy }, zoom: followZoom(yours, theirs, zoom) };
+  return { centre: { x: theirs.cx, y: theirs.cy }, zoom: followZoom(yours, theirs, zoom, tolerance) };
 }
 
 /**
@@ -266,7 +266,7 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       const rect = surface.element.getBoundingClientRect();
       const yours = viewportOf(rect, surface.toDiagram);
       const zoom = surface.view()?.zoom;
-      return yours && zoom ? followTarget({ w: rect.width, h: rect.height }, yours, theirs, zoom) : null;
+      return yours && zoom ? followTarget({ w: rect.width, h: rect.height }, yours, theirs, zoom, surface.zoomTolerance) : null;
     };
     const onScreen = () => {
       const theirs = viewportOfParticipant(targetId);

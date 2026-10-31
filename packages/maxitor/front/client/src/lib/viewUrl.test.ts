@@ -23,6 +23,13 @@ describe("the view in the address (spec 038)", () => {
     expect(paramsToView(new URLSearchParams("")).settings).toEqual({});
   });
 
+  it("carries the map's filters", () => {
+    const settings = { disabled_node_types: ["Action", "Field"], disabled_domains: ["a.Orders"] };
+    const params = viewToParams(settings);
+    expect(params).toEqual({ off_types: "Action,Field", off_domains: "a.Orders" });
+    expect(paramsToView(new URLSearchParams(params))).toEqual({ settings });
+  });
+
   it("ignores a parameter out of shape rather than guess", () => {
     expect(paramsToView(new URLSearchParams("one_hop=yes&layout=")).settings).toEqual({});
   });

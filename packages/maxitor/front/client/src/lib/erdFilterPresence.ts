@@ -13,6 +13,15 @@ import { entityKindOf, pruneGraphToEntities } from "@/lib/erdKindFilter";
 /** The kinds of change, in the order the filter lists them. */
 export const CHANGE_ORDER: readonly ErdDiff[] = ["added", "removed", "changed", "unchanged"];
 
+/** A legend disk for a kind of change: the status colour with its sign in white. */
+export function statusDiskUri(fill: string, sign: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${fill}"/>` +
+    (sign ? `<text x="12" y="16.5" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#fff">${sign}</text>` : "") +
+    `</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 /** The kinds of change the base has, in the filter's order; none when nothing on it changed (or one version is drawn). */
 export function changesOnDiagram(entities: readonly ErdEntity[]): ErdDiff[] {
   const present = new Set(entities.filter((entity) => entity.diff !== undefined).map(erdGlance));

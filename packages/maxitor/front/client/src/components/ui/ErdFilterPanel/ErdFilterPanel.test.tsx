@@ -158,8 +158,72 @@ describe("ErdFilterPanel", () => {
     expect(divided[0].contains(points[0])).toBe(true);
   });
 
+  describe("the gear shift and the sections (spec 040)", () => {
+    const panel = (source: "domains" | "kinds" | "changes", onPaint: (next: "domains" | "kinds" | "changes") => void) => (
+      <ErdFilterPanel domainRows={domains} kindRows={kinds} onToggleDomain={() => undefined} onToggleKind={() => undefined} changeRows={[row("added", "Added")]} onToggleChange={() => undefined} paint={{ source, onPaint }} />
+    );
+    const open = () => ["Domains", "Kinds", "Changes"].filter((name) => header(name).getAttribute("aria-expanded") === "true");
+
+    it("opens the section that paints", () => {
+      render(panel("changes", () => undefined));
+      expect(open()).toEqual(["Changes"]);
+    });
+
+    it("opens the section the gear shift moves to, and folds the others", () => {
+      const onPaint = vi.fn();
+      render(panel("domains", onPaint));
+      fireEvent.click(screen.getByRole("radio", { name: "Paint by Kinds" }));
+      expect(onPaint).toHaveBeenCalledWith("kinds");
+      expect(open()).toEqual(["Kinds"]);
+    });
+
+    it("leaves the paint alone when a section is opened or folded by hand", () => {
+      const onPaint = vi.fn();
+      render(panel("domains", onPaint));
+      fireEvent.click(header("Kinds"));
+      fireEvent.click(header("Kinds"));
+      expect(onPaint).not.toHaveBeenCalled();
+    });
+  });
+
   it("has no gear shift when there is one section to paint by", () => {
     render(<ErdFilterPanel domainRows={domains} kindRows={kinds.slice(0, 1)} onToggleDomain={() => undefined} onToggleKind={() => undefined} paint={{ source: "domains", onPaint: () => undefined }} />);
     expect(screen.queryByRole("radio")).toBeNull();
+  });
+});
+
+describe("a row hidden by what stands above it", () => {
+  const ROWS = [{ key: "field", label: "EntityField", iconSrc: "", on: true, absent: true, hidden: { by: [{ key: "entity", label: "Entity", iconSrc: "" }], onReveal: vi.fn() } }];
+
+  function panel() {
+    render(<ErdFilterPanel domainRows={ROWS} kindRows={[]} onToggleDomain={() => undefined} onToggleKind={() => undefined} />);
+  }
+
+  it("carries a quiet mark and no words of its own", () => {
+    panel();
+    expect(screen.getByTestId("erd-filter-hidden-mark")).toBeTruthy();
+    expect(screen.queryByTestId("erd-filter-hidden-card")).toBeNull();
+  });
+
+  it("opens a card on hover that says what is off, and one button switches it on", () => {
+    panel();
+    fireEvent.mouseEnter(screen.getByTestId("erd-filter-hidden-mark"));
+    expect(screen.getByTestId("erd-filter-hidden-card").textContent).toContain("EntityField is hidden");
+    fireEvent.click(screen.getByText("Show Entity"));
+    expect(ROWS[0].hidden.onReveal).toHaveBeenCalledOnce();
+    expect(screen.queryByTestId("erd-filter-hidden-card")).toBeNull();
+  });
+
+  it("opens the same card on a tap", () => {
+    panel();
+    fireEvent.click(screen.getByTestId("erd-filter-hidden-mark"));
+    expect(screen.getByTestId("erd-filter-hidden-card")).toBeTruthy();
+  });
+
+  it("names how many a button switches on when several are off", () => {
+    const by = [{ key: "a", label: "Entity", iconSrc: "" }, { key: "b", label: "Sales", iconSrc: "" }];
+    render(<ErdFilterPanel domainRows={[{ ...ROWS[0], hidden: { by, onReveal: () => undefined } }]} kindRows={[]} onToggleDomain={() => undefined} onToggleKind={() => undefined} />);
+    fireEvent.click(screen.getByTestId("erd-filter-hidden-mark"));
+    expect(screen.getByText("Show all 2")).toBeTruthy();
   });
 });

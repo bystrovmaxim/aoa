@@ -17,10 +17,14 @@ export type ElementRef = { kind: "node" | "row" | "edge" | "table" | "version"; 
 /** The version picker's track as its person moves it: the range a dragged handle or stretch would leave, and its scroll. */
 export type TrackState = { a: string | null; b: string | null; offset: number };
 
+/** The steps through a comparison's changes as their person moves them: the list open or not, the change they stand on, its card, the list's scroll (spec 040). */
+export type ChangeListState = { open: boolean; at: string | null; card: boolean; offset: number };
+
 /**
  * The open panels: the open left-panel branches; the filter panel — closed (``null``), open with no
  * section (``"open"``) or open on a section; whether the legend is expanded; whether the version
- * picker is open, and its track while it is (spec 038).
+ * picker is open, and its track while it is (spec 038); the steps through a comparison's changes; the filter row
+ * whose card says what keeps it hidden.
  */
 export type Panels = {
   sidebar: string[];
@@ -28,6 +32,8 @@ export type Panels = {
   legend: boolean;
   versions: boolean;
   track: TrackState | null;
+  changes: ChangeListState | null;
+  why: string | null;
 };
 
 export type FocusState = {
@@ -40,7 +46,7 @@ export type FocusState = {
 
 type OwnFocus = Omit<FocusState, "page">;
 
-const EMPTY: OwnFocus = { hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: false, track: null } };
+const EMPTY: OwnFocus = { hover: null, tooltip: null, selection: null, panels: { sidebar: [], filter: null, legend: false, versions: false, track: null, changes: null, why: null } };
 
 let own: OwnFocus = EMPTY;
 /** The last focus each participant sent; only the followed person's is shown. */
@@ -163,8 +169,12 @@ function sameTrack(a: TrackState | null, b: TrackState | null): boolean {
   return a === b || (a !== null && b !== null && a.a === b.a && a.b === b.b && a.offset === b.offset);
 }
 
+function sameChanges(a: ChangeListState | null | undefined, b: ChangeListState | null | undefined): boolean {
+  return a?.open === b?.open && a?.at === b?.at && a?.card === b?.card && a?.offset === b?.offset;
+}
+
 function samePanels(a: Panels, b: Panels): boolean {
-  return a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
+  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
 }
 
 /** Whether two focus states show the same thing (the sender sends only changes). */

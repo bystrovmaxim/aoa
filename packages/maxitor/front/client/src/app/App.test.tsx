@@ -4,15 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/app/App";
 import { setActiveSource } from "@/api/client";
 
-// The real diagram engines pull G6 and the Graphviz wasm at import time. The full-graph viewer is
+// The real diagram engines pull WebGL and the Graphviz wasm at import time. The map viewer is
 // replaced by a stand-in that still performs its read, so the test sees the first diagram request.
-vi.mock("@/components/diagrams/FullGraphViewer", async () => {
+vi.mock("@/components/diagrams/MapViewer", async () => {
   const { useEffect } = await import("react");
-  const { fullGraph } = await import("@/api/fullGraph");
+  const { mapOverview } = await import("@/api/map");
   return {
-    FullGraphViewer: () => {
+    MapViewer: () => {
       useEffect(() => {
-        void fullGraph().catch(() => undefined);
+        void mapOverview(() => undefined).catch(() => undefined);
       }, []);
       return null;
     },
@@ -24,7 +24,7 @@ vi.mock("@/components/diagrams/UseCaseDiagramViewer", () => ({ UseCaseDiagramVie
 
 const SOURCE = "https://service.test/graph-json";
 const EMPTY_SIDEBAR = { level1_nodes: [], level2_diagrams: [], level2_nodes: [], level3_diagrams: [] };
-const FULL_GRAPH = { payload: { nodes: [], edges: [], node_type_map: {}, domain_color_map: {} } };
+const FULL_GRAPH = { state: "ready", types: [], areas: [], bundles: [], shared: [] };
 
 type Call = { url: string; method: string };
 
@@ -71,7 +71,7 @@ beforeEach(() => {
     if (method === "POST") lastBody = String(init?.body ?? "");
     if (url.startsWith("/api/load")) return replies.load();
     if (url.startsWith("/api/sidebar")) return replies.sidebar();
-    if (url.startsWith("/api/v1/full-graph")) return replies.fullGraph();
+    if (url.startsWith("/api/v1/map/overview")) return replies.fullGraph();
     return json({});
   });
   vi.stubGlobal("matchMedia", () => ({
@@ -105,7 +105,7 @@ describe("a deep link", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(calls.some((c) => c.url.startsWith("/api/v1/full-graph"))).toBe(true));
+    await waitFor(() => expect(calls.some((c) => c.url.startsWith("/api/v1/map/overview"))).toBe(true));
 
     expect(postCalls()).toHaveLength(0);
     expect(calls[0].method).toBe("GET");

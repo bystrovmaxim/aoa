@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-10-31] — Maxitor's full graph is a map, and it holds graphs tens of times larger
+
+The full graph now reads like a map. Far away you see named domains and how they connect, closer their entities and actions, closest their fields and states. Zooming only reveals things; nothing ever moves. A graph of about a hundred thousand nodes opens in under a second, because the browser reads an overview first and then only what you look at. A new version is laid out once on the server, domain by domain, so a change in one domain moves nothing in the others. The first opening of a new version takes a moment and says so; every opening after that is immediate. Running Maxitor yourself now needs Graphviz installed; the Docker image already has it.
+
+Comparing two versions works on the map. Domains where nothing changed turn grey and dim, so the top level shows at once where to look, and switching off Unchanged takes them away. A folded domain shows its own count. The version button counts everything drawn, links as well as nodes, and a link that changed is never read as zero. Beside the button, on the ERD as well, a new control walks through the changes one by one or opens a list to pick any of them directly, and each step opens that change's card.
+
+Filters now redraw the picture. Switch something off and the domain's outline closes around what is left and reads, say, `45 of 394 left`. Hiding something takes everything below it: a domain its entities and actions, an entity its fields. A row left with nothing on screen dims, and a small mark says what is switched off above it, with one button to bring it back. The gear shift now opens the section it paints by, on every diagram with the panel. In a room, whoever follows you sees all of it: the filters, the list as you scroll it, your pointer on the same row, the cards.
+
+The mouse moves the map as it moves every other diagram: the wheel pans, and Ctrl or ⌘ with the wheel, or a pinch, zooms. Dragging a single node on the full graph is gone, since nothing on a map moves. A browser without WebGL says so and offers the ERD.
+
 ## [2026-10-31] — A domain switched off in the Maxitor ERD stays off
 
 Switching a domain off in the ERD filter now does what it says. Before, with 1-hop off, tables of that domain could stay on the diagram whenever a table of another domain pointed at them, so the filter looked broken. Now they leave together with the domain. Turn 1-hop on and those neighbours come back on purpose, one line away from the tables you kept and no further.

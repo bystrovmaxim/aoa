@@ -24,7 +24,7 @@ may_import = ["action_machine"]
 current_roots = ["packages/maxitor/front/src/maxitor/front"]
 future_roots = ["packages/maxitor/front/src/maxitor/front"]
 import_prefixes = ["maxitor.front"]
-may_import = ["action_machine", "graph_builder", "graph_compare"]
+may_import = ["action_machine", "graph_builder", "graph_compare", "graph_map"]
 
 # The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
 [packages.repo_graph_port]
@@ -55,4 +55,10 @@ forbid = ["maxitor.front", "maxitor.repo_graph_port"]
 [standalone.graph_compare]
 roots = ["packages/maxitor/core/graph_compare/src/maxitor/graph_compare"]
 import_prefixes = ["maxitor.graph_compare"]
+forbid = ["maxitor.front", "maxitor.repo_graph_port", "maxitor.graph_builder"]
+
+# ``maxitor.graph_map`` turns a graph document into the map the front reads: the standard library alone, like the comparison.
+[standalone.graph_map]
+roots = ["packages/maxitor/core/graph_map/src/maxitor/graph_map"]
+import_prefixes = ["maxitor.graph_map"]
 forbid = ["maxitor.front", "maxitor.repo_graph_port", "maxitor.graph_builder"]

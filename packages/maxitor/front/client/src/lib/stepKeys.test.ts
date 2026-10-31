@@ -1,6 +1,6 @@
 // src/lib/stepKeys.test.ts
 import { describe, expect, it } from "vitest";
-import { stepOfKey } from "./stepKeys";
+import { changeStepOfKey, stepOfKey } from "./stepKeys";
 
 const press = (key: string, extra: Partial<KeyboardEvent> = {}, target: Element = document.body) =>
   stepOfKey({ key, shiftKey: true, altKey: false, ctrlKey: false, metaKey: false, target, ...extra } as unknown as KeyboardEvent);
@@ -25,5 +25,19 @@ describe("Shift + ← → on the page (spec 038)", () => {
     handle.appendChild(inside);
     expect(press("ArrowLeft", {}, input)).toBeNull();
     expect(press("ArrowRight", {}, inside)).toBeNull();
+  });
+});
+
+describe("the keys that step through changes", () => {
+  const press = (key: string, more: object = {}) => ({ key, shiftKey: true, altKey: false, ctrlKey: false, metaKey: false, target: null, ...more });
+
+  it("are Shift with up and down", () => {
+    expect(changeStepOfKey(press("ArrowUp"))).toBe(-1);
+    expect(changeStepOfKey(press("ArrowDown"))).toBe(1);
+  });
+
+  it("are not the keys of versions, nor the arrows alone", () => {
+    expect(changeStepOfKey(press("ArrowLeft"))).toBeNull();
+    expect(changeStepOfKey(press("ArrowDown", { shiftKey: false }))).toBeNull();
   });
 });

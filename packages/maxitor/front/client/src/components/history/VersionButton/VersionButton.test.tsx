@@ -1,7 +1,7 @@
 // src/components/history/VersionButton/VersionButton.test.tsx
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { VersionButton } from "./VersionButton";
+import { VersionButton, countsText } from "./VersionButton";
 
 afterEach(cleanup);
 
@@ -57,5 +57,12 @@ describe("the version button", () => {
     expect(getComputedStyle(arrow).minWidth).toBe("44px");
     fireEvent.mouseOver(arrow);
     expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+});
+
+describe("the counts", () => {
+  it("read no changes only when nothing changed", () => {
+    expect(countsText({ added: 0, removed: 0, changed: 0 })).toBe("no changes");
+    expect(countsText({ added: 0, removed: 0, changed: 1 })).toBe("+0 −0 ~1");
   });
 });
