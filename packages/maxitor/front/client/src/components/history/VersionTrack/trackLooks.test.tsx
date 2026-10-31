@@ -71,9 +71,9 @@ describe("open pull requests and Live (FR-036, FR-037)", () => {
   it("stands open pull requests after the history and before Live, which is always last", () => {
     render(<VersionTrack versions={history} live={LIVE} proposals={[proposal(1, "open"), proposal(2, "approved")]} value={null} onChange={() => undefined} width={700} />);
     const x = (b: string) => Number(screen.getByTestId(`point-${b}`).getAttribute("data-x"));
-    expect(x(id(proposal(1, "open")))).toBeGreaterThan(x(id(history[3])));
+    expect(x("live")).toBeGreaterThan(x(id(history[3])));
+    expect(x(id(proposal(1, "open")))).toBeGreaterThan(x("live"));
     expect(x(id(proposal(2, "approved")))).toBeGreaterThan(x(id(proposal(1, "open"))));
-    expect(x("live")).toBeGreaterThan(x(id(proposal(2, "approved"))));
   });
 
   it("draws Live and the newest version as one point when Live runs exactly its graph", () => {

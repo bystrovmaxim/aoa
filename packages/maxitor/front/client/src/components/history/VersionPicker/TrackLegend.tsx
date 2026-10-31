@@ -75,8 +75,8 @@ function Shortcuts() {
         <Shortcut keys={["⇧", "↑", "↓"]}>The previous or the next change, when two versions are compared</Shortcut>
         <Shortcut keys={["Esc"]}>Close a card or a list</Shortcut>
       </Group>
-      <Group title="On a handle">
-        <Shortcut keys={["←", "→"]}>Move it</Shortcut>
+      <Group title="In this picker, after clicking a version or handle A or B">
+        <Shortcut keys={["←", "→"]}>Move the chosen version or that handle</Shortcut>
         <Shortcut keys={["Home", "End"]}>Take it to an end of the track</Shortcut>
       </Group>
       <Group title="On a diagram">

@@ -4,8 +4,9 @@
  * ``Entity`` node; a marked row is its ``EntityField`` node with its ``entity_field`` edge, or — a relation's row —
  * its ``entity_relation`` edge. The card asks the server for each and shows what changed in those it has.
  */
+import type { ChangedPart } from "@/api/compare";
 import type { ErdDiff, ErdEntity, ErdRelation } from "@/lib/buildDotSource";
-import type { ChangeEntry } from "@/lib/changeStepping";
+import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import { relationKey } from "@/lib/erdDiff";
 
 /** The colours and signs of the three marks, the ERD's own. */
@@ -15,10 +16,16 @@ export const MARK_LOOK = { added: { colour: "#16a34a", sign: "+" }, removed: { c
 export type CardElement = { kind: "node" | "edge"; id: string };
 
 /** What a click opened a card for: its title, its status, and the elements it reads. */
-export type CardTarget = { title: string; status: Exclude<ErdDiff, "unchanged">; elements: CardElement[] };
+export type CardTarget = {
+  title: string;
+  status: Exclude<ErdDiff, "unchanged">;
+  elements: CardElement[];
+  /** What changed inside an element whose diagram does not draw its parts (spec 041, FR-012). */
+  parts?: readonly ChangedPart[];
+};
 
-/** One change of the drawn ERD: what it steps to, and its card where it has one. */
-export type ErdChange = ChangeEntry & { cell: string; card: CardTarget | null };
+/** One change of the drawn ERD. */
+export type ErdChange = GraphvizChange;
 
 type Marked = Exclude<ErdDiff, "unchanged">;
 

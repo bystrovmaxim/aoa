@@ -54,6 +54,7 @@ _ROLE = {
 _EDGE = {
     "type": "object",
     "properties": {
+        "id": {"type": "string"},
         "edge_kind": {
             "type": "string",
             "enum": [
@@ -69,7 +70,7 @@ _EDGE = {
         "target_id": {"type": "string"},
         "stereotype": {"type": ["string", "null"]},
     },
-    "required": ["edge_kind", "source_id", "target_id"],
+    "required": ["id", "edge_kind", "source_id", "target_id"],
     "additionalProperties": False,
 }
 

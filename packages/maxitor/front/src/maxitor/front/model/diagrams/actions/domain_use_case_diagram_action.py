@@ -136,28 +136,25 @@ def _depends_rows_for_action_closure(
     return duck.execute_fetch_dicts(sql.strip(), ids + ids)
 
 
+def _link(edge_kind: str, edge_type: str, source_id: str, target_id: str, stereotype: str | None = None) -> dict[str, Any]:
+    """One drawn link, with the protocol ``id`` of the graph edge it stands for (#285's rule)."""
+    return {
+        "id": f"{source_id}|{edge_type}|{target_id}",
+        "edge_kind": edge_kind,
+        "source_id": source_id,
+        "target_id": target_id,
+        "stereotype": stereotype,
+    }
+
+
 def _append_depends_edges(edges_out: list[dict[str, Any]], drows: list[dict[str, Any]]) -> None:
     for r in drows:
         mode_raw = r.get("mode")
         mode = str(mode_raw).strip() if mode_raw is not None else ""
         if mode in VALID_USE_CASE_MODES:
-            edges_out.append(
-                {
-                    "edge_kind": mode,
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": f"«{mode}»",
-                },
-            )
+            edges_out.append(_link(mode, "@depends", str(r["source_id"]), str(r["target_id"]), f"«{mode}»"))
         else:
-            edges_out.append(
-                {
-                    "edge_kind": "depends",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
+            edges_out.append(_link("depends", "@depends", str(r["source_id"]), str(r["target_id"])))
 
 
 def _depends_targets_in_actions(
@@ -196,6 +193,112 @@ def _group_check_roles_targets_by_action(
     return role_edges_by_action
 
 
+def _action_domain_map(duck: DuckDBGraphResource) -> dict[str, str]:
+    rows = duck.execute_fetch_dicts("SELECT source_id, target_id FROM domain_edges")
+    return {str(r["source_id"]): str(r["target_id"]) for r in rows}
+
+
+def _accent_by_domain(duck: DuckDBGraphResource) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for row in ListDomainsAction.domain_accent_rows(duck):
+        out[str(row["qualname"])] = str(row["color"])
+    return out
+
+
+#: The diagram's ``domain`` when it draws every domain together.
+ALL_DOMAINS = {"id": "all", "label": "All domains", "short_label": "All domains", "accent_color": "#64748b"}
+
+
+def use_case_diagram(duck: DuckDBGraphResource, domain_row: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    AI-CORE-BEGIN
+    ROLE: Build the use-case diagram of one domain, or of every domain when ``domain_row`` is ``None``.
+    CONTRACT: Actions declared in the scope, their parents and ``@depends`` targets, every ``@check_roles`` role with its parents, and the links between them, each with its protocol id.
+    INVARIANTS: Read-only; the lists are sorted, so one graph gives one diagram.
+    AI-CORE-END
+    """
+    accent_by_domain = _accent_by_domain(duck)
+    action_domain_by_id = _action_domain_map(duck)
+
+    # ``domain_edges`` links *any* member vertex to a Domain (Actions, Entities, …).
+    # Use-case slice must include only interchange Action ids (``action`` table).
+    action_ids_all = {str(r["id"]) for r in duck.execute_fetch_dicts("SELECT id FROM action")}
+
+    if domain_row is None:
+        domain_id = ""
+        domain_json: dict[str, Any] = ALL_DOMAINS
+        seed_actions = action_ids_all
+    else:
+        domain_id = str(domain_row["id"])
+        domain_json = {
+            "id": domain_id,
+            "label": str(domain_row.get("label") or domain_id),
+            "short_label": str(domain_row.get("name") or "").strip() or _short_qualname(domain_id),
+            "accent_color": accent_by_domain.get(domain_id, "#64748b"),
+        }
+        seed_rows = duck.execute_fetch_dicts("SELECT source_id FROM domain_edges WHERE target_id = ?", [domain_id])
+        seed_actions = {str(r["source_id"]) for r in seed_rows} & action_ids_all
+
+    with_parents = _transitive_action_parents(duck, seed_actions)
+
+    dep_targets = _depends_targets_in_actions(duck, seed_actions, action_ids_all)
+
+    actions_final = _transitive_action_parents(duck, with_parents | dep_targets) & action_ids_all
+
+    role_edges_by_action = _group_check_roles_targets_by_action(duck, actions_final)
+    role_seed: set[str] = set()
+    for targets in role_edges_by_action.values():
+        role_seed.update(targets)
+
+    roles_final = _transitive_role_parents(duck, role_seed)
+    role_labels = _fetch_id_labels(duck, "role", roles_final)
+    action_labels = _fetch_id_labels(duck, "action", actions_final)
+
+    actions_json: list[dict[str, Any]] = []
+    for aid in sorted(actions_final):
+        dom_a = action_domain_by_id.get(aid, domain_id)
+        rids = sorted(frozenset(role_edges_by_action.get(aid, [])))
+        actions_json.append(
+            {
+                "id": aid,
+                "label": action_labels.get(aid, _short_qualname(aid)),
+                "short_label": _short_qualname(action_labels.get(aid, aid)),
+                "domain_id": dom_a,
+                "domain_short_label": _short_qualname(dom_a) if dom_a else "No domain",
+                "accent_color": accent_by_domain.get(dom_a, "#94a3b8"),
+                "role_ids": rids,
+            },
+        )
+
+    roles_json: list[dict[str, Any]] = []
+    for rid in sorted(roles_final):
+        roles_json.append(
+            {
+                "id": rid,
+                "label": role_labels.get(rid, _short_qualname(rid)),
+                "short_label": _short_qualname(role_labels.get(rid, rid)),
+            },
+        )
+
+    edges_out: list[dict[str, Any]] = []
+
+    for r in _action_generalizations_within_actions(duck, actions_final):
+        edges_out.append(_link("action_generalization", "parent_action", str(r["source_id"]), str(r["target_id"])))
+
+    for r in _role_generalizations_within_roles(duck, roles_final):
+        edges_out.append(_link("role_generalization", "parent_role", str(r["source_id"]), str(r["target_id"])))
+
+    for aid, targets in sorted(role_edges_by_action.items()):
+        for tid in sorted(frozenset(targets)):
+            edges_out.append(_link("association", "@check_roles", aid, tid))
+
+    _append_depends_edges(edges_out, _depends_rows_for_action_closure(duck, actions_final))
+
+    edges_out.sort(key=lambda e: (e["edge_kind"], e["source_id"], e["target_id"]))
+
+    return {"domain": domain_json, "actions": actions_json, "roles": roles_json, "edges": edges_out}
+
+
 @meta(
     description="Return Action/Role use-case diagram JSON for one interchange Domain id (DuckDB graph)",
     domain=DiagramsDomain,
@@ -232,17 +335,7 @@ class GetDomainUseCaseDiagramAction(
         )
         return dict(rows[0]) if rows else None
 
-    @staticmethod
-    def _action_domain_map(duck: DuckDBGraphResource) -> dict[str, str]:
-        rows = duck.execute_fetch_dicts("SELECT source_id, target_id FROM domain_edges")
-        return {str(r["source_id"]): str(r["target_id"]) for r in rows}
 
-    @staticmethod
-    def _accent_by_domain(duck: DuckDBGraphResource) -> dict[str, str]:
-        out: dict[str, str] = {}
-        for row in ListDomainsAction.domain_accent_rows(duck):
-            out[str(row["qualname"])] = str(row["color"])
-        return out
 
     @summary_aspect("Build domain use-case diagram JSON from DuckDB")
     async def build_use_case_summary(
@@ -259,118 +352,4 @@ class GetDomainUseCaseDiagramAction(
         if domain_row is None:
             msg = f"Unknown domain id {domain_id!r}"
             raise ValueError(msg)
-
-        accent_by_domain = GetDomainUseCaseDiagramAction._accent_by_domain(duck)
-        dom_accent = accent_by_domain.get(domain_id, "#64748b")
-        domain_label = str(domain_row.get("label") or domain_id)
-        domain_short = str(domain_row.get("name") or "").strip() or _short_qualname(domain_id)
-
-        # ``domain_edges`` links *any* member vertex to a Domain (Actions, Entities, …).
-        # Use-case slice must include only interchange Action ids (``action`` table).
-        action_ids_all = {str(r["id"]) for r in duck.execute_fetch_dicts("SELECT id FROM action")}
-
-        seed_rows = duck.execute_fetch_dicts(
-            "SELECT source_id FROM domain_edges WHERE target_id = ?",
-            [domain_id],
-        )
-        seed_actions = {str(r["source_id"]) for r in seed_rows} & action_ids_all
-
-        with_parents = _transitive_action_parents(duck, seed_actions)
-
-        dep_targets = _depends_targets_in_actions(duck, seed_actions, action_ids_all)
-
-        actions_final = _transitive_action_parents(duck, with_parents | dep_targets) & action_ids_all
-
-        role_edges_by_action = _group_check_roles_targets_by_action(duck, actions_final)
-        role_seed: set[str] = set()
-        for targets in role_edges_by_action.values():
-            role_seed.update(targets)
-
-        roles_final = _transitive_role_parents(duck, role_seed)
-        role_labels = _fetch_id_labels(duck, "role", roles_final)
-        action_labels = _fetch_id_labels(duck, "action", actions_final)
-
-        action_domain_by_id = GetDomainUseCaseDiagramAction._action_domain_map(duck)
-
-        actions_json: list[dict[str, Any]] = []
-        for aid in sorted(actions_final):
-            dom_a = action_domain_by_id.get(aid, domain_id)
-            rids = sorted(frozenset(role_edges_by_action.get(aid, [])))
-            actions_json.append(
-                {
-                    "id": aid,
-                    "label": action_labels.get(aid, _short_qualname(aid)),
-                    "short_label": _short_qualname(action_labels.get(aid, aid)),
-                    "domain_id": dom_a,
-                    "domain_short_label": _short_qualname(dom_a),
-                    "accent_color": accent_by_domain.get(dom_a, "#94a3b8"),
-                    "role_ids": rids,
-                },
-            )
-
-        roles_json: list[dict[str, Any]] = []
-        for rid in sorted(roles_final):
-            roles_json.append(
-                {
-                    "id": rid,
-                    "label": role_labels.get(rid, _short_qualname(rid)),
-                    "short_label": _short_qualname(role_labels.get(rid, rid)),
-                },
-            )
-
-        edges_out: list[dict[str, Any]] = []
-
-        for r in _action_generalizations_within_actions(duck, actions_final):
-            edges_out.append(
-                {
-                    "edge_kind": "action_generalization",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
-
-        for r in _role_generalizations_within_roles(duck, roles_final):
-            edges_out.append(
-                {
-                    "edge_kind": "role_generalization",
-                    "source_id": str(r["source_id"]),
-                    "target_id": str(r["target_id"]),
-                    "stereotype": None,
-                },
-            )
-
-        for aid, targets in sorted(role_edges_by_action.items()):
-            for tid in sorted(frozenset(targets)):
-                edges_out.append(
-                    {
-                        "edge_kind": "association",
-                        "source_id": aid,
-                        "target_id": tid,
-                        "stereotype": None,
-                    },
-                )
-
-        _append_depends_edges(edges_out, _depends_rows_for_action_closure(duck, actions_final))
-
-        edges_out.sort(
-            key=lambda e: (
-                e["edge_kind"],
-                e["source_id"],
-                e["target_id"],
-            ),
-        )
-
-        payload: dict[str, Any] = {
-            "domain": {
-                "id": domain_id,
-                "label": domain_label,
-                "short_label": domain_short,
-                "accent_color": dom_accent,
-            },
-            "actions": actions_json,
-            "roles": roles_json,
-            "edges": edges_out,
-        }
-
-        return GetDomainUseCaseDiagramAction.Result(domain_use_case_diagram=payload)
+        return GetDomainUseCaseDiagramAction.Result(domain_use_case_diagram=use_case_diagram(duck, domain_row))

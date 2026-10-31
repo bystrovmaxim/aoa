@@ -86,10 +86,10 @@ class CompareElementAction(BaseAction[CompareElementParams, CompareElementResult
         item = (comparison.nodes if params.kind == "node" else comparison.edges).get(params.id)
         if item is None:
             raise ElementNotComparedError("not found")
-        return CompareElementResult(status=item.status.value, differences=[_written(difference) for difference in item.differences])
+        return CompareElementResult(status=item.status.value, differences=[written_difference(difference) for difference in item.differences])
 
 
-def _written(difference: Difference) -> dict[str, Any]:
+def written_difference(difference: Difference) -> dict[str, Any]:
     """One difference as the read writes it: no ``before`` for an addition, no ``after`` for a removal."""
     written: dict[str, Any] = {"path": list(difference.path), "change": difference.change.value}
     if difference.change is not Change.ADDED:

@@ -59,11 +59,13 @@ export function VersionMessage({ version, repository, liveLine }: VersionMessage
   if (!version) return foot || null;
 
   return (
-    <Box sx={{ mt: 1, pt: "6px", borderTop: DIVIDER }}>
+    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", mt: 1, pt: "6px", borderTop: DIVIDER }}>
       <Box
         data-testid="message"
         sx={{
-          m: "2px 0 6px",
+          // Side by side in Diff, the shorter box grows to the taller one's height (spec 038, FR-030).
+          flexGrow: 1,
+          m: `2px 0 ${liveLine === undefined ? "6px" : 0}`,
           p: "8px 10px",
           // The mockup's 180 px of text, its padding and border outside it.
           maxHeight: 180,

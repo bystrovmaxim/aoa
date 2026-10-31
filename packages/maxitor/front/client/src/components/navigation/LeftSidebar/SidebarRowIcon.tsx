@@ -15,10 +15,10 @@ export function SidebarRowIcon({ row }: { row: NodeRow }): ReactElement {
   if (row.type === "graph") {
     return <HubOutlinedIcon sx={ICON_SX} />;
   }
-  if (row.type === "erd_all" || row.type === "erd_domain" || row.type === "entity_class_diagram") {
+  if (row.type === "erd_all" || row.type === "erd_domain") {
     return <TableChartOutlinedIcon sx={ICON_SX} />;
   }
-  if (row.type === "use_case_domain") {
+  if (row.type === "use_case_domain" || row.type === "use_case_all") {
     /** MUI Outlined — same stroke weight as ``TableChartOutlined``; hub = actors / use cases + links. */
     return <DeviceHubOutlinedIcon sx={ICON_SX} />;
   }

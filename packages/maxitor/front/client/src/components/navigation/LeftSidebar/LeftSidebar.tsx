@@ -120,11 +120,12 @@ function selectionKey(sel: DiagramSelection): string {
   if (sel.kind === "interchange_graph") return "interchange_graph";
   if (sel.kind === "lifecycle_fsm") return `lifecycle_fsm:${sel.lifecycle_graph_node_id}`;
   if (sel.kind === "use_case") return `use_case:${sel.domain_qualifier}`;
+  if (sel.kind === "use_case_all") return "use_case_all";
   return `erd:${sel.qualifier ?? "all"}`;
 }
 
 function prefetchDiagramModule(sel: DiagramSelection | null): void {
-  if (sel?.kind === "erd" || sel?.kind === "use_case") prefetchErdGraphviz();
+  if (sel?.kind === "erd" || sel?.kind === "use_case" || sel?.kind === "use_case_all") prefetchErdGraphviz();
   if (sel?.kind === "interchange_graph") prefetchMapEngine();
 }
 
@@ -204,26 +205,26 @@ export function LeftSidebar({
     if (!diagram) return;
     setExpandedById((prev) => {
       const next = { ...prev };
-      if (diagram.kind === "interchange_graph") {
+      if (diagram.kind === "interchange_graph" || diagram.kind === "use_case_all" || (diagram.kind === "erd" && !diagram.qualifier)) {
         next.applications_root = true;
       }
-      if (diagram.kind === "erd") {
+      if (diagram.kind === "erd" && diagram.qualifier) {
         next.domains_root = true;
-        if (diagram.qualifier) {
-          next[diagram.qualifier] = true;
-        }
+        next[diagram.qualifier] = true;
       }
       if (diagram.kind === "use_case") {
         next.domains_root = true;
         next[diagram.domain_qualifier] = true;
       }
       if (diagram.kind === "lifecycle_fsm") {
-        next.entities_root = true;
-        next[diagram.host_entity_interchange_id] = true;
+        // A lifecycle's row stands under its domain.
+        const domain = sidebar?.level3_diagrams.find((row) => row.id === diagram.lifecycle_graph_node_id)?.parent_id;
+        next.domains_root = true;
+        if (domain) next[domain] = true;
       }
       return next;
     });
-  }, [diagram]);
+  }, [diagram, sidebar]);
 
   return (
     <Box
@@ -563,7 +564,10 @@ export function LeftSidebar({
                                 alignItems: "center",
                                 minWidth: 0,
                                 pr: 0.5,
+                                // Nothing to open: the row stays, dim, to say the domain is empty.
+                                opacity: 0.45,
                               }}
+                              data-testid="empty-row"
                             >
                               <Tooltip title={cnode.label} placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
                                 <Typography

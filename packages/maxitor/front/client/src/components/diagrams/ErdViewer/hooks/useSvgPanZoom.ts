@@ -125,6 +125,11 @@ export type UseSvgPanZoomOptions = {
    */
   fitBottomInset?: number;
   /**
+   * Pixels kept free at the viewport's left when fitting, for a panel over the canvas; ignored on a narrow screen,
+   * where the panel folds into a pill.
+   */
+  fitLeftInset?: number;
+  /**
    * Uniform margin (pixels) subtracted from usable width/height so titles/cluster labels
    * are not flush against the viewport edge after fit.
    */
@@ -146,11 +151,15 @@ export type UseSvgPanZoomOptions = {
   fitToViewBox?: boolean;
 };
 
+/** Below this width a filter panel is a pill and needs no room beside the drawing. */
+const MIN_WIDTH_FOR_LEFT_INSET = 600;
+
 /** How long after the last move the picture stops being a moving layer. */
 const MOVING_HINT_MS = 200;
 
 export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
   const fitBottomInset = options?.fitBottomInset ?? 0;
+  const fitLeftInset = options?.fitLeftInset ?? 0;
   const fitMarginPx = options?.fitMarginPx ?? 0;
   const fitBoundsSelector = options?.fitBoundsSelector ?? "g.graph g.node, g.graph g.edge";
   const fitMaxScale = options?.fitMaxScale ?? MAX_SCALE;
@@ -252,7 +261,8 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     if (cw < 8 || ch < 8) return;
 
     const chFit = Math.max(8, ch - fitBottomInset);
-    const availW = Math.max(8, cw - 2 * fitMarginPx);
+    const leftInset = cw >= MIN_WIDTH_FOR_LEFT_INSET ? fitLeftInset : 0;
+    const availW = Math.max(8, cw - leftInset - 2 * fitMarginPx);
     const availH = Math.max(8, chFit - 2 * fitMarginPx);
 
     stripGraphvizBackdropPolygons(svg);
@@ -289,7 +299,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     s = Math.max(MIN_SCALE, Math.min(s, fitMaxScale));
 
     panRef.current.scale = s;
-    const tx = fitMarginPx + (availW - box.width * s) / 2 - box.x * s;
+    const tx = leftInset + fitMarginPx + (availW - box.width * s) / 2 - box.x * s;
     const ty = fitMarginPx + (availH - box.height * s) / 2 - box.y * s;
     panRef.current.tx = tx;
     panRef.current.ty = ty;
@@ -297,7 +307,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     hasFittedRef.current = true;
     setFitted(true);
     setFitCount((count) => count + 1);
-  }, [applyTransform, fitBottomInset, fitMarginPx, fitBoundsSelector, fitMaxScale, fitToViewBox]);
+  }, [applyTransform, fitBottomInset, fitLeftInset, fitMarginPx, fitBoundsSelector, fitMaxScale, fitToViewBox]);
 
   useEffect(() => {
     const vp = viewportRef.current;

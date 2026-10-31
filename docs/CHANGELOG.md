@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-01] — Maxitor compares two versions on use-case diagrams, and its left panel holds only what opens
+
+Use-case diagrams now take part in Diff. Actions, roles and their links turn green, red and dashed, or amber, everything else goes grey and dim, the version button counts the changes, and the stepper walks them with a card on each, links included. The new thing is **changed inside**: a use-case diagram does not draw an action's parameters, result fields or aspects, so an action could change while looking the same. Now it is marked changed, and its card says the action is the same and lists which parts changed, before and after. What the diagram draws itself, like a role or a parent action, keeps its own mark, and an entity a field points at stays the ERD's to show.
+
+The left panel lost everything that opened nothing. Applications holds the full graph, the ERD of all domains and a new **Use case all domains view**, with every role and every use case on one diagram. Each domain holds its ERD and use cases when it has any, and one row per entity lifecycle; a domain with nothing to draw stays in the list, dim. The Roles, Actions, Entities and Resources sections are gone, and links to a single lifecycle keep working.
+
+Use-case diagrams got the ERD's filter panel: Domains, Changes, and a colourless Elements section for actions and roles. 1-hop is on by default and brings back whatever stands one link from what is left, so to see actions alone switch off Roles and 1-hop. Hovering an element lights it, its links and what they reach, and links are easy to hit at any zoom.
+
+Open pull requests now stand after Live on the version track, oldest first. A pull request is work ahead of what runs, so comparing Live with it reads as progress, where it used to read as a step back. This is the one place Live can be A.
+
 ## [2026-10-31] — Maxitor's full graph is a map, and it holds graphs tens of times larger
 
 The full graph now reads like a map. Far away you see named domains and how they connect, closer their entities and actions, closest their fields and states. Zooming only reveals things; nothing ever moves. A graph of about a hundred thousand nodes opens in under a second, because the browser reads an overview first and then only what you look at. A new version is laid out once on the server, domain by domain, so a change in one domain moves nothing in the others. The first opening of a new version takes a moment and says so; every opening after that is immediate. Running Maxitor yourself now needs Graphviz installed; the Docker image already has it.

@@ -3,8 +3,9 @@
  * The rules of two versions picked on one track (spec 038, FR-010 – FR-013): A is always the older and B the
  * newer, roles follow position — the left handle is A, the right one B — so a handle dragged past the other
  * swaps the two; the two never stand on one point, and a handle dropped on the other's point goes one point
- * further in the direction it was moving; Live, the track's last point, can only be B. Pure: the track's
- * points are given as their keys in track order (a short sha, or ``live``).
+ * further in the direction it was moving. Open pull requests stand after Live, the oldest first: their work is ahead
+ * of what runs, so A = Live, B = a pull request reads as progress (spec 041). Pure: the track's points are given as
+ * their keys in track order (a short sha, or ``live``).
  */
 
 import type { HistoryVersion } from "@/api/history";
@@ -19,14 +20,19 @@ export type Side = "a" | "b";
 /** A range after a move, and which side the moved handle ended on: focus follows it. */
 export type Moved = { range: Range; side: Side };
 
+/** The open pull requests in the track's order: the oldest first. */
+export function proposalsByDate(proposals: readonly HistoryVersion[]): HistoryVersion[] {
+  return [...proposals].sort((one, other) => one.date.localeCompare(other.date) || one.sha.localeCompare(other.sha));
+}
+
 /**
  * The track's points in order, as the track draws them: the versions oldest first — the newest left out while
- * Live runs exactly its graph, the two being one point — then the open pull requests, then Live.
+ * Live runs exactly its graph, the two being one point — then Live, then the open pull requests.
  */
 export function trackKeys(versions: readonly HistoryVersion[], live: string | null, liveIs: string | null = null, proposals: readonly HistoryVersion[] = []): string[] {
   const merged = Boolean(live && liveIs && versions.at(-1)?.sha === liveIs);
   const own = merged ? versions.slice(0, -1) : versions;
-  return [...own.map(shortSha), ...proposals.map(shortSha), ...(live ? ["live"] : [])];
+  return [...own.map(shortSha), ...(live ? ["live"] : []), ...proposalsByDate(proposals).map(shortSha)];
 }
 
 /** Whether a range can be picked at all: two points or more. */
@@ -35,8 +41,8 @@ export function diffOffered(points: readonly string[]): boolean {
 }
 
 /**
- * ``a`` and ``b`` as a range, or ``{a: null, b}`` for one version: a reversed pair is swapped — so Live, the last
- * point, is never A —, the same point twice or an ``a`` the track lacks is one version; ``null`` when ``b`` is not on the track.
+ * ``a`` and ``b`` as a range, or ``{a: null, b}`` for one version: a reversed pair is swapped, the same point twice
+ * or an ``a`` the track lacks is one version; ``null`` when ``b`` is not on the track.
  */
 export function normalise(points: readonly string[], a: string | null, b: string | null): { a: string | null; b: string } | null {
   if (b === null || !points.includes(b)) return null;
@@ -93,7 +99,7 @@ export function stepShown(points: readonly string[], a: string | null, b: string
 
 /**
  * The whole range dragged ``delta`` points (negative to the left): both handles move together and the range keeps its
- * width; at an end of the track it stops there — so Live, the last point, can still only be B.
+ * width; at an end of the track it stops there.
  */
 export function shiftBy(points: readonly string[], range: Range, delta: number): Range {
   const a = points.indexOf(range.a);

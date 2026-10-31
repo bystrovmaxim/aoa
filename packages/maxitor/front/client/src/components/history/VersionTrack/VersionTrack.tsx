@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import type { HistoryVersion, ProposalState } from "@/api/history";
 import { flagsOf, numbersOf, releaseOf, shortSha, versionNames } from "@/lib/versionNames";
 import { reportHover, reportPanels, useMirroredFocus } from "@/rooms/focusStore";
-import { homeEnd, moveTo, shiftBoth, shiftBy, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
+import { homeEnd, moveTo, proposalsByDate, shiftBoth, shiftBy, stepHandle, type Moved, type Range, type Side } from "@/lib/versionRange";
 import { DIRECT_LOOK, LIVE_LOOK, MERGED_LOOK, PROPOSAL_LOOK } from "./proposalLook";
 import { VersionTip } from "./VersionTip";
 import { thinLabels } from "./thinLabels";
@@ -57,7 +57,7 @@ type Point = { b: string; x: number; name: string; release: boolean; refused: bo
 
 /**
  * Where each version and Live stand: spread over the width as the mockup's track is, never closer than
- * ``minStep``; oldest left, Live last after a dashed gap of 1.4 steps.
+ * ``minStep``; oldest left, then Live after a dashed gap of 1.4 steps, then the open pull requests.
  */
 export function layOut(
   all: readonly HistoryVersion[],
@@ -86,9 +86,13 @@ export function layOut(
     number: numbers[index],
     date: version.date,
   }));
-  // Pull requests still open stand after the history, past a gap: proposals, not yet part of it. Live is last.
+  if (live) {
+    const x = points.length ? (points.at(-1)?.x ?? PAD) + LIVE_GAP_STEPS * step : proposals.length ? PAD : width / 2;
+    points.push({ b: "live", x, name: "Live", release: true, refused: false, flags: merged ? flagsOf(merged) : [], version: merged, date: null, number: merged ? numbers[all.length - 1] : null });
+  }
+  // Pull requests still open stand last, past a gap, the oldest first: work ahead of what runs, not yet part of it.
   const start = (points.at(-1)?.x ?? PAD - LIVE_GAP_STEPS * step) + LIVE_GAP_STEPS * step;
-  proposals.forEach((proposal, at) =>
+  proposalsByDate(proposals).forEach((proposal, at) =>
     points.push({
       b: shortSha(proposal),
       x: start + at * step,
@@ -102,10 +106,6 @@ export function layOut(
       state: proposal.pr?.state ?? "open",
     }),
   );
-  if (live) {
-    const x = points.length ? (points.at(-1)?.x ?? PAD) + LIVE_GAP_STEPS * step : width / 2;
-    points.push({ b: "live", x, name: "Live", release: true, refused: false, flags: merged ? flagsOf(merged) : [], version: merged, date: null, number: merged ? numbers[all.length - 1] : null });
-  }
   const length = Math.max(width, (points.at(-1)?.x ?? 0) + PAD);
   return { points, length };
 }
