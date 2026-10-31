@@ -77,6 +77,20 @@ Hovering an action, a role or a link keeps it, its links and what they reach lit
 
 [19_changed_inside.py](../../examples/step_26_maxitor/19_changed_inside.py) ([notebook](../../examples/step_26_maxitor/19_changed_inside.ipynb)) runs every case of "changed inside" and prints what Maxitor answers.
 
+## Read lifecycles
+
+In Diff the left panel marks lifecycle rows: `+` and `−` for a lifecycle only one version has, `~` for one in both where something changed. A `~` appears only on lifecycle rows, because a domain can hold a dozen of them and there is no other way to find the changed ones.
+
+Open a row and both versions are drawn at once. Added states and transitions are green, changed ones amber, removed ones red and dashed, everything else grey and dim. A lifecycle of one version is all green or all red, and the button counts states and transitions: a new lifecycle of four states and three transitions reads +7. The entry and exit dots take the colour of their arrows but are not counted.
+
+- **A transition is known by the state it leaves and the state it enters.** Two transitions into one state are two elements. A transition sent to another state is a red one and a green one, never amber.
+- **Every property counts.** A state whose order alone changed is amber, though it looks the same. Its card says what changed.
+- **A click, the stepper and Shift + ↑ ↓** work as on the ERD. A transition's card names its two states.
+- **The filter panel** has Elements, by kind of state, and Changes. The gear shift starts on Changes; on Elements a state keeps its kind's fill, its outline says its status. 1-hop is on at first, so to see one kind alone switch 1-hop off.
+- **A lifecycle absent from the shown version** says so, and the left panel leads elsewhere.
+
+[20_lifecycle_diff.py](../../examples/step_26_maxitor/20_lifecycle_diff.py) ([notebook](../../examples/step_26_maxitor/20_lifecycle_diff.ipynb)) runs these cases and prints what the diagram reads.
+
 ## Read the full graph
 
 On the full graph the same comparison is drawn by [the map](read-the-full-graph-map.md).
