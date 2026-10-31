@@ -61,12 +61,12 @@ export function kindGlyphSvg(word: string, ink: string, strokeWidth: number): st
 }
 
 /** The kind's legend disk: a grey disk with the white glyph, drawn like a domain's disk. */
-export function kindLegendDiskUri(word: string): string {
+export function kindLegendDiskUri(word: string, fill: string = KIND_DISK_FILL): string {
   const scale = 0.58;
   const inner = kindGlyphSvg(word, "#ffffff", 2 / scale);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">` +
-    `<circle cx="12" cy="12" r="11" fill="${KIND_DISK_FILL}"/>` +
+    `<circle cx="12" cy="12" r="11" fill="${fill}"/>` +
     `<g transform="translate(12,12) scale(${scale}) translate(-12,-12)">${inner}</g></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

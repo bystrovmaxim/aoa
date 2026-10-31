@@ -24,14 +24,14 @@ may_import = ["action_machine"]
 current_roots = ["packages/maxitor/front/src/maxitor/front"]
 future_roots = ["packages/maxitor/front/src/maxitor/front"]
 import_prefixes = ["maxitor.front"]
-may_import = ["action_machine", "graph_builder"]
+may_import = ["action_machine", "graph_builder", "graph_compare"]
 
 # The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
 [packages.repo_graph_port]
 current_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
 future_roots = ["packages/maxitor/tools/repo_graph_port/src/maxitor/repo_graph_port"]
 import_prefixes = ["maxitor.repo_graph_port"]
-may_import = ["action_machine", "graph_builder"]
+may_import = ["action_machine", "graph_builder", "graph_compare"]
 
 [packages.examples]
 current_roots = ["packages/aoa-demo/src/aoa/demo"]
@@ -49,3 +49,10 @@ allow = []
 roots = ["packages/maxitor/tools/graph_builder/src/maxitor/graph_builder"]
 import_prefixes = ["maxitor.graph_builder"]
 forbid = ["maxitor.front", "maxitor.repo_graph_port"]
+
+# ``maxitor.graph_compare`` compares two graph documents for the front and the tools alike: it needs the standard
+# library alone (its own test checks that) and imports nothing of ``aoa``, the front or a tool.
+[standalone.graph_compare]
+roots = ["packages/maxitor/core/graph_compare/src/maxitor/graph_compare"]
+import_prefixes = ["maxitor.graph_compare"]
+forbid = ["maxitor.front", "maxitor.repo_graph_port", "maxitor.graph_builder"]

@@ -17,10 +17,9 @@ export function ErdViewer({ selection }: ErdViewerProps) {
   const [includeOneHop, setIncludeOneHop] = usePageSetting("one_hop", true);
   const { qualifier } = selection;
 
-  const loadBundle = useCallback(
-    () => loadErdDomainsBundle({ kind: "erd", qualifier }, includeOneHop),
-    [qualifier, includeOneHop],
-  );
+  // The base always holds the 1-hop neighbours: 1-hop is applied on the page, over the filters, so switching it
+  // neither reloads the diagram nor touches a filter (spec 038).
+  const loadBundle = useCallback(() => loadErdDomainsBundle({ kind: "erd", qualifier }, true), [qualifier]);
 
   const diagramResetKey = qualifier ?? "all";
 

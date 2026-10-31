@@ -32,6 +32,7 @@ from maxitor.front.model.rooms.actions.expire_participant_action import (
     ExpireParticipantParams,
 )
 from maxitor.front.model.rooms.actions.room_action_support import RoomAnswer
+from maxitor.front.model.rooms.layout_authority import recheck_layouts
 from maxitor.front.model.rooms.resources.room_registry import ROOM_REGISTRY_KEY, RoomRegistry
 from maxitor.front.model.rooms.rooms_domain import RoomsDomain
 
@@ -91,6 +92,7 @@ class DisconnectTabAction(BaseAction[DisconnectTabParams, RoomAnswer]):
                     ExpireParticipantParams(room_id=room.id, participant=participant.id, until=until),
                 )
             registry.broadcast(room, {"type": "presence", **participant.public()}, except_participant=participant.id)
+            recheck_layouts(room)
         if participant.away:
             await box.info(
                 Channel.business,

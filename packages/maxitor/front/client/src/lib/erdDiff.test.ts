@@ -1,0 +1,121 @@
+// src/lib/erdDiff.test.ts
+import { describe, expect, it } from "vitest";
+import type { CompareResult } from "@/api/compare";
+import { buildDotSource, erdDiffMarks, erdEdgeId, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
+import { drawErdCards } from "./erdPostPass";
+import { diagramCounts, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
+
+const OFFER = "g.OfferEntity";
+const CORE = "g.CoreEntity";
+const DETAIL = "g.DetailEntity";
+const STATE = "g.StateEntity";
+
+function entity(id: string, fields: { name: string; type: string; foreign_key?: boolean }[]): ErdEntity {
+  return { id, label: id.split(".")[1], color: "#3b82f6", fields };
+}
+
+const chosenToCore: ErdRelation = { source: OFFER, target: CORE, source_field: "chosen", source_cardinality: "zero_many", target_cardinality: "zero_one" };
+const chosenToDetail: ErdRelation = { ...chosenToCore, target: DETAIL };
+
+// A: Offer(id, erid: str, is_activated, chosen → Core), Core, Detail. B: is_activated gone, erid: str | None, a new
+// field, chosen → Detail, a new table State.
+const A = {
+  entities: [entity(OFFER, [{ name: "id", type: "str" }, { name: "erid", type: "str" }, { name: "is_activated", type: "bool" }, { name: "chosen", type: "CoreEntity", foreign_key: true }]), entity(CORE, [{ name: "id", type: "str" }]), entity(DETAIL, [{ name: "id", type: "str" }])],
+  relations: [chosenToCore],
+};
+const B = {
+  entities: [
+    entity(OFFER, [{ name: "id", type: "str" }, { name: "erid", type: "str | None" }, { name: "region", type: "str" }, { name: "chosen", type: "DetailEntity", foreign_key: true }]),
+    entity(CORE, [{ name: "id", type: "str" }]),
+    entity(DETAIL, [{ name: "id", type: "str" }]),
+    entity(STATE, [{ name: "id", type: "str" }]),
+  ],
+  relations: [chosenToDetail],
+};
+const COMPARED: CompareResult = {
+  counts: { nodes: { added: 3, removed: 1, changed: 2 }, edges: { added: 2, removed: 1, changed: 1 } },
+  nodes: { [STATE]: "added", [`${STATE}:id`]: "added", [`${OFFER}:region`]: "added", [`${OFFER}:is_activated`]: "removed", [`${OFFER}:erid`]: "changed", [DETAIL]: "changed" },
+  edges: { [`${OFFER}|entity_relation|chosen`]: "changed", [`${STATE}|entity_field|${STATE}:id`]: "added" },
+};
+
+const merged = markErd(mergeErdSlices(A, B), COMPARED);
+const byId = (id: string) => merged.entities!.find((each) => each.id === id)!;
+const row = (id: string, name: string) => byId(id).fields!.find((field) => field.name === name)!;
+
+describe("the ERD of two versions", () => {
+  it("draws the union: every table and row of either version", () => {
+    expect(merged.entities!.map((each) => each.id)).toEqual([OFFER, CORE, DETAIL, STATE]);
+    expect(byId(OFFER).fields!.map((field) => field.name)).toEqual(["id", "erid", "region", "chosen", "is_activated"]);
+  });
+
+  it("marks tables and rows by their graph elements' statuses, and everything else unchanged", () => {
+    expect([byId(STATE).diff, byId(DETAIL).diff, byId(OFFER).diff, byId(CORE).diff]).toEqual(["added", "changed", "unchanged", "unchanged"]);
+    expect([row(OFFER, "region").diff, row(OFFER, "is_activated").diff, row(OFFER, "erid").diff, row(OFFER, "id").diff]).toEqual(["added", "removed", "changed", "unchanged"]);
+    expect(row(STATE, "id").diff).toBe("added");
+  });
+
+  it("keeps a changed type's old name, and a retargeted relation as one changed line with where it pointed", () => {
+    expect(row(OFFER, "erid").previous_type).toBe("str");
+    expect(row(OFFER, "chosen")).toMatchObject({ diff: "changed", previous_type: "CoreEntity" });
+    expect(merged.relations).toEqual([{ ...chosenToDetail, previous_target: CORE, diff: "changed" }]);
+  });
+
+  it("counts each table, row and line once: a relation by its row, a row of a new table as added", () => {
+    expect(diagramCounts(merged.entities!, merged.relations!)).toEqual({ added: 3, removed: 1, changed: 3 });
+  });
+
+  it("says no changes when nothing drawn changed, and draws it unmarked", () => {
+    const calm = markErd(mergeErdSlices({ entities: [B.entities[1]] }, { entities: [B.entities[1]] }), COMPARED);
+    const counts = diagramCounts(calm.entities!, []);
+    expect(nothingChanged(counts)).toBe(true);
+    const plain = unmarked({ entities: calm.entities!, relations: [] });
+    expect(plain.entities[0]).not.toHaveProperty("diff");
+    expect(buildDotSource(plain, "gv-dot-lr")).toBe(buildDotSource({ entities: [B.entities[1]], relations: [] }, "gv-dot-lr"));
+  });
+});
+
+describe("the drawing of two versions", () => {
+  const dot = buildDotSource({ entities: merged.entities!, relations: merged.relations! }, "gv-dot-lr");
+
+  it("gives every mark its sign as well as its colour", () => {
+    expect(dot).toContain("+ StateEntity");
+    expect(dot).toContain("~ DetailEntity");
+    expect(dot).toContain("+ region");
+    expect(dot).toContain("<S>− is_activated</S>");
+    expect(dot).toContain("~ erid");
+  });
+
+  it("writes a changed type struck through before the new one", () => {
+    expect(dot).toContain("<S>str</S> → str | None");
+  });
+
+  it("draws a retargeted relation as one amber line to B's target and a thin dashed one to A's — no red, no green", () => {
+    const toDetail = dot.split("\n").find((line) => line.includes(`id="${erdEdgeId(0)}"`))!;
+    const toCore = dot.split("\n").find((line) => line.includes(`id="${erdPreviousEdgeId(0)}"`))!;
+    expect(toDetail).toContain(`"${OFFER}" -> "${DETAIL}"`);
+    expect(toDetail).toContain('color="#d97706"');
+    expect(toDetail).not.toContain("style=dashed");
+    expect(toCore).toContain(`"${OFFER}" -> "${CORE}"`);
+    expect(toCore).toContain("style=dashed");
+    expect(dot).not.toMatch(/-> "[^"]+" \[id="re\d+" color="#(16a34a|dc2626)"/);
+  });
+
+  it("is today's drawing, byte for byte, when nothing carries a mark", () => {
+    expect(buildDotSource(A, "gv-dot-lr")).not.toContain("#16a34a");
+    expect(buildDotSource(A, "gv-dot-lr")).toBe(buildDotSource(unmarked({ entities: markErd(A, COMPARED).entities!, relations: markErd(A, COMPARED).relations! }), "gv-dot-lr"));
+  });
+
+  it("fades the unchanged tables and dashes the removed ones' frames", () => {
+    const gone = { ...entity("g.GoneEntity", []), diff: "removed" as const };
+    const marks = erdDiffMarks([...merged.entities!, gone]);
+    expect([...marks.faded]).toEqual([CORE]);
+    expect([...marks.dashed]).toEqual(["g.GoneEntity"]);
+    const svg =
+      '<svg><g id="node1" class="node"><title>g.CoreEntity</title><path fill="white" stroke="none" d="M0,0 L10,0 L10,10 L0,10 Z"/><path fill="none" stroke="#3b82f6" d="M0,0 L10,0 L10,10 L0,10 Z"/></g>' +
+      '<g id="node2" class="node"><title>g.GoneEntity</title><path fill="white" stroke="none" d="M0,0 L10,0 L10,10 L0,10 Z"/><path fill="none" stroke="#dc2626" d="M0,0 L10,0 L10,10 L0,10 Z"/></g></svg>';
+    const drawn = drawErdCards(svg, 9, 1.4, marks);
+    expect(drawn).toContain('<g id="node1" class="node" opacity="0.32">');
+    expect(drawn).toMatch(/<rect fill="none" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="5 3"/);
+    expect(drawErdCards(svg, 9, 1.4)).not.toContain("opacity");
+  });
+});

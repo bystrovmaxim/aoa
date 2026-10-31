@@ -38,12 +38,14 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import time
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from maxitor.front.model.rooms.follow_circle import chain_head, leads_to
 from maxitor.front.model.rooms.rooms_domain import RoomsDomain
 
 from aoa.action_machine.context import Context
@@ -68,15 +70,25 @@ PALETTE: tuple[str, ...] = (
 _RELAYED_FIELDS: dict[str, tuple[str, ...]] = {
     "pointer": ("x", "y"),
     "viewport": ("cx", "cy", "w", "h"),
+    # A click: shown where it happened as a ripple, and not kept (spec 038).
+    "click": ("x", "y"),
+}
+
+#: Numeric fields a relayed message may carry besides its own: the screen's size in pixels, so a follower takes the same
+#: zoom and the same top-left corner (spec 038).
+_RELAYED_OPTIONAL_FIELDS: dict[str, tuple[str, ...]] = {
+    "viewport": ("pw", "ph"),
 }
 
 #: The diagram elements a ``focus`` may name, and the longest id or page key it may carry.
-_FOCUS_KINDS = frozenset({"node", "row", "edge", "table"})
+_FOCUS_KINDS = frozenset({"node", "row", "edge", "table", "version"})
+#: A pointer frame's name: ``screen`` or a panel's own frame, short and lowercase (spec 038).
+_FRAME_NAME = re.compile(r"[a-z][a-z0-9-]{0,31}")
 _FOCUS_TEXT_MAX = 512
 #: The most open left-panel branches a ``focus`` may list, and the filter-panel states it may name
 #: besides ``null`` (closed): open with no section, or open on a section.
 _FOCUS_SIDEBAR_MAX = 200
-_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds"})
+_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds", "changes"})
 
 
 @dataclass
@@ -95,6 +107,10 @@ class Tab:
     pointer: dict[str, Any] | None = None
     viewport: dict[str, Any] | None = None
     focus: dict[str, Any] | None = None
+    #: The last ``check`` the tab was told: build, fingerprint and layout verdicts.
+    check: dict[str, str] | None = None
+    #: Whether the tab reloaded for its layout within the last few minutes, as its last report said.
+    layout_reloaded: bool = False
     leaving: bool = False
 
 
@@ -139,7 +155,8 @@ class Room:
 
     A room on a history (spec 037) also names the history — its address without a key —
     and the version it shows, a short sha or ``live``; ``source`` is then that version's
-    graph, and moves when the room's version does.
+    graph, and moves when the room's version does. In Diff (spec 038) ``version_a`` is the
+    older version it compares with ``version``; ``None`` while it shows one.
     """
 
     id: str
@@ -147,9 +164,11 @@ class Room:
     created_by: str
     history: str | None = None
     version: str | None = None
+    version_a: str | None = None
     participants: dict[str, Participant] = field(default_factory=dict)
     page_settings: dict[str, dict[str, Any]] = field(default_factory=dict)
-    reported_hashes: dict[tuple[str, str], str] = field(default_factory=dict)
+    #: For each page and settings digest: every layout hash the room heard, and when it first heard it.
+    layout_first_heard: dict[tuple[str, str], dict[str, float]] = field(default_factory=dict)
     empty_since: float | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
@@ -164,6 +183,7 @@ class Room:
             "source": self.source,
             "history": self.history,
             "version": self.version,
+            "version_a": self.version_a,
             "created_by": self.created_by,
             "participants": [participant.public() for participant in self.participants.values()],
             "settings": self.page_settings,
@@ -199,7 +219,25 @@ def _panels(value: Any) -> dict[str, Any] | None:
         return None
     if (section is not None and section not in _FOCUS_FILTER_SECTIONS) or not isinstance(legend, bool):
         return None
-    return {"sidebar": list(sidebar), "filter": section, "legend": legend}
+    # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
+    versions = value.get("versions", False)
+    if not isinstance(versions, bool):
+        return None
+    # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
+    track = value.get("track")
+    if track is not None and not _track(track):
+        return None
+    return {"sidebar": list(sidebar), "filter": section, "legend": legend, "versions": versions, "track": track}
+
+
+def _track(value: Any) -> bool:
+    """Whether ``value`` is a track: ``a`` and ``b`` short texts or ``null``, and an ``offset`` number."""
+    return (
+        isinstance(value, dict)
+        and set(value) == {"a", "b", "offset"}
+        and all(value[end] is None or _short_text(value[end]) for end in ("a", "b"))
+        and _is_number(value["offset"])
+    )
 
 
 def focus_values(message: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -298,12 +336,12 @@ class RoomRegistry(BaseController):
         """Every open room on the history named ``history``."""
         return (room for room in self._rooms.values() if room.history == history)
 
-    def open_room(self, source: str, created_by: str, history: str | None = None, version: str | None = None) -> Room:
-        """Create a room with a fresh 128-bit id; on a history, name it and the version shown."""
+    def open_room(self, source: str, created_by: str, history: str | None = None, version: str | None = None, version_a: str | None = None) -> Room:
+        """Create a room with a fresh 128-bit id; on a history, name it and the version shown — or, with ``version_a``, the two compared."""
         room_id = secrets.token_urlsafe(16)
         while room_id in self._rooms or room_id in self._ended:
             room_id = secrets.token_urlsafe(16)
-        room = Room(id=room_id, source=source, created_by=created_by, history=history, version=version)
+        room = Room(id=room_id, source=source, created_by=created_by, history=history, version=version, version_a=version_a)
         self._rooms[room_id] = room
         return room
 
@@ -390,11 +428,19 @@ class RoomRegistry(BaseController):
         values = {name: message.get(name) for name in fields}
         if not all(_is_number(value) for value in values.values()):
             return
+        for name in _RELAYED_OPTIONAL_FIELDS.get(str(kind), ()):
+            if _is_number(message.get(name)):
+                values[name] = message.get(name)
         tab.last_activity = self.clock()
+        # Over a panel the position is the screen's, from the diagram's top-left corner, or — over a panel that names
+        # its frame, as the version picker does — that panel's own; never the diagram's (spec 038).
+        frame = message.get("frame")
+        if kind in ("pointer", "click") and isinstance(frame, str) and _FRAME_NAME.fullmatch(frame):
+            values["frame"] = frame
         if kind == "pointer":
             values["kind"] = "touch" if message.get("kind") == "touch" else "mouse"
             tab.pointer = values
-        else:
+        elif kind == "viewport":
             tab.viewport = values
         event = {"type": kind, "participant": sender.id, **values}
         for other in _tabs_on_page(room, tab.page, except_participant=sender.id):
@@ -409,8 +455,10 @@ class RoomRegistry(BaseController):
         room, sender, tab = found
         tab.focus = values
         event = {"type": "focus", "participant": sender.id, **values}
+        # Everyone whose chain leads here gets it — a follower of a follower takes the view from its end (spec 038).
+        follows = room.follows()
         for follower in room.participants.values():
-            if follower.follows == sender.id:
+            if leads_to(follows, follower.id, sender.id):
                 for other in follower.tabs.values():
                     other.channel.send_volatile(f"focus:{sender.id}", event)
 
@@ -422,6 +470,15 @@ class RoomRegistry(BaseController):
         event = {"type": "focus", "participant": target.id, **active.focus}
         for tab in follower.tabs.values():
             tab.channel.send_volatile(f"focus:{target.id}", event)
+
+    def send_chain_focus(self, room: Room) -> None:
+        """After who follows whom changed: give every follower what the end of their chain is looking at, at once."""
+        follows = room.follows()
+        for participant in room.participants.values():
+            if participant.follows is not None:
+                head = room.participants.get(chain_head(follows, participant.id))
+                if head is not None and head.id != participant.id:
+                    self.send_focus(participant, head)
 
     def catch_up(self, room: Room, tab: Tab, participant: str) -> None:
         """

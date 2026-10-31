@@ -1,4 +1,5 @@
 // src/components/diagrams/DiagramShell/hooks/useDiagramLoader.ts
+import { NoSourceYetError } from "@/api/client";
 import { useEffect, useState } from "react";
 
 export type DiagramLoaderResult<T> = {
@@ -34,6 +35,8 @@ export function useDiagramLoader<T>(
       setData(null);
     }
     setLoading(true);
+    // No source yet is waiting, not failing: the spinner stays until the source is named and the read runs again.
+    let waiting = false;
     void loader()
       .then((value) => {
         if (!cancelled) {
@@ -42,10 +45,12 @@ export function useDiagramLoader<T>(
         }
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        if (cancelled) return;
+        if (e instanceof NoSourceYetError) waiting = true;
+        else setError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !waiting) setLoading(false);
       });
     return () => {
       cancelled = true;

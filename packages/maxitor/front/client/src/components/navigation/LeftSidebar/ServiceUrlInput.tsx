@@ -246,10 +246,12 @@ export function ServiceUrlInput({ onLoaded, onHistoryOpened }: Props) {
                     }}
                   >
                     {/* What the address turned out to be, as the mockup marks it: a history's clock, a running service's waves. */}
-                    <Box component="span" aria-hidden sx={{ display: "inline-flex", color: SB.icon, mr: "8px", mt: "2px", alignSelf: "flex-start", flexShrink: 0 }}>
+                    {/* Centred on the row like the two buttons at its edge, so the three stand on one line. */}
+                    <Box component="span" aria-hidden sx={{ display: "inline-flex", color: SB.icon, mr: "8px", alignSelf: "center", flexShrink: 0 }}>
                       {record.kind === "history" ? <HistoryIcon /> : <LiveIcon />}
                     </Box>
                     <ListItemText
+                      sx={{ my: "3px" }}
                       primary={mask(h)}
                       secondary={describeRecent(record)}
                       primaryTypographyProps={{

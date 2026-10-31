@@ -5,12 +5,14 @@ import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED, SIDEBAR_SURFACE } from "@/lib/layoutConstants";
 import { SidebarCollapseProvider, useSidebarCollapse } from "./SidebarCollapseContext";
 
 /** Height of the row above the workspace: the left panel's header row, so the two lines meet. */
 const TOP_ROW_HEIGHT = 38;
+/** Below this width the top row is compact, as on a phone: the room keeps its circles and a menu, no worded buttons. */
+export const TOP_ROW_COMPACT_BELOW = 1000;
 const WORKSPACE_SURFACE = "#f4f5f7";
 
 type MainLayoutProps = {
@@ -40,6 +42,16 @@ function MainLayoutBody({ sidebar, children, topRow, overlay }: MainLayoutProps)
   const theme = useTheme();
   // Below `sm` a permanent drawer has no room to share with content — it becomes an overlay instead.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  // The row measures itself: a narrow window — or a wide sidebar — leaves it too little room for every word.
+  const topRowRef = useRef<HTMLDivElement | null>(null);
+  const [narrowRow, setNarrowRow] = useState(false);
+  useEffect(() => {
+    const row = topRowRef.current;
+    if (!row || typeof ResizeObserver === "undefined") return undefined;
+    const watch = new ResizeObserver(([entry]) => setNarrowRow(entry.contentRect.width < TOP_ROW_COMPACT_BELOW));
+    watch.observe(row);
+    return () => watch.disconnect();
+  }, [isMobile]);
 
   return (
     <Box sx={{ display: "flex", height: "100%", minHeight: 0, minWidth: 0 }}>
@@ -84,11 +96,13 @@ function MainLayoutBody({ sidebar, children, topRow, overlay }: MainLayoutProps)
       >
         {!isMobile && topRow && (
           <Box
+            ref={topRowRef}
             sx={{
               flexShrink: 0,
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
+              minWidth: 0,
               height: TOP_ROW_HEIGHT,
               px: "10px",
               bgcolor: WORKSPACE_SURFACE,
@@ -97,7 +111,7 @@ function MainLayoutBody({ sidebar, children, topRow, overlay }: MainLayoutProps)
               zIndex: 60,
             }}
           >
-            {topRow(false)}
+            {topRow(narrowRow)}
           </Box>
         )}
         {isMobile && (

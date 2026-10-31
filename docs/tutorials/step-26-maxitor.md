@@ -232,6 +232,20 @@ Maxitor opens such a history from one address — the port's history URL with th
 
 Reading the track — colours, versions, release flags, the card — is [the how-to page](../how-to/open-a-graph-history.md).
 
+Two versions can be compared: switch the picker to **Diff** and the ERD paints what was added, removed and changed between A and B. [17_compare_two_versions.py](../../examples/step_26_maxitor/17_compare_two_versions.py) ([notebook](../../examples/step_26_maxitor/17_compare_two_versions.ipynb)) calls the two reads behind it — the counts and statuses, then one element's differences:
+
+```text
+4. 0.2.0 → 0.3.0
+   nodes +1 −0 ~1 · links +0 −0 ~0
+   changed: maxitor.front.model.core.entities.node_entity.NodeCoreEntity
+     properties.description: 'Hierarchical UI node row (id, optional parent, label, coarse type)' → 'Orders a customer places, now billed.'
+   added: example.billing
+6. 0.3.0 → Live
+   nodes +0 −0 ~0 · links +0 −0 ~0 — no changes
+```
+
+Picking the two versions and reading the coloured ERD is [the how-to page](../how-to/compare-two-versions.md).
+
 ## Dictionaries in the entity diagram
 
 An **entity–relationship diagram**, or **ERD**, describes the declared domain model.

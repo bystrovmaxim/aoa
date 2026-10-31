@@ -5,9 +5,10 @@ import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import Tooltip from "@mui/material/Tooltip";
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { HistoryVersion } from "@/api/history";
 import { VersionTrack } from "@/components/history/VersionTrack";
+import type { Range } from "@/lib/versionRange";
 import { TrackLegend } from "./TrackLegend";
 import { pickerSubtitle } from "@/model/historyMode";
 
@@ -28,11 +29,26 @@ export type VersionPickerProps = {
   proposals?: readonly HistoryVersion[];
   value: string | null;
   onChange: (b: string) => void;
-  /** Under the track: the chosen version's message. */
+  /** Under the track: the chosen version's message — in Diff, B's, on the right. */
   children?: ReactNode;
+  /** In Diff: A's message, on the left of B's — over it on a phone (spec 038, FR-030). */
+  older?: ReactNode;
+  /** In Diff, under the two messages: the versions between A and B (FR-031). */
+  between?: ReactNode;
   /** On a phone the picker is a sheet from the bottom, its track as wide as the screen (FR-031). */
   phone?: boolean;
+  /** One version or two (spec 038): in Diff the track holds ``range``. */
+  mode?: PickerMode;
+  /** Switch between One and Diff; without it the switch shows One alone as on. */
+  onMode?: (mode: PickerMode) => void;
+  /** Whether Diff can be picked: two points or more (spec 038, FR-015). */
+  diffOffered?: boolean;
+  range?: Range | null;
+  onRange?: (range: Range) => void;
 };
+
+/** What the switch picks in this step: one version, or two compared. Side by side comes later. */
+export type PickerMode = "one" | "diff";
 
 /** A 14 px stroke icon of the mode switch, drawn as the mockup draws it. */
 function ModeIcon({ children }: { children: ReactNode }) {
@@ -69,18 +85,31 @@ const MODES = [
   },
 ] as const;
 
-/** The mode switch: One is on; Diff and Side by side are greyed out and "comes later". */
-function ModeSwitch() {
+/**
+ * The mode switch (spec 038, FR-009, FR-015): One and Diff, Diff greyed out with "needs two versions" where the
+ * history has fewer than two points; Side by side greyed out, "comes later".
+ */
+function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onChange?: (mode: PickerMode) => void; diffOffered: boolean }) {
   return (
     <Box role="radiogroup" aria-label="Mode" sx={{ display: "inline-flex", flexShrink: 0, border: "1px solid rgba(15, 23, 42, 0.12)", borderRadius: "8px", p: "2px", gap: "2px" }}>
       {MODES.map((mode) => {
-        const on = mode.value === "one";
+        const on = mode.value === value;
+        const hint = mode.value === "split" ? "comes later" : mode.value === "diff" && !diffOffered ? "needs two versions" : null;
+        const enabled = hint === null && Boolean(onChange);
         const item = (
           <Box
             component="span"
             role="radio"
             aria-checked={on}
-            aria-disabled={on ? undefined : "true"}
+            aria-disabled={on || enabled ? undefined : "true"}
+            tabIndex={enabled && !on ? 0 : undefined}
+            onClick={() => enabled && !on && onChange?.(mode.value as PickerMode)}
+            onKeyDown={(event: ReactKeyboardEvent) => {
+              if (enabled && !on && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onChange?.(mode.value as PickerMode);
+              }
+            }}
             sx={{
               height: 24,
               px: "10px",
@@ -93,20 +122,20 @@ function ModeSwitch() {
               color: on ? "#0f172a" : "#475569",
               fontWeight: on ? 600 : 400,
               bgcolor: on ? "rgba(15, 23, 42, 0.08)" : "transparent",
-              opacity: on ? 1 : 0.45,
-              cursor: on ? "default" : "not-allowed",
+              opacity: on || enabled ? 1 : 0.45,
+              cursor: on ? "default" : enabled ? "pointer" : "not-allowed",
             }}
           >
             <ModeIcon>{mode.icon}</ModeIcon>
             {mode.label}
           </Box>
         );
-        return on ? (
+        return hint === null || on ? (
           <Box component="span" key={mode.value} sx={{ display: "inline-flex" }}>
             {item}
           </Box>
         ) : (
-          <Tooltip key={mode.value} title="comes later" describeChild>
+          <Tooltip key={mode.value} title={hint} describeChild>
             {item}
           </Tooltip>
         );
@@ -118,13 +147,33 @@ function ModeSwitch() {
 /**
  * The picker (spec 037, FR-014, FR-015), laid out as the mockup lays it out: a card under the version
  * button at the left of the top row; the service's name and how many versions it has on the left of the
- * head, the mode switch on the right — One on, Diff and Side by side greyed out, "comes later" — with
- * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message. The
+ * head, the mode switch on the right — One and Diff (spec 038), Side by side greyed out, "comes later" — with
+ * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message — in Diff A's
+ * on the left and B's on the right, stacked on a phone, the versions between them below. The
  * link to share is the address bar itself, which keeps a private history's key after ``#key=``. It
  * starts closed, a click outside or Escape closes it, and choosing a version leaves it open. On a phone
  * it is a sheet from the bottom with the same head, track and message, every point a 44 px touch target.
  */
-export function VersionPicker({ anchor, onClose, title, versions, live, liveIs = null, proposals = [], value, onChange, children, phone = false }: VersionPickerProps) {
+export function VersionPicker({
+  anchor,
+  onClose,
+  title,
+  versions,
+  live,
+  liveIs = null,
+  proposals = [],
+  value,
+  onChange,
+  children,
+  phone = false,
+  mode = "one",
+  onMode,
+  diffOffered = false,
+  range = null,
+  onRange,
+  older,
+  between,
+}: VersionPickerProps) {
   useEffect(() => {
     if (!anchor || phone) return;
     const onKey = (event: KeyboardEvent) => {
@@ -156,17 +205,43 @@ export function VersionPicker({ anchor, onClose, title, versions, live, liveIs =
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TrackLegend />
-          <ModeSwitch />
+          <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} />
         </Box>
       </Box>
-      <VersionTrack versions={versions} live={live} liveIs={liveIs} proposals={proposals} value={value} onChange={onChange} width={trackWidth} touch={phone} />
-      {children}
+      <VersionTrack
+        versions={versions}
+        live={live}
+        liveIs={liveIs}
+        proposals={proposals}
+        value={value}
+        onChange={onChange}
+        width={trackWidth}
+        touch={phone}
+        range={mode === "diff" ? range : null}
+        onRange={onRange}
+      />
+      {mode === "diff" && older !== undefined ? (
+        <>
+          {/* No header above either message: A is on the left and B on the right, as their handles stand. */}
+          <Box sx={{ display: "grid", gridTemplateColumns: phone ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 2 }}>
+            <Box data-testid="message-a" sx={{ minWidth: 0 }}>
+              {older}
+            </Box>
+            <Box data-testid="message-b" sx={{ minWidth: 0 }}>
+              {children}
+            </Box>
+          </Box>
+          {between}
+        </>
+      ) : (
+        children
+      )}
     </>
   );
 
   if (phone) {
     return (
-      <Drawer anchor="bottom" open={anchor !== null} onClose={onClose} slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", sx: { p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12 } } }}>
+      <Drawer anchor="bottom" open={anchor !== null} onClose={onClose} slotProps={{ paper: { role: "dialog", "aria-label": "Pick a version", ...{ "data-pointer-frame": "versions" }, sx: { p: 2, borderTopLeftRadius: 12, borderTopRightRadius: 12 } } }}>
         {content}
       </Drawer>
     );
@@ -187,6 +262,8 @@ export function VersionPicker({ anchor, onClose, title, versions, live, liveIs =
         <Paper
           role="dialog"
           aria-label="Pick a version"
+          // A pointer over the picker lands on the same place of it for a follower, wherever it opened (spec 038).
+          data-pointer-frame="versions"
           elevation={0}
           sx={{
             width: WIDTH,

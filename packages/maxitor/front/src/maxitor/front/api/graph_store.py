@@ -106,7 +106,7 @@ class GraphEntry:
     AI-CORE-BEGIN
     ROLE: The unit the store keeps, hands to one request, and drops when it is evicted.
     CONTRACT: ``graph`` answers every diagram query of a request; ``sidebar`` answers the sidebar read.
-    INVARIANTS: ``graph``, ``sidebar`` and ``content_sha256`` come from one build; the entry is never
+    INVARIANTS: ``graph``, ``sidebar``, ``content_sha256`` and ``document`` come from one build; the entry is never
     mutated after it is built, except ``last_read`` (moved on every read), ``last_checked`` and
     ``checking`` (moved by the freshness checks of the source).
     AI-CORE-END
@@ -128,6 +128,8 @@ class GraphEntry:
     """Whether a check of the source is running now; checks of one source never overlap."""
     immutable: bool = False
     """Whether the graph can never change — a history's version — so it is never checked again."""
+    document: str = ""
+    """The graph's JSON text the entry was built from — what two versions are compared by (spec 038, R7)."""
 
     @property
     def fingerprint(self) -> str:
@@ -311,4 +313,5 @@ async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceG
         etag=load_result.etag or None,
         last_modified=load_result.last_modified or None,
         immutable=parse_version_source(source) is not None,
+        document=load_result.graph_text,
     )

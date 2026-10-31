@@ -154,8 +154,9 @@ describe("markRows", () => {
 });
 
 describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
+  // Bright: lit by the hover, or back as drawn once it is left.
   const bright = (root: ParentNode) =>
-    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1").map((n) => n.querySelector("title")!.textContent).sort();
+    [...root.querySelectorAll<SVGElement>("g.node")].filter((n) => n.style.opacity === "1" || n.style.opacity === "").map((n) => n.querySelector("title")!.textContent).sort();
   const brightLines = (root: ParentNode) =>
     [...root.querySelectorAll<SVGElement>("g.edge")].filter((e) => e.style.opacity === "1").map((e) => e.id).sort();
 
@@ -202,6 +203,14 @@ describe("which tables stay bright on hover (spec 029, FR-040, FR-041)", () => {
     expect(brightLines(root)).toEqual(["re2"]);
     hover(line, false);
     expect(bright(root)).toEqual(["Gender", "Player", "Showcase"]);
+  });
+
+  it("gives every table back the opacity it was drawn with when the hover ends — a faded table stays faded (spec 038)", () => {
+    const { root } = mount();
+    const line = root.querySelector('g[id="re2"]')!;
+    hover(line, true);
+    hover(line, false);
+    expect([...root.querySelectorAll<SVGElement>("g.node, g.edge")].map((element) => element.style.opacity)).toEqual(Array(root.querySelectorAll("g.node, g.edge").length).fill(""));
   });
 });
 

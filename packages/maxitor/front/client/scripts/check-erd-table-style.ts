@@ -8,7 +8,9 @@
  * the domain colour, flush with the frame and as high as the mockup's, its name white, bold and at the
  * left; the frame in the domain colour around a white body; every second row tinted at 6 %; PK and FK
  * in their colours in a column of their own; the type smaller, grey and on the right; grey lines, a
- * dashed generalization that ends in ERD bars, not an arrowhead. It is plain Node: no framework, no bundler.
+ * dashed generalization that ends in ERD bars, not an arrowhead; and, in Diff (spec 038), each mark: the colours,
+ * the dashed frame of a removed table, a faded unchanged table, a struck-through removed row, a retargeted line
+ * amber and solid with a thin dashed line to where it pointed. It is plain Node: no framework, no bundler.
  *
  * Exit codes: 0 all assertions passed; 1 an assertion failed; 2 the environment cannot run it.
  */
@@ -24,6 +26,8 @@ import {
   ERD_PK_COLOUR,
   ERD_ROW_HEIGHT_PT,
   ERD_TYPE_COLOUR,
+  ERD_DIFF_COLOUR,
+  erdDiffMarks,
   type ErdGraphPayload,
 } from "../src/lib/buildDotSource.ts";
 import { containNodeFills } from "../src/lib/containNodeFills.ts";
@@ -176,6 +180,33 @@ const polygonPoints = [...edge.matchAll(/<polygon[^>]* points="([^"]+)"/g)].map(
 check("FR-043 a generalization has no arrowhead", !polygonPoints.includes(4), `${polygonPoints}`);
 check("FR-043 three bars: two at the head, one at the variant", polygonPoints.filter((n) => n === 5).length === 3, `${polygonPoints}`);
 check("FR-043 one circle, at the variant", (edge.match(/<ellipse/g) ?? []).length === 1);
+
+// ── Diff (spec 038, FR-022 – FR-024): the marks on the real WASM build ───────────────────────────────
+const diffFixture: ErdGraphPayload = {
+  entities: [
+    { id: "shop.OfferEntity", label: "OfferEntity", color: COLOUR, diff: "unchanged", fields: [field("erid", "str | None", { diff: "changed", previous_type: "str" }), field("is_activated", "bool", { diff: "removed" }), field("chosen", "DetailEntity", { foreign_key: true, diff: "changed", previous_type: "CoreEntity" })] },
+    { id: "shop.CoreEntity", label: "CoreEntity", color: COLOUR, diff: "removed", fields: [field("id", "str", { diff: "removed" })] },
+    { id: "shop.DetailEntity", label: "DetailEntity", color: COLOUR, diff: "added", fields: [field("id", "str", { diff: "added" })] },
+    { id: "shop.QuietEntity", label: "QuietEntity", color: COLOUR, diff: "unchanged", fields: [field("id", "str", { diff: "unchanged" })] },
+  ],
+  relations: [{ source: "shop.OfferEntity", target: "shop.DetailEntity", source_field: "chosen", source_cardinality: "zero_many", target_cardinality: "zero_one", diff: "changed", previous_target: "shop.CoreEntity" }],
+};
+const diffSvg = drawErdCards(containNodeFills(gv.layout(buildDotSource(diffFixture, "gv-dot-lr"), "svg", "dot")), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(diffFixture.entities));
+const nodeOf = (id: string) => {
+  const start = diffSvg.indexOf(`<title>${id}</title>`);
+  const rest = diffSvg.slice(start);
+  const end = rest.search(/<g id="(?:node|edge)\d+"/);
+  return diffSvg.slice(diffSvg.lastIndexOf('<g id="node', start), end < 0 ? diffSvg.length : start + end);
+};
+check("spec 038 an added table's frame is green", nodeOf("shop.DetailEntity").includes(`stroke="${ERD_DIFF_COLOUR.added}"`));
+check("spec 038 a removed table's frame is red and dashed", /<rect fill="none" stroke="#dc2626"[^>]*stroke-dasharray=/.test(nodeOf("shop.CoreEntity")));
+check("spec 038 an unchanged table without marked rows is faded", /^<g id="node\d+" class="node" opacity="0.32">/.test(nodeOf("shop.QuietEntity")));
+check("spec 038 a table with marked rows is not faded", !nodeOf("shop.OfferEntity").includes('opacity="0.32"'));
+check("spec 038 a removed row is struck through", nodeOf("shop.OfferEntity").includes('text-decoration="line-through"'));
+const retargeted = diffSvg.slice(diffSvg.indexOf('<g id="re0"'), diffSvg.indexOf("</g>", diffSvg.indexOf('<g id="re0"')));
+const previous = diffSvg.slice(diffSvg.indexOf('<g id="rp0"'), diffSvg.indexOf("</g>", diffSvg.indexOf('<g id="rp0"')));
+check("spec 038 a retargeted line is amber and solid to B's target", retargeted.includes(`stroke="${ERD_DIFF_COLOUR.changed}"`) && !/stroke-dasharray/.test(retargeted));
+check("spec 038 and thin and dashed to A's", previous.includes(`stroke="${ERD_DIFF_COLOUR.changed}"`) && /stroke-dasharray/.test(previous));
 
 if (failures) {
   console.error(`${failures} assertion(s) failed`);

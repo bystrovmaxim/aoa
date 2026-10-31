@@ -60,7 +60,7 @@ from fastapi.responses import JSONResponse
 from maxitor.front.api.access_log import install as install_access_log
 from maxitor.front.api.cached_static_files import CachedStaticFiles
 from maxitor.front.api.duckdb_graph_holder import DuckDBGraphHolder
-from maxitor.front.api.graph_source_middleware import GraphSourceMiddleware
+from maxitor.front.api.graph_source_middleware import GraphSourceMiddleware, current_pair
 from maxitor.front.api.graph_store import GraphStore, build_graph_entry
 from maxitor.front.api.history_key_auth_coordinator import HistoryKeyAuthCoordinator
 from maxitor.front.api.routes.load import router as load_router
@@ -93,6 +93,8 @@ from maxitor.front.model.core.resources.static_bundle_resource import (
     STATIC_BUNDLE_CONNECTION_KEY,
     StaticBundleResource,
 )
+from maxitor.front.model.diagrams.actions.compare_element_action import CompareElementAction, ElementNotComparedError
+from maxitor.front.model.diagrams.actions.compare_versions_action import CompareVersionsAction
 from maxitor.front.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from maxitor.front.model.diagrams.actions.full_graph_action import FullGraphAction
 from maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action import (
@@ -102,6 +104,12 @@ from maxitor.front.model.diagrams.actions.list_domains_action import ListDomains
 from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from maxitor.front.model.diagrams.actions.list_entity_kinds_action import ListEntityKindsAction
 from maxitor.front.model.diagrams.actions.list_node_types_action import ListNodeTypesAction
+from maxitor.front.model.diagrams.resources.comparison_store import (
+    COMPARISON_STORE_CONNECTION_KEY,
+    ComparisonRefusedError,
+    ComparisonStore,
+    NotComparingError,
+)
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY
 from maxitor.front.model.rooms.actions import (
     DisconnectTabAction,
@@ -222,25 +230,11 @@ def create_app() -> FastAPI:
     }
 
     duckdb_graph = DuckDBGraphHolder()
+    # Two versions compared once per pair, whoever reads them (spec 038, research R9).
+    comparisons = ComparisonStore(pair=current_pair)
+    fastapi_app.state.comparisons = comparisons
 
-    # Installed first, so CORS is added outside it afterwards (the last added is the outermost):
-    # the middleware's 400, 422 and 503 then carry the CORS headers, including the exposed
-    # Retry-After a client on another origin reads to time its retry.
-    fastapi_app.add_middleware(GraphSourceMiddleware)
-    fastapi_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["GET", "POST"],
-        allow_headers=["*"],
-        expose_headers=["Retry-After", "ETag"],
-    )
-    # Added last, so gzip is the outermost middleware and sees every answer, the refusals
-    # of GraphSourceMiddleware included (research R1). Level 6 rather than 9: the bundle is
-    # compressed once per new visitor and then cached, so a few per cent of bytes is not
-    # worth the extra CPU per first open.
-    fastapi_app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
-    fastapi_app.include_router(sidebar_router)
-    fastapi_app.include_router(load_router)
+    _install_middleware(fastapi_app)
 
     action_subapp = (
         FastApiAdapter(
@@ -297,6 +291,16 @@ def create_app() -> FastAPI:
                 SOURCE_CHECKS_CONNECTION_KEY: source_checks,
             },
         )
+        .get(
+            "/compare",
+            CompareVersionsAction,
+            connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
+        )
+        .get(
+            "/compare-element",
+            CompareElementAction,
+            connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
+        )
         .websocket(
             "/rooms/{room_id}/live",
             on_open=JoinRoomAction,
@@ -313,7 +317,7 @@ def create_app() -> FastAPI:
                 "version": SetRoomVersionAction,
             },
             on_close=DisconnectTabAction,
-            relay=frozenset({"pointer", "viewport", "focus"}),
+            relay=frozenset({"pointer", "viewport", "focus", "click"}),
             relay_key=ROOM_REGISTRY_KEY,
             # Pointer 20 + screen 20 + focus 10 a second at most (spec 029, R3), with room to spare.
             max_messages_per_second=80,
@@ -329,6 +333,7 @@ def create_app() -> FastAPI:
         )
         .build()
     )
+    _answer_comparison_refusals(action_subapp)
     fastapi_app.mount("/api/v1", action_subapp)
 
     meta_subapp = (
@@ -386,6 +391,43 @@ def _answer_history_refusals(app: FastAPI) -> None:
 
         async def answer(_request: Request, exc: Exception, status: int = status, headers: dict[str, str] = headers) -> JSONResponse:
             return JSONResponse(status_code=status, content={"detail": str(exc)}, headers=headers)
+
+        app.add_exception_handler(error, answer)
+
+
+def _install_middleware(fastapi_app: FastAPI) -> None:
+    """The middleware every read passes through, in order, and the two hand-written routers."""
+    # Installed first, so CORS is added outside it afterwards (the last added is the outermost):
+    # the middleware's 400, 422 and 503 then carry the CORS headers, including the exposed
+    # Retry-After a client on another origin reads to time its retry.
+    fastapi_app.add_middleware(GraphSourceMiddleware)
+    fastapi_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+        expose_headers=["Retry-After", "ETag"],
+    )
+    # Added last, so gzip is the outermost middleware and sees every answer, the refusals
+    # of GraphSourceMiddleware included (research R1). Level 6 rather than 9: the bundle is
+    # compressed once per new visitor and then cached, so a few per cent of bytes is not
+    # worth the extra CPU per first open.
+    fastapi_app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
+    fastapi_app.include_router(sidebar_router)
+    fastapi_app.include_router(load_router)
+
+
+def _answer_comparison_refusals(app: FastAPI) -> None:
+    """Give each refusal of a comparison read its status (the comparison reads' contract in specs/038)."""
+    answers: dict[type[Exception], int] = {
+        NotComparingError: 400,
+        ElementNotComparedError: 404,
+        ComparisonRefusedError: 422,
+    }
+    for error, status in answers.items():
+
+        async def answer(_request: Request, exc: Exception, status: int = status) -> JSONResponse:
+            return JSONResponse(status_code=status, content={"detail": str(exc)})
 
         app.add_exception_handler(error, answer)
 

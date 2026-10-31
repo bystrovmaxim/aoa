@@ -5,7 +5,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useSvgLayoutHash } from "@/lib/useSvgLayoutHash";
+import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
@@ -47,13 +47,12 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   // Reserve space for the floating zoom + rankdir toolbar (bottom: 10 + ~36px button row)
   // so vertical fit doesn't push the diagram under the controls in TB mode.
   const panZoom = useSvgPanZoom({ fitBottomInset: 56 });
-  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag } = panZoom;
+  const { viewportRef, pannerRef, zoomPct, zoomIn, zoomOut, fitToContainer, bindInteractions, resetFitFlag, needsFit } = panZoom;
 
   const [svgMarkup, setSvgMarkup] = useState("");
-  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090).
-  const layoutHashValue = useSvgLayoutHash(svgMarkup);
-  // The text Graphviz is given, hashed: the settings digest a room compares layouts under (FR-093).
-  const layoutInputDigest = useSvgLayoutHash(svgMarkup ? `dot\n${dot}` : "");
+  // Graphviz's own output goes on screen unchanged, so its hash is the picture's (FR-005, FR-090); the text Graphviz
+  // was given, hashed with it as one pair, is the settings digest a room compares layouts under (FR-093).
+  const layoutPair = useSvgLayoutPair(svgMarkup, `dot\n${dot}`);
   const [svgRenderVersion, setSvgRenderVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [firstFitDone, setFirstFitDone] = useState(false);
@@ -65,15 +64,9 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
 
   useLayoutEffect(() => {
     if (dot === prevDotRef.current) return;
-    const prev = prevDotRef.current;
     prevDotRef.current = dot;
-    setFirstFitDone(false);
     resetFitFlag();
-    // While Graphviz recomputes for the new DOT (e.g. LR↔TB), drop the previous SVG so
-    // ``ResizeObserver`` / pan-zoom cannot measure stale geometry and lock a bad transform.
-    if (prev !== null) {
-      setSvgMarkup("");
-    }
+    // The previous drawing stays until the new one is placed and fitted in one frame (spec 038): no blank frame.
   }, [dot, resetFitFlag]);
 
   useEffect(() => {
@@ -105,6 +98,10 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     if (!svgMarkup) return;
     const panner = pannerRef.current;
     if (!panner) return;
+    // The markup is placed here, not through ``dangerouslySetInnerHTML``: React put it back on every render (a zoom
+    // click is enough) as Graphviz wrote it — a third larger, in points, and without the steps below — so the drawing
+    // on screen was not the one just fitted (spec 038; ErdGraphvizCanvas places its own the same way).
+    panner.innerHTML = svgMarkup;
 
     const svg = panner.querySelector("svg");
     if (svg instanceof SVGSVGElement) {
@@ -121,44 +118,20 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
       postProcessGraphvizSvgDom(svg);
     }
 
-    let unbindPan: (() => void) | undefined;
-    let cancelled = false;
-    let raf1: number;
-    let raf2: number;
-    let raf3: number;
-    let raf4: number | undefined;
-
-    const doFitAndBind = () => {
-      if (cancelled) return;
-      fitToContainer();
-      // One follow-up frame: after rankdir switches, flex + SVG text metrics can shift by
-      // a pixel or two; the manual fit button often lands here. Still invisible (opacity 0).
-      raf4 = requestAnimationFrame(() => {
-        if (cancelled) return;
-        fitToContainer();
-        unbindPan = bindInteractions();
-        setFirstFitDone(true);
-      });
-    };
-
-    // Triple rAF matches ``ErdGraphvizCanvas``: wait for layout + paint before measuring.
-    // Panner uses opacity 0 until then (not ``visibility: hidden``), which can zero out
-    // ``getBoundingClientRect`` for Graphviz children in some engines and break auto-fit.
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        raf3 = requestAnimationFrame(doFitAndBind);
-      });
+    // A new drawing is fitted here, before the frame is painted, and shown at once: no frame with the old view, a blank
+    // or a hidden panner (spec 038). One frame later it is fitted again only if this one could not measure.
+    fitToContainer();
+    const unbindPan = bindInteractions();
+    setFirstFitDone(true);
+    const raf = requestAnimationFrame(() => {
+      if (needsFit()) fitToContainer();
     });
 
     return () => {
-      cancelled = true;
-      unbindPan?.();
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      cancelAnimationFrame(raf3);
-      if (raf4 !== undefined) cancelAnimationFrame(raf4);
+      unbindPan();
+      cancelAnimationFrame(raf);
     };
-  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions]);
+  }, [svgMarkup, svgRenderVersion, fitToContainer, bindInteractions, needsFit]);
 
   return (
     <DiagramShell loading={loading} error={error}>
@@ -172,8 +145,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
             )}
             <Box
               ref={viewportRef}
-              data-layout-hash={layoutHashValue}
-              data-layout-input={layoutInputDigest}
+              data-layout-hash={layoutPair?.hash}
+              data-layout-input={layoutPair?.digest}
               sx={{
                 position: "absolute",
                 inset: 0,
@@ -206,7 +179,6 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                     transformOrigin: "0 0",
                   },
                 }}
-                dangerouslySetInnerHTML={{ __html: svgMarkup }}
               />
             </Box>
 

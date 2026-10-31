@@ -107,4 +107,41 @@ describe("the address of a history", () => {
     expect(result.current.history?.b).toBe(id(9));
     expect(sourceOf(result.current.history!)).toBe("proposal-9");
   });
+
+  it("opens two versions from a link, a reversed pair swapped and the same version twice as one (spec 038, FR-014)", () => {
+    const { result } = renderHook(() => useOpenHistory(false));
+    const three = [version(1), version(2), version(3)];
+    act(() => result.current.show(opened(three, LIVE), "k", id(1), id(3)));
+    expect([result.current.history?.a, result.current.history?.b]).toEqual([id(1), id(3)]);
+    act(() => result.current.show(opened(three, LIVE), "k", id(2), "live"));
+    expect([result.current.history?.a, result.current.history?.b]).toEqual([id(2), "live"]);
+    act(() => result.current.show(opened(three, LIVE), "k", id(2), id(2)));
+    expect([result.current.history?.a, result.current.history?.b]).toEqual([null, id(2)]);
+  });
+
+  it("keeps the two apart, and moves an end that left the list toward the other", () => {
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show(opened([version(1), version(2), version(3)], null), "k", id(3)));
+    act(() => result.current.pickRange({ a: id(1), b: id(3) }));
+    expect(result.current.history?.a).toBe(id(1));
+    act(() => result.current.takeList([version(2), version(3)], null, "e1"));
+    expect([result.current.history?.a, result.current.history?.b]).toEqual([id(2), id(3)]);
+    expect(result.current.notice).toBe("A version of the comparison is no longer in the history");
+    act(() => result.current.takeList([version(3)], null, "e2"));
+    expect([result.current.history?.a, result.current.history?.b]).toEqual([null, id(3)]);
+    act(() => result.current.pickRange({ a: id(3), b: id(3) }));
+    expect(result.current.history?.a).toBeNull();
+  });
+
+  it("writes mode, a and b into the address and reads them back", () => {
+    setUrlHistory({ name: "https://port/api/v1/history/h", b: id(3), a: id(1) });
+    syncUrlToState(null, null);
+    const link = readUrlDeepLink();
+    expect(window.location.search).toContain("mode=diff");
+    expect([link.a, link.b]).toEqual([id(1), id(3)]);
+    setUrlHistory({ name: "https://port/api/v1/history/h", b: id(3), a: null });
+    syncUrlToState(null, null);
+    expect(window.location.search).not.toContain("mode=");
+    expect(readUrlDeepLink().a).toBeNull();
+  });
 });

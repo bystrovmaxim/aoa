@@ -14,7 +14,8 @@
  * drawing check runs this very function in plain Node; the glyph drawing is passed in.
  */
 
-import type { ErdEntity } from "@/lib/buildDotSource";
+// Relative, with its extension: the ERD checks in ``scripts/`` run this module under plain Node, which knows no ``@/``.
+import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity } from "./buildDotSource.ts";
 
 /** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
 export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
@@ -106,7 +107,7 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
       remove: 0,
       text:
         `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${iconY.toFixed(2)}) ` +
-        `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, "#ffffff", HEADER_GLYPH_STROKE)}</g>`,
+        `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, erdHeadInk(entity), HEADER_GLYPH_STROKE)}</g>`,
     });
   });
   let out = markup;
@@ -235,6 +236,27 @@ export function placeEndLabel(
   return last ?? { x: pointAt(0).x - plate.width / 2, y: pointAt(0).y - plate.height / 2, ...plate };
 }
 
+/** The ink a hovered grey line takes. */
+const HOVERED_LINE_INK = "#475569";
+
+/**
+ * The canvas's style for a hovered line (or every line of a hovered row): thicker, a grey one darker. A line painted by
+ * its change in Diff keeps its colour — the hover never says a removed line is something else (spec 038).
+ */
+export const erdLineHoverSx = {
+  "& g.edge path": { transition: "stroke-width 100ms ease, stroke 100ms ease" },
+  [`& g.edge.${EDGE_HOVER_CLASS} path:not(.erd-hit)`]: { stroke: HOVERED_LINE_INK, strokeWidth: 2.4 },
+  [`& g.edge.${EDGE_HOVER_CLASS} polygon`]: { stroke: HOVERED_LINE_INK },
+  [`& g.edge.${EDGE_HOVER_CLASS} polygon:not([fill='none'])`]: { fill: HOVERED_LINE_INK },
+  [`& g.edge.${EDGE_HOVER_CLASS} text`]: { fill: "#334155", fontWeight: 700 },
+  ...Object.fromEntries(
+    Object.values(ERD_DIFF_COLOUR).flatMap((colour) => [
+      [`& g.edge.${EDGE_HOVER_CLASS} path[stroke='${colour}']:not(.erd-hit), & g.edge.${EDGE_HOVER_CLASS} polygon[stroke='${colour}']`, { stroke: colour }],
+      [`& g.edge.${EDGE_HOVER_CLASS} polygon[fill='${colour}']`, { fill: colour }],
+    ]),
+  ),
+} as const;
+
 /** The canvas's style for line labels: hidden, and shown on their plates while the line is hovered. */
 export const erdEndLabelSx = {
   [`& g.edge text, & g.edge rect.${END_LABEL_CLASS}`]: { visibility: "hidden" },
@@ -322,10 +344,10 @@ export function focusTables(root: ParentNode, tables: ReadonlySet<string>, lines
   });
 }
 
-/** Every table and line bright again. */
+/** Every table and line as drawn again — a table Diff fades stays faded. */
 export function clearTableFocus(root: ParentNode): void {
   root.querySelectorAll<SVGElement>("g.node, g.edge").forEach((element) => {
-    element.style.opacity = "1";
+    element.style.opacity = "";
   });
 }
 
@@ -428,8 +450,17 @@ function reachEdges(points: string, span: { x0: number; y0: number; x1: number; 
     .join(" ");
 }
 
+/** The opacity of a table that did not change, in Diff (spec 038, FR-022). */
+export const ERD_FADED_OPACITY = 0.32;
+
+/** The dash of a removed table's frame, in Diff. */
+export const ERD_REMOVED_DASH = "5 3";
+
+/** What Diff adds to the cards, by table id: the tables to fade and those whose frame is dashed. */
+export type ErdCardMarks = { faded: ReadonlySet<string>; dashed: ReadonlySet<string>; halo?: ReadonlyMap<string, string> };
+
 /** One node's markup drawn as the designed card, or as it was when it is not a card. */
-function drawCard(node: string, radius: number, stroke: number): string {
+function drawCard(node: string, radius: number, stroke: number, dashed = false): string {
   const backdrop = BACKDROP.exec(node);
   const span = backdrop ? spanOf(backdrop[1]!) : null;
   if (!backdrop || !span) return node;
@@ -445,7 +476,13 @@ function drawCard(node: string, radius: number, stroke: number): string {
     return `<polygon${clipped}${attributes}points="${reachEdges(points, span, inset)}"`;
   });
   const outline = new RegExp(`<path fill="none" stroke="([^"]+)" d="${d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"\\/?>(?:<\\/path>)?`);
-  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}" ${box}/>`);
+  const dash = dashed ? ` stroke-dasharray="${ERD_REMOVED_DASH}"` : "";
+  return out.replace(outline, (_, colour: string) => `<rect fill="none" stroke="${colour}" stroke-width="${stroke}"${dash} ${box}/>`);
+}
+
+/** The table id a node's markup draws: its ``<title>``, unescaped. */
+function titleOf(node: string): string {
+  return (/<title>([^<]*)<\/title>/.exec(node)?.[1] ?? "").replace(/&#45;/g, "-").replace(/&amp;/g, "&");
 }
 
 /**
@@ -453,9 +490,10 @@ function drawCard(node: string, radius: number, stroke: number): string {
  * way to one rounded rectangle of ``radius`` (the mockup's 9) with a ``stroke``-wide outline in the
  * domain colour; the header and the row tints reach the card's edge and are trimmed to the same
  * rounded shape, so the header fills right up to the outline with no gap. Graphviz's layout — every
- * cell's place and size — is left as it is. Run after ``containNodeFills``.
+ * cell's place and size — is left as it is. Run after ``containNodeFills``. In Diff (spec 038) ``marks`` fades the
+ * tables that did not change and dashes the frame of those that are gone.
  */
-export function drawErdCards(svg: string, radius: number, stroke: number): string {
+export function drawErdCards(svg: string, radius: number, stroke: number, marks?: ErdCardMarks): string {
   const starts = [...svg.matchAll(NODE_START)].map((m) => m.index ?? 0);
   if (!starts.length) return svg;
   let out = svg.slice(0, starts[0]);
@@ -465,7 +503,21 @@ export function drawErdCards(svg: string, radius: number, stroke: number): strin
     GROUP_START.lastIndex = start + 1;
     const following = GROUP_START.exec(svg)?.index ?? svg.length;
     const end = Math.min(following, next);
-    out += drawCard(svg.slice(start, end), radius, stroke) + svg.slice(end, next);
+    const node = svg.slice(start, end);
+    const table = marks ? titleOf(node) : "";
+    let drawn = drawCard(node, radius, stroke, marks?.dashed.has(table) ?? false);
+    if (marks?.faded.has(table)) drawn = drawn.replace(/^<g id="node\d+" class="node"/, (head) => `${head} opacity="${ERD_FADED_OPACITY}"`);
+    // a soft halo in the status colour under a table that changed, drawn first so the card stands on it.
+    const haloColour = marks?.halo?.get(table);
+    const card = haloColour ? /<rect fill="white" stroke="none" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/.exec(drawn) : null;
+    if (haloColour && card) {
+      const [x, y, w, h] = card.slice(1).map(Number);
+      const pad = 40;
+      const haloRect = `<rect x="${x - pad}" y="${y - pad}" width="${w + 2 * pad}" height="${h + 2 * pad}" rx="${pad + 6}" fill="${haloColour}" fill-opacity="0.16" filter="url(#erd-halo)"/>`;
+      drawn = drawn.replace(/^(<g id="node\d+" class="node"[^>]*>)/, `$1${haloRect}`);
+    }
+    out += drawn + svg.slice(end, next);
   });
-  return out;
+  // the halo's blur, once per drawing.
+  return marks?.halo?.size ? out.replace(/(<svg\b[^>]*>)/, `$1<defs><filter id="erd-halo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter></defs>`) : out;
 }

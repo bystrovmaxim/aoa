@@ -344,6 +344,44 @@ def test_pointers_reach_only_the_same_page(client: TestClient, source: str) -> N
     assert next_for_vera["type"] == "follows"
 
 
+def test_a_click_reaches_the_same_page_and_is_not_kept(client: TestClient, source: str) -> None:
+    """Anna's click reaches Boris on her page as it happened; it is not her pointer, which stays where it was."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        anna.send_json({"type": "click", "x": 4, "y": 5.5})
+        click = _expect(boris, "click")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 30, "y": 40, "frame": "screen"})
+        over_a_panel = _expect(boris, "pointer")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 31, "y": 40, "frame": "version-track"})
+        over_the_track = _expect(boris, "pointer")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 32, "y": 40, "frame": "<b>Not a frame</b>"})
+        bad_frame = _expect(boris, "pointer")
+
+    assert click == {"type": "click", "participant": "anna", "x": 4, "y": 5.5}
+    assert over_a_panel == {"type": "pointer", "participant": "anna", "x": 30, "y": 40, "kind": "mouse", "frame": "screen"}
+    assert over_the_track["frame"] == "version-track"
+    assert "frame" not in bad_frame
+
+
+def test_a_screen_carries_its_size_in_pixels(client: TestClient, source: str) -> None:
+    """Anna's screen reaches Boris with its size in pixels, so following can take her zoom exactly; a size out of shape is left out."""
+    with ExitStack() as stack:
+        anna, room_id = _open(stack, client, source)
+        boris = stack.enter_context(_connect(client, room_id, "boris"))
+        _expect(boris, "welcome")
+        _expect(anna, "joined")
+        anna.send_json({"type": "viewport", "cx": 1, "cy": 2, "w": 300, "h": 200, "pw": 900, "ph": 600})
+        sized = _expect(boris, "viewport")
+        anna.send_json({"type": "viewport", "cx": 1, "cy": 3, "w": 300, "h": 200, "pw": "wide"})
+        unsized = _expect(boris, "viewport")
+
+    assert sized == {"type": "viewport", "participant": "anna", "cx": 1, "cy": 2, "w": 300, "h": 200, "pw": 900, "ph": 600}
+    assert "pw" not in unsized
+
+
 def test_a_page_the_service_lacks_falls_back(client: TestClient, source: str) -> None:
     """(12) Boris's link names a page the service does not offer: he opens Anna's page instead."""
     with ExitStack() as stack:
