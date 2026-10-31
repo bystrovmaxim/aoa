@@ -18,7 +18,7 @@ export type DomainLegendProps = {
 
 const ROW_OFF_OPACITY = 0.42;
 
-/** Multi-domain ERD legend — same row chrome as ``NodeTypeLegend``; toggles dim rows, no chip chrome. */
+/** Multi-domain ERD legend — same row chrome as ``ErdFilterPanel``; toggles dim rows, no chip chrome. */
 export function DomainLegend({
   domainKeys,
   enabledDomains,

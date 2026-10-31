@@ -72,6 +72,11 @@ The frame numbers at 97 thousand were taken with the whole graph zoomed out and 
 - **Rationale**: in the mockup, outlines from the stand's real nodes took 23–95 ms for all 21 areas. The sketch is what lets this work with no node in the browser; it is small because a cell only holds counts, and bundles are recounted the same way, from links per pair of areas and types.
 - **Open**: **the sketch is designed, not measured.** Outlines add to the filter's 50 ms, so they may run after the picture has hidden the nodes, within the next frames.
 
+## R6a2. What a hidden node takes with it
+
+- **Decision**: each node's containment parents go into its sketch key, so the overview counts nodes by their type and the types above them. A filter set then says, with no node in the browser, what is off the screen and why; a dimmed row names the switched-off types that hide it (FR-028a – FR-028c).
+- **Open**: how many distinct chains of types a graph has; on the demo graph they are few, and the sketch grows only with them.
+
 ## R6b. Phones and Next.js
 
 - **Decision**: stay with the client as it is. Next.js renders pages on a server and splits bundles; the time here goes into the graph and its drawing, both already moved to the server and the GPU, so it would change neither, and it would add a Node server to run.

@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** Shared floating legend chrome for `DomainLegend` and `NodeTypeLegend`. Desktop renders an always-expanded `aside` panel (`floatingLegendPanelSx`/`floatingLegendTitleSx` from `@/lib/ui`) with a `title` and arbitrary `children`; below the MUI `sm` breakpoint it starts collapsed to a small top-left pill (tap to expand), gaining a close button to collapse it back — a pinned full-height panel would otherwise cover most of a ~375px canvas.
+**Role:** Shared floating legend chrome for `DomainLegend`. Desktop renders an always-expanded `aside` panel (`floatingLegendPanelSx`/`floatingLegendTitleSx` from `@/lib/ui`) with a `title` and arbitrary `children`; below the MUI `sm` breakpoint it starts collapsed to a small top-left pill (tap to expand), gaining a close button to collapse it back — a pinned full-height panel would otherwise cover most of a ~375px canvas.
 
 ## Files
 

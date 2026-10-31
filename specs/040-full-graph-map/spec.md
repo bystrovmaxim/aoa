@@ -27,6 +27,7 @@
 - Q: Does this work build a level for services above domains? → A: No. It comes later, in another task; this work only must not rule it out.
 - Q: Inside a domain that changed between versions, may old nodes shift? → A: Yes. A domain's layout depends only on its content, so a changed domain may rearrange itself; other domains stay in place, and Diff draws one picture at B's positions.
 - Q: What paints the full graph when it opens in One? → A: Domains, as on the ERD; Diff starts with Changes.
+- Q: What happens to what a hidden node contains? → A: It leaves the screen with its parent, and the outline is redrawn. A filter row with nothing left on screen for that reason dims, but stays on or off as it was: hiding by containment and switching a row are separate axes, and neither changes the other. A dimmed row says what keeps it hidden.
 - Q: Must a filter show what it did to a domain? → A: Yes. Nodes stay where they are, but the domain's outline is redrawn around what is left, its name moves there, and it says how much is left.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -142,6 +143,8 @@ The developer switches off a node type or a domain, and chooses what colours the
 5. **Given** a section that does not paint, **When** its rows are shown, **Then** their disks are grey, as on the ERD.
 6. **Given** a type, domain or change switched off, **When** drawn, **Then** those elements and their links are gone, nothing else moves, and the button counts what is left (spec 039, FR-016a, FR-016b).
 7. **Given** a filter that leaves no change, **When** Diff is shown, **Then** the button says "no changes" and nothing fades.
+6a. **Given** Entity switched off, **When** drawn, **Then** every entity's fields leave the screen with it, the outlines close around what is left, and the EntityField row dims while staying on; **When** EntityField is switched off and on again meanwhile, **Then** Entity stays as it was.
+6b. **Given** a dimmed row, **When** it is hovered or tapped, **Then** it says what keeps its nodes hidden, such as `Hidden: Entity is off`, and offers to switch that on; a row hidden by several says all of them.
 7a. **Given** a filter that takes most of a domain away, **When** drawn, at any level, **Then** the domain's outline closes around what is left, its name stands there, and it reads `45 of 394 left`; switching the filter off brings the outline back.
 8. **Given** filters and a paint choice, **When** the address is reloaded or opened by a colleague, **Then** they apply; **When** a participant changes one in a room, **Then** everyone follows.
 
@@ -248,6 +251,9 @@ A room looks at one map; someone following a colleague sees the same place at th
 - **FR-027**: The full graph MUST have the ERD's filter panel with Domains and Node types, and Changes in Diff, in One and in Diff, listing what the graph or the pair holds.
 - **FR-028**: A switched-off type, domain or change MUST hide its elements and their links, and move nothing. The domain filter MUST NOT hide a node in no domain, and MUST hide a node in several domains only when all of them are off.
 - **FR-029**: Counts, "no changes" and fading MUST follow what the filters leave.
+- **FR-028a**: A hidden node MUST take what it contains off the screen with it: fields with their entity, states with their lifecycle, whatever containment holds, at any depth.
+- **FR-028b**: A row whose nodes are all off the screen because of something else switched off MUST dim, and MUST keep its own state: switching it on or off MUST NOT change any other row, and switching another row MUST NOT change it. Those are two separate axes.
+- **FR-028c**: A dimmed row MUST say what keeps its nodes hidden, and MUST offer to switch that on; a dimmed row that is switched on but hidden, and a row switched off, MUST look different.
 - **FR-029a**: At every level a domain's outline MUST be redrawn around what the filters leave, its name MUST stand with what is left, and it MUST read how much is left of how much, such as `45 of 394 left`. Nothing else may move. A bundle MUST follow too: its thickness counts the links left, and it goes when none is.
 - **FR-030**: The full graph's panel MUST carry the gear shift: Domains, Node types and, in Diff, Changes paint the picture, the nodes of the map and the disks of the section. The full graph MUST start painted by Domains in One and by Changes in Diff. A section that does not paint MUST show grey disks. Rings keep their meaning under any paint.
 - **FR-031**: On every diagram with this panel, moving the gear shift to a section MUST open that section and fold the others.

@@ -12,15 +12,17 @@
     "measure": "node scripts/measure-full-graph.ts"
   },
   "dependencies": {
-    "@antv/g6": "^5.0.50",
-    "@antv/layout": "2.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hpcc-js/wasm-graphviz": "^1.21.5",
     "@mui/icons-material": "^6.4.7",
     "@mui/material": "^6.4.7",
+    "@sigma/node-border": "^4.0.0",
+    "@sigma/node-image": "^4.0.1",
+    "graphology": "^0.26.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sigma": "^4.0.4"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",

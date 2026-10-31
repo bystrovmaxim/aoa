@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { NodeRow, SidebarPayload } from "@/model/sidebar";
 import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN } from "@/lib/buildDotSource";
-import { prefetchInterchangeG6 } from "@/lib/prefetch/g6Prefetch";
+import { prefetchMapEngine } from "@/lib/prefetch/mapPrefetch";
 import { prefetchErdGraphviz } from "@/lib/prefetch/erdGraphviz";
 import { buildSidebarGroupedMaps, diagramSelectionForRow, sortNodes } from "@/lib/sidebarNavigation";
 import { SIDEBAR_SURFACE } from "@/lib/layoutConstants";
@@ -125,7 +125,7 @@ function selectionKey(sel: DiagramSelection): string {
 
 function prefetchDiagramModule(sel: DiagramSelection | null): void {
   if (sel?.kind === "erd" || sel?.kind === "use_case") prefetchErdGraphviz();
-  if (sel?.kind === "interchange_graph") prefetchInterchangeG6();
+  if (sel?.kind === "interchange_graph") prefetchMapEngine();
 }
 
 /** Shorten use-case row when the domain name is already visible in the parent row. */
