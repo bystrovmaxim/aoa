@@ -78,6 +78,23 @@ describe("the card of a changed element", () => {
     expect(screen.getAllByTestId("diff-part-group")).toHaveLength(1);
   });
 
+  it("stays open on a click on the change stepper, and closes on a click anywhere else", async () => {
+    const onClose = vi.fn();
+    render(
+      <div>
+        <div data-testid="change-stepper"><button>Next</button></div>
+        <button>Elsewhere</button>
+        <DiffCard target={{ ...CHANGED, status: "added" }} newer="0.9.0" at={{ x: 0, y: 0 }} onClose={onClose} />
+      </div>,
+    );
+    // The listener arms itself a tick after the card mounts.
+    await new Promise((resolve) => setTimeout(resolve));
+    fireEvent.click(screen.getByText("Next"));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Elsewhere"));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("closes with Escape", () => {
     const onClose = vi.fn();
     render(<DiffCard target={{ ...CHANGED, status: "added" }} newer="0.9.0" at={{ x: 0, y: 0 }} onClose={onClose} />);

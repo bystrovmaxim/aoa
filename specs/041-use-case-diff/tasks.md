@@ -41,10 +41,10 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 
 ## Phase 4: The stepper (US4)
 
-- [ ] T021 [US4] Extract the stepping logic of packages/maxitor/front/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx into packages/maxitor/front/client/src/lib/useGraphvizChangeStepping.ts, the ERD's behaviour unchanged (research R6)
-- [ ] T022 [P] [US4] Test `useCaseChanges` in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: order, links included, each once
-- [ ] T023 [US4] Write `useCaseChanges` in packages/maxitor/front/client/src/lib/useCaseDiff.ts and use the hook in UseCaseDiagramViewer.tsx; Graphviz element ids as cells; a link steps with no card
-- [ ] T024 [US4] Walk the stepper with keys, the list and a room on `erd-full`, the ERD's again; adversarial: skip links, the test fails, restore
+- [X] T021 [US4] Extract the stepping logic of packages/maxitor/front/client/src/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/ErdGraphvizCanvas.tsx into packages/maxitor/front/client/src/lib/useGraphvizChangeStepping.ts, the ERD's behaviour unchanged (research R6)
+- [X] T022 [P] [US4] Test `useCaseChanges` in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: order, links included, each once
+- [X] T023 [US4] Write `useCaseChanges` in packages/maxitor/front/client/src/lib/useCaseDiff.ts and use the hook in UseCaseDiagramViewer.tsx; Graphviz element ids as cells; a link steps with no card
+- [X] T024 [US4] Walk the stepper with keys, the list and a room on `erd-full`, the ERD's again; adversarial: skip links, the test fails, restore
 
 ## Phase 5: The filter panel (US4)
 

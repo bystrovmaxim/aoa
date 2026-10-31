@@ -8,9 +8,10 @@ import { getActiveBase } from "@/api/client";
 import { compareChangedInside, compareVersions, type ChangedInside, type CompareResult } from "@/api/compare";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { listDomains } from "@/api/erd";
-import { domainUseCaseDotNodeId } from "@/lib/buildDomainUseCaseDotSource";
+import { domainUseCaseDotNodeId, useCaseCellId } from "@/lib/buildDomainUseCaseDotSource";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import type { CardTarget } from "@/lib/erdDiffCard";
+import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 /** Every element of two lists, each once by id: B's where both have it; sorted, so a pair has one DOT text. */
@@ -72,6 +73,34 @@ export function useCaseCard(diagram: DomainUseCaseDiagramPayload, id: string): C
   const status = element?.diff;
   if (!element || !status || status === "unchanged") return null;
   return { title: element.short_label || element.label, status, elements: [{ kind: "node", id }], parts: action?.parts };
+}
+
+/** The last part of a dotted id: what a link's ends are called on its row in a list. */
+function shortName(id: string): string {
+  return id.split(".").pop() ?? id;
+}
+
+/** Sorts by a text, then by id, so a list has one order. */
+function byName<T extends { id: string }>(elements: readonly T[], name: (element: T) => string): T[] {
+  return [...elements].sort((one, other) => name(one).localeCompare(name(other)) || (one.id < other.id ? -1 : 1));
+}
+
+/** Every change the drawn diagram marks, once each: its actions, its roles, then its links, which have no card (spec 041, FR-017). */
+export function useCaseChanges(diagram: DomainUseCaseDiagramPayload): GraphvizChange[] {
+  const name = (element: { short_label: string; label: string }) => element.short_label || element.label;
+  const node = (element: DomainUseCaseDiagramPayload["actions" | "roles"][number], group: string, detail: string): GraphvizChange[] => {
+    const card = useCaseCard(diagram, element.id);
+    return card ? [{ key: element.id, title: card.title, detail, status: card.status, group, cell: useCaseCellId(element.id), card }] : [];
+  };
+  return [
+    ...byName(diagram.actions, name).flatMap((action) => node(action, "Actions", action.parts?.length ? "Changed inside" : "Action")),
+    ...byName(diagram.roles, name).flatMap((role) => node(role, "Roles", "Role")),
+    ...byName(diagram.edges, (edge) => `${edge.edge_kind}|${edge.source_id}|${edge.target_id}`).flatMap((edge) =>
+      edge.diff && edge.diff !== "unchanged"
+        ? [{ key: edge.id, title: `${shortName(edge.source_id)} → ${shortName(edge.target_id)}`, detail: edge.stereotype ?? edge.edge_kind, status: edge.diff, group: "Links", cell: useCaseCellId(edge.id), card: null }]
+        : [],
+    ),
+  ];
 }
 
 /** The id of the marked action or role a click landed on, by the node Graphviz wrote for it. */

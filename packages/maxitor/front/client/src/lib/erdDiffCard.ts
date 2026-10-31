@@ -6,7 +6,7 @@
  */
 import type { ChangedPart } from "@/api/compare";
 import type { ErdDiff, ErdEntity, ErdRelation } from "@/lib/buildDotSource";
-import type { ChangeEntry } from "@/lib/changeStepping";
+import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import { relationKey } from "@/lib/erdDiff";
 
 /** The colours and signs of the three marks, the ERD's own. */
@@ -24,8 +24,8 @@ export type CardTarget = {
   parts?: readonly ChangedPart[];
 };
 
-/** One change of the drawn ERD: what it steps to, and its card where it has one. */
-export type ErdChange = ChangeEntry & { cell: string; card: CardTarget | null };
+/** One change of the drawn ERD. */
+export type ErdChange = GraphvizChange;
 
 type Marked = Exclude<ErdDiff, "unchanged">;
 
