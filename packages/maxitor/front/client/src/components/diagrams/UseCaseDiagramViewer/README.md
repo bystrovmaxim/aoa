@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** Graphviz **dot** rendering of a domain **UML-style use-case** diagram (`GET` via **`@/api/domainUseCaseDiagram`**): WASM layout to SVG, **pan/zoom** via **`useSvgPanZoom`**, dotted canvas, **Fit to window** in **`ZoomToolbar`**, optional **boundary** subgraph, **dot LR/TB** plus **Neato/FDP** presets, optional **single-hop filtering**, and **`postProcessGraphvizSvgDom`** from **`@/lib/sanitizeGraphvizSvgOverlays`** so backdrop and edge arrow fills do not hide the grid. In Diff it draws A and B together: each action, role and link marked, an action changed inside marked as changed, everything else faded; the counts go to the version button (spec 041).
+**Role:** Graphviz **dot** rendering of a domain **UML-style use-case** diagram (`GET` via **`@/api/domainUseCaseDiagram`**): WASM layout to SVG, **pan/zoom** via **`useSvgPanZoom`**, dotted canvas, **Fit to window** in **`ZoomToolbar`**, optional **boundary** subgraph, **dot LR/TB** plus **Neato/FDP** presets, optional **single-hop filtering**, and **`postProcessGraphvizSvgDom`** from **`@/lib/sanitizeGraphvizSvgOverlays`** so backdrop and edge arrow fills do not hide the grid. In Diff it draws A and B together: each action, role and link marked, an action changed inside marked as changed, everything else faded; the counts go to the version button; a click opens the card, and the stepper walks the changes. The filter panel holds Domains and, in Diff, Changes, with the paint switch (spec 041).
 
 ## Public exports
 

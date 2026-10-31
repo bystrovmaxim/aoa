@@ -48,10 +48,10 @@ Each phase is one commit, made only on the maintainer's word. Phase 6 is three c
 
 ## Phase 5: The filter panel (US4)
 
-- [ ] T025 [US4] Let packages/maxitor/front/client/src/components/ui/ErdFilterPanel/ErdFilterPanel.tsx go without a kinds section, with a test in ErdFilterPanel.test.tsx
-- [ ] T026 [P] [US4] Test the Changes filter in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: counts, stepper and "no changes" follow
-- [ ] T027 [US4] Replace the domain legend in UseCaseDiagramViewer.tsx with the panel, Changes in Diff, the gear shift, settings in the address and the room, One's paint and Diff's apart; extend packages/maxitor/front/client/src/lib/filterUseCaseDiagramByDomains.ts
-- [ ] T028 [US4] Walk the panel on `erd-full`, phone width and a room; a card whose element is hidden closes; adversarial: count before filtering, the test fails, restore
+- [X] T025 [US4] Let packages/maxitor/front/client/src/components/ui/ErdFilterPanel/ErdFilterPanel.tsx go without a kinds section, with a test in ErdFilterPanel.test.tsx
+- [X] T026 [P] [US4] Test the Changes filter in packages/maxitor/front/client/src/lib/useCaseDiff.test.ts: counts, stepper and "no changes" follow
+- [X] T027 [US4] Replace the domain legend in UseCaseDiagramViewer.tsx with the panel, Changes in Diff, the gear shift, settings in the address and the room, One's paint and Diff's apart; extend packages/maxitor/front/client/src/lib/filterUseCaseDiagramByDomains.ts
+- [X] T028 [US4] Walk the panel on `erd-full`, phone width and a room; a card whose element is hidden closes; adversarial: count before filtering, the test fails, restore
 
 ## Phase 6: The closing three (Principle VI)
 
