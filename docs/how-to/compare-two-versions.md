@@ -33,12 +33,18 @@ Fields carry the same marks. A field whose type changed reads `~~str~~ → str |
 
 Click a marked table or field: its card lists every property that changed, before and after.
 
+Beside the version button a stepper walks through what changed: the arrows go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step goes to the table, field or line, marks it and opens its card. The [full graph](read-the-full-graph-map.md) steps the same way.
+
 ## Filter and paint
 
 The filter panel has a **Changes** section in Diff — Added, Removed, Changed, Unchanged — next to Domains and Kinds. Switching a row off hides its tables; 1-hop then brings back the tables one link away from those left. The three points at the foot of the panel choose what paints the headers: Domains, Kinds or Changes. Diff starts painted by Changes.
 
 A page that exists in only one version — a domain added in B — stays reachable: the left panel lists what exists in either version and marks it `+` or `−`.
 
+## Read the full graph
+
+On the full graph the same comparison is drawn by [the map](read-the-full-graph-map.md).
+
 ## In a room
 
-Everyone in a room sees the same two versions. Someone following you sees your picker open, the handle you drag as you drag it, the version under your pointer and its card.
+Everyone in a room sees the same two versions. Someone following you sees your picker open, the handle you drag as you drag it, the version under your pointer and its card; and your stepper, its list and your pointer on the same row.
