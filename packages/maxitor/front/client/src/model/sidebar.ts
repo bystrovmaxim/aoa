@@ -10,6 +10,8 @@ export type NodeRow = {
   host_id?: string;
   /** In Diff (spec 038): the page exists only in A, or only in B. */
   only?: "a" | "b";
+  /** In Diff (spec 042, FR-026a): a lifecycle in both versions, and something in it changed. */
+  changed?: true;
 };
 
 export type SidebarPayload = {

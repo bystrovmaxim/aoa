@@ -19,3 +19,7 @@
 | File | Responsibility |
 |------|----------------|
 | `LifecycleFsmViewer.tsx` | Load automaton JSON, build DOT, layout SVG, fit/center viewport, rankdir toggle, error surface. |
+
+## Comparing two versions
+
+In Diff the diagram is the union of A and B (`@/lib/lifecycleDiff`): states and transitions marked by the comparison, unchanged ones grey and dim, the entry and exit dots following their arrows but never counted. A click opens the change card, the stepper walks the changes, and the filter panel has Elements and Changes, with no Domains section and no gear shift. A lifecycle one version lacks opens from the other; absent from both, the page says so.

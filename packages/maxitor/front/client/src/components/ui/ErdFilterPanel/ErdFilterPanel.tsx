@@ -34,6 +34,8 @@ export type ErdFilterPanelProps = {
   kindsTitle?: string;
   /** Whether ``kindRows`` can paint the diagram; a filter with no colour of its own cannot. */
   kindsPaint?: boolean;
+  /** Whether the panel has a Domains section; a diagram of one lifecycle has none. */
+  withDomains?: boolean;
   /** (spec 038) in Diff, the kinds of change — Added, Removed, Changed, Unchanged. */
   changeRows?: ErdFilterRow[];
   onToggleChange?: (key: string) => void;
@@ -237,7 +239,7 @@ function SectionHeader({
  * panel stops above the zoom toolbar and scrolls inside itself. On a narrow screen it starts as a
  * "Filter" pill; opened, it shows the sections straight away, without the word "Filter".
  */
-export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", kindsPaint = true, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
+export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", kindsPaint = true, withDomains = true, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   // The section that paints is the one open first; without a gear shift, Domains (spec 040, FR-032).
@@ -325,7 +327,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
     </IconButton>
   ) : null;
   const showKinds = kindRows.length > 1;
-  const paintSections: PaintSection[] = ["domains", ...(showKinds && kindsPaint ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
+  const paintSections: PaintSection[] = [...(withDomains ? (["domains"] as const) : []), ...(showKinds && kindsPaint ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
 
   return (
     <Box
@@ -346,8 +348,8 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
         boxSizing: "border-box",
       }}
     >
-      <SectionHeader title="Domains" open={open === "domains"} onClick={() => toggleSection("domains")} trailing={closeButton} />
-      {open === "domains" && (
+      {withDomains && <SectionHeader title="Domains" open={open === "domains"} onClick={() => toggleSection("domains")} trailing={closeButton} />}
+      {withDomains && open === "domains" && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
           {domainRows.map((row) => (
             <FilterRow key={row.key} row={row} onToggle={onToggleDomain} why={why} onWhy={onWhy} />
@@ -356,7 +358,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
       )}
       {showKinds && (
         <Box>
-          <SectionHeader title={kindsTitle} open={open === "kinds"} onClick={() => toggleSection("kinds")} />
+          <SectionHeader title={kindsTitle} open={open === "kinds"} onClick={() => toggleSection("kinds")} trailing={withDomains ? undefined : closeButton} />
           {open === "kinds" && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
               {kindRows.map((row) => (

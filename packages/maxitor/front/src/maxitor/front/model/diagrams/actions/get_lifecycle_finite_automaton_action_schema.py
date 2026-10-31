@@ -24,23 +24,25 @@ _ATTRIBUTES_ITEM = {
 _STATE_ITEM = {
     "type": "object",
     "properties": {
+        "id": {"type": "string"},
         "key": {"type": "string"},
         "display_name": {"type": "string"},
         "state_type": {"type": "string"},
         "transitions": {"type": "array", "items": {"type": "string"}},
         "attributes": _ATTRIBUTES_ITEM,
     },
-    "required": ["key", "display_name", "state_type", "transitions"],
+    "required": ["id", "key", "display_name", "state_type", "transitions"],
     "additionalProperties": False,
 }
 
 _EDGE_ITEM = {
     "type": "object",
     "properties": {
+        "id": {"type": "string"},
         "source": {"type": "string"},
         "target": {"type": "string"},
     },
-    "required": ["source", "target"],
+    "required": ["id", "source", "target"],
     "additionalProperties": False,
 }
 
@@ -51,9 +53,9 @@ _EDGE_ITEM = {
 #   "lifecycle_class_qualname": "aoa...OrderLifecycle",
 #   "initial_state_keys": ["new"],
 #   "states": [
-#     {"key": "new", "display_name": "New", "state_type": "initial", "transitions": ["confirmed"]}
+#     {"id": "aoa...Entity:lifecycle:status:new", "key": "new", "display_name": "New", "state_type": "initial", "transitions": ["confirmed"]}
 #   ],
-#   "transitions": [{"source": "new", "target": "confirmed"}]
+#   "transitions": [{"id": "<new id>|lifecycle_transition|<confirmed id>|new", "source": "new", "target": "confirmed"}]
 # }
 LifecycleFiniteAutomatonJson = JsonSchemaValue.define(
     name="LifecycleFiniteAutomatonJson",

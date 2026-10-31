@@ -171,8 +171,8 @@ async def test_load_transitions_threads_state_and_adds_rows(connections: dict[st
     result = await _ACTION.load_transitions_aspect(None, state, None, connections)  # type: ignore[arg-type]
     assert result["state_rows"] == []
     assert result["transition_rows"] == [
-        {"from_state": "draft", "to_state": "published"},
-        {"from_state": "published", "to_state": "archived"},
+        {"source_id": _STATE_DRAFT, "target_id": _STATE_PUBLISHED, "from_state": "draft", "to_state": "published"},
+        {"source_id": _STATE_PUBLISHED, "target_id": _STATE_ARCHIVED, "from_state": "published", "to_state": "archived"},
     ]
 
 
@@ -200,6 +200,7 @@ async def test_full_pipeline_payload(connections: dict[str, DuckDBGraphResource]
     assert fsm["initial_state_keys"] == ["draft"]
     assert [s["key"] for s in fsm["states"]] == ["draft", "archived", "published"]
     assert fsm["states"][0] == {
+        "id": _STATE_DRAFT,
         "key": "draft",
         "display_name": "draft",
         "state_type": "initial",
@@ -207,8 +208,8 @@ async def test_full_pipeline_payload(connections: dict[str, DuckDBGraphResource]
         "attributes": {},
     }
     assert fsm["transitions"] == [
-        {"source": "draft", "target": "published"},
-        {"source": "published", "target": "archived"},
+        {"id": f"{_STATE_DRAFT}|lifecycle_transition|{_STATE_PUBLISHED}|draft", "source": "draft", "target": "published"},
+        {"id": f"{_STATE_PUBLISHED}|lifecycle_transition|{_STATE_ARCHIVED}|published", "source": "published", "target": "archived"},
     ]
 
 

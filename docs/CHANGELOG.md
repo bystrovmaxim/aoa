@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-01] — Maxitor compares two versions on lifecycle diagrams
+
+Lifecycle diagrams now take part in Diff, the last diagram that did not. States and transitions turn green, amber, or red and dashed, everything else goes grey and dim, the version button counts them, and the stepper walks them with a card on each. A lifecycle only one version has opens from the left panel, all green or all red.
+
+The left panel also shows `~` on a lifecycle that exists in both versions and changed, so the changed ones can be found without opening each. This mark belongs to lifecycle rows only.
+
+A transition is known by the state it leaves and the state it enters. Two transitions into one state are told apart, and a transition sent elsewhere reads as one removed and one added. Every property counts, so a state whose order alone changed is marked though it looks the same; its card says what changed.
+
+Lifecycle diagrams got a filter panel with kinds of state and Changes, the gear shift in Diff, 1-hop, on by default, and hover that lights a state, its transitions and what they reach, in One as well. The picture in One is otherwise as it was.
+
 ## [2026-11-01] — Maxitor compares two versions on use-case diagrams, and its left panel holds only what opens
 
 Use-case diagrams now take part in Diff. Actions, roles and their links turn green, red and dashed, or amber, everything else goes grey and dim, the version button counts the changes, and the stepper walks them with a card on each, links included. The new thing is **changed inside**: a use-case diagram does not draw an action's parameters, result fields or aspects, so an action could change while looking the same. Now it is marked changed, and its card says the action is the same and lists which parts changed, before and after. What the diagram draws itself, like a role or a parent action, keeps its own mark, and an entity a field points at stays the ERD's to show.
