@@ -172,17 +172,9 @@ async def _run_to_level3(coordinator: dict) -> dict:
     return await _ACTION.build_level3_diagrams_aspect(None, BaseState(**r3), None, conn)  # type: ignore[arg-type]
 
 
-async def test_level3_domain_creates_erd_and_use_case_rows() -> None:
+async def test_level3_a_domain_with_nothing_has_no_rows() -> None:
     r = await _run_to_level3(_DOMAIN_ONLY)
-    types = {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"}
-    assert types == {"erd_domain", "use_case_domain"}
-
-
-async def test_level3_domain_row_ids() -> None:
-    r = await _run_to_level3(_DOMAIN_ONLY)
-    ids = {n.id for n in r["level3_diagrams"]}
-    assert "erd_domain:dom.billing" in ids
-    assert "use_case_domain:dom.billing" in ids
+    assert not [n for n in r["level3_diagrams"] if n.parent_id == "dom.billing"]
 
 
 _DOMAIN_WITH_LIFECYCLE = {
@@ -217,9 +209,19 @@ async def test_level3_a_second_lifecycle_of_an_entity_is_named_by_its_field() ->
     assert labels == ["Order order status view", "Order payment state view"]
 
 
-async def test_level3_a_domain_without_lifecycles_gets_none() -> None:
+async def test_level3_a_domain_with_entities_has_an_erd_and_no_use_case_row() -> None:
     r = await _run_to_level3(_DOMAIN_WITH_LIFECYCLE)
-    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.empty"} == {"erd_domain", "use_case_domain"}
+    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"erd_domain", "lifecycle_state_diagram"}
+    assert not [n for n in r["level3_diagrams"] if n.parent_id == "dom.empty"]
+
+
+async def test_level3_a_domain_with_actions_has_a_use_case_and_no_erd_row() -> None:
+    coordinator = {
+        "nodes": [*_DOMAIN_ONLY["nodes"], {"id": "act.pay", "type": "Action", "label": "Pay", "properties": {"description": ""}}],
+        "edges": [{"source_id": "act.pay", "target_id": "dom.billing", "type": "domain", "relationship": "Aggregation", "is_dag": False, "properties": {}}],
+    }
+    r = await _run_to_level3(coordinator)
+    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"use_case_domain"}
 
 
 async def test_level3_holds_no_entity_rows() -> None:
@@ -253,7 +255,5 @@ async def test_full_pipeline_level3_types() -> None:
     result = await _ACTION.build_result_summary(None, BaseState(**r4), None, conn)  # type: ignore[arg-type]
 
     types = {n.type for n in result.level3_diagrams}
-    assert "erd_domain" in types
-    assert "use_case_domain" in types
     assert "entity_class_diagram" not in types
     assert "lifecycle_state_diagram" not in types  # its entity stands in no domain here

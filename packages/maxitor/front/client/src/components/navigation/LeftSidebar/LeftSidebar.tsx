@@ -564,7 +564,10 @@ export function LeftSidebar({
                                 alignItems: "center",
                                 minWidth: 0,
                                 pr: 0.5,
+                                // Nothing to open: the row stays, dim, to say the domain is empty.
+                                opacity: 0.45,
                               }}
+                              data-testid="empty-row"
                             >
                               <Tooltip title={cnode.label} placement="right" enterDelay={400} slotProps={tooltipSlotProps}>
                                 <Typography

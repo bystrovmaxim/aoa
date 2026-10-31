@@ -182,6 +182,7 @@ The developer steps through the changes with the same control as on the ERD and 
 **The left panel and the lifecycles** (the maintainer's request of 2026-11-01)
 
 - **FR-027**: The left panel MUST hold only rows that open something: Applications with Full graph view, ERD all domains view and Use case all domains view; Domains with each domain's Entity domain view, Use case view and its lifecycles. The Application row and the Roles, Actions, Entities and Resources sections MUST go.
+- **FR-027a**: A domain with no entities MUST have no Entity domain view, and one with no actions no Use case view. A domain left with no rows MUST stay in the panel, dim, saying it is empty.
 - **FR-028**: Use case all domains view MUST draw every action and every role on one diagram, with everything a domain's use cases have, Diff included.
 - **FR-029**: A domain MUST hold one lifecycle row per lifecycle of its entities, each opening that lifecycle's own diagram: as many rows as entities have one. An entity with several lifecycles has a row for each, named by its field.
 

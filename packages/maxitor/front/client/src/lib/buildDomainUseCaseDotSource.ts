@@ -1,6 +1,6 @@
 // src/lib/buildDomainUseCaseDotSource.ts
 import type { DiffStatus } from "@/api/compare";
-import { MARK_LOOK } from "@/lib/erdDiffCard";
+import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN } from "./buildDotSource.ts";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 export type DomainUseCaseRankdir = "LR" | "TB";
@@ -88,7 +88,7 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string, diff
   const rx = 74;
   const ry = H / 2 - 4;
   const marked = diff !== undefined && diff !== "unchanged";
-  const stroke = marked && paintChanges ? MARK_LOOK[diff].colour : accentColor;
+  const stroke = marked && paintChanges ? ERD_DIFF_COLOUR[diff] : accentColor;
   const fill = opaqueAccentFill(stroke);
   const outline = marked ? ` stroke-width="2.4"${diff === "removed" ? ' stroke-dasharray="6 4"' : ""}` : ' stroke-width="1.6"';
 
@@ -160,14 +160,15 @@ export function useCaseCellId(id: string): string {
 function nodeMark(diff: DiffStatus | undefined, label: string, id: string): string {
   if (!diff) return ` tooltip="${dotEscAttr(label)}"`;
   if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(label)}"`;
-  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${MARK_LOOK[diff].sign} ${label}`)}"`;
+  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${ERD_DIFF_SIGN[diff]} ${label}`)}"`;
 }
 
 /** A link's attributes, after its own so they win: its two ends on hover and, in Diff, its status's colour, dashed when removed, or fading. */
 function edgeMark(diff: DiffStatus | undefined, id: string, ends: string): string {
   if (!diff) return ` tooltip="${dotEscAttr(ends)}"`;
   if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(ends)}"`;
-  const { colour, sign } = MARK_LOOK[diff];
+  const colour = ERD_DIFF_COLOUR[diff];
+  const sign = ERD_DIFF_SIGN[diff];
   return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${sign} ${ends}`)}" color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
 }
 
@@ -177,7 +178,7 @@ export function buildRoleActorDataUrl(diff: DiffStatus | undefined): string | nu
   const dash = diff === "removed" ? ' stroke-dasharray="5 3.5"' : "";
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="74" viewBox="0 0 64 92">` +
-    `<g fill="none" stroke="${MARK_LOOK[diff].colour}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"${dash}>` +
+    `<g fill="none" stroke="${ERD_DIFF_COLOUR[diff]}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"${dash}>` +
     `<circle cx="32" cy="14" r="10" fill="#ffffff"/><path d="M29.42 22.58L40.58 11.42M32 24V54M9 39H55M32 54L16 84M32 54L48 84"/></g></svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
@@ -263,7 +264,7 @@ export function buildDomainUseCaseDotBundle(
     const actor = buildRoleActorDataUrl(r.diff);
     if (actor) actionImages.push({ path: actor, width: "52px", height: "74px" });
     const img = actor ? dotEscAttr(actor) : imgUrl;
-    const text = r.diff && r.diff !== "unchanged" ? `<FONT POINT-SIZE="10" COLOR="${MARK_LOOK[r.diff].colour}">${rl}</FONT>` : `<FONT POINT-SIZE="10">${rl}</FONT>`;
+    const text = r.diff && r.diff !== "unchanged" ? `<FONT POINT-SIZE="10" COLOR="${ERD_DIFF_COLOUR[r.diff]}">${rl}</FONT>` : `<FONT POINT-SIZE="10">${rl}</FONT>`;
     lines.push(
       `  ${nid} [shape=plaintext margin=0 label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${img}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12">${text}</TD></TR></TABLE>>${nodeMark(r.diff, r.short_label || r.label, r.id)}];`,
     );

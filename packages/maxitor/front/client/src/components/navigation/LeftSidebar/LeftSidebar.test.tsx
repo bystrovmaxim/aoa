@@ -48,3 +48,11 @@ describe("the left panel in Diff (spec 038, FR-032)", () => {
     expect(screen.queryByTestId("only-mark")).toBeNull();
   });
 });
+
+describe("an empty domain (spec 041, FR-027a)", () => {
+  it("stays in the panel, dim, and a domain with diagrams is not dim", () => {
+    const sidebar = panel([domain("orders"), domain("empty")]);
+    show({ ...sidebar, level3_diagrams: sidebar.level3_diagrams.filter((row) => row.parent_id === "orders") });
+    expect(screen.getAllByTestId("empty-row").map((row) => row.textContent)).toEqual(["emptyDomain"]);
+  });
+});
