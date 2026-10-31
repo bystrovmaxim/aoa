@@ -686,6 +686,8 @@ The page opens fast, and a second visit barely downloads anything.
 
 **Use cases in two versions.** A use-case diagram does not draw an action's parts, so an action whose result got a new field is marked *changed inside*, and its card lists the parts. See [Compare two versions](../how-to/compare-two-versions.md#read-use-cases) and [19_changed_inside.py](../../examples/step_26_maxitor/19_changed_inside.py) ([notebook](../../examples/step_26_maxitor/19_changed_inside.ipynb)).
 
+**Lifecycles in two versions.** States and transitions take the same marks, and the left panel marks a lifecycle that changed with `~`. See [Compare two versions](../how-to/compare-two-versions.md#read-lifecycles).
+
 **The full graph is a map.** It is no longer laid out in the browser. Each version is laid out once on the server, by Graphviz, domain by domain, and the browser reads an overview first and the detail of what it looks at, so a graph of about a hundred thousand nodes opens in under a second. Sigma.js draws it with WebGL. Reading it — the levels, the filters, comparing two versions — is [the how-to page](../how-to/read-the-full-graph-map.md), and [18_the_full_graph_as_a_map.py](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.py) with its [notebook](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.ipynb) runs the reads.
 
 **How it is measured.** `packages/maxitor/front/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.

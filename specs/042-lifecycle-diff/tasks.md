@@ -60,10 +60,10 @@
 
 ## Phase 4: Closing (three commits, in this order)
 
-- [ ] T023a Run `/speckit-converge` and do what it adds, before the check run
-- [ ] T024 Closing check run taken to zero: `scripts/run_checks_with_log.sh` (commit)
-- [ ] T025 Documentation: the page, every case as a runnable script and a notebook, its `.ru_draft.md` beside it (commit)
-- [ ] T026 Changelog: one article in `packages/maxitor/CHANGELOG.md`, and the Russian draft (commit)
+- [x] T023a Run `/speckit-converge` and do what it adds, before the check run
+- [x] T024 Closing check run taken to zero: `scripts/run_checks_with_log.sh` (commit)
+- [x] T025 Documentation: the page, every case as a runnable script and a notebook, its `.ru_draft.md` beside it (commit)
+- [x] T026 Changelog: one article in `packages/maxitor/CHANGELOG.md`, and the Russian draft (commit)
 
 ## Dependencies
 
