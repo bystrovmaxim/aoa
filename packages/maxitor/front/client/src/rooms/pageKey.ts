@@ -42,6 +42,8 @@ export function pageLabel(key: string | null, sidebar: SidebarPayload | null): s
       return selection.qualifier ? `ERD · ${labelOf(sidebar, selection.qualifier)}` : "ERD · all domains";
     case "use_case":
       return `Use case · ${labelOf(sidebar, selection.domain_qualifier)}`;
+    case "use_case_all":
+      return "Use case · all domains";
     case "lifecycle_fsm":
       return `Lifecycle · ${labelOf(sidebar, selection.lifecycle_graph_node_id)}`;
   }

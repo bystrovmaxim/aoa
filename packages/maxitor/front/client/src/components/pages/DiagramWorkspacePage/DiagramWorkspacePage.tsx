@@ -44,6 +44,8 @@ export function DiagramWorkspacePage({ diagram, onOpenErd }: DiagramWorkspacePag
         <LifecycleFsmViewer key={diagram.lifecycle_graph_node_id} lifecycleGraphNodeId={diagram.lifecycle_graph_node_id} />
       ) : diagram?.kind === "use_case" ? (
         <UseCaseDiagramViewer key={diagram.domain_qualifier} domainId={diagram.domain_qualifier} />
+      ) : diagram?.kind === "use_case_all" ? (
+        <UseCaseDiagramViewer key="all" domainId={null} />
       ) : (
         <Box sx={EMPTY_WORKSPACE_SX} aria-label="Diagram workspace" />
       )}

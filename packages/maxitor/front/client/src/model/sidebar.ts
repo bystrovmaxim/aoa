@@ -6,6 +6,8 @@ export type NodeRow = {
   type: string;
   /** Lower sorts earlier among siblings; omit for label-only sort (e.g. level-2 nodes). */
   ordinal?: number;
+  /** On a lifecycle's row: the entity that holds it, as ``parent_id`` is its domain. */
+  host_id?: string;
   /** In Diff (spec 038): the page exists only in A, or only in B. */
   only?: "a" | "b";
 };

@@ -53,7 +53,7 @@ The graph shows nodes of different types, each with a color label:
 - **Role** — access roles
 - **Params / Result / Field** — contract of each Action
 
-The left panel filters by groups: Applications, Domains, Roles, Actions, Entities, Resources. The graph is interactive — zoom, pan, isolate a cluster. On every diagram a drag, a two-finger swipe or a plain mouse wheel moves the picture, and a pinch or Ctrl / ⌘ + wheel zooms it, as design tools do.
+The left panel holds only what opens: Applications with the full graph, the ERD of all domains and the use cases of all domains, and Domains. A domain with nothing to draw stays in the list, dim. The graph is interactive — zoom, pan, isolate a cluster. On every diagram a drag, a two-finger swipe or a plain mouse wheel moves the picture, and a pinch or Ctrl / ⌘ + wheel zooms it, as design tools do.
 
 **Key effect**: a new developer understands system structure in five minutes without reading code. A reviewer sees what changed without diffs across dozens of files.
 
@@ -71,6 +71,9 @@ The left panel navigates domains. For each domain:
 
 - **Entity domain view** — ERD for that domain only
 - **Use case view** — roles and Actions in the domain
+- **`<Entity> lifecycle view`** — one state machine per entity that has one
+
+A diagram with nothing to draw has no row.
 
 On the diagram you see:
 

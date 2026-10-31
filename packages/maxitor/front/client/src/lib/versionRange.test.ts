@@ -2,7 +2,8 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { layOut } from "@/components/history/VersionTrack/VersionTrack";
-import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, shiftBoth, shiftBy, stepHandle, stepShown, trackKeys, type Range } from "./versionRange";
+import { shortSha } from "@/lib/versionNames";
+import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, proposalsByDate, shiftBoth, shiftBy, stepHandle, stepShown, trackKeys, type Range } from "./versionRange";
 
 const P = ["v1", "v2", "v3", "v4", "live"];
 
@@ -151,5 +152,28 @@ describe("whatever is played on a track", () => {
         expect(range.a).not.toBe("live");
       }
     }
+  });
+});
+
+describe("open pull requests after Live", () => {
+  const dated = (n: number, date: string): HistoryVersion => ({ ...version(n), date });
+  const older = dated(8, "2026-01-01T00:00:00+00:00");
+  const newer = dated(9, "2026-02-01T00:00:00+00:00");
+  const versions = [version(1), version(2)];
+
+  it("stand last, the oldest first, whatever order they came in", () => {
+    expect(trackKeys(versions, "https://live", null, [newer, older])).toEqual([shortSha(versions[0]), shortSha(versions[1]), "live", shortSha(older), shortSha(newer)]);
+    expect(proposalsByDate([newer, older]).map((each) => each.sha)).toEqual([older.sha, newer.sha]);
+  });
+
+  it("make Live an A, and a reversed pair is put right", () => {
+    const keys = trackKeys(versions, "https://live", null, [older]);
+    expect(normalise(keys, "live", shortSha(older))).toEqual({ a: "live", b: shortSha(older) });
+    expect(normalise(keys, shortSha(older), "live")).toEqual({ a: "live", b: shortSha(older) });
+    expect(oneToDiff(keys, shortSha(older))).toEqual({ a: "live", b: shortSha(older) });
+  });
+
+  it("with no Live follow the versions", () => {
+    expect(trackKeys(versions, null, null, [older])).toEqual([shortSha(versions[0]), shortSha(versions[1]), shortSha(older)]);
   });
 });

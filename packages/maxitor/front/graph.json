@@ -1598,6 +1598,18 @@
       "type": "domain"
     },
     {
+      "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity|entity_field|maxitor.front.model.core.entities.node_entity.NodeCoreEntity:host_id",
+      "is_dag": false,
+      "properties": {
+        "field_name": "host_id",
+        "ordinal": 5
+      },
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity",
+      "target_id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:host_id",
+      "type": "entity_field"
+    },
+    {
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity|entity_field|maxitor.front.model.core.entities.node_entity.NodeCoreEntity:id",
       "is_dag": false,
       "properties": {
@@ -1737,6 +1749,136 @@
       "source_id": "maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "target_id": "maxitor.front.model.core.core_domain.CoreDomain",
       "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult|field|maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult:domain_use_case_diagram",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult",
+      "target_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult:domain_use_case_diagram",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "is_dag": true,
+      "properties": {
+        "key": "DuckDBGraph"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|@summary_aspect|maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction:all_use_cases_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction:all_use_cases_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|generic:result|maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "target_id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "is_dag": true,
+      "properties": {
+        "key": "Comparisons"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|@summary_aspect|maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction:changed_inside_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction:changed_inside_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|generic:result|maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "target_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult|field|maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult:actions",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult",
+      "target_id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult:actions",
+      "type": "field"
     },
     {
       "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
@@ -4730,7 +4872,7 @@
       "id": "maxitor.front.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction:build_level1_aspect",
       "label": "build_level1_aspect",
       "properties": {
-        "description": "Level-1 root bucket nodes (Applications, Domains, Roles, Actions, Entities, Resources)."
+        "description": "Level-1 root bucket nodes (Applications, Domains)."
       },
       "type": "RegularAspect"
     },
@@ -4750,7 +4892,7 @@
       "id": "maxitor.front.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction:build_level2_diagrams_aspect",
       "label": "build_level2_diagrams_aspect",
       "properties": {
-        "description": "Level-2 fixed diagram rows: Full graph under Applications, Entity all domains under Domains."
+        "description": "Level-2 fixed diagram rows of the whole application."
       },
       "type": "RegularAspect"
     },
@@ -4782,7 +4924,7 @@
       "id": "maxitor.front.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction:build_level2_nodes_aspect",
       "label": "build_level2_nodes_aspect",
       "properties": {
-        "description": "Level-2 interchange nodes from DuckDB, each assigned to a root bucket by type."
+        "description": "Level-2 domain nodes from DuckDB."
       },
       "type": "RegularAspect"
     },
@@ -4826,7 +4968,7 @@
       "id": "maxitor.front.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction:build_level3_diagrams_aspect",
       "label": "build_level3_diagrams_aspect",
       "properties": {
-        "description": "Level-3 per-domain ERD rows and per-entity class/lifecycle diagram rows from DuckDB."
+        "description": "Level-3 per-domain ERD and use-case rows, and one row per lifecycle, from DuckDB."
       },
       "type": "RegularAspect"
     },
@@ -5344,6 +5486,16 @@
       "type": "Entity"
     },
     {
+      "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:host_id",
+      "label": "host_id",
+      "properties": {
+        "field_annotation": "UnionType[str, NoneType]",
+        "field_type": "str | None",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:id",
       "label": "id",
       "properties": {
@@ -5464,6 +5616,215 @@
         "description": "The installed client bundle and the id of its build"
       },
       "type": "Resource"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult",
+      "label": "AllUseCasesResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.AllUseCasesResult:domain_use_case_diagram",
+      "label": "domain_use_case_diagram",
+      "properties": {
+        "description": "All actions, all roles and typed edges for use-case rendering.",
+        "entity_schema": false,
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "actions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "accent_color": {
+                    "type": "string"
+                  },
+                  "domain_id": {
+                    "type": "string"
+                  },
+                  "domain_short_label": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "role_ids": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "short_label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "short_label",
+                  "domain_id",
+                  "domain_short_label",
+                  "accent_color",
+                  "role_ids"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "domain": {
+              "additionalProperties": false,
+              "properties": {
+                "accent_color": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "short_label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "short_label",
+                "accent_color"
+              ],
+              "type": "object"
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "edge_kind": {
+                    "enum": [
+                      "action_generalization",
+                      "role_generalization",
+                      "association",
+                      "include",
+                      "extend",
+                      "depends"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "source_id": {
+                    "type": "string"
+                  },
+                  "stereotype": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "target_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "edge_kind",
+                  "source_id",
+                  "target_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "roles": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "short_label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "short_label"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "domain",
+            "actions",
+            "roles",
+            "edges"
+          ],
+          "type": "object"
+        },
+        "json_schema_name": "DomainUseCaseDiagramJson",
+        "json_schema_value": true,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction",
+      "label": "GetAllUseCasesDiagramAction",
+      "properties": {
+        "description": "Return the use-case diagram of every domain together"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction:all_use_cases_summary",
+      "label": "all_use_cases_summary",
+      "properties": {
+        "description": "Build the use-case diagram of every domain"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction",
+      "label": "ChangedInsideAction",
+      "properties": {
+        "description": "List what changed inside each action of two versions of a history"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction:changed_inside_summary",
+      "label": "changed_inside_summary",
+      "properties": {
+        "description": "Give each action's changed parts"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult",
+      "label": "ChangedInsideResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideResult:actions",
+      "label": "actions",
+      "properties": {
+        "description": "By action id, each changed part: kind, id, label, type, group, status and differences",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
     },
     {
       "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction",
@@ -5713,6 +6074,9 @@
                     ],
                     "type": "string"
                   },
+                  "id": {
+                    "type": "string"
+                  },
                   "source_id": {
                     "type": "string"
                   },
@@ -5727,6 +6091,7 @@
                   }
                 },
                 "required": [
+                  "id",
                   "edge_kind",
                   "source_id",
                   "target_id"

@@ -1,4 +1,6 @@
 // src/model/domainUseCaseDiagram.ts
+import type { ChangedPart, DiffStatus } from "@/api/compare";
+
 /** Wire shape for ``GET /api/v1/domain-use-case-diagram`` (``GetDomainUseCaseDiagramAction.Result``). */
 
 export type DomainUseCaseDomainWire = {
@@ -17,12 +19,18 @@ export type DomainUseCaseActionWire = {
   accent_color: string;
   /** Role vertex ids from ``@check_roles`` (sorted); may be empty. */
   role_ids: string[];
+  /** In Diff: what happened to it from A to B; an action changed inside is ``changed``. */
+  diff?: DiffStatus;
+  /** In Diff: what changed inside it, by the server's answer. */
+  parts?: ChangedPart[];
 };
 
 export type DomainUseCaseRoleWire = {
   id: string;
   label: string;
   short_label: string;
+  /** In Diff: what happened to it from A to B. */
+  diff?: DiffStatus;
 };
 
 export type DomainUseCaseEdgeKind =
@@ -34,10 +42,14 @@ export type DomainUseCaseEdgeKind =
   | "depends";
 
 export type DomainUseCaseEdgeWire = {
+  /** The protocol id of the graph edge this link stands for. */
+  id: string;
   edge_kind: DomainUseCaseEdgeKind;
   source_id: string;
   target_id: string;
   stereotype?: string | null;
+  /** In Diff: what happened to it from A to B. */
+  diff?: DiffStatus;
 };
 
 export type DomainUseCaseDiagramPayload = {

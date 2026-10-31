@@ -93,14 +93,17 @@ async def test_level1_order_and_types() -> None:
 async def test_level2_diagrams_count() -> None:
     r1 = await _ACTION.build_level1_aspect(None, BaseState(), None, {})  # type: ignore[arg-type]
     r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
-    assert len(r2["level2_diagrams"]) == 2
+    assert len(r2["level2_diagrams"]) == 3
 
 
 async def test_level2_diagrams_ids() -> None:
     r1 = await _ACTION.build_level1_aspect(None, BaseState(), None, {})  # type: ignore[arg-type]
     r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
-    ids = {n.id for n in r2["level2_diagrams"]}
-    assert ids == {"application_interchange_graph", "domains_all_erd"}
+    assert {(n.id, n.parent_id, n.label, n.type) for n in r2["level2_diagrams"]} == {
+        ("application_interchange_graph", "applications_root", "Full graph view", "graph"),
+        ("application_all_erd", "applications_root", "ERD all domains view", "erd_all"),
+        ("application_all_use_cases", "applications_root", "Use case all domains view", "use_case_all"),
+    }
 
 
 async def test_level2_diagrams_labels_have_view_suffix() -> None:
@@ -108,6 +111,11 @@ async def test_level2_diagrams_labels_have_view_suffix() -> None:
     r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
     for n in r2["level2_diagrams"]:
         assert n.label.endswith(" view"), n.label
+
+
+def test_diagram_view_label_idempotent() -> None:
+    assert _ACTION._diagram_view_label("Full graph") == "Full graph view"
+    assert _ACTION._diagram_view_label("Full graph view") == "Full graph view"
 
 
 async def test_level2_diagrams_sorted_alphabetically() -> None:
@@ -137,22 +145,12 @@ async def test_level2_nodes_domain_goes_to_domains_root() -> None:
     assert node.type == "Domain"
 
 
-async def test_level2_nodes_entity_goes_to_entities_root() -> None:
+async def test_level2_nodes_hold_only_domains() -> None:
     r1 = await _ACTION.build_level1_aspect(None, BaseState(), None, {})  # type: ignore[arg-type]
     r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
-    r3 = await _ACTION.build_level2_nodes_aspect(None, BaseState(**r2), None, _duck(_ENTITY_WITH_LIFECYCLE))  # type: ignore[arg-type]
-    entity_node = next(n for n in r3["level2_nodes"] if n.id == "ent.order")
-    assert entity_node.parent_id == "entities_root"
-    assert entity_node.type == "Entity"
-
-
-async def test_level2_nodes_unknown_type_falls_back_to_last_root() -> None:
-    # Lifecycle has no dedicated root section → falls back to resources_root (last).
-    r1 = await _ACTION.build_level1_aspect(None, BaseState(), None, {})  # type: ignore[arg-type]
-    r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
-    r3 = await _ACTION.build_level2_nodes_aspect(None, BaseState(**r2), None, _duck(_ENTITY_WITH_LIFECYCLE))  # type: ignore[arg-type]
-    lc_node = next(n for n in r3["level2_nodes"] if n.id == "lc.status")
-    assert lc_node.parent_id == "resources_root"
+    r3 = await _ACTION.build_level2_nodes_aspect(None, BaseState(**r2), None, _duck(_FULL_GRAPH))  # type: ignore[arg-type]
+    assert {n.type for n in r3["level2_nodes"]} == {"Domain"}
+    assert {n.parent_id for n in r3["level2_nodes"]} == {"domains_root"}
 
 
 async def test_level2_nodes_sorted_by_label() -> None:
@@ -174,50 +172,61 @@ async def _run_to_level3(coordinator: dict) -> dict:
     return await _ACTION.build_level3_diagrams_aspect(None, BaseState(**r3), None, conn)  # type: ignore[arg-type]
 
 
-async def test_level3_domain_creates_erd_and_use_case_rows() -> None:
+async def test_level3_a_domain_with_nothing_has_no_rows() -> None:
     r = await _run_to_level3(_DOMAIN_ONLY)
-    types = {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"}
-    assert types == {"erd_domain", "use_case_domain"}
+    assert not [n for n in r["level3_diagrams"] if n.parent_id == "dom.billing"]
 
 
-async def test_level3_domain_row_ids() -> None:
-    r = await _run_to_level3(_DOMAIN_ONLY)
-    ids = {n.id for n in r["level3_diagrams"]}
-    assert "erd_domain:dom.billing" in ids
-    assert "use_case_domain:dom.billing" in ids
+_DOMAIN_WITH_LIFECYCLE = {
+    "nodes": [
+        {"id": "dom.billing", "type": "Domain", "label": "Billing", "properties": {"name": "Billing", "description": ""}},
+        {"id": "dom.empty", "type": "Domain", "label": "Empty", "properties": {"name": "Empty", "description": ""}},
+        *_ENTITY_WITH_LIFECYCLE["nodes"],
+    ],
+    "edges": [
+        *_ENTITY_WITH_LIFECYCLE["edges"],
+        {"source_id": "ent.order", "target_id": "dom.billing", "type": "domain", "relationship": "Aggregation", "is_dag": False, "properties": {}},
+    ],
+}
 
 
-async def test_level3_entity_without_lifecycle_has_one_row() -> None:
+async def test_level3_each_lifecycle_is_a_row_of_its_entitys_domain() -> None:
+    r = await _run_to_level3(_DOMAIN_WITH_LIFECYCLE)
+    rows = [n for n in r["level3_diagrams"] if n.type == "lifecycle_state_diagram"]
+    assert [(n.id, n.parent_id, n.host_id, n.label, n.ordinal) for n in rows] == [("lc.status", "dom.billing", "ent.order", "Order lifecycle view", 2)]
+
+
+async def test_level3_a_second_lifecycle_of_an_entity_is_named_by_its_field() -> None:
     coordinator = {
-        "nodes": [{"id": "ent.invoice", "type": "Entity", "label": "Invoice", "properties": {"description": "", "entity_kind": "core"}}],
-        "edges": [],
+        "nodes": [*_DOMAIN_WITH_LIFECYCLE["nodes"], {"id": "lc.pay", "type": "Lifecycle", "label": "payment_state", "properties": {"field_name": "payment_state"}}],
+        "edges": [
+            *_DOMAIN_WITH_LIFECYCLE["edges"],
+            {"source_id": "ent.order", "target_id": "lc.pay", "type": "lifecycle", "relationship": "Composition", "is_dag": False, "properties": {"field_name": "payment_state"}},
+        ],
     }
     r = await _run_to_level3(coordinator)
-    entity_rows = [n for n in r["level3_diagrams"] if n.parent_id == "ent.invoice"]
-    assert len(entity_rows) == 1
-    assert entity_rows[0].type == "entity_class_diagram"
-    assert entity_rows[0].ordinal == 0
+    labels = sorted(n.label for n in r["level3_diagrams"] if n.type == "lifecycle_state_diagram")
+    assert labels == ["Order order status view", "Order payment state view"]
 
 
-async def test_level3_entity_with_lifecycle_has_lifecycle_row() -> None:
-    r = await _run_to_level3(_ENTITY_WITH_LIFECYCLE)
-    entity_rows = [n for n in r["level3_diagrams"] if n.parent_id == "ent.order"]
-    types = {n.type for n in entity_rows}
-    assert "entity_class_diagram" in types
-    assert "lifecycle_state_diagram" in types
-    lc_row = next(n for n in entity_rows if n.type == "lifecycle_state_diagram")
-    assert lc_row.id == "lc.status"
-    assert lc_row.ordinal == 1
+async def test_level3_a_domain_with_entities_has_an_erd_and_no_use_case_row() -> None:
+    r = await _run_to_level3(_DOMAIN_WITH_LIFECYCLE)
+    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"erd_domain", "lifecycle_state_diagram"}
+    assert not [n for n in r["level3_diagrams"] if n.parent_id == "dom.empty"]
 
 
-async def test_level3_ordinals_entity_before_lifecycle() -> None:
-    r = await _run_to_level3(_ENTITY_WITH_LIFECYCLE)
-    rows = sorted(
-        [n for n in r["level3_diagrams"] if n.parent_id == "ent.order"],
-        key=lambda n: n.ordinal or 0,
-    )
-    assert rows[0].type == "entity_class_diagram"
-    assert rows[1].type == "lifecycle_state_diagram"
+async def test_level3_a_domain_with_actions_has_a_use_case_and_no_erd_row() -> None:
+    coordinator = {
+        "nodes": [*_DOMAIN_ONLY["nodes"], {"id": "act.pay", "type": "Action", "label": "Pay", "properties": {"description": ""}}],
+        "edges": [{"source_id": "act.pay", "target_id": "dom.billing", "type": "domain", "relationship": "Aggregation", "is_dag": False, "properties": {}}],
+    }
+    r = await _run_to_level3(coordinator)
+    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"use_case_domain"}
+
+
+async def test_level3_holds_no_entity_rows() -> None:
+    r = await _run_to_level3(_DOMAIN_WITH_LIFECYCLE)
+    assert not [n for n in r["level3_diagrams"] if n.parent_id == "ent.order"]
 
 
 # ─── Summary: build_result_summary ───────────────────────────────────────────
@@ -233,8 +242,8 @@ async def test_full_pipeline_result_layers() -> None:
 
     assert isinstance(result, GetLeftMenuSidebarDataAction.Result)
     assert len(result.level1_nodes) == len(_ROOT_SECTIONS)
-    assert len(result.level2_diagrams) == 2
-    assert len(result.level2_nodes) == 5  # 2 domains + 2 entities + 1 lifecycle
+    assert len(result.level2_diagrams) == 3
+    assert len(result.level2_nodes) == 2  # the 2 domains
 
 
 async def test_full_pipeline_level3_types() -> None:
@@ -246,7 +255,5 @@ async def test_full_pipeline_level3_types() -> None:
     result = await _ACTION.build_result_summary(None, BaseState(**r4), None, conn)  # type: ignore[arg-type]
 
     types = {n.type for n in result.level3_diagrams}
-    assert "erd_domain" in types
-    assert "use_case_domain" in types
-    assert "entity_class_diagram" in types
-    assert "lifecycle_state_diagram" in types
+    assert "entity_class_diagram" not in types
+    assert "lifecycle_state_diagram" not in types  # its entity stands in no domain here

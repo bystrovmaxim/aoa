@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from maxitor.front.model.diagrams.actions.all_use_cases_diagram_action import GetAllUseCasesDiagramAction
 from maxitor.front.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
@@ -163,6 +164,22 @@ async def test_domain_use_case_diagram_closure_and_edges() -> None:
     assert ("include", "a.child.Action", "a.peer.Action") in kinds
     inc = next(e for e in j["edges"] if e["edge_kind"] == "include")
     assert inc.get("stereotype") == "«include»"
+    type_of = {"action_generalization": "parent_action", "role_generalization": "parent_role", "association": "@check_roles", "include": "@depends"}
+    assert {e["id"] for e in j["edges"]} == {f"{e['source_id']}|{type_of[e['edge_kind']]}|{e['target_id']}" for e in j["edges"]}
+
+
+@pytest.mark.asyncio
+async def test_all_use_cases_draw_every_action_and_role() -> None:
+    from aoa.action_machine.context.context import Context
+    from aoa.action_machine.model import ParamsStub
+
+    duck = DuckDBGraphResource.build_from_json(_sample_payload())
+    machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
+    result = await machine.run(Context(), GetAllUseCasesDiagramAction(), ParamsStub(), {DUCKDB_GRAPH_CONNECTION_KEY: duck})
+    diagram = result.domain_use_case_diagram
+    assert diagram["domain"]["id"] == "all"
+    assert {a["id"] for a in diagram["actions"]} >= {"a.child.Action", "a.parent.Action", "a.peer.Action"}
+    assert {r["id"] for r in diagram["roles"]} == {"r.child.Role", "r.base.Role"}
 
 
 @pytest.mark.asyncio

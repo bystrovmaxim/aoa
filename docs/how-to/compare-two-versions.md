@@ -14,7 +14,7 @@ Open the version picker and switch **One** to **Diff**. The track now holds two 
 | move both, keeping the distance | drag the dark stretch, or Shift + ← → |
 | step the whole range by one version | the arrows in the version button, or Shift + ← → with the picker closed |
 
-Roles follow position: drag A past B and they swap. Two handles never stand on one version, and Live can only be B. The address keeps `mode=diff`, `a` and `b`, so a link opens the same comparison; a link that names them the other way round opens with them swapped.
+Roles follow position: drag A past B and they swap. Two handles never stand on one version. The address keeps `mode=diff`, `a` and `b`, so a link opens the same comparison; a link that names them the other way round opens with them swapped.
 
 Under the track stand A's message on the left and B's on the right. "N versions between" opens the versions in between, newest first.
 
@@ -40,6 +40,42 @@ Beside the version button a stepper walks through what changed: the arrows or Sh
 The filter panel has a **Changes** section in Diff — Added, Removed, Changed, Unchanged — next to Domains and Kinds. Switching a row off hides its tables; 1-hop then brings back the tables one link away from those left. The three points at the foot of the panel choose what paints the headers: Domains, Kinds or Changes. Diff starts painted by Changes.
 
 A page that exists in only one version — a domain added in B — stays reachable: the left panel lists what exists in either version and marks it `+` or `−`.
+
+## Open pull requests come after Live
+
+The track reads: versions, Live, then the open pull requests by date, the oldest first. A pull request is work ahead of what runs, so **A = Live, B = a pull request** shows what it would add. Roles still follow position: Live is B for anything older and A for a pull request.
+
+## Read use cases
+
+The same comparison on a domain's **Use case view**, and on **Use case all domains view**, which draws every role and every use case at once. Actions, roles and links take the ERD's marks: an added one is green, a removed one red and dashed, a changed one amber, the rest grey and dim. A role is drawn in its colour itself, with no box.
+
+A use-case diagram does not draw an action's parts, so an action can look the same while it changed. When anything it owns changed — params, result fields, aspects and what they check, error handlers, object rules, its link to a resource or a domain — **the action is marked changed**, and its card says the action is the same and lists its parts by group, before and after:
+
+```text
+~ InvoiceSettleAction                                    changed
+The action is the same; its parts changed.
+Params
+  + idempotency_key
+Result
+  ~ capture_txn
+    properties.description  Capture transaction id → The settlement's reference
+```
+
+What the diagram draws itself is never a part: a role, another action, a parent. A changed parent is marked on the parent, and an entity a field points at is the ERD's to show. An added or removed action keeps that status. A link has a card too: `~ DependSameDomainAction → SupportPingAction`, `properties.mode  extend → include`.
+
+The version button counts everything marked: actions, roles and links. The stepper walks them in that order, each with its card.
+
+| Panel section | What it does |
+|---|---|
+| Domains | hides a domain's actions and the roles left with none |
+| Elements | Actions and Roles, grey, painting nothing |
+| Changes | hides a kind of change, in Diff |
+
+**1-hop**, on by default, brings back what stands one link from what the filters left, even what a filter hid, as on the ERD. So to see actions alone, switch Roles off and 1-hop off.
+
+Hovering an action, a role or a link keeps it, its links and what they reach lit and dims the rest. Links are easy to hit at any zoom.
+
+[19_changed_inside.py](../../examples/step_26_maxitor/19_changed_inside.py) ([notebook](../../examples/step_26_maxitor/19_changed_inside.ipynb)) runs every case of "changed inside" and prints what Maxitor answers.
 
 ## Read the full graph
 

@@ -1,4 +1,6 @@
 // src/lib/buildDomainUseCaseDotSource.ts
+import type { DiffStatus } from "@/api/compare";
+import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN } from "./buildDotSource.ts";
 import type { DomainUseCaseDiagramPayload } from "@/model/domainUseCaseDiagram";
 
 export type DomainUseCaseRankdir = "LR" | "TB";
@@ -72,7 +74,7 @@ function wrapLabel(label: string, maxChars = 15): string[] {
  * Returned as a ``data:image/svg+xml;base64,...`` URL so Graphviz WASM can embed it via
  * ``images: [{ path: dataUrl, width, height }]`` — the browser loads ``href=dataUrl`` fine.
  */
-export function buildActionGlyphDataUrl(label: string, accentColor: string): string {
+export function buildActionGlyphDataUrl(label: string, accentColor: string, diff?: DiffStatus, paintChanges = true): string {
   const lines = wrapLabel(label);
   const lineCount = lines.length;
 
@@ -85,7 +87,10 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string): str
   const cy = H / 2;
   const rx = 74;
   const ry = H / 2 - 4;
-  const fill = opaqueAccentFill(accentColor);
+  const marked = diff !== undefined && diff !== "unchanged";
+  const stroke = marked && paintChanges ? ERD_DIFF_COLOUR[diff] : accentColor;
+  const fill = opaqueAccentFill(stroke);
+  const outline = marked ? ` stroke-width="2.4"${diff === "removed" ? ' stroke-dasharray="6 4"' : ""}` : ' stroke-width="1.6"';
 
   // Right-shifted chord on the ellipse.
   const frac1 = 0.50;
@@ -105,9 +110,9 @@ export function buildActionGlyphDataUrl(label: string, accentColor: string): str
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
-    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${accentColor}" stroke-width="1.6"/>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${stroke}"${outline}/>` +
     textSvg +
-    `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${accentColor}" stroke-width="1.3" stroke-linecap="round"/>` +
+    `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>` +
     `</svg>`;
 
   const b64 = btoa(unescape(encodeURIComponent(svg)));
@@ -139,7 +144,44 @@ export type DomainUseCaseDotLayoutOptions = {
    * Default ``dot``.
    */
   layoutEngine?: DomainUseCaseLayoutEngine;
+  /** In Diff, what colours the actions: their status (default) or their domain, the outline still saying the status. */
+  paint?: "changes" | "domains";
 };
+
+/** The class Graphviz writes on what a comparison leaves unchanged; the viewer fades it. */
+export const USE_CASE_FADED_CLASS = "use-case-faded";
+
+/** The SVG id a marked action, role or link is drawn under, which a step goes to. */
+export function useCaseCellId(id: string): string {
+  return `change_${id.replace(/[^0-9A-Za-z_]/g, "_")}`;
+}
+
+/** A node's attributes: its name on hover, in Diff with its sign, or fading. */
+function nodeMark(diff: DiffStatus | undefined, label: string, id: string): string {
+  if (!diff) return ` tooltip="${dotEscAttr(label)}"`;
+  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(label)}"`;
+  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${ERD_DIFF_SIGN[diff]} ${label}`)}"`;
+}
+
+/** A link's attributes, after its own so they win: its two ends on hover and, in Diff, its status's colour, dashed when removed, or fading. */
+function edgeMark(diff: DiffStatus | undefined, id: string, ends: string): string {
+  if (!diff) return ` tooltip="${dotEscAttr(ends)}"`;
+  if (diff === "unchanged") return ` class="${USE_CASE_FADED_CLASS}" tooltip="${dotEscAttr(ends)}"`;
+  const colour = ERD_DIFF_COLOUR[diff];
+  const sign = ERD_DIFF_SIGN[diff];
+  return ` id="${useCaseCellId(id)}" tooltip="${dotEscAttr(`${sign} ${ends}`)}" color="${colour}" fontcolor="${colour}" penwidth=1.8${diff === "removed" ? " style=dashed" : ""}`;
+}
+
+/** A marked role's actor: the same figure drawn in its status's colour, dashed when removed; ``null`` in One or when unchanged. */
+export function buildRoleActorDataUrl(diff: DiffStatus | undefined): string | null {
+  if (!diff || diff === "unchanged") return null;
+  const dash = diff === "removed" ? ' stroke-dasharray="5 3.5"' : "";
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="74" viewBox="0 0 64 92">` +
+    `<g fill="none" stroke="${ERD_DIFF_COLOUR[diff]}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"${dash}>` +
+    `<circle cx="32" cy="14" r="10" fill="#ffffff"/><path d="M29.42 22.58L40.58 11.42M32 24V54M9 39H55M32 54L16 84M32 54L48 84"/></g></svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
 
 /**
  * Build DOT for a use-case slice. Actions are native ellipses; roles use an SVG actor via ``<IMG>``.
@@ -192,10 +234,10 @@ export function buildDomainUseCaseDotBundle(
       const W = 160;
       const wIn = (W / 96).toFixed(3);
       const hIn = (H / 96).toFixed(3);
-      const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color);
+      const dataUrl = buildActionGlyphDataUrl(a.short_label || a.label, a.accent_color, a.diff, layout?.paint !== "domains");
       actionImages.push({ path: dataUrl, width: `${W}px`, height: `${H}px` });
       lines.push(
-        `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true];`,
+        `${indent}${nid} [shape=none label="" image="${dotEscAttr(dataUrl)}" width=${wIn} height=${hIn} fixedsize=true${nodeMark(a.diff, a.short_label || a.label, a.id)}];`,
       );
     }
   };
@@ -219,34 +261,40 @@ export function buildDomainUseCaseDotBundle(
   for (const r of roles) {
     const nid = domainUseCaseDotNodeId("r", r.id);
     const rl = htmlEsc(r.short_label || r.label);
+    const actor = buildRoleActorDataUrl(r.diff);
+    if (actor) actionImages.push({ path: actor, width: "52px", height: "74px" });
+    const img = actor ? dotEscAttr(actor) : imgUrl;
+    const text = r.diff && r.diff !== "unchanged" ? `<FONT POINT-SIZE="10" COLOR="${ERD_DIFF_COLOUR[r.diff]}">${rl}</FONT>` : `<FONT POINT-SIZE="10">${rl}</FONT>`;
     lines.push(
-      `  ${nid} [shape=plaintext margin=0 label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${imgUrl}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12"><FONT POINT-SIZE="10">${rl}</FONT></TD></TR></TABLE>>];`,
+      `  ${nid} [shape=plaintext margin=0 label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="-8" CELLPADDING="0"><TR><TD FIXEDSIZE="TRUE" WIDTH="52" HEIGHT="74"><IMG SRC="${img}" WIDTH="52" HEIGHT="74"/></TD></TR><TR><TD HEIGHT="12">${text}</TD></TR></TABLE>>${nodeMark(r.diff, r.short_label || r.label, r.id)}];`,
     );
   }
 
+  const nameOf = new Map([...actions, ...roles].map((element) => [element.id, element.short_label || element.label]));
   for (const e of edges) {
     const ek = e.edge_kind;
+    const ends = `${nameOf.get(e.source_id) ?? e.source_id} → ${nameOf.get(e.target_id) ?? e.target_id}`;
     if (ek === "action_generalization") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "role_generalization") {
       const s = domainUseCaseDotNodeId("r", e.source_id);
       const t = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1];`);
+      lines.push(`  ${s} -> ${t} [arrowhead=empty style=solid penwidth=1${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "association") {
       const act = domainUseCaseDotNodeId("a", e.source_id);
       const rol = domainUseCaseDotNodeId("r", e.target_id);
-      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee];`);
+      lines.push(`  ${rol} -> ${act} [style=solid penwidth=1 arrowhead=vee${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "include" || ek === "extend") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
       const lab = e.stereotype ? dotEscLabel(e.stereotype) : ek === "include" ? "\u00abinclude\u00bb" : "\u00abextend\u00bb";
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open label="${lab}" fontsize=9 labeldistance=2.5${edgeMark(e.diff, e.id, ends)}];`);
     } else if (ek === "depends") {
       const s = domainUseCaseDotNodeId("a", e.source_id);
       const t = domainUseCaseDotNodeId("a", e.target_id);
-      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8];`);
+      lines.push(`  ${s} -> ${t} [style=dashed arrowhead=open penwidth=0.8${edgeMark(e.diff, e.id, ends)}];`);
     }
   }
 

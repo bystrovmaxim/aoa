@@ -8,22 +8,24 @@ PURPOSE
 
 Four-aspect pipeline that builds flat ``NodeCoreEntity`` lists (by depth / role)
 from a DuckDB graph resource so the UI can render roots, per-root diagrams,
-interchange nodes, and level-3 diagram rows using ``parent_id`` links only.
+domains, and each domain's diagram rows using ``parent_id`` links only. Every row
+opens a diagram: what the graph holds is reached through the diagrams (spec 041).
 
 Aspect sequence:
   1. build_level1    — hardcoded root bucket nodes
-  2. build_level2_diagrams — hardcoded "Full graph" + "Entity all domains" rows
-  3. build_level2_nodes   — all coordinator nodes from DuckDB, grouped under roots
-  4. build_level3_diagrams — per-domain ERD rows + per-entity class/lifecycle rows
+  2. build_level2_diagrams — hardcoded rows of the whole application
+  3. build_level2_nodes   — the domains from DuckDB
+  4. build_level3_diagrams — per-domain ERD and use-case rows, and one row per lifecycle
   5. build_result (summary) — assemble Result from accumulated state
 
-**Level-1 order matches** ``_ROOT_SECTIONS`` (Applications through Resources);
+**Level-1 order matches** ``_ROOT_SECTIONS``;
 clients must preserve ``Result.level1_nodes`` order. Level-3 rows use ``ordinal``
 for stable sibling order; otherwise alphabetical by label, then id.
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any, cast
 
 from maxitor.front.model.core.entities.node_entity import NodeCoreEntity
@@ -46,39 +48,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 _ROOT_SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("applications_root", "Applications", "Application"),
     ("domains_root", "Domains", "Domain"),
-    ("roles_root", "Roles", "Role"),
-    ("actions_root", "Actions", "Action"),
-    ("entities_root", "Entities", "Entity"),
-    ("resources_root", "Resources", "Resource"),
 )
-
-# DuckDB node types (lowercase) → Title-case sidebar type labels.
-_DUCKDB_TO_SIDEBAR_TYPE: dict[str, str] = {
-    "action": "Action",
-    "application": "Application",
-    "checker": "Checker",
-    "compensator": "Compensator",
-    "domain": "Domain",
-    "entity": "Entity",
-    "entity_field": "EntityField",
-    "error_handler": "ErrorHandler",
-    "field": "Field",
-    "lifecycle": "Lifecycle",
-    "property_field": "PropertyField",
-    "regular_aspect": "RegularAspect",
-    "required_context": "RequiredContext",
-    "resource": "Resource",
-    "result": "Result",
-    "role": "Role",
-    "params": "Params",
-    "sensitive": "Sensitive",
-    "state_final": "StateFinal",
-    "state_initial": "StateInitial",
-    "state_intermediate": "StateIntermediate",
-    "summary_aspect": "SummaryAspect",
-    "access_decide": "AccessDecide",
-}
-
 
 @meta(description="Build left-menu sidebar NodeCoreEntity lists from DuckDB graph.", domain=DiagramsDomain)
 @check_roles(GuestRole)
@@ -103,24 +73,15 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         return base if base.endswith(" view") else f"{base} view"
 
     @staticmethod
-    def _lifecycle_state_machine_row_title(field_name: str) -> str:
-        """
-        Sidebar title for one lifecycle field under an entity.
-
-        Example: ``counterparty_linkage_lifecycle`` → ``Counterparty linkage lifecycle view``.
-        """
-        parts = [p for p in str(field_name).strip().split("_") if p]
-        if not parts:
-            display = "Lifecycle"
-        else:
-            head = parts[0][:1].upper() + parts[0][1:].lower()
-            display = head if len(parts) == 1 else f"{head} {' '.join(p.lower() for p in parts[1:])}"
-        return display if display.endswith(" view") else f"{display} view"
+    def _domains_holding(duck: DuckDBGraphResource, table: str) -> set[str]:
+        """The domains with at least one member in ``table``, a fixed name of this module."""
+        rows = duck.execute_fetch_dicts(f"SELECT DISTINCT de.target_id AS domain_id FROM domain_edges de JOIN {table} m ON m.id = de.source_id")
+        return {str(r["domain_id"]) for r in rows}
 
     # ─── Aspect 1 ─────────────────────────────────────────────────────────────
 
     @result_instance("level1_nodes", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-1 root bucket nodes (Applications, Domains, Roles, Actions, Entities, Resources).")
+    @regular_aspect("Level-1 root bucket nodes (Applications, Domains).")
     async def build_level1_aspect(
         self,
         params: ParamsStub,
@@ -140,7 +101,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
 
     @result_instance("level1_nodes", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_diagrams", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-2 fixed diagram rows: Full graph under Applications, Entity all domains under Domains.")
+    @regular_aspect("Level-2 fixed diagram rows of the whole application.")
     async def build_level2_diagrams_aspect(
         self,
         params: ParamsStub,
@@ -158,10 +119,16 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
                     type="graph",
                 ),
                 NodeCoreEntity(
-                    id="domains_all_erd",
-                    parent_id="domains_root",
-                    label=self._diagram_view_label("Entity all domains"),
+                    id="application_all_erd",
+                    parent_id="applications_root",
+                    label=self._diagram_view_label("ERD all domains"),
                     type="erd_all",
+                ),
+                NodeCoreEntity(
+                    id="application_all_use_cases",
+                    parent_id="applications_root",
+                    label=self._diagram_view_label("Use case all domains"),
+                    type="use_case_all",
                 ),
             ],
             key=lambda n: (n.label.lower(), n.id),
@@ -176,7 +143,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @result_instance("level1_nodes", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_diagrams", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_nodes", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-2 interchange nodes from DuckDB, each assigned to a root bucket by type.")
+    @regular_aspect("Level-2 domain nodes from DuckDB.")
     async def build_level2_nodes_aspect(
         self,
         params: ParamsStub,
@@ -187,20 +154,9 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         _ = box
         level1 = cast(list[NodeCoreEntity], state["level1_nodes"])
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
-
-        root_by_type = {n.type: n.id for n in level1}
-        fallback_root = level1[-1].id
         rows = [
-            NodeCoreEntity(
-                id=str(r["id"]),
-                parent_id=root_by_type.get(
-                    _DUCKDB_TO_SIDEBAR_TYPE.get(str(r["type"]), str(r["type"])),
-                    fallback_root,
-                ),
-                label=str(r["label"]),
-                type=_DUCKDB_TO_SIDEBAR_TYPE.get(str(r["type"]), str(r["type"])),
-            )
-            for r in duck.execute_fetch_dicts("SELECT id, label, type FROM nodes ORDER BY lower(label), id")
+            NodeCoreEntity(id=str(r["id"]), parent_id="domains_root", label=str(r["label"]), type="Domain")
+            for r in duck.execute_fetch_dicts("SELECT id, label FROM domain ORDER BY lower(label), id")
         ]
         return {
             "level1_nodes": level1,
@@ -214,7 +170,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
     @result_instance("level2_diagrams", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level2_nodes", list, required=True)  # type: ignore[untyped-decorator]
     @result_instance("level3_diagrams", list, required=True)  # type: ignore[untyped-decorator]
-    @regular_aspect("Level-3 per-domain ERD rows and per-entity class/lifecycle diagram rows from DuckDB.")
+    @regular_aspect("Level-3 per-domain ERD and use-case rows, and one row per lifecycle, from DuckDB.")
     async def build_level3_diagrams_aspect(
         self,
         params: ParamsStub,
@@ -226,33 +182,30 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
         duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
         rows: list[NodeCoreEntity] = []
 
+        # A diagram with nothing to draw has no row; a domain left with no rows shows dim in the panel.
+        with_entities = self._domains_holding(duck, "entity")
+        with_actions = self._domains_holding(duck, "action")
         for d in duck.execute_fetch_dicts("SELECT id, label FROM domain ORDER BY lower(label), id"):
             did, dlabel = str(d["id"]), str(d["label"])
-            rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
-            rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
+            if did in with_entities:
+                rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
+            if did in with_actions:
+                rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
 
-        lifecycle_by_entity: dict[str, list[tuple[str, str]]] = {}
-        for lc in duck.execute_fetch_dicts("""
-            SELECT le.source_id AS entity_id, lc.id AS lifecycle_id, lc.label AS lifecycle_label
+        # One row per lifecycle, under the domain of the entity that holds it.
+        lifecycles = duck.execute_fetch_dicts("""
+            SELECT de.target_id AS domain_id, le.source_id AS entity_id, e.label AS entity_label, lc.id AS lifecycle_id, lc.field_name
             FROM lifecycle_edges le
-            JOIN lifecycle lc ON le.target_id = lc.id
-            ORDER BY le.source_id, lower(lc.label), lc.id
-        """):
-            lifecycle_by_entity.setdefault(str(lc["entity_id"]), []).append(
-                (str(lc["lifecycle_id"]), str(lc["lifecycle_label"]))
-            )
-
-        for e in duck.execute_fetch_dicts("SELECT id FROM entity ORDER BY id"):
-            eid = str(e["id"])
-            rows.append(NodeCoreEntity(id=eid, parent_id=eid, label=self._diagram_view_label("Entity"), type="entity_class_diagram", ordinal=0))
-            for ordinal, (lc_id, lc_label) in enumerate(lifecycle_by_entity.get(eid, []), start=1):
-                rows.append(NodeCoreEntity(
-                    id=lc_id,
-                    parent_id=eid,
-                    label=self._lifecycle_state_machine_row_title(lc_label),
-                    type="lifecycle_state_diagram",
-                    ordinal=ordinal,
-                ))
+            JOIN lifecycle lc ON lc.id = le.target_id
+            JOIN entity e ON e.id = le.source_id
+            JOIN domain_edges de ON de.source_id = le.source_id
+            ORDER BY lower(e.label), lc.id
+        """)
+        per_entity = Counter(str(lc["entity_id"]) for lc in lifecycles)
+        for lc in lifecycles:
+            several = per_entity[str(lc["entity_id"])] > 1
+            name = f"{lc['entity_label']} {str(lc['field_name']).replace('_', ' ')}" if several else f"{lc['entity_label']} lifecycle"
+            rows.append(NodeCoreEntity(id=str(lc["lifecycle_id"]), parent_id=str(lc["domain_id"]), label=self._diagram_view_label(name), type="lifecycle_state_diagram", ordinal=2, host_id=str(lc["entity_id"])))
 
         rows.sort(key=lambda n: (str(n.parent_id).lower(), int(n.ordinal or 10**9), n.label.lower(), n.id))
 

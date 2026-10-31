@@ -6,7 +6,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
@@ -42,8 +42,8 @@ import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, statusDisk
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
-import { MARK_LOOK, cardAt, erdChanges, isMarkedCell, type CardTarget } from "@/lib/erdDiffCard";
-import { setChangeStepping } from "@/lib/changeStepping";
+import { cardAt, erdChanges, isMarkedCell } from "@/lib/erdDiffCard";
+import { useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { DiffCard } from "@/components/history/DiffCard";
 import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
 import type { ErdDomainsBundle } from "@/lib/loadErdDomainsBundle";
@@ -161,11 +161,6 @@ const LAYOUT_TOOLS: {
   { value: "gv-circo", title: "Circo (circular)", Glyph: LayoutGlyphCirco },
 ];
 
-
-/** The card's width, so that it stays on the stage beside what a step arrived at. */
-const CARD_WIDTH_PX = 312;
-/** A step never leaves the picture smaller than this: what it arrives at must be readable. */
-const STEP_SCALE = 0.85;
 
 export function ErdGraphvizCanvas({
   bundle,
@@ -293,57 +288,10 @@ export function ErdGraphvizCanvas({
   const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
   const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
   useEffect(() => setDiffCounts(counts), [counts]);
-  // A click on a marked table or row opens its card (spec 038, FR-028).
-  const [card, setCard] = useState<{ target: CardTarget; at: { x: number; y: number } } | null>(null);
   // The steps through what the drawing marks (spec 040, FR-025e): the list follows the filters, as the counts do.
   const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(drawnData.entities, drawnData.relations ?? []) : []), [counts, drawnData]);
-  const changesRef = useRef(changes);
-  changesRef.current = changes;
-  const [position, setPosition] = useState<number | null>(null);
-  useEffect(() => setPosition(null), [changes]);
-  const cellOf = useCallback((index: number) => pannerRef.current?.querySelector<SVGElement>(`[id="${changesRef.current[index]?.cell}"]`) ?? null, [pannerRef]);
-  const showCard = useCallback(
-    (index: number) => {
-      const target = changesRef.current[index]?.card;
-      const box = viewportRef.current?.getBoundingClientRect();
-      const cell = cellOf(index)?.getBoundingClientRect();
-      setCard(target && box && cell ? { target, at: { x: Math.max(8, Math.min(cell.right - box.left + 8, box.width - CARD_WIDTH_PX)), y: Math.max(8, cell.top - box.top) } } : null);
-    },
-    [cellOf, viewportRef],
-  );
-  const goToChange = useCallback(
-    (index: number) => {
-      setPosition(index);
-      setCard(null);
-      if (panZoom.getScale() < STEP_SCALE) panZoom.setScale(STEP_SCALE);
-      const cell = cellOf(index)?.getBoundingClientRect();
-      if (cell) panZoom.centreOnClient(cell.left + cell.width / 2, cell.top + cell.height / 2);
-      showCard(index);
-    },
-    [cellOf, panZoom, showCard],
-  );
-  const mirrorChange = useCallback(
-    (index: number | null, open: boolean) => {
-      setPosition(index);
-      if (index !== null && open) showCard(index);
-      else setCard(null);
-    },
-    [showCard],
-  );
-  useEffect(() => {
-    setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: goToChange, mirror: mirrorChange } : null);
-  }, [changes, position, card, goToChange, mirrorChange]);
-  useEffect(() => () => setChangeStepping(null), []);
-  // The change a step arrived at glows, as it wears a halo on the map.
-  useLayoutEffect(() => {
-    const change = position === null ? null : changes[position];
-    const cell = change ? cellOf(position!) : null;
-    if (!change || !cell) return undefined;
-    cell.style.filter = `drop-shadow(0 0 5px ${MARK_LOOK[change.status].colour})`;
-    return () => {
-      cell.style.filter = "";
-    };
-  }, [position, changes, cellOf, svgMarkup]);
+  // A click on a marked table or row opens its card (spec 038, FR-028).
+  const { card, setCard, openCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
   // which filter section paints the headers in Diff, and the kinds of change switched off.
   // A kind's colour is its place in the model's list of kinds, not in this diagram's: the same kind is the same
   // colour on every diagram, for everyone.
@@ -462,9 +410,7 @@ export function ErdGraphvizCanvas({
         const target = cardAt(event.target as Element | null, drawnData.entities);
         const box = viewportRef.current?.getBoundingClientRect();
         if (!target || !box) return;
-        setCard({ target, at: { x: event.clientX - box.left + 8, y: event.clientY - box.top + 8 } });
-        const stepped = changesRef.current.findIndex((change) => change.card?.elements[0]?.id === target.elements[0]?.id);
-        setPosition(stepped >= 0 ? stepped : null);
+        openCard(target, { x: event.clientX - box.left + 8, y: event.clientY - box.top + 8 });
       },
       { signal: ac.signal },
     );
