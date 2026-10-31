@@ -125,8 +125,8 @@
 
 ## Phase 8: Closing
 
-- [ ] T050 The closing check run: `bash scripts/run_checks_with_log.sh`, every remark fixed but the two accepted; walk `quickstart.md`. Prepare a commit only if it edited anything.
-- [ ] T051 The documentation: a how-to page on reading the map, every case as a script and a notebook under `examples/step_26_maxitor/`, executed; the page's `.ru_draft.md` beside it. Commit: `docs(maxitor): read the full graph as a map (#319)`.
+- [X] T050 The closing check run: `bash scripts/run_checks_with_log.sh`, every remark fixed but the two accepted; walk `quickstart.md`. Prepare a commit only if it edited anything.
+- [X] T051 The documentation: a how-to page on reading the map, every case as a script and a notebook under `examples/step_26_maxitor/`, executed; the page's `.ru_draft.md` beside it. Commit: `docs(maxitor): read the full graph as a map (#319)`.
 - [ ] T052 The changelog: one article in `docs/CHANGELOG.md`. Commit: `docs: changelog — the full graph as a map (#319)`; close #291 with a note, tick the issue.
 
 ---
