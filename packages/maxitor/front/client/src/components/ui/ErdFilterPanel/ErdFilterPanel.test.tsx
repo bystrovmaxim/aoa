@@ -158,6 +158,34 @@ describe("ErdFilterPanel", () => {
     expect(divided[0].contains(points[0])).toBe(true);
   });
 
+  describe("the gear shift and the sections (spec 040)", () => {
+    const panel = (source: "domains" | "kinds" | "changes", onPaint: (next: "domains" | "kinds" | "changes") => void) => (
+      <ErdFilterPanel domainRows={domains} kindRows={kinds} onToggleDomain={() => undefined} onToggleKind={() => undefined} changeRows={[row("added", "Added")]} onToggleChange={() => undefined} paint={{ source, onPaint }} />
+    );
+    const open = () => ["Domains", "Kinds", "Changes"].filter((name) => header(name).getAttribute("aria-expanded") === "true");
+
+    it("opens the section that paints", () => {
+      render(panel("changes", () => undefined));
+      expect(open()).toEqual(["Changes"]);
+    });
+
+    it("opens the section the gear shift moves to, and folds the others", () => {
+      const onPaint = vi.fn();
+      render(panel("domains", onPaint));
+      fireEvent.click(screen.getByRole("radio", { name: "Paint by Kinds" }));
+      expect(onPaint).toHaveBeenCalledWith("kinds");
+      expect(open()).toEqual(["Kinds"]);
+    });
+
+    it("leaves the paint alone when a section is opened or folded by hand", () => {
+      const onPaint = vi.fn();
+      render(panel("domains", onPaint));
+      fireEvent.click(header("Kinds"));
+      fireEvent.click(header("Kinds"));
+      expect(onPaint).not.toHaveBeenCalled();
+    });
+  });
+
   it("has no gear shift when there is one section to paint by", () => {
     render(<ErdFilterPanel domainRows={domains} kindRows={kinds.slice(0, 1)} onToggleDomain={() => undefined} onToggleKind={() => undefined} paint={{ source: "domains", onPaint: () => undefined }} />);
     expect(screen.queryByRole("radio")).toBeNull();

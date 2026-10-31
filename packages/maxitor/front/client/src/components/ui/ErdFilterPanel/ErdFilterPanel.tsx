@@ -218,15 +218,17 @@ function SectionHeader({
 /**
  * The ERD's one filter panel: Domains and Kinds as a strict accordion, 148 px wide whatever it holds.
  *
- * Exactly one section is open at a time (Domains on mount); opening one folds the other and clicking
- * the open one folds it. The Kinds section exists only when the graph has more than one kind. The
+ * Exactly one section is open at a time (on mount, the one that paints, else Domains); opening one
+ * folds the other and clicking the open one folds it; moving the gear shift opens the section it
+ * paints by, and opening a section by hand leaves the paint alone. The Kinds section exists only when the graph has more than one kind. The
  * panel stops above the zoom toolbar and scrolls inside itself. On a narrow screen it starts as a
  * "Filter" pill; opened, it shows the sections straight away, without the word "Filter".
  */
 export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [ownOpen, setOpen] = useState<SectionId | null>("domains");
+  // The section that paints is the one open first; without a gear shift, Domains (spec 040, FR-032).
+  const [ownOpen, setOpen] = useState<SectionId | null>(paint?.source ?? "domains");
   const [ownCollapsed, setCollapsed] = useState(true);
   // While following, the panel shows as the followed person has it (spec 029, FR-010).
   const shown = useShownPanel<Panels["filter"]>(
@@ -241,6 +243,11 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
   const collapsed = shown === null;
   const open: SectionId | null = shown === null ? ownOpen : shown === "open" ? null : shown;
   const toggleSection = (id: SectionId) => setOpen((prev) => (prev === id ? null : id));
+  // Moving the gear shift opens the section it paints by; the accordion folds the others (spec 040, FR-031).
+  const shiftPaint = (source: PaintSection) => {
+    setOpen(source);
+    paint?.onPaint(source);
+  };
   // A native listener: React's synthetic stopPropagation would run after the event reached the canvas.
   const panelRef = useRef<HTMLElement | null>(null);
   const showPanel = !(isMobile && collapsed);
@@ -349,7 +356,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
       {paint && paintSections.length > 1 && (
         // the gear shift, the panel's last block, centred: one point per section above, in their order.
         <Box sx={{ borderTop: "1px solid rgba(0,0,0,0.07)", display: "flex", justifyContent: "center", pt: 0.75, pb: 0.25 }}>
-          <GearShift sections={paintSections} source={paint.source} onPaint={paint.onPaint} />
+          <GearShift sections={paintSections} source={paint.source} onPaint={shiftPaint} />
         </Box>
       )}
     </Box>
