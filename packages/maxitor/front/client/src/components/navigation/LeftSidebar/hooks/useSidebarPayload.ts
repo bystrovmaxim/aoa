@@ -1,5 +1,6 @@
 // src/components/navigation/LeftSidebar/hooks/useSidebarPayload.ts
 import { getActiveBase } from "@/api/client";
+import { compareVersions } from "@/api/compare";
 import { getSidebar } from "@/api/sidebar";
 import { mergeSidebars } from "@/lib/sidebarDiff";
 import type { SidebarPayload } from "@/model/sidebar";
@@ -11,7 +12,8 @@ async function withOlder(newer: SidebarPayload): Promise<SidebarPayload> {
   const base = getActiveBase();
   if (!base) return newer;
   try {
-    return mergeSidebars(await getSidebar(base), newer);
+    const [older, compared] = await Promise.all([getSidebar(base), compareVersions().catch(() => null)]);
+    return mergeSidebars(older, newer, compared);
   } catch {
     return newer;
   }

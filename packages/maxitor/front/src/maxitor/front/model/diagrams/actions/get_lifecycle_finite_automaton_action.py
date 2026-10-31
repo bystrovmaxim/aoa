@@ -29,6 +29,7 @@ from maxitor.front.model.diagrams.resources.duckdb_graph_resource import (
     DUCKDB_GRAPH_CONNECTION_KEY,
     DuckDBGraphResource,
 )
+from maxitor.graph_compare.edge_ids import edge_id
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -62,6 +63,18 @@ def _decode_attributes(raw: Any) -> dict[str, Any]:
         return raw
     decoded = json.loads(str(raw))
     return decoded if isinstance(decoded, dict) else {}
+
+
+def _transition_id(row: dict[str, Any]) -> str:
+    """The protocol id of one transition row, by the one rule of edge ids."""
+    return edge_id(
+        {
+            "source_id": row["source_id"],
+            "target_id": row["target_id"],
+            "type": "lifecycle_transition",
+            "properties": {"from_state": row["from_state"]},
+        },
+    )
 
 
 @meta(
@@ -174,7 +187,7 @@ class GetLifecycleFiniteAutomatonAction(
 
         state_rows = graph.execute_fetch_dicts(
             """
-            SELECT s.state_key, s.kind, s.label, s.lifecycle_class_id, s.attributes
+            SELECT s.id, s.state_key, s.kind, s.label, s.lifecycle_class_id, s.attributes
             FROM lifecycle_contains_state_edges lcs
             JOIN state s ON s.id = lcs.target_id
             WHERE lcs.source_id = ?
@@ -212,7 +225,7 @@ class GetLifecycleFiniteAutomatonAction(
 
         transition_rows = graph.execute_fetch_dicts(
             """
-            SELECT lte.from_state, lte.to_state
+            SELECT lte.source_id, lte.target_id, lte.from_state, lte.to_state
             FROM lifecycle_transition_edges lte
             JOIN lifecycle_contains_state_edges lcs ON lte.source_id = lcs.target_id
             WHERE lcs.source_id = ?
@@ -267,6 +280,7 @@ class GetLifecycleFiniteAutomatonAction(
             }
             states_json.append(
                 {
+                    "id": str(sr["id"]),
                     "key": key,
                     "display_name": str(sr["label"]),
                     "state_type": st_slug,
@@ -283,7 +297,7 @@ class GetLifecycleFiniteAutomatonAction(
             )
         )
         edges_json = [
-            {"source": str(tr["from_state"]), "target": str(tr["to_state"])}
+            {"id": _transition_id(tr), "source": str(tr["from_state"]), "target": str(tr["to_state"])}
             for tr in transition_rows
         ]
 

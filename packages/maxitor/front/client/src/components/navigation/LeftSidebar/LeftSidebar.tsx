@@ -158,15 +158,15 @@ function expandedFromList(ids: string[]): Record<string, boolean> {
   return Object.fromEntries(ids.map((id) => [id, true]));
 }
 
-/** In Diff (spec 038, FR-032): ``+`` on a page only B has, ``−`` on one only A has, in the ERD's colours. */
+/** In Diff (spec 038, FR-032): ``+`` on a page only B has, ``−`` on one only A has, ``~`` on a lifecycle that changed (spec 042, FR-026a), in the ERD's colours. */
 function OnlyMark({ row }: { row: NodeRow }) {
-  if (!row.only) return null;
-  const status = row.only === "b" ? "added" : "removed";
+  if (!row.only && !row.changed) return null;
+  const status = row.changed ? "changed" : row.only === "b" ? "added" : "removed";
   return (
     <Box
       component="span"
       data-testid="only-mark"
-      aria-label={row.only === "b" ? "only in B" : "only in A"}
+      aria-label={row.changed ? "changed" : row.only === "b" ? "only in B" : "only in A"}
       sx={{ flexShrink: 0, ml: 0.75, fontSize: 13, fontWeight: 700, color: ERD_DIFF_COLOUR[status] }}
     >
       {ERD_DIFF_SIGN[status]}
