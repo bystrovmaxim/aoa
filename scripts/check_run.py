@@ -12,6 +12,16 @@ in today's order — runs them, times each one, prints ``OK`` or ``FAIL`` with t
 duration, and writes ``archive/logs/check-all.txt``. The run exits 1 if any step
 failed and 0 otherwise; a failing step never stops the others.
 
+Every row carries its home: ``local``, ``ci`` or ``both``. The selectors choose
+the rows for a context — ``--where local`` (default) keeps ``local`` and ``both``,
+``--where ci`` keeps ``ci`` and ``both``, and the narrow selectors (``--only-browser``,
+``--only-group``, ``--skip-browser``, ``--skip-group``) pick or drop named rows.
+The local run and every CI job therefore run the same commands from one table.
+
+``--fast`` keeps only the cheap rows (``fast`` true): the guards, the static
+checks and the Python tests, without the client build, the browsers, the package
+build or the graph write. The full run stays the default.
+
 Each step writes into its own file; when every step has ended, the log is joined
 from those files in the table's order, so it never depends on which step ended
 first and two steps' output never mix.
@@ -28,7 +38,9 @@ in its own process group, so the signal reaches what it started too.
 One step may be marked ``only_if_all_passed``: it starts after every other step
 has ended, and only if all of them passed; otherwise it is ``SKIPPED`` — neither
 ``OK`` nor ``FAIL`` — and its block says how many steps failed. The graph files
-are written this way: no graph is built for a run that already failed.
+are written this way: no graph is built for a run that already failed. The graph
+files are also *checked* by a step that always runs, so a failure elsewhere never
+leaves them neither written nor checked.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -38,6 +50,8 @@ ARCHITECTURE / DATA FLOW
 
     run_checks_with_log.sh  ──exec──►  check_run.py
                                            │
+             STEPS ── home/fast/browser seals ──► selector (--where, --fast, --only-*)
+                                           ▼
              STEPS ── after / not_during / AOA_CHECK_JOBS ──► ready steps
                                            ▼
                  bash -c <command>  ──output──►  <temporary folder>/<NN>.out
@@ -51,13 +65,14 @@ or built, and must not depend on what it checks.
 
 from __future__ import annotations
 
+import argparse
 import os
 import signal
 import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
@@ -87,6 +102,9 @@ PACKAGES = (
     "packages/maxitor",
     "packages/aoa-demo",
 )
+LOCAL = "local"
+CI = "ci"
+BOTH = "both"
 
 
 @dataclass(frozen=True)
@@ -95,7 +113,7 @@ class Step:
     AI-CORE-BEGIN
     ROLE: One step of the check run: what it is called, what it runs, and what it must wait for.
     CONTRACT: ``command`` runs through ``bash -c`` from the repository root; ``shown`` is the command line the log prints, ``command`` when empty.
-    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; the table's order is the log's order; ``only_if_all_passed`` waits for every other step and runs only when all passed.
+    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``fast`` marks the cheap rows; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step and runs only when all passed.
     AI-CORE-END
     """
 
@@ -107,6 +125,10 @@ class Step:
     shown: str = ""
     blank_before_result: bool = True
     only_if_all_passed: bool = False
+    home: str = BOTH
+    fast: bool = False
+    browser: bool = False
+    ci_command: str = ""
 
     @property
     def log_command(self) -> str:
@@ -123,28 +145,35 @@ def _guard(name: str, guard: str, function: str, after: tuple[str, ...] = ()) ->
         after=after,
         shown=f"{function} (shell function)",
         blank_before_result=False,
+        fast=True,
     )
 
 
-def _client(name: str, command: str) -> Step:
+def _client(name: str, command: str, browser: bool = False) -> Step:
     """A client step that uses what the client build wrote."""
-    return Step(name=name, command=f"({CLIENT} && {command})", group="client", after=(CLIENT_BUILD,))
+    return Step(
+        name=name,
+        command=f"({CLIENT} && {command})",
+        group="client",
+        after=(CLIENT_BUILD,),
+        browser=browser,
+    )
 
 
 def _build(package: str) -> Step:
-    """The wheel and sdist build of one package; Maxitor's sdist packs the client, so it waits out the client build."""
+    """The wheel and sdist build of one package; CI only, where the network is available."""
+    name = package.rsplit("/", 1)[-1]
     return Step(
         name=f"Build wheel/sdist ({package})",
-        command=f'uv run --group dev python -m build "{REPO_ROOT}/{package}"',
+        command=f"uv build --package {name} --out-dir packages/{name}/dist",
         group="packaging",
-        after=(AUTO_FIX,),
-        not_during=(CLIENT_BUILD,) if package == "packages/maxitor" else (),
+        home=CI,
     )
 
 
-def _after_fix(name: str, command: str, group: str) -> Step:
+def _after_fix(name: str, command: str, group: str, home: str = BOTH, fast: bool = True) -> Step:
     """A step that reads files ``ruff --fix`` may have rewritten."""
-    return Step(name=name, command=command, group=group, after=(AUTO_FIX,))
+    return Step(name=name, command=command, group=group, after=(AUTO_FIX,), home=home, fast=fast)
 
 
 STEPS: tuple[Step, ...] = (
@@ -164,7 +193,8 @@ STEPS: tuple[Step, ...] = (
     # then opens a room in each engine and proves a pointer lands within 2 px of its node (SC-003).
     _client(
         "Maxitor client: the same layout in three engines",
-        "npx playwright install chromium firefox webkit && node scripts/check-layout-determinism.ts",
+        "npx playwright install --with-deps chromium firefox webkit && node scripts/check-layout-determinism.ts",
+        browser=True,
     ),
     _client("Maxitor client: ERD card containment", "node scripts/check-erd-card-containment.ts"),
     _client("Maxitor client: dictionary value properties", "node scripts/check-erd-dictionary-values.ts"),
@@ -182,6 +212,8 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/",
         "first",
         after=(README_GUARD,),
+        home=LOCAL,
+        fast=True,
     ),
     _after_fix("Ruff lint", "uv run --extra dev task lint", "static"),
     _after_fix("Mypy typecheck", "uv run --extra dev task typecheck", "static"),
@@ -202,11 +234,19 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev pytest tests/packaging -v",
         "packaging",
         after=tuple(f"Build wheel/sdist ({package})" for package in PACKAGES),
+        home=CI,
     ),
     _after_fix("Vulture dead code", "uv run --extra dev task dead", "static"),
     _after_fix("Maxitor samples: action_machine public API", "uv run --extra dev task samples-public-api", "static"),
     *(
-        _after_fix(f"Pytest {package}", f"uv run --extra dev pytest packages/{package}/tests/ -v", "tests")
+        Step(
+            f"Pytest {package}",
+            f"uv run --extra dev pytest packages/{package}/tests/ -v",
+            "tests",
+            after=(AUTO_FIX,),
+            fast=True,
+            ci_command=f'uv run --extra dev pytest packages/{package}/tests/ -v -m "not benchmark"',
+        )
         for package in (
             "maxitor/front",
             "maxitor/tools/repo_graph_port",
@@ -222,9 +262,23 @@ STEPS: tuple[Step, ...] = (
             "aoa-action-machine",
         )
     ),
-    _after_fix("Pytest tests/scripts (check run, graph files)", "uv run --extra dev pytest tests/scripts -v", "tests"),
+    Step(
+        "Pytest tests/scripts (check run, graph files)",
+        "uv run --extra dev pytest tests/scripts -v",
+        "tests",
+        after=(AUTO_FIX,),
+        fast=True,
+        ci_command='uv run --extra dev pytest tests/scripts -v -m "not benchmark"',
+    ),
     _after_fix("Radon cyclomatic complexity", "uv run --extra dev task cc", "static"),
     _after_fix("Radon maintainability index", "uv run --extra dev task mi", "static"),
+    # Always run: a failure elsewhere must never leave the graph files neither written nor checked.
+    Step(
+        "Graph files (graph-builder check)",
+        "uv run --extra dev graph-builder check",
+        "graphs",
+        home=BOTH,
+    ),
     # Last, and only on a green run: build this repository's graphs and update their files
     # (graph-builder.toml). Like the auto-fix, it may change files and the run stays green; the
     # changed files go into the same commit as the change that changed the graph.
@@ -233,6 +287,7 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev graph-builder write",
         "graphs",
         only_if_all_passed=True,
+        home=LOCAL,
     ),
 )
 
@@ -393,11 +448,60 @@ def _jobs() -> int:
     return int(raw)
 
 
-def _write_log(header: str, results: dict[str, Result], wall: float, interrupted: bool) -> None:
+def _select(
+    steps: tuple[Step, ...],
+    where: str,
+    fast: bool,
+    only_browser: bool,
+    skip_browser: bool,
+    only_group: str | None,
+    skip_group: str | None,
+) -> tuple[Step, ...]:
+    """The rows a selector keeps; references to rows that did not survive are dropped."""
+    rows = list(steps)
+    if only_browser:
+        rows = [step for step in rows if step.browser or step.name == CLIENT_BUILD]
+    elif only_group is not None:
+        rows = [step for step in rows if step.group == only_group]
+    else:
+        if where != BOTH:
+            rows = [step for step in rows if step.home in (where, BOTH)]
+        if fast:
+            rows = [step for step in rows if step.fast]
+    if skip_browser:
+        rows = [step for step in rows if not step.browser]
+    if skip_group is not None:
+        rows = [step for step in rows if step.group != skip_group]
+    if where == CI:
+        rows = [replace(step, command=step.ci_command) if step.ci_command else step for step in rows]
+    names = {step.name for step in rows}
+    return tuple(
+        replace(
+            step,
+            after=tuple(after for after in step.after if after in names),
+            not_during=tuple(name for name in step.not_during if name in names),
+        )
+        for step in rows
+    )
+
+
+def _parser() -> argparse.ArgumentParser:
+    """The command line: a where, a fast switch, and the narrow selectors."""
+    parser = argparse.ArgumentParser(prog="run_checks_with_log.sh", description="Run the repository's check run.")
+    parser.add_argument("--where", choices=(LOCAL, CI, BOTH), default=LOCAL, help="which rows to run")
+    parser.add_argument("--fast", action="store_true", help="only the cheap rows (local)")
+    parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build")
+    parser.add_argument("--skip-browser", action="store_true", help="drop the browser rows")
+    parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
+    parser.add_argument("--skip-group", metavar="NAME", help="drop the rows of one group")
+    return parser
+
+
+def _write_log(header: str, results: dict[str, Result], wall: float, interrupted: bool, steps: tuple[Step, ...]) -> None:
     """Join the blocks of the steps that ended, in table order, between the header and the footer."""
     with LOG_FILE.open("wb") as log:
         log.write(header.encode())
-        for step in STEPS:
+        for step in steps:
             result = results.get(step.name)
             if result is None:
                 continue
@@ -425,8 +529,22 @@ def _raise_interrupt(signum: int, frame: object) -> None:
     raise KeyboardInterrupt
 
 
-def main() -> int:
-    """Run every step under the limit and return the run's exit code."""
+def main(argv: list[str] | None = None) -> int:
+    """Run every selected step under the limit and return the run's exit code."""
+    options = _parser().parse_args(argv)
+    where = LOCAL if options.fast else options.where
+    steps = _select(
+        STEPS,
+        where,
+        options.fast,
+        options.only_browser,
+        options.skip_browser,
+        options.only_group,
+        options.skip_group,
+    )
+    if not steps:
+        _say(RED, "FAIL no step matches the selectors")
+        return 2
     try:
         jobs = _jobs()
     except ValueError as refusal:
@@ -437,19 +555,19 @@ def main() -> int:
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
     header = _header()
-    steps = "step" if jobs == 1 else "steps"
-    _say(YELLOW, f"Full check run (cwd={REPO_ROOT}, up to {jobs} {steps} at once)...")
+    steps_word = "step" if jobs == 1 else "steps"
+    _say(YELLOW, f"Full check run (cwd={REPO_ROOT}, up to {jobs} {steps_word} at once)...")
     print()
     started = time.monotonic()
     interrupted = False
     results: dict[str, Result] = {}
     with tempfile.TemporaryDirectory(prefix="check-run-") as name:
         try:
-            _run_all(Path(name), jobs, results)
+            _run_all(Path(name), jobs, results, steps)
         except KeyboardInterrupt:
             interrupted = True
         wall = time.monotonic() - started
-        _write_log(header, results, wall, interrupted)
+        _write_log(header, results, wall, interrupted, steps)
     print()
     _say(YELLOW, f"Wall time: {wall:.1f} s")
     _say(GREEN, f"Log: {LOG_FILE}")
