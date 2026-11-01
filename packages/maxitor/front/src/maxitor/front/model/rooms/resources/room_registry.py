@@ -226,6 +226,8 @@ def _panels_fit(value: Any) -> bool:
         and isinstance(value.get("legend"), bool)
         # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
         and isinstance(value.get("versions", False), bool)
+        # The left panel narrowed to what changed (spec 044).
+        and isinstance(value.get("narrow", False), bool)
         # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
         and (value.get("track") is None or _track(value["track"]))
         # The list of a comparison's changes as its person moves it: open or not, where they stand, the scroll (spec 040).
@@ -250,6 +252,7 @@ def _panels(value: Any) -> dict[str, Any] | None:
         "changes": value.get("changes"),
         "why": value.get("why"),
         "card": value.get("card"),
+        "narrow": value.get("narrow", False),
     }
 
 

@@ -1,4 +1,5 @@
 // src/components/navigation/LeftSidebar/LeftSidebar.tsx
+import { readSidebarMemory, writeSidebarMemory } from "@/lib/sidebarMemory";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useChangedPages } from "./hooks/useChangedPages";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -30,7 +31,7 @@ import type { OpenedHistory } from "@/api/history";
 import { ServiceUrlInput } from "./ServiceUrlInput";
 import { SidebarRowIcon } from "./SidebarRowIcon";
 import { SidebarToggleIcon } from "./SidebarToggleIcon";
-import { useShownPanel } from "@/rooms/focusStore";
+import { isFollowing, useShownPanel } from "@/rooms/focusStore";
 
 /** One readable palette for the whole sidebar (on ``SIDEBAR_SURFACE`` drawer). */
 const SB = {
@@ -200,15 +201,23 @@ export function LeftSidebar({
     onSelectDiagram(sel);
     if (isMobile) setCollapsed(true);
   };
-  const [changedOnly, setChangedOnly] = useState(false);
+  const [memory] = useState(readSidebarMemory);
+  const [ownChangedOnly, setChangedOnly] = useState(memory.changedOnly);
+  // A follower's panel is the followed person's, the switch and the branches alike (spec 029, FR-010).
+  const changedOnly = useShownPanel(ownChangedOnly, setChangedOnly, (panels) => panels.narrow ?? false, (own) => ({ narrow: own }));
   const narrowing = comparing && changedOnly;
   const shownSidebar = useChangedPages(sidebar, narrowing);
   const nothingChanged = narrowing && shownSidebar !== null && shownSidebar !== sidebar && shownSidebar.level2_nodes.length === 0;
   const group = useMemo(() => (shownSidebar ? buildSidebarGroupedMaps(shownSidebar) : null), [shownSidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
-  const [ownExpandedById, setExpandedById] = useState<Record<string, boolean>>({});
+  const [ownExpandedById, setExpandedById] = useState<Record<string, boolean>>(() => expandedFromList(memory.open));
   // While following, the branches open and close as the followed person's do (spec 029, FR-010).
   const expandedById = useShownPanel(ownExpandedById, setExpandedById, (panels) => expandedFromList(panels.sidebar), (own) => ({ sidebar: openBranches(own) }));
+
+  // A reload finds the panel as it was. What a follower is shown is someone else's panel, and is not kept.
+  useEffect(() => {
+    if (!isFollowing()) writeSidebarMemory({ open: openBranches(ownExpandedById), changedOnly: ownChangedOnly });
+  }, [ownExpandedById, ownChangedOnly]);
 
   useEffect(() => {
     if (!diagram) return;
