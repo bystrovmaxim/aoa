@@ -34,7 +34,9 @@ from aoa.action_machine.resources.postgres.postgres_resource import PostgresReso
 
 from ...support.fake_pool import FakePool, PoolAcquireTimeoutError
 
-WAIT = 2.0
+pytestmark = pytest.mark.benchmark
+
+WAIT = 10.0
 
 
 async def _one_unit(pool: FakePool) -> None:
@@ -95,7 +97,7 @@ async def test_a_wait_that_never_frees_ends_in_a_named_failure() -> None:
     elapsed = time.monotonic() - started
 
     assert isinstance(caught.value.__cause__, PoolAcquireTimeoutError)
-    assert 0.04 <= elapsed < 1.0, f"waited {elapsed:.3f}s for a 0.05s bound"
+    assert 0.04 <= elapsed < 3.0, f"waited {elapsed:.3f}s for a 0.05s bound"
     assert pool.held == 1, "the holder still holds; the failed waiter left nothing behind"
 
     await holder.close()

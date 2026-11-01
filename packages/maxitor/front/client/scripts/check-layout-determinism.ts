@@ -320,11 +320,27 @@ async function runEngine(
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
         const page = await context.newPage();
         const run = runName(name, viewport);
+        // A page that never lays out throws only a timeout; surface what the page itself said so a
+        // failure names its cause (a missing asset, a console error) instead of only "Timeout".
+        page.on("pageerror", (error) => console.error(`[${run}] page error: ${error.message}`));
+        page.on("console", (message) => {
+          if (message.type() === "error") console.error(`[${run}] console error: ${message.text()}`);
+        });
+        page.on("response", async (response) => {
+          if (response.status() >= 400) {
+            const body = await response.text().catch(() => "");
+            console.error(`[${run}] ${response.status()} ${response.url()} ${body.slice(0, 500)}`);
+          }
+        });
         const keysByTarget: string[][] = [];
         seen.set(run, keysByTarget);
         for (const target of targets) {
           const query = new URLSearchParams({ source, ...target.query });
-          const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`);
+          const hashes = await hashesOfPage(page, `${front}/?${query.toString()}`).catch(async (error: unknown) => {
+            // A timeout alone names neither the page nor the cause; a page that refuses says why on screen.
+            const said = await page.locator('[role="alert"]').allTextContents().catch(() => []);
+            throw new Error(`${run}, ${target.label}: ${error instanceof Error ? error.message : String(error)}${said.length > 0 ? ` — the page says: ${said.join(" ")}` : ""}`);
+          });
           const keys: string[] = [];
           for (const [mode, hash] of Object.entries(hashes)) {
             const key = `${target.label} | ${mode}`;
@@ -940,12 +956,13 @@ function report(results: Map<string, Map<string, string>>, seen: Map<string, str
 }
 
 /**
- * Wait until every promise has settled, then return their values in order — or throw the first
- * failure. Nothing is left running when the step stops on an error.
+ * Wait until every promise has settled, then return their values in order — or print every failure
+ * but the first and throw that one. Nothing is left running when the step stops on an error.
  */
 async function allEnded<T>(promises: Promise<T>[]): Promise<T[]> {
   const settled = await Promise.allSettled(promises);
-  const failed = settled.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  const [failed, ...others] = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+  for (const other of others) console.error(other.reason instanceof Error ? other.reason.message : String(other.reason));
   if (failed) throw failed.reason;
   return settled.map((result) => (result as PromiseFulfilledResult<T>).value);
 }

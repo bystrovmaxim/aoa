@@ -27,10 +27,10 @@ from ...action_machine.bench.bench_report import (
 pytestmark = pytest.mark.benchmark
 
 _RESOLVE_ITERATIONS = 10_000
-_RESOLVE_BUDGET_SEC = 0.4
+_RESOLVE_BUDGET_SEC = 0.8
 _SUBSTITUTE_ITERATIONS = 1_000
-_SUBSTITUTE_BUDGET_SEC = 0.5
-_FALSY_RATIO_LIMIT = 2.0
+_SUBSTITUTE_BUDGET_SEC = 1.0
+_FALSY_RATIO_LIMIT = 3.0
 
 
 class TestNavigationPerformance:

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-01] — The checks now have two homes, and a pull request carries the proof of the long one
+
+The long check that finishes a change no longer needs the internet. It used to download a build tool from the package index for every package it packed, and on a poor connection it failed for no reason of ours. Those package builds, and the smoke test that installs them, now run on GitHub with every pull request, where a broken package is caught before a release and never blocks a local run.
+
+A pull request now gets a real result. GitHub runs the static checks, the client's build and tests, the diagram checks, the tests of every package and the saved graph files on its own machines, so the answer does not depend on one computer.
+
+The check in three browsers stays on the maintainer's computer, because GitHub's machines have no graphics card and Firefox cannot draw the map there. GitHub controls it instead: the full run leaves a mark on the exact commit it proved, and a pull request whose commit carries no mark fails. A new commit has no mark, so what merges is what passed.
+
+Two scripts now say which check belongs to which moment. `scripts/check_before_commit.sh` runs the cheap steps, during the work and before every commit. `scripts/check_before_pr.sh` runs everything on a pushed commit and leaves the mark, and no pull request is opened until it has passed.
+
+The speed tests that used to fail on a busy machine run only in the full local run. The saved graph files are always checked, even when another step failed, and a green run now brings a stale one up to date instead of failing on it.
+
 ## [2026-11-01] — Maxitor shows two versions side by side, and a room compares them together
 
 The picker's third mode now works. **Side by side** stands the older version on the left and the newer on the right, on every diagram, each laid out as that version really was. A serious change can rebuild a picture completely, and here you see both pictures rather than one drawn over the other.

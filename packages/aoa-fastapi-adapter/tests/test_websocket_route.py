@@ -250,6 +250,7 @@ class TestWebSocketRoute:
             ws.send_text(frame)
             assert ws.receive_json()["type"] == "error"
 
+    @pytest.mark.benchmark
     def test_too_many_messages_closes(self) -> None:
         """(5) More than 40 messages in one second close the connection with 4429."""
         client, _ = _client(Recorder(), StubRelay())
