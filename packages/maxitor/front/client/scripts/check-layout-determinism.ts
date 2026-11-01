@@ -62,6 +62,7 @@ import { chromium, firefox, webkit } from "playwright";
 import type { Browser, BrowserType, Page } from "playwright";
 
 import { playwrightTab, safariTab, safariUnavailable, waitInPage } from "./browserTab.ts";
+import { cardMechanics, type CardCase } from "./cardMechanics.ts";
 import type { BrowserTab } from "./browserTab.ts";
 import { decodePng, inkOf } from "./pngInk.ts";
 
@@ -93,6 +94,10 @@ const EMPTY_INK = 0.002;
 const ZOOM_TOLERANCE = 0.002;
 /** Time for a camera to settle and be written to the address (the client waits 250 ms). */
 const SETTLE_MS = 1500;
+/** How a value that must have stopped moving is read: this far apart, at most so many times. */
+const HASH_STABLE_MS = 250;
+const HASH_STABLE_READS = 8;
+const CAMERA_REST_READS = 40;
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -205,7 +210,11 @@ async function listTargets(front: string, source: string): Promise<Target[]> {
   const targets: Target[] = [];
   for (const row of rows) {
     if (row.type === "graph") targets.push({ label: "full graph", query: { view: "full-graph" } });
-    else if (row.type === "erd_all") targets.push({ label: "ERD, all domains", query: { view: "domain-erd" } });
+    else if (row.type === "erd_all") {
+      targets.push({ label: "ERD, all domains", query: { view: "domain-erd" } });
+      // Collapsing changes the tables' sizes, so it is laid out again and must agree too (spec 043, FR-030).
+      targets.push({ label: "ERD, all domains, collapsed", query: { view: "domain-erd", collapsed: "1" } });
+    }
     else if (row.type === "erd_domain" && row.parent_id)
       targets.push({ label: `ERD ${row.parent_id}`, query: { view: "domain-erd", domain: row.parent_id } });
     else if (row.type === "use_case_domain" && row.parent_id)
@@ -229,7 +238,15 @@ async function nextHash(page: Page, previous: string | null): Promise<string> {
     previous,
     { timeout: HASH_TIMEOUT_MS, polling: 100 },
   );
-  return (await handle.jsonValue()) as string;
+  // A hash read while a drawing is being replaced may be a passing one: the one that stays is the page's.
+  let settled = (await handle.jsonValue()) as string;
+  for (let reads = 0; reads < HASH_STABLE_READS; reads += 1) {
+    await page.waitForTimeout(HASH_STABLE_MS);
+    const now = await page.evaluate(() => document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") ?? null);
+    if (now === settled) return settled;
+    if (now) settled = now;
+  }
+  return settled;
 }
 
 /** Click an element through the DOM: on a phone the open left panel covers the toolbar. */
@@ -546,6 +563,8 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
     const [a, b] = [await diagramCentre(leader), await diagramCentre(follower)];
     const apartPx = Math.hypot(a.x - b.x, a.y - b.y) * b.scale;
 
+    // A browser that reports a move under a resting pointer has opened a card there, which may cover the next node.
+    await leader.keyboard.press("Escape");
     const node = await middleNode(leader);
     const centre = await nodeCentre(leader, node);
     const hoveredAt = Date.now();
@@ -569,6 +588,24 @@ async function followCase(lead: BrowserType, follow: BrowserType, front: string,
     await leadBrowser.close();
     await followBrowser.close();
   }
+}
+
+/** A room with two people, the second following the first. */
+async function openPlainRoom(leader: Page, follower: Page): Promise<void> {
+  await domClick(leader, 'button:has-text("Open room")');
+  await confirmName(leader, "Leader");
+  await leader.waitForURL(/room=/, { timeout: HASH_TIMEOUT_MS });
+  await leader.locator(".MuiPopover-paper").waitFor({ timeout: HASH_TIMEOUT_MS });
+  await leader.keyboard.press("Escape");
+  await leader.locator(".MuiPopover-paper").waitFor({ state: "detached", timeout: HASH_TIMEOUT_MS });
+  await follower.goto(leader.url());
+  await confirmName(follower, "Follower");
+  await nextHash(follower, null);
+  await follower.locator('[aria-label^="Leader"]').first().focus();
+  await follower.keyboard.press("Enter");
+  await follower.locator('[role="dialog"] button').first().waitFor({ timeout: HASH_TIMEOUT_MS });
+  await domClick(follower, 'button:has-text("Follow")');
+  await follower.getByText("Following Leader").waitFor({ timeout: HASH_TIMEOUT_MS });
 }
 
 /** One page of each kind the left panel lists, in its order: full graph, ERD of all domains, a domain's ERD, a use case, a lifecycle. */
@@ -679,6 +716,22 @@ async function goTo(leader: BrowserTab, follower: BrowserTab, page: Target): Pro
   return same;
 }
 
+/** The follower's camera once its glide has ended: a loaded machine glides slowly, and a stuck one still reads wrong. */
+async function restingCamera(follower: BrowserTab): Promise<Awaited<ReturnType<typeof readCamera>>> {
+  let camera = await readCamera(follower);
+  for (let reads = 0; reads < CAMERA_REST_READS; reads += 1) {
+    await new Promise((resolve) => setTimeout(resolve, HASH_STABLE_MS));
+    const now = await readCamera(follower);
+    if (Math.abs(now.zoom - camera.zoom) < ZOOM_TOLERANCE / 10 && Math.hypot(now.left - camera.left, now.top - camera.top) < 0.5) return now;
+    camera = now;
+  }
+  return camera;
+}
+
+function readCamera(tab: BrowserTab) {
+  return waitInPage(tab, cameraInPage, null, HASH_TIMEOUT_MS, "the follower's diagram");
+}
+
 /**
  * The leader opens a room, the follower joins and follows; then the leader goes to each page and zooms in,
  * and the follower is measured against it there.
@@ -697,7 +750,8 @@ async function followEveryDiagram(openLead: () => Promise<BrowserTab>, openFollo
       const same = await goTo(leader, follower, page);
       await leader.evaluate(clickButtonInPage, "Zoom in");
       await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
-      const [a, b] = [await waitInPage(leader, cameraInPage, null, HASH_TIMEOUT_MS, "the leader's diagram"), await waitInPage(follower, cameraInPage, null, HASH_TIMEOUT_MS, "the follower's diagram")];
+      const a = await waitInPage(leader, cameraInPage, null, HASH_TIMEOUT_MS, "the leader's diagram");
+      const b = await restingCamera(follower);
       const [leaderInk, followerInk] = [await inkOfDiagram(leader), await inkOfDiagram(follower)];
       outcomes.push({
         label: page.label,
@@ -991,6 +1045,7 @@ async function main(): Promise<void> {
       if (safariAsked === "full") for (const pair of everyPair.filter(isSafari)) byPair.set(`${pair.leadName} → ${pair.followName}`, await everyChangeInOneFrame(pair.lead, pair.follow, frontUrl, source, changePages));
       return byPair;
     });
+    const cards = await timed(() => cardMechanics(chromium, `${frontUrl}/?${new URLSearchParams({ source, view: "domain-erd" }).toString()}`, { drawn: (page) => nextHash(page, null), openRoom: openPlainRoom }));
     const [partASeconds, partBSeconds, partCSeconds] = [layout.seconds, pointers.seconds, following.seconds];
     ok = report(results, seen, targets.length);
     const offsets = pointers.value;
@@ -1033,6 +1088,10 @@ async function main(): Promise<void> {
         if (!fits) for (const state of outcome.followerStates) console.log(`        ${state}`);
       }
     }
+    for (const outcome of cards.value satisfies CardCase[]) {
+      ok &&= outcome.ok;
+      console.log(`${outcome.ok ? "ok  " : "DIFF"}  card | ${outcome.name}${outcome.ok ? "" : `  ${outcome.detail}`}`);
+    }
     if (safariWhy !== null) {
       // Asked for on macOS, Safari must answer; not asked for, or elsewhere, it is skipped with a line saying so.
       const required = Boolean(safariAsked) && process.platform === "darwin";
@@ -1044,6 +1103,7 @@ async function main(): Promise<void> {
     console.log(`part C (following) ${partCSeconds} s`);
     console.log(`part D (following on every diagram) ${everyDiagram.seconds} s`);
     console.log(`part E (every change in one frame) ${oneFrame.seconds} s`);
+    console.log(`part F (the card and collapsing) ${cards.seconds} s`);
     console.log(
       `${results.size} page-modes × ${ENGINES.length} engines × ${VIEWPORTS.length} sizes in ${Math.round((Date.now() - started) / 1000)} s`,
     );
