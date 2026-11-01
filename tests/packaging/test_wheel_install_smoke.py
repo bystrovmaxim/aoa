@@ -2,7 +2,7 @@
 """
 Wheel layout and clean-venv install smoke for the publishable distributions (``aoa-*`` and ``maxitor``).
 
-Requires prior ``python -m build packages/<pkg>`` (``run_checks_with_log.sh`` runs builds before pytest).
+Requires prior ``uv build --package <pkg> --out-dir packages/<pkg>/dist`` (the CI packaging job builds before pytest).
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ def _latest_wheel(dist_key: str) -> Path:
     dist_dir = REPO_ROOT / "packages" / folder / "dist"
     if not dist_dir.is_dir():
         pytest.fail(
-            f"Missing {dist_dir}; build wheels first, e.g.:\n" f"  uv run --group dev python -m build packages/{folder}"
+            f"Missing {dist_dir}; build wheels first, e.g.:\n" f"  uv build --package {folder} --out-dir packages/{folder}/dist"
         )
     wheels = sorted(dist_dir.glob(f"{dist_key.replace('-', '_')}-*.whl"))
     if not wheels:
