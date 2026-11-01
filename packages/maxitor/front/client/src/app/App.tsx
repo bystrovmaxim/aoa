@@ -53,7 +53,7 @@ import { forgetElementCards } from "@/api/elementCard";
 import { forgetMiniatures } from "@/lib/lifecycleMiniature";
 import { OpenDiagramContext } from "@/lib/openDiagram";
 import { useGoTo } from "@/rooms/goTo";
-import { useFollow, useFollowHalfA } from "@/rooms/follow";
+import { useFollow } from "@/rooms/follow";
 import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
@@ -238,11 +238,11 @@ export function App() {
   const { following, lead, follow, stop: stopFollowing } = useFollow({
     room: room.room,
     send: room.send,
+    surfaceA,
     surface,
     page,
     navigate: navigateToPage,
   });
-  useFollowHalfA(surfaceA, following?.id ?? null);
   const followingRef = useRef(following);
   followingRef.current = following;
   /** Your own navigation stops following (FR-051). */

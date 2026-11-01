@@ -14,7 +14,7 @@
 import { dimUnpaired, hoverAcross, reportHalfHover, subscribeHalfHover, type Portable } from "@/lib/halfPicking";
 import { useHalf } from "@/lib/half";
 import { useEffect, useRef } from "react";
-import { isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
+import { cardFor, isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
 
 /** Mouse events a follower's own mouse may not deliver to the diagram while following. */
 const HELD_BACK = ["mouseover", "mouseout", "mouseenter", "mouseleave", "click", "dblclick"] as const;
@@ -151,8 +151,12 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
   const side = useHalf()?.side ?? null;
   const portableRef = useRef(portable);
   portableRef.current = portable;
+  const byIdentity = (ref: ElementRef | null) => (ref && portableRef.current ? portableRef.current.toIdentity(ref) : ref);
+  const here = (ref: ElementRef | null) => (ref && portableRef.current ? portableRef.current.fromIdentity(ref) : ref);
+  // A half reports its hover by identity too: a follower's two halves light it as the leader's do.
   const toAcross = (ref: ElementRef | null) => {
-    if (side) reportHalfHover(side, ref && portableRef.current ? portableRef.current.toIdentity(ref) : ref);
+    if (side) reportHalfHover(side, byIdentity(ref));
+    reportHover(side ? byIdentity(ref) : ref);
   };
   // No native tooltip on any drawing: the app's own label shows instead, the same for everyone. The viewer places its
   // SVG after this hook's effects run, and may place it again, so every new drawing is caught as it lands.
@@ -197,14 +201,12 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     const onOver = (event: MouseEvent) => {
       if (!event.isTrusted || isFollowing() || !(event.target instanceof Element)) return;
       const ref = elementRefOf(event.target, nodeKind);
-      reportHover(ref);
       toAcross(ref);
       // A press is a drag on its way: what passes under the pointer then is not being looked at.
       if (event.buttons === 0) show(ref);
     };
     const onLeave = (event: MouseEvent) => {
       if (!event.isTrusted || isFollowing()) return;
-      reportHover(null);
       toAcross(null);
       show(null);
     };
@@ -255,7 +257,7 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     const apply = () => {
       const focus = mirroredFocus();
       const across = side ? hoverAcross(side) : null;
-      const hover = focus && focus.page === page ? focus.hover : across && portableRef.current ? portableRef.current.fromIdentity(across) : across;
+      const hover = focus && focus.page === page ? (side ? here(focus.hover) : focus.hover) : here(across);
       if (side && across && !hover) dimUnpaired(root, "hover", true);
       if (sameRef(hover, shown) && (hover === null || entered.length > 0)) return;
       sendMouse(entered, "mouseleave");
@@ -281,7 +283,7 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     const applyCard = () => {
       const focus = mirroredFocus();
       if (!focus) return;
-      const said = focus.page === page ? (focus.panels.card?.ref ?? null) : null;
+      const said = focus.page === page ? cardFor(focus.panels, side) : null;
       if (sameRef(said, card)) return;
       card = said;
       if (said) cardsRef.current?.open(said, elementsOf(root, said));

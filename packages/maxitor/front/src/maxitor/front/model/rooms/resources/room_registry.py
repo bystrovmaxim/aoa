@@ -228,6 +228,8 @@ def _panels_fit(value: Any) -> bool:
         and isinstance(value.get("versions", False), bool)
         # The left panel narrowed to what changed (spec 044).
         and isinstance(value.get("narrow", False), bool)
+        # The half of Side by side an open card stands in (spec 044).
+        and value.get("cardHalf") in (None, "a", "b")
         # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
         and (value.get("track") is None or _track(value["track"]))
         # The list of a comparison's changes as its person moves it: open or not, where they stand, the scroll (spec 040).
@@ -253,6 +255,7 @@ def _panels(value: Any) -> dict[str, Any] | None:
         "why": value.get("why"),
         "card": value.get("card"),
         "narrow": value.get("narrow", False),
+        "cardHalf": value.get("cardHalf"),
     }
 
 

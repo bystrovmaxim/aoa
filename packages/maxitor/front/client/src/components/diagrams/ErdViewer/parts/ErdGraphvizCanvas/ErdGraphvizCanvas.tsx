@@ -51,7 +51,7 @@ import { cardBeside, lineBoxes } from "@/lib/cardPlace";
 import { useHoverCard } from "@/lib/useHoverCard";
 import { ElementCard, type CardProjection, type CardSubject } from "@/components/diagrams/ElementCard";
 import { elementRefOf, elementsOf, type HoverCards } from "@/rooms/graphvizFocus";
-import { isFollowing, mirroredFocus, reportHover, type ElementRef } from "@/rooms/focusStore";
+import { cardFor, isFollowing, mirroredFocus, reportHover, type ElementRef } from "@/rooms/focusStore";
 import { useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { DiffCard } from "@/components/history/DiffCard";
 import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
@@ -223,6 +223,7 @@ export function ErdGraphvizCanvas({
   );
   const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
+  const side = useHalf()?.side ?? null;
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag, needsFit, centreOnClient, onTransform } = panZoom;
   /** The tables the markup on hand was drawn from: a markup older than the tables shown now is never placed again. */
@@ -372,7 +373,7 @@ export function ErdGraphvizCanvas({
   // A card stands beside what it describes: a move or a new drawing takes that away, by whatever caused it.
   // For a follower it stays as long as the followed person holds it, and goes with the picture.
   const moveOrClose = useCallback(() => {
-    const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+    const ref = isFollowing() ? cardFor(mirroredFocus()?.panels, side) : null;
     const panner = pannerRef.current;
     const subject = ref && panner ? subjectOf(ref, elementsOf(panner, ref)) : null;
     if (subject) wantCardNow(subject);

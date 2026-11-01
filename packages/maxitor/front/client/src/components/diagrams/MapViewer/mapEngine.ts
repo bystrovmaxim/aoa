@@ -369,6 +369,7 @@ export class MapEngine {
         camera.setState({ x: framed.x, y: framed.y });
       },
       zoomTolerance: ROOM_ZOOM_TOLERANCE,
+      yUp: true,
       view: () => ({ ...middle(), zoom: ROOM_ZOOM / camera.ratio }),
       restore: (view) => {
         camera.setState({ ratio: ROOM_ZOOM / view.zoom });
