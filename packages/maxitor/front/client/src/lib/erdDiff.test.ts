@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
 import { buildDotSource, erdDiffMarks, erdEdgeId, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
 import { drawErdCards } from "./erdPostPass";
-import { diagramCounts, erdOfSide, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
+import { diagramCounts, erdHolds, erdOfSide, erdPortable, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
 
 const OFFER = "g.OfferEntity";
 const CORE = "g.CoreEntity";
@@ -161,6 +161,18 @@ describe("the part of a drawing one version has (spec 044)", () => {
     expect(shape(erdOfSide(merged, "b"))).toEqual(shape(newer));
   });
 
+  it("marks a table on both halves when a row changed on either", () => {
+    const newRow = markErd(mergeErdSlices({ entities: [{ id: "b.T", fields: [field("x")] }] }, { entities: [{ id: "b.T", fields: [field("x"), field("new")] }] }), {
+      ...compared,
+      nodes: { "b.T:new": "added" },
+      edges: {},
+    } as unknown as CompareResult) as { entities: ErdEntity[]; relations: ErdRelation[] };
+    const [a, b] = [erdOfSide(newRow, "a").entities[0], erdOfSide(newRow, "b").entities[0]];
+    expect(a.diff).toBe("changed");
+    expect(b.diff).toBe("changed");
+    expect(a.fields?.map((row) => row.name)).toEqual(["x"]);
+  });
+
   it("keeps the marks each version can show", () => {
     const a = erdOfSide(merged, "a");
     expect(a.entities.find((entity) => entity.id === "b.Removed")?.diff).toBe("removed");
@@ -168,5 +180,31 @@ describe("the part of a drawing one version has (spec 044)", () => {
     expect(a.relations[0].diff).toBe("changed");
     const b = erdOfSide(merged, "b");
     expect(b.entities.find((entity) => entity.id === "b.Added")?.diff).toBe("added");
+  });
+});
+
+describe("a table, a row and a line across the two halves (spec 044)", () => {
+  const entities = [{ id: "b.One", fields: [{ name: "x" }] }, { id: "b.Two", fields: [{ name: "y" }, { name: "z" }] }] as ErdEntity[];
+  const relations = [{ source: "b.One", target: "b.Two", source_field: "x" }] as ErdRelation[];
+  const other = [entities[1], entities[0]];
+
+  it("names a row by what it is, so the other half finds it at its own place", () => {
+    const shared = erdPortable(() => ({ entities, relations })).toIdentity({ kind: "row", id: "fn1_1" });
+    expect(shared).toEqual({ kind: "row", id: "b.Two:z" });
+    expect(erdPortable(() => ({ entities: other })).fromIdentity(shared)).toEqual({ kind: "row", id: "fn0_1" });
+  });
+
+  it("names a line by what it is, and finds no line the drawing lacks", () => {
+    const shared = erdPortable(() => ({ entities, relations })).toIdentity({ kind: "edge", id: "re0" });
+    expect(shared).toEqual({ kind: "edge", id: "b.One|x" });
+    expect(erdPortable(() => ({ entities, relations: [] })).fromIdentity(shared)).toBeNull();
+  });
+
+  it("knows what a version holds", () => {
+    const data = { entities, relations };
+    expect(erdHolds(data, { kind: "table", id: "b.Two" })).toBe(true);
+    expect(erdHolds(data, { kind: "row", id: "b.Two:z" })).toBe(true);
+    expect(erdHolds(data, { kind: "row", id: "b.Two:gone" })).toBe(false);
+    expect(erdHolds(data, { kind: "table", id: "b.Three" })).toBe(false);
   });
 });

@@ -9,6 +9,8 @@
 
 import type { CompareResult, DiffStatus } from "@/api/compare";
 import { drawnOn, type Side } from "@/lib/half";
+import type { Portable } from "@/lib/halfPicking";
+import type { ElementRef } from "@/rooms/focusStore";
 import type { ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
 
 /** One domain's slice of the ERD, as ``list-entities`` gives it. */
@@ -151,13 +153,59 @@ export function erdOfSide<T extends { entities: ErdEntity[]; relations?: ErdRela
   const drawn = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
   const entities = drawn(data.entities).map((entity) => {
     const fields = drawn(entity.fields ?? []);
-    if (side === "b") return { ...entity, fields };
-    return { ...entity, ...entity.was, diff: entity.diff, fields: inOlderOrder(fields).map((field) => ({ ...field, ...field.was, diff: field.diff })) };
+    // A change inside a table comes to both halves together: a row only B has still marks the table on A (spec 044).
+    const inside = (entity.fields ?? []).some((field) => field.diff && field.diff !== "unchanged");
+    const diff = inside && (entity.diff ?? "unchanged") === "unchanged" ? "changed" : entity.diff;
+    if (side === "b") return { ...entity, diff, fields };
+    return { ...entity, ...entity.was, diff, fields: inOlderOrder(fields).map((field) => ({ ...field, ...field.was, diff: field.diff })) };
   });
   const tables = new Set(entities.map((entity) => entity.id));
   const relations = drawn(data.relations ?? []).map((relation) => (side === "a" ? { ...relation, ...relation.was, diff: relation.diff } : relation));
   const ordered = side === "a" ? { entities: inOlderOrder(entities), relations: inOlderOrder(relations) } : { entities, relations };
   return { ...data, entities: ordered.entities, relations: ordered.relations.filter((relation) => tables.has(relation.source) && tables.has(relation.target)) };
+}
+
+type ErdDrawing = { entities: readonly ErdEntity[]; relations?: readonly ErdRelation[] };
+
+/** Whether ``data`` holds the element a ref names by identity: a table, ``<table>:<field>``, or a line by ``relationKey``. */
+export function erdHolds(data: ErdDrawing, ref: ElementRef): boolean {
+  if (ref.kind === "edge") return (data.relations ?? []).some((relation) => relationKey(relation) === ref.id);
+  if (ref.kind === "row") return data.entities.some((entity) => (entity.fields ?? []).some((field) => `${entity.id}:${field.name}` === ref.id));
+  return data.entities.some((entity) => entity.id === ref.id);
+}
+
+/**
+ * A drawing's refs and refs by identity: a row's id is its place — ``fn<table>_<row>`` — and a line's ``re<index>``,
+ * which mean another element on the other half. ``drawn`` gives the tables of the picture on screen.
+ */
+export function erdPortable(drawn: () => ErdDrawing): Portable {
+  return {
+    toIdentity(ref) {
+      const { entities, relations = [] } = drawn();
+      const row = ref.kind === "row" ? /^f[nt](\d+)_(\d+)$/.exec(ref.id) : null;
+      if (row) {
+        const entity = entities[Number(row[1])];
+        const field = entity?.fields?.[Number(row[2])];
+        return entity && field ? { kind: "row", id: `${entity.id}:${field.name}` } : ref;
+      }
+      const line = ref.kind === "edge" ? /^re(\d+)$/.exec(ref.id) : null;
+      const relation = line ? relations[Number(line[1])] : undefined;
+      return relation ? { kind: "edge", id: relationKey(relation) } : ref;
+    },
+    fromIdentity(ref) {
+      const { entities, relations = [] } = drawn();
+      if (ref.kind === "edge") {
+        const index = relations.findIndex((relation) => relationKey(relation) === ref.id);
+        return index >= 0 ? { kind: "edge", id: `re${index}` } : null;
+      }
+      if (ref.kind !== "row") return ref;
+      for (const [table, entity] of entities.entries()) {
+        const row = (entity.fields ?? []).findIndex((field) => `${entity.id}:${field.name}` === ref.id);
+        if (row >= 0) return { kind: "row", id: `fn${table}_${row}` };
+      }
+      return null;
+    },
+  };
 }
 
 /** The same drawing with every mark taken off, as One draws it. */

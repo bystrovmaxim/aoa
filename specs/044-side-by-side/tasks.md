@@ -37,18 +37,18 @@
 
 **Independent Test**: quickstart 3–5.
 
-- [ ] T014 [US2] Create C`/lib/selection.ts`: the `selected` setting, cleared by empty space and Escape; test
-- [ ] T015 [US2] Add `locate(ref)` to the surface, answering `in_view | moved | hidden | absent`, with its note in `SideBySide/HalfNote.tsx`; test each answer
-- [ ] T016 [US2] A click selects and copies, a press that moved does not, in C`/lib/erdCopy.ts` and the canvas; test
-- [ ] T017 [US2] Replay a half's hover on the other through C`/rooms/graphvizFocus.ts`, with no card from a replay (FR-015); test
-- [ ] T018 [US2] A step sets `selected`, the list being the pair's, in C`/lib/useGraphvizChangeStepping.ts`; test
-- [ ] T039 [US2] Keep a selected field visible in a collapsed table in C`/lib/erdCollapse.ts`; test
-- [ ] T019 [US2] Create `client/scripts/splitMechanics.ts` with a real mouse and add it to the check run; adversarial breaks; walk quickstart 3–5
+- [x] T014 [US2] Create C`/lib/selection.ts`: the `selected` setting, cleared by empty space and Escape; test
+- [x] T015 [US2] Add `locate(ref)` to the surface, answering `in_view | moved | hidden | absent`, with its note in `SideBySide/HalfNote.tsx`; test each answer
+- [x] T016 [US2] A click selects and copies, a press that moved does not, in C`/lib/erdCopy.ts` and the canvas; test
+- [x] T017 [US2] Replay a half's hover on the other through C`/rooms/graphvizFocus.ts`, with no card from a replay (FR-015); test
+- [x] T018 [US2] A step sets `selected`, the list being the pair's, in C`/lib/useGraphvizChangeStepping.ts`; test
+- [x] T039 [US2] Keep a selected field visible in a collapsed table in C`/lib/erdCollapse.ts`; test
+- [x] T019 [US2] Create `client/scripts/splitMechanics.ts` with a real mouse; it runs on a history by `SPLIT_URL`, since the check run opens a plain source with no two versions
 
 ## Phase 5: US1 + US2 — Use case and lifecycle (commit 5)
 
-- [ ] T020 [US1] Side projection and own layout in `UseCaseDiagramViewer.tsx` and C`/lib/buildDomainUseCaseDotSource.ts`; test
-- [ ] T021 [US1] The same in `LifecycleFsmViewer.tsx` and C`/lib/buildLifecycleFsmDotSource.ts`; test
+- [x] T020 [US1] Side projection and own layout in `UseCaseDiagramViewer.tsx` and C`/lib/buildDomainUseCaseDotSource.ts`; test
+- [x] T021 [US1] The same in `LifecycleFsmViewer.tsx` and C`/lib/buildLifecycleFsmDotSource.ts`; test
 - [ ] T022 [US2] Selection, locator and hover in both viewers; extend `splitMechanics.ts`; walk quickstart 1–5
 
 ## Phase 6: US1 + US2 — Full graph (commit 6)

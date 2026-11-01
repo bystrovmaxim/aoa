@@ -31,6 +31,14 @@ export function useHalf(): Half | null {
   return useContext(HalfContext);
 }
 
+/**
+ * ``svg`` as half ``half`` places it: a reference ``url(#id)`` looks through the whole page, so two drawings with the
+ * same clip ids would be cut by the first one's shapes, and the second would lose its table headers.
+ */
+export function svgOfHalf(svg: string, half: Half | null): string {
+  return half ? svg.replaceAll("erd-fill-clip-", `erd-fill-clip-${half.side}-`) : svg;
+}
+
 /** The page settings that are the layout mode: each half keeps its own. */
 const LAYOUT_SETTINGS: ReadonlySet<string> = new Set(["layout", "rankdir"]);
 

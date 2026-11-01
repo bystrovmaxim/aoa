@@ -1,6 +1,6 @@
 // src/lib/half.test.ts
 import { describe, expect, it } from "vitest";
-import { drawnOn, settingOfHalf, writesForPair, type Half } from "@/lib/half";
+import { drawnOn, settingOfHalf, svgOfHalf, writesForPair, type Half } from "@/lib/half";
 
 const half = (side: "a" | "b"): Half => ({ side, read: { source: side, key: "" }, name: side });
 
@@ -10,6 +10,13 @@ describe("a half", () => {
     expect(settingOfHalf("rankdir", half("b"))).toBe("rankdir_b");
     expect(settingOfHalf("domains", half("a"))).toBe("domains");
     expect(settingOfHalf("layout", null)).toBe("layout");
+  });
+
+  it("keeps its clips apart from the other half's, so each drawing is cut by its own", () => {
+    const svg = '<clipPath id="erd-fill-clip-node1"></clipPath><polygon clip-path="url(#erd-fill-clip-node1)"/>';
+    expect(svgOfHalf(svg, half("b"))).toBe('<clipPath id="erd-fill-clip-b-node1"></clipPath><polygon clip-path="url(#erd-fill-clip-b-node1)"/>');
+    expect(svgOfHalf(svg, half("a"))).not.toBe(svgOfHalf(svg, half("b")));
+    expect(svgOfHalf(svg, null)).toBe(svg);
   });
 
   it("draws what its version has", () => {
