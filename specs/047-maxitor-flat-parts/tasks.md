@@ -85,9 +85,9 @@ description: "Tasks — Maxitor parts one level shallower, and front named web"
 
 **Independent test**: the check run is at zero, every path in the docs exists, one changelog article is in place.
 
-- [ ] T031 [US4] The check run, taken to zero: `bash scripts/run_checks_with_log.sh` with every remark fixed, the two accepted remarks aside
-- [ ] T032 [US4] The documentation: every README tree and every path in `packages/maxitor/README.md`, `packages/maxitor/web/README.md`, the READMEs of the tools and core parts, `docs/tutorials/step-26-maxitor.md` and `examples/` show the new layout and `maxitor[web]`. The note that each checkout needs `uv sync` after the merge goes into the repository's contributor docs where setup is described. Run `examples/step_26_maxitor/13_maxitor_parts.py` and `05_full_graph_in_the_browser.py`, and update the matching notebooks with what they actually print
-- [ ] T033 [US4] The changelog: one article in `docs/CHANGELOG.md`, in plain words, about what changed for a user: the extra is now `maxitor[web]`, and nothing else in an install changes
+- [x] T031 [US4] The check run, taken to zero: `bash scripts/run_checks_with_log.sh` with every remark fixed, the two accepted remarks aside
+- [x] T032 [US4] The documentation: every README tree and every path in `packages/maxitor/README.md`, `packages/maxitor/web/README.md`, the READMEs of the tools and core parts, `docs/tutorials/step-26-maxitor.md` and `examples/` show the new layout and `maxitor[web]`. The note that each checkout needs `uv sync` after the merge goes into the repository's contributor docs where setup is described. Run `examples/step_26_maxitor/13_maxitor_parts.py` and `05_full_graph_in_the_browser.py`, and update the matching notebooks with what they actually print
+- [x] T033 [US4] The changelog: one article in `docs/CHANGELOG.md`, in plain words, about what changed for a user: the extra is now `maxitor[web]`, and nothing else in an install changes
 
 **Checkpoint**: show the diff and wait for the commit instruction. After the commit and the push, on instruction, `bash scripts/check_before_pr.sh` runs on the pushed commit before any pull request.
 

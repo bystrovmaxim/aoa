@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-01] — Maxitor's web part is now called web
+
+If you install Maxitor's web part, ask for `maxitor[web]` from now on. `maxitor[front]` no longer exists. The name changed because this part holds the server as well as the web client, so "front" described only half of it. The command is still `maxitor` and the package is still called `maxitor`.
+
+Code that imports the part now imports `maxitor.web` instead of `maxitor.front`, and with no alias for the old name. If you compare Maxitor's own graph across this change, the whole part shows as removed and created again. That happens once and is expected.
+
+The schema of `graph-builder.toml` has moved, so its old address on GitHub stops working. The installed package carries its own copy, and `graph-builder` reads that one.
+
 ## [2026-11-01] — Before a pull request, only the browsers run on your machine
 
 `scripts/check_before_pr.sh` used to repeat everything GitHub then ran again. It now runs only the check in three browsers, which GitHub's machines cannot do, and leaves the proof on the commit. All the rest is checked once, on the pull request. The full run still exists for when you want everything on your machine, and the speed tests run only there.

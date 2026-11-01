@@ -307,7 +307,7 @@ Graph rendering:
 
 ## 9. Installation
 
-The application is the `front` part of the [`maxitor`](../README.md) package:
+The application is the `web` part of the [`maxitor`](../README.md) package:
 
 ```bash
 pip install "maxitor[web]"
@@ -315,6 +315,8 @@ maxitor
 # or in the monorepo
 uv sync --all-extras
 ```
+
+A checkout installed before this part moved still points at its old folders. Run `uv sync --all-extras` once after pulling that change.
 
 The extra brings `aoa-action-machine`, `aoa-fastapi-adapter`, `duckdb`, `httpx`, `uvicorn` and `websockets`. Without it, `maxitor` says so — `maxitor needs its web part: pip install "maxitor[web]"` — and exits with 2.
 

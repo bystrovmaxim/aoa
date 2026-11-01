@@ -72,7 +72,7 @@ uv build --package maxitor --out-dir /tmp/305-dist
 unzip -l /tmp/305-dist/maxitor-*.whl | grep -c 'maxitor/web/static/'
 ```
 
-Expected: a count above 0. CI's packaging job covers the clean install with each extra.
+Delete `packages/maxitor/web/maxitor/web/static/` after this check: while that folder exists the three-browser check fails on the room's invite card. Expected: a count above 0. CI's packaging job covers the clean install with each extra.
 
 ## The container images
 
