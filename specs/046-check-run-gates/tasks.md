@@ -91,8 +91,8 @@ Every extracted helper is private, stays in its module and has a one-line docstr
 
 **Purpose**: The tail of Principle VI, in this order, one commit each. No task may absorb another. Plans stop at the changelog: no release, version or publishing work.
 
-- [ ] T025 Check run: run `bash scripts/run_checks_with_log.sh` and take every remark to zero, leaving only the two accepted ones; confirm wall time is no higher than T001's (SC-006). Afterwards restart `maxitor-client` if it was running
-- [ ] T026 Documentation: update `docs/how-to/run-the-checks.md`, removing "Ruff lint" from every table and sample, showing what each Radon step fails on with real output for each case of the contract, how an exception is added, and that the one Ruff step fixes locally and only reports in CI
+- [X] T025 Check run: run `bash scripts/run_checks_with_log.sh` and take every remark to zero, leaving only the two accepted ones; confirm wall time is no higher than T001's (SC-006). Afterwards restart `maxitor-client` if it was running
+- [X] T026 Documentation: update `docs/how-to/run-the-checks.md`, removing "Ruff lint" from every table and sample, showing what each Radon step fails on with real output for each case of the contract, how an exception is added, and that the one Ruff step fixes locally and only reports in CI
 - [ ] T027 Changelog: one plain article in `docs/CHANGELOG.md` about what this work created, with no technical detail and no per-file account
 
 **Commit points**: Three commits, one per task.
