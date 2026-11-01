@@ -8,12 +8,15 @@ on:
       - main
       - "feature/**"
 
-# Three jobs, run in parallel. Each one calls the same runner with a selector, so the
-# local run and CI run the same commands from one table (`scripts/check_run.py`):
-#   checks    — the deterministic gate (static checks, client build and unit tests,
-#               ERD scripts, Python tests minus benchmarks, graph files check);
-#   browser   — the three-engine layout check, with its browsers cached by the lockfile hash;
-#   packaging — the wheel/sdist build and the install smoke.
+# Three jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
+# same commands from one table (`scripts/check_run.py`):
+#   checks     — the deterministic gate (static checks, client build and unit tests,
+#                ERD scripts, Python tests minus benchmarks, graph files check);
+#   packaging  — the wheel/sdist build and the install smoke;
+#   local-run  — the proof that the full local run passed on this commit.
+# The three-engine layout check is not here: these machines have no graphics card, so Firefox
+# has no WebGL and the map cannot be drawn. It runs in the full local run, and `local-run` fails a
+# pull request whose commit does not carry that run's proof.
 jobs:
   checks:
     name: Checks
@@ -37,13 +40,20 @@ jobs:
         run: uv sync --all-extras
 
       - name: Check run (checks)
-        run: bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging
+        run: bash scripts/run_checks_with_log.sh --where ci --skip-group packaging
 
       # The runner keeps each step's output in the log file, so a failure in CI would otherwise
       # show only its FAIL line; print the log so the failing step's own output is in the job log.
       - name: Show the check log on failure
         if: failure()
         run: cat archive/logs/check-all.txt || true
+
+      # Maxitor's own action, the one other projects use, here running this checkout's graph-builder:
+      # this is the only place it runs before someone else depends on it.
+      - name: Graph files are current (graph-builder action)
+        uses: ./packages/maxitor/tools/graph_builder
+        with:
+          graph-builder: uv run --extra dev graph-builder
 
       # The graph files (graph-builder.toml) must be what the code builds: the check above only
       # reads them. The developer runs `graph-builder write` locally and commits the files with the
@@ -68,51 +78,25 @@ jobs:
           fi
           echo "✅ Branch name is valid"
 
-  browser:
-    name: Browser engines
+  local-run:
+    name: Proof of the local run
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      statuses: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: packages/maxitor/front/client/package-lock.json
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Project environment
-        run: uv sync --all-extras
-
-      # The map the three-engine check opens is laid out by the API with Graphviz's `sfdp`;
-      # without it the API refuses the read with 422 and the page never gets a layout hash.
-      - name: Install Graphviz
-        run: sudo apt-get update && sudo apt-get install -y graphviz
-
-      # playwright install is incremental: it downloads only the browser version the lockfile
-      # asks for, so the cache misses only when Playwright itself changes.
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('packages/maxitor/front/client/package-lock.json') }}
-
-      # The check reaches the page and the API (the Graphviz 422 is gone), but on the hosted
-      # runner the page still never sets its first layout hash: `nextHash` times out with no
-      # console error and no failing request. It runs here so the gap stays visible and does
-      # not block the pull request until the cause is found; that is T032 in tasks.md.
-      - name: Check run (browser)
-        continue-on-error: true
-        run: bash scripts/run_checks_with_log.sh --where ci --only-browser
-
-      - name: Show the check log
-        if: always()
-        run: cat archive/logs/check-all.txt || true
+      # The head of the pull request, not `github.sha`: that is GitHub's own merge commit, and
+      # nobody ran it. No uv here: the runner is the standard library alone.
+      - name: The commit carries the proof of the full local run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check_run.py --await-sign-off "$COMMIT"
 
   packaging:
     name: Packaging
