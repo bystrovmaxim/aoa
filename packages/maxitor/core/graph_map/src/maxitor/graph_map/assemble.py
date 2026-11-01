@@ -88,9 +88,18 @@ def _sketch(area: Area, layout: AreaLayout, facts: _Facts) -> dict[str, Any]:
     counts: dict[tuple[int, int, int, int, int], int] = {}
     for node in area.nodes:
         x, y = layout.positions[node.id]
-        key = (int(x // cell), int(y // cell), facts.types.index(node.type), facts.chains[node.above], STATUSES.index(facts.glance.get(node.id, "unchanged")))
+        key = (
+            int(x // cell),
+            int(y // cell),
+            facts.types.index(node.type),
+            facts.chains[node.above],
+            STATUSES.index(facts.glance.get(node.id, "unchanged")),
+        )
         counts[key] = counts.get(key, 0) + 1
-    cells = [[column, row, kind, count, chain, status] for (column, row, kind, chain, status), count in sorted(counts.items())]
+    cells = [
+        [column, row, kind, count, chain, status]
+        for (column, row, kind, chain, status), count in sorted(counts.items())
+    ]
     return {"cell": round(cell, 1), "cells": cells}
 
 
@@ -105,7 +114,13 @@ class _Facts:
 
 def _edge(edge: MapEdge, levels: Mapping[str, int], marks: Marks | None) -> dict[str, Any]:
     """One link as an area's detail lists it, with the level from which both its ends show."""
-    item: dict[str, Any] = {"id": edge.id, "source": edge.source, "target": edge.target, "type": edge.type, "level": max(levels[edge.source], levels[edge.target])}
+    item: dict[str, Any] = {
+        "id": edge.id,
+        "source": edge.source,
+        "target": edge.target,
+        "type": edge.type,
+        "level": max(levels[edge.source], levels[edge.target]),
+    }
     if marks and edge.id in marks.edges:
         item["diff"] = marks.edges[edge.id]
     if marks and edge.id in marks.was:
@@ -113,12 +128,21 @@ def _edge(edge: MapEdge, levels: Mapping[str, int], marks: Marks | None) -> dict
     return item
 
 
-def _detail(area: Area, layout: AreaLayout, place: Place, levels: Mapping[str, int], marks: Marks | None, facts: _Facts) -> dict[str, Any]:
+def _detail(
+    area: Area, layout: AreaLayout, place: Place, levels: Mapping[str, int], marks: Marks | None, facts: _Facts
+) -> dict[str, Any]:
     """One area's nodes at their places on the map, and its links."""
     nodes = []
     for node in area.nodes:
         x, y = layout.positions[node.id]
-        item: dict[str, Any] = {"id": node.id, "label": node.label, "type": node.type, "level": node.level, "x": round(place.x + x, 1), "y": round(place.y + y, 1)}
+        item: dict[str, Any] = {
+            "id": node.id,
+            "label": node.label,
+            "type": node.type,
+            "level": node.level,
+            "x": round(place.x + x, 1),
+            "y": round(place.y + y, 1),
+        }
         if node.above:
             item["chain"] = facts.chains[node.above]
         if marks and node.id in marks.nodes:
@@ -126,7 +150,11 @@ def _detail(area: Area, layout: AreaLayout, place: Place, levels: Mapping[str, i
         elif node.id in facts.glance:
             item["glance"] = facts.glance[node.id]
         nodes.append(item)
-    return {"nodes": nodes, "edges": [_edge(edge, levels, marks) for edge in area.inner], "across": [_edge(edge, levels, marks) for edge in area.across]}
+    return {
+        "nodes": nodes,
+        "edges": [_edge(edge, levels, marks) for edge in area.inner],
+        "across": [_edge(edge, levels, marks) for edge in area.across],
+    }
 
 
 def _changes(graph: GraphAreas, details: Mapping[str, dict[str, Any]], marks: Marks) -> list[dict[str, Any]]:
@@ -138,7 +166,19 @@ def _changes(graph: GraphAreas, details: Mapping[str, dict[str, Any]], marks: Ma
         detail = details.get(area.id, {})
         for item in detail.get("nodes", ()):
             if item["id"] in marks.nodes:
-                listed.append({"id": item["id"], "label": item["label"], "area": area.id, "type": item["type"], "status": item["diff"], "x": item["x"], "y": item["y"], "level": item["level"], "ends": [_end(item, area.id)]})
+                listed.append(
+                    {
+                        "id": item["id"],
+                        "label": item["label"],
+                        "area": area.id,
+                        "type": item["type"],
+                        "status": item["diff"],
+                        "x": item["x"],
+                        "y": item["y"],
+                        "level": item["level"],
+                        "ends": [_end(item, area.id)],
+                    }
+                )
         for link in (*detail.get("edges", ()), *detail.get("across", ())):
             if link["id"] in marks.edges and link["source"] in placed and link["target"] in placed:
                 listed.append(_changed_link(link, area.id, placed[link["source"]], placed[link["target"]], homes))
@@ -150,11 +190,23 @@ def _end(item: Mapping[str, Any], area: str) -> list[Any]:
     return [item["id"], area, item["type"], item.get("chain", 0), item.get("diff") or item.get("glance") or "unchanged"]
 
 
-def _changed_link(link: Mapping[str, Any], area: str, start: Mapping[str, Any], end: Mapping[str, Any], homes: Mapping[str, str]) -> dict[str, Any]:
+def _changed_link(
+    link: Mapping[str, Any], area: str, start: Mapping[str, Any], end: Mapping[str, Any], homes: Mapping[str, str]
+) -> dict[str, Any]:
     """A changed link as the steps go to it: at its middle, wide enough to see both its ends."""
     span = round(math.hypot(end["x"] - start["x"], end["y"] - start["y"]), 1)
     middle = {"x": round((start["x"] + end["x"]) / 2, 1), "y": round((start["y"] + end["y"]) / 2, 1)}
-    return {"id": link["id"], "label": f"{start['label']} → {end['label']}", "area": area, "type": link["type"], "status": link["diff"], **middle, "level": link["level"], "span": span, "ends": [_end(start, homes[link["source"]]), _end(end, homes[link["target"]])]}
+    return {
+        "id": link["id"],
+        "label": f"{start['label']} → {end['label']}",
+        "area": area,
+        "type": link["type"],
+        "status": link["diff"],
+        **middle,
+        "level": link["level"],
+        "span": span,
+        "ends": [_end(start, homes[link["source"]]), _end(end, homes[link["target"]])],
+    }
 
 
 def _marked(item: dict[str, Any], area: Area, marks: Marks) -> None:
@@ -192,10 +244,7 @@ def assemble(
     details: dict[str, dict[str, Any]] = {}
     for index, area in enumerate(graph.areas):
         place = places[area.id]
-        counts: dict[str, int] = {}
-        for node in area.nodes:
-            counts[node.type] = counts.get(node.type, 0) + 1
-        item: dict[str, Any] = {"id": area.id, "name": area.name, "colour": colours[index % len(colours)], "x": place.x, "y": place.y, "radius": place.room, "counts": counts}
+        item = _overview_area(area, place, colours[index % len(colours)])
         layout = layouts.get(area.id)
         if layout is None:
             item["failed"] = True
@@ -205,18 +254,50 @@ def assemble(
         if marks:
             _marked(item, area, marks)
         overview_areas.append(item)
-    bundles: list[list[Any]] = [[one, other, sum(ends.values()), dict(ends)] for (one, other), ends in sorted(graph.links.items())]
-    if marks:
-        changed_across = _changed_links(graph, marks)
-        for bundle in bundles:
-            bundle.append(changed_across.get((bundle[0], bundle[1]), {}))
+    bundles = _bundles(graph, marks)
     shared = [{"id": node_id, "domains": list(domains)} for node_id, domains in sorted(graph.memberships.items())]
-    overview: dict[str, Any] = {"state": "ready", "types": list(graph.types), "type_colours": {name: type_colour(name) for name in graph.types}, "chains": [list(chain) for chain in chains], "areas": overview_areas, "bundles": bundles, "shared": shared}
+    overview: dict[str, Any] = {
+        "state": "ready",
+        "types": list(graph.types),
+        "type_colours": {name: type_colour(name) for name in graph.types},
+        "chains": [list(chain) for chain in chains],
+        "areas": overview_areas,
+        "bundles": bundles,
+        "shared": shared,
+    }
     if marks is None:
         return VersionMap(overview, details)
     drawn = {edge.id for area in graph.areas for edge in (*area.inner, *area.across)}
     overview["links_changed"] = sum(1 for edge_id in marks.edges if edge_id in drawn)
     return VersionMap(overview, details, _changes(graph, details, marks))
+
+
+def _overview_area(area: Area, place: Place, colour: str) -> dict[str, Any]:
+    """An area's entry in the overview, before its layout or its marks are known."""
+    counts: dict[str, int] = {}
+    for node in area.nodes:
+        counts[node.type] = counts.get(node.type, 0) + 1
+    return {
+        "id": area.id,
+        "name": area.name,
+        "colour": colour,
+        "x": place.x,
+        "y": place.y,
+        "radius": place.room,
+        "counts": counts,
+    }
+
+
+def _bundles(graph: GraphAreas, marks: Marks | None) -> list[list[Any]]:
+    """The links between each pair of areas; with marks, each also says what changed in it."""
+    bundles: list[list[Any]] = [
+        [one, other, sum(ends.values()), dict(ends)] for (one, other), ends in sorted(graph.links.items())
+    ]
+    if marks:
+        changed_across = _changed_links(graph, marks)
+        for bundle in bundles:
+            bundle.append(changed_across.get((bundle[0], bundle[1]), {}))
+    return bundles
 
 
 def _changed_links(graph: GraphAreas, marks: Marks) -> dict[tuple[str, str], dict[str, int]]:

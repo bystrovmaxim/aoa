@@ -26,7 +26,9 @@ import pytest
 from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
 from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
-_REFERENCE_GRAPH = Path(__file__).resolve().parents[4] / "specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz"
+_REFERENCE_GRAPH = (
+    Path(__file__).resolve().parents[4] / "specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz"
+)
 _LINE_EDGES = ("entity_relation", "entity_reference", "parent_entity")
 
 
@@ -76,7 +78,9 @@ def test_two_neighbours_of_a_domain_are_joined(duck: DuckDBGraphResource, domain
 
 def test_a_generalization_between_neighbours_is_drawn(duck: DuckDBGraphResource, domains: dict[str, str]) -> None:
     """On ``PlayersDomain`` the extensions of ``UserEventCore`` on screen keep their line to it."""
-    rows = [r for r in _slice(duck, domains["PlayersDomain"])["relations"] if r["relationship_kind"] == "generalization"]
+    rows = [
+        r for r in _slice(duck, domains["PlayersDomain"])["relations"] if r["relationship_kind"] == "generalization"
+    ]
 
     assert {(_short(r["source"]), _short(r["target"])) for r in rows} >= {
         ("UserEventLoginSpecEntity", "UserEventCoreEntity"),
@@ -85,7 +89,9 @@ def test_a_generalization_between_neighbours_is_drawn(duck: DuckDBGraphResource,
     }
 
 
-def test_a_specialization_head_is_joined_to_its_axis_dictionary(duck: DuckDBGraphResource, domains: dict[str, str]) -> None:
+def test_a_specialization_head_is_joined_to_its_axis_dictionary(
+    duck: DuckDBGraphResource, domains: dict[str, str]
+) -> None:
     """``UserEventCore`` specializes by ``kind`` from ``EventKindEnum``: one reference line joins them."""
     events = _slice(duck, domains["EventsDomain"])
     rows = [r for r in events["relations"] if _short(r["target"]) == "EventKindEnumEntity"]
@@ -110,29 +116,53 @@ def test_a_line_whose_ends_come_from_two_slices_is_in_the_request_list(
     assert ("IndustryEnumEntity", "OfferCoreEntity") in in_request
 
 
-def test_no_line_is_missing_or_off_screen_for_any_view(
-    graph: dict[str, Any], duck: DuckDBGraphResource, domains: dict[str, str]
-) -> None:
-    """Every slice and every set of domains: each graph line between two tables on screen is drawn, and only those."""
+def _graph_lines(graph: dict[str, Any]) -> list[tuple[str, str]]:
+    """Every line the graph asks for, a specialization's line to its axis dictionary among them."""
     lines = [(e["source_id"], e["target_id"]) for e in graph["edges"] if e["type"] in _LINE_EDGES]
     lines += [
         (e["source_id"], e["properties"]["dictionary_qualname"])
         for e in graph["edges"]
         if e["type"] == "entity_specialization" and e["properties"].get("dictionary_qualname")
     ]
-    entity_ids = {q: {e["id"] for e in _slice(duck, q)["entities"]} for q in domains.values()}
+    return lines
+
+
+def _views(duck: DuckDBGraphResource, quals: list[str]) -> list[tuple[list[str], list[dict[str, Any]]]]:
+    """Each slice alone and each set of domains, with the rows drawn in that view."""
     views: list[tuple[list[str], list[dict[str, Any]]]] = [
-        ([q], [r for r in _slice(duck, q)["relations"] if r["relationship_kind"] != "specialization"]) for q in domains.values()
+        ([q], [r for r in _slice(duck, q)["relations"] if r["relationship_kind"] != "specialization"]) for q in quals
     ]
-    for size in range(1, len(domains) + 1):
-        for quals in itertools.combinations(domains.values(), size):
-            views.append((list(quals), ListEntitiesAction.request_relations(duck, list(quals), include_neighbors=True)))
+    for size in range(1, len(quals) + 1):
+        for chosen in itertools.combinations(quals, size):
+            views.append(
+                (list(chosen), ListEntitiesAction.request_relations(duck, list(chosen), include_neighbors=True))
+            )
+    return views
+
+
+def _missing_lines(
+    lines: list[tuple[str, str]], on_screen: set[str], rows: list[dict[str, Any]]
+) -> set[tuple[str, str]]:
+    """Graph lines between two different tables on screen that ``rows`` does not draw."""
+    drawn = {frozenset((r["source"], r["target"])) for r in rows}
+    return {
+        (_short(a), _short(b))
+        for a, b in lines
+        if a in on_screen and b in on_screen and a != b and frozenset((a, b)) not in drawn
+    }
+
+
+def test_no_line_is_missing_or_off_screen_for_any_view(
+    graph: dict[str, Any], duck: DuckDBGraphResource, domains: dict[str, str]
+) -> None:
+    """Every slice and every set of domains: each graph line between two tables on screen is drawn, and only those."""
+    lines = _graph_lines(graph)
+    entity_ids = {q: {e["id"] for e in _slice(duck, q)["entities"]} for q in domains.values()}
 
     problems = []
-    for quals, rows in views:
+    for quals, rows in _views(duck, list(domains.values())):
         on_screen = set().union(*(entity_ids[q] for q in quals))
-        drawn = {frozenset((r["source"], r["target"])) for r in rows}
-        missing = {(_short(a), _short(b)) for a, b in lines if a in on_screen and b in on_screen and a != b and frozenset((a, b)) not in drawn}
+        missing = _missing_lines(lines, on_screen, rows)
         stray = [r for r in rows if r["source"] not in on_screen or r["target"] not in on_screen]
         if missing or stray:
             problems.append(([_short(q) for q in quals], sorted(missing), len(stray)))

@@ -890,7 +890,9 @@ def _fill_table_sensitive(con: duckdb.DuckDBPyConnection, rows: list[dict[str, A
 def _fill_table_role(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     for node in rows:
         p = _get_properties(node)
-        con.execute("INSERT INTO role VALUES (?, ?, ?, ?)", [node["id"], node["label"], p["role_mode"], p.get("description")])
+        con.execute(
+            "INSERT INTO role VALUES (?, ?, ?, ?)", [node["id"], node["label"], p["role_mode"], p.get("description")]
+        )
 
 
 def _fill_table_application_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
@@ -1019,7 +1021,10 @@ def _fill_table_connection_edges(con: duckdb.DuckDBPyConnection, rows: list[dict
     _executemany(
         con,
         "INSERT INTO connection_edges (source_id, target_id, relationship, is_dag, conn_key, description) VALUES (?, ?, ?, ?, ?, ?)",
-        [[*_base_edge_row(edge), _get_properties(edge)["key"], _get_properties(edge).get("description")] for edge in rows],
+        [
+            [*_base_edge_row(edge), _get_properties(edge)["key"], _get_properties(edge).get("description")]
+            for edge in rows
+        ],
     )
 
 
@@ -1182,6 +1187,17 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
 
     _assert_no_unknown_graph_types(nodes_by_type, edges_by_type)
 
+    _fill_simple_edge_tables(con, edges_by_type)
+    _fill_model_node_tables(con, nodes_by_type)
+    _fill_table_entity_field_edges(con, edges_by_type.get("entity_field", []))
+    _fill_schema_node_tables(con, nodes_by_type)
+    _fill_aspect_node_tables(con, nodes_by_type)
+    _fill_lifecycle_node_tables(con, nodes_by_type)
+    _fill_detail_edge_tables(con, edges_by_type)
+
+
+def _fill_simple_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the edge tables that hold only the four base columns."""
     simple_edge_types = {
         "application": "application_edges",
         "domain": "domain_edges",
@@ -1211,27 +1227,23 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
             ],
         )
 
+
+def _fill_model_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the tables of actions, applications, domains, entities and entity fields."""
     _executemany(
         con,
         "INSERT INTO action VALUES (?, ?, ?)",
         [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Action", [])],
     )
-    _executemany(
-        con,
-        "INSERT INTO application VALUES (?, ?, ?, ?)",
-        [
-            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
-            for n in nodes_by_type.get("Application", [])
-        ],
-    )
-    _executemany(
-        con,
-        "INSERT INTO domain VALUES (?, ?, ?, ?)",
-        [
-            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
-            for n in nodes_by_type.get("Domain", [])
-        ],
-    )
+    for table, node_type in (("application", "Application"), ("domain", "Domain")):
+        _executemany(
+            con,
+            f"INSERT INTO {table} VALUES (?, ?, ?, ?)",
+            [
+                [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
+                for n in nodes_by_type.get(node_type, [])
+            ],
+        )
     _executemany(
         con,
         "INSERT INTO entity VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -1256,8 +1268,10 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
             for n in entity_field_nodes
         ],
     )
-    entity_field_edge_rows = edges_by_type.get("entity_field", [])
-    _fill_table_entity_field_edges(con, entity_field_edge_rows)
+
+
+def _fill_schema_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the tables of resources, params, results, fields and property fields."""
     _executemany(
         con,
         "INSERT INTO resource VALUES (?, ?, ?)",
@@ -1294,6 +1308,10 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
             for n in nodes_by_type.get("PropertyField", [])
         ],
     )
+
+
+def _fill_aspect_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the tables of aspects, access decisions, compensators, error handlers, checkers and required context."""
     _executemany(
         con,
         "INSERT INTO regular_aspect VALUES (?, ?, ?)",
@@ -1343,10 +1361,17 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
         "INSERT INTO required_context VALUES (?, ?, ?)",
         [[n["id"], n["label"], _get_properties(n)["key"]] for n in nodes_by_type.get("RequiredContext", [])],
     )
+
+
+def _fill_lifecycle_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the tables of lifecycles, states, sensitive markers and roles."""
     _executemany(
         con,
         "INSERT INTO lifecycle VALUES (?, ?, ?, ?)",
-        [[n["id"], n["label"], _get_properties(n)["field_name"], _get_properties(n).get("description")] for n in nodes_by_type.get("Lifecycle", [])],
+        [
+            [n["id"], n["label"], _get_properties(n)["field_name"], _get_properties(n).get("description")]
+            for n in nodes_by_type.get("Lifecycle", [])
+        ],
     )
     _executemany(
         con,
@@ -1375,9 +1400,15 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     _executemany(
         con,
         "INSERT INTO role VALUES (?, ?, ?, ?)",
-        [[n["id"], n["label"], _get_properties(n)["role_mode"], _get_properties(n).get("description")] for n in nodes_by_type.get("Role", [])],
+        [
+            [n["id"], n["label"], _get_properties(n)["role_mode"], _get_properties(n).get("description")]
+            for n in nodes_by_type.get("Role", [])
+        ],
     )
 
+
+def _fill_detail_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict[str, list[dict[str, Any]]]) -> None:
+    """Fill the edge tables that carry columns of their own, each through its loader."""
     _fill_table_depends_edges(con, edges_by_type.get("@depends", []))
     _fill_table_connection_edges(con, edges_by_type.get("@connection", []))
     _fill_table_required_context_edges(con, edges_by_type.get("@required_context", []))
