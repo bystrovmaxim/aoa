@@ -18,6 +18,8 @@ Phase 0 of `/speckit-plan`. Each decision below answers a question the spec left
 
 ## R3. How the browser job avoids downloading browsers every run
 
+**Superseded by R8**: there is no browser job. What follows is kept as the record of the first answer.
+
 **Decision**: `actions/cache@v4` on `~/.cache/ms-playwright`, keyed `playwright-${{ runner.os }}-${{ hashFiles('packages/maxitor/front/client/package-lock.json') }}`, restored before `npx playwright install --with-deps chromium firefox webkit`.
 
 **Rationale**: `playwright install` is incremental — it checks the required browser version and downloads only what is missing. Keying on the lockfile means the cache misses only when Playwright's version changes, which is exactly "update only when it needs updating". System libraries are largely present on `ubuntu-latest`; `--with-deps` tops up the rest.
@@ -32,7 +34,7 @@ Phase 0 of `/speckit-plan`. Each decision below answers a question the spec left
 
 ## R5. One table for local and CI
 
-**Decision**: `Step` gains `home` (`"local" | "ci" | "both"`), `fast: bool`, `browser: bool`; the runner gains `--where local|ci`, `--fast`, `--only-browser`, `--skip-browser`, `--only-group NAME`, `--skip-group NAME`. `run_checks_with_log.sh` already forwards `"$@"`.
+**Decision**: `Step` gains `home` (`"local" | "ci" | "both"`), `fast: bool`, `browser: bool`; the runner gains `--where local|ci`, `--fast`, `--only-browser`, `--only-group NAME`, `--skip-group NAME`. `run_checks_with_log.sh` already forwards `"$@"`.
 
 **Rationale**: local and CI run the *same* commands from one table, so they cannot drift; the spec's "one stated home" becomes a property of the table, not of two files.
 
@@ -40,12 +42,30 @@ Phase 0 of `/speckit-plan`. Each decision below answers a question the spec left
 
 ## R6. Graph files always checked
 
-**Decision**: split the graph step into `Graph files (graph-builder check)` (no `only_if_all_passed`, runs in every where) and `Graph files (graph-builder write)` (`only_if_all_passed=True`, local only). The check step must run even when other steps failed.
+**Decision**: split the graph step into `Graph files (graph-builder write)` (`only_if_all_passed=True`, local only) and, after it, `Graph files (graph-builder check)` (no `only_if_all_passed`, runs in every where). The check step must run even when other steps failed, and it must come after the write: run beside the others, a stale file failed the check, and that failure then skipped the write that would have fixed it, so the file stayed stale on a green run.
 
 **Rationale**: acceptance criterion 5 — no failure in an unrelated step may skip both. `graph-builder check` already exists as the CLI verb and as the CI composite action.
 
 ## R7. CI job layout
 
-**Decision**: three jobs, in parallel — `checks` (static checks, client build/vitest/ERD, Python tests, graph check), `browser` (three engines, cached browsers), `packaging` (build + install smoke). Each invokes the same runner with a selector: `--where ci --skip-browser --skip-group packaging`, `--where ci --only-browser`, `--where ci --only-group packaging`.
+**Decision**: three jobs, in parallel — `checks` (static checks, client build/vitest/ERD, Python tests, graph check), `packaging` (build + install smoke), `local-run` (the proof of the full local run). Each invokes the same runner: `--where ci --skip-group packaging`, `--where ci --only-group packaging`, `--await-sign-off <commit>`.
 
-**Rationale**: the browser job is heavy and its cache is specific; packaging needs the `dist/` archives; running them as separate jobs keeps the fast `checks` feedback early and lets the slow jobs run in parallel.
+**Rationale**: packaging needs the `dist/` archives; running it apart keeps the `checks` feedback early. The proof job needs nothing installed, because the runner is the standard library alone.
+
+## R8. Where the browsers run
+
+**Decision**: in the full local run only. CI does not run them; it reads their proof (R9).
+
+**Rationale**: the browser job failed with no console error and no failing request, and the cause was reproduced in a Linux container with the CI job's limits (4 cores, Ubuntu 24.04, arm64 rather than GitHub's x86): a machine with no graphics card gives Firefox no WebGL, so the map says "This browser cannot draw the map: WebGL is off" and no layout hash ever appears. Chromium and WebKit draw in software. `webgl.force-enabled` with Mesa did not help (`Exhausted GL driver options`). Firefox with a window on Xvfb did get WebGL through `llvmpipe`, and under it all 61 page-modes agreed in all three engines, but the same run gave 30 differences in 240 on following and on frames, and took 329 s. Those parts measure cameras and frames, so chasing them would tune the check to a software renderer no user has, and the real Safari run can only happen on the maintainer's machine anyway.
+
+**Alternatives considered**: Firefox under Xvfb in CI (above); dropping the map from Firefox in CI (a hole in the gate); a self-hosted runner on the maintainer's Mac (the repository is public, so a pull request would run foreign code on that machine). Rejected.
+
+## R9. How CI controls a run it does not perform
+
+**Decision**: the trace is a commit status, `Local check run`. A green full run on one commit leaves a receipt in `archive/logs/check-run-receipt.json`; `--sign-off` reports it through `gh api`; the job `Proof of the local run` reads it with `--await-sign-off`, waiting up to 15 minutes, and fails when none comes. The merge rule of `main` requires that job.
+
+**Rationale**: a status is tied to the exact commit, so a new commit has none; it needs no file in the tree, so it adds no commit and no merge conflict; the local run stays free of the network, because only `--sign-off` talks to GitHub. The wait exists because a commit pushed to an open pull request starts CI at once, and failing then would turn every such push red and leave it red after its run. A commit that had its run before the pull request answers on the first read.
+
+**Alternatives considered**: a git hook (not controlled: `--no-verify`, another machine); a file committed with the proof (a commit that proves itself needs a second commit, and every pull request conflicts on it); requiring the bare status with no job (works, but CI shows it only as "Expected", never as a failure). Rejected.
+
+**Limit**: anyone with write access can post a status, so this is an attestation, not a proof. With one maintainer it is enough, and the ruleset has no bypass actors, so the job cannot be skipped.

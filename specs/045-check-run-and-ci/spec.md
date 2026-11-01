@@ -116,10 +116,44 @@ The maintainer makes a small change and does not have to pay for the whole full 
 
 ---
 
+### User Story 8 - The browser check is proven on the commit that merges (Priority: P1)
+
+The maintainer changed Q3: the three-engine layout stays on the maintainer's machine, and CI checks that it happened. A full local run on one commit leaves a receipt; before a pull request the maintainer reports it to GitHub as a commit status; CI fails a pull request whose commit does not carry that status. A new commit has no status of its own, so nothing merges unproved.
+
+**Why this priority**: A CI machine has no graphics card, so Firefox has no WebGL and the map cannot be drawn; forcing a software renderer under a virtual screen passed the layout hashes but gave 30 differences in 240 on following and frames, in a configuration no user has. Run locally the check is real, and with this story it is also controlled.
+
+**Independent Test**: Open a pull request from a commit that never had a full local run; the job `Proof of the local run` must fail, and pass once `bash scripts/check_before_pr.sh` has run on that commit.
+
+**Acceptance Scenarios**:
+
+1. **Given** a green full run with the tree one commit from start to end, **When** the run ends, **Then** a receipt names that commit.
+2. **Given** the tree was dirty at the start, was changed during the run, or moved to another commit, **When** the run ends, **Then** no receipt is left.
+3. **Given** a receipt for another commit, or uncommitted changes, **When** the sign-off is asked for, **Then** it refuses and GitHub is not called.
+4. **Given** a pull request whose commit carries no status, **When** CI waits and none comes, **Then** the job fails and says what to run.
+5. **Given** a commit pushed to an open pull request, **When** its full run ends within the wait, **Then** the job passes without being re-run.
+
+---
+
+### User Story 9 - Two scripts, named for when they run (Priority: P2)
+
+The maintainer asked for two scripts and a rule in the constitution: `scripts/check_before_commit.sh` during the work and before every commit, and `scripts/check_before_pr.sh` before a pull request, and no pull request is opened until it has passed.
+
+**Why this priority**: Nobody should have to remember flags to know which run a moment needs.
+
+**Independent Test**: Run each script: the first runs the fast mode; the second refuses a dirty or unpushed tree before spending the run, then runs the full gate and signs off.
+
+**Acceptance Scenarios**:
+
+1. **Given** the work in progress, **When** `check_before_commit.sh` runs, **Then** it runs the fast mode.
+2. **Given** a pushed commit, **When** `check_before_pr.sh` runs, **Then** it runs the full gate and, on green, signs off.
+3. **Given** a red full run, **When** the script ends, **Then** nothing is reported to GitHub.
+
+---
+
 ### Edge Cases
 
 - **Network off during the local run**: the run must not depend on pypi.org; tool caches satisfy the build and install.
-- **Poor connection in CI**: the browser download and the package build must be cached or offline so a flaky network does not fail an unrelated change.
+- **Poor connection in CI**: the package build uses uv's cache, so a flaky network does not fail an unrelated change.
 - **Busy machine during speed tests**: timing budgets must leave headroom or the tests must be outside the fast gate.
 - **An unrelated step fails before the graph step**: the graph files are still checked, never skipped.
 - **A pull request opened directly from `main`**: already rejected by CI; unchanged by this work.
@@ -133,10 +167,12 @@ The maintainer makes a small change and does not have to pay for the whole full 
 - **FR-003**: CI MUST run, on every pull request, the checks and tests that need no browser engine and no unusually powerful machine, and its result MUST NOT depend on the maintainer's computer.
 - **FR-004**: A broken wheel or sdist definition MUST be caught before the package is released.
 - **FR-005**: The packaging install smoke test MUST run wherever the archives are built, because it installs them with their dependencies.
-- **FR-006**: The browser-engine layout check (three engines) MUST run in CI as a separate, slower gate, and its browsers MUST be cached so they are not re-downloaded on every run.
+- **FR-006**: The browser-engine layout check (three engines) MUST run in the full local run and MUST NOT run in CI; CI MUST instead fail a pull request whose commit does not carry the proof of a full local run (FR-010).
 - **FR-007**: Machine-speed-sensitive tests (benchmarks and timing tests) MUST be marked as such and MUST be excluded from the fast CI path; they MUST still run in the full local run.
-- **FR-008**: The graph files MUST always be written or checked; no failure in an unrelated step MAY leave them neither written nor checked.
-- **FR-009**: The local run MUST offer an opt-in fast mode that runs only the cheap deterministic steps and skips the client build, the client unit tests, the ERD scripts, the three-engine job, the package build, the install smoke and the graph write; the full run MUST stay the default.
+- **FR-008**: The graph files MUST always be written or checked; no failure in an unrelated step MAY leave them neither written nor checked, and a stale file MUST be rewritten on a green run instead of failing it.
+- **FR-009**: The local run MUST offer an opt-in fast mode that runs only the cheap deterministic steps, without the speed tests, and skips the client build, the client unit tests, the ERD scripts, the three-engine check, the package build, the install smoke and the graph rows; the full run MUST stay the default.
+- **FR-010**: A green full local run on one commit MUST leave a receipt naming it; `--sign-off` MUST report that receipt to GitHub as the commit status `Local check run` and MUST refuse for any tree that is not that commit; the local run itself MUST stay free of the network.
+- **FR-011**: The repository MUST offer `scripts/check_before_commit.sh` (the fast mode) and `scripts/check_before_pr.sh` (the full run on a pushed commit, then the sign-off); no pull request is opened until the second has passed.
 
 ### Key Entities
 
@@ -154,6 +190,7 @@ The maintainer makes a small change and does not have to pay for the whole full 
 - **SC-004**: A pull request gets a result from CI that does not depend on the maintainer's computer.
 - **SC-005**: The graph files are always written or checked: no failure in an unrelated step can skip them.
 - **SC-006**: The fast mode runs only the cheap deterministic steps, and the full run stays the default.
+- **SC-007**: A pull request whose commit never had a full local run fails in CI.
 
 ## Decision Table
 
@@ -175,21 +212,21 @@ The decision of phase 1: every step of today's local run, with its home and the 
 | Radon maintainability index | ✅ | ✅ | deterministic static check |
 | Maxitor client: `npm ci` and Vite build | ✅ | ✅ | CI already builds; local needs it for the client tests |
 | Maxitor client: unit tests (vitest) | ✅ | ✅ | jsdom, no browser engine |
-| Maxitor client: three-engine layout | ✅ | ✅ (separate job) | the only step that needs real browsers; cached in CI |
+| Maxitor client: three-engine layout | ✅ | — (its proof is read: `Proof of the local run`) | needs a graphics card: a CI machine has none, so Firefox has no WebGL there |
 | Maxitor client: ERD scripts (5×, Graphviz WASM) | ✅ | ✅ | deterministic, no browser engine |
 | Pytest — 12 package dirs (minus benchmarks) | ✅ | ✅ | deterministic unit/integration, no network |
 | Pytest — `tests/scripts` | ✅ | ✅ | deterministic |
 | Speed-sensitive tests (marked `benchmark`) | run inside the package suites | dropped by `-m "not benchmark"` | flake on a busy machine |
 | Build wheel/sdist ×8 | — | ✅ | downloads the build tool; a broken build is a release concern |
 | Packaging wheel install smoke | — | ✅ | installs archives with dependencies, needs network |
-| Graph files: write | ✅ (green-only) | — | writes files into the commit |
-| Graph files: check | ✅ (always) | ✅ (already runs) | always verified, never skipped |
+| Graph files: write | ✅ (green-only, before the check) | — | writes files into the commit |
+| Graph files: check | ✅ (always, after the write) | ✅ | always verified, never skipped |
 
-The **fast mode** is a local-only selector over this table: it runs the guards, the static checks and the Python tests (minus benchmarks) and skips every row marked "client", "packaging" or "graphs". It changes no step's home and no step's behaviour.
+The **fast mode** is a local-only selector over this table: it runs the guards, the static checks and the Python tests (minus benchmarks) and skips every row marked "client", "packaging" or "graphs". It changes no step's home; the Python suites run as in CI, without the speed tests, because the mode is deterministic.
 
 ## Assumptions
 
-- The five decisions reached in discussion are adopted as the working decision, subject to the maintainer's review of this spec: the three-engine layout moves to CI as a separate job with cached browsers; `Build wheel/sdist` and `Packaging wheel install smoke` move out of the local run into CI; the speed-sensitive tests are marked `benchmark` (the four wholly-speed files at module level, the rate-limit test in `test_websocket_route.py` individually) and excluded from the fast CI path; the graph step splits into an always-run `check` and a green-only `write`; the local run gains an opt-in fast mode that skips the heavy rows.
+- The five decisions reached in discussion are adopted as the working decision, subject to the maintainer's review of this spec: the three-engine layout stays in the full local run and CI reads its proof (the maintainer's change of Q3, after the first answer proved impossible on a machine with no graphics card); `Build wheel/sdist` and `Packaging wheel install smoke` move out of the local run into CI; the speed-sensitive tests are marked `benchmark` (the four wholly-speed files at module level, the rate-limit test in `test_websocket_route.py` individually) and excluded from the fast CI path; the graph step splits into an always-run `check` and a green-only `write`; the local run gains an opt-in fast mode that skips the heavy rows.
 - The publish workflow (`.github/workflows/publish.yml`) is unchanged; it rebuilds and publishes from tags.
 - Out of scope: publishing packages, version bumps and tags; making steps faster for its own sake (#296, #299).
 - The constitution's "Final step: the check run" section is amended if this decision changes what the local run does; the agent drafts the wording and the maintainer ratifies it.

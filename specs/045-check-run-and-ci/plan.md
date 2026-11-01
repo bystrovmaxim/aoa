@@ -6,9 +6,9 @@
 
 ## Summary
 
-Give every step of the repository's check run one stated home, make CI a real gate on every pull request, and take the network out of the local run. The mechanism is a single step table in `scripts/check_run.py` with three axes per row — `home` (`local`/`ci`/`both`), `fast`, and `browser` — plus selectors (`--where`, `--fast`, `--only-browser`, `--skip-browser`, `--only-group`, `--skip-group`). Local and CI invoke the same table, so they cannot drift.
+Give every step of the repository's check run one stated home, make CI a real gate on every pull request, and take the network out of the local run. The mechanism is a single step table in `scripts/check_run.py` with three axes per row — `home` (`local`/`ci`/`both`), `fast`, and `browser` — plus selectors (`--where`, `--fast`, `--only-browser`, `--only-group`, `--skip-group`). Local and CI invoke the same table, so they cannot drift.
 
-The package build moves from `python -m build` (which downloads `hatchling` from pypi.org) to `uv build --offline --out-dir packages/<pkg>/dist`; the build and the install smoke move to a CI `packaging` job. The three-engine layout becomes its own CI `browser` job with `~/.cache/ms-playwright` cached by the lockfile hash. The five speed-sensitive test files are marked `benchmark`, CI runs `-m "not benchmark"`, and the tightest wall-clock budgets are widened while the correctness assertions stay exact. The graph step splits into an always-run `check` and a green-only `write`. The local run gains an opt-in `--fast` mode for small changes.
+The package build moves from `python -m build` (which downloads `hatchling` from pypi.org) to `uv build --out-dir packages/<pkg>/dist`, the command `publish.yml` runs; the build and the install smoke move to a CI `packaging` job. The three-engine layout stays in the full local run, because a CI machine has no graphics card; a green full run leaves a receipt, `--sign-off` reports it as the commit status `Local check run`, and CI's job `Proof of the local run` fails a pull request without it. Two scripts name the moments: `check_before_commit.sh` and `check_before_pr.sh`. The five speed-sensitive test files are marked `benchmark`, CI runs `-m "not benchmark"`, and the tightest wall-clock budgets are widened while the correctness assertions stay exact. The graph step splits into a green-only `write` and an always-run `check` after it. The local run gains an opt-in `--fast` mode for small changes.
 
 ## Technical Context
 
@@ -24,11 +24,11 @@ The package build moves from `python -m build` (which downloads `hatchling` from
 
 **Project Type**: multi-package Python workspace with a TypeScript front client.
 
-**Performance Goals**: the local full run reaches zero with the network off; the fast mode completes without the client build, the browsers or the packaging; the CI `checks` job stays in the fast-feedback range while `browser` and `packaging` run in parallel.
+**Performance Goals**: the local full run reaches zero with the network off; the fast mode completes without the client build, the browsers or the packaging; the CI `checks` job stays in the fast-feedback range while `packaging` and the proof job run in parallel.
 
 **Constraints**: no network in the local run; CI on every pull request; the graph files always written or checked; the publish workflow unchanged.
 
-**Scale/Scope**: 44 step rows (35 local, 9 CI-only), 8 packages, 3 CI jobs, 1 local flag set.
+**Scale/Scope**: 44 step rows (35 in the local run, 9 CI-only), 8 packages, 3 CI jobs, 2 entry scripts, 1 local flag set.
 
 ## Constitution Check
 
@@ -42,7 +42,7 @@ The package build moves from `python -m build` (which downloads `hatchling` from
 | IV. AI-CORE blocks | `Step` keeps its block; new module-level functions get one where they carry a contract. | PASS |
 | V. Short docstrings | New functions get a one-line docstring. | PASS |
 | VI. The last three steps: check run, documentation, changelog | The tail is reserved as its own phase with three tasks, in order. | PASS |
-| Final step: the check run | The section's description of the local run changes (build and smoke leave it); the agent drafts the amendment and the maintainer ratifies it. | PASS (amended in the tail) |
+| Final step: the check run | The section's description of the local run changes (build and smoke leave it, the browsers stay), and the maintainer ordered the rule of the two scripts into it. | PASS (amended at the maintainer's instruction) |
 
 Post-design re-check: no new gate is violated; the decision table, the contracts and the quickstart agree with the spec.
 
@@ -66,15 +66,17 @@ specs/045-check-run-and-ci/
 
 ```text
 scripts/
-├── check_run.py             # the step table and the selectors (home, fast, browser)
-└── run_checks_with_log.sh   # forwards "$@"; unchanged otherwise
+├── check_run.py             # the step table, the selectors, the receipt and the sign-off
+├── run_checks_with_log.sh   # forwards "$@"; unchanged otherwise
+├── check_before_commit.sh   # the fast mode, during the work and before a commit
+└── check_before_pr.sh       # the full run on a pushed commit, then the sign-off
 
 .github/workflows/
-├── ci.yml                   # three jobs: checks, browser, packaging
+├── ci.yml                   # three jobs: checks, packaging, the proof of the local run
 └── publish.yml              # unchanged
 
 packages/maxitor/front/client/
-└── scripts/check-layout-determinism.ts   # already exists; no change
+└── scripts/check-layout-determinism.ts   # names the engine, the page and what the page said when it fails
 
 packages/aoa-action-machine/tests/action_machine/
 ├── model/test_navigation_performance.py        # benchmark marker already present
@@ -102,11 +104,11 @@ docs/
 One phase = one commit. The full task breakdown is generated by `/speckit-tasks`.
 
 1. **The decision** — the spec's decision table and the six answered questions (already written to issue #326 and `spec.md`), and the step-table axes (`home`, `fast`, `browser`) with their selectors.
-2. **The package steps** — `uv build --offline --out-dir` replaces `python -m build`; build and install smoke move to the CI `packaging` job and leave the local run.
-3. **CI** — the three jobs in `ci.yml`; the browser cache; the graph `check`/`write` split.
+2. **The package steps** — `uv build --out-dir` replaces `python -m build`; build and install smoke move to the CI `packaging` job and leave the local run.
+3. **CI** — the three jobs in `ci.yml`; the graph `write`/`check` split; the receipt, the sign-off and the proof job.
 4. **The speed tests** — the `benchmark` marker on all five files; CI `-m "not benchmark"`; widened budgets.
 5. **The fast mode** — `--fast` in the runner and its contract.
-6. **The tail** — closing check run, documentation (the one-home table and the fast mode), changelog; the constitution amendment drafted by the agent and ratified by the maintainer.
+6. **The tail** — closing check run, documentation (the one-home table, the fast mode, the two scripts), changelog; the constitution's rule at the maintainer's instruction.
 
 ## Complexity Tracking
 
