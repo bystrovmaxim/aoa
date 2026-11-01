@@ -250,3 +250,16 @@ describe("following a follower (spec 038)", () => {
     expect(followHead(roomWith({ anna: "boris", boris: "anna", vera: null }, ERD))?.id).toBe("boris");
   });
 });
+
+describe("following on a screen of another height", () => {
+  const theirs = { cx: 500, cy: 400, w: 1000, h: 800, pw: 1000, ph: 800 };
+  const yours = { cx: 0, cy: 0, w: 1000, h: 900 };
+
+  it("keeps their top edge on yours where y grows down", () => {
+    expect(followTarget({ w: 1000, h: 900 }, yours, theirs, 1).centre).toEqual({ x: 500, y: 450 });
+  });
+
+  it("keeps their top edge on yours where y grows up, as on a map", () => {
+    expect(followTarget({ w: 1000, h: 900 }, yours, theirs, 1, undefined, true).centre).toEqual({ x: 500, y: 350 });
+  });
+});

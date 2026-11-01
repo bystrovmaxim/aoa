@@ -33,6 +33,7 @@ Decisions of the maintainer:
 - Q: What does the other half do when the element pointed at has no pair there? → A: On a hover or a selection of a removed element in A, or an added one in B, everything in the other half goes out.
 - Q: How does a person find what they hover when it is out of the other half's view? → A: Tracking, a switch in the head, on by default and each person's own: after the pointer rests about 300 ms, the other half's camera glides to the element, keeping its zoom; an element already in view moves nothing. On the full graph, which draws by its zoom, the camera takes the pointer half's zoom too.
 - Q: How does a person find everything that changed right after choosing two versions? → A: A switch in the left panel, offered in Diff and Side by side, leaves only the pages with a change. It is each person's own, and it only narrows the list: the page on screen, the versions and the filters stay as they are.
+- Q: Does a follower take the leader's zoom in Side by side? → A: Yes. Issue #294 said zoom stays personal, the maintainer replaced that on the stand: a follower's halves are the leader's on every diagram, as following is everywhere else.
 - Q: What does a click on a name do in Side by side? → A: It selects the element in both halves, and copies the name as everywhere.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -108,9 +109,9 @@ People in a room look at the same pair in the same view. One changes A, B, the v
 1. **Given** a room, **When** one person changes A, B or the view, **Then** everyone's view changes to it, whichever page they are on.
 2. **Given** a room in Side by side, **When** one person changes a half's layout mode, **Then** the same half changes for everyone on that page.
 3. **Given** a room, **When** one person selects an element, **Then** it is selected for everyone, whether they follow or not, and each person's other half locates it.
-4. **Given** a room, **When** one person zooms, **Then** nobody else's zoom changes, followers included.
+4. **Given** a room, **When** one person zooms, **Then** the zoom of those who do not follow them stays as it is.
 5. **Given** a room, **When** one person pans and nobody follows them, **Then** nobody else's picture moves.
-6. **Given** a follower in Side by side, **When** the followed person pans a half, **Then** the follower's same half follows, and the other half stays where it is.
+6. **Given** a follower in Side by side, **When** the followed person pans or zooms a half, **Then** the follower's same half takes it, and the other half stays where it is.
 7. **Given** a newcomer joining a room in Side by side, **When** they arrive, **Then** they see the room's versions, view, layout modes and selection.
 8. **Given** two people whose picture of a half differs, **When** the room checks, **Then** they are told "your view of this diagram differs", and the check takes in the identity of A and of B.
 9. **Given** someone's pointer in a room, **When** it is over a half, **Then** it is shown over that same half for the others.
@@ -184,7 +185,7 @@ A person chooses two versions and turns on **Changed only** in the left panel. T
 - **FR-030**: A room MUST hold, as a whole and not per page: the history address, A, B and the view, changed by absolute values ("set A to 0.8.0"), never by steps.
 - **FR-031**: Filters, collapse and each half's layout mode MUST be shared on their page, as page settings are today.
 - **FR-032**: The selection MUST be shared with everyone in the room, not only followers.
-- **FR-033**: Zoom MUST never be shared. Pan MUST be shared only with followers, half by half.
+- **FR-033**: Zoom and pan MUST stay each person's own until they follow someone. A follower's two halves MUST be the leader's, zoom and pan, half by half, from the top-left corner of each.
 - **FR-034**: A newcomer MUST receive all of the above on joining.
 - **FR-035**: The room's check MUST compare each half's picture and take in the sha256 of A and of B.
 - **FR-036**: Pointers and followed positions MUST stand in the half they belong to.
@@ -213,7 +214,7 @@ A person chooses two versions and turns on **Changed only** in the left panel. T
 - **SC-001**: On each of the four diagrams, a pair opens in Side by side with each half in its own layout, and a change in one half's pan, zoom or layout mode moves nothing in the other.
 - **SC-002**: A click on an element present in both versions brings it into the other half's view in under one second, with that half's zoom unchanged.
 - **SC-003**: Hovering in either half lights the same element in both, without a visible delay.
-- **SC-004**: In a two-browser room, a change of A, B, the view, a half's layout mode, a filter or the selection appears in the other browser within one second; zoom never does; pan does only while following.
+- **SC-004**: In a two-browser room, a change of A, B, the view, a half's layout mode, a filter or the selection appears in the other browser within one second; zoom and pan do only while following, and then each half is the leader's picture.
 - **SC-005**: Opening Side by side takes no more than twice the time of opening Diff on the same pair.
 - **SC-006**: Every existing check of One, Diff and rooms passes unchanged.
 

@@ -45,7 +45,7 @@ export function putPointer(participant: string, pointer: RemotePointer): void {
 export function putViewport(participant: string, viewport: DiagramViewport, half?: Side): void {
   // A's screen stands apart: B's is what a page with one diagram reports, and following reads it the same way.
   viewports.set(half === "a" ? `${participant}|a` : participant, viewport);
-  if (viewport.pw && viewport.ph) screens.set(participant, { w: viewport.pw, h: viewport.ph });
+  if (viewport.pw && viewport.ph && half !== "a") screens.set(participant, { w: viewport.pw, h: viewport.ph });
   changed();
 }
 

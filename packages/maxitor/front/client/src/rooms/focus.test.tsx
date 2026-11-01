@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useFollow } from "@/rooms/follow";
-import {
+import { cardFor,
   clearFocus,
   focusToSend,
   putFocus,
@@ -266,5 +266,18 @@ describe("a panel while following (spec 029, FR-012)", () => {
   it("sends a change of the picker alone, as any change of what shows", () => {
     const shut = { ...annasFocus, panels: { ...annasFocus.panels, versions: false } };
     expect(sameFocus(shut, { ...shut, panels: { ...shut.panels, versions: true } })).toBe(false);
+  });
+});
+
+describe("a card in Side by side (spec 044)", () => {
+  const panels = { sidebar: [], filter: null, legend: false, versions: false, track: null, changes: null, why: null, card: { ref: { kind: "table" as const, id: "t" }, fields: false, field: null, scroll: 0, at: null }, cardHalf: "a" as const };
+
+  it("opens for a follower in the half it stands in, not in the other", () => {
+    expect(cardFor(panels, "a")).toEqual({ kind: "table", id: "t" });
+    expect(cardFor(panels, "b")).toBeNull();
+  });
+
+  it("opens on a page with no halves", () => {
+    expect(cardFor({ ...panels, cardHalf: null }, null)).toEqual({ kind: "table", id: "t" });
   });
 });

@@ -1,4 +1,5 @@
 // src/components/diagrams/ElementCard/ElementCard.tsx
+import { useHalf } from "@/lib/half";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Paper from "@mui/material/Paper";
@@ -169,10 +170,11 @@ export function ElementCard({ subject, newer, onEnter, onLeave, onClose }: Eleme
   const [answered, setAnswered] = useState(subject.nodeId === null);
   const [drawn, setDrawn] = useState<Readonly<Record<string, number>>>({});
   const [waited, setWaited] = useState(false);
+  const side = useHalf()?.side ?? null;
   const [ownInside, setOwnInside] = useState<CardPanel>(() => ({ ref: subject.ref, fields: cardFieldsOpen(), field: null, scroll: 0, at: null }));
   // A follower sees inside the card too: the list, the field pointed at and the scroll (FR-010).
-  const inside = useShownPanel<CardPanel>(ownInside, setOwnInside, (panels) => panels.card ?? ownInside, (value) => ({ card: value }));
-  useEffect(() => () => reportPanels({ card: null }), []);
+  const inside = useShownPanel<CardPanel>(ownInside, setOwnInside, (panels) => panels.card ?? ownInside, (value) => ({ card: value, cardHalf: side }));
+  useEffect(() => () => reportPanels({ card: null, cardHalf: null }), []);
   const cardRef = useRef<HTMLDivElement>(null);
   const { nodeId, change, title, detail, fields, copy, at, around, project } = subject;
   // In a comparison every card wears a status: an unchanged element says so where a changed one says what happened.

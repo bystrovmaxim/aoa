@@ -27,6 +27,8 @@ export type DiagramSurface = {
   restore(view: SavedView): void;
   /** How far zooms may differ before following moves yours, where a surface zooms finer than the default leaves alone. */
   zoomTolerance?: number;
+  /** Whether the diagram's y grows upward, against the screen's, as a map's does. */
+  yUp?: boolean;
 };
 
 /** The surface of each half, and under ``null`` the one of a page with no halves. */

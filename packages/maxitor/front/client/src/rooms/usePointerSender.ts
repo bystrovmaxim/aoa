@@ -84,8 +84,9 @@ export function useHalfScreenSender(surface: DiagramSurface | null, send: (messa
     if (!surface || !enabled) return undefined;
     const viewport = throttle<DiagramViewport>(VIEWPORT_RATE, (v) => send({ type: "viewport", ...v, half: "a" }), sameViewport);
     const report = () => {
-      const v = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
-      if (v && document.visibilityState !== "hidden") viewport.push(v);
+      const rect = surface.element.getBoundingClientRect();
+      const v = viewportOf(rect, surface.toDiagram);
+      if (v && document.visibilityState !== "hidden") viewport.push({ ...v, pw: rect.width, ph: rect.height });
     };
     const stop = surface.subscribe(report);
     report();

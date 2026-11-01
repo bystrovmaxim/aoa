@@ -22,7 +22,7 @@ import { mapFilterRows } from "@/lib/mapFilterRows";
 import { changesLeft, mapFacts, presence, type HiddenBy, type MapFilters } from "@/lib/mapVisibility";
 import { usePageSetting } from "@/lib/pageSettings";
 import { useHoverCard } from "@/lib/useHoverCard";
-import { isFollowing, mirroredFocus, sameRef, useMirroredFocus, type ElementRef } from "@/rooms/focusStore";
+import { cardFor, isFollowing, mirroredFocus, sameRef, useMirroredFocus, type ElementRef } from "@/rooms/focusStore";
 import type { MapCard, MapEngine } from "./mapEngine";
 
 const LAYERS_SX = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
@@ -55,6 +55,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   const underRef = useRef<HTMLCanvasElement | null>(null);
   const overRef = useRef<HTMLCanvasElement | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
+  const side = useHalf()?.side ?? null;
   const [engine, setEngine] = useState<MapEngine | null>(null);
   const [layingOut, setLayingOut] = useState(false);
   const [zoomPct, setZoomPct] = useState(100);
@@ -68,7 +69,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   hoverNowRef.current = hoverCard.wantNow;
   // The followed person's card goes by what they say of it, not by their hover: on the card they hover nothing.
   const followed = useMirroredFocus();
-  const followedCard = followed?.panels.card?.ref ?? null;
+  const followedCard = cardFor(followed?.panels, side);
   const shownCard = useRef<ElementRef | null>(null);
   useEffect(() => {
     if (!followed || !engine || sameRef(followedCard, shownCard.current)) return;
@@ -138,7 +139,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
       onZoom: (zoom: number) => {
         setZoomPct(Math.round(zoom * 100));
         // A follower's card stays as long as the followed person holds it, and goes with the map.
-        const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+        const ref = isFollowing() ? cardFor(mirroredFocus()?.panels, side) : null;
         const subject = ref ? made?.cardSubject(ref) : null;
         if (subject) hoverNowRef.current(subject);
         else closeRef.current();
