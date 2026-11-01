@@ -119,6 +119,20 @@ describe("the address of a history", () => {
     expect([result.current.history?.a, result.current.history?.b]).toEqual([null, id(2)]);
   });
 
+  it("stands two versions side by side only while it compares two, and a pick of one leaves it", () => {
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show(opened([version(1), version(2), version(3)], null), "", null));
+    act(() => result.current.pickSplit(true));
+    expect(result.current.history?.split).toBe(false);
+    act(() => result.current.pickRange({ a: id(1), b: id(3) }));
+    act(() => result.current.pickSplit(true));
+    expect(result.current.history?.split).toBe(true);
+    act(() => result.current.pickRange({ a: id(2), b: id(3) }));
+    expect(result.current.history?.split).toBe(true);
+    act(() => result.current.pick(id(3)));
+    expect(result.current.history).toMatchObject({ a: null, split: false });
+  });
+
   it("keeps the two apart, and moves an end that left the list toward the other", () => {
     const { result } = renderHook(() => useOpenHistory(false));
     act(() => result.current.show(opened([version(1), version(2), version(3)], null), "k", id(3)));

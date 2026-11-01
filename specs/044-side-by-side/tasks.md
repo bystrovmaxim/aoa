@@ -14,13 +14,13 @@
 
 **Goal**: everything per-tab becomes per-half where a half exists. One and Diff answer exactly as before.
 
-- [ ] T002 Create `HalfContext`, `useHalf` and the side projection in C`/lib/half.ts`, with `C/lib/half.test.ts`
-- [ ] T003 Pass a half's read through every reader, keeping the active source as the default, in C`/api/erd.ts`, `map.ts`, `domainUseCaseDiagram.ts`, `lifecycleFiniteAutomaton.ts`, `compare.ts`, `elementCard.ts`, and C`/lib/loadErdDomainsBundle.ts`, `useCaseDiff.ts`, `lifecycleDiff.ts`, `lifecycleMiniature.ts`
-- [ ] T004 Map `layout` to `layout_a` / `layout_b` under a half in C`/lib/pageSettings.ts`; test; allow `layout_a`, `layout_b` and `selected` in `setting_error` in S`/model/rooms/`, with a test in T
-- [ ] T005 Register a surface per side, one surface outside Side by side, in C`/rooms/diagramSurface.ts`; test
-- [ ] T006 Keep `keptView` per side in C`/components/diagrams/MapViewer/mapEngine.ts`
-- [ ] T007 Let only half B write counts and steps in C`/lib/diffCounts.ts` and C`/lib/changeStepping.ts`; test
-- [ ] T008 Add `split` to the view in C`/app/useOpenHistory.ts`, C`/lib/urlState.ts`, C`/lib/viewUrl.ts`; `mode=split` without `a` opens One; test
+- [x] T002 Create `HalfContext`, `useHalf` and the side projection in C`/lib/half.ts`, with `C/lib/half.test.ts`
+- [x] T003 Let the map's readers take a half's read in C`/api/map.ts` and `mapEngine.ts`; the other diagrams read the pair once and project it, so their readers stay as they are (research R1)
+- [x] T004 Map `layout` to `layout_a` / `layout_b` under a half in C`/lib/pageSettings.ts`; test; allow `layout_a`, `layout_b` and `selected` in `setting_error` in S`/model/rooms/`, with a test in T
+- [x] T005 Register a surface per side, one surface outside Side by side, in C`/rooms/diagramSurface.ts`; test
+- [x] T006 Keep `keptView` per side in C`/components/diagrams/MapViewer/mapEngine.ts`
+- [x] T007 Let only half B write counts and steps in C`/lib/diffCounts.ts` and C`/lib/changeStepping.ts`; test
+- [x] T008 Add `split` to the view in C`/app/useOpenHistory.ts`, C`/lib/urlState.ts`, C`/lib/viewUrl.ts`; `mode=split` without `a` opens One; test
 
 ## Phase 3: US1 — Two halves on the ERD (commit 3) 🎯 MVP
 

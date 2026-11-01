@@ -34,6 +34,8 @@ export type OpenHistory = {
   b: string | null;
   /** In Diff, A — the older version, before ``b`` on the track; ``null`` while one version is shown. */
   a: string | null;
+  /** Whether the two compared stand side by side (spec 044); only with an ``a``. */
+  split: boolean;
 };
 
 /** The history's track points in order: what A and B are ordered by. */
@@ -80,7 +82,7 @@ export function useOpenHistory(polling: boolean) {
    * Show ``opened`` on ``wanted`` when it offers it, else on its default version; with ``wantedA`` too, in Diff —
    * a reversed pair swapped, the same version twice or an ``a`` it lacks shown as one version (spec 038, FR-014).
    */
-  const show = useCallback((opened: OpenedHistory, key: string, wanted: string | null, wantedA: string | null = null) => {
+  const show = useCallback((opened: OpenedHistory, key: string, wanted: string | null, wantedA: string | null = null, wantedSplit = false) => {
     const liveSameAs = opened.live_same_as ?? null;
     const proposals = opened.proposals ?? [];
     let b = asLive(offers({ ...opened, proposals }, wanted) ? wanted : defaultVersion(opened.versions, opened.live), liveSameAs);
@@ -91,12 +93,12 @@ export function useOpenHistory(polling: boolean) {
       if (range) ({ a, b } = range);
     }
     setNotice(null);
-    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b, a });
+    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b, a, split: wantedSplit && a !== null });
   }, []);
 
   /** Show one version: in a room or not, a pick in One leaves Diff. */
   const pick = useCallback((b: string) => {
-    setHistory((current) => (current && offers(current, b) ? { ...current, b: asLive(b, current.liveSameAs), a: null } : current));
+    setHistory((current) => (current && offers(current, b) ? { ...current, b: asLive(b, current.liveSameAs), a: null, split: false } : current));
   }, []);
 
   /** Show two versions, A before B on the track (spec 038, FR-010); a pair the track does not hold is ignored. */
@@ -107,6 +109,11 @@ export function useOpenHistory(polling: boolean) {
       const next = normalise(keys, asLive(range.a, current.liveSameAs), asLive(range.b, current.liveSameAs));
       return next && next.a ? { ...current, a: next.a, b: next.b } : current;
     });
+  }, []);
+
+  /** Stand the two compared side by side, or draw them together again; with no ``a`` there is nothing to split. */
+  const pickSplit = useCallback((split: boolean) => {
+    setHistory((current) => (current?.a ? { ...current, split } : current));
   }, []);
 
   const close = useCallback(() => {
@@ -129,6 +136,7 @@ export function useOpenHistory(polling: boolean) {
         return;
       }
       next.a = null;
+      next.split = false;
     }
     if (!offers(next, current.b)) {
       const gone = current.b === "live" ? "Live is no longer part of this history" : `${nameOf(current.versions, current.b) ?? current.b} is no longer in the history`;
@@ -153,5 +161,5 @@ export function useOpenHistory(polling: boolean) {
   }, [polling, history?.name, takeList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mode: HistoryMode = modeOf(history);
-  return { history, mode, notice, setNotice, show, pick, pickRange, close, takeList };
+  return { history, mode, notice, setNotice, show, pick, pickRange, pickSplit, close, takeList };
 }

@@ -33,6 +33,7 @@ import {
   type DomainUseCaseRankdir,
 } from "@/lib/buildDomainUseCaseDotSource";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { useHalf, writesForPair } from "@/lib/half";
 import { nothingChanged } from "@/lib/erdDiff";
 import { changeDiskUri, statusDiskUri } from "@/lib/erdFilterPresence";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
@@ -179,8 +180,13 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 041, FR-010 – FR-013).
   const counts = useMemo(() => (diffing && filtered ? useCaseCounts(filtered) : null), [diffing, filtered]);
   const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedUseCase(filtered) : filtered), [filtered, counts]);
-  useEffect(() => setDiffCounts(counts), [counts]);
-  useEffect(() => () => setDiffCounts(null), []);
+  const writesPair = writesForPair(useHalf());
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
   const diffNames = useDiffNames();
   const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? useCaseChanges(drawn) : []), [drawn, counts]);
 

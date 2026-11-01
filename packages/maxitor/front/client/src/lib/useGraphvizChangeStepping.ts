@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
+import { useHalf, writesForPair } from "@/lib/half";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { isFollowing } from "@/rooms/focusStore";
 
@@ -39,6 +40,7 @@ export type GraphvizChangeSteppingOptions = {
 
 /** The card and the position of a Graphviz diagram's steps, and ``openCard`` for a click that opens one. */
 export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup }: GraphvizChangeSteppingOptions) {
+  const writesPair = writesForPair(useHalf());
   const [card, setCard] = useState<OpenCard | null>(null);
   const changesRef = useRef(changes);
   changesRef.current = changes;
@@ -94,9 +96,11 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
     [panZoom.onTransform, showCard],
   );
   useEffect(() => {
-    setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: goToChange, mirror: mirrorChange } : null);
+    if (writesPair) setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: goToChange, mirror: mirrorChange } : null);
   }, [changes, position, card, goToChange, mirrorChange]);
-  useEffect(() => () => setChangeStepping(null), []);
+  useEffect(() => () => {
+    if (writesPair) setChangeStepping(null);
+  }, [writesPair]);
   // The change a step arrived at glows, as it wears a halo on the map.
   useLayoutEffect(() => {
     const change = position === null ? null : changes[position];

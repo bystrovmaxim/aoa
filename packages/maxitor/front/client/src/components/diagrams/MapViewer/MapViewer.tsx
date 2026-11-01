@@ -12,6 +12,7 @@ import { getActiveBase } from "@/api/client";
 import { mapChanges, mapOverview } from "@/api/map";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { useHalf, writesForPair } from "@/lib/half";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { layoutHash } from "@/lib/layoutHash";
 import { countChanges } from "@/lib/mapDiff";
@@ -86,15 +87,16 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   const [drawable] = useState(canDrawMap);
   const names = useDiffNames();
   const diffing = getActiveBase() !== null;
+  const half = useHalf();
   const [offTypes, setOffTypes] = usePageSetting<string[]>("disabled_node_types", []);
   const [offDomains, setOffDomains] = usePageSetting<string[]>("disabled_domains", []);
   const [offChanges, setOffChanges] = usePageSetting<string[]>("disabled_changes", []);
   const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffing), defaultPaint(diffing));
 
   const load = useCallback(async () => {
-    const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true)), import("./mapEngine")]);
+    const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true), half?.read), import("./mapEngine")]);
     return { overview, module, changes: overview.links_changed === undefined ? [] : await mapChanges() };
-  }, []);
+  }, [half]);
   const { data, loading, error } = useDiagramLoader(load);
 
   const filters = useMemo<MapFilters>(() => ({ types: new Set(offTypes), domains: new Set(offDomains), changes: new Set(offChanges) }), [offTypes, offDomains, offChanges]);
@@ -131,7 +133,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
         else if (!pressedRef.current) hoverRef.current(subject);
       },
     };
-    module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events)
+    module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events, half)
       .then(async (engineMade) => {
         if (gone) {
           engineMade.destroy();
@@ -155,15 +157,16 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   useEffect(() => engine?.setView({ filters, paint, changes: shownChanges }), [engine, filters, paint, shownChanges]);
 
   useEffect(() => {
-    setDiffCounts(comparing ? countChanges(shownChanges) : null);
+    if (writesForPair(half)) setDiffCounts(comparing ? countChanges(shownChanges) : null);
   }, [comparing, shownChanges]);
 
   useEffect(() => {
-    setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
+    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
   }, [engine, entries, position, card]);
 
   useEffect(
     () => () => {
+      if (!writesForPair(half)) return;
       setDiffCounts(null);
       setChangeStepping(null);
     },

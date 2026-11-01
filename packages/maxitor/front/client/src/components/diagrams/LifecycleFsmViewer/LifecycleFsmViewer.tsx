@@ -12,6 +12,7 @@ import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { DiffCard } from "@/components/history/DiffCard";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { useHalf, writesForPair } from "@/lib/half";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { nothingChanged } from "@/lib/erdDiff";
 import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
@@ -78,8 +79,13 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   // In Diff the diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 042, FR-010 – FR-012).
   const counts = useMemo(() => (diffing && filtered ? lifecycleCounts(filtered) : null), [diffing, filtered]);
   const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedLifecycle(filtered) : filtered), [filtered, counts]);
-  useEffect(() => setDiffCounts(counts), [counts]);
-  useEffect(() => () => setDiffCounts(null), []);
+  const writesPair = writesForPair(useHalf());
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
   const diffNames = useDiffNames();
   const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? lifecycleChanges(drawn) : []), [drawn, counts]);
 

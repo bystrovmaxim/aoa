@@ -57,3 +57,28 @@ def test_a_room_shares_the_map_s_filters_and_paint() -> None:
     assert setting_error(page, "paint_diff", "changes") is None
     assert setting_error(page, "paint", "changes") is not None
     assert setting_error(page, "disabled_node_types", "Entity") is not None
+
+
+@pytest.mark.parametrize(
+    ("page", "name", "value"),
+    [
+        ("view=domain-erd", "layout_a", "gv-dot-tb"),
+        ("view=domain-erd", "layout_b", "gv-neato"),
+        ("view=use-case-all", "layout_a", "dot_tb"),
+        ("view=domain-erd", "selected", {"kind": "table", "id": "a.Orders"}),
+        ("view=domain-erd", "selected", None),
+        ("view=full-graph", "selected", {"kind": "node", "id": "a.Orders"}),
+    ],
+)
+def test_a_room_shares_each_half_s_layout_and_the_selection(page: str, name: str, value: object) -> None:
+    """Side by side: a half's layout mode and the selection are settings of the page (spec 044)."""
+    assert setting_error(page, name, value) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [{"kind": "version", "id": "x"}, {"kind": "table"}, {"kind": "table", "id": ""}, {"kind": "table", "id": "x" * 513}, {"kind": "table", "id": "x", "more": 1}, "a.Orders"],
+)
+def test_a_selection_out_of_shape_is_refused(value: object) -> None:
+    """A selection is a known kind with a short id, nothing more."""
+    assert setting_error("view=domain-erd", "selected", value)

@@ -2,9 +2,9 @@
 
 ## R1. How a viewer learns it is a half
 
-- **Decision**: a React context `HalfContext` (`null` outside Side by side), with `side`, `read` and the pair. `graphFetch` already accepts a source, so readers take the half's read explicitly.
-- **Rationale**: `activeSource` and `activeBase` are module values; two viewers reading at once would race.
-- **Alternatives**: swapping the active source around each read (a race); iframes (no shared hover, double memory).
+- **Decision**: a React context `HalfContext` (`null` outside Side by side), with `side`, `read` and `name`. The ERD, use-case and lifecycle viewers read the pair once, as Diff does, and project it (R2), so their reads stay. Only the map, which lays out each version on the server, reads through `read`.
+- **Rationale**: `activeSource` and `activeBase` are module values, and both halves show the same pair, so nothing races. Found while building the half: threading a read through every reader would have changed nothing.
+- **Alternatives**: a read per half in every reader: more code for the same answer; iframes: no shared hover, double memory.
 
 ## R2. What a half draws
 
