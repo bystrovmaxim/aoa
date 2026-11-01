@@ -63,6 +63,8 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         host_cls: type[Any],
         field_name: str,
         lifecycle_cls: type[TLifecycle],
+        *,
+        description: str | None = None,
     ) -> None:
         needle = field_name.strip()
         if not needle:
@@ -72,7 +74,7 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
             node_id=f"{TypeIntrospection.full_qualname(host_cls)}:lifecycle:{needle}",
             node_type=LifeCycleGraphNode.NODE_TYPE,
             label=needle,
-            properties={"field_name": needle},
+            properties={"field_name": needle, **({"description": description} if description else {})},
             node_obj=LifeCycleGraphPayload(
                 host_cls=host_cls,
                 field_name=needle,
@@ -82,14 +84,10 @@ class LifeCycleGraphNode(BaseGraphNode[LifeCycleGraphPayload]):
         object.__setattr__(self, "states", LifeCycleStateGraphEdge.get_state_edges(lifecycle_cls, self.node_id))
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.node_id,
-            "type": self.node_type,
-            "label": self.label,
-            "properties": {
-                "field_name": str(self.properties["field_name"]),
-            },
-        }
+        properties = {"field_name": str(self.properties["field_name"])}
+        if "description" in self.properties:
+            properties["description"] = str(self.properties["description"])
+        return {"id": self.node_id, "type": self.node_type, "label": self.label, "properties": properties}
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Template state interchange rows (:attr:`states`)."""

@@ -181,7 +181,7 @@ def _payload(
         *(_specialization_rows() if specialization_rows is None else specialization_rows),
         *(_generalization_rows() if generalization_rows is None else generalization_rows),
     ]
-    return {"schema_version": "1.1", "nodes": nodes, "edges": [{**edge, "id": edge_id(edge)} for edge in edges]}
+    return {"schema_version": "1.2", "nodes": nodes, "edges": [{**edge, "id": edge_id(edge)} for edge in edges]}
 
 
 def _rejects(payload: dict[str, Any]) -> None:

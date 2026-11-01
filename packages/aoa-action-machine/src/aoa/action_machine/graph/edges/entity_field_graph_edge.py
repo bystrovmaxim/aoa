@@ -69,14 +69,16 @@ class EntityFieldGraphEdge(CompositionGraphEdge):
             if isinstance(rel.target_entity, type) and issubclass(rel.target_entity, BaseEnumEntity)
         }
         structural_names = {rel.field_name for rel in relations if rel.field_name not in dictionary_names}
-        items: list[tuple[str, Any]] = [
-            (name, fld.annotation) for name, fld in entity_cls.model_fields.items() if name not in structural_names
+        items: list[tuple[str, Any, str | None]] = [
+            (name, fld.annotation, fld.description)
+            for name, fld in entity_cls.model_fields.items()
+            if name not in structural_names
         ]
-        if not any(name == "id" for name, _ in items):
-            items.insert(0, ("id", str))
+        if not any(name == "id" for name, _, _ in items):
+            items.insert(0, ("id", str, None))
 
         edges: list[EntityFieldGraphEdge] = []
-        for ordinal, (name, ann) in enumerate(items):
-            node = EntityFieldGraphNode(entity_cls, name, annotation=ann)
+        for ordinal, (name, ann, description) in enumerate(items):
+            node = EntityFieldGraphNode(entity_cls, name, annotation=ann, description=description)
             edges.append(EntityFieldGraphEdge(field_node=node, ordinal=ordinal))
         return edges

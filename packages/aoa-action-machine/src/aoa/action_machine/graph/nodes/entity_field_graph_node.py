@@ -81,7 +81,7 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for one scalar ``BaseEntity`` model field (non-relation).
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(entity_type) + ':' + field_name``; :attr:`NODE_TYPE` ``EntityField``; :meth:`to_dict` exposes ``field_type`` (the clean label of ``field_type_label``), ``field_annotation`` (the full annotation) and ``primary_key_hint`` (no ``ordinal`` on the node).
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(entity_type) + ':' + field_name``; :attr:`NODE_TYPE` ``EntityField``; :meth:`to_dict` exposes ``field_type`` (the clean label of ``field_type_label``), ``field_annotation`` (the full annotation), ``primary_key_hint`` and, when the model declares it, ``description`` (no ``ordinal`` on the node).
     AI-CORE-END
     """
 
@@ -103,7 +103,7 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
         name = getattr(origin, "__qualname__", str(origin))
         return f"{name}[{rendered_args}]" if rendered_args else name
 
-    def __init__(self, entity_cls: type[BaseEntity], field_name: str, *, annotation: Any) -> None:
+    def __init__(self, entity_cls: type[BaseEntity], field_name: str, *, annotation: Any, description: str | None = None) -> None:
         if not isinstance(entity_cls, type) or not issubclass(entity_cls, BaseEntity):
             msg = f"entity_cls must be a BaseEntity subclass, got {entity_cls!r}"
             raise TypeError(msg)
@@ -117,6 +117,8 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
             "field_annotation": type(self).pretty_annotation(annotation),
             "primary_key_hint": primary_key_hint,
         }
+        if description:
+            properties["description"] = description
         if dictionary is not None:
             properties["reference_qualname"] = TypeIntrospection.full_qualname(dictionary)
         node_obj = EntityFieldGraphPayload(
@@ -139,6 +141,8 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
             "field_annotation": str(self.properties["field_annotation"]),
             "primary_key_hint": bool(self.properties["primary_key_hint"]),
         }
+        if "description" in self.properties:
+            properties["description"] = str(self.properties["description"])
         if "reference_qualname" in self.properties:
             properties["reference_qualname"] = str(self.properties["reference_qualname"])
         return {"id": self.node_id, "type": self.node_type, "label": self.label, "properties": properties}

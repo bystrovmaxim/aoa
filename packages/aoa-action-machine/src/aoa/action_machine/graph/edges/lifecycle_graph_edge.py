@@ -78,7 +78,13 @@ class LifeCycleGraphEdge(CompositionGraphEdge):
         """``lifecycle`` composition edges (wired :class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode` targets) for every declared field."""
         out: list[LifeCycleGraphEdge] = []
         for row in LifeCycleIntentResolver.resolve_lifecycle_fields(entity_cls):
-            target_lifecycle_node = LifeCycleGraphNode(entity_cls, row.field_name, row.lifecycle_class)
+            declared = entity_cls.model_fields.get(row.field_name)
+            target_lifecycle_node = LifeCycleGraphNode(
+                entity_cls,
+                row.field_name,
+                row.lifecycle_class,
+                description=declared.description if declared else None,
+            )
             out.append(
                 LifeCycleGraphEdge(
                     lifecycle_cls=row.lifecycle_class,

@@ -111,7 +111,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode; "
         "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
         "from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA; "
-        "assert GRAPH_JSON_SCHEMA['properties']['schema_version'] == {'const': '1.1'}; "
+        "assert GRAPH_JSON_SCHEMA['properties']['schema_version'] == {'const': '1.2'}; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.otel') is None; "
@@ -135,7 +135,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     ).stdout.split()
     brought = [d for d in installed if d.startswith("aoa") or d in {"fastapi", "uvicorn", "duckdb", "httpx", "websockets"}]
     assert brought == [], f"the base install brought {brought}"
-    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph_builder" / "tests" / "fixtures" / "graph-1.1.json"
+    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph_builder" / "tests" / "fixtures" / "graph-1.2.json"
     (tmp_path / "graph-builder.toml").write_text(
         f'graph_builder = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
     )
@@ -146,7 +146,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     validated = subprocess.run(
         [graph_builder, "validate", "graph.json"], check=True, capture_output=True, text=True, cwd=str(tmp_path)
     ).stdout
-    assert validated.startswith("ok 1.1: ")
+    assert validated.startswith("ok 1.2: ")
     skill = subprocess.run([graph_builder, "skill"], check=True, capture_output=True, text=True, cwd=str(tmp_path)).stdout
     assert skill.startswith("---\nname: aoa-graph-builder-setup\n")
 

@@ -58,6 +58,7 @@
       "id": "maxitor.front.model.core.actions.app_info_action.AppInfoAction|@connection|maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "is_dag": true,
       "properties": {
+        "description": "The installed client bundle",
         "key": "StaticBundle"
       },
       "relationship": "Association",
@@ -132,6 +133,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads graph-json",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -143,6 +145,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -154,6 +157,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "Held histories, whose lists are checked too",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -165,6 +169,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Tabs outside rooms",
         "key": "OpenTabs"
       },
       "relationship": "Association",
@@ -176,6 +181,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "is_dag": true,
       "properties": {
+        "description": "Reads a history from its port",
         "key": "RepoGraphPort"
       },
       "relationship": "Association",
@@ -187,6 +193,7 @@
       "id": "maxitor.front.model.core.actions.check_due_sources_action.CheckDueSourcesAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Rooms, whose participants are open tabs",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -252,6 +259,7 @@
       "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -263,6 +271,7 @@
       "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "is_dag": true,
       "properties": {
+        "description": "Reads the history from its port",
         "key": "RepoGraphPort"
       },
       "relationship": "Association",
@@ -274,6 +283,7 @@
       "id": "maxitor.front.model.core.actions.check_history_action.CheckHistoryAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Rooms on the history",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -348,6 +358,7 @@
       "id": "maxitor.front.model.core.actions.check_source_action.CheckSourceAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads graph-json",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -359,6 +370,7 @@
       "id": "maxitor.front.model.core.actions.check_source_action.CheckSourceAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -370,6 +382,7 @@
       "id": "maxitor.front.model.core.actions.check_source_action.CheckSourceAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Rooms told of a rebuilt graph",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -484,6 +497,7 @@
       "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
+        "description": "Keys the port accepted lately",
         "key": "HistoryAccess"
       },
       "relationship": "Association",
@@ -495,6 +509,7 @@
       "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -506,6 +521,7 @@
       "id": "maxitor.front.model.core.actions.check_version_access_action.CheckVersionAccessAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "is_dag": true,
       "properties": {
+        "description": "Asks the port whether a key still opens the history",
         "key": "RepoGraphPort"
       },
       "relationship": "Association",
@@ -571,6 +587,7 @@
       "id": "maxitor.front.model.core.actions.get_own_graph_json_action.GetOwnGraphJsonAction|@connection|maxitor.front.model.core.resources.own_model_graph_resource.OwnModelGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Maxitor's own model",
         "key": "OwnModelGraph"
       },
       "relationship": "Association",
@@ -636,6 +653,7 @@
       "id": "maxitor.front.model.core.actions.graph_fingerprint_action.GraphFingerprintAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -647,6 +665,7 @@
       "id": "maxitor.front.model.core.actions.graph_fingerprint_action.GraphFingerprintAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Tabs outside rooms",
         "key": "OpenTabs"
       },
       "relationship": "Association",
@@ -658,6 +677,7 @@
       "id": "maxitor.front.model.core.actions.graph_fingerprint_action.GraphFingerprintAction|@connection|maxitor.front.model.core.resources.source_checks.SourceChecks",
       "is_dag": true,
       "properties": {
+        "description": "Runs a check in the background",
         "key": "SourceChecks"
       },
       "relationship": "Association",
@@ -754,6 +774,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads Live's and the newest version's graphs to compare them",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -765,6 +786,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
+        "description": "Keys the port accepted lately",
         "key": "HistoryAccess"
       },
       "relationship": "Association",
@@ -776,6 +798,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -787,6 +810,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Tabs that show a history",
         "key": "OpenTabs"
       },
       "relationship": "Association",
@@ -798,6 +822,7 @@
       "id": "maxitor.front.model.core.actions.history_versions_action.HistoryVersionsAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "is_dag": true,
       "properties": {
+        "description": "Reads the history from its port",
         "key": "RepoGraphPort"
       },
       "relationship": "Association",
@@ -1025,6 +1050,7 @@
       "id": "maxitor.front.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (sidebar node/edge queries)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -1198,6 +1224,7 @@
       "id": "maxitor.front.model.core.actions.load_aoa_service_action.LoadAOAServiceAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads the service's graph-json",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -1393,6 +1420,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads Live's and the newest version's graphs to compare them",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -1404,6 +1432,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
+        "description": "Keys the port accepted lately, room tickets",
         "key": "HistoryAccess"
       },
       "relationship": "Association",
@@ -1415,6 +1444,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -1426,6 +1456,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.open_tabs_registry.OpenTabsRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Tabs that show a history",
         "key": "OpenTabs"
       },
       "relationship": "Association",
@@ -1437,6 +1468,7 @@
       "id": "maxitor.front.model.core.actions.open_history_action.OpenHistoryAction|@connection|maxitor.front.model.core.resources.repo_graph_port_gateway.RepoGraphPortGateway",
       "is_dag": true,
       "properties": {
+        "description": "Reads the history from its port",
         "key": "RepoGraphPort"
       },
       "relationship": "Association",
@@ -1772,6 +1804,7 @@
       "id": "maxitor.front.model.diagrams.actions.all_use_cases_diagram_action.GetAllUseCasesDiagramAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -1828,6 +1861,7 @@
       "id": "maxitor.front.model.diagrams.actions.changed_inside_action.ChangedInsideAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
       "is_dag": true,
       "properties": {
+        "description": "The comparisons of held versions",
         "key": "Comparisons"
       },
       "relationship": "Association",
@@ -1893,6 +1927,7 @@
       "id": "maxitor.front.model.diagrams.actions.compare_element_action.CompareElementAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
       "is_dag": true,
       "properties": {
+        "description": "The comparisons of held versions",
         "key": "Comparisons"
       },
       "relationship": "Association",
@@ -1985,6 +2020,7 @@
       "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsAction|@connection|maxitor.front.model.diagrams.resources.comparison_store.ComparisonStore",
       "is_dag": true,
       "properties": {
+        "description": "The comparisons of held versions",
         "key": "Comparisons"
       },
       "relationship": "Association",
@@ -2086,6 +2122,7 @@
       "id": "maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2151,6 +2188,7 @@
       "id": "maxitor.front.model.diagrams.actions.full_graph_action.FullGraphAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (nodes and edges views for full graph)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2193,6 +2231,117 @@
       "source_id": "maxitor.front.model.diagrams.actions.full_graph_action.FullGraphAction",
       "target_id": "maxitor.front.model.diagrams.actions.full_graph_action.FullGraphAction.Result",
       "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "is_dag": true,
+      "properties": {
+        "description": "Coordinator graph in DuckDB (nodes view)",
+        "key": "DuckDBGraph"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|@summary_aspect|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction:card_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction:card_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|domain|maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "maxitor.front.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|generic:params|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction|generic:result|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams:id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams:id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:description",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:description",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:label",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:label",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:lifecycle_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:lifecycle_id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:type",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:type",
+      "type": "field"
     },
     {
       "id": "maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action.GetLifecycleFiniteAutomatonAction.Params|field|maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action.GetLifecycleFiniteAutomatonAction.Params:lifecycle_graph_node_id",
@@ -2351,6 +2500,7 @@
       "id": "maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action.GetLifecycleFiniteAutomatonAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Shared DuckDB graph connection — queried for lifecycle/state/transition rows",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2452,6 +2602,7 @@
       "id": "maxitor.front.model.diagrams.actions.list_domains_action.ListDomainsAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (domain rows for ERD discovery)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2544,6 +2695,7 @@
       "id": "maxitor.front.model.diagrams.actions.list_entities_action.ListEntitiesAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (entity / domain / entity_relation)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2609,6 +2761,7 @@
       "id": "maxitor.front.model.diagrams.actions.list_entity_kinds_action.ListEntityKindsAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (entity rows for the ERD kind filter)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2674,6 +2827,7 @@
       "id": "maxitor.front.model.diagrams.actions.list_node_types_action.ListNodeTypesAction|@connection|maxitor.front.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
       "is_dag": true,
       "properties": {
+        "description": "Coordinator graph in DuckDB (nodes view for present graph-node types)",
         "key": "DuckDBGraph"
       },
       "relationship": "Association",
@@ -2730,6 +2884,7 @@
       "id": "maxitor.front.model.diagrams.actions.map_area_action.MapAreaAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
       "is_dag": true,
       "properties": {
+        "description": "The maps of versions",
         "key": "Maps"
       },
       "relationship": "Association",
@@ -2831,6 +2986,7 @@
       "id": "maxitor.front.model.diagrams.actions.map_changes_action.MapChangesAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
       "is_dag": true,
       "properties": {
+        "description": "The maps of versions",
         "key": "Maps"
       },
       "relationship": "Association",
@@ -2896,6 +3052,7 @@
       "id": "maxitor.front.model.diagrams.actions.map_overview_action.MapOverviewAction|@connection|maxitor.front.model.diagrams.resources.map_store.MapStore",
       "is_dag": true,
       "properties": {
+        "description": "The maps of versions",
         "key": "Maps"
       },
       "relationship": "Association",
@@ -3060,6 +3217,7 @@
       "id": "maxitor.front.model.rooms.actions.disconnect_tab_action.DisconnectTabAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The tab's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3071,6 +3229,7 @@
       "id": "maxitor.front.model.rooms.actions.disconnect_tab_action.DisconnectTabAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3127,6 +3286,7 @@
       "id": "maxitor.front.model.rooms.actions.end_room_action.EndRoomAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3201,6 +3361,7 @@
       "id": "maxitor.front.model.rooms.actions.expire_participant_action.ExpireParticipantAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3284,6 +3445,7 @@
       "id": "maxitor.front.model.rooms.actions.follow_action.FollowAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The follower's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3295,6 +3457,7 @@
       "id": "maxitor.front.model.rooms.actions.follow_action.FollowAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3360,6 +3523,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The joining tab's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3371,6 +3535,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs, for the room's pages",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -3382,6 +3547,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.history_access.HistoryAccess",
       "is_dag": true,
       "properties": {
+        "description": "Room tickets of private histories",
         "key": "HistoryAccess"
       },
       "relationship": "Association",
@@ -3393,6 +3559,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -3404,6 +3571,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "is_dag": true,
       "properties": {
+        "description": "The client build Maxitor serves",
         "key": "StaticBundle"
       },
       "relationship": "Association",
@@ -3415,6 +3583,7 @@
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3579,6 +3748,7 @@
       "id": "maxitor.front.model.rooms.actions.leave_room_action.LeaveRoomAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The leaving tab's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3590,6 +3760,7 @@
       "id": "maxitor.front.model.rooms.actions.leave_room_action.LeaveRoomAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3646,6 +3817,7 @@
       "id": "maxitor.front.model.rooms.actions.reload_source_for_room_action.ReloadSourceForRoomAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The connection that pressed Reload",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3657,6 +3829,7 @@
       "id": "maxitor.front.model.rooms.actions.reload_source_for_room_action.ReloadSourceForRoomAction|@connection|maxitor.front.model.core.resources.graph_source_gateway.GraphSourceGateway",
       "is_dag": true,
       "properties": {
+        "description": "Downloads graph-json",
         "key": "GraphSource"
       },
       "relationship": "Association",
@@ -3668,6 +3841,7 @@
       "id": "maxitor.front.model.rooms.actions.reload_source_for_room_action.ReloadSourceForRoomAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -3679,6 +3853,7 @@
       "id": "maxitor.front.model.rooms.actions.reload_source_for_room_action.ReloadSourceForRoomAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3735,6 +3910,7 @@
       "id": "maxitor.front.model.rooms.actions.rename_participant_action.RenameParticipantAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The participant's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3746,6 +3922,7 @@
       "id": "maxitor.front.model.rooms.actions.rename_participant_action.RenameParticipantAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3811,6 +3988,7 @@
       "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The reporting tab's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3822,6 +4000,7 @@
       "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageAction|@connection|maxitor.front.model.core.resources.graph_store_controller.GraphStoreController",
       "is_dag": true,
       "properties": {
+        "description": "Built graphs, for the fingerprint",
         "key": "GraphStore"
       },
       "relationship": "Association",
@@ -3833,6 +4012,7 @@
       "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageAction|@connection|maxitor.front.model.core.resources.static_bundle_resource.StaticBundleResource",
       "is_dag": true,
       "properties": {
+        "description": "The client build Maxitor serves",
         "key": "StaticBundle"
       },
       "relationship": "Association",
@@ -3844,6 +4024,7 @@
       "id": "maxitor.front.model.rooms.actions.report_page_action.ReportPageAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -3963,6 +4144,7 @@
       "id": "maxitor.front.model.rooms.actions.seed_page_settings_action.SeedPageSettingsAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The opener's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -3974,6 +4156,7 @@
       "id": "maxitor.front.model.rooms.actions.seed_page_settings_action.SeedPageSettingsAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -4048,6 +4231,7 @@
       "id": "maxitor.front.model.rooms.actions.set_page_setting_action.SetPageSettingAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The participant's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -4059,6 +4243,7 @@
       "id": "maxitor.front.model.rooms.actions.set_page_setting_action.SetPageSettingAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -4142,6 +4327,7 @@
       "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The participant's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -4153,6 +4339,7 @@
       "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|maxitor.front.model.core.resources.history_store.HistoryStore",
       "is_dag": true,
       "properties": {
+        "description": "The histories Maxitor holds",
         "key": "HistoryStore"
       },
       "relationship": "Association",
@@ -4164,6 +4351,7 @@
       "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -4238,6 +4426,7 @@
       "id": "maxitor.front.model.rooms.actions.stop_following_action.StopFollowingAction|@connection|aoa.fastapi.socket_channel.SocketChannel",
       "is_dag": true,
       "properties": {
+        "description": "The follower's connection",
         "key": "socket"
       },
       "relationship": "Association",
@@ -4249,6 +4438,7 @@
       "id": "maxitor.front.model.rooms.actions.stop_following_action.StopFollowingAction|@connection|maxitor.front.model.rooms.resources.room_registry.RoomRegistry",
       "is_dag": true,
       "properties": {
+        "description": "Every open room",
         "key": "RoomRegistry"
       },
       "relationship": "Association",
@@ -4325,6 +4515,7 @@
       "id": "aoa.action_machine.auth.any_role.AnyRole",
       "label": "AnyRole",
       "properties": {
+        "description": "Engine sentinel: at least one assignable role required.",
         "role_mode": "alive"
       },
       "type": "Role"
@@ -4333,6 +4524,7 @@
       "id": "aoa.action_machine.auth.guest_role.GuestRole",
       "label": "GuestRole",
       "properties": {
+        "description": "Engine sentinel: no authentication required for the action.",
         "role_mode": "alive"
       },
       "type": "Role"
@@ -5489,6 +5681,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:host_id",
       "label": "host_id",
       "properties": {
+        "description": "On a lifecycle's row: the entity that holds it",
         "field_annotation": "UnionType[str, NoneType]",
         "field_type": "str | None",
         "primary_key_hint": false
@@ -5499,6 +5692,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:id",
       "label": "id",
       "properties": {
+        "description": "Stable node identifier",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": true
@@ -5509,6 +5703,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:label",
       "label": "label",
       "properties": {
+        "description": "Display label",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": false
@@ -5519,6 +5714,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:ordinal",
       "label": "ordinal",
       "properties": {
+        "description": "Optional sort rank among siblings (lower first); used for level-3 diagram order",
         "field_annotation": "UnionType[int, NoneType]",
         "field_type": "int | None",
         "primary_key_hint": false
@@ -5529,6 +5725,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:parent_id",
       "label": "parent_id",
       "properties": {
+        "description": "Parent node id when nested under another row",
         "field_annotation": "UnionType[str, NoneType]",
         "field_type": "str | None",
         "primary_key_hint": false
@@ -5539,6 +5736,7 @@
       "id": "maxitor.front.model.core.entities.node_entity.NodeCoreEntity:type",
       "label": "type",
       "properties": {
+        "description": "Coarse node category (e.g. interchange primary node_type)",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": false
@@ -6180,6 +6378,100 @@
       "type": "SummaryAspect"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction",
+      "label": "GetElementCardAction",
+      "properties": {
+        "description": "Read what a card says about one node of a version"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardAction:card_summary",
+      "label": "card_summary",
+      "properties": {
+        "description": "Give one node's card"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams",
+      "label": "GetElementCardParams",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardParams:id",
+      "label": "id",
+      "properties": {
+        "description": "The node's id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "label": "GetElementCardResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:description",
+      "label": "description",
+      "properties": {
+        "description": "Its description, when the graph has one",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:id",
+      "label": "id",
+      "properties": {
+        "description": "The node's id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:label",
+      "label": "label",
+      "properties": {
+        "description": "Its name",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:lifecycle_id",
+      "label": "lifecycle_id",
+      "properties": {
+        "description": "Its own id when it is a lifecycle, else nothing",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.get_element_card_action.GetElementCardResult:type",
+      "label": "type",
+      "properties": {
+        "description": "The kind of element it is",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action.GetLifecycleFiniteAutomatonAction",
       "label": "GetLifecycleFiniteAutomatonAction",
       "properties": {
@@ -6700,6 +6992,13 @@
                                   "null"
                                 ]
                               },
+                              "description": {
+                                "description": "What the field is for; null on a graph older than protocol 1.2.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
                               "field_id": {
                                 "description": "Interchange node id of the EntityField vertex when the row is a scalar field (null for synthetic relation/FK rows).",
                                 "type": [
@@ -6709,6 +7008,13 @@
                               },
                               "foreign_key": {
                                 "type": "boolean"
+                              },
+                              "lifecycle_id": {
+                                "description": "The id of the lifecycle this row is, when it is one.",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "name": {
                                 "type": "string"
@@ -6844,6 +7150,12 @@
                     "items": {
                       "additionalProperties": false,
                       "properties": {
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
                         "label": {
                           "type": "string"
                         },
@@ -6936,6 +7248,12 @@
           "items": {
             "additionalProperties": false,
             "properties": {
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "label": {
                 "type": "string"
               },
@@ -8049,5 +8367,5 @@
       "type": "Domain"
     }
   ],
-  "schema_version": "1.1"
+  "schema_version": "1.2"
 }
