@@ -1,4 +1,6 @@
 // src/components/navigation/LeftSidebar/LeftSidebar.tsx
+import FilterListIcon from "@mui/icons-material/FilterList";
+import { useChangedPages } from "./hooks/useChangedPages";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SwitchServiceIcon } from "./SwitchServiceIcon";
@@ -114,6 +116,8 @@ type LeftSidebarProps = {
   reloadError: string | null;
   /** True while the page waits for a busy server before retrying its reads. */
   busy: boolean;
+  /** Two versions are compared: the panel can narrow to what changed (spec 044). */
+  comparing?: boolean;
 };
 
 function selectionKey(sel: DiagramSelection): string {
@@ -186,6 +190,7 @@ export function LeftSidebar({
   reloading,
   reloadError,
   busy,
+  comparing = false,
 }: LeftSidebarProps) {
   const { collapsed, toggleCollapsed, setCollapsed } = useSidebarCollapse();
   const theme = useTheme();
@@ -195,7 +200,11 @@ export function LeftSidebar({
     onSelectDiagram(sel);
     if (isMobile) setCollapsed(true);
   };
-  const group = useMemo(() => (sidebar ? buildSidebarGroupedMaps(sidebar) : null), [sidebar]);
+  const [changedOnly, setChangedOnly] = useState(false);
+  const narrowing = comparing && changedOnly;
+  const shownSidebar = useChangedPages(sidebar, narrowing);
+  const nothingChanged = narrowing && shownSidebar !== null && shownSidebar !== sidebar && shownSidebar.level2_nodes.length === 0;
+  const group = useMemo(() => (shownSidebar ? buildSidebarGroupedMaps(shownSidebar) : null), [shownSidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
   const [ownExpandedById, setExpandedById] = useState<Record<string, boolean>>({});
   // While following, the branches open and close as the followed person's do (spec 029, FR-010).
@@ -326,6 +335,25 @@ export function LeftSidebar({
           </Tooltip>
         )}
         {source && <ReloadServiceButton onReload={onReloadFromService} reloading={reloading} />}
+        {comparing && sidebar && !collapsed && (
+          <Tooltip title="Changed only" placement="bottom" enterDelay={400} slotProps={tooltipSlotProps}>
+            <IconButton
+              type="button"
+              aria-label="Changed only"
+              aria-pressed={changedOnly}
+              disableRipple
+              disableFocusRipple
+              onClick={() => {
+                setChangedOnly(!changedOnly);
+                // What is left should be seen at once: every domain over it opens.
+                if (!changedOnly) setExpandedById((prev) => ({ ...prev, domains_root: true, ...Object.fromEntries(sidebar.level2_nodes.map((row) => [row.id, true])) }));
+              }}
+              sx={{ ml: "auto", p: 0, width: 32, minWidth: 32, height: 32, color: changedOnly ? "#fff" : SB.icon, bgcolor: changedOnly ? "#2563eb" : "transparent", borderRadius: 1.5, "&:hover": { bgcolor: changedOnly ? "#1d4ed8" : SB.hover } }}
+            >
+              <FilterListIcon sx={{ fontSize: 17.6 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       <Box
@@ -347,9 +375,14 @@ export function LeftSidebar({
       >
         {!source && <ServiceUrlInput onLoaded={onLoaded} onHistoryOpened={onHistoryOpened} />}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
-        {sidebar &&
+        {nothingChanged && (
+          <Typography variant="body2" sx={{ px: 1, py: 0.5, fontSize: 12.5, color: "text.secondary" }}>
+            No domain changed.
+          </Typography>
+        )}
+        {shownSidebar &&
           group &&
-          sidebar.level1_nodes.map((root) => {
+          shownSidebar.level1_nodes.map((root) => {
             const open = Boolean(expandedById[root.id]);
             const directDiagrams = sortNodes(group.diagramsByParent.get(root.id) ?? []);
             const childNodes = sortNodes(group.l2ByParent.get(root.id) ?? []);

@@ -586,6 +586,7 @@ export function App() {
           reloading={reloading}
           reloadError={reloadError}
           busy={busy}
+          comparing={Boolean(shown?.a)}
         />
       }
     >
