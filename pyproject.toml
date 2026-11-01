@@ -381,7 +381,9 @@ external = ["V107"]
 known-first-party = ["aoa"]
 # ``maxitor`` sits outside the ``aoa`` namespace; pylint's import-order check places it with the
 # third-party imports, so ruff sorts it there too and the two tools agree.
-known-third-party = ["langgraph", "maxitor"]
+# ``fastapi`` and ``mcp`` are named because ruff takes them for this repository's own from the folders
+# ``aoa/fastapi`` and ``aoa/mcp``; ``[tool.isort]`` must keep the same list, or the two tools undo each other.
+known-third-party = ["fastapi", "langgraph", "maxitor", "mcp"]
 
 # ============================================================================
 # BLACK
@@ -397,7 +399,8 @@ target-version = ["py312"]
 profile = "black"
 line_length = 120
 known_first_party = ["aoa"]
-known_third_party = ["langgraph"]
+known_third_party = ["fastapi", "langgraph", "maxitor", "mcp"]
+split_on_trailing_comma = true
 # Единый корень `packages/`: исходники `aoa.*`, тесты.
 src_paths = ["packages", "tests"]
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-02] — The two tools that sort imports no longer undo each other
+
+Ruff and isort disagreed about 204 files, so one undid what the other had just done, and a commit touching such a file could not pass both hooks. They now follow the same rules.
+
 ## [2026-11-01] — Code that grows too complex now stops the checks
 
 The two complexity checks used to print a list that nobody acted on, and they could never fail. Now they can. A function that grows too branched, or a module that grows too hard to maintain, stops the run and is named with its file and grade, so the problem is met on the day it is made.

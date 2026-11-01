@@ -128,6 +128,10 @@ from collections.abc import Callable, Mapping
 from contextlib import AbstractAsyncContextManager
 from typing import Any, Self
 
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.tools.base import Tool
+from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
+from mcp.types import CallToolResult, TextContent
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
@@ -146,10 +150,6 @@ from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.mcp.route_record import McpRouteRecord
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.tools.base import Tool
-from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase, FuncMetadata
-from mcp.types import CallToolResult, TextContent
 
 logger = logging.getLogger(__name__)
 
