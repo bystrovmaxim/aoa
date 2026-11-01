@@ -18,7 +18,7 @@ Roles follow position: drag A past B and they swap. Two handles never stand on o
 
 Under the track stand A's message on the left and B's on the right. "N versions between" opens the versions in between, newest first.
 
-The filter icon in the right corner of the left panel's head leaves only what holds a change: the domains, and in them the ERD, the use-case diagram and the lifecycles that changed. It is yours alone, and it narrows the list, not the page on screen.
+The filter icon in the right corner of the left panel's head leaves only what holds a change: the domains, and in them the ERD, the use-case diagram and the lifecycles that changed. It is yours alone, it narrows the list and not the page on screen, and the left panel stays as you left it after a reload.
 
 ## Read the ERD
 
@@ -57,7 +57,7 @@ A click selects the element in both halves and copies its name, as everywhere. T
 
 On a phone there is no room for two: **A / B** flips one diagram between the versions, each in its own layout, with the selected element in the centre. The address keeps `mode=split`, `a`, `b` and each half's layout mode.
 
-In a room, A, B, the view, the filters, each half's layout mode and the selection are everyone's. Zoom stays yours; your pan is yours until you follow someone, and then each half's pan follows theirs.
+In a room, A, B, the view, the filters, each half's layout mode and the selection are everyone's. Zoom and pan stay yours until you follow someone. Then each half is theirs, zoom and pan, from its top-left corner, and their cards open in the half they stand in, the left panel with them. What you are shown while following is not kept: your own panel comes back from this browser on a reload.
 
 ## Open pull requests come after Live
 
