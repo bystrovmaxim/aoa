@@ -50,6 +50,18 @@ export function subscribeHalfHover(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+let areaPicked: string | null = null;
+
+/** Say which area of the full graph holds what was just clicked: the other half reads an area only when asked. */
+export function setPickedArea(area: string | null): void {
+  areaPicked = area;
+}
+
+/** The area of what was clicked last in this tab, or ``null``. */
+export function pickedArea(): string | null {
+  return areaPicked;
+}
+
 /** A pair's steps: each half's way to go to a change, so that one step moves both. */
 const steppers = new Map<Side, (index: number) => void>();
 

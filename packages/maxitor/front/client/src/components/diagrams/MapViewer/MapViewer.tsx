@@ -12,7 +12,9 @@ import { getActiveBase } from "@/api/client";
 import { mapChanges, mapOverview } from "@/api/map";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
-import { useHalf, writesForPair } from "@/lib/half";
+import { HalfNote } from "@/components/diagrams/SideBySide";
+import { drawnOn, useHalf, writesForPair } from "@/lib/half";
+import { joinSteps, noteOf, stepBoth } from "@/lib/halfPicking";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { layoutHash } from "@/lib/layoutHash";
 import { countChanges } from "@/lib/mapDiff";
@@ -95,7 +97,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
 
   const load = useCallback(async () => {
     const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true), half?.read), import("./mapEngine")]);
-    return { overview, module, changes: overview.links_changed === undefined ? [] : await mapChanges() };
+    return { overview, module, changes: !half && overview.links_changed === undefined ? [] : await mapChanges() };
   }, [half]);
   const { data, loading, error } = useDiagramLoader(load);
 
@@ -106,9 +108,13 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
     const areaNames = new Map(data?.overview.areas.map((area) => [area.id, area.name]));
     return shownChanges.map((change) => ({ key: change.id, title: change.label, detail: change.type, status: change.status, group: areaNames.get(change.area) ?? change.area }));
   }, [data, shownChanges]);
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
   const sections: PaintSection[] = ["domains", ...((data?.overview.types.length ?? 0) > 1 ? (["kinds"] as const) : []), ...(data?.changes.length ? (["changes"] as const) : [])];
   const paint = paintSource(sections, chosenPaint);
-  const comparing = data?.overview.links_changed !== undefined;
+  const comparing = data !== null && data !== undefined && (half !== null || data.overview.links_changed !== undefined);
+  // A half's map marks and steps through what its version has; the counts and the list stay the pair's (spec 044).
+  const ownChanges = useMemo(() => (half ? shownChanges.filter((change) => drawnOn(half.side, change.status)) : shownChanges), [half, shownChanges]);
 
   useEffect(() => {
     const [stage, sigma, under, over, label] = [stageRef.current, sigmaRef.current, underRef.current, overRef.current, labelRef.current];
@@ -127,6 +133,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
         else closeRef.current();
       },
       onCard: setCard,
+      onPick: half ? (node: string | null) => pickRef.current(node ? { kind: "node", id: node } : null) : undefined,
       onStep: setPosition,
       onHoverElement: (subject: CardSubject | null, now?: boolean) => {
         if (subject && now) hoverNowRef.current(subject);
@@ -154,14 +161,39 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   }, [data, drawable]);
 
   // A filter or a paint changes what is drawn, and moves nothing (FR-028).
-  useEffect(() => engine?.setView({ filters, paint, changes: shownChanges }), [engine, filters, paint, shownChanges]);
+  useEffect(() => engine?.setView({ filters, paint, changes: ownChanges }), [engine, filters, paint, ownChanges]);
+
+  // One element across the two halves: selected in both, brought into view here, or said why not (spec 044).
+  const [selected, setSelected] = usePageSetting<ElementRef | null>("selected", null);
+  const pickRef = useRef(setSelected);
+  pickRef.current = setSelected;
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!engine || !half) return undefined;
+    let gone = false;
+    void engine.locate(selected?.kind === "node" ? selected.id : null).then((located) => {
+      if (!gone) setNote(noteOf(located, half.name));
+    });
+    return () => {
+      gone = true;
+    };
+  }, [engine, half, selected]);
+  useEffect(() => {
+    if (!half) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") pickRef.current(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [half]);
+  useEffect(() => (engine && half ? joinSteps(half.side, (index) => engine.goToChange(entriesRef.current[index]?.key ?? "")) : undefined), [engine, half]);
 
   useEffect(() => {
     if (writesForPair(half)) setDiffCounts(comparing ? countChanges(shownChanges) : null);
   }, [comparing, shownChanges]);
 
   useEffect(() => {
-    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
+    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
   }, [engine, entries, position, card]);
 
   useEffect(
@@ -232,7 +264,8 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
             )}
           </Box>
         )}
-        {rows && drawable && (
+        <HalfNote text={note} />
+        {rows && drawable && half?.side !== "b" && (
           <ErdFilterPanel
             domainRows={rows.domainRows}
             kindRows={rows.typeRows}
