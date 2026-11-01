@@ -33,7 +33,7 @@ OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
 > Ruff auto-fix
 OK Ruff auto-fix (exit 0, 0.1 s)
 > Maxitor client: npm ci and Vite build
-> Ruff lint
+> Mypy typecheck
 …
 OK Pytest aoa-action-machine (exit 0, 52.7 s)
 OK Pytest maxitor/front (exit 0, 70.3 s)
@@ -64,12 +64,12 @@ Repository: /Users/bystrovmaxim/PythonDev/aoa
 
 === Ban __getattr__ in package __init__.py ===
 …
-=== Ruff lint ===
-$ uv run --extra dev task lint
+=== Ruff auto-fix ===
+$ uv run --extra dev ruff check --fix packages/ tests/ scripts/
 
 All checks passed!
 
-OK Ruff lint (exit 0, 0.1 s)
+OK Ruff auto-fix (exit 0, 0.1 s)
 
 …
 ==================================================
@@ -89,7 +89,7 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 |---|---|---|
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
-| Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
+| Static analysis | mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
 | Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/front` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
 | Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
@@ -142,8 +142,8 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 |---|---|---|---|
 | Ban `__getattr__` in package `__init__.py` | ✅ | ✅ | cheap guard, no network or browser |
 | Maxitor client: README beside `components/*/index.ts` | ✅ | ✅ | cheap guard |
-| Ruff auto-fix | ✅ | — | rewrites files; CI must not change the tree |
-| Ruff lint, mypy, pylint | ✅ | ✅ | deterministic static checks |
+| Ruff auto-fix | ✅ fixes | ✅ only reports | CI must not change the tree |
+| Mypy, pylint | ✅ | ✅ | deterministic static checks |
 | Package boundaries, package metadata | ✅ | ✅ | deterministic static checks |
 | No secrets in tracked files | ✅ | ✅ | deterministic; a commit made without the local hook still meets it in CI |
 | Vulture, samples public API, Radon | ✅ | ✅ | deterministic static checks |
@@ -182,13 +182,108 @@ OK Ban __getattr__ in package __init__.py (exit 0, 0.4 s)
 OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
 > Ruff auto-fix
 OK Ruff auto-fix (exit 0, 0.2 s)
-> Ruff lint
 > Mypy typecheck
 > Pylint
 …
 OK Pytest aoa-ocel (exit 0, 3.4 s)
 …
 Wall time: 66.9 s
+```
+
+## Ruff
+
+There is one Ruff step, `Ruff auto-fix`. On your machine, in a full run and in `check_before_commit.sh`, it runs `ruff check --fix`: it fixes what it can and fails on what is left. In CI, which must not change the tree, it runs `ruff check` and fails on any finding.
+
+An error Ruff cannot fix, such as an undefined name, fails everywhere:
+
+```text
+FAIL Ruff auto-fix (exit 1, 0.1 s)
+```
+
+An error Ruff can fix, such as an unused import, is fixed on your machine and the step passes. The fix is part of your change, so commit it:
+
+```text
+OK Ruff auto-fix (exit 0, 0.1 s)
+```
+
+The same error fails in CI and the file stays as it was, so a pull request with something unfixed does not pass:
+
+```bash
+bash scripts/run_checks_with_log.sh --where ci --only-group first
+```
+
+```text
+FAIL Ruff auto-fix (exit 1, 0.1 s)
+```
+
+## Complexity and maintainability
+
+The two Radon steps fail the run. `Radon cyclomatic complexity` fails on any function graded D or worse, which is a complexity of 21 and above. `Radon maintainability index` fails on any module graded B or worse, which is an index of 19 and below. Both read `packages/`, tests included, and run in every context. Run one on its own:
+
+```bash
+uv run --extra dev task cc
+uv run --extra dev task mi
+```
+
+Nothing over the limit, exit 0:
+
+```text
+1253 files read, over the limit: 0.
+```
+
+A function over the limit, exit 1. Every offender is listed, not only the first:
+
+```text
+packages/aoa-demo/src/aoa/demo/example.py:1 heavy — grade D (complexity 21)
+packages/aoa-demo/src/aoa/demo/example.py:43 heavy_two — grade D (complexity 21)
+2 finding(s) in 1254 files.
+```
+
+A module over the limit, exit 1:
+
+```text
+packages/aoa-demo/src/aoa/demo/example.py — grade B (index 11.45)
+1 finding(s) in 1488 files.
+```
+
+A file Radon cannot parse fails the step too, and so does a report that cannot be read at all, so a broken tool never looks like a clean tree:
+
+```text
+packages/aoa-demo/src/aoa/demo/example.py — Radon could not read it: invalid syntax (<unknown>, line 1)
+1 finding(s) in 1254 files.
+```
+
+Simplify what is over the limit. When that is not reasonable, add an exception with its reason to `scripts/check_radon.py`:
+
+```python
+# (file, name) to why it stays; a method is named ``Class.method``.
+FUNCTION_EXCEPTIONS: dict[tuple[str, str], str] = {
+    ("packages/aoa-demo/src/aoa/demo/example.py", "heavy"): "One flat table of cases; splitting it hides the table.",
+}
+# File to why it stays.
+MODULE_EXCEPTIONS: dict[str, str] = {}
+```
+
+The step then passes and prints the exception:
+
+```text
+excepted: packages/aoa-demo/src/aoa/demo/example.py heavy — One flat table of cases; splitting it hides the table.
+1254 files read, over the limit: 0.
+```
+
+Exceptions cannot outlive what they excuse. Once the function is simplified or gone, the step fails:
+
+```text
+packages/aoa-demo/src/aoa/demo/example.py heavy — stale exception: not over the limit any more
+1 finding(s) in 1253 files.
+```
+
+An exception with an empty reason excuses nothing, and fails as well:
+
+```text
+packages/aoa-demo/src/aoa/demo/example.py:1 heavy — grade D (complexity 21)
+packages/aoa-demo/src/aoa/demo/example.py heavy — exception has no reason
+2 finding(s) in 1254 files.
 ```
 
 ## Secrets
