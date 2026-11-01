@@ -92,9 +92,9 @@
 
 ## Phase 9: Closing
 
-- [ ] T035 Check run: `bash scripts/run_checks_with_log.sh` to zero (commit 9)
-- [ ] T036 Documentation: `docs/how-to/compare-two-versions.md` and its `.ru_draft.md` (commit 10)
-- [ ] T037 Changelog: one article in `docs/CHANGELOG.md` (commit 11)
+- [x] T035 Check run: `bash scripts/run_checks_with_log.sh` to zero (commit 9)
+- [x] T036 Documentation: `docs/how-to/compare-two-versions.md` and its `.ru_draft.md` (commit 10)
+- [x] T037 Changelog: one article in `docs/CHANGELOG.md` (commit 11)
 
 ## Dependencies
 
