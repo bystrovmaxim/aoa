@@ -9,7 +9,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
 from maxitor.graph_compare import Counts, Status, changed_inside, compare
+
+pytestmark = pytest.mark.benchmark
 
 DEMO_GRAPH = Path(__file__).resolve().parents[5] / "packages" / "aoa-demo" / "graph.json"
 
