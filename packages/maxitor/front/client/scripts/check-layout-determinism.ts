@@ -326,8 +326,11 @@ async function runEngine(
         page.on("console", (message) => {
           if (message.type() === "error") console.error(`[${run}] console error: ${message.text()}`);
         });
-        page.on("response", (response) => {
-          if (response.status() >= 400) console.error(`[${run}] ${response.status()} ${response.url()}`);
+        page.on("response", async (response) => {
+          if (response.status() >= 400) {
+            const body = await response.text().catch(() => "");
+            console.error(`[${run}] ${response.status()} ${response.url()} ${body.slice(0, 500)}`);
+          }
         });
         const keysByTarget: string[][] = [];
         seen.set(run, keysByTarget);
