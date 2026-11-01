@@ -1,0 +1,96 @@
+Checks	Check run (checks)	﻿2026-11-01T16:16:12.0224035Z ##[group]Run bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging
+Checks	Check run (checks)	2026-11-01T16:16:12.0224728Z [36;1mbash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.0238481Z shell: /usr/bin/bash -e {0}
+Checks	Check run (checks)	2026-11-01T16:16:12.0238751Z env:
+Checks	Check run (checks)	2026-11-01T16:16:12.0239010Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Checks	Check run (checks)	2026-11-01T16:16:12.0239319Z ##[endgroup]
+Checks	Check run (checks)	2026-11-01T16:16:12.1372401Z [1;33mLog file: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1373041Z 
+Checks	Check run (checks)	2026-11-01T16:16:12.1373729Z [1;33mFull check run (cwd=/home/runner/work/aoa/aoa, up to 4 steps at once)...[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1374133Z 
+Checks	Check run (checks)	2026-11-01T16:16:12.1374872Z [1;33m> Ban __getattr__ in package __init__.py[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1380943Z [1;33m> Maxitor client: npm ci and Vite build[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1384825Z [1;33m> Ruff lint[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1406599Z [1;33m> Mypy typecheck[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.5932750Z [0;32mOK Ruff lint (exit 0, 0.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.6457065Z [1;33m> Pylint[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.6977429Z [0;32mOK Ban __getattr__ in package __init__.py (exit 0, 0.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.7466785Z [1;33m> Maxitor client: README beside components/*/ index.ts[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.7973348Z [0;32mOK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.8499327Z [1;33m> Package import boundaries (production)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.1530929Z [0;32mOK Package import boundaries (production) (exit 0, 1.3 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.2033385Z [1;33m> Package metadata (pyproject dependency matrix)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.3544926Z [0;32mOK Package metadata (pyproject dependency matrix) (exit 0, 0.2 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.4046904Z [1;33m> Vulture dead code[0m
+Checks	Check run (checks)	2026-11-01T16:16:19.8286958Z [0;32mOK Vulture dead code (exit 0, 5.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:19.8817520Z [1;33m> Maxitor samples: action_machine public API[0m
+Checks	Check run (checks)	2026-11-01T16:16:20.8857130Z [0;32mOK Maxitor samples: action_machine public API (exit 0, 1.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:20.9368750Z [1;33m> Pytest maxitor/front[0m
+Checks	Check run (checks)	2026-11-01T16:16:59.0576935Z [0;32mOK Maxitor client: npm ci and Vite build (exit 0, 46.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:59.1116683Z [1;33m> Maxitor client: unit tests[0m
+Checks	Check run (checks)	2026-11-01T16:17:07.4178734Z [0;32mOK Mypy typecheck (exit 0, 55.3 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:07.4776784Z [1;33m> Maxitor client: ERD card containment[0m
+Checks	Check run (checks)	2026-11-01T16:17:09.3877003Z [0;32mOK Maxitor client: ERD card containment (exit 0, 1.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:09.4359939Z [1;33m> Maxitor client: dictionary value properties[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.2957030Z [0;32mOK Maxitor client: dictionary value properties (exit 0, 0.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.3458769Z [1;33m> Maxitor client: group label composed once[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.8506966Z [0;32mOK Maxitor client: group label composed once (exit 0, 0.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.9026883Z [1;33m> Maxitor client: ERD kinds, tables and lines[0m
+Checks	Check run (checks)	2026-11-01T16:17:12.0072370Z [0;32mOK Maxitor client: ERD kinds, tables and lines (exit 0, 1.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:12.0585752Z [1;33m> Maxitor client: ERD table style[0m
+Checks	Check run (checks)	2026-11-01T16:17:13.2718789Z [0;32mOK Maxitor client: ERD table style (exit 0, 1.2 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:13.3246682Z [1;33m> Pytest maxitor/tools/repo_graph_port[0m
+Checks	Check run (checks)	2026-11-01T16:17:18.4086850Z [0;32mOK Pylint (exit 0, 65.8 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:18.4666935Z [1;33m> Pytest maxitor/tools/graph_builder[0m
+Checks	Check run (checks)	2026-11-01T16:17:27.4519575Z [0;32mOK Pytest maxitor/tools/graph_builder (exit 0, 9.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:27.5019696Z [1;33m> Pytest maxitor/core/graph_compare[0m
+Checks	Check run (checks)	2026-11-01T16:17:30.1617988Z [0;32mOK Pytest maxitor/core/graph_compare (exit 0, 2.7 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:30.2116409Z [1;33m> Pytest maxitor/core/graph_map[0m
+Checks	Check run (checks)	2026-11-01T16:17:32.8826887Z [0;32mOK Pytest maxitor/core/graph_map (exit 0, 2.7 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:32.9366917Z [1;33m> Pytest aoa-demo[0m
+Checks	Check run (checks)	2026-11-01T16:17:45.8927159Z [0;32mOK Pytest maxitor/tools/repo_graph_port (exit 0, 32.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:45.9495950Z [1;33m> Pytest aoa-otel[0m
+Checks	Check run (checks)	2026-11-01T16:17:49.4563793Z [0;32mOK Pytest aoa-otel (exit 0, 3.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:49.5097516Z [1;33m> Pytest aoa-langgraph[0m
+Checks	Check run (checks)	2026-11-01T16:17:54.6312064Z [0;32mOK Pytest aoa-langgraph (exit 0, 5.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:54.6806939Z [1;33m> Pytest aoa-ocel[0m
+Checks	Check run (checks)	2026-11-01T16:17:59.3603264Z [0;32mOK Pytest aoa-demo (exit 0, 26.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:59.4134934Z [1;33m> Pytest aoa-fastapi-adapter[0m
+Checks	Check run (checks)	2026-11-01T16:18:06.5036438Z [0;32mOK Pytest aoa-ocel (exit 0, 11.8 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:06.5547000Z [1;33m> Pytest aoa-mcp-adapter[0m
+Checks	Check run (checks)	2026-11-01T16:18:08.4676978Z [0;32mOK Pytest aoa-fastapi-adapter (exit 0, 9.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:08.5186891Z [1;33m> Pytest aoa-action-machine[0m
+Checks	Check run (checks)	2026-11-01T16:18:12.9821278Z [0;32mOK Pytest aoa-mcp-adapter (exit 0, 6.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:13.0367001Z [1;33m> Pytest tests/scripts (check run, graph files)[0m
+Checks	Check run (checks)	2026-11-01T16:18:19.9706958Z [0;32mOK Pytest tests/scripts (check run, graph files) (exit 0, 6.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:20.0196713Z [1;33m> Radon cyclomatic complexity[0m
+Checks	Check run (checks)	2026-11-01T16:18:27.6064921Z [0;32mOK Radon cyclomatic complexity (exit 0, 7.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:27.6588077Z [1;33m> Radon maintainability index[0m
+Checks	Check run (checks)	2026-11-01T16:18:37.2060489Z [0;32mOK Maxitor client: unit tests (exit 0, 98.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:37.2578032Z [1;33m> Graph files (graph-builder check)[0m
+Checks	Check run (checks)	2026-11-01T16:18:42.0169969Z [0;32mOK Radon maintainability index (exit 0, 14.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:42.2176090Z [0;32mOK Graph files (graph-builder check) (exit 0, 5.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:31.9367399Z [0;32mOK Pytest maxitor/front (exit 0, 191.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.8759641Z [0;31mFAIL Pytest aoa-action-machine (exit 1, 100.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9295232Z 
+Checks	Check run (checks)	2026-11-01T16:19:48.9298359Z [1;33mWall time: 216.8 s[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9299175Z [0;32mLog: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9415903Z ##[error]Process completed with exit code 1.
+Browser engines	Check run (browser)	﻿2026-11-01T16:16:10.8548842Z ##[group]Run bash scripts/run_checks_with_log.sh --where ci --only-browser
+Browser engines	Check run (browser)	2026-11-01T16:16:10.8549200Z [36;1mbash scripts/run_checks_with_log.sh --where ci --only-browser[0m
+Browser engines	Check run (browser)	2026-11-01T16:16:10.8567896Z shell: /usr/bin/bash -e {0}
+Browser engines	Check run (browser)	2026-11-01T16:16:10.8568052Z env:
+Browser engines	Check run (browser)	2026-11-01T16:16:10.8568201Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Browser engines	Check run (browser)	2026-11-01T16:16:10.8568392Z ##[endgroup]
+Browser engines	Check run (browser)	2026-11-01T16:16:10.9462577Z [1;33mLog file: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Browser engines	Check run (browser)	2026-11-01T16:16:10.9462879Z 
+Browser engines	Check run (browser)	2026-11-01T16:16:10.9463153Z [1;33mFull check run (cwd=/home/runner/work/aoa/aoa, up to 4 steps at once)...[0m
+Browser engines	Check run (browser)	2026-11-01T16:16:10.9464562Z 
+Browser engines	Check run (browser)	2026-11-01T16:16:10.9464759Z [1;33m> Maxitor client: npm ci and Vite build[0m
+Browser engines	Check run (browser)	2026-11-01T16:16:20.3943936Z [0;32mOK Maxitor client: npm ci and Vite build (exit 0, 9.4 s)[0m
+Browser engines	Check run (browser)	2026-11-01T16:16:20.4444841Z [1;33m> Maxitor client: the same layout in three engines[0m
+Browser engines	Check run (browser)	2026-11-01T16:18:28.8138029Z [0;31mFAIL Maxitor client: the same layout in three engines (exit 1, 128.4 s)[0m
+Browser engines	Check run (browser)	2026-11-01T16:18:28.8647981Z 
+Browser engines	Check run (browser)	2026-11-01T16:18:28.8650520Z [1;33mWall time: 137.9 s[0m
+Browser engines	Check run (browser)	2026-11-01T16:18:28.8650949Z [0;32mLog: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Browser engines	Check run (browser)	2026-11-01T16:18:28.8747745Z ##[error]Process completed with exit code 1.

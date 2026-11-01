@@ -1,0 +1,479 @@
+Checks	Set up job	﻿2026-11-01T16:16:02.8877049Z Current runner version: '2.338.2'
+Checks	Set up job	2026-11-01T16:16:02.8902514Z ##[group]Runner Image Provisioner
+Checks	Set up job	2026-11-01T16:16:02.8903462Z Hosted Compute Agent
+Checks	Set up job	2026-11-01T16:16:02.8904017Z Version: 20261021.618
+Checks	Set up job	2026-11-01T16:16:02.8904614Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+Checks	Set up job	2026-11-01T16:16:02.8905510Z Build Date: 2026-10-21T00:45:21Z
+Checks	Set up job	2026-11-01T16:16:02.8906217Z Worker ID: {d392fd34-018e-4813-9d52-5d28656da194}
+Checks	Set up job	2026-11-01T16:16:02.8906914Z Region: westus3
+Checks	Set up job	2026-11-01T16:16:02.8907425Z Cloud: Azure
+Checks	Set up job	2026-11-01T16:16:02.8907936Z ##[endgroup]
+Checks	Set up job	2026-11-01T16:16:02.8909407Z ##[group]Operating System
+Checks	Set up job	2026-11-01T16:16:02.8910012Z Ubuntu
+Checks	Set up job	2026-11-01T16:16:02.8910541Z 24.04.5
+Checks	Set up job	2026-11-01T16:16:02.8911007Z LTS
+Checks	Set up job	2026-11-01T16:16:02.8911537Z ##[endgroup]
+Checks	Set up job	2026-11-01T16:16:02.8912089Z ##[group]Runner Image
+Checks	Set up job	2026-11-01T16:16:02.8912707Z Image: ubuntu-24.04
+Checks	Set up job	2026-11-01T16:16:02.8913250Z Version: 20261025.353.1
+Checks	Set up job	2026-11-01T16:16:02.8914217Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+Checks	Set up job	2026-11-01T16:16:02.8916100Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+Checks	Set up job	2026-11-01T16:16:02.8917000Z ##[endgroup]
+Checks	Set up job	2026-11-01T16:16:02.8918116Z ##[group]GITHUB_TOKEN Permissions
+Checks	Set up job	2026-11-01T16:16:02.8920060Z Contents: read
+Checks	Set up job	2026-11-01T16:16:02.8920654Z Metadata: read
+Checks	Set up job	2026-11-01T16:16:02.8921170Z Packages: read
+Checks	Set up job	2026-11-01T16:16:02.8921707Z ##[endgroup]
+Checks	Set up job	2026-11-01T16:16:02.8923809Z Secret source: Actions
+Checks	Set up job	2026-11-01T16:16:02.8924670Z Cache mode: write
+Checks	Set up job	2026-11-01T16:16:02.8925645Z Prepare workflow directory
+Checks	Set up job	2026-11-01T16:16:02.9295644Z Prepare all required actions
+Checks	Set up job	2026-11-01T16:16:02.9345779Z Getting action download info
+Checks	Set up job	2026-11-01T16:16:03.2587295Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Checks	Set up job	2026-11-01T16:16:03.3681700Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+Checks	Set up job	2026-11-01T16:16:03.4439309Z Download action repository 'astral-sh/setup-uv@v5' (SHA:d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86)
+Checks	Set up job	2026-11-01T16:16:04.2007482Z Complete job name: Checks
+Checks	Checkout code	﻿2026-11-01T16:16:04.3008825Z ##[group]Run actions/checkout@v4
+Checks	Checkout code	2026-11-01T16:16:04.3009838Z with:
+Checks	Checkout code	2026-11-01T16:16:04.3010371Z   repository: bystrovmaxim/aoa
+Checks	Checkout code	2026-11-01T16:16:04.3014535Z   token: ***
+Checks	Checkout code	2026-11-01T16:16:04.3015059Z   ssh-strict: true
+Checks	Checkout code	2026-11-01T16:16:04.3015749Z   ssh-user: git
+Checks	Checkout code	2026-11-01T16:16:04.3016285Z   persist-credentials: true
+Checks	Checkout code	2026-11-01T16:16:04.3016873Z   clean: true
+Checks	Checkout code	2026-11-01T16:16:04.3017428Z   sparse-checkout-cone-mode: true
+Checks	Checkout code	2026-11-01T16:16:04.3018049Z   fetch-depth: 1
+Checks	Checkout code	2026-11-01T16:16:04.3018561Z   fetch-tags: false
+Checks	Checkout code	2026-11-01T16:16:04.3019079Z   show-progress: true
+Checks	Checkout code	2026-11-01T16:16:04.3019622Z   lfs: false
+Checks	Checkout code	2026-11-01T16:16:04.3020122Z   submodules: false
+Checks	Checkout code	2026-11-01T16:16:04.3020682Z   set-safe-directory: true
+Checks	Checkout code	2026-11-01T16:16:04.3021305Z   allow-unsafe-pr-checkout: false
+Checks	Checkout code	2026-11-01T16:16:04.3022263Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:04.5538468Z Syncing repository: bystrovmaxim/aoa
+Checks	Checkout code	2026-11-01T16:16:04.5541805Z ##[group]Getting Git version info
+Checks	Checkout code	2026-11-01T16:16:04.5542901Z Working directory is '/home/runner/work/aoa/aoa'
+Checks	Checkout code	2026-11-01T16:16:04.5545139Z [command]/usr/bin/git version
+Checks	Checkout code	2026-11-01T16:16:04.5637639Z git version 2.56.0
+Checks	Checkout code	2026-11-01T16:16:04.5667264Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:04.5682067Z Temporarily overriding HOME='/home/runner/work/_temp/0b3367b6-d57c-4efb-9e53-b7f9e60650d2' before making global git config changes
+Checks	Checkout code	2026-11-01T16:16:04.5687448Z Adding repository directory to the temporary git global config as a safe directory
+Checks	Checkout code	2026-11-01T16:16:04.5690246Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aoa/aoa
+Checks	Checkout code	2026-11-01T16:16:04.5731399Z Deleting the contents of '/home/runner/work/aoa/aoa'
+Checks	Checkout code	2026-11-01T16:16:04.5737192Z ##[group]Initializing the repository
+Checks	Checkout code	2026-11-01T16:16:04.5744473Z [command]/usr/bin/git init /home/runner/work/aoa/aoa
+Checks	Checkout code	2026-11-01T16:16:04.5882900Z hint: Using 'master' as the name for the initial branch. This default branch name
+Checks	Checkout code	2026-11-01T16:16:04.5886846Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Checks	Checkout code	2026-11-01T16:16:04.5889248Z hint: to use in all of your new repositories, which will suppress this warning,
+Checks	Checkout code	2026-11-01T16:16:04.5891374Z hint: call:
+Checks	Checkout code	2026-11-01T16:16:04.5892513Z hint:
+Checks	Checkout code	2026-11-01T16:16:04.5894000Z hint: 	git config --global init.defaultBranch <name>
+Checks	Checkout code	2026-11-01T16:16:04.5895951Z hint:
+Checks	Checkout code	2026-11-01T16:16:04.5897436Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Checks	Checkout code	2026-11-01T16:16:04.5899630Z hint: 'development'. The just-created branch can be renamed via this command:
+Checks	Checkout code	2026-11-01T16:16:04.5901495Z hint:
+Checks	Checkout code	2026-11-01T16:16:04.5903080Z hint: 	git branch -m <name>
+Checks	Checkout code	2026-11-01T16:16:04.5904471Z hint:
+Checks	Checkout code	2026-11-01T16:16:04.5906196Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Checks	Checkout code	2026-11-01T16:16:04.5908602Z Initialized empty Git repository in /home/runner/work/aoa/aoa/.git/
+Checks	Checkout code	2026-11-01T16:16:04.5911493Z [command]/usr/bin/git remote add origin https://github.com/bystrovmaxim/aoa
+Checks	Checkout code	2026-11-01T16:16:04.5951664Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:04.5957553Z ##[group]Disabling automatic garbage collection
+Checks	Checkout code	2026-11-01T16:16:04.5958454Z [command]/usr/bin/git config --local gc.auto 0
+Checks	Checkout code	2026-11-01T16:16:04.5988957Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:04.5990207Z ##[group]Setting up auth
+Checks	Checkout code	2026-11-01T16:16:04.5999258Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Checks	Checkout code	2026-11-01T16:16:04.6042228Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Checks	Checkout code	2026-11-01T16:16:04.6397521Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Checks	Checkout code	2026-11-01T16:16:04.6433934Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Checks	Checkout code	2026-11-01T16:16:04.6642384Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Checks	Checkout code	2026-11-01T16:16:04.6675606Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Checks	Checkout code	2026-11-01T16:16:04.6871029Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Checks	Checkout code	2026-11-01T16:16:04.6910423Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:04.6911511Z ##[group]Fetching the repository
+Checks	Checkout code	2026-11-01T16:16:04.6922834Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3c2ea8972be8dc8b00d2d4191b475776ac0e11ed:refs/remotes/pull/328/merge
+Checks	Checkout code	2026-11-01T16:16:06.6404310Z From https://github.com/bystrovmaxim/aoa
+Checks	Checkout code	2026-11-01T16:16:06.6407837Z  * [new ref]         3c2ea8972be8dc8b00d2d4191b475776ac0e11ed -> pull/328/merge
+Checks	Checkout code	2026-11-01T16:16:06.6414219Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:06.6416573Z ##[group]Determining the checkout info
+Checks	Checkout code	2026-11-01T16:16:06.6419375Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:06.6427062Z [command]/usr/bin/git sparse-checkout disable
+Checks	Checkout code	2026-11-01T16:16:06.6475794Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Checks	Checkout code	2026-11-01T16:16:06.6505994Z ##[group]Checking out the ref
+Checks	Checkout code	2026-11-01T16:16:06.6510122Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/328/merge
+Checks	Checkout code	2026-11-01T16:16:06.8455640Z Note: switching to 'refs/remotes/pull/328/merge'.
+Checks	Checkout code	2026-11-01T16:16:06.8457311Z 
+Checks	Checkout code	2026-11-01T16:16:06.8458539Z You are in 'detached HEAD' state. You can look around, make experimental
+Checks	Checkout code	2026-11-01T16:16:06.8461728Z changes and commit them, and you can discard any commits you make in this
+Checks	Checkout code	2026-11-01T16:16:06.8464891Z state without impacting any branches by switching back to a branch.
+Checks	Checkout code	2026-11-01T16:16:06.8466867Z 
+Checks	Checkout code	2026-11-01T16:16:06.8467954Z If you want to create a new branch to retain commits you create, you may
+Checks	Checkout code	2026-11-01T16:16:06.8469647Z do so (now or later) by using -c with the switch command. Example:
+Checks	Checkout code	2026-11-01T16:16:06.8471000Z 
+Checks	Checkout code	2026-11-01T16:16:06.8471444Z   git switch -c <new-branch-name>
+Checks	Checkout code	2026-11-01T16:16:06.8472187Z 
+Checks	Checkout code	2026-11-01T16:16:06.8472728Z Or undo this operation with:
+Checks	Checkout code	2026-11-01T16:16:06.8473517Z 
+Checks	Checkout code	2026-11-01T16:16:06.8473992Z   git switch -
+Checks	Checkout code	2026-11-01T16:16:06.8476892Z 
+Checks	Checkout code	2026-11-01T16:16:06.8478570Z Turn off this advice by setting config variable advice.detachedHead to false
+Checks	Checkout code	2026-11-01T16:16:06.8480257Z 
+Checks	Checkout code	2026-11-01T16:16:06.8481976Z HEAD is now at 3c2ea89 Merge 4d00b8cb1ee05a5d233e8749d73fac9bf000db70 into e5508372dab0ad115030a4b03e41022ffea1b438
+Checks	Checkout code	2026-11-01T16:16:06.8487143Z ##[endgroup]
+Checks	Checkout code	2026-11-01T16:16:06.8526936Z [command]/usr/bin/git log -1 --format=%H
+Checks	Checkout code	2026-11-01T16:16:06.8552191Z 3c2ea8972be8dc8b00d2d4191b475776ac0e11ed
+Checks	Setup Node.js	﻿2026-11-01T16:16:06.8929163Z ##[group]Run actions/setup-node@v4
+Checks	Setup Node.js	2026-11-01T16:16:06.8930256Z with:
+Checks	Setup Node.js	2026-11-01T16:16:06.8931077Z   node-version: 22
+Checks	Setup Node.js	2026-11-01T16:16:06.8931921Z   cache: npm
+Checks	Setup Node.js	2026-11-01T16:16:06.8933135Z   cache-dependency-path: packages/maxitor/front/client/package-lock.json
+Checks	Setup Node.js	2026-11-01T16:16:06.8934614Z   always-auth: false
+Checks	Setup Node.js	2026-11-01T16:16:06.8935636Z   check-latest: false
+Checks	Setup Node.js	2026-11-01T16:16:06.8944346Z   token: ***
+Checks	Setup Node.js	2026-11-01T16:16:06.8945186Z ##[endgroup]
+Checks	Setup Node.js	2026-11-01T16:16:07.0432958Z (node:2318) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Checks	Setup Node.js	2026-11-01T16:16:07.0435545Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Checks	Setup Node.js	2026-11-01T16:16:07.0442517Z Found in cache @ /opt/hostedtoolcache/node/22.23.4/x64
+Checks	Setup Node.js	2026-11-01T16:16:07.0445253Z ##[group]Environment details
+Checks	Setup Node.js	2026-11-01T16:16:07.4151605Z node: v22.23.4
+Checks	Setup Node.js	2026-11-01T16:16:07.4152078Z npm: 10.9.9
+Checks	Setup Node.js	2026-11-01T16:16:07.4152372Z yarn: 1.22.22
+Checks	Setup Node.js	2026-11-01T16:16:07.4153196Z ##[endgroup]
+Checks	Setup Node.js	2026-11-01T16:16:07.4174501Z [command]/opt/hostedtoolcache/node/22.23.4/x64/bin/npm config get cache
+Checks	Setup Node.js	2026-11-01T16:16:07.5184800Z /home/runner/.npm
+Checks	Setup Node.js	2026-11-01T16:16:07.7380934Z npm cache is not found
+Checks	Setup uv	﻿2026-11-01T16:16:07.7540330Z ##[group]Run astral-sh/setup-uv@v5
+Checks	Setup uv	2026-11-01T16:16:07.7540635Z with:
+Checks	Setup uv	2026-11-01T16:16:07.7543035Z   github-token: ***
+Checks	Setup uv	2026-11-01T16:16:07.7543249Z   enable-cache: auto
+Checks	Setup uv	2026-11-01T16:16:07.7543527Z   cache-dependency-glob: **/uv.lock
+Checks	Setup uv	**/requirements*.txt
+Checks	Setup uv	
+Checks	Setup uv	2026-11-01T16:16:07.7543847Z   prune-cache: true
+Checks	Setup uv	2026-11-01T16:16:07.7544082Z   ignore-nothing-to-cache: false
+Checks	Setup uv	2026-11-01T16:16:07.7544357Z   ignore-empty-workdir: false
+Checks	Setup uv	2026-11-01T16:16:07.7544597Z ##[endgroup]
+Checks	Setup uv	2026-11-01T16:16:07.9316414Z (node:2361) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Checks	Setup uv	2026-11-01T16:16:07.9317444Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Checks	Setup uv	2026-11-01T16:16:08.3474822Z Downloading uv from "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-unknown-linux-gnu.tar.gz" ...
+Checks	Setup uv	2026-11-01T16:16:08.7436113Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/e4a951d1-269e-4b67-911c-2d597045ae93 -f /home/runner/work/_temp/fa9235a3-8730-409a-b301-628d70c38583
+Checks	Setup uv	2026-11-01T16:16:09.0421203Z Added /home/runner/.local/bin to the path
+Checks	Setup uv	2026-11-01T16:16:09.0424072Z Added /opt/hostedtoolcache/uv/0.13.6/x86_64 to the path
+Checks	Setup uv	2026-11-01T16:16:09.0431201Z Set UV_CACHE_DIR to /home/runner/work/_temp/setup-uv-cache
+Checks	Setup uv	2026-11-01T16:16:09.0432040Z Successfully installed uv version 0.13.6
+Checks	Setup uv	2026-11-01T16:16:09.0433021Z Searching files using cache dependency glob: **/uv.lock,**/requirements*.txt
+Checks	Setup uv	2026-11-01T16:16:09.3249153Z /home/runner/work/aoa/aoa/uv.lock
+Checks	Setup uv	2026-11-01T16:16:09.3279385Z Found 1 files to hash.
+Checks	Setup uv	2026-11-01T16:16:09.3911549Z Trying to restore uv cache from GitHub Actions cache with key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-524f35fb3787c85e21d71558dc69ef62e88fc1f2b24834f182f82210c0295f80
+Checks	Setup uv	2026-11-01T16:16:09.5777126Z No GitHub Actions cache found for key: setup-uv-1-x86_64-unknown-linux-gnu-3.12.3-524f35fb3787c85e21d71558dc69ef62e88fc1f2b24834f182f82210c0295f80
+Checks	Project environment	﻿2026-11-01T16:16:09.5910245Z ##[group]Run uv sync --all-extras
+Checks	Project environment	2026-11-01T16:16:09.5910658Z [36;1muv sync --all-extras[0m
+Checks	Project environment	2026-11-01T16:16:09.5936590Z shell: /usr/bin/bash -e {0}
+Checks	Project environment	2026-11-01T16:16:09.5936870Z env:
+Checks	Project environment	2026-11-01T16:16:09.5937128Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Checks	Project environment	2026-11-01T16:16:09.5937433Z ##[endgroup]
+Checks	Project environment	2026-11-01T16:16:09.6088943Z Using CPython 3.12.3 interpreter at: /usr/bin/python3
+Checks	Project environment	2026-11-01T16:16:09.6089753Z Creating virtual environment at: .venv
+Checks	Project environment	2026-11-01T16:16:09.6156254Z Resolved 148 packages in 2ms
+Checks	Project environment	2026-11-01T16:16:09.6280681Z    Building aoa-mcp-adapter @ file:///home/runner/work/aoa/aoa/packages/aoa-mcp-adapter
+Checks	Project environment	2026-11-01T16:16:09.6281677Z    Building aoa-run @ file:///home/runner/work/aoa/aoa
+Checks	Project environment	2026-11-01T16:16:09.6347303Z    Building aoa-action-machine @ file:///home/runner/work/aoa/aoa/packages/aoa-action-machine
+Checks	Project environment	2026-11-01T16:16:09.6361364Z    Building aoa-otel @ file:///home/runner/work/aoa/aoa/packages/aoa-otel
+Checks	Project environment	2026-11-01T16:16:09.6365661Z    Building aoa-fastapi-adapter @ file:///home/runner/work/aoa/aoa/packages/aoa-fastapi-adapter
+Checks	Project environment	2026-11-01T16:16:09.6372308Z    Building aoa-langgraph @ file:///home/runner/work/aoa/aoa/packages/aoa-langgraph
+Checks	Project environment	2026-11-01T16:16:09.6387521Z    Building maxitor @ file:///home/runner/work/aoa/aoa/packages/maxitor
+Checks	Project environment	2026-11-01T16:16:09.6388359Z    Building aoa-ocel @ file:///home/runner/work/aoa/aoa/packages/aoa-ocel
+Checks	Project environment	2026-11-01T16:16:09.6389226Z    Building aoa-demo @ file:///home/runner/work/aoa/aoa/packages/aoa-demo
+Checks	Project environment	2026-11-01T16:16:09.6971652Z Downloading uvloop (4.3MiB)
+Checks	Project environment	2026-11-01T16:16:09.6972280Z Downloading pydantic-core (2.1MiB)
+Checks	Project environment	2026-11-01T16:16:09.6973274Z Downloading pygments (1.2MiB)
+Checks	Project environment	2026-11-01T16:16:09.7189662Z Downloading fonttools (5.2MiB)
+Checks	Project environment	2026-11-01T16:16:09.7190683Z Downloading duckdb (20.6MiB)
+Checks	Project environment	2026-11-01T16:16:09.7192734Z Downloading black (1.7MiB)
+Checks	Project environment	2026-11-01T16:16:09.7194643Z Downloading mypy (14.1MiB)
+Checks	Project environment	2026-11-01T16:16:09.7197691Z Downloading ruff (10.0MiB)
+Checks	Project environment	2026-11-01T16:16:09.7199335Z Downloading pandas (11.5MiB)
+Checks	Project environment	2026-11-01T16:16:09.7203064Z Downloading lxml (5.0MiB)
+Checks	Project environment	2026-11-01T16:16:09.7204113Z Downloading pillow (6.8MiB)
+Checks	Project environment	2026-11-01T16:16:09.7207619Z Downloading scipy (33.7MiB)
+Checks	Project environment	2026-11-01T16:16:09.7210299Z Downloading cryptography (4.5MiB)
+Checks	Project environment	2026-11-01T16:16:09.7212143Z Downloading matplotlib (9.4MiB)
+Checks	Project environment	2026-11-01T16:16:09.7213808Z Downloading asyncpg (3.6MiB)
+Checks	Project environment	2026-11-01T16:16:09.7215062Z Downloading numpy (16.0MiB)
+Checks	Project environment	2026-11-01T16:16:09.7216719Z Downloading networkx (2.0MiB)
+Checks	Project environment	2026-11-01T16:16:09.7219445Z Downloading zstandard (5.3MiB)
+Checks	Project environment	2026-11-01T16:16:09.7221915Z Downloading kiwisolver (1.4MiB)
+Checks	Project environment	2026-11-01T16:16:09.7223278Z Downloading jsonschema-rs (5.9MiB)
+Checks	Project environment	2026-11-01T16:16:09.7226285Z Downloading cvxopt (20.3MiB)
+Checks	Project environment	2026-11-01T16:16:09.7228034Z Downloading pm4py (2.5MiB)
+Checks	Project environment	2026-11-01T16:16:10.0462237Z  Downloaded pygments
+Checks	Project environment	2026-11-01T16:16:10.0655547Z  Downloaded kiwisolver
+Checks	Project environment	2026-11-01T16:16:10.1222432Z  Downloaded black
+Checks	Project environment	2026-11-01T16:16:10.1682372Z  Downloaded pydantic-core
+Checks	Project environment	2026-11-01T16:16:10.1686625Z  Downloaded networkx
+Checks	Project environment	2026-11-01T16:16:10.2198447Z  Downloaded pm4py
+Checks	Project environment	2026-11-01T16:16:10.2909030Z  Downloaded asyncpg
+Checks	Project environment	2026-11-01T16:16:10.3541674Z  Downloaded uvloop
+Checks	Project environment	2026-11-01T16:16:10.3604139Z  Downloaded cryptography
+Checks	Project environment	2026-11-01T16:16:10.3866893Z  Downloaded fonttools
+Checks	Project environment	2026-11-01T16:16:10.3949506Z  Downloaded zstandard
+Checks	Project environment	2026-11-01T16:16:10.4162743Z  Downloaded lxml
+Checks	Project environment	2026-11-01T16:16:10.4416753Z  Downloaded jsonschema-rs
+Checks	Project environment	2026-11-01T16:16:10.5121060Z  Downloaded pillow
+Checks	Project environment	2026-11-01T16:16:10.6636846Z  Downloaded matplotlib
+Checks	Project environment	2026-11-01T16:16:10.7056754Z  Downloaded ruff
+Checks	Project environment	2026-11-01T16:16:10.8079282Z  Downloaded pandas
+Checks	Project environment	2026-11-01T16:16:10.9166443Z  Downloaded numpy
+Checks	Project environment	2026-11-01T16:16:10.9440261Z  Downloaded mypy
+Checks	Project environment	2026-11-01T16:16:10.9699723Z  Downloaded cvxopt
+Checks	Project environment	2026-11-01T16:16:11.0282351Z  Downloaded duckdb
+Checks	Project environment	2026-11-01T16:16:11.2526511Z  Downloaded scipy
+Checks	Project environment	2026-11-01T16:16:11.4276943Z       Built aoa-langgraph @ file:///home/runner/work/aoa/aoa/packages/aoa-langgraph
+Checks	Project environment	2026-11-01T16:16:11.4487171Z       Built aoa-ocel @ file:///home/runner/work/aoa/aoa/packages/aoa-ocel
+Checks	Project environment	2026-11-01T16:16:11.4651008Z       Built aoa-mcp-adapter @ file:///home/runner/work/aoa/aoa/packages/aoa-mcp-adapter
+Checks	Project environment	2026-11-01T16:16:11.5546738Z       Built maxitor @ file:///home/runner/work/aoa/aoa/packages/maxitor
+Checks	Project environment	2026-11-01T16:16:11.6742459Z       Built aoa-otel @ file:///home/runner/work/aoa/aoa/packages/aoa-otel
+Checks	Project environment	2026-11-01T16:16:11.6757968Z       Built aoa-fastapi-adapter @ file:///home/runner/work/aoa/aoa/packages/aoa-fastapi-adapter
+Checks	Project environment	2026-11-01T16:16:11.7174739Z       Built aoa-action-machine @ file:///home/runner/work/aoa/aoa/packages/aoa-action-machine
+Checks	Project environment	2026-11-01T16:16:11.7736770Z       Built aoa-run @ file:///home/runner/work/aoa/aoa
+Checks	Project environment	2026-11-01T16:16:11.8599194Z       Built aoa-demo @ file:///home/runner/work/aoa/aoa/packages/aoa-demo
+Checks	Project environment	2026-11-01T16:16:11.8609654Z Prepared 144 packages in 2.24s
+Checks	Project environment	2026-11-01T16:16:11.9794902Z Installed 144 packages in 118ms
+Checks	Project environment	2026-11-01T16:16:11.9796164Z  + annotated-doc==0.0.5
+Checks	Project environment	2026-11-01T16:16:11.9797031Z  + annotated-types==0.8.0
+Checks	Project environment	2026-11-01T16:16:11.9797558Z  + anyio==4.15.1
+Checks	Project environment	2026-11-01T16:16:11.9798469Z  + aoa-action-machine==1.0.1a6 (from file:///home/runner/work/aoa/aoa/packages/aoa-action-machine)
+Checks	Project environment	2026-11-01T16:16:11.9799715Z  + aoa-demo==3.0.0 (from file:///home/runner/work/aoa/aoa/packages/aoa-demo)
+Checks	Project environment	2026-11-01T16:16:11.9801014Z  + aoa-fastapi-adapter==1.3.0 (from file:///home/runner/work/aoa/aoa/packages/aoa-fastapi-adapter)
+Checks	Project environment	2026-11-01T16:16:11.9802292Z  + aoa-langgraph==1.0.1 (from file:///home/runner/work/aoa/aoa/packages/aoa-langgraph)
+Checks	Project environment	2026-11-01T16:16:11.9803391Z  + aoa-mcp-adapter==1.2.1 (from file:///home/runner/work/aoa/aoa/packages/aoa-mcp-adapter)
+Checks	Project environment	2026-11-01T16:16:11.9804448Z  + aoa-ocel==1.0.2 (from file:///home/runner/work/aoa/aoa/packages/aoa-ocel)
+Checks	Project environment	2026-11-01T16:16:11.9805577Z  + aoa-otel==1.0.2 (from file:///home/runner/work/aoa/aoa/packages/aoa-otel)
+Checks	Project environment	2026-11-01T16:16:11.9806470Z  + aoa-run==0.0.0 (from file:///home/runner/work/aoa/aoa)
+Checks	Project environment	2026-11-01T16:16:11.9807099Z  + astroid==3.3.11
+Checks	Project environment	2026-11-01T16:16:11.9807549Z  + asyncpg==0.32.0
+Checks	Project environment	2026-11-01T16:16:11.9808108Z  + attrs==26.1.0
+Checks	Project environment	2026-11-01T16:16:11.9808551Z  + black==24.10.0
+Checks	Project environment	2026-11-01T16:16:11.9809019Z  + build==1.6.1
+Checks	Project environment	2026-11-01T16:16:11.9809477Z  + certifi==2026.10.23
+Checks	Project environment	2026-11-01T16:16:11.9809928Z  + cffi==2.1.1
+Checks	Project environment	2026-11-01T16:16:11.9810458Z  + charset-normalizer==3.5.2
+Checks	Project environment	2026-11-01T16:16:11.9811028Z  + click==8.5.0
+Checks	Project environment	2026-11-01T16:16:11.9811480Z  + colorama==0.4.6
+Checks	Project environment	2026-11-01T16:16:11.9811944Z  + contourpy==1.4.0
+Checks	Project environment	2026-11-01T16:16:11.9812387Z  + coverage==7.17.0
+Checks	Project environment	2026-11-01T16:16:11.9812922Z  + cryptography==50.0.2
+Checks	Project environment	2026-11-01T16:16:11.9813433Z  + cvxopt==1.3.3
+Checks	Project environment	2026-11-01T16:16:11.9813881Z  + cycler==0.12.1
+Checks	Project environment	2026-11-01T16:16:11.9814314Z  + dill==0.4.1
+Checks	Project environment	2026-11-01T16:16:11.9814733Z  + distro==1.9.0
+Checks	Project environment	2026-11-01T16:16:11.9815234Z  + docutils==0.23
+Checks	Project environment	2026-11-01T16:16:11.9815769Z  + duckdb==1.5.6
+Checks	Project environment	2026-11-01T16:16:11.9816286Z  + fastapi==0.162.0
+Checks	Project environment	2026-11-01T16:16:11.9816743Z  + fonttools==4.67.0
+Checks	Project environment	2026-11-01T16:16:11.9817194Z  + graphviz==0.21
+Checks	Project environment	2026-11-01T16:16:11.9817689Z  + h11==0.16.0
+Checks	Project environment	2026-11-01T16:16:11.9818124Z  + httpcore==1.0.9
+Checks	Project environment	2026-11-01T16:16:11.9818570Z  + httpcore2==2.16.0
+Checks	Project environment	2026-11-01T16:16:11.9819148Z  + httptools==0.9.0
+Checks	Project environment	2026-11-01T16:16:11.9819657Z  + httpx==0.28.1
+Checks	Project environment	2026-11-01T16:16:11.9820257Z  + httpx-sse==0.4.3
+Checks	Project environment	2026-11-01T16:16:11.9820772Z  + httpx2==2.16.0
+Checks	Project environment	2026-11-01T16:16:11.9821250Z  + id==1.6.1
+Checks	Project environment	2026-11-01T16:16:11.9821789Z  + idna==3.20
+Checks	Project environment	2026-11-01T16:16:11.9822325Z  + iniconfig==2.3.1
+Checks	Project environment	2026-11-01T16:16:11.9822936Z  + isort==5.13.2
+Checks	Project environment	2026-11-01T16:16:11.9823449Z  + jaraco-classes==3.4.0
+Checks	Project environment	2026-11-01T16:16:11.9824100Z  + jaraco-context==6.1.2
+Checks	Project environment	2026-11-01T16:16:11.9824706Z  + jaraco-functools==4.6.0
+Checks	Project environment	2026-11-01T16:16:11.9825367Z  + jeepney==0.9.0
+Checks	Project environment	2026-11-01T16:16:11.9825968Z  + jsonpatch==1.37
+Checks	Project environment	2026-11-01T16:16:11.9826493Z  + jsonpointer==3.5
+Checks	Project environment	2026-11-01T16:16:11.9827050Z  + jsonschema==4.26.0
+Checks	Project environment	2026-11-01T16:16:11.9827638Z  + jsonschema-rs==0.60.3
+Checks	Project environment	2026-11-01T16:16:11.9828298Z  + jsonschema-specifications==2025.9.1
+Checks	Project environment	2026-11-01T16:16:11.9829040Z  + keyring==25.7.0
+Checks	Project environment	2026-11-01T16:16:11.9829554Z  + kiwisolver==1.5.1
+Checks	Project environment	2026-11-01T16:16:11.9830112Z  + langchain-core==1.7.0
+Checks	Project environment	2026-11-01T16:16:11.9831103Z  + langchain-protocol==0.0.20
+Checks	Project environment	2026-11-01T16:16:11.9831918Z  + langgraph==0.6.11
+Checks	Project environment	2026-11-01T16:16:11.9832631Z  + langgraph-checkpoint==3.0.1
+Checks	Project environment	2026-11-01T16:16:11.9833252Z  + langgraph-prebuilt==0.6.5
+Checks	Project environment	2026-11-01T16:16:11.9833860Z  + langgraph-sdk==0.2.15
+Checks	Project environment	2026-11-01T16:16:11.9834449Z  + langsmith==0.14.12
+Checks	Project environment	2026-11-01T16:16:11.9835013Z  + librt==0.16.0
+Checks	Project environment	2026-11-01T16:16:11.9835724Z  + lxml==6.1.3
+Checks	Project environment	2026-11-01T16:16:11.9836244Z  + mando==0.7.1
+Checks	Project environment	2026-11-01T16:16:11.9836975Z  + markdown-it-py==4.2.0
+Checks	Project environment	2026-11-01T16:16:11.9837539Z  + matplotlib==3.11.2
+Checks	Project environment	2026-11-01T16:16:11.9838473Z  + maxitor==3.0.0 (from file:///home/runner/work/aoa/aoa/packages/maxitor)
+Checks	Project environment	2026-11-01T16:16:11.9839273Z  + mccabe==0.7.0
+Checks	Project environment	2026-11-01T16:16:11.9839772Z  + mcp==1.30.0
+Checks	Project environment	2026-11-01T16:16:11.9840304Z  + mdurl==0.1.2
+Checks	Project environment	2026-11-01T16:16:11.9840699Z  + more-itertools==11.2.1
+Checks	Project environment	2026-11-01T16:16:11.9841000Z  + mypy==1.20.2
+Checks	Project environment	2026-11-01T16:16:11.9841368Z  + mypy-extensions==1.1.0
+Checks	Project environment	2026-11-01T16:16:11.9841680Z  + networkx==3.7
+Checks	Project environment	2026-11-01T16:16:11.9842061Z  + nh3==0.3.7
+Checks	Project environment	2026-11-01T16:16:11.9842386Z  + numpy==2.5.4
+Checks	Project environment	2026-11-01T16:16:11.9842678Z  + opentelemetry-api==1.45.1
+Checks	Project environment	2026-11-01T16:16:11.9843064Z  + opentelemetry-sdk==1.45.1
+Checks	Project environment	2026-11-01T16:16:11.9843530Z  + opentelemetry-semantic-conventions==0.66b1
+Checks	Project environment	2026-11-01T16:16:11.9843936Z  + orjson==3.13.0
+Checks	Project environment	2026-11-01T16:16:11.9844253Z  + ormsgpack==1.13.0
+Checks	Project environment	2026-11-01T16:16:11.9844538Z  + packaging==26.3
+Checks	Project environment	2026-11-01T16:16:11.9844873Z  + pandas==3.1.0
+Checks	Project environment	2026-11-01T16:16:11.9845191Z  + pathspec==1.1.1
+Checks	Project environment	2026-11-01T16:16:11.9845695Z  + pillow==13.0.0
+Checks	Project environment	2026-11-01T16:16:11.9846061Z  + platformdirs==4.13.5
+Checks	Project environment	2026-11-01T16:16:11.9846354Z  + pluggy==1.7.0
+Checks	Project environment	2026-11-01T16:16:11.9846682Z  + pm4py==2.7.23.11
+Checks	Project environment	2026-11-01T16:16:11.9847009Z  + psutil==6.1.1
+Checks	Project environment	2026-11-01T16:16:11.9847321Z  + pycparser==3.12
+Checks	Project environment	2026-11-01T16:16:11.9847643Z  + pydantic==2.14.1
+Checks	Project environment	2026-11-01T16:16:11.9847930Z  + pydantic-core==2.50.1
+Checks	Project environment	2026-11-01T16:16:11.9848299Z  + pydantic-settings==2.16.1
+Checks	Project environment	2026-11-01T16:16:11.9848623Z  + pygments==2.21.0
+Checks	Project environment	2026-11-01T16:16:11.9848987Z  + pyjwt==2.15.1
+Checks	Project environment	2026-11-01T16:16:11.9849294Z  + pylint==3.3.9
+Checks	Project environment	2026-11-01T16:16:11.9849552Z  + pyparsing==3.3.3
+Checks	Project environment	2026-11-01T16:16:11.9948192Z  + pyproject-hooks==1.3.3
+Checks	Project environment	2026-11-01T16:16:11.9948635Z  + pytest==9.1.1
+Checks	Project environment	2026-11-01T16:16:11.9949075Z  + pytest-asyncio==1.4.1
+Checks	Project environment	2026-11-01T16:16:11.9949439Z  + pytest-cov==7.1.0
+Checks	Project environment	2026-11-01T16:16:11.9949819Z  + python-dateutil==3.0.0
+Checks	Project environment	2026-11-01T16:16:11.9950326Z  + python-dotenv==1.2.4
+Checks	Project environment	2026-11-01T16:16:11.9950759Z  + python-multipart==0.0.32
+Checks	Project environment	2026-11-01T16:16:11.9951215Z  + pytz==2026.5
+Checks	Project environment	2026-11-01T16:16:11.9951541Z  + pyyaml==6.0.3
+Checks	Project environment	2026-11-01T16:16:11.9951827Z  + radon==6.0.1
+Checks	Project environment	2026-11-01T16:16:11.9952117Z  + readme-renderer==46.0
+Checks	Project environment	2026-11-01T16:16:11.9952502Z  + referencing==0.37.0
+Checks	Project environment	2026-11-01T16:16:11.9952827Z  + requests==2.34.2
+Checks	Project environment	2026-11-01T16:16:11.9953144Z  + requests-toolbelt==1.0.0
+Checks	Project environment	2026-11-01T16:16:11.9953478Z  + rfc3986==2.0.0
+Checks	Project environment	2026-11-01T16:16:11.9953763Z  + rich==15.0.0
+Checks	Project environment	2026-11-01T16:16:11.9954069Z  + rpds-py==2026.9.1
+Checks	Project environment	2026-11-01T16:16:11.9954412Z  + ruff==0.17.2
+Checks	Project environment	2026-11-01T16:16:11.9954693Z  + scipy==1.18.1
+Checks	Project environment	2026-11-01T16:16:11.9955010Z  + secretstorage==3.5.0
+Checks	Project environment	2026-11-01T16:16:11.9955521Z  + simpleeval==1.0.8
+Checks	Project environment	2026-11-01T16:16:11.9955815Z  + six==1.17.0
+Checks	Project environment	2026-11-01T16:16:11.9956096Z  + sniffio==1.3.1
+Checks	Project environment	2026-11-01T16:16:11.9956434Z  + sse-starlette==3.6.0
+Checks	Project environment	2026-11-01T16:16:11.9956792Z  + starlette==1.10.0
+Checks	Project environment	2026-11-01T16:16:11.9957108Z  + taskipy==1.14.1
+Checks	Project environment	2026-11-01T16:16:11.9957446Z  + tenacity==9.2.1
+Checks	Project environment	2026-11-01T16:16:11.9957758Z  + tomli==2.5.0
+Checks	Project environment	2026-11-01T16:16:11.9958077Z  + tomlkit==0.15.2
+Checks	Project environment	2026-11-01T16:16:11.9958397Z  + tqdm==4.70.1
+Checks	Project environment	2026-11-01T16:16:11.9958734Z  + truststore==0.10.5
+Checks	Project environment	2026-11-01T16:16:11.9959130Z  + twine==7.0.0
+Checks	Project environment	2026-11-01T16:16:11.9959539Z  + types-jsonschema==4.26.0.20261006
+Checks	Project environment	2026-11-01T16:16:11.9960030Z  + types-networkx==3.6.1.20261024
+Checks	Project environment	2026-11-01T16:16:11.9960489Z  + typing-extensions==4.16.0
+Checks	Project environment	2026-11-01T16:16:11.9960935Z  + typing-inspection==0.4.4
+Checks	Project environment	2026-11-01T16:16:11.9961510Z  + tzdata==2026.5
+Checks	Project environment	2026-11-01T16:16:11.9961865Z  + urllib3==2.8.0
+Checks	Project environment	2026-11-01T16:16:11.9962600Z  + uuid-utils==0.18.0
+Checks	Project environment	2026-11-01T16:16:11.9963133Z  + uvicorn==0.54.0
+Checks	Project environment	2026-11-01T16:16:11.9963531Z  + uvloop==0.23.0
+Checks	Project environment	2026-11-01T16:16:11.9963922Z  + vulture==2.16
+Checks	Project environment	2026-11-01T16:16:11.9964261Z  + watchfiles==1.3.0
+Checks	Project environment	2026-11-01T16:16:11.9964633Z  + websockets==17.3
+Checks	Project environment	2026-11-01T16:16:11.9965024Z  + xxhash==3.8.2
+Checks	Project environment	2026-11-01T16:16:11.9965539Z  + zstandard==0.25.0
+Checks	Check run (checks)	﻿2026-11-01T16:16:12.0224035Z ##[group]Run bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging
+Checks	Check run (checks)	2026-11-01T16:16:12.0224728Z [36;1mbash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.0238481Z shell: /usr/bin/bash -e {0}
+Checks	Check run (checks)	2026-11-01T16:16:12.0238751Z env:
+Checks	Check run (checks)	2026-11-01T16:16:12.0239010Z   UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
+Checks	Check run (checks)	2026-11-01T16:16:12.0239319Z ##[endgroup]
+Checks	Check run (checks)	2026-11-01T16:16:12.1372401Z [1;33mLog file: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1373041Z 
+Checks	Check run (checks)	2026-11-01T16:16:12.1373729Z [1;33mFull check run (cwd=/home/runner/work/aoa/aoa, up to 4 steps at once)...[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1374133Z 
+Checks	Check run (checks)	2026-11-01T16:16:12.1374872Z [1;33m> Ban __getattr__ in package __init__.py[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1380943Z [1;33m> Maxitor client: npm ci and Vite build[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1384825Z [1;33m> Ruff lint[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.1406599Z [1;33m> Mypy typecheck[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.5932750Z [0;32mOK Ruff lint (exit 0, 0.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.6457065Z [1;33m> Pylint[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.6977429Z [0;32mOK Ban __getattr__ in package __init__.py (exit 0, 0.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.7466785Z [1;33m> Maxitor client: README beside components/*/ index.ts[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.7973348Z [0;32mOK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:12.8499327Z [1;33m> Package import boundaries (production)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.1530929Z [0;32mOK Package import boundaries (production) (exit 0, 1.3 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.2033385Z [1;33m> Package metadata (pyproject dependency matrix)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.3544926Z [0;32mOK Package metadata (pyproject dependency matrix) (exit 0, 0.2 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:14.4046904Z [1;33m> Vulture dead code[0m
+Checks	Check run (checks)	2026-11-01T16:16:19.8286958Z [0;32mOK Vulture dead code (exit 0, 5.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:19.8817520Z [1;33m> Maxitor samples: action_machine public API[0m
+Checks	Check run (checks)	2026-11-01T16:16:20.8857130Z [0;32mOK Maxitor samples: action_machine public API (exit 0, 1.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:20.9368750Z [1;33m> Pytest maxitor/front[0m
+Checks	Check run (checks)	2026-11-01T16:16:59.0576935Z [0;32mOK Maxitor client: npm ci and Vite build (exit 0, 46.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:16:59.1116683Z [1;33m> Maxitor client: unit tests[0m
+Checks	Check run (checks)	2026-11-01T16:17:07.4178734Z [0;32mOK Mypy typecheck (exit 0, 55.3 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:07.4776784Z [1;33m> Maxitor client: ERD card containment[0m
+Checks	Check run (checks)	2026-11-01T16:17:09.3877003Z [0;32mOK Maxitor client: ERD card containment (exit 0, 1.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:09.4359939Z [1;33m> Maxitor client: dictionary value properties[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.2957030Z [0;32mOK Maxitor client: dictionary value properties (exit 0, 0.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.3458769Z [1;33m> Maxitor client: group label composed once[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.8506966Z [0;32mOK Maxitor client: group label composed once (exit 0, 0.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:10.9026883Z [1;33m> Maxitor client: ERD kinds, tables and lines[0m
+Checks	Check run (checks)	2026-11-01T16:17:12.0072370Z [0;32mOK Maxitor client: ERD kinds, tables and lines (exit 0, 1.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:12.0585752Z [1;33m> Maxitor client: ERD table style[0m
+Checks	Check run (checks)	2026-11-01T16:17:13.2718789Z [0;32mOK Maxitor client: ERD table style (exit 0, 1.2 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:13.3246682Z [1;33m> Pytest maxitor/tools/repo_graph_port[0m
+Checks	Check run (checks)	2026-11-01T16:17:18.4086850Z [0;32mOK Pylint (exit 0, 65.8 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:18.4666935Z [1;33m> Pytest maxitor/tools/graph_builder[0m
+Checks	Check run (checks)	2026-11-01T16:17:27.4519575Z [0;32mOK Pytest maxitor/tools/graph_builder (exit 0, 9.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:27.5019696Z [1;33m> Pytest maxitor/core/graph_compare[0m
+Checks	Check run (checks)	2026-11-01T16:17:30.1617988Z [0;32mOK Pytest maxitor/core/graph_compare (exit 0, 2.7 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:30.2116409Z [1;33m> Pytest maxitor/core/graph_map[0m
+Checks	Check run (checks)	2026-11-01T16:17:32.8826887Z [0;32mOK Pytest maxitor/core/graph_map (exit 0, 2.7 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:32.9366917Z [1;33m> Pytest aoa-demo[0m
+Checks	Check run (checks)	2026-11-01T16:17:45.8927159Z [0;32mOK Pytest maxitor/tools/repo_graph_port (exit 0, 32.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:45.9495950Z [1;33m> Pytest aoa-otel[0m
+Checks	Check run (checks)	2026-11-01T16:17:49.4563793Z [0;32mOK Pytest aoa-otel (exit 0, 3.5 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:49.5097516Z [1;33m> Pytest aoa-langgraph[0m
+Checks	Check run (checks)	2026-11-01T16:17:54.6312064Z [0;32mOK Pytest aoa-langgraph (exit 0, 5.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:54.6806939Z [1;33m> Pytest aoa-ocel[0m
+Checks	Check run (checks)	2026-11-01T16:17:59.3603264Z [0;32mOK Pytest aoa-demo (exit 0, 26.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:17:59.4134934Z [1;33m> Pytest aoa-fastapi-adapter[0m
+Checks	Check run (checks)	2026-11-01T16:18:06.5036438Z [0;32mOK Pytest aoa-ocel (exit 0, 11.8 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:06.5547000Z [1;33m> Pytest aoa-mcp-adapter[0m
+Checks	Check run (checks)	2026-11-01T16:18:08.4676978Z [0;32mOK Pytest aoa-fastapi-adapter (exit 0, 9.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:08.5186891Z [1;33m> Pytest aoa-action-machine[0m
+Checks	Check run (checks)	2026-11-01T16:18:12.9821278Z [0;32mOK Pytest aoa-mcp-adapter (exit 0, 6.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:13.0367001Z [1;33m> Pytest tests/scripts (check run, graph files)[0m
+Checks	Check run (checks)	2026-11-01T16:18:19.9706958Z [0;32mOK Pytest tests/scripts (check run, graph files) (exit 0, 6.9 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:20.0196713Z [1;33m> Radon cyclomatic complexity[0m
+Checks	Check run (checks)	2026-11-01T16:18:27.6064921Z [0;32mOK Radon cyclomatic complexity (exit 0, 7.6 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:27.6588077Z [1;33m> Radon maintainability index[0m
+Checks	Check run (checks)	2026-11-01T16:18:37.2060489Z [0;32mOK Maxitor client: unit tests (exit 0, 98.1 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:37.2578032Z [1;33m> Graph files (graph-builder check)[0m
+Checks	Check run (checks)	2026-11-01T16:18:42.0169969Z [0;32mOK Radon maintainability index (exit 0, 14.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:18:42.2176090Z [0;32mOK Graph files (graph-builder check) (exit 0, 5.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:31.9367399Z [0;32mOK Pytest maxitor/front (exit 0, 191.0 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.8759641Z [0;31mFAIL Pytest aoa-action-machine (exit 1, 100.4 s)[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9295232Z 
+Checks	Check run (checks)	2026-11-01T16:19:48.9298359Z [1;33mWall time: 216.8 s[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9299175Z [0;32mLog: /home/runner/work/aoa/aoa/archive/logs/check-all.txt[0m
+Checks	Check run (checks)	2026-11-01T16:19:48.9415903Z ##[error]Process completed with exit code 1.
+Checks	Post Checkout code	﻿2026-11-01T16:19:48.9560588Z Post job cleanup.
+Checks	Post Checkout code	2026-11-01T16:19:49.0443344Z [command]/usr/bin/git version
+Checks	Post Checkout code	2026-11-01T16:19:49.0484864Z git version 2.56.0
+Checks	Post Checkout code	2026-11-01T16:19:49.0524079Z Temporarily overriding HOME='/home/runner/work/_temp/500870bc-ad62-4670-9367-eb84563ccbfc' before making global git config changes
+Checks	Post Checkout code	2026-11-01T16:19:49.0528296Z Adding repository directory to the temporary git global config as a safe directory
+Checks	Post Checkout code	2026-11-01T16:19:49.0531065Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aoa/aoa
+Checks	Post Checkout code	2026-11-01T16:19:49.0576426Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Checks	Post Checkout code	2026-11-01T16:19:49.0619982Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Checks	Post Checkout code	2026-11-01T16:19:49.0842675Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Checks	Post Checkout code	2026-11-01T16:19:49.0868465Z http.https://github.com/.extraheader
+Checks	Post Checkout code	2026-11-01T16:19:49.0881745Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Checks	Post Checkout code	2026-11-01T16:19:49.0918016Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Checks	Post Checkout code	2026-11-01T16:19:49.1147286Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Checks	Post Checkout code	2026-11-01T16:19:49.1183377Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Checks	Complete job	﻿2026-11-01T16:19:49.1576927Z Cleaning up orphan processes
+Checks	Complete job	2026-11-01T16:19:49.1880932Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, astral-sh/setup-uv@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -39,6 +39,12 @@ jobs:
       - name: Check run (checks)
         run: bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging
 
+      # The runner keeps each step's output in the log file, so a failure in CI would otherwise
+      # show only its FAIL line; print the log so the failing step's own output is in the job log.
+      - name: Show the check log on failure
+        if: failure()
+        run: cat archive/logs/check-all.txt || true
+
       # The graph files (graph-builder.toml) must be what the code builds: the check above only
       # reads them. The developer runs `graph-builder write` locally and commits the files with the
       # change, so any modification here is a failure.
@@ -94,6 +100,10 @@ jobs:
       - name: Check run (browser)
         run: bash scripts/run_checks_with_log.sh --where ci --only-browser
 
+      - name: Show the check log on failure
+        if: failure()
+        run: cat archive/logs/check-all.txt || true
+
   packaging:
     name: Packaging
     runs-on: ubuntu-latest
@@ -110,3 +120,7 @@ jobs:
 
       - name: Check run (packaging)
         run: bash scripts/run_checks_with_log.sh --where ci --only-group packaging
+
+      - name: Show the check log on failure
+        if: failure()
+        run: cat archive/logs/check-all.txt || true
