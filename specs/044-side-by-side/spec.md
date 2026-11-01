@@ -32,6 +32,7 @@ Decisions of the maintainer:
 - Q: What does a half show of a change inside a table? → A: An element changed on one half is marked changed on the other too: a table with a row only B has is changed on A as well. The Changes filter works as in Diff, on both halves together.
 - Q: What does the other half do when the element pointed at has no pair there? → A: On a hover or a selection of a removed element in A, or an added one in B, everything in the other half goes out.
 - Q: How does a person find what they hover when it is out of the other half's view? → A: Tracking, a switch in the head, on by default and each person's own: after the pointer rests about 300 ms, the other half's camera glides to the element, keeping its zoom; an element already in view moves nothing. On the full graph, which draws by its zoom, the camera takes the pointer half's zoom too.
+- Q: How does a person find everything that changed right after choosing two versions? → A: A switch in the left panel, offered in Diff and Side by side, leaves only the pages with a change. It is each person's own, and it only narrows the list: the page on screen, the versions and the filters stay as they are.
 - Q: What does a click on a name do in Side by side? → A: It selects the element in both halves, and copies the name as everywhere.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -116,6 +117,25 @@ People in a room look at the same pair in the same view. One changes A, B, the v
 
 ---
 
+### User Story 5 - Find every change from the left panel (Priority: P2)
+
+A person chooses two versions and turns on **Changed only** in the left panel. The panel leaves the domains and diagrams that hold a change, so everything to look at is in one list.
+
+**Why this priority**: Without it, finding what changed means opening every domain.
+
+**Independent Test**: On the stand, pick a pair, turn the switch on, open what is left, turn it off.
+
+**Acceptance Scenarios**:
+
+1. **Given** One, **When** the person looks at the panel, **Then** the switch is not there.
+2. **Given** two versions, **When** the switch is turned on, **Then** only domains with a change stay, each with only its changed ERD, use-case diagram and lifecycles, and the domains open.
+3. **Given** a domain only one version has, **When** the switch is on, **Then** it stays, with its `+` or `−`.
+4. **Given** the switch on, **When** the person moves A or B, **Then** the list is worked out again for the new pair.
+5. **Given** the page on screen has no change, **When** the switch is turned on, **Then** the page stays open and only the list narrows.
+6. **Given** a pair with nothing changed, **When** the switch is on, **Then** the panel says there are no changes.
+
+---
+
 ### Edge Cases
 
 - **A whole diagram absent from one version** (a domain or a lifecycle that is added later): that half says "Not in" its version, and the other half still works.
@@ -168,6 +188,11 @@ People in a room look at the same pair in the same view. One changes A, B, the v
 - **FR-034**: A newcomer MUST receive all of the above on joining.
 - **FR-035**: The room's check MUST compare each half's picture and take in the sha256 of A and of B.
 - **FR-036**: Pointers and followed positions MUST stand in the half they belong to.
+
+#### The left panel
+
+- **FR-037**: In Diff and Side by side the left panel MUST offer a switch that leaves only pages with a change, and the domains that hold them.
+- **FR-038**: The switch MUST be each person's own and MUST NOT change the page, the versions or the filters.
 
 #### Unchanged
 

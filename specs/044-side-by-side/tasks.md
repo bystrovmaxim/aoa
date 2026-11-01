@@ -74,6 +74,11 @@
 - [x] T033 [US4] The check of two pictures and both sha in C`/rooms/pageCheck.ts`, Diff included; test
 - [x] T034 [US4] Adversarial breaks; walk quickstart 8 and 9 in two browsers
 
+## Phase 8a: US5 — Changed only in the left panel (commit)
+
+- [x] T045 [US5] Work out which pages hold a change, from the pair's ERD and use cases, in C`/lib/sidebarDiff.ts`; test
+- [x] T046 [US5] The switch and the narrowed list in C`/components/navigation/LeftSidebar/LeftSidebar.tsx`, in Diff and Side by side only; test; walk it on the stand
+
 ## Added on the stand, at the maintainer's word
 
 - [x] T040 A change inside a table marks the table on both halves

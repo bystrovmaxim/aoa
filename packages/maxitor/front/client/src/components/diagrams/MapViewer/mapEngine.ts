@@ -619,6 +619,7 @@ export class MapEngine {
     reportHover(real ? { kind: "node", id: node } : null);
     if (this.half) {
       setPickedRatio(this.sigma.getCamera().ratio);
+      if (real) setPickedArea(this.overview.areas[this.graph.getNodeAttribute(node, "area") as number]?.id ?? null);
       reportHalfHover(this.half.side, real ? { kind: "node", id: node } : null);
     }
     this.showHover(node ?? this.pinned);
@@ -633,15 +634,19 @@ export class MapEngine {
     this.unpaired = this.selectionUnpaired || (mark !== undefined && !drawnOn(this.half.side, mark));
     if (node !== this.hovered || this.unpaired !== (this.near?.size === 0)) this.showHover(this.unpaired ? null : node, true);
     clearTimeout(this.trackTimer);
-    if (hover?.kind === "node" && this.graph.hasNode(hover.id)) this.trackTimer = setTimeout(() => this.trackTo(hover.id), TRACK_REST_MS);
+    if (hover?.kind === "node") this.trackTimer = setTimeout(() => void this.trackTo(hover.id), TRACK_REST_MS);
   }
 
   /**
    * Tracking: what the pointer rests on across is brought into view here at that half's zoom (spec 044). What a map draws
    * depends on its zoom, so at another zoom the same node may not show at all; one in view at that zoom moves nothing.
    */
-  private trackTo(node: string): void {
-    if (this.killed || !halfTracking() || !this.graph.hasNode(node)) return;
+  private async trackTo(node: string): Promise<void> {
+    if (!halfTracking()) return;
+    // What is rested on across may stand in an area this half, at its zoom, has not read yet.
+    const area = pickedArea();
+    if (!this.graph.hasNode(node) && area && this.areaIndex.has(area)) await this.ensure(area, 3);
+    if (this.killed || !this.graph.hasNode(node)) return;
     const attributes = this.graph.getNodeAttributes(node);
     const place = this.sigma.graphToViewport({ x: attributes.x as number, y: attributes.y as number });
     const { clientWidth, clientHeight } = this.elements.stage;
@@ -760,7 +765,8 @@ export class MapEngine {
 
   private showHover(node: string | null, quiet = false): void {
     const { label, stage } = this.elements;
-    const attributes = node ? this.graph.getNodeAttributes(node) : null;
+    // A node selected across may not have been read here yet, and one read earlier may have been let go.
+    const attributes = node && this.graph.hasNode(node) ? this.graph.getNodeAttributes(node) : null;
     stage.style.cursor = attributes && !attributes.centre ? "pointer" : "";
     if (!node || !attributes || attributes.centre) {
       this.hovered = null;
