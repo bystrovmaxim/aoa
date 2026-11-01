@@ -61,7 +61,7 @@ dmypy.json
 packages/maxitor/front/client/node_modules/
 packages/maxitor/front/client/.vite/
 # Built frontend — assembled by CI before packaging; never commit
-packages/maxitor/front/src/maxitor/front/static/
+packages/maxitor/front/maxitor/front/static/
 
 # ============================================================================
 # IDE

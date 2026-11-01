@@ -21,8 +21,8 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/maxitor/front/src/maxitor/front"]
-future_roots = ["packages/maxitor/front/src/maxitor/front"]
+current_roots = ["packages/maxitor/front/maxitor/front"]
+future_roots = ["packages/maxitor/front/maxitor/front"]
 import_prefixes = ["maxitor.front"]
 may_import = ["action_machine", "graph_builder", "graph_compare", "graph_map"]
 

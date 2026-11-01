@@ -32,7 +32,7 @@ _KIND_USE = re.compile(
 
 def _sources() -> list[Path]:
     """Maxitor's own server and client sources, built assets excluded."""
-    server = [p for p in (_PACKAGE / "src/maxitor/front").rglob("*.py") if "static" not in p.parts]
+    server = [p for p in (_PACKAGE / "maxitor/front").rglob("*.py") if "static" not in p.parts]
     client = [p for p in (_PACKAGE / "client/src").rglob("*") if p.suffix in {".ts", ".tsx"} and ".test." not in p.name]
     return server + client
 

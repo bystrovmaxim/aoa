@@ -19,7 +19,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 COPY packages ./packages
 RUN uv sync --frozen --no-dev --package maxitor --extra front
-COPY --from=client-build /client/dist ./packages/maxitor/front/src/maxitor/front/static
+COPY --from=client-build /client/dist ./packages/maxitor/front/maxitor/front/static
 ENV MAXITOR_API_HOST=0.0.0.0
 ENV MAXITOR_API_PORT=8101
 ENV PATH="/repo/.venv/bin:$PATH"

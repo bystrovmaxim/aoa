@@ -136,7 +136,7 @@ jobs:
           npm ci
           npx vite build \
             --base=/ \
-            --outDir ../src/maxitor/front/static \
+            --outDir ../maxitor/front/static \
             --emptyOutDir
       - name: Build
         run: uv build --package maxitor --out-dir packages/maxitor/dist

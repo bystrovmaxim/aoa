@@ -12,8 +12,8 @@ production build of Maxitor and the frozen reference graph, and runs the measure
   4. a dragged node does not move — the hover card appears, the drag leaves the canvas as it was.
 
 Requirements, one time: ``cd packages/maxitor/front/client && npm ci && npx playwright install chromium``,
-and a production build copied into ``packages/maxitor/front/src/maxitor/front/static`` as
-``quickstart.md`` §2–§3 does (``npm run build`` and ``cp -R dist ../src/maxitor/front/static``).
+and a production build copied into ``packages/maxitor/front/maxitor/front/static`` as
+``quickstart.md`` §2–§3 does (``npm run build`` and ``cp -R dist ../maxitor/front/static``).
 
 Output:
 
@@ -46,7 +46,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT = ROOT / "packages/maxitor/front/client"
 DATA = ROOT / "specs/026-full-graph-fast-open/data"
-STATIC = ROOT / "packages/maxitor/front/src/maxitor/front/static"
+STATIC = ROOT / "packages/maxitor/front/maxitor/front/static"
 FROZEN = ROOT / "specs/025-graph-index-memory/data/ref-graph-2026-10-26.json.gz"
 GRAPH_PORT = 8765
 API_PORT = 8102
