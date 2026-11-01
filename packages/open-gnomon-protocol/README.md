@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
-  <img src="https://img.shields.io/badge/version-1.1-informational" alt="Version 1.1">
+  <img src="https://img.shields.io/badge/version-1.2-informational" alt="Version 1.2">
   <img src="https://img.shields.io/badge/status-stable-brightgreen" alt="Stable">
   <a href="https://json-schema.org/draft/2020-12"><img src="https://img.shields.io/badge/JSON_Schema-2020--12-blue" alt="JSON Schema 2020-12"></a>
   <a href="https://github.com/bystrovmaxim/aoa/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
@@ -27,7 +27,7 @@ The Open Gnomon Protocol makes the model a first-class artifact:
 
 ```json
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "nodes": [
     {"id": "shop.PlaceOrder", "type": "Action", "label": "Place order",
      "properties": {"description": "Place a customer order."}},
@@ -54,7 +54,7 @@ edges[id=aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPi
 
 | | |
 |---|---|
-| **Version** | `1.1` — [graph/1.1.json](graph/1.1.json) |
+| **Version** | `1.2` — [graph/1.2.json](graph/1.2.json) |
 | **Status** | Stable. A published version never changes. |
 | **Normative schema** | JSON Schema 2020-12, one file per version in [graph/](graph/) |
 
@@ -81,7 +81,7 @@ One JSON object with exactly three members:
 
 A document is a graph of version *V* if and only if it declares `"schema_version": "V"` and is valid against [graph/*V*.json](graph/).
 
-### 2. Vocabulary of version 1.1
+### 2. Vocabulary of version 1.2
 
 | | Kinds |
 |---|---|
@@ -97,6 +97,7 @@ The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model
 |---|---|
 | [`1.0`](graph/1.0.json) | The first shape: nodes have an `id`; edges do not. |
 | [`1.1`](graph/1.1.json) | Every edge has an `id`, so two revisions compare edge by edge. |
+| [`1.2`](graph/1.2.json) | An entity field, a lifecycle, a role and a `@connection` link may carry their `description`. |
 
 A release of the protocol is the git tag `open-gnomon-protocol-v<version>`; its history is [CHANGELOG.md](CHANGELOG.md).
 

@@ -12,6 +12,16 @@ import type { Point } from "@/rooms/coordinates";
 
 /** The attribute that names a panel's frame. */
 export const POINTER_FRAME_ATTR = "data-pointer-frame";
+/**
+ * On a frame whose scroll a follower shares: a point there is where it stands in the frame's window. Counted with the scroll,
+ * a pointer at rest over a list its person scrolls would run away with the rows on the follower's screen (spec 043).
+ */
+export const POINTER_FRAME_SHARED_SCROLL_ATTR = "data-pointer-shared-scroll";
+
+/** How far ``element`` is scrolled, as a point in it counts it. */
+function scrollOf(element: HTMLElement): Point {
+  return element.hasAttribute(POINTER_FRAME_SHARED_SCROLL_ATTR) ? { x: 0, y: 0 } : { x: element.scrollLeft, y: element.scrollTop };
+}
 
 /** A frame's name: short, lowercase, as the server accepts it. */
 const FRAME_NAME = /^[a-z][a-z0-9-]{0,31}$/;
@@ -22,7 +32,8 @@ export function inFrame(target: EventTarget | null, client: Point): (Point & { f
   const frame = element?.getAttribute(POINTER_FRAME_ATTR) ?? "";
   if (!element || !FRAME_NAME.test(frame)) return null;
   const box = element.getBoundingClientRect();
-  return { x: client.x - box.left + element.scrollLeft, y: client.y - box.top + element.scrollTop, frame };
+  const scroll = scrollOf(element);
+  return { x: client.x - box.left + scroll.x, y: client.y - box.top + scroll.y, frame };
 }
 
 /** Where a point in frame ``frame`` stands on this screen, or ``null`` while no element of that name is shown. */
@@ -30,5 +41,6 @@ export function clientInFrame(frame: string, point: Point): Point | null {
   const element = [...document.querySelectorAll<HTMLElement>(`[${POINTER_FRAME_ATTR}]`)].find((each) => each.getAttribute(POINTER_FRAME_ATTR) === frame);
   if (!element) return null;
   const box = element.getBoundingClientRect();
-  return { x: box.left + point.x - element.scrollLeft, y: box.top + point.y - element.scrollTop };
+  const scroll = scrollOf(element);
+  return { x: box.left + point.x - scroll.x, y: box.top + point.y - scroll.y };
 }

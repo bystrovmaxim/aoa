@@ -666,6 +666,8 @@ Case 5 is why the response has a top-level `relations` list beside its per-domai
 
 **Hover.** Hovering a table dims every other table and every line that does not touch it. Hovering a line thickens and darkens it, raises it above the others, shows its role names, marks in bold the field it starts from and the field it ends at, and keeps bright only the two tables it joins. Hovering a key field — `PK` or `FK` — makes that field's lines bold, keeps bright the tables they join, dims every other table, leaves the hovered table's other lines as they are and dims the lines that do not touch it. A specialization head and its extensions answer the same way: hovering the head's axis field lights the head and every extension, an extension's reverse field lights that extension and its head. Nothing changes colour or background: the marking is in the weight of the text and the dimming of the rest.
 
+**The card.** Rest the pointer on a field, a table or a line and one card says what it is, what it is for and what changed; a lifecycle shows its picture. From far away a table's card opens anywhere on the table, and a chevron on the header hides all but the keys. [Reading a diagram without zooming in](../how-to/read-a-diagram-without-zooming.md) has every case.
+
 **Copying a name.** Clicking a table's name or a field's name copies it, and a note such as `Copied player_id` appears at the bottom for a moment. Dragging the canvas never copies: a press that moves more than a few pixels is a pan.
 
 ## Follow a dictionary reference

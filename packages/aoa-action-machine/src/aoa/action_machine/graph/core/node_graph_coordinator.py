@@ -33,7 +33,7 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 ``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
 ``type``, ``relationship``, ``is_dag``, ``properties`` and its ``id`` from
 :func:`~aoa.action_machine.graph.edge_identity.edge_id`) suitable for rebuilding a
-``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.1``;
+``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.2``;
 nodes come in ``id`` order and edges in edge ``id`` order. Callers may still pass ``export_json_schema`` to
 :meth:`build` for API compatibility; it is not used by :meth:`to_json`.
 
@@ -234,7 +234,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             row["id"] = edge_id(row)
             edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.1",
+            "schema_version": "1.2",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }

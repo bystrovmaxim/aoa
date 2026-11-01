@@ -79,6 +79,8 @@ def test_slice_payload_includes_scalar_field_from_entity_field_tables() -> None:
             "foreign_key": False,
             "reference_qualname": None,
             "annotation": None,
+            "lifecycle_id": None,
+            "description": None,
         },
     ]
 
@@ -192,3 +194,57 @@ def test_a_table_lists_every_relation_field_whether_or_not_its_target_is_on_scre
     alone = ListEntitiesAction._slice_payload(duck, "d1", include_neighbors=False)
     assert [e["id"] for e in alone["entities"]] == ["order"]
     assert alone["relations"] == []
+
+
+def test_a_lifecycle_row_names_its_lifecycle() -> None:
+    """(043) A row is a lifecycle when the graph holds that entity's lifecycle under its name, and only then."""
+    entity = "my.Entity"
+    graph = DuckDBGraphResource.build_from_json(
+        {
+            "nodes": [
+                {"id": entity, "type": "Entity", "label": "Entity", "properties": {"description": "d", "entity_kind": "core", "entity_kind_label": "Core"}},
+                {"id": f"{entity}:status", "type": "EntityField", "label": "status", "properties": {"field_type": "S", "primary_key_hint": False}},
+                {"id": f"{entity}:name", "type": "EntityField", "label": "name", "properties": {"field_type": "str", "primary_key_hint": False, "description": "What it is called"}},
+                {"id": f"{entity}:lifecycle:status", "type": "Lifecycle", "label": "status", "properties": {"field_name": "status"}},
+                {"id": "my.D", "type": "Domain", "label": "D", "properties": {"name": "d", "description": "d"}},
+            ],
+            "edges": [
+                {"source_id": entity, "target_id": "my.D", "type": "domain", "relationship": "ASSOCIATION", "is_dag": True, "properties": {}},
+                {"source_id": entity, "target_id": f"{entity}:status", "type": "entity_field", "relationship": "COMPOSITION", "is_dag": False, "properties": {"ordinal": 0, "field_name": "status"}},
+                {"source_id": entity, "target_id": f"{entity}:name", "type": "entity_field", "relationship": "COMPOSITION", "is_dag": False, "properties": {"ordinal": 1, "field_name": "name"}},
+            ],
+        },
+    )
+    payload = ListEntitiesAction._slice_payload(graph, "my.D", False)
+    ListEntitiesAction.Result(domain_slices=[{"domain_label": "D", "domain_qualname": "my.D", "list_entities": payload}], relations=[])
+    rows = {row["name"]: row for row in payload["entities"][0]["fields"]}
+    assert (rows["status"]["description"], rows["name"]["description"]) == (None, "What it is called")
+    assert (rows["status"]["lifecycle_id"], rows["name"]["lifecycle_id"]) == (f"{entity}:lifecycle:status", None)
+
+
+def test_a_relation_row_has_its_relation_description_with_the_other_table_off_the_slice() -> None:
+    """(043) A table lists every relation field it declares, so its row says what the relation is for wherever the line ends."""
+    graph = DuckDBGraphResource.build_from_json(
+        {
+            "nodes": [
+                {"id": "my.Lot", "type": "Entity", "label": "Lot", "properties": {"description": "d", "entity_kind": "core", "entity_kind_label": "Core"}},
+                {"id": "other.Aisle", "type": "Entity", "label": "Aisle", "properties": {"description": "d", "entity_kind": "core", "entity_kind_label": "Core"}},
+                {"id": "my.D", "type": "Domain", "label": "D", "properties": {"name": "d", "description": "d"}},
+            ],
+            "edges": [
+                {"source_id": "my.Lot", "target_id": "my.D", "type": "domain", "relationship": "ASSOCIATION", "is_dag": True, "properties": {}},
+                {
+                    "source_id": "my.Lot",
+                    "target_id": "other.Aisle",
+                    "type": "entity_relation",
+                    "relationship": "Association",
+                    "is_dag": False,
+                    "properties": {"field_name": "aisle", "relation_type": "association", "cardinality": "one", "description": "Parent aisle", "has_inverse": False, "deprecated": False},
+                },
+            ],
+        },
+    )
+    payload = ListEntitiesAction._slice_payload(graph, "my.D", False)
+    ListEntitiesAction.Result(domain_slices=[{"domain_label": "D", "domain_qualname": "my.D", "list_entities": payload}], relations=[])
+    rows = {row["name"]: row for row in payload["entities"][0]["fields"]}
+    assert rows["aisle"]["description"] == "Parent aisle"

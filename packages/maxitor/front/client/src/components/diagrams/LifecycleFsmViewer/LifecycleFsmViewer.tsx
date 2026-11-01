@@ -15,8 +15,7 @@ import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { nothingChanged } from "@/lib/erdDiff";
 import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
-import { MARK_LOOK } from "@/lib/erdDiffCard";
-import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { changeDiskUri } from "@/lib/erdFilterPresence";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { svgDataUriForGraphNodeIcon } from "@/lib/icons";
 import { bindUseCaseHover } from "@/lib/useCaseHover";
@@ -103,7 +102,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
     key: status,
     label: status.charAt(0).toUpperCase() + status.slice(1),
-    iconSrc: statusDiskUri(status === "unchanged" || paintSection !== "changes" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
+    iconSrc: changeDiskUri(status, paintSection === "changes"),
     on: !offChanges.has(status),
     absent: !shownChanges.has(status),
   }));

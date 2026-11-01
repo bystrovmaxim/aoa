@@ -67,3 +67,26 @@ describe("a picture that moves (spec 038)", () => {
     expect(panner.style.willChange).toBe("");
   });
 });
+
+describe("a drag when the drawing is replaced (spec 043)", () => {
+  it("does not stay stuck to the pointer when the binding goes before mouseup", () => {
+    let unbind = () => undefined as void;
+    function Rebound() {
+      const { viewportRef, pannerRef, bindInteractions } = useSvgPanZoom();
+      useEffect(() => {
+        unbind = bindInteractions();
+        return unbind;
+      }, [bindInteractions]);
+      return (
+        <div ref={viewportRef} data-testid="viewport">
+          <div ref={pannerRef} data-testid="panner" />
+        </div>
+      );
+    }
+    const { getByTestId } = render(<Rebound />);
+    const viewport = getByTestId("viewport");
+    act(() => void viewport.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 10, clientY: 10, bubbles: true })));
+    act(() => unbind());
+    expect(viewport.classList.contains("erd-panning")).toBe(false);
+  });
+});

@@ -5,7 +5,8 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ErdFilterPanel } from "@/components/ui/ErdFilterPanel";
-import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
+import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
+import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { DiffCard } from "@/components/history/DiffCard";
 import { getActiveBase } from "@/api/client";
 import { mapChanges, mapOverview } from "@/api/map";
@@ -17,6 +18,8 @@ import { countChanges } from "@/lib/mapDiff";
 import { mapFilterRows } from "@/lib/mapFilterRows";
 import { changesLeft, mapFacts, presence, type HiddenBy, type MapFilters } from "@/lib/mapVisibility";
 import { usePageSetting } from "@/lib/pageSettings";
+import { useHoverCard } from "@/lib/useHoverCard";
+import { isFollowing, mirroredFocus, sameRef, useMirroredFocus, type ElementRef } from "@/rooms/focusStore";
 import type { MapCard, MapEngine } from "./mapEngine";
 
 const LAYERS_SX = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
@@ -49,6 +52,36 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   const [zoomPct, setZoomPct] = useState(100);
   const [mapError, setMapError] = useState<string | null>(null);
   const [card, setCard] = useState<MapCard | null>(null);
+  // A click on a change opens its card as before (spec 043, FR-012a); a hover opens the one card, none while that one stands.
+  const hoverCard = useHoverCard<CardSubject>(card !== null);
+  const hoverRef = useRef(hoverCard.want);
+  hoverRef.current = hoverCard.want;
+  const hoverNowRef = useRef(hoverCard.wantNow);
+  hoverNowRef.current = hoverCard.wantNow;
+  // The followed person's card goes by what they say of it, not by their hover: on the card they hover nothing.
+  const followed = useMirroredFocus();
+  const followedCard = followed?.panels.card?.ref ?? null;
+  const shownCard = useRef<ElementRef | null>(null);
+  useEffect(() => {
+    if (!followed || !engine || sameRef(followedCard, shownCard.current)) return;
+    shownCard.current = followedCard;
+    const subject = followedCard ? engine.cardSubject(followedCard) : null;
+    if (subject) hoverCard.wantNow(subject);
+    else hoverCard.close();
+  }, [engine, followed, followedCard, hoverCard]);
+  const closeRef = useRef(hoverCard.close);
+  closeRef.current = hoverCard.close;
+  /** A press is a drag on its way: what passes under the pointer then is not being looked at. */
+  const pressedRef = useRef(false);
+  useEffect(() => {
+    const release = () => void (pressedRef.current = false);
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+  }, []);
   const [position, setPosition] = useState<number | null>(null);
   const [drawable] = useState(canDrawMap);
   const names = useDiffNames();
@@ -83,9 +116,20 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
     let made: MapEngine | null = null;
     const { overview, module, changes } = data;
     const events = {
-      onZoom: (zoom: number) => setZoomPct(Math.round(zoom * 100)),
+      onZoom: (zoom: number) => {
+        setZoomPct(Math.round(zoom * 100));
+        // A follower's card stays as long as the followed person holds it, and goes with the map.
+        const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+        const subject = ref ? made?.cardSubject(ref) : null;
+        if (subject) hoverNowRef.current(subject);
+        else closeRef.current();
+      },
       onCard: setCard,
       onStep: setPosition,
+      onHoverElement: (subject: CardSubject | null, now?: boolean) => {
+        if (subject && now) hoverNowRef.current(subject);
+        else if (!pressedRef.current) hoverRef.current(subject);
+      },
     };
     module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events)
       .then(async (engineMade) => {
@@ -145,6 +189,12 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
       <Box
         ref={stageRef}
         className="ix-interchange-viewport"
+        onWheelCapture={hoverCard.close}
+        onPointerDownCapture={(event) => {
+          if (event.target instanceof Element && event.target.closest('[data-testid="element-card"]')) return;
+          pressedRef.current = true;
+          hoverCard.close();
+        }}
         sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative", overflow: "hidden", cursor: "grab", touchAction: "none", "&:active": { cursor: "grabbing" }, bgcolor: "#fbfcfd", backgroundImage: "radial-gradient(#d5dbe3 1px, transparent 1.2px)", backgroundSize: "22px 22px" }}
       >
         <Box component="canvas" ref={underRef} sx={{ ...LAYERS_SX, zIndex: 1 }} />
@@ -157,6 +207,16 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
           </Typography>
         )}
         {card && <DiffCard target={card.target} newer={names?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
+        {!card && hoverCard.shown && (
+          <ElementCard
+            key={hoverCard.shown.key}
+            subject={hoverCard.shown}
+            newer={names?.b ?? "B"}
+            onEnter={hoverCard.hold}
+            onLeave={hoverCard.release}
+            onClose={hoverCard.close}
+          />
+        )}
         {!drawable && (
           <Box role="alert" sx={{ position: "absolute", zIndex: 12, left: "50%", top: "42%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, maxWidth: 340, textAlign: "center" }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
@@ -181,7 +241,9 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
             paint={{ source: paint, onPaint: setChosenPaint }}
           />
         )}
-        <ZoomToolbar zoomPct={zoomPct} onZoomIn={() => engine?.zoomBy(1.5)} onZoomOut={() => engine?.zoomBy(1 / 1.5)} onFit={() => engine?.fit()} />
+        <ZoomToolbar zoomPct={zoomPct} onZoomIn={() => engine?.zoomBy(1.5)} onZoomOut={() => engine?.zoomBy(1 / 1.5)} onFit={() => engine?.fit()}>
+          <HoverCardsButton />
+        </ZoomToolbar>
       </Box>
     </DiagramShell>
   );

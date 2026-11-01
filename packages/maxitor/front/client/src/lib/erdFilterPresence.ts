@@ -6,7 +6,7 @@
  * dimmed, and whether it is on stays the user's.
  */
 
-import { erdGlance, type ErdDiff, type ErdEntity } from "@/lib/buildDotSource";
+import { ERD_DIFF_COLOUR, ERD_DIFF_SIGN, erdGlance, type ErdDiff, type ErdEntity } from "@/lib/buildDotSource";
 import type { ErdGraphPayload } from "@/lib/buildDotSource";
 import { entityKindOf, pruneGraphToEntities } from "@/lib/erdKindFilter";
 
@@ -20,6 +20,20 @@ export function statusDiskUri(fill: string, sign: string): string {
     (sign ? `<text x="12" y="16.5" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#fff">${sign}</text>` : "") +
     `</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/** A status's disk when something else paints the diagram. */
+const IDLE_DISK = "#cbd5e1";
+/** An unchanged element's disk: dark enough for its sign to read, grey like everything unchanged. */
+const UNCHANGED_DISK = "#94a3b8";
+
+/**
+ * The one disk of a status, in the filter panels and on the cards: ``+ − ~`` in their colours, ``=`` for unchanged. ``painted``
+ * false greys a change, when domains or kinds paint the diagram; unchanged is grey either way.
+ */
+export function changeDiskUri(status: ErdDiff, painted = true): string {
+  if (status === "unchanged") return statusDiskUri(UNCHANGED_DISK, "=");
+  return statusDiskUri(painted ? ERD_DIFF_COLOUR[status] : IDLE_DISK, ERD_DIFF_SIGN[status]);
 }
 
 /** The kinds of change the base has, in the filter's order; none when nothing on it changed (or one version is drawn). */

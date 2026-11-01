@@ -5,6 +5,7 @@ import Paper from "@mui/material/Paper";
 import { useEffect, useState } from "react";
 import { compareElement, type ChangedPart, type ElementDifference } from "@/api/compare";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
+import { StatusIcon } from "./StatusIcon";
 
 export type DiffCardProps = {
   target: CardTarget;
@@ -67,13 +68,12 @@ function groupedParts(parts: readonly ChangedPart[]): [string, ChangedPart[]][] 
 }
 
 /**
- * The card of a changed table or row in Diff (spec 038, FR-028, FR-029): every property that changed, by its path,
- * before and after; an added or removed element says so in one line. Parts changed inside an element come below,
- * by group (spec 041, FR-012). Values are text. A click outside or Escape closes it.
+ * What changed in an element (spec 038, FR-028, FR-029): every property that changed, by its path, before and after; an
+ * added or removed element says so in one line. Parts changed inside an element come below, by group (spec 041, FR-012).
+ * Values are text. Both cards of Maxitor show it.
  */
-export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
+export function DiffBody({ target, newer }: Pick<DiffCardProps, "target" | "newer">) {
   const [differences, setDifferences] = useState<ElementDifference[] | null>(null);
-  const look = MARK_LOOK[target.status];
   const inside = Boolean(target.parts?.length);
   const groups = groupedParts(target.parts ?? []);
 
@@ -86,6 +86,32 @@ export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
     };
   }, [target]);
 
+  return (
+    <>
+      {target.status === "added" && <Box>{`Added in ${newer}`}</Box>}
+      {target.status === "removed" && <Box>{`Removed in ${newer}`}</Box>}
+      {target.status === "changed" && differences === null && <Box sx={{ color: "#64748b" }}>Reading…</Box>}
+      {target.note && <Box data-testid="diff-note">{target.note}</Box>}
+      {target.status === "changed" && !inside && !target.note && differences?.length === 0 && <Box sx={{ color: "#64748b" }}>No property differs.</Box>}
+      {differences?.map((difference) => <DifferenceRow key={difference.path.join(".")} difference={difference} />)}
+      {inside && differences?.length === 0 && <Box data-testid="diff-inside">The action is the same; its parts changed.</Box>}
+      {groups.map(([group, parts]) => (
+        <Box key={group} data-testid="diff-part-group" sx={{ mt: "6px" }}>
+          <Box sx={{ fontWeight: 600, color: "#475569" }}>{group}</Box>
+          {parts.map((part) => (
+            <Box key={`${part.kind}|${part.id}`} data-testid="diff-part">
+              <span style={{ color: MARK_LOOK[part.status].colour }}>{MARK_LOOK[part.status].sign}</span> {part.label}
+              {part.differences.map((difference) => <DifferenceRow key={difference.path.join(".")} difference={difference} />)}
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </>
+  );
+}
+
+/** The card a step or a click opens on a change. A click outside or Escape closes it. */
+export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -119,29 +145,11 @@ export function DiffCard({ target, newer, at, onClose }: DiffCardProps) {
           boxShadow: "0 8px 30px rgba(15, 23, 42, 0.14), 0 1px 2px rgba(15, 23, 42, 0.06)",
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, fontWeight: 600, color: "#0f172a", mb: "4px" }}>
-          <span>
-            <span style={{ color: look.colour }}>{look.sign}</span> {target.title}
-          </span>
-          <span style={{ color: look.colour, fontWeight: 500 }}>{target.status}</span>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, fontWeight: 600, color: "#0f172a", mb: "4px" }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{target.title}</span>
+          <StatusIcon status={target.status} />
         </Box>
-        {target.status === "added" && <Box>{`Added in ${newer}`}</Box>}
-        {target.status === "removed" && <Box>{`Removed in ${newer}`}</Box>}
-        {target.status === "changed" && differences === null && <Box sx={{ color: "#64748b" }}>Reading…</Box>}
-        {target.status === "changed" && !inside && differences?.length === 0 && <Box sx={{ color: "#64748b" }}>No property differs.</Box>}
-        {differences?.map((difference) => <DifferenceRow key={difference.path.join(".")} difference={difference} />)}
-        {inside && differences?.length === 0 && <Box data-testid="diff-inside">The action is the same; its parts changed.</Box>}
-        {groups.map(([group, parts]) => (
-          <Box key={group} data-testid="diff-part-group" sx={{ mt: "6px" }}>
-            <Box sx={{ fontWeight: 600, color: "#475569" }}>{group}</Box>
-            {parts.map((part) => (
-              <Box key={`${part.kind}|${part.id}`} data-testid="diff-part">
-                <span style={{ color: MARK_LOOK[part.status].colour }}>{MARK_LOOK[part.status].sign}</span> {part.label}
-                {part.differences.map((difference) => <DifferenceRow key={difference.path.join(".")} difference={difference} />)}
-              </Box>
-            ))}
-          </Box>
-        ))}
+        <DiffBody target={target} newer={newer} />
       </Paper>
     </ClickAwayListener>
   );

@@ -103,6 +103,7 @@ from maxitor.front.model.diagrams.actions.compare_element_action import CompareE
 from maxitor.front.model.diagrams.actions.compare_versions_action import CompareVersionsAction
 from maxitor.front.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
 from maxitor.front.model.diagrams.actions.full_graph_action import FullGraphAction
+from maxitor.front.model.diagrams.actions.get_element_card_action import ElementNotInGraphError, GetElementCardAction
 from maxitor.front.model.diagrams.actions.get_lifecycle_finite_automaton_action import (
     GetLifecycleFiniteAutomatonAction,
 )
@@ -334,6 +335,11 @@ def create_app() -> FastAPI:
             },
         )
         .get(
+            "/element-card",
+            GetElementCardAction,
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
+        )
+        .get(
             "/compare",
             CompareVersionsAction,
             connections={COMPARISON_STORE_CONNECTION_KEY: comparisons},
@@ -484,6 +490,7 @@ def _answer_comparison_refusals(app: FastAPI) -> None:
     answers: dict[type[Exception], int] = {
         NotComparingError: 400,
         ElementNotComparedError: 404,
+        ElementNotInGraphError: 404,
         MapAreaNotFoundError: 404,
         MapRefusedError: 422,
         NoGraphError: 400,

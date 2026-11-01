@@ -79,3 +79,17 @@ describe("a name written with its Diff sign", () => {
     expect(["+ region", "− is_activated", "~ erid", "region", "  ~ OfferEntity "].map(bareName)).toEqual(["region", "is_activated", "erid", "region", "OfferEntity"]);
   });
 });
+
+describe("a touch on a name (spec 043)", () => {
+  it("copies nothing: a tap opens the card", () => {
+    const root = document.createElement("div");
+    root.innerHTML = '<svg><g id="a_fn0_0"><text>name</text></g></svg>';
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    bindNameCopy(root, () => undefined, new AbortController().signal);
+    const cell = root.querySelector("text")!;
+    for (const type of ["pointerdown", "pointerup"]) cell.dispatchEvent(Object.assign(new MouseEvent(type, { bubbles: true }), { pointerType: "touch" }));
+    expect(writeText).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});

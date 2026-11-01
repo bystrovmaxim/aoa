@@ -15,9 +15,10 @@ RAW = "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gno
 
 # Each copy a Python package keeps beside its code, and the protocol file it copies.
 COPIES = {
-    "packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json": "graph/1.1.json",
+    "packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json": "graph/1.2.json",
     "packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/schemas/1.0.json": "graph/1.0.json",
     "packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/schemas/1.1.json": "graph/1.1.json",
+    "packages/maxitor/tools/graph_builder/src/maxitor/graph_builder/schemas/1.2.json": "graph/1.2.json",
 }
 
 # SHA-256 of each published schema without its ``$id``, as ``json.dumps(..., sort_keys=True)``.
@@ -25,6 +26,7 @@ COPIES = {
 PUBLISHED = {
     "1.0": "77f1a7960a09dcb63b31d75e9d08467dd34c28e563281f959beb087c615b9bb4",
     "1.1": "4d5e7bbe4efadbbba63a03a598a8784c240db5d81322cd0fd794d726c2b5adde",
+    "1.2": "8b442a13f523b27e07390626aa6ee150f85cacf1fbd54d0373fc4933fd5043ce",
 }
 
 
@@ -39,7 +41,7 @@ def test_a_copy_is_its_source_byte_for_byte(copy: str, source: str) -> None:
 def test_the_protocol_holds_no_code() -> None:
     """The protocol is its specification, its changelog and its schemas — nothing any language would have to run."""
     held = sorted(str(p.relative_to(PROTOCOL)) for p in PROTOCOL.rglob("*") if p.is_file())
-    assert held == ["CHANGELOG.md", "README.md", "graph/1.0.json", "graph/1.1.json"]
+    assert held == ["CHANGELOG.md", "README.md", "graph/1.0.json", "graph/1.1.json", "graph/1.2.json"]
 
 
 @pytest.mark.parametrize("version", sorted(PUBLISHED))
