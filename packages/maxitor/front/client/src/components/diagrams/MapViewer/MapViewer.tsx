@@ -38,11 +38,9 @@ function toggled(list: readonly string[], key: string): string[] {
   return list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort();
 }
 
-/** The pair's changes for what is on screen. A half reads its own version's map, so it first asks for the pair's, which the changes are read from (spec 044). */
-async function changesFor(half: Half | null, overview: MapOverview, onLayingOut: () => void): Promise<MapChange[]> {
-  if (!half) return overview.links_changed === undefined ? [] : mapChanges();
-  await mapOverview(onLayingOut);
-  return mapChanges();
+/** The pair's changes for what is on screen; a half reads them after the pair's map, which they come from (spec 044). */
+async function changesFor(half: Half | null, overview: MapOverview): Promise<MapChange[]> {
+  return !half && overview.links_changed === undefined ? [] : mapChanges();
 }
 
 /**
@@ -104,17 +102,23 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
 
   const load = useCallback(async () => {
     const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true), half?.read), import("./mapEngine")]);
-    return { overview, module, changes: await changesFor(half, overview, () => setLayingOut(true)) };
+    // The filter's rows are the pair's: a version's own map knows no changes.
+    const pair = half ? await mapOverview(() => setLayingOut(true)) : overview;
+    return { overview, pair, module, changes: await changesFor(half, overview) };
   }, [half]);
   const { data, loading, error } = useDiagramLoader(load);
 
   const filters = useMemo<MapFilters>(() => ({ types: new Set(offTypes), domains: new Set(offDomains), changes: new Set(offChanges) }), [offTypes, offDomains, offChanges]);
   const facts = useMemo(() => (data ? mapFacts(data.overview) : null), [data]);
+  const pairFacts = useMemo(() => (data ? mapFacts(data.pair) : null), [data]);
   const shownChanges = useMemo(() => (data && facts ? changesLeft(data.changes, filters, facts) : []), [data, facts, filters]);
   const entries = useMemo<ChangeEntry[]>(() => {
     const areaNames = new Map(data?.overview.areas.map((area) => [area.id, area.name]));
     return shownChanges.map((change) => ({ key: change.id, title: change.label, detail: change.type, status: change.status, group: areaNames.get(change.area) ?? change.area }));
   }, [data, shownChanges]);
+  useEffect(() => {
+    if (half) setPosition(null);
+  }, [half, entries]);
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const sections: PaintSection[] = ["domains", ...((data?.overview.types.length ?? 0) > 1 ? (["kinds"] as const) : []), ...(data?.changes.length ? (["changes"] as const) : [])];
@@ -141,7 +145,8 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
       },
       onCard: setCard,
       onPick: half ? (node: string | null) => pickRef.current(node ? { kind: "node", id: node } : null) : undefined,
-      onStep: setPosition,
+      // A half's own list holds only its version's changes: the place in the list is the pair's, set by the step itself.
+      onStep: half ? () => undefined : setPosition,
       onHoverElement: (subject: CardSubject | null, now?: boolean) => {
         if (subject && now) hoverNowRef.current(subject);
         else if (!pressedRef.current) hoverRef.current(subject);
@@ -193,14 +198,17 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [half]);
-  useEffect(() => (engine && half ? joinSteps(half.side, (index) => engine.goToChange(entriesRef.current[index]?.key ?? "")) : undefined), [engine, half]);
+  useEffect(() => (engine && half ? joinSteps(half.side, (index) => {
+    setPosition(index);
+    engine.goToChange(entriesRef.current[index]?.key ?? "");
+  }) : undefined), [engine, half]);
 
   useEffect(() => {
     if (writesForPair(half)) setDiffCounts(comparing ? countChanges(shownChanges) : null);
   }, [comparing, shownChanges]);
 
   useEffect(() => {
-    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
+    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: half ? setPosition : (next, open) => engine.mirror(next, open) } : null);
   }, [engine, entries, position, card]);
 
   useEffect(
@@ -224,7 +232,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   );
   // The picture answers a click first; the panel's rows follow in the next moment.
   const rowFilters = useDeferredValue(filters);
-  const rows = useMemo(() => (data && facts ? mapFilterRows(data.overview, rowFilters, presence(data.overview, rowFilters, facts), paint, comparing, reveal) : null), [data, facts, rowFilters, paint, comparing, reveal]);
+  const rows = useMemo(() => (data && facts ? mapFilterRows(data.pair, rowFilters, presence(data.pair, rowFilters, pairFacts ?? facts), paint, comparing, reveal) : null), [data, facts, rowFilters, paint, comparing, reveal]);
 
   return (
     <DiagramShell loading={loading && !layingOut} error={error ?? mapError}>

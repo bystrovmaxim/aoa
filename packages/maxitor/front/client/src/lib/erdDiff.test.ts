@@ -208,3 +208,24 @@ describe("a table, a row and a line across the two halves (spec 044)", () => {
     expect(erdHolds(data, { kind: "table", id: "b.Three" })).toBe(false);
   });
 });
+
+describe("a lifecycle is part of its table (spec 044)", () => {
+  const life = "b.Bin:lifecycle:status";
+  const table = { id: "b.Bin", fields: [{ name: "status", lifecycle_id: life }, { name: "plain" }] };
+  const mark = (nodes: Record<string, string>, edges: Record<string, string> = {}) =>
+    markErd(mergeErdSlices({ entities: [table] }, { entities: [table] }), { counts: {}, nodes, edges } as unknown as CompareResult).entities![0];
+
+  it("makes the table and the field changed when a state went", () => {
+    const entity = mark({ [`${life}:staging`]: "removed" });
+    expect(entity.diff).toBe("changed");
+    expect(entity.fields?.map((field) => field.diff)).toEqual(["changed", "unchanged"]);
+  });
+
+  it("does the same for a transition", () => {
+    expect(mark({}, { [`${life}:a|lifecycle_transition|${life}:b|a`]: "added" }).diff).toBe("changed");
+  });
+
+  it("leaves the table alone when another lifecycle changed", () => {
+    expect(mark({ "b.Bin:lifecycle:statusx:s": "added" }).diff).toBe("unchanged");
+  });
+});

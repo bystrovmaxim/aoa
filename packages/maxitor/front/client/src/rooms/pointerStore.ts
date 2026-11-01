@@ -6,6 +6,7 @@
  * layer subscribes and redraws on the next animation frame. Only the newest position of each person
  * is kept (FR-043).
  */
+import type { Side } from "@/lib/half";
 import type { DiagramViewport, Point } from "@/rooms/coordinates";
 
 /**
@@ -15,10 +16,10 @@ import type { DiagramViewport, Point } from "@/rooms/coordinates";
  */
 export type PointerFrame = { frame?: string };
 
-export type RemotePointer = Point & PointerFrame & { kind: "mouse" | "touch"; at: number };
+export type RemotePointer = Point & PointerFrame & { kind: "mouse" | "touch"; at: number; half?: Side };
 
 /** A click someone made, where and when: it shows as a ripple for a moment (spec 038). */
-export type RemoteClick = Point & PointerFrame & { at: number };
+export type RemoteClick = Point & PointerFrame & { at: number; half?: Side };
 
 const pointers = new Map<string, RemotePointer>();
 const clicks = new Map<string, RemoteClick>();
@@ -41,8 +42,9 @@ export function putPointer(participant: string, pointer: RemotePointer): void {
 }
 
 /** Record what a participant's screen shows. */
-export function putViewport(participant: string, viewport: DiagramViewport): void {
-  viewports.set(participant, viewport);
+export function putViewport(participant: string, viewport: DiagramViewport, half?: Side): void {
+  // A's screen stands apart: B's is what a page with one diagram reports, and following reads it the same way.
+  viewports.set(half === "a" ? `${participant}|a` : participant, viewport);
   if (viewport.pw && viewport.ph) screens.set(participant, { w: viewport.pw, h: viewport.ph });
   changed();
 }
@@ -84,6 +86,11 @@ export function screenOfParticipant(participant: string): { w: number; h: number
 }
 
 /** What ``participant``'s screen shows, when known. */
+export function viewportOfHalfA(participant: string): DiagramViewport | undefined {
+  return viewports.get(`${participant}|a`);
+}
+
+/** What a participant's screen shows. */
 export function viewportOfParticipant(participant: string): DiagramViewport | undefined {
   return viewports.get(participant);
 }

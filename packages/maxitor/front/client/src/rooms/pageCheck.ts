@@ -10,6 +10,7 @@
  * then reloads the room's side once instead, since it may be the one on old code; still other after that, the
  * server answers ``off`` and pointers stay off on that page, both ways.
  */
+import { comparedDigest } from "@/api/compare";
 import type { SavedView } from "@/rooms/diagramSurface";
 import type { ClientMessage } from "@/rooms/protocol";
 
@@ -64,15 +65,18 @@ export function checkNotice(outcome: CheckOutcome): string | null {
  * The ``page`` message after a draw: the page, the build, the graph and what the picture is — and whether this tab
  * reloaded for its layout within the last five minutes, ``now`` being the time.
  */
-export function pageReport(page: string, build: string, fingerprint: string | null, element: HTMLElement | null, now = Date.now()): ClientMessage {
+export function pageReport(page: string, build: string, fingerprint: string | null, element: HTMLElement | null, now = Date.now(), elementA: HTMLElement | null = null): ClientMessage {
   const message: Extract<ClientMessage, { type: "page" }> = { type: "page", page, build };
   const layoutReloadAt = lastLayoutReload();
   if (layoutReloadAt !== null && now - layoutReloadAt < RELOAD_GUARD_MS) message.layout_reloaded = true;
   if (fingerprint) message.fingerprint = fingerprint;
   const hash = element?.getAttribute("data-layout-hash");
   if (hash) {
-    message.layout_hash = hash;
-    message.settings_digest = element?.getAttribute("data-layout-input") ?? "";
+    // In Side by side the picture is two, and in any comparison the digest takes in the two graphs (spec 044, FR-035).
+    const hashA = elementA?.getAttribute("data-layout-hash");
+    message.layout_hash = hashA ? `${hashA}.${hash}` : hash;
+    const inputs = [elementA?.getAttribute("data-layout-input"), element?.getAttribute("data-layout-input") ?? "", comparedDigest()];
+    message.settings_digest = inputs.filter((part) => part !== undefined && part !== null && part !== "").join(".");
   }
   return message;
 }

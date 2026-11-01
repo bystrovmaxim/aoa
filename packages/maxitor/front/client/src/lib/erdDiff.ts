@@ -97,23 +97,36 @@ function movedTables(compared: CompareResult): Set<string> {
   }));
 }
 
+/** Whether a state or transition of this field's lifecycle changed: they carry the lifecycle's id at the head of theirs. */
+function lifecycleChanged(field: ErdField, changedIds: readonly string[]): boolean {
+  const id = field.lifecycle_id;
+  return Boolean(id) && changedIds.some((changed) => changed === id || changed.startsWith(`${id}:`));
+}
+
 /** Every table, row and line of a merged slice marked with its status. */
 export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
   const moved = movedTables(compared);
-  const entities = (slice.entities ?? []).map((entity) => ({
-    ...entity,
-    // A table that stands in another domain changed, though its own properties did not (spec 043).
-    diff: compared.nodes[entity.id] ?? (moved.has(entity.id) ? "changed" : "unchanged"),
-    movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
-    fields: (entity.fields ?? []).map((field) => ({
+  const changedIds = [...Object.keys(compared.nodes), ...Object.keys(compared.edges)];
+  const entities = (slice.entities ?? []).map((entity) => {
+    const fields = (entity.fields ?? []).map((field) => ({
       ...field,
       diff: strongest(
         compared.nodes[`${entity.id}:${field.name}`],
         compared.edges[`${entity.id}|entity_field|${entity.id}:${field.name}`],
         compared.edges[`${entity.id}|entity_relation|${field.name}`],
+        lifecycleChanged(field, changedIds) ? "changed" : undefined,
       ),
-    })),
-  }));
+    }));
+    // A lifecycle is part of its table: a change inside it changes the table (spec 044).
+    const composed = fields.some((field) => field.lifecycle_id && field.diff === "changed");
+    return {
+      ...entity,
+      // A table that stands in another domain changed, though its own properties did not (spec 043).
+      diff: compared.nodes[entity.id] ?? (moved.has(entity.id) || composed ? "changed" : "unchanged"),
+      movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
+      fields,
+    };
+  });
   const relations = (slice.relations ?? []).map((relation) => ({ ...relation, diff: relationStatus(relation, compared) }));
   return { ...slice, entities, relations };
 }

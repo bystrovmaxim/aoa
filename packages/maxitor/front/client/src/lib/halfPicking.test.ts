@@ -1,6 +1,6 @@
 // src/lib/halfPicking.test.ts
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { hoverAcross, inView, joinSteps, noteOf, reportHalfHover, stepBoth } from "@/lib/halfPicking";
+import { dimUnpaired, halfTracking, hoverAcross, inView, joinSteps, noteOf, reportHalfHover, setHalfTracking, stepBoth } from "@/lib/halfPicking";
 
 afterEach(() => {
   reportHalfHover("a", null);
@@ -26,6 +26,24 @@ describe("one element across the halves", () => {
     expect(noteOf("hidden", "0.9.0")).toBe("Hidden by the filters");
     expect(noteOf("moved", "0.9.0")).toBe("Brought to the centre");
     expect(noteOf("in_view", "0.9.0")).toBeNull();
+  });
+
+  it("puts a drawing out while the hover or the selection has no pair, and back when neither does", () => {
+    const root = document.createElement("div");
+    dimUnpaired(root, "hover", true);
+    expect(root.style.opacity).not.toBe("");
+    dimUnpaired(root, "selection", true);
+    dimUnpaired(root, "hover", false);
+    expect(root.style.opacity).not.toBe("");
+    dimUnpaired(root, "selection", false);
+    expect(root.style.opacity).toBe("");
+  });
+
+  it("tracks by default, and a person can turn it off", () => {
+    expect(halfTracking()).toBe(true);
+    setHalfTracking(false);
+    expect(halfTracking()).toBe(false);
+    setHalfTracking(true);
   });
 
   it("takes one step in both halves, and a half that left takes none", () => {

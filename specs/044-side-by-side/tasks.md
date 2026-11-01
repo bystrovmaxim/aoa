@@ -67,12 +67,20 @@
 
 **Independent Test**: quickstart 8.
 
-- [ ] T029 [US4] Add `Room.view` to S`/model/rooms/resources/room_registry.py`, `set_room_version_action.py`, `join_room_action.py` with the refusals of `contracts/room-protocol.md`; tests in T
-- [ ] T030 [US4] Relay `half` on `pointer`, `click`, `viewport`, dropping any other value, in `room_registry.py`; test
-- [ ] T031 [P] [US4] Add `sha_a` and `sha_b` to the comparison answer in S`/model/diagrams/`; test
-- [ ] T032 [US4] Carry `view` and `half` in C`/rooms/protocol.ts`, `connection.ts`, `useRoomSession.ts`, `usePointerSender.ts`, `PointerLayer`, `follow.ts`; test that zoom never passes and a follower's half pans
-- [ ] T033 [US4] The check of two pictures and both sha in C`/rooms/pageCheck.ts`, Diff included; test
-- [ ] T034 [US4] Adversarial breaks; walk quickstart 8 and 9 in two browsers
+- [x] T029 [US4] Add `Room.view` to S`/model/rooms/resources/room_registry.py`, `set_room_version_action.py`, `join_room_action.py` with the refusals of `contracts/room-protocol.md`; tests in T
+- [x] T030 [US4] Relay `half` on `pointer`, `click`, `viewport`, dropping any other value, in `room_registry.py`; test
+- [x] T031 [P] [US4] Add `sha_a` and `sha_b` to the comparison answer in S`/model/diagrams/`; test
+- [x] T032 [US4] Carry `view` and `half` in C`/rooms/protocol.ts`, `connection.ts`, `useRoomSession.ts`, `usePointerSender.ts`, `PointerLayer`, `follow.ts`; test that zoom never passes and a follower's half pans
+- [x] T033 [US4] The check of two pictures and both sha in C`/rooms/pageCheck.ts`, Diff included; test
+- [x] T034 [US4] Adversarial breaks; walk quickstart 8 and 9 in two browsers
+
+## Added on the stand, at the maintainer's word
+
+- [x] T040 A change inside a table marks the table on both halves
+- [x] T041 What has no pair puts the other half out, on a hover and on a selection
+- [x] T042 Tracking: the other half's camera goes to what the pointer rests on, a switch each person holds
+- [x] T044 On the full graph tracking takes the pointer half's zoom; a half's details carry the pair's marks, its filter the pair's rows, its steps the pair's place
+- [x] T043 A lifecycle is part of its table: a change in it marks the table and its field, in Diff too
 
 ## Phase 9: Closing
 

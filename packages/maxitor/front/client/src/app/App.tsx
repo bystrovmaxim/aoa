@@ -47,13 +47,13 @@ import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "@/li
 import type { SavedView } from "@/rooms/diagramSurface";
 import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
-import { useDiagramSurface } from "@/rooms/diagramSurface";
-import { usePointerSender } from "@/rooms/usePointerSender";
+import { useHalfSurface, useDiagramSurface } from "@/rooms/diagramSurface";
+import { useHalfScreenSender, usePointerSender } from "@/rooms/usePointerSender";
 import { forgetElementCards } from "@/api/elementCard";
 import { forgetMiniatures } from "@/lib/lifecycleMiniature";
 import { OpenDiagramContext } from "@/lib/openDiagram";
 import { useGoTo } from "@/rooms/goTo";
-import { useFollow } from "@/rooms/follow";
+import { useFollow, useFollowHalfA } from "@/rooms/follow";
 import { FollowFrame } from "@/rooms/FollowFrame";
 import { LeaveForServiceDialog, RoomBanner, RoomBar } from "@/rooms/RoomBar";
 import { pageKeyOf, pageLabel, selectionOfPageKey } from "@/rooms/pageKey";
@@ -171,8 +171,12 @@ export function App() {
     onGraphChanged: handleGraphChanged,
     surface,
     fingerprint: sidebar?.fingerprint ?? null,
-    history: shown ? { name: shown.name, version: shown.b, versionA: shown.a, key: shown.key } : null,
-    onVersion: (b, a) => (a ? opened.pickRange({ a, b }) : opened.pick(b)),
+    history: shown ? { name: shown.name, version: shown.b, versionA: shown.a, view: shown.split ? "split" : shown.a ? "diff" : "one", key: shown.key } : null,
+    onVersion: (b, a, view) => {
+      if (a) opened.pickRange({ a, b });
+      else opened.pick(b);
+      if (a) opened.pickSplit(view === "split");
+    },
     onHistoryChanged: () => {
       if (!shown) return;
       void historyVersions(shown.name, shown.key)
@@ -187,6 +191,8 @@ export function App() {
   useEffect(() => setRoomOpen(room.inRoom), [room.inRoom]);
   const pointersLive = room.inRoom && room.connection?.kind === "open" && !room.pointersOff;
   usePointerSender(surface, room.send, pointersLive);
+  const surfaceA = useHalfSurface("a");
+  useHalfScreenSender(surfaceA, room.send, pointersLive);
   const roomSettings = room.room?.settings;
   const { setPageSetting } = room;
   const sharedSettings = useMemo<RoomSettings | null>(
@@ -236,6 +242,7 @@ export function App() {
     page,
     navigate: navigateToPage,
   });
+  useFollowHalfA(surfaceA, following?.id ?? null);
   const followingRef = useRef(following);
   followingRef.current = following;
   /** Your own navigation stops following (FR-051). */
@@ -416,7 +423,7 @@ export function App() {
 
   /** Pick two versions, A before B: in a room the whole room moves, outside one only this tab (spec 038, FR-016). */
   function pickRange(range: Range) {
-    if (room.inRoom) room.send({ type: "version", b: range.b, a: range.a });
+    if (room.inRoom) room.send({ type: "version", b: range.b, a: range.a, view: shown?.split ? "split" : "diff" });
     else opened.pickRange(range);
   }
 
@@ -445,14 +452,16 @@ export function App() {
   /** One → Diff keeps the version as B and puts A on the one before it; Diff → One keeps B (spec 038, FR-013). */
   function pickMode(mode: PickerMode) {
     if (!shown?.b) return;
-    if (mode === "one") pickVersion(shown.b);
-    else if (shown.a) opened.pickSplit(mode === "split");
+    if (mode === "one") {
+      pickVersion(shown.b);
+      return;
+    }
+    const range = shown.a ? { a: shown.a, b: shown.b } : oneToDiff(trackPoints, shown.b);
+    if (!range) return;
+    if (room.inRoom) room.send({ type: "version", b: range.b, a: range.a, view: mode });
     else {
-      const range = oneToDiff(trackPoints, shown.b);
-      if (range) {
-        pickRange(range);
-        opened.pickSplit(mode === "split");
-      }
+      opened.pickRange(range);
+      opened.pickSplit(mode === "split");
     }
   }
 
