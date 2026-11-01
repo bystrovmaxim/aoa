@@ -55,6 +55,7 @@ class SetRoomVersionParams(BaseParams):
 
     b: str = Field(min_length=1, max_length=40, description="The version: the first 12 hex characters of its commit, or 'live'")
     a: str | None = Field(default=None, max_length=40, description="In Diff, the older version compared with ``b``; absent or null for one version")
+    view: str | None = Field(default=None, description="'one', 'diff' or 'split'; absent means 'diff' with ``a`` and 'one' without")
 
 
 @meta(description="Move a room on a history to another version", domain=RoomsDomain)
@@ -91,15 +92,26 @@ class SetRoomVersionAction(BaseAction[SetRoomVersionParams, RoomAnswer]):
             reason = "this room shows no history" if room.history is None else f"the history has no version {params.b} to show"
         elif params.a is not None:
             reason = _range_refusal(history, params.a, params.b)
+        view = params.view or ("diff" if params.a is not None else "one")
+        reason = reason or _view_refusal(view, params.a)
         if reason is not None:
             socket.send({"type": "error", "reason": reason})
             await box.info(Channel.business, "Version refused in room {%var.room}", room=room.id)
             return RoomAnswer()
         async with room.lock:
-            room.version, room.version_a, room.source = params.b, params.a, cast(str, source)
-            registry.broadcast(room, {"type": "version", "b": params.b, "a": params.a, "by": participant.id})
+            room.version, room.version_a, room.view, room.source = params.b, params.a, view, cast(str, source)
+            registry.broadcast(room, {"type": "version", "b": params.b, "a": params.a, "view": view, "by": participant.id})
         await box.info(Channel.business, "Room {%var.room} moved to version {%var.version}", room=room.id, version=params.b)
         return RoomAnswer()
+
+
+def _view_refusal(view: str, a: str | None) -> str | None:
+    """Why ``view`` cannot go with ``a`` (spec 044), or ``None`` when it can: two versions for Diff and Side by side, one for One."""
+    if view not in ("one", "diff", "split"):
+        return f"the room has no view {view}"
+    if (view == "one") != (a is None):
+        return f"{view} does not go with this many versions"
+    return None
 
 
 def _range_refusal(history: HistoryEntry, a: str, b: str) -> str | None:

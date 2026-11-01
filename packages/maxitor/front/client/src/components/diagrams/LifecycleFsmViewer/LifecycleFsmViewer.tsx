@@ -4,6 +4,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { lifecycleOfSide, lifecycleHolds } from "@/lib/lifecycleDiff";
 import { getActiveBase } from "@/api/client";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
@@ -12,6 +13,9 @@ import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
 import { DiffCard } from "@/components/history/DiffCard";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { HalfNote } from "@/components/diagrams/SideBySide";
+import { svgOfHalf, useHalf, writesForPair } from "@/lib/half";
+import { useHalfPicking } from "@/lib/halfPicking";
 import { cardPlace, useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { nothingChanged } from "@/lib/erdDiff";
 import { filterLifecycleByChanges, filterLifecycleByKinds, LIFECYCLE_KINDS, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleIdAt, loadLifecycle, loadLifecycleDiff, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
@@ -77,11 +81,19 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
 
   // In Diff the diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 042, FR-010 – FR-012).
   const counts = useMemo(() => (diffing && filtered ? lifecycleCounts(filtered) : null), [diffing, filtered]);
-  const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedLifecycle(filtered) : filtered), [filtered, counts]);
-  useEffect(() => setDiffCounts(counts), [counts]);
-  useEffect(() => () => setDiffCounts(null), []);
+  const pairDrawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedLifecycle(filtered) : filtered), [filtered, counts]);
+  const half = useHalf();
+  // A half draws what its version has; the counts and the steps stay the pair's (spec 044).
+  const drawn = useMemo(() => (half && pairDrawn ? lifecycleOfSide(pairDrawn, half.side) : pairDrawn), [half, pairDrawn]);
+  const writesPair = writesForPair(half);
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
   const diffNames = useDiffNames();
-  const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? lifecycleChanges(drawn) : []), [drawn, counts]);
+  const changes = useMemo(() => (pairDrawn && counts && !nothingChanged(counts) ? lifecycleChanges(pairDrawn) : []), [pairDrawn, counts]);
 
   const dot = useMemo(
     () => (drawn != null ? buildLifecycleFsmDotSource(drawn, rankdir, paintSection === "kinds") : ""),
@@ -126,6 +138,8 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
   // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
   useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "node");
+  const ownData = useMemo(() => (half && data ? lifecycleOfSide(data, half.side) : null), [half, data]);
+  const halfNote = useHalfPicking({ pannerRef, viewportRef, centreOnClient: panZoom.centreOnClient, drawing: svgMarkup, nodeKind: "node", holds: (ref) => (ownData ? lifecycleHolds(ownData, ref) : false) });
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
@@ -167,7 +181,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
     // The markup is placed here, not through ``dangerouslySetInnerHTML``: React put it back on every render (a zoom
     // click is enough) as Graphviz wrote it — a third larger, in points, and without the steps below — so the drawing
     // on screen was not the one just fitted (spec 038; ErdGraphvizCanvas places its own the same way).
-    panner.innerHTML = svgMarkup;
+    panner.innerHTML = svgOfHalf(svgMarkup, half);
 
     const svg = panner.querySelector("svg");
     if (svg instanceof SVGSVGElement) {
@@ -236,7 +250,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
       {data != null ? (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <Box sx={GRID_SX}>
-            {kindRows.length > 1 || changeRows.length > 0 ? (
+            {half?.side !== "b" && (kindRows.length > 1 || changeRows.length > 0) ? (
               <ErdFilterPanel
                 domainRows={[]}
                 withDomains={false}
@@ -259,6 +273,7 @@ export function LifecycleFsmViewer({ lifecycleGraphNodeId }: LifecycleFsmViewerP
                 {renderError}
               </Typography>
             )}
+            <HalfNote text={halfNote ?? (half && drawn?.states.length === 0 ? `Not in ${half.name}` : null)} />
             <Box
               ref={viewportRef}
               data-layout-hash={layoutPair?.hash}

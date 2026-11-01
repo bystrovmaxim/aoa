@@ -2,12 +2,13 @@
 /**
  * The diagram on screen, as the room sees it.
  *
- * The workspace shows one diagram at a time. Its viewer registers a surface — the element it draws
+ * The workspace shows one diagram at a time, or in Side by side one in each half (spec 044). Its viewer registers a surface — the element it draws
  * in, the coordinate maps, a way to hear about every pan and zoom, and a way to centre and restore
  * the view — and the room's pointer layer, pointer sender and page check work through it, the same
  * way for the three Graphviz viewers and for the map.
  */
 import { useEffect, useSyncExternalStore, type RefObject } from "react";
+import { useHalf, type Side } from "@/lib/half";
 import { svgClientToDiagram, svgDiagramToClient, type Point } from "@/rooms/coordinates";
 
 /** Zoom and centre of a view, for restoring it after Maxitor reloads itself (FR-090). */
@@ -26,25 +27,50 @@ export type DiagramSurface = {
   restore(view: SavedView): void;
   /** How far zooms may differ before following moves yours, where a surface zooms finer than the default leaves alone. */
   zoomTolerance?: number;
+  /** Whether the diagram's y grows upward, against the screen's, as a map's does. */
+  yUp?: boolean;
 };
 
+/** The surface of each half, and under ``null`` the one of a page with no halves. */
+const surfaces = new Map<Side | null, DiagramSurface>();
 let current: DiagramSurface | null = null;
 const listeners = new Set<() => void>();
 
-function publish(next: DiagramSurface | null): void {
-  current = next;
+function publish(): void {
+  current = surfaces.get(null) ?? surfaces.get("b") ?? null;
   for (const listener of listeners) listener();
 }
 
-/** Make ``surface`` the diagram on screen; returns the call that takes it away again. */
-export function registerDiagramSurface(surface: DiagramSurface): () => void {
-  publish(surface);
+/** Make ``surface`` the diagram on screen, or that of half ``side``; returns the call that takes it away again. */
+export function registerDiagramSurface(surface: DiagramSurface, side: Side | null = null): () => void {
+  surfaces.set(side, surface);
+  publish();
   return () => {
-    if (current === surface) publish(null);
+    if (surfaces.get(side) !== surface) return;
+    surfaces.delete(side);
+    publish();
   };
 }
 
-/** The diagram on screen, or ``null`` while none is drawn. */
+/** The surface of half ``side``, or ``null`` while it has drawn nothing. */
+export function surfaceOfHalf(side: Side): DiagramSurface | null {
+  return surfaces.get(side) ?? null;
+}
+
+/** The surface of half ``side``, followed as it comes and goes. */
+export function useHalfSurface(side: Side): DiagramSurface | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    () => surfaces.get(side) ?? null,
+  );
+}
+
+/** The diagram on screen — in Side by side, B's —, or ``null`` while none is drawn. */
 export function useDiagramSurface(): DiagramSurface | null {
   return useSyncExternalStore(
     (listener) => {
@@ -84,6 +110,7 @@ export function useSvgDiagramSurface(
   ready: boolean,
 ): void {
   const { onTransform, centreOnClient, getScale, setScale, fitCount } = controls;
+  const side = useHalf()?.side ?? null;
   useEffect(() => {
     const element = elementRef.current;
     if (!element || !ready) return undefined;
@@ -100,7 +127,7 @@ export function useSvgDiagramSurface(
       const client = toClient(point);
       if (client) centreOnClient(client.x, client.y);
     };
-    return registerDiagramSurface({
+    const surface: DiagramSurface = {
       element,
       toDiagram,
       toClient,
@@ -114,7 +141,8 @@ export function useSvgDiagramSurface(
         setScale(view.zoom);
         centreOn(view);
       },
-    });
+    };
+    return registerDiagramSurface(surface, side);
     // ``fitCount``: a refit (new data, a new size) undoes a placed view, so it is a new surface.
-  }, [elementRef, ready, onTransform, centreOnClient, getScale, setScale, fitCount]);
+  }, [elementRef, ready, onTransform, centreOnClient, getScale, setScale, fitCount, side]);
 }

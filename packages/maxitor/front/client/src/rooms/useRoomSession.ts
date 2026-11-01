@@ -12,11 +12,11 @@ import { seedMessages } from "@/rooms/seed";
 import { setUrlRoom } from "@/lib/urlState";
 import { closeSentence } from "@/rooms/closeCodes";
 import { RoomConnection, type ConnectionState } from "@/rooms/connection";
-import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { useHalfSurface, type DiagramSurface } from "@/rooms/diagramSurface";
 import { checkNotice, decideCheck, lastLayoutReload, lastSelfReload, pageReport, reloadKeepingView, takeSavedView } from "@/rooms/pageCheck";
 import { clearFocus, putFocus, reportHover } from "@/rooms/focusStore";
 import { clearPointers, dropPointer, putClick, putPointer, putViewport } from "@/rooms/pointerStore";
-import type { ClientMessage, ServerEvent } from "@/rooms/protocol";
+import type { RoomView, ClientMessage, ServerEvent } from "@/rooms/protocol";
 import { dismissNotice, reduceRoom, withOwnPage, type RoomState } from "@/rooms/roomStore";
 import { openHistory } from "@/api/history";
 
@@ -117,9 +117,9 @@ export type RoomSessionOptions = {
   /** The fingerprint of the graph the left panel was read from. */
   fingerprint: string | null;
   /** The history the tab shows, for a room on it (spec 037): its name, version — and in Diff its A (spec 038) — and key; ``null`` for a service. */
-  history?: { name: string; version: string | null; versionA?: string | null; key: string } | null;
+  history?: { name: string; version: string | null; versionA?: string | null; view?: RoomView; key: string } | null;
   /** The room moved to a version or, with ``a``, to two compared; or a newcomer learned the room's. */
-  onVersion?: (b: string, a: string | null) => void;
+  onVersion?: (b: string, a: string | null, view: RoomView) => void;
   /** The room's history changed: read its list again. */
   onHistoryChanged?: () => void;
 };
@@ -138,6 +138,8 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const [pointersOffPage, setPointersOffPage] = useState<string | null>(null);
   const [hidePointers, setHidePointers] = useState(() => storedFlag(HIDE_POINTERS_KEY));
   const layoutHash = useLayoutHash(surface);
+  const surfaceA = useHalfSurface("a");
+  const layoutHashA = useLayoutHash(surfaceA);
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
   const target = useRef<string | null>(initialRoom);
@@ -167,15 +169,15 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
   const onEvent = useCallback((event: ServerEvent) => {
     // Pointers and screens change many times a second: they bypass React state.
     if (event.type === "pointer") {
-      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame && { frame: event.frame }) });
+      putPointer(event.participant, { x: event.x, y: event.y, kind: event.kind, at: Date.now(), ...(event.frame && { frame: event.frame }), ...(event.half && { half: event.half }) });
       return;
     }
     if (event.type === "viewport") {
-      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h, ...(event.pw && event.ph && { pw: event.pw, ph: event.ph }) });
+      putViewport(event.participant, { cx: event.cx, cy: event.cy, w: event.w, h: event.h, ...(event.pw && event.ph && { pw: event.pw, ph: event.ph }) }, event.half);
       return;
     }
     if (event.type === "click") {
-      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame && { frame: event.frame }) });
+      putClick(event.participant, { x: event.x, y: event.y, at: Date.now(), ...(event.frame && { frame: event.frame }), ...(event.half && { half: event.half }) });
       return;
     }
     if (event.type === "focus") {
@@ -195,7 +197,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       dropPointer(event.type === "left" ? event.participant.id : event.id);
     }
     if (event.type === "version") {
-      if (event.b) callbacks.current.onVersion?.(event.b, event.a ?? null);
+      if (event.b) callbacks.current.onVersion?.(event.b, event.a ?? null, event.view ?? (event.a ? "diff" : "one"));
       return;
     }
     if (event.type === "history_changed") {
@@ -204,7 +206,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     }
     if (event.type === "welcome" && event.room.history && event.room.version) {
       // A newcomer takes the room's version, whatever their link named (FR-022a).
-      callbacks.current.onVersion?.(event.room.version, event.room.version_a ?? null);
+      callbacks.current.onVersion?.(event.room.version, event.room.version_a ?? null, event.room.view ?? (event.room.version_a ? "diff" : "one"));
     }
     if (event.type === "welcome") {
       target.current = event.room.id;
@@ -254,7 +256,7 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
       const next = new RoomConnection({
         room: roomId,
         source: source ?? undefined,
-        history: onHistory ? { name: onHistory.name, version: onHistory.version, versionA: onHistory.versionA ?? null } : undefined,
+        history: onHistory ? { name: onHistory.name, version: onHistory.version, versionA: onHistory.versionA ?? null, view: onHistory.view } : undefined,
         ticket: onHistory?.key ? async () => (await openHistory(onHistory.name, onHistory.key)).room_ticket : undefined,
         name,
         page: pageRef.current ?? "",
@@ -365,12 +367,12 @@ export function useRoomSession({ initialRoom, source, page, onFallbackPage, onGr
     if (!page) return;
     socket.current?.setPage(page);
     if (room) {
-      send(pageReport(page, __MAXITOR_BUILD__, fingerprint, layoutHash ? (surfaceRef.current?.element ?? null) : null));
+      send(pageReport(page, __MAXITOR_BUILD__, fingerprint, layoutHash ? (surfaceRef.current?.element ?? null) : null, Date.now(), surfaceA?.element ?? null));
       dispatch({ kind: "own-page", page });
     }
     // The page is reported again after every welcome, which is a fresh join.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, room?.roomId, connection?.kind, send, layoutHash, fingerprint]);
+  }, [page, room?.roomId, connection?.kind, send, layoutHash, layoutHashA, fingerprint]);
 
   // After Maxitor reloaded itself, the first diagram opens at the zoom and centre it had (FR-090).
   useEffect(() => {

@@ -3,7 +3,7 @@
  * The map's reads (spec 040): the overview first, one area at a time after it. Each version is laid out once on the
  * server, so a read may answer ``laying-out`` and is asked again.
  */
-import { GraphReadError, getActiveBase, getActiveSource, graphFetch } from "@/api/client";
+import { GraphReadError, getActiveBase, getActiveSource, graphFetch, type GraphRead } from "@/api/client";
 import type { DiffStatus } from "@/api/compare";
 
 /** What a comparison can say of an element: an element it does not name is unchanged. */
@@ -68,20 +68,20 @@ export type MapChangeEnd = [string, string, string, number, string];
 /** How long to wait before asking again whether a version is laid out. */
 const LAYING_OUT_PAUSE_MS = 700;
 
-/** Read a map path, for the version on screen or, in Diff, for the two compared; or throw the server's refusal. */
-async function read<T>(path: string, query = new URLSearchParams()): Promise<T> {
+/** Read a map path, for ``own`` — a half's version — or the version on screen or, in Diff, the two compared; or throw the server's refusal. */
+async function read<T>(path: string, query = new URLSearchParams(), own?: GraphRead): Promise<T> {
   const base = getActiveBase();
   const source = getActiveSource();
-  if (base && source) query.set("a", base.source);
-  const response = await graphFetch(path, query, base && source ? { source, key: base.key } : undefined);
+  if (!own && base && source) query.set("a", base.source);
+  const response = await graphFetch(path, query, own ?? (base && source ? { source, key: base.key } : undefined));
   if (!response.ok) throw new GraphReadError(response.status, `${path} ${response.status}`);
   return (await response.json()) as T;
 }
 
 /** The overview of the version on screen, asking again while it is laid out. */
-export async function mapOverview(onLayingOut: () => void): Promise<MapOverview> {
+export async function mapOverview(onLayingOut: () => void, own?: GraphRead): Promise<MapOverview> {
   for (;;) {
-    const overview = await read<MapOverview>("/api/v1/map/overview");
+    const overview = await read<MapOverview>("/api/v1/map/overview", undefined, own);
     if (overview.state === "ready") return overview;
     onLayingOut();
     await new Promise((done) => setTimeout(done, LAYING_OUT_PAUSE_MS));
@@ -89,8 +89,8 @@ export async function mapOverview(onLayingOut: () => void): Promise<MapOverview>
 }
 
 /** One area, up to level 2 (entities and operations) or 3 (everything). */
-export function mapArea(id: string, level: 2 | 3): Promise<MapDetail> {
-  return read<MapDetail>("/api/v1/map/area", new URLSearchParams({ id, level: String(level) }));
+export function mapArea(id: string, level: 2 | 3, own?: GraphRead): Promise<MapDetail> {
+  return read<MapDetail>("/api/v1/map/area", new URLSearchParams({ id, level: String(level) }), own);
 }
 
 /** Every changed node and link of the pair on screen, in the stepping order. */

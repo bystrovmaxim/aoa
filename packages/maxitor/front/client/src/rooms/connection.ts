@@ -22,7 +22,7 @@ export type RoomConnectionOptions = {
   room: string;
   source?: string;
   /** A room on a history (spec 037): its name and the version a new room opens on, never its key. */
-  history?: { name: string; version: string | null; versionA?: string | null };
+  history?: { name: string; version: string | null; versionA?: string | null; view?: string };
   /** For a private history: a fresh one-use ticket before every connection, the key's stand-in on the socket. */
   ticket?: () => Promise<string | null>;
   name: string;
@@ -138,6 +138,7 @@ export class RoomConnection {
       query.set("history", this.options.history.name);
       if (this.options.history.version) query.set("version", this.options.history.version);
       if (this.options.history.version && this.options.history.versionA) query.set("version_a", this.options.history.versionA);
+      if (this.options.history.view === "split") query.set("opening_view", "split");
     } else if (this.room === "new" && this.options.source) query.set("source", this.options.source);
     if (ticket) query.set("ticket", ticket);
     const socket = new WebSocket(socketUrl(`/api/v1/rooms/${encodeURIComponent(this.room)}/live`, query));

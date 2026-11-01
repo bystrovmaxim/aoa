@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PageSettingsProvider, clearLocalPageSettings, keepRoomSettings, ownSettingsByPage, usePageSetting, type RoomSettings } from "@/lib/pageSettings";
+import { HalfProvider, type Half } from "@/lib/half";
 import { seedMessages } from "@/rooms/seed";
 
 const ERD = "view=domain-erd";
@@ -118,5 +119,43 @@ describe("seeding a room the tab opens (spec 029)", () => {
     const long = Array.from({ length: 80 }, (_, i) => `entity-${"x".repeat(50)}-${i}`);
     const messages = seedMessages({ [ERD]: { layout: "gv-neato", disabled_entities: long } });
     expect(messages).toEqual([{ type: "seed", page: ERD, settings: { layout: "gv-neato" } }]);
+  });
+});
+
+describe("page settings in a half", () => {
+  const half = (side: "a" | "b"): Half => ({ side, read: { source: side, key: "" }, name: side });
+
+  /** Render a setting on the ERD as half ``side`` sees it. */
+  function inHalf(side: "a" | "b", name: string, fallback: unknown, room: RoomSettings | null = null) {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PageSettingsProvider page={ERD} room={room}>
+        <HalfProvider half={half(side)}>{children}</HalfProvider>
+      </PageSettingsProvider>
+    );
+    return renderHook(() => usePageSetting(name, fallback), { wrapper });
+  }
+
+  it("give each half its own layout mode, starting from the page's", () => {
+    const page = layoutOn(ERD);
+    act(() => page.result.current[1]("gv-neato"));
+    const [a, b] = [inHalf("a", "layout", "gv-dot-lr"), inHalf("b", "layout", "gv-dot-lr")];
+    expect(a.result.current[0]).toBe("gv-neato");
+    act(() => a.result.current[1]("gv-circo"));
+    expect(a.result.current[0]).toBe("gv-circo");
+    expect(b.result.current[0]).toBe("gv-neato");
+    expect(layoutOn(ERD).result.current[0]).toBe("gv-neato");
+  });
+
+  it("share every other setting between the halves", () => {
+    const [a, b] = [inHalf("a", "one_hop", false), inHalf("b", "one_hop", false)];
+    act(() => a.result.current[1](true));
+    expect(b.result.current[0]).toBe(true);
+  });
+
+  it("send a half's layout mode to the room under its own name", () => {
+    const set = vi.fn();
+    const a = inHalf("a", "layout", "gv-dot-lr", { settings: {}, set });
+    act(() => a.result.current[1]("gv-neato"));
+    expect(set).toHaveBeenCalledWith(ERD, "layout_a", "gv-neato");
   });
 });

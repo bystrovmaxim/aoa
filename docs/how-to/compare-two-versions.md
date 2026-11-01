@@ -18,6 +18,8 @@ Roles follow position: drag A past B and they swap. Two handles never stand on o
 
 Under the track stand A's message on the left and B's on the right. "N versions between" opens the versions in between, newest first.
 
+The filter icon in the right corner of the left panel's head leaves only what holds a change: the domains, and in them the ERD, the use-case diagram and the lifecycles that changed. It is yours alone, it narrows the list and not the page on screen, and the left panel stays as you left it after a reload.
+
 ## Read the ERD
 
 The version button carries this diagram's counts — `◷ A 0.8.0 → B 0.9.0  +15 −1 ~3` — or "no changes". The ERD draws everything in A or B:
@@ -40,6 +42,22 @@ Beside the version button a stepper walks through what changed: the arrows or Sh
 The filter panel has a **Changes** section in Diff — Added, Removed, Changed, Unchanged — next to Domains and Kinds. Switching a row off hides its tables; 1-hop then brings back the tables one link away from those left. The three points at the foot of the panel choose what paints the headers: Domains, Kinds or Changes. Diff starts painted by Changes.
 
 A page that exists in only one version — a domain added in B — stays reachable: the left panel lists what exists in either version and marks it `+` or `−`.
+
+## See two versions side by side
+
+Switch the picker to **Side by side**. A, the older version, stands on the left and B on the right, each in its own layout, as that version really was: a table that moved stands where it stood. A shows what was removed and changed, B what was added and changed, with the marks of Diff. A change inside a table marks the table on both halves, even when the row itself exists on one, and a change in a lifecycle marks its table too, because a lifecycle is part of it.
+
+| Shared by the halves | Each half's own |
+|---|---|
+| A and B, the filters, collapsed tables, the counts, the stepper | pan, zoom, layout mode |
+
+Rest the pointer on an element and both halves light it, its links and its neighbours. **Track**, in the head of B, is on by default: after a moment the other half's camera goes to that element if it is out of view, keeping its zoom; on the full graph, which draws by its zoom, it takes the zoom of the half under the pointer. An element in view moves nothing.
+
+A click selects the element in both halves and copies its name, as everywhere. The other half brings it into view and says so. An element with no pair there — a removed one in A, an added one in B — puts the other half out, and it says `Not in 0.9.0`. A filter that hides it there reads `Hidden by the filters`. A step of the stepper does the same as a click. Escape or a click on empty space clears the selection.
+
+On a phone there is no room for two: **A / B** flips one diagram between the versions, each in its own layout, with the selected element in the centre. The address keeps `mode=split`, `a`, `b` and each half's layout mode.
+
+In a room, A, B, the view, the filters, each half's layout mode and the selection are everyone's. Zoom and pan stay yours until you follow someone. Then each half is theirs, zoom and pan, from its top-left corner, and their cards open in the half they stand in, the left panel with them. What you are shown while following is not kept: your own panel comes back from this browser on a reload.
 
 ## Open pull requests come after Live
 

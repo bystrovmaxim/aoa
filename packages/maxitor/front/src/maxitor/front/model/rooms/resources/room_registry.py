@@ -156,7 +156,8 @@ class Room:
     A room on a history (spec 037) also names the history — its address without a key —
     and the version it shows, a short sha or ``live``; ``source`` is then that version's
     graph, and moves when the room's version does. In Diff (spec 038) ``version_a`` is the
-    older version it compares with ``version``; ``None`` while it shows one.
+    older version it compares with ``version``; ``None`` while it shows one. ``view`` says how
+    the room looks at them (spec 044): ``one``, ``diff`` or ``split``.
     """
 
     id: str
@@ -165,6 +166,7 @@ class Room:
     history: str | None = None
     version: str | None = None
     version_a: str | None = None
+    view: str = "one"
     participants: dict[str, Participant] = field(default_factory=dict)
     page_settings: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: For each page and settings digest: every layout hash the room heard, and when it first heard it.
@@ -184,6 +186,7 @@ class Room:
             "history": self.history,
             "version": self.version,
             "version_a": self.version_a,
+            "view": self.view,
             "created_by": self.created_by,
             "participants": [participant.public() for participant in self.participants.values()],
             "settings": self.page_settings,
@@ -223,6 +226,10 @@ def _panels_fit(value: Any) -> bool:
         and isinstance(value.get("legend"), bool)
         # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
         and isinstance(value.get("versions", False), bool)
+        # The left panel narrowed to what changed (spec 044).
+        and isinstance(value.get("narrow", False), bool)
+        # The half of Side by side an open card stands in (spec 044).
+        and value.get("cardHalf") in (None, "a", "b")
         # The picker's track as its person moves it: the range a drag would leave, and the scroll (spec 038).
         and (value.get("track") is None or _track(value["track"]))
         # The list of a comparison's changes as its person moves it: open or not, where they stand, the scroll (spec 040).
@@ -247,6 +254,8 @@ def _panels(value: Any) -> dict[str, Any] | None:
         "changes": value.get("changes"),
         "why": value.get("why"),
         "card": value.get("card"),
+        "narrow": value.get("narrow", False),
+        "cardHalf": value.get("cardHalf"),
     }
 
 
@@ -388,12 +397,12 @@ class RoomRegistry(BaseController):
         """Every open room on the history named ``history``."""
         return (room for room in self._rooms.values() if room.history == history)
 
-    def open_room(self, source: str, created_by: str, history: str | None = None, version: str | None = None, version_a: str | None = None) -> Room:
+    def open_room(self, source: str, created_by: str, history: str | None = None, version: str | None = None, version_a: str | None = None, view: str = "one") -> Room:
         """Create a room with a fresh 128-bit id; on a history, name it and the version shown — or, with ``version_a``, the two compared."""
         room_id = secrets.token_urlsafe(16)
         while room_id in self._rooms or room_id in self._ended:
             room_id = secrets.token_urlsafe(16)
-        room = Room(id=room_id, source=source, created_by=created_by, history=history, version=version, version_a=version_a)
+        room = Room(id=room_id, source=source, created_by=created_by, history=history, version=version, version_a=version_a, view=view)
         self._rooms[room_id] = room
         return room
 
@@ -489,6 +498,10 @@ class RoomRegistry(BaseController):
         frame = message.get("frame")
         if kind in ("pointer", "click") and isinstance(frame, str) and _FRAME_NAME.fullmatch(frame):
             values["frame"] = frame
+        # Which half of Side by side a position stands in: its coordinates mean nothing in the other (spec 044).
+        half = message.get("half")
+        if half in ("a", "b"):
+            values["half"] = half
         if kind == "pointer":
             values["kind"] = "touch" if message.get("kind") == "touch" else "mouse"
             tab.pointer = values

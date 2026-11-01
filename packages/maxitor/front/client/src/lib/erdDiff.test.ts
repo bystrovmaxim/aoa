@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
 import { buildDotSource, erdDiffMarks, erdEdgeId, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
 import { drawErdCards } from "./erdPostPass";
-import { diagramCounts, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
+import { diagramCounts, erdHolds, erdOfSide, erdPortable, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
 
 const OFFER = "g.OfferEntity";
 const CORE = "g.CoreEntity";
@@ -57,7 +57,7 @@ describe("the ERD of two versions", () => {
   it("keeps a changed type's old name, and a retargeted relation as one changed line with where it pointed", () => {
     expect(row(OFFER, "erid").previous_type).toBe("str");
     expect(row(OFFER, "chosen")).toMatchObject({ diff: "changed", previous_type: "CoreEntity" });
-    expect(merged.relations).toEqual([{ ...chosenToDetail, previous_target: CORE, diff: "changed" }]);
+    expect(merged.relations).toMatchObject([{ ...chosenToDetail, previous_target: CORE, diff: "changed" }]);
   });
 
   it("counts each table, row and line once: a relation by its row, a row of a new table as added", () => {
@@ -117,5 +117,115 @@ describe("the drawing of two versions", () => {
     expect(drawn).toContain('<g id="node1" class="node" opacity="0.32">');
     expect(drawn).toMatch(/<rect fill="none" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="5 3"/);
     expect(drawErdCards(svg, 9, 1.4)).not.toContain("opacity");
+  });
+});
+
+describe("the part of a drawing one version has (spec 044)", () => {
+  const field = (name: string, type = "str") => ({ name, type });
+  const older = {
+    entities: [
+      { id: "b.Second", fields: [field("z"), field("gone"), field("kept", "int")] },
+      { id: "b.Removed", fields: [field("x")] },
+      { id: "b.First", fields: [field("y")] },
+    ],
+    relations: [
+      { source: "b.First", target: "b.Second", source_field: "to", relationship_kind: "AssociationOne" },
+      { source: "b.Removed", target: "b.Second", source_field: "dead", relationship_kind: "AssociationOne" },
+    ],
+  };
+  const newer = {
+    entities: [
+      { id: "b.First", fields: [field("y")] },
+      { id: "b.Second", fields: [field("kept", "str"), field("z"), field("fresh")] },
+      { id: "b.Added", fields: [field("n")] },
+    ],
+    relations: [{ source: "b.First", target: "b.Added", source_field: "to", relationship_kind: "AssociationOne" }],
+  };
+  const compared = {
+    counts: { nodes: { added: 0, removed: 0, changed: 0 }, edges: { added: 0, removed: 0, changed: 0 } },
+    nodes: { "b.Removed": "removed", "b.Added": "added", "b.Second:gone": "removed", "b.Second:fresh": "added", "b.Second:kept": "changed", "b.Removed:x": "removed", "b.Added:n": "added" },
+    edges: { "b.First|entity_relation|to": "changed", "b.Removed|entity_relation|dead": "removed" },
+  } as unknown as CompareResult;
+  const merged = markErd(mergeErdSlices(older, newer), compared) as { entities: ErdEntity[]; relations: ErdRelation[] };
+  /** What the layout reads of a drawing. */
+  const shape = (data: { entities: ErdEntity[]; relations?: ErdRelation[] }) => ({
+    tables: data.entities.map((entity) => [entity.id, (entity.fields ?? []).map((each) => `${each.name}:${each.type}`)]),
+    lines: (data.relations ?? []).map((relation) => `${relation.source}>${relation.target}`),
+  });
+
+  it("stands A as A had it: its tables, rows, order, types and targets", () => {
+    expect(shape(erdOfSide(merged, "a"))).toEqual(shape(older));
+  });
+
+  it("stands B as B has it", () => {
+    expect(shape(erdOfSide(merged, "b"))).toEqual(shape(newer));
+  });
+
+  it("marks a table on both halves when a row changed on either", () => {
+    const newRow = markErd(mergeErdSlices({ entities: [{ id: "b.T", fields: [field("x")] }] }, { entities: [{ id: "b.T", fields: [field("x"), field("new")] }] }), {
+      ...compared,
+      nodes: { "b.T:new": "added" },
+      edges: {},
+    } as unknown as CompareResult) as { entities: ErdEntity[]; relations: ErdRelation[] };
+    const [a, b] = [erdOfSide(newRow, "a").entities[0], erdOfSide(newRow, "b").entities[0]];
+    expect(a.diff).toBe("changed");
+    expect(b.diff).toBe("changed");
+    expect(a.fields?.map((row) => row.name)).toEqual(["x"]);
+  });
+
+  it("keeps the marks each version can show", () => {
+    const a = erdOfSide(merged, "a");
+    expect(a.entities.find((entity) => entity.id === "b.Removed")?.diff).toBe("removed");
+    expect(a.entities.flatMap((entity) => entity.fields ?? []).find((each) => each.name === "kept")?.diff).toBe("changed");
+    expect(a.relations[0].diff).toBe("changed");
+    const b = erdOfSide(merged, "b");
+    expect(b.entities.find((entity) => entity.id === "b.Added")?.diff).toBe("added");
+  });
+});
+
+describe("a table, a row and a line across the two halves (spec 044)", () => {
+  const entities = [{ id: "b.One", fields: [{ name: "x" }] }, { id: "b.Two", fields: [{ name: "y" }, { name: "z" }] }] as ErdEntity[];
+  const relations = [{ source: "b.One", target: "b.Two", source_field: "x" }] as ErdRelation[];
+  const other = [entities[1], entities[0]];
+
+  it("names a row by what it is, so the other half finds it at its own place", () => {
+    const shared = erdPortable(() => ({ entities, relations })).toIdentity({ kind: "row", id: "fn1_1" });
+    expect(shared).toEqual({ kind: "row", id: "b.Two:z" });
+    expect(erdPortable(() => ({ entities: other })).fromIdentity(shared)).toEqual({ kind: "row", id: "fn0_1" });
+  });
+
+  it("names a line by what it is, and finds no line the drawing lacks", () => {
+    const shared = erdPortable(() => ({ entities, relations })).toIdentity({ kind: "edge", id: "re0" });
+    expect(shared).toEqual({ kind: "edge", id: "b.One|x" });
+    expect(erdPortable(() => ({ entities, relations: [] })).fromIdentity(shared)).toBeNull();
+  });
+
+  it("knows what a version holds", () => {
+    const data = { entities, relations };
+    expect(erdHolds(data, { kind: "table", id: "b.Two" })).toBe(true);
+    expect(erdHolds(data, { kind: "row", id: "b.Two:z" })).toBe(true);
+    expect(erdHolds(data, { kind: "row", id: "b.Two:gone" })).toBe(false);
+    expect(erdHolds(data, { kind: "table", id: "b.Three" })).toBe(false);
+  });
+});
+
+describe("a lifecycle is part of its table (spec 044)", () => {
+  const life = "b.Bin:lifecycle:status";
+  const table = { id: "b.Bin", fields: [{ name: "status", lifecycle_id: life }, { name: "plain" }] };
+  const mark = (nodes: Record<string, string>, edges: Record<string, string> = {}) =>
+    markErd(mergeErdSlices({ entities: [table] }, { entities: [table] }), { counts: {}, nodes, edges } as unknown as CompareResult).entities![0];
+
+  it("makes the table and the field changed when a state went", () => {
+    const entity = mark({ [`${life}:staging`]: "removed" });
+    expect(entity.diff).toBe("changed");
+    expect(entity.fields?.map((field) => field.diff)).toEqual(["changed", "unchanged"]);
+  });
+
+  it("does the same for a transition", () => {
+    expect(mark({}, { [`${life}:a|lifecycle_transition|${life}:b|a`]: "added" }).diff).toBe("changed");
+  });
+
+  it("leaves the table alone when another lifecycle changed", () => {
+    expect(mark({ "b.Bin:lifecycle:statusx:s": "added" }).diff).toBe("unchanged");
   });
 });

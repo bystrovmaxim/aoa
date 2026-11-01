@@ -48,7 +48,7 @@ export type VersionPickerProps = {
 };
 
 /** What the switch picks in this step: one version, or two compared. Side by side comes later. */
-export type PickerMode = "one" | "diff";
+export type PickerMode = "one" | "diff" | "split";
 
 /** A 14 px stroke icon of the mode switch, drawn as the mockup draws it. */
 function ModeIcon({ children }: { children: ReactNode }) {
@@ -87,14 +87,14 @@ const MODES = [
 
 /**
  * The mode switch (spec 038, FR-009, FR-015): One and Diff, Diff greyed out with "needs two versions" where the
- * history has fewer than two points; Side by side greyed out, "comes later".
+ * history has fewer than two points; Side by side too (spec 044).
  */
-function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onChange?: (mode: PickerMode) => void; diffOffered: boolean }) {
+function ModeSwitch({ value, onChange, diffOffered, phone = false }: { value: PickerMode; onChange?: (mode: PickerMode) => void; diffOffered: boolean; phone?: boolean }) {
   return (
     <Box role="radiogroup" aria-label="Mode" sx={{ display: "inline-flex", flexShrink: 0, border: "1px solid rgba(15, 23, 42, 0.12)", borderRadius: "8px", p: "2px", gap: "2px" }}>
       {MODES.map((mode) => {
         const on = mode.value === value;
-        const hint = mode.value === "split" ? "comes later" : mode.value === "diff" && !diffOffered ? "needs two versions" : null;
+        const hint = mode.value !== "one" && !diffOffered ? "needs two versions" : null;
         const enabled = hint === null && Boolean(onChange);
         const item = (
           <Box
@@ -127,7 +127,7 @@ function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onCha
             }}
           >
             <ModeIcon>{mode.icon}</ModeIcon>
-            {mode.label}
+            {(phone && mode.value === "split" ? "A / B" : mode.label)}
           </Box>
         );
         return hint === null || on ? (
@@ -147,7 +147,7 @@ function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onCha
 /**
  * The picker (spec 037, FR-014, FR-015), laid out as the mockup lays it out: a card under the version
  * button at the left of the top row; the service's name and how many versions it has on the left of the
- * head, the mode switch on the right — One and Diff (spec 038), Side by side greyed out, "comes later" — with
+ * head, the mode switch on the right — One, Diff (spec 038) and Side by side (spec 044) — with
  * an "i" before the mode switch that explains the track's marks; then the track, then the chosen version's message — in Diff A's
  * on the left and B's on the right, stacked on a phone, the versions between them below. The
  * link to share is the address bar itself, which keeps a private history's key after ``#key=``. It
@@ -205,7 +205,7 @@ export function VersionPicker({
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TrackLegend />
-          <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} />
+          <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} phone={phone} />
         </Box>
       </Box>
       <VersionTrack
@@ -217,10 +217,10 @@ export function VersionPicker({
         onChange={onChange}
         width={trackWidth}
         touch={phone}
-        range={mode === "diff" ? range : null}
+        range={mode !== "one" ? range : null}
         onRange={onRange}
       />
-      {mode === "diff" && older !== undefined ? (
+      {mode !== "one" && older !== undefined ? (
         <>
           {/* No header above either message: A is on the left and B on the right, as their handles stand. */}
           <Box sx={{ display: "grid", gridTemplateColumns: phone ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)", columnGap: 2 }}>

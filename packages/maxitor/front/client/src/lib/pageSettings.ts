@@ -11,6 +11,7 @@
  * collapsed panels are not page settings and stay personal (FR-032).
  */
 import { createContext, createElement, useCallback, useContext, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { settingOfHalf, useHalf } from "@/lib/half";
 import type { PageSettings } from "@/rooms/protocol";
 
 /** What the page settings need from the room the tab is in. */
@@ -101,19 +102,22 @@ function subscribe(listener: () => void): () => void {
  */
 export function usePageSetting<T>(name: string, fallback: T): [T, (value: T) => void] {
   const { page, room } = useContext(PageSettingsContext);
+  const own = settingOfHalf(name, useHalf());
   const fallbackRef = useRef(fallback);
   useSyncExternalStore(subscribe, () => version);
   // Inside a room only the room's value counts, so everyone sees one picture (spec 029, FR-002).
-  const held = page ? (room ? room.settings[page]?.[name] : local.get(page)?.get(name)) : undefined;
+  const heldUnder = (setting: string) => (page ? (room ? room.settings[page]?.[setting] : local.get(page)?.get(setting)) : undefined);
+  // A half starts from the page's layout mode until it is given its own (spec 044).
+  const held = heldUnder(own) ?? heldUnder(name);
   const value = (held !== undefined ? held : fallbackRef.current) as T;
 
   const set = useCallback(
     (next: T) => {
       if (!page) return;
-      writeLocal(page, name, next);
-      room?.set(page, name, next);
+      writeLocal(page, own, next);
+      room?.set(page, own, next);
     },
-    [page, room, name],
+    [page, room, own],
   );
   return [value, set];
 }

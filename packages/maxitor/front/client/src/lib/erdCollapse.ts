@@ -1,7 +1,7 @@
 // src/lib/erdCollapse.ts
 /**
- * Which rows a collapsed table keeps (spec 043, FR-021, FR-022): its keys, any row a line belongs to, and in Diff what
- * changed. Whether a table is collapsed comes from two page settings: one for all tables, and the tables that differ from it,
+ * Which rows a collapsed table keeps (spec 043, FR-021, FR-022): its keys, any row a line belongs to, in Diff what
+ * changed, and in Side by side the row selected (spec 044), named ``<table>:<field>``. Whether a table is collapsed comes from two page settings: one for all tables, and the tables that differ from it,
  * so that the address stays short however large the diagram is (FR-027).
  */
 import type { ErdEntity, ErdFold, ErdRelation } from "@/lib/buildDotSource";
@@ -17,12 +17,13 @@ function rowsWithLines(entity: ErdEntity, relations: readonly ErdRelation[]): Se
 }
 
 /** The rows a collapse of ``entity`` hides. */
-export function rowsToHide(entity: ErdEntity, relations: readonly ErdRelation[]): Set<number> {
+export function rowsToHide(entity: ErdEntity, relations: readonly ErdRelation[], kept?: string | null): Set<number> {
   const lined = rowsWithLines(entity, relations);
   const hidden = new Set<number>();
   (entity.fields ?? []).forEach((field, row) => {
     const marked = field.diff !== undefined && field.diff !== "unchanged";
-    if (!field.primary_key && !field.foreign_key && !marked && !lined.has(field.name)) hidden.add(row);
+    const selected = kept === `${entity.id}:${field.name}`;
+    if (!field.primary_key && !field.foreign_key && !marked && !selected && !lined.has(field.name)) hidden.add(row);
   });
   return hidden;
 }
@@ -33,6 +34,6 @@ export function isCollapsed(id: string, all: boolean, except: ReadonlySet<string
 }
 
 /** Every table's fold. */
-export function erdFolds(entities: readonly ErdEntity[], relations: readonly ErdRelation[], all: boolean, except: ReadonlySet<string>): ReadonlyMap<string, ErdFold> {
-  return new Map(entities.map((entity) => [entity.id, { hidden: rowsToHide(entity, relations), collapsed: isCollapsed(entity.id, all, except) }]));
+export function erdFolds(entities: readonly ErdEntity[], relations: readonly ErdRelation[], all: boolean, except: ReadonlySet<string>, kept?: string | null): ReadonlyMap<string, ErdFold> {
+  return new Map(entities.map((entity) => [entity.id, { hidden: rowsToHide(entity, relations, kept), collapsed: isCollapsed(entity.id, all, except) }]));
 }

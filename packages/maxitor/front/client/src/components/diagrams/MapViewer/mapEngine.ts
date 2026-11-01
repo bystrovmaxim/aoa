@@ -10,6 +10,8 @@ import Graph from "graphology";
 import Sigma from "sigma";
 import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigma/rendering";
 
+import { drawnOn, type Half, type Side } from "@/lib/half";
+import { halfTracking, hoverAcross, pickedArea, pickedRatio, reportHalfHover, setPickedArea, setPickedRatio, subscribeHalfHover, TRACK_REST_MS, type Located } from "@/lib/halfPicking";
 import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
 import type { CardProjection, CardSubject } from "@/components/diagrams/ElementCard";
 import { cardBeside } from "@/lib/cardPlace";
@@ -72,6 +74,8 @@ export type MapEvents = {
   onCard: (card: MapCard | null) => void;
   onStep: (position: number | null) => void;
   onHoverElement: (subject: CardSubject | null, now?: boolean) => void;
+  /** In Side by side, a click on a node, or on nothing (spec 044). */
+  onPick?: (node: string | null) => void;
 };
 
 type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
@@ -79,8 +83,15 @@ type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
 /** What of an area stands on the map: its outline and what the name stands with, around what the filters leave. */
 type AreaView = { path: Path2D; whole: Path2D | null; left: number; total: number; x: number; y: number; radius: number };
 
-/** The map's view in map units, kept across versions: switching to another version moves nothing on screen. */
-let keptView: { x: number; y: number; zoom: number } | null = null;
+/** The ring and the size of the element pointed at across the two halves. */
+const POINTED_RING = "#2563eb";
+const POINTED_SIZE = 1.5;
+
+/** How far two zooms may stand apart, as a log of their ratio, and still count as one. */
+const ZOOM_ALIKE = 0.05;
+
+/** The map's view in map units, kept across versions: switching to another version moves nothing on screen. Each half keeps its own. */
+const keptViews = new Map<Side | null, { x: number; y: number; zoom: number } | null>();
 
 /** ``#rrggbb`` with an alpha. */
 function faded(colour: string, alpha: number): string {
@@ -180,6 +191,13 @@ export class MapEngine {
   private readonly mostNodes = window.matchMedia("(max-width: 600px)").matches ? MOST_NODES_ON_A_PHONE : MOST_NODES;
   private levelTwo = 0;
   private levelThree = 0;
+  /** In a half: what the pair marks, by id: a version's own map carries no marks of its own. */
+  private readonly marks: ReadonlyMap<string, MapMark>;
+  /** In a half: the element selected, lit as a hover is. */
+  private pinned: string | null = null;
+  private unpaired = false;
+  private trackTimer: ReturnType<typeof setTimeout> | undefined;
+  private selectionUnpaired = false;
   private hovered: string | null = null;
   private hoveredLink: string | null = null;
   private onBundle = false;
@@ -197,7 +215,9 @@ export class MapEngine {
     private readonly icons: Record<string, string>,
     private readonly elements: MapElements,
     private readonly events: MapEvents,
+    private readonly half: Half | null,
   ) {
+    this.marks = new Map(half ? changes.map((change) => [change.id, change.status]) : []);
     this.areaIndex = new Map(overview.areas.map((area, index) => [area.id, index]));
     this.facts = mapFacts(overview);
     this.paint = overview.links_changed === undefined ? "domains" : "changes";
@@ -238,8 +258,13 @@ export class MapEngine {
     this.sigma.on("leaveEdge", () => this.onLeaveBundle());
     this.fit();
     this.restoreKeptView();
-    this.unregister = registerDiagramSurface(this.surface());
-    this.stopHearing = subscribeFocus(() => this.followHover());
+    this.unregister = registerDiagramSurface(this.surface(), half?.side ?? null);
+    const stopFollowing = subscribeFocus(() => this.followHover());
+    const stopAcross = subscribeHalfHover(() => this.hoverFromAcross());
+    this.stopHearing = () => {
+      stopFollowing();
+      stopAcross();
+    };
     this.setView({ filters: this.filters, paint: this.paint, changes });
   }
 
@@ -297,20 +322,20 @@ export class MapEngine {
   }
 
   /** Make the map; loads the icons first, so that no node is drawn without one. */
-  static async create(overview: MapOverview, changes: readonly MapChange[], elements: MapElements, events: MapEvents): Promise<MapEngine> {
-    return new MapEngine(overview, changes, await rasterIcons(overview.types), elements, events);
+  static async create(overview: MapOverview, changes: readonly MapChange[], elements: MapElements, events: MapEvents, half: Half | null = null): Promise<MapEngine> {
+    return new MapEngine(overview, changes, await rasterIcons(overview.types), elements, events, half);
   }
 
   /** Stay where the last map stood, when that place is on this one. */
   private restoreKeptView(): void {
-    const view = keptView;
+    const view = keptViews.get(this.half?.side ?? null);
     if (view && this.overview.areas.some((area) => Math.hypot(area.x - view.x, area.y - view.y) < area.radius)) this.surface().restore(view);
   }
 
   /** Let go of everything. */
   destroy(): void {
     this.killed = true;
-    keptView = this.surface().view();
+    keptViews.set(this.half?.side ?? null, this.surface().view());
     this.listening.abort();
     this.stopHearing();
     this.unregister();
@@ -344,6 +369,7 @@ export class MapEngine {
         camera.setState({ x: framed.x, y: framed.y });
       },
       zoomTolerance: ROOM_ZOOM_TOLERANCE,
+      yUp: true,
       view: () => ({ ...middle(), zoom: ROOM_ZOOM / camera.ratio }),
       restore: (view) => {
         camera.setState({ ratio: ROOM_ZOOM / view.zoom });
@@ -466,12 +492,19 @@ export class MapEngine {
     }
   }
 
+  /** A version's own detail with the pair's marks: everything that draws a change, struck nodes too, reads them there. */
+  private marked(detail: MapDetail): MapDetail {
+    if (!this.half) return detail;
+    const mark = <T extends { id: string; diff?: MapMark }>(each: T): T => ({ ...each, diff: each.diff ?? this.marks.get(each.id) });
+    return { nodes: detail.nodes.map(mark), edges: detail.edges.map(mark), across: detail.across.map(mark) };
+  }
+
   /** Read one area up to a level, once however many ask. */
   private read(area: string, level: 2 | 3): Promise<void> {
     const running = this.reading.get(area);
     if (running) return running;
-    const reading = mapArea(area, level)
-      .then((detail) => this.take(this.areaIndex.get(area)!, detail, level))
+    const reading = mapArea(area, level, this.half?.read)
+      .then((detail) => this.take(this.areaIndex.get(area)!, this.marked(detail), level))
       .catch(() => undefined)
       .finally(() => this.reading.delete(area));
     this.reading.set(area, reading);
@@ -507,7 +540,7 @@ export class MapEngine {
 
   private addNode(node: MapNode, area: number): void {
     if (this.graph.hasNode(node.id)) return;
-    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type], diff: node.diff, chain: node.chain ?? 0, status: node.diff ?? node.glance ?? "unchanged" });
+    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type], diff: node.diff ?? this.marks.get(node.id), chain: node.chain ?? 0, status: node.diff ?? this.marks.get(node.id) ?? node.glance ?? "unchanged" });
   }
 
   private addLinks(index: number): void {
@@ -522,7 +555,7 @@ export class MapEngine {
 
   private addLink(link: MapLink): void {
     if (this.graph.hasEdge(link.id) || !this.graph.hasNode(link.source) || !this.graph.hasNode(link.target)) return;
-    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level, diff: link.diff });
+    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level, diff: link.diff ?? this.marks.get(link.id) });
   }
 
   private letGo(): void {
@@ -549,7 +582,9 @@ export class MapEngine {
     if (this.fading && !mark) opacity *= FADED_NODE;
     if (this.near && !this.near.has(id)) opacity *= 0.25;
     const named = id === this.hovered ? "visible" : this.levelTwo < 0.9 ? "hidden" : node.level === 2 || this.levelThree > 0.9 ? "auto" : "hidden";
-    return { ...node, color: this.nodeColour(area, node.type2 as string, mark), ring: mark && mark !== "removed" ? MARK_LOOK[mark].colour : "#00000000", opacity, size: (node.size as number) * (0.7 + 0.3 * reveal), visibility: "visible", labelVisibility: named, zIndex: mark ? 2 : 1 };
+    // In a half the element pointed at stands out from its neighbours, on both sides: they are lit too (spec 044).
+    const pointedAt = this.half !== null && id === this.hovered;
+    return { ...node, color: this.nodeColour(area, node.type2 as string, mark), ring: pointedAt ? POINTED_RING : mark && mark !== "removed" ? MARK_LOOK[mark].colour : "#00000000", opacity: pointedAt ? 1 : opacity, size: (node.size as number) * (0.7 + 0.3 * reveal) * (pointedAt ? POINTED_SIZE : 1), visibility: "visible", labelVisibility: named, zIndex: pointedAt ? 3 : mark ? 2 : 1 };
   }
 
   private stays(id: string, node: Record<string, unknown>): boolean {
@@ -589,7 +624,77 @@ export class MapEngine {
     if (isFollowing()) return;
     const real = node !== null && !this.graph.getNodeAttribute(node, "centre");
     reportHover(real ? { kind: "node", id: node } : null);
-    this.showHover(node);
+    if (this.half) {
+      setPickedRatio(this.sigma.getCamera().ratio);
+      if (real) setPickedArea(this.overview.areas[this.graph.getNodeAttribute(node, "area") as number]?.id ?? null);
+      reportHalfHover(this.half.side, real ? { kind: "node", id: node } : null);
+    }
+    this.showHover(node ?? this.pinned);
+  }
+
+  /** The other half's hover lights the same node here, by identity; its card stands there (spec 044, FR-010). */
+  private hoverFromAcross(): void {
+    if (!this.half) return;
+    const hover = hoverAcross(this.half.side);
+    const node = hover?.kind === "node" && this.graph.hasNode(hover.id) ? hover.id : this.pinned;
+    const mark = hover ? this.marks.get(hover.id) : undefined;
+    this.unpaired = this.selectionUnpaired || (mark !== undefined && !drawnOn(this.half.side, mark));
+    if (node !== this.hovered || this.unpaired !== (this.near?.size === 0)) this.showHover(this.unpaired ? null : node, true);
+    clearTimeout(this.trackTimer);
+    if (hover?.kind === "node") this.trackTimer = setTimeout(() => void this.trackTo(hover.id), TRACK_REST_MS);
+  }
+
+  /**
+   * Tracking: what the pointer rests on across is brought into view here at that half's zoom (spec 044). What a map draws
+   * depends on its zoom, so at another zoom the same node may not show at all; one in view at that zoom moves nothing.
+   */
+  private async trackTo(node: string): Promise<void> {
+    if (!halfTracking()) return;
+    // What is rested on across may stand in an area this half, at its zoom, has not read yet.
+    const area = pickedArea();
+    if (!this.graph.hasNode(node) && area && this.areaIndex.has(area)) await this.ensure(area, 3);
+    if (this.killed || !this.graph.hasNode(node)) return;
+    const attributes = this.graph.getNodeAttributes(node);
+    const place = this.sigma.graphToViewport({ x: attributes.x as number, y: attributes.y as number });
+    const { clientWidth, clientHeight } = this.elements.stage;
+    const ratio = pickedRatio() ?? this.sigma.getCamera().ratio;
+    const sameZoom = Math.abs(Math.log(this.sigma.getCamera().ratio / ratio)) < ZOOM_ALIKE;
+    if (sameZoom && place.x >= 0 && place.y >= 0 && place.x <= clientWidth && place.y <= clientHeight) return;
+    const target = this.sigma.viewportToFramedGraph(place);
+    void this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio }, { duration: ARRIVAL_MS, easing: "cubicInOut" });
+  }
+
+  /**
+   * Bring a selected node into view, keeping the zoom, or say why not (spec 044). The half that was clicked says which
+   * area holds it, so this one can read that area first; without that, a node not read yet stays where it is.
+   */
+  async locate(node: string | null): Promise<Located> {
+    this.pinned = node;
+    this.selectionUnpaired = false;
+    this.unpaired = false;
+    this.showHover(node, true);
+    if (node === null) return "in_view";
+    const area = pickedArea();
+    if (!this.graph.hasNode(node) && area && this.areaIndex.has(area)) await this.ensure(area, 3);
+    if (this.killed) return "in_view";
+    const mark = this.marks.get(node);
+    if (!this.graph.hasNode(node) || (this.half && mark && !drawnOn(this.half.side, mark))) {
+      this.pinned = null;
+      this.selectionUnpaired = true;
+      this.unpaired = true;
+      this.showHover(null, true);
+      return "absent";
+    }
+    this.pinned = node;
+    this.showHover(node, true);
+    const attributes = this.graph.getNodeAttributes(node);
+    if (!this.stays(node, attributes)) return "hidden";
+    const place = this.sigma.graphToViewport({ x: attributes.x as number, y: attributes.y as number });
+    const { clientWidth, clientHeight } = this.elements.stage;
+    if (!this.half?.phone && place.x >= 0 && place.y >= 0 && place.x <= clientWidth && place.y <= clientHeight) return "in_view";
+    const target = this.sigma.viewportToFramedGraph(place);
+    await this.sigma.getCamera().animate({ x: target.x, y: target.y }, { duration: ARRIVAL_MS, easing: "cubicInOut" });
+    return "moved";
   }
 
   private followHover(): void {
@@ -665,19 +770,21 @@ export class MapEngine {
     this.events.onHoverElement(this.linkSubject(edge, x, y));
   }
 
-  private showHover(node: string | null): void {
+  private showHover(node: string | null, quiet = false): void {
     const { label, stage } = this.elements;
-    const attributes = node ? this.graph.getNodeAttributes(node) : null;
+    // A node selected across may not have been read here yet, and one read earlier may have been let go.
+    const attributes = node && this.graph.hasNode(node) ? this.graph.getNodeAttributes(node) : null;
     stage.style.cursor = attributes && !attributes.centre ? "pointer" : "";
     if (!node || !attributes || attributes.centre) {
       this.hovered = null;
-      this.near = null;
+      // An empty set puts everything out: what the other half points at has no pair here (spec 044).
+      this.near = this.unpaired ? new Set() : null;
       label.style.display = "none";
-      if (!isFollowing()) this.events.onHoverElement(null);
+      if (!isFollowing() && !quiet) this.events.onHoverElement(null);
     } else {
       this.hovered = node;
       this.near = new Set([node, ...this.graph.neighbors(node)]);
-      if (!isFollowing()) this.events.onHoverElement(this.nodeSubject(node));
+      if (!isFollowing() && !quiet) this.events.onHoverElement(this.nodeSubject(node));
     }
     this.sigma.refresh({ skipIndexation: true });
   }
@@ -717,12 +824,17 @@ export class MapEngine {
     this.closeCard();
     const badge = this.badges.find((each) => x >= each.x && x <= each.x + each.width && y >= each.y && y <= each.y + each.height);
     const first = badge ? firstChangeOf(this.changes, badge.area) : -1;
+    if (!badge) this.events.onPick?.(null);
     if (first >= 0) this.goTo(first);
     else this.flyToAreaAt(x, y);
   }
 
   private onClickNode(node: string): void {
     const attributes = this.graph.getNodeAttributes(node);
+    if (!attributes.centre) {
+      setPickedArea(this.overview.areas[attributes.area as number]?.id ?? null);
+      this.events.onPick?.(node);
+    }
     const position = this.marking && attributes.diff ? this.changes.findIndex((change) => change.id === node) : -1;
     if (position < 0) {
       this.closeCard();
@@ -736,8 +848,23 @@ export class MapEngine {
     this.openCard(this.changes[this.position]);
   }
 
+  /** Where a change stands on this map: a half's own drawing has its own places, a link stands between its ends. */
+  private placeOf(change: MapChange): { x: number; y: number } {
+    if (!this.half) return change;
+    if (this.graph.hasNode(change.id)) {
+      const { x, y } = this.graph.getNodeAttributes(change.id);
+      return { x: x as number, y: y as number };
+    }
+    if (this.graph.hasEdge(change.id)) {
+      const [source, target] = this.graph.extremities(change.id).map((end) => this.graph.getNodeAttributes(end));
+      return { x: ((source.x as number) + (target.x as number)) / 2, y: ((source.y as number) + (target.y as number)) / 2 };
+    }
+    const area = this.overview.areas.find((each) => each.id === change.area);
+    return area ? { x: area.x, y: area.y } : change;
+  }
+
   private openCard(change: MapChange): void {
-    const place = this.sigma.graphToViewport(change);
+    const place = this.sigma.graphToViewport(this.placeOf(change));
     const at = { x: Math.max(8, Math.min(place.x + 24, this.elements.stage.clientWidth - CARD_WIDTH)), y: Math.max(8, place.y + 18) };
     this.cardOpen = true;
     this.events.onCard({ target: { title: change.label, status: change.status, elements: [{ kind: change.span === undefined ? "node" : "edge", id: change.id }] }, at });
@@ -763,9 +890,23 @@ export class MapEngine {
     });
   }
 
+  /** Show what a followed person stands on, by its id: a half's list has its own places, and its card opens where a step's does. */
+  mirrorChange(id: string | null, card: boolean): void {
+    const position = id === null ? -1 : this.changes.findIndex((change) => change.id === id);
+    const here = position >= 0 && (this.half?.side !== "a" || this.changes[position].status === "removed");
+    this.mirror(position >= 0 ? position : null, card && here);
+  }
+
   /** Go to a change. */
   goTo(position: number): void {
     void this.flyTo(position);
+  }
+
+  /** Go to a change by its id: a half's list holds only what its version has, and a change it lacks moves nothing. */
+  goToChange(id: string): void {
+    const position = this.changes.findIndex((change) => change.id === id);
+    if (position >= 0) void this.flyTo(position);
+    else this.closeCard();
   }
 
   /** Fly to a change, read what it stands in if that has not been read, and open its card (FR-025a, FR-025c). */
@@ -778,13 +919,21 @@ export class MapEngine {
     const flight = this.flight;
     this.closeCard();
     this.events.onStep(position);
-    const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport({ x: change.x, y: change.y }));
+    // A change's place is the pair's drawing; a half stands it where its own version has it.
+    if (this.half) await this.ensure(change.area, level);
+    const place = this.placeOf(change);
+    const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport(place));
     const { clientWidth, clientHeight } = this.elements.stage;
     const ratio = Math.max(CLOSEST_RATIO, ARRIVAL_WIDTH[level] / LEVEL_SCREEN_PX, ((change.span ?? 0) * LINK_MARGIN) / Math.min(clientWidth, clientHeight));
     await Promise.all([this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio }, { duration: ARRIVAL_MS, easing: "cubicInOut" }), this.ensure(change.area, level)]);
     if (flight !== this.flight || this.killed) return;
     this.sigma.scheduleRefresh();
-    this.openCard(change);
+    // A step is a click: it selects in both, and the half with no pair goes out (spec 044, FR-014).
+    if (this.half && change.span === undefined) {
+      setPickedArea(change.area);
+      this.events.onPick?.(change.id);
+    }
+    if (this.half?.side !== "a" || change.status === "removed") this.openCard(change);
   }
 
   /** A click on a folded domain flies to it (FR-007). */

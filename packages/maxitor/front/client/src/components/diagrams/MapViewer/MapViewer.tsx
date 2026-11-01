@@ -9,9 +9,12 @@ import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { DiffCard } from "@/components/history/DiffCard";
 import { getActiveBase } from "@/api/client";
-import { mapChanges, mapOverview } from "@/api/map";
+import { mapChanges, mapOverview, type MapChange, type MapOverview } from "@/api/map";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { HalfNote } from "@/components/diagrams/SideBySide";
+import { drawnOn, useHalf, writesForPair, type Half } from "@/lib/half";
+import { joinMirror, joinSteps, mirrorBoth, noteOf, reportStepCard, stepBoth, useStepCardOpen } from "@/lib/halfPicking";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { layoutHash } from "@/lib/layoutHash";
 import { countChanges } from "@/lib/mapDiff";
@@ -19,7 +22,7 @@ import { mapFilterRows } from "@/lib/mapFilterRows";
 import { changesLeft, mapFacts, presence, type HiddenBy, type MapFilters } from "@/lib/mapVisibility";
 import { usePageSetting } from "@/lib/pageSettings";
 import { useHoverCard } from "@/lib/useHoverCard";
-import { isFollowing, mirroredFocus, sameRef, useMirroredFocus, type ElementRef } from "@/rooms/focusStore";
+import { cardFor, isFollowing, mirroredFocus, sameRef, useMirroredFocus, type ElementRef } from "@/rooms/focusStore";
 import type { MapCard, MapEngine } from "./mapEngine";
 
 const LAYERS_SX = { position: "absolute", inset: 0, width: "100%", height: "100%" } as const;
@@ -35,6 +38,11 @@ function toggled(list: readonly string[], key: string): string[] {
   return list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort();
 }
 
+/** The pair's changes for what is on screen; a half reads them after the pair's map, which they come from (spec 044). */
+async function changesFor(half: Half | null, overview: MapOverview): Promise<MapChange[]> {
+  return !half && overview.links_changed === undefined ? [] : mapChanges();
+}
+
 /**
  * The full graph as a map (spec 040): named domains far away, what they hold closer. The overview comes first; Sigma
  * is loaded with it, so that no other diagram carries its weight. The filters and the paint are page settings, as on
@@ -47,6 +55,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   const underRef = useRef<HTMLCanvasElement | null>(null);
   const overRef = useRef<HTMLCanvasElement | null>(null);
   const labelRef = useRef<HTMLDivElement | null>(null);
+  const side = useHalf()?.side ?? null;
   const [engine, setEngine] = useState<MapEngine | null>(null);
   const [layingOut, setLayingOut] = useState(false);
   const [zoomPct, setZoomPct] = useState(100);
@@ -60,7 +69,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   hoverNowRef.current = hoverCard.wantNow;
   // The followed person's card goes by what they say of it, not by their hover: on the card they hover nothing.
   const followed = useMirroredFocus();
-  const followedCard = followed?.panels.card?.ref ?? null;
+  const followedCard = cardFor(followed?.panels, side);
   const shownCard = useRef<ElementRef | null>(null);
   useEffect(() => {
     if (!followed || !engine || sameRef(followedCard, shownCard.current)) return;
@@ -86,27 +95,38 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   const [drawable] = useState(canDrawMap);
   const names = useDiffNames();
   const diffing = getActiveBase() !== null;
+  const half = useHalf();
   const [offTypes, setOffTypes] = usePageSetting<string[]>("disabled_node_types", []);
   const [offDomains, setOffDomains] = usePageSetting<string[]>("disabled_domains", []);
   const [offChanges, setOffChanges] = usePageSetting<string[]>("disabled_changes", []);
   const [chosenPaint, setChosenPaint] = usePageSetting<PaintSection>(paintSettingName(diffing), defaultPaint(diffing));
 
   const load = useCallback(async () => {
-    const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true)), import("./mapEngine")]);
-    return { overview, module, changes: overview.links_changed === undefined ? [] : await mapChanges() };
-  }, []);
+    const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true), half?.read), import("./mapEngine")]);
+    // The filter's rows are the pair's: a version's own map knows no changes.
+    const pair = half ? await mapOverview(() => setLayingOut(true)) : overview;
+    return { overview, pair, module, changes: await changesFor(half, overview) };
+  }, [half]);
   const { data, loading, error } = useDiagramLoader(load);
 
   const filters = useMemo<MapFilters>(() => ({ types: new Set(offTypes), domains: new Set(offDomains), changes: new Set(offChanges) }), [offTypes, offDomains, offChanges]);
   const facts = useMemo(() => (data ? mapFacts(data.overview) : null), [data]);
+  const pairFacts = useMemo(() => (data ? mapFacts(data.pair) : null), [data]);
   const shownChanges = useMemo(() => (data && facts ? changesLeft(data.changes, filters, facts) : []), [data, facts, filters]);
   const entries = useMemo<ChangeEntry[]>(() => {
     const areaNames = new Map(data?.overview.areas.map((area) => [area.id, area.name]));
     return shownChanges.map((change) => ({ key: change.id, title: change.label, detail: change.type, status: change.status, group: areaNames.get(change.area) ?? change.area }));
   }, [data, shownChanges]);
+  useEffect(() => {
+    if (half) setPosition(null);
+  }, [half, entries]);
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
   const sections: PaintSection[] = ["domains", ...((data?.overview.types.length ?? 0) > 1 ? (["kinds"] as const) : []), ...(data?.changes.length ? (["changes"] as const) : [])];
   const paint = paintSource(sections, chosenPaint);
-  const comparing = data?.overview.links_changed !== undefined;
+  const comparing = data !== null && data !== undefined && (half !== null || data.overview.links_changed !== undefined);
+  // A half's map marks and steps through what its version has; the counts and the list stay the pair's (spec 044).
+  const ownChanges = useMemo(() => (half ? shownChanges.filter((change) => drawnOn(half.side, change.status)) : shownChanges), [half, shownChanges]);
 
   useEffect(() => {
     const [stage, sigma, under, over, label] = [stageRef.current, sigmaRef.current, underRef.current, overRef.current, labelRef.current];
@@ -119,19 +139,21 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
       onZoom: (zoom: number) => {
         setZoomPct(Math.round(zoom * 100));
         // A follower's card stays as long as the followed person holds it, and goes with the map.
-        const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+        const ref = isFollowing() ? cardFor(mirroredFocus()?.panels, side) : null;
         const subject = ref ? made?.cardSubject(ref) : null;
         if (subject) hoverNowRef.current(subject);
         else closeRef.current();
       },
       onCard: setCard,
-      onStep: setPosition,
+      onPick: half ? (node: string | null) => pickRef.current(node ? { kind: "node", id: node } : null) : undefined,
+      // A half's own list holds only its version's changes: the place in the list is the pair's, set by the step itself.
+      onStep: half ? () => undefined : setPosition,
       onHoverElement: (subject: CardSubject | null, now?: boolean) => {
         if (subject && now) hoverNowRef.current(subject);
         else if (!pressedRef.current) hoverRef.current(subject);
       },
     };
-    module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events)
+    module.MapEngine.create(overview, changes, { stage, sigma, under, over, label }, events, half)
       .then(async (engineMade) => {
         if (gone) {
           engineMade.destroy();
@@ -152,18 +174,63 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   }, [data, drawable]);
 
   // A filter or a paint changes what is drawn, and moves nothing (FR-028).
-  useEffect(() => engine?.setView({ filters, paint, changes: shownChanges }), [engine, filters, paint, shownChanges]);
+  useEffect(() => engine?.setView({ filters, paint, changes: ownChanges }), [engine, filters, paint, ownChanges]);
+
+  // One element across the two halves: selected in both, brought into view here, or said why not (spec 044).
+  const [selected, setSelected] = usePageSetting<ElementRef | null>("selected", null);
+  const pickRef = useRef(setSelected);
+  pickRef.current = setSelected;
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!engine || !half) return undefined;
+    let gone = false;
+    void engine.locate(selected?.kind === "node" ? selected.id : null).then((located) => {
+      if (!gone) setNote(noteOf(located, half.name));
+    });
+    return () => {
+      gone = true;
+    };
+  }, [engine, half, selected]);
+  useEffect(() => {
+    if (!half) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") pickRef.current(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [half]);
+  useEffect(
+    () =>
+      engine && half
+        ? joinMirror(half.side, (index, open) => {
+            setPosition(index);
+            engine.mirrorChange(index === null ? null : (entriesRef.current[index]?.key ?? null), open);
+          })
+        : undefined,
+    [engine, half],
+  );
+  useEffect(() => (engine && half ? joinSteps(half.side, (index) => {
+    setPosition(index);
+    engine.goToChange(entriesRef.current[index]?.key ?? "");
+  }) : undefined), [engine, half]);
 
   useEffect(() => {
-    setDiffCounts(comparing ? countChanges(shownChanges) : null);
+    if (writesForPair(half)) setDiffCounts(comparing ? countChanges(shownChanges) : null);
   }, [comparing, shownChanges]);
 
   useEffect(() => {
-    setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: (next) => engine.goTo(next), mirror: (next, open) => engine.mirror(next, open) } : null);
-  }, [engine, entries, position, card]);
+    if (!half) return undefined;
+    reportStepCard(half.side, card !== null);
+    return () => reportStepCard(half.side, false);
+  }, [half, card]);
+  const cardOfPair = useStepCardOpen();
+  useEffect(() => {
+    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: half ? cardOfPair : card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: half ? mirrorBoth : (next, open) => engine.mirror(next, open) } : null);
+  }, [engine, entries, position, card, cardOfPair]);
 
   useEffect(
     () => () => {
+      if (!writesForPair(half)) return;
       setDiffCounts(null);
       setChangeStepping(null);
     },
@@ -182,7 +249,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   );
   // The picture answers a click first; the panel's rows follow in the next moment.
   const rowFilters = useDeferredValue(filters);
-  const rows = useMemo(() => (data && facts ? mapFilterRows(data.overview, rowFilters, presence(data.overview, rowFilters, facts), paint, comparing, reveal) : null), [data, facts, rowFilters, paint, comparing, reveal]);
+  const rows = useMemo(() => (data && facts ? mapFilterRows(data.pair, rowFilters, presence(data.pair, rowFilters, pairFacts ?? facts), paint, comparing, reveal) : null), [data, facts, rowFilters, paint, comparing, reveal]);
 
   return (
     <DiagramShell loading={loading && !layingOut} error={error ?? mapError}>
@@ -229,7 +296,8 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
             )}
           </Box>
         )}
-        {rows && drawable && (
+        <HalfNote text={note} />
+        {rows && drawable && half?.side !== "b" && (
           <ErdFilterPanel
             domainRows={rows.domainRows}
             kindRows={rows.typeRows}
