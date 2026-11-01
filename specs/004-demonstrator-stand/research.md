@@ -59,5 +59,5 @@ Findings from the repository, with decisions. Host-side unknowns that only the d
 
 ## Decision 10: Host facts remain outside the repository
 
-- **Decision**: SSH access uses either existing host key (`up2y-prod` / `digtwin-prod`), whichever works (Clarification Q1); the DNS records and the terminator identity are host facts the deploy script gates on. None of them is written into the repository.
+- **Decision**: SSH access uses either existing host key (`key-a` / `key-b`), whichever works (Clarification Q1); the DNS records and the terminator identity are host facts the deploy script gates on. None of them is written into the repository.
 - **Rationale**: the issue's open questions 2 and 3 are outside the repo's reach; the script asserts, never assumes.

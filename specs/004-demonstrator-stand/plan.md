@@ -6,7 +6,7 @@
 
 ## Summary
 
-The demonstrator and Maxitor each get their own container built from **this repository's sources** (the demo with the `[fastapi]` and `[mcp]` extras, Maxitor with the client built from the sources — replacing the stale PyPI install), deployed by one command onto `194.67.66.48`, served over HTTPS through the host's existing TLS front end at `dev.demo.aoa.run` and `dev.maxitor.aoa.run`, with health checks and a rollback on failure. The demonstrator model also gains the shapes the diagram cannot draw today — generalization fixtures first, the entity-specialization axis once #199 lands, and an audit that makes "all shapes" true rather than intended. Acceptance is recorded as a picture, the same way as issue #201.
+The demonstrator and Maxitor each get their own container built from **this repository's sources** (the demo with the `[fastapi]` and `[mcp]` extras, Maxitor with the client built from the sources — replacing the stale PyPI install), deployed by one command onto `203.0.113.10`, served over HTTPS through the host's existing TLS front end at `dev.demo.aoa.run` and `dev.maxitor.aoa.run`, with health checks and a rollback on failure. The demonstrator model also gains the shapes the diagram cannot draw today — generalization fixtures first, the entity-specialization axis once #199 lands, and an audit that makes "all shapes" true rather than intended. Acceptance is recorded as a picture, the same way as issue #201.
 
 ## Technical Context
 
@@ -18,7 +18,7 @@ The demonstrator and Maxitor each get their own container built from **this repo
 
 **Testing**: the repository check run (`scripts/run_checks_with_log.sh`) for all code; local container bring-up (`docker compose up` + curl) for the stand; the recorded picture for the shapes
 
-**Target Platform**: one Linux host (`194.67.66.48`), Docker runtime, two subdomains of `aoa.run`
+**Target Platform**: one Linux host (`203.0.113.10`), Docker runtime, two subdomains of `aoa.run`
 
 **Project Type**: deployment stand (containers + compose + deploy script) plus demonstrator fixture shapes
 

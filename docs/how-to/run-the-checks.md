@@ -13,7 +13,7 @@ The first runs the cheap steps. The second runs the full local gate and leaves i
 bash scripts/run_checks_with_log.sh
 ```
 
-It runs two repository guards, Ruff, mypy, pylint, the package-boundary and package-metadata checkers, vulture, the samples public-API check, the Maxitor client's build and its tests (including the layout in three browser engines), the five ERD scripts, the tests of every package, Radon, and a check of the saved graph files — and writes everything they print into one log, `archive/logs/check-all.txt`. The wheel and sdist build and the packaging smoke test are **not** part of the local run: they need the network and matter when a package is released, so CI runs them. Once the tools are installed — Graphviz's `sfdp` among them, for the map — the run needs no network. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them.
+It runs two repository guards, Ruff, mypy, pylint, the package-boundary and package-metadata checkers, the secrets check, vulture, the samples public-API check, the Maxitor client's build and its tests (including the layout in three browser engines), the five ERD scripts, the tests of every package, Radon, and a check of the saved graph files — and writes everything they print into one log, `archive/logs/check-all.txt`. The wheel and sdist build and the packaging smoke test are **not** part of the local run: they need the network and matter when a package is released, so CI runs them. Once the tools are installed — Graphviz's `sfdp` among them, for the map — the run needs no network. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them.
 
 This page shows each case as the command and what it really printed.
 
@@ -89,7 +89,7 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 |---|---|---|
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
-| Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, vulture, samples public API, Radon | the auto-fix |
+| Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
 | Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/front` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
 | Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
@@ -145,6 +145,7 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Ruff auto-fix | ✅ | — | rewrites files; CI must not change the tree |
 | Ruff lint, mypy, pylint | ✅ | ✅ | deterministic static checks |
 | Package boundaries, package metadata | ✅ | ✅ | deterministic static checks |
+| No secrets in tracked files | ✅ | ✅ | deterministic; a commit made without the local hook still meets it in CI |
 | Vulture, samples public API, Radon | ✅ | ✅ | deterministic static checks |
 | Client build, client unit tests, five ERD scripts | ✅ | ✅ | deterministic, no browser engine |
 | The same layout in three engines | ✅ | — (CI reads its proof) | needs a graphics card: a CI machine has none, so Firefox has no WebGL |
@@ -188,6 +189,29 @@ OK Ruff auto-fix (exit 0, 0.2 s)
 OK Pytest aoa-ocel (exit 0, 3.4 s)
 …
 Wall time: 66.9 s
+```
+
+## Secrets
+
+`scripts/check_no_secrets.py` fails on a tracked `.env`, `.env.*`, `*.pem` or `*.key`, whatever it holds, and on any value `detect-secrets` finds that `.secrets.baseline` does not list. `.env.example` is allowed. Tests under the root `tests/`, `docs/`, `archive/`, `specs/`, `.specify/integrations/`, notebooks and `graph.json` files are not scanned, because their text is full of sample values and hashes.
+
+The same check runs as a commit hook, once per checkout:
+
+```bash
+uvx pre-commit install
+```
+
+A failure names the file and the kind of finding, and never prints the value:
+
+```text
+FAIL .env is a secrets file and must not be tracked: git rm --cached .env
+FAIL scripts/check_run.py: Secret Keyword. Remove it, or if it is a false alarm, review it and run --update.
+```
+
+After reviewing a false alarm, record it. The baseline is compared by file, kind and hash, so moving a reviewed value to another line does not fail the check:
+
+```bash
+uv run --extra dev python scripts/check_no_secrets.py --update
 ```
 
 ## Before a pull request

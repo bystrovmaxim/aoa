@@ -1,6 +1,6 @@
 # Contract: the stand deployment
 
-The stand is judged by opening two URLs and by running one command. This file is the contract between the repository (images, compose file, script) and the host (`194.67.66.48`).
+The stand is judged by opening two URLs and by running one command. This file is the contract between the repository (images, compose file, script) and the host (`203.0.113.10`).
 
 ## What the deploy command must do, in order
 
@@ -16,7 +16,7 @@ The stand is judged by opening two URLs and by running one command. This file is
 ## Environment contract
 
 - Configuration and secrets are read from `/etc/aoa-stand.env` on the host; the repository carries only `deploy/stand/.env.example` with the names, never the values.
-- SSH access to the host: either existing key (`up2y-prod` / `digtwin-prod`), whichever works.
+- SSH access to the host: either existing key (`key-a` / `key-b`), whichever works.
 
 ## What the stand must show (shapes)
 

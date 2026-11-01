@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-01] — Secrets stay out of the repository, and the checks stop any that try to return
+
+The file `.env` with working credentials had been public in this repository since March. Those credentials have been replaced, and the file is gone from the whole history, so branches and tags no longer contain it. Every commit therefore has a new identifier, and links to old commits may no longer open.
+
+Git now ignores `.env` files and the `certificates` folder, so a careless `git add -A` cannot pick them up. An `.env.example` stays in the repository, because it shows the shape and holds no real values.
+
+A new check looks through the tracked files for secrets, both before a commit and on every pull request. A hook covers the commit on your machine, and CI covers a commit made without it. When the check fails, it names the file and never prints the value.
+
+The empty `aoa_run` folder is gone as well. It held no code, and `aoa-run` still installs under the same name with the same extras.
+
 ## [2026-11-01] — The checks now have two homes, and a pull request carries the proof of the long one
 
 The long check that finishes a change no longer needs the internet. It used to download a build tool from the package index for every package it packed, and on a poor connection it failed for no reason of ours. Those package builds, and the smoke test that installs them, now run on GitHub with every pull request, where a broken package is caught before a release and never blocks a local run.
@@ -1033,4 +1043,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `**GraphCoordinator` — central metadata and graph registry.** Lazily builds and caches `ClassMetadata` for any class on first access. Recursively discovers dependencies and connections. Maintains a directed acyclic graph (rustworkx `PyDiGraph`) with nodes for actions, dependencies, connections, aspects, checkers, plugins, subscriptions, sensitive fields, roles, and domains. Detects cyclic dependencies via `is_directed_acyclic_graph()` after each edge addition.
 - **Logging subsystem.** `LogCoordinator` broadcasts messages to registered `BaseLogger` instances. `ConsoleLogger` outputs to stdout with configurable colors and indentation. `VariableSubstitutor` resolves five namespaces (`var`, `state`, `params`, `context`, `scope`) with dot-path traversal. `ExpressionEvaluator` handles `{iif(condition; true; false)}` via `simpleeval`. `@sensitive` decorator masks property values in logs. Strict error policy: invalid templates raise `LogTemplateError` immediately.
 - **Exception hierarchy.** `AuthorizationError` (role mismatch), `ValidationFieldError` (checker failure), `HandleError` (resource manager errors), `TransactionError` (base for connection errors), `ConnectionAlreadyOpenError`, `ConnectionNotOpenError`, `TransactionProhibitedError` (wrapper prevents nested transactions), `ConnectionValidationError` (key mismatch), `LogTemplateError` (invalid template syntax), `CyclicDependencyError` (graph cycle detected).
-

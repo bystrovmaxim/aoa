@@ -237,7 +237,7 @@ STEPS: tuple[Step, ...] = (
     # back to `.` is one line, and it re-opens that debt deliberately.
     Step(
         AUTO_FIX,
-        "uv run --extra dev ruff check --fix packages/ tests/ scripts/ aoa_run/",
+        "uv run --extra dev ruff check --fix packages/ tests/ scripts/",
         "first",
         after=(README_GUARD,),
         home=LOCAL,
@@ -256,6 +256,7 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev python scripts/check_package_metadata.py",
         "static",
     ),
+    _after_fix("No secrets in tracked files", "uv run --extra dev python scripts/check_no_secrets.py", "static"),
     *(_build(package) for package in PACKAGES),
     Step(
         "Packaging wheel install smoke",
