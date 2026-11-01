@@ -76,12 +76,12 @@ Every extracted helper is private, stays in its module and has a one-line docstr
 
 **Independent Test**: An unfixable error fails locally, a fixable one is fixed, and in the CI form a fixable one fails and stays in the file.
 
-- [ ] T019 [US2] In `tests/scripts/test_check_run.py`, add tests that the local, `--fast` and CI selections each hold exactly one Ruff row, that its command has `--fix` locally and under `--fast`, and that it has no `--fix` under `--where ci`; confirm they fail first
-- [ ] T020 [US2] In `scripts/check_run.py`, add the field `fast_keeps_command`, default `False`, to `Step` and honour it in `_select`; extend the `INVARIANTS` line of the class's AI-CORE block
-- [ ] T021 [US2] In `scripts/check_run.py`, set the `Ruff auto-fix` row to `home=BOTH`, `ci_command` to `uv run --extra dev ruff check packages/ tests/ scripts/`, `fast_keeps_command=True`; remove the `Ruff lint` row; update the comment above it and the module docstring where it describes the auto-fix
-- [ ] T022 [US2] Adversarial proof: remove `fast_keeps_command=True`, then the `ci_command`; confirm each is caught by its test and by no other; restore
-- [ ] T023 [US2] Live proof per `quickstart.md`: an unfixable error fails `check_before_commit.sh`; a fixable one is fixed and passes; a fixable one under `--where ci --skip-group packaging` fails with the file unchanged; restore
-- [ ] T024 [US2] Post the phase's comment on issue #296 with times before and after and the proofs from §4.2 of the issue
+- [X] T019 [US2] In `tests/scripts/test_check_run.py`, add tests that the local, `--fast` and CI selections each hold exactly one Ruff row, that its command has `--fix` locally and under `--fast`, and that it has no `--fix` under `--where ci`; confirm they fail first
+- [X] T020 [US2] In `scripts/check_run.py`, add the field `fast_keeps_command`, default `False`, to `Step` and honour it in `_select`; extend the `INVARIANTS` line of the class's AI-CORE block
+- [X] T021 [US2] In `scripts/check_run.py`, set the `Ruff auto-fix` row to `home=BOTH`, `ci_command` to `uv run --extra dev ruff check packages/ tests/ scripts/`, `fast_keeps_command=True`; remove the `Ruff lint` row; update the comment above it and the module docstring where it describes the auto-fix
+- [X] T022 [US2] Adversarial proof: remove `fast_keeps_command=True`, then the `ci_command`; confirm each is caught by its test and by no other; restore
+- [X] T023 [US2] Live proof per `quickstart.md`: an unfixable error fails `check_before_commit.sh`; a fixable one is fixed and passes; a fixable one under `--where ci --skip-group packaging` fails with the file unchanged; restore
+- [X] T024 [US2] Post the phase's comment on issue #296 with times before and after and the proofs from §4.2 of the issue
 
 **Commit point**: Phase 3 of the issue, one commit.
 
