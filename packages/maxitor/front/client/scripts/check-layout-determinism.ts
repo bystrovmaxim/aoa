@@ -320,6 +320,12 @@ async function runEngine(
         const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
         const page = await context.newPage();
         const run = runName(name, viewport);
+        // A page that never lays out throws only a timeout; surface what the page itself said so a
+        // failure names its cause (a missing asset, a console error) instead of only "Timeout".
+        page.on("pageerror", (error) => console.error(`[${run}] page error: ${error.message}`));
+        page.on("console", (message) => {
+          if (message.type() === "error") console.error(`[${run}] console error: ${message.text()}`);
+        });
         const keysByTarget: string[][] = [];
         seen.set(run, keysByTarget);
         for (const target of targets) {
