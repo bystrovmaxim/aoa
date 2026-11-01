@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
-import { filterLifecycleByChanges, filterLifecycleByKinds, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, markLifecycle, mergeLifecycles, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
+import { filterLifecycleByChanges, filterLifecycleByKinds, lifecycleCard, lifecycleChangeKinds, lifecycleChanges, lifecycleCounts, lifecycleHolds, lifecycleOfSide, markLifecycle, mergeLifecycles, unmarkedLifecycle, withLifecycleOneHop } from "@/lib/lifecycleDiff";
 import type { LifecycleFiniteAutomatonPayload, LifecycleFsmStateWire } from "@/model/lifecycleFiniteAutomaton";
 
 const life = "a.Offer:lifecycle:status";
@@ -131,5 +131,29 @@ describe("the filters", () => {
     expect(withLifecycleOneHop(older, older)).toEqual(older);
     const back = withLifecycleOneHop(filterLifecycleByKinds(older, new Set(["initial", "intermediate"])), older);
     expect(back.states.map((state) => state.key)).toEqual(["busy", "done"]);
+  });
+});
+
+describe("the part of a lifecycle one version has (spec 044)", () => {
+  const diagram = {
+    initial_state_keys: ["old", "new"],
+    states: [{ key: "kept", diff: "unchanged" }, { key: "old", diff: "removed" }, { key: "new", diff: "added" }],
+    transitions: [{ id: "t1", source: "old", target: "kept", diff: "removed" }, { id: "t2", source: "new", target: "kept", diff: "added" }],
+    entries: [{ key: "old", diff: "removed" }, { key: "new", diff: "added" }],
+    exits: [],
+  } as unknown as LifecycleFiniteAutomatonPayload;
+
+  it("keeps on each side its states, transitions and start", () => {
+    const a = lifecycleOfSide(diagram, "a");
+    expect(a.states.map((state) => state.key)).toEqual(["kept", "old"]);
+    expect(a.initial_state_keys).toEqual(["old"]);
+    expect(lifecycleOfSide(diagram, "b").transitions.map((transition) => transition.id)).toEqual(["t2"]);
+  });
+
+  it("knows what a side holds", () => {
+    const b = lifecycleOfSide(diagram, "b");
+    expect(lifecycleHolds(b, { kind: "node", id: "new" })).toBe(true);
+    expect(lifecycleHolds(b, { kind: "node", id: "old" })).toBe(false);
+    expect(lifecycleHolds(b, { kind: "edge", id: "new->kept" })).toBe(true);
   });
 });

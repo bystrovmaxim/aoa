@@ -5,6 +5,8 @@
  * the server says changed inside is marked changed; its own added or removed status stands.
  */
 import { getActiveBase } from "@/api/client";
+import { drawnOn, type Side } from "@/lib/half";
+import type { ElementRef } from "@/rooms/focusStore";
 import { compareChangedInside, compareVersions, type ChangedInside, type CompareResult, type DiffStatus } from "@/api/compare";
 import { fetchDomainUseCaseDiagram } from "@/api/domainUseCaseDiagram";
 import { listDomains } from "@/api/erd";
@@ -163,6 +165,20 @@ export function useCaseIdAt(target: Element | null, diagram: DomainUseCaseDiagra
   const role = diagram.roles.find((each) => domainUseCaseDotNodeId("r", each.id) === name);
   const element = action ?? role;
   return element?.diff && element.diff !== "unchanged" ? element.id : null;
+}
+
+/** The part of a merged diagram that one version has, with its marks (spec 044). */
+export function useCaseOfSide(diagram: DomainUseCaseDiagramPayload, side: Side): DomainUseCaseDiagramPayload {
+  const drawn = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
+  const roles = drawn(diagram.roles);
+  const here = new Set(roles.map((role) => role.id));
+  return { ...diagram, roles, actions: drawn(diagram.actions).map((action) => ({ ...action, role_ids: action.role_ids.filter((id) => here.has(id)) })), edges: drawn(diagram.edges) };
+}
+
+/** Whether a version's part of a diagram holds an action, a role or a link. */
+export function useCaseHolds(diagram: DomainUseCaseDiagramPayload, ref: ElementRef): boolean {
+  if (ref.kind === "edge") return diagram.edges.some((edge) => useCaseCellId(edge.id) === ref.id || (ref.id.includes(domainUseCaseDotNodeId("a", edge.source_id)) && ref.id.includes(domainUseCaseDotNodeId("r", edge.target_id))));
+  return diagram.actions.some((action) => domainUseCaseDotNodeId("a", action.id) === ref.id) || diagram.roles.some((role) => domainUseCaseDotNodeId("r", role.id) === ref.id);
 }
 
 /** A domain's use cases, or all of them, in the pair being compared, read from each version that has the domain, merged and marked. */

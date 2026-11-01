@@ -1,8 +1,8 @@
 // src/lib/useCaseDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { ChangedInside, CompareResult } from "@/api/compare";
-import { buildActionGlyphDataUrl, buildDomainUseCaseDotBundle, buildRoleActorDataUrl } from "@/lib/buildDomainUseCaseDotSource";
-import { filterUseCaseByChanges, filterUseCaseByElements, markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseIdAt, withUseCaseOneHop } from "@/lib/useCaseDiff";
+import { buildActionGlyphDataUrl, buildDomainUseCaseDotBundle, buildRoleActorDataUrl, domainUseCaseDotNodeId } from "@/lib/buildDomainUseCaseDotSource";
+import { filterUseCaseByChanges, filterUseCaseByElements, markUseCaseDiagram, mergeUseCaseDiagrams, unmarkedUseCase, useCaseCard, useCaseChangeKinds, useCaseChanges, useCaseCounts, useCaseHolds, useCaseIdAt, useCaseOfSide, withUseCaseOneHop } from "@/lib/useCaseDiff";
 import type { DomainUseCaseDiagramPayload, DomainUseCaseEdgeWire } from "@/model/domainUseCaseDiagram";
 
 const action = (id: string, role_ids: string[] = []) => ({ id, label: id, short_label: id, domain_id: "d", domain_short_label: "d", accent_color: "#8b5cf6", role_ids });
@@ -283,5 +283,33 @@ describe("1-hop", () => {
   it("from a role reaches every action it serves", () => {
     const kept = { ...base, actions: [], roles: base.roles.filter((one) => one.id === "r"), edges: [] };
     expect(withUseCaseOneHop(kept, base).actions.map((one) => one.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("the part of a diagram one version has (spec 044)", () => {
+  const diagram = {
+    domain: { id: "d", label: "d" },
+    actions: [
+      { id: "a.Kept", domain_id: "d", role_ids: ["r.Old", "r.New"], diff: "unchanged" },
+      { id: "a.Gone", domain_id: "d", role_ids: [], diff: "removed" },
+      { id: "a.Fresh", domain_id: "d", role_ids: [], diff: "added" },
+    ],
+    roles: [{ id: "r.Old", diff: "removed" }, { id: "r.New", diff: "added" }],
+    edges: [],
+  } as unknown as DomainUseCaseDiagramPayload;
+
+  it("keeps on each side what that version has, and a role only where it stands", () => {
+    const a = useCaseOfSide(diagram, "a");
+    expect(a.actions.map((action) => action.id)).toEqual(["a.Kept", "a.Gone"]);
+    expect(a.actions[0].role_ids).toEqual(["r.Old"]);
+    const b = useCaseOfSide(diagram, "b");
+    expect(b.actions.map((action) => action.id)).toEqual(["a.Kept", "a.Fresh"]);
+    expect(b.actions[0].role_ids).toEqual(["r.New"]);
+  });
+
+  it("knows what a side holds, by the id on the drawing", () => {
+    const a = useCaseOfSide(diagram, "a");
+    expect(useCaseHolds(a, { kind: "node", id: domainUseCaseDotNodeId("a", "a.Gone") })).toBe(true);
+    expect(useCaseHolds(a, { kind: "node", id: domainUseCaseDotNodeId("a", "a.Fresh") })).toBe(false);
   });
 });
