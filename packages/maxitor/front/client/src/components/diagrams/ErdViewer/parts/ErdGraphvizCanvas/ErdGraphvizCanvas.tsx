@@ -39,8 +39,11 @@ import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { changeDiskUri, changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
-import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
+import { diagramCounts, erdHolds, erdOfSide, erdPortable, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { HalfNote } from "@/components/diagrams/SideBySide";
+import { svgOfHalf, useHalf, writesForPair } from "@/lib/half";
+import { useHalfPicking, useSelectedElement } from "@/lib/halfPicking";
 import { erdChanges } from "@/lib/erdDiffCard";
 import { erdSubject, fromAfar, litBy } from "@/lib/erdCard";
 import { erdFolds } from "@/lib/erdCollapse";
@@ -48,7 +51,7 @@ import { cardBeside, lineBoxes } from "@/lib/cardPlace";
 import { useHoverCard } from "@/lib/useHoverCard";
 import { ElementCard, type CardProjection, type CardSubject } from "@/components/diagrams/ElementCard";
 import { elementRefOf, elementsOf, type HoverCards } from "@/rooms/graphvizFocus";
-import { isFollowing, mirroredFocus, reportHover, type ElementRef } from "@/rooms/focusStore";
+import { cardFor, isFollowing, mirroredFocus, reportHover, type ElementRef } from "@/rooms/focusStore";
 import { useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { DiffCard } from "@/components/history/DiffCard";
 import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
@@ -220,11 +223,13 @@ export function ErdGraphvizCanvas({
   );
   const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
+  const side = useHalf()?.side ?? null;
   const panZoom = useSvgPanZoom();
   const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag, needsFit, centreOnClient, onTransform } = panZoom;
   /** The tables the markup on hand was drawn from: a markup older than the tables shown now is never placed again. */
   const markupDataRef = useRef<{ entities: ErdEntity[]; relations?: ErdRelation[] } | null>(null);
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
+  const portable = useMemo(() => erdPortable(() => ({ entities: markupDataRef.current?.entities ?? [], relations: markupDataRef.current?.relations ?? [] })), []);
 
   const tabsOn = useMemo(() => (multiTab ? enabledDomains : new Set(domainKeyList)), [multiTab, enabledDomains, domainKeyList]);
 
@@ -289,12 +294,25 @@ export function ErdGraphvizCanvas({
   // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One,
   // nothing faded (spec 038, FR-025, FR-026).
   const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
-  const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
-  useEffect(() => setDiffCounts(counts), [counts]);
+  const pairData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
+  const half = useHalf();
+  // A half draws what its version has, in its own layout; the counts and the steps stay the pair's (spec 044).
+  const drawnData = useMemo(() => (half ? erdOfSide(pairData, half.side) : pairData), [half, pairData]);
+  const writesPair = writesForPair(half);
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
   // The steps through what the drawing marks (spec 040, FR-025e): the list follows the filters, as the counts do.
-  const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(drawnData.entities, drawnData.relations ?? []) : []), [counts, drawnData]);
+  // In a half each step points at that change's place on this half's own drawing; one that is not here has none.
+  const changes = useMemo(() => {
+    if (!counts || nothingChanged(counts)) return [];
+    const pair = erdChanges(pairData.entities, pairData.relations ?? []);
+    if (!half) return pair;
+    const own = new Map(erdChanges(drawnData.entities, drawnData.relations ?? []).map((change) => [change.key, change.cell]));
+    return pair.map((change) => ({ ...change, cell: own.get(change.key) ?? "" }));
+  }, [counts, pairData, drawnData, half]);
   // A step opens its change's card (spec 038, FR-028); while it stands, a hover opens none (spec 043, FR-009).
-  const { card, setCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
+  const { card, setCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup, nodeKind: "table", portable });
   const hoverCard = useHoverCard<CardSubject>(card !== null);
   const { want: wantCard, wantNow: wantCardNow, close: closeCard, hold: holdCard, release: leaveCard } = hoverCard;
   // A cell's index means a table of the picture on screen, which lags the tables chosen while a new one is laid out.
@@ -351,11 +369,11 @@ export function ErdGraphvizCanvas({
     [closeCard, drawnTables, pannerRef, subjectOf, wantCard, wantCardNow],
   );
   // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
-  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table", hoverCards);
+  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table", hoverCards, portable);
   // A card stands beside what it describes: a move or a new drawing takes that away, by whatever caused it.
   // For a follower it stays as long as the followed person holds it, and goes with the picture.
   const moveOrClose = useCallback(() => {
-    const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+    const ref = isFollowing() ? cardFor(mirroredFocus()?.panels, side) : null;
     const panner = pannerRef.current;
     const subject = ref && panner ? subjectOf(ref, elementsOf(panner, ref)) : null;
     if (subject) wantCardNow(subject);
@@ -366,7 +384,9 @@ export function ErdGraphvizCanvas({
   // Tables collapsed to their keys (spec 043): one switch and the tables that differ from it, both page settings.
   const [fieldsCollapsed, setFieldsCollapsed] = usePageSetting<boolean>("fields_collapsed", false);
   const [fieldsExcept, setFieldsExcept] = usePageSetting<string[]>("fields_except", []);
-  const folds = useMemo(() => erdFolds(drawnData.entities, drawnData.relations ?? [], fieldsCollapsed, new Set(fieldsExcept)), [drawnData, fieldsCollapsed, fieldsExcept]);
+  const selectedRow = useSelectedElement();
+  const keptRow = selectedRow?.kind === "row" ? selectedRow.id : null;
+  const folds = useMemo(() => erdFolds(drawnData.entities, drawnData.relations ?? [], fieldsCollapsed, new Set(fieldsExcept), keptRow), [drawnData, fieldsCollapsed, fieldsExcept, keptRow]);
   const foldedData = useMemo(() => ({ ...drawnData, folds }), [drawnData, folds]);
   const allCollapsed = fieldsCollapsed && fieldsExcept.length === 0;
   const canCollapse = useMemo(() => [...folds.values()].some((fold) => fold.hidden.size > 0), [folds]);
@@ -401,7 +421,19 @@ export function ErdGraphvizCanvas({
   const paintSection = paintSource(paintSections, chosenPaint);
   const paintKey = `${paintSection}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
-  useEffect(() => () => setDiffCounts(null), []);
+  const ownBase = useMemo(() => (half ? erdOfSide({ ...baseGraph, entities: baseGraph.entities ?? [] }, half.side) : null), [half, baseGraph]);
+  const halfNote = useHalfPicking({
+    pannerRef,
+    viewportRef,
+    centreOnClient,
+    drawing: svgMarkup,
+    nodeKind: "table",
+    holds: (ref) => (ownBase ? erdHolds(ownBase, ref) : false),
+    portable,
+  });
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
 
   // The text Graphviz is given carries the colours too: two tabs painting differently must not claim one input.
   const dot = useMemo(() => {
@@ -471,7 +503,7 @@ export function ErdGraphvizCanvas({
     // The markup is placed here, not through ``dangerouslySetInnerHTML``: React re-applied that prop on
     // every render of the canvas (a zoom click is enough) and replaced the SVG, so the size, the table
     // hover and every listener bound below were lost on the drawing the user actually sees.
-    panner.innerHTML = svgMarkup;
+    panner.innerHTML = svgOfHalf(svgMarkup, half);
 
     const ac = new AbortController();
     const svg = panner.querySelector("svg");
@@ -685,7 +717,7 @@ export function ErdGraphvizCanvas({
           backgroundSize: "20px 20px",
         }}
       >
-        {domainRows.length > 0 && (
+        {domainRows.length > 0 && half?.side !== "b" && (
           <ErdFilterPanel
             domainRows={domainRows}
             kindRows={kindRows}
@@ -697,6 +729,12 @@ export function ErdGraphvizCanvas({
           />
         )}
         {erdEmptyOverlay}
+        <HalfNote text={halfNote} />
+        {half && !erdEmptyOverlay && drawnData.entities.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
+            Not in {half.name}
+          </Typography>
+        )}
         <Snackbar
           open={copyMessage !== null}
           message={copyMessage ?? ""}

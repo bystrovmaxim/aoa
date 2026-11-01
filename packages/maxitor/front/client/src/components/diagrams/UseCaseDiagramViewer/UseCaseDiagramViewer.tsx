@@ -5,6 +5,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useCaseOfSide, useCaseHolds } from "@/lib/useCaseDiff";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { getActiveBase } from "@/api/client";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
@@ -33,6 +34,9 @@ import {
   type DomainUseCaseRankdir,
 } from "@/lib/buildDomainUseCaseDotSource";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { HalfNote } from "@/components/diagrams/SideBySide";
+import { svgOfHalf, useHalf, writesForPair } from "@/lib/half";
+import { useHalfPicking } from "@/lib/halfPicking";
 import { nothingChanged } from "@/lib/erdDiff";
 import { changeDiskUri, statusDiskUri } from "@/lib/erdFilterPresence";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
@@ -178,11 +182,19 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
 
   // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One (spec 041, FR-010 – FR-013).
   const counts = useMemo(() => (diffing && filtered ? useCaseCounts(filtered) : null), [diffing, filtered]);
-  const drawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedUseCase(filtered) : filtered), [filtered, counts]);
-  useEffect(() => setDiffCounts(counts), [counts]);
-  useEffect(() => () => setDiffCounts(null), []);
+  const pairDrawn = useMemo(() => (filtered && counts && nothingChanged(counts) ? unmarkedUseCase(filtered) : filtered), [filtered, counts]);
+  const half = useHalf();
+  // A half draws what its version has; the counts and the steps stay the pair's (spec 044).
+  const drawn = useMemo(() => (half && pairDrawn ? useCaseOfSide(pairDrawn, half.side) : pairDrawn), [half, pairDrawn]);
+  const writesPair = writesForPair(half);
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
   const diffNames = useDiffNames();
-  const changes = useMemo(() => (drawn && counts && !nothingChanged(counts) ? useCaseChanges(drawn) : []), [drawn, counts]);
+  const changes = useMemo(() => (pairDrawn && counts && !nothingChanged(counts) ? useCaseChanges(pairDrawn) : []), [pairDrawn, counts]);
 
   const bundle = useMemo(
     () =>
@@ -293,6 +305,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && firstFitDone);
   // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
   useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "node");
+  const ownData = useMemo(() => (half && data ? useCaseOfSide(data, half.side) : null), [half, data]);
+  const halfNote = useHalfPicking({ pannerRef, viewportRef, centreOnClient: panZoom.centreOnClient, drawing: svgMarkup, nodeKind: "node", holds: (ref) => (ownData ? useCaseHolds(ownData, ref) : false) });
   const prevDotRef = useRef<string | null>(null);
 
   useLayoutEffect(() => {
@@ -342,7 +356,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
     // The markup is placed here, not through ``dangerouslySetInnerHTML``: React put it back on every render (a zoom
     // click is enough) as Graphviz wrote it — a third larger, in points, and without the steps below — so the drawing
     // on screen was not the one just fitted (spec 038; ErdGraphvizCanvas places its own the same way).
-    panner.innerHTML = svgMarkup;
+    panner.innerHTML = svgOfHalf(svgMarkup, half);
 
     const svg = panner.querySelector("svg");
     if (svg instanceof SVGSVGElement) {
@@ -407,7 +421,8 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
       {data != null ? (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
           <Box sx={GRID_SX}>
-            <ErdFilterPanel
+            {half?.side !== "b" && (
+              <ErdFilterPanel
               domainRows={domainRows}
               kindRows={elementRows}
               kindsTitle="Elements"
@@ -418,6 +433,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
               onToggleChange={toggleChange}
               paint={{ source: paintSection, onPaint: setChosenPaint }}
             />
+            )}
             {filtered != null && filtered.actions.length + filtered.roles.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
                 {data.actions.length + data.roles.length === 0 ? "No actions in this domain." : "Everything is filtered out."}
@@ -428,6 +444,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
                 {renderError}
               </Typography>
             )}
+            <HalfNote text={halfNote ?? (half && drawn?.actions.length === 0 && drawn.roles.length === 0 ? `Not in ${half.name}` : null)} />
             <Box
               ref={viewportRef}
               data-layout-hash={layoutPair?.hash}

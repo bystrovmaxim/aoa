@@ -17,7 +17,16 @@ export type CompareResult = {
   counts: { nodes: DiffCounts; edges: DiffCounts };
   nodes: Record<string, Exclude<DiffStatus, "unchanged">>;
   edges: Record<string, Exclude<DiffStatus, "unchanged">>;
+  sha_a?: string;
+  sha_b?: string;
 };
+
+let pairDigest = "";
+
+/** The sha256 of A and of B as last read: a room's check takes in what is compared (spec 044). */
+export function comparedDigest(): string {
+  return pairDigest;
+}
 
 /** One changed property of an element: its path from the element's top, and its values in A and B. */
 export type ElementDifference = { path: string[]; change: "added" | "removed" | "changed"; before?: unknown; after?: unknown };
@@ -39,7 +48,9 @@ async function compareFetch(path: string, query: URLSearchParams): Promise<Respo
 
 /** The statuses and counts of the pair being compared. */
 export async function compareVersions(): Promise<CompareResult> {
-  return (await (await compareFetch("/api/v1/compare", new URLSearchParams())).json()) as CompareResult;
+  const compared = (await (await compareFetch("/api/v1/compare", new URLSearchParams())).json()) as CompareResult;
+  pairDigest = compared.sha_a && compared.sha_b ? `${compared.sha_a}.${compared.sha_b}` : "";
+  return compared;
 }
 
 /** How one node or edge changed. */

@@ -11,6 +11,9 @@ export type ErdFold = { hidden: ReadonlySet<number>; collapsed: boolean };
 export type ErdDiff = "added" | "removed" | "changed" | "unchanged";
 
 export type ErdField = {
+  /** In a comparison: this row as A had it, and where (spec 044). */
+  was?: ErdField;
+  wasAt?: number;
   name: string;
   type?: string;
   primary_key?: boolean;
@@ -30,6 +33,9 @@ export type ErdField = {
 };
 
 export type ErdEntity = {
+  /** In a comparison: this table as A had it, and where (spec 044). */
+  was?: ErdEntity;
+  wasAt?: number;
   id: string;
   label?: string;
   color?: string;
@@ -59,6 +65,9 @@ export type ErdValue = {
 };
 
 export type ErdRelation = {
+  /** In a comparison: this line as A had it, and where (spec 044). */
+  was?: ErdRelation;
+  wasAt?: number;
   source: string;
   target: string;
   label?: string;

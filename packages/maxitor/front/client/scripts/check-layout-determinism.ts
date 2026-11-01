@@ -626,7 +626,9 @@ const cameraInPage = () => {
   const element = document.querySelector("[data-layout-hash]");
   if (!element) return null;
   const view = element.getBoundingClientRect();
-  return { zoom, left: x - view.width / (2 * zoom), top: y - view.height / (2 * zoom), view: { x: view.left, y: view.top, width: view.width, height: view.height }, inner: innerWidth };
+  // A map's y grows upward: the top of its screen stands above the centre by a larger y, not a smaller one.
+  const up = element.querySelector("canvas") ? 1 : -1;
+  return { zoom, left: x - view.width / (2 * zoom), top: y + (up * view.height) / (2 * zoom), view: { x: view.left, y: view.top, width: view.width, height: view.height }, inner: innerWidth };
 };
 const hashInPage = () => document.querySelector("[data-layout-hash]")?.getAttribute("data-layout-hash") ?? null;
 const clickButtonInPage = (text: string) => {

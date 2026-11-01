@@ -8,6 +8,9 @@
  */
 
 import type { CompareResult, DiffStatus } from "@/api/compare";
+import { drawnOn, type Side } from "@/lib/half";
+import type { Portable } from "@/lib/halfPicking";
+import type { ElementRef } from "@/rooms/focusStore";
 import type { ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
 
 /** One domain's slice of the ERD, as ``list-entities`` gives it. */
@@ -28,16 +31,24 @@ export function relationKey(relation: ErdRelation): string {
   return relation.source_field ? `${relation.source}|${relation.source_field}` : `${relation.source}|${relation.relationship_kind ?? ""}|${relation.target}`;
 }
 
+/** ``list`` with each item told what A held there and where, so that a half can stand them as A had them (spec 044). */
+function remembered<T>(list: readonly T[]): Map<T, { was: T; wasAt: number }> {
+  return new Map(list.map((was, wasAt) => [was, { was, wasAt }]));
+}
+
 /** A table's rows of both versions: B's in B's order, then the rows only A had; a row whose type changed keeps A's. */
 function mergedFields(older: readonly ErdField[], newer: readonly ErdField[]): ErdField[] {
   const before = new Map(older.map((field) => [field.name, field]));
+  const place = remembered(older);
   const now = new Set(newer.map((field) => field.name));
   return [
     ...newer.map((field) => {
       const was = before.get(field.name);
-      return was && (was.type ?? "") !== (field.type ?? "") ? { ...field, previous_type: was.type ?? "" } : field;
+      if (!was) return field;
+      const kept = { ...field, ...place.get(was) };
+      return (was.type ?? "") !== (field.type ?? "") ? { ...kept, previous_type: was.type ?? "" } : kept;
     }),
-    ...older.filter((field) => !now.has(field.name)),
+    ...older.filter((field) => !now.has(field.name)).map((field) => ({ ...field, ...place.get(field) })),
   ];
 }
 
@@ -45,12 +56,15 @@ function mergedFields(older: readonly ErdField[], newer: readonly ErdField[]): E
 export function mergeRelations(older: readonly ErdRelation[] = [], newer: readonly ErdRelation[] = []): ErdRelation[] {
   const before = new Map(older.map((relation) => [relationKey(relation), relation]));
   const now = new Set(newer.map(relationKey));
+  const place = remembered(older);
   return [
     ...newer.map((relation) => {
       const was = before.get(relationKey(relation));
-      return was && was.target !== relation.target ? { ...relation, previous_target: was.target } : relation;
+      if (!was) return relation;
+      const kept = { ...relation, ...place.get(was) };
+      return was.target !== relation.target ? { ...kept, previous_target: was.target } : kept;
     }),
-    ...older.filter((relation) => !now.has(relationKey(relation))),
+    ...older.filter((relation) => !now.has(relationKey(relation))).map((relation) => ({ ...relation, ...place.get(relation) })),
   ];
 }
 
@@ -58,12 +72,13 @@ export function mergeRelations(older: readonly ErdRelation[] = [], newer: readon
 export function mergeErdSlices(older: ErdSlice | undefined, newer: ErdSlice | undefined): ErdSlice {
   const before = new Map((older?.entities ?? []).map((entity) => [entity.id, entity]));
   const now = new Set((newer?.entities ?? []).map((entity) => entity.id));
+  const place = remembered(older?.entities ?? []);
   const entities = [
     ...(newer?.entities ?? []).map((entity) => {
       const was = before.get(entity.id);
-      return was ? { ...entity, fields: mergedFields(was.fields ?? [], entity.fields ?? []) } : entity;
+      return was ? { ...entity, ...place.get(was), fields: mergedFields(was.fields ?? [], entity.fields ?? []) } : entity;
     }),
-    ...(older?.entities ?? []).filter((entity) => !now.has(entity.id)),
+    ...(older?.entities ?? []).filter((entity) => !now.has(entity.id)).map((entity) => ({ ...entity, ...place.get(entity), fields: mergedFields(entity.fields ?? [], []) })),
   ];
   return { ...(newer ?? older ?? {}), entities, relations: mergeRelations(older?.relations, newer?.relations) };
 }
@@ -82,23 +97,36 @@ function movedTables(compared: CompareResult): Set<string> {
   }));
 }
 
+/** Whether a state or transition of this field's lifecycle changed: they carry the lifecycle's id at the head of theirs. */
+function lifecycleChanged(field: ErdField, changedIds: readonly string[]): boolean {
+  const id = field.lifecycle_id;
+  return Boolean(id) && changedIds.some((changed) => changed === id || changed.startsWith(`${id}:`));
+}
+
 /** Every table, row and line of a merged slice marked with its status. */
 export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
   const moved = movedTables(compared);
-  const entities = (slice.entities ?? []).map((entity) => ({
-    ...entity,
-    // A table that stands in another domain changed, though its own properties did not (spec 043).
-    diff: compared.nodes[entity.id] ?? (moved.has(entity.id) ? "changed" : "unchanged"),
-    movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
-    fields: (entity.fields ?? []).map((field) => ({
+  const changedIds = [...Object.keys(compared.nodes), ...Object.keys(compared.edges)];
+  const entities = (slice.entities ?? []).map((entity) => {
+    const fields = (entity.fields ?? []).map((field) => ({
       ...field,
       diff: strongest(
         compared.nodes[`${entity.id}:${field.name}`],
         compared.edges[`${entity.id}|entity_field|${entity.id}:${field.name}`],
         compared.edges[`${entity.id}|entity_relation|${field.name}`],
+        lifecycleChanged(field, changedIds) ? "changed" : undefined,
       ),
-    })),
-  }));
+    }));
+    // A lifecycle is part of its table: a change inside it changes the table (spec 044).
+    const composed = fields.some((field) => field.lifecycle_id && field.diff === "changed");
+    return {
+      ...entity,
+      // A table that stands in another domain changed, though its own properties did not (spec 043).
+      diff: compared.nodes[entity.id] ?? (moved.has(entity.id) || composed ? "changed" : "unchanged"),
+      movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
+      fields,
+    };
+  });
   const relations = (slice.relations ?? []).map((relation) => ({ ...relation, diff: relationStatus(relation, compared) }));
   return { ...slice, entities, relations };
 }
@@ -123,6 +151,74 @@ export function diagramCounts(entities: readonly ErdEntity[], relations: readonl
 /** Whether the counts say nothing changed: the diagram is then drawn as one version, nothing faded (FR-026). */
 export function nothingChanged(counts: DiagramCounts): boolean {
   return counts.added + counts.removed + counts.changed === 0;
+}
+
+/** ``list`` in A's order. */
+function inOlderOrder<T extends { wasAt?: number }>(list: readonly T[]): T[] {
+  return [...list].sort((one, other) => (one.wasAt ?? 0) - (other.wasAt ?? 0));
+}
+
+/**
+ * The part of a merged drawing that one version has, with its marks (spec 044, research R2): on A every table, row and
+ * line stands as A had it and where A had it, so a half is laid out as One lays out that version.
+ */
+export function erdOfSide<T extends { entities: ErdEntity[]; relations?: ErdRelation[] }>(data: T, side: Side): T {
+  const drawn = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
+  const entities = drawn(data.entities).map((entity) => {
+    const fields = drawn(entity.fields ?? []);
+    // A change inside a table comes to both halves together: a row only B has still marks the table on A (spec 044).
+    const inside = (entity.fields ?? []).some((field) => field.diff && field.diff !== "unchanged");
+    const diff = inside && (entity.diff ?? "unchanged") === "unchanged" ? "changed" : entity.diff;
+    if (side === "b") return { ...entity, diff, fields };
+    return { ...entity, ...entity.was, diff, fields: inOlderOrder(fields).map((field) => ({ ...field, ...field.was, diff: field.diff })) };
+  });
+  const tables = new Set(entities.map((entity) => entity.id));
+  const relations = drawn(data.relations ?? []).map((relation) => (side === "a" ? { ...relation, ...relation.was, diff: relation.diff } : relation));
+  const ordered = side === "a" ? { entities: inOlderOrder(entities), relations: inOlderOrder(relations) } : { entities, relations };
+  return { ...data, entities: ordered.entities, relations: ordered.relations.filter((relation) => tables.has(relation.source) && tables.has(relation.target)) };
+}
+
+type ErdDrawing = { entities: readonly ErdEntity[]; relations?: readonly ErdRelation[] };
+
+/** Whether ``data`` holds the element a ref names by identity: a table, ``<table>:<field>``, or a line by ``relationKey``. */
+export function erdHolds(data: ErdDrawing, ref: ElementRef): boolean {
+  if (ref.kind === "edge") return (data.relations ?? []).some((relation) => relationKey(relation) === ref.id);
+  if (ref.kind === "row") return data.entities.some((entity) => (entity.fields ?? []).some((field) => `${entity.id}:${field.name}` === ref.id));
+  return data.entities.some((entity) => entity.id === ref.id);
+}
+
+/**
+ * A drawing's refs and refs by identity: a row's id is its place — ``fn<table>_<row>`` — and a line's ``re<index>``,
+ * which mean another element on the other half. ``drawn`` gives the tables of the picture on screen.
+ */
+export function erdPortable(drawn: () => ErdDrawing): Portable {
+  return {
+    toIdentity(ref) {
+      const { entities, relations = [] } = drawn();
+      const row = ref.kind === "row" ? /^f[nt](\d+)_(\d+)$/.exec(ref.id) : null;
+      if (row) {
+        const entity = entities[Number(row[1])];
+        const field = entity?.fields?.[Number(row[2])];
+        return entity && field ? { kind: "row", id: `${entity.id}:${field.name}` } : ref;
+      }
+      const line = ref.kind === "edge" ? /^re(\d+)$/.exec(ref.id) : null;
+      const relation = line ? relations[Number(line[1])] : undefined;
+      return relation ? { kind: "edge", id: relationKey(relation) } : ref;
+    },
+    fromIdentity(ref) {
+      const { entities, relations = [] } = drawn();
+      if (ref.kind === "edge") {
+        const index = relations.findIndex((relation) => relationKey(relation) === ref.id);
+        return index >= 0 ? { kind: "edge", id: `re${index}` } : null;
+      }
+      if (ref.kind !== "row") return ref;
+      for (const [table, entity] of entities.entries()) {
+        const row = (entity.fields ?? []).findIndex((field) => `${entity.id}:${field.name}` === ref.id);
+        if (row >= 0) return { kind: "row", id: `fn${table}_${row}` };
+      }
+      return null;
+    },
+  };
 }
 
 /** The same drawing with every mark taken off, as One draws it. */

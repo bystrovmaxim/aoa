@@ -1,4 +1,6 @@
 // src/rooms/PointerLayer/PointerLayer.tsx
+import type { Side } from "@/lib/half";
+import { surfaceOfHalf } from "@/rooms/diagramSurface";
 import Box from "@mui/material/Box";
 import { keyframes } from "@mui/system";
 import { useEffect, useReducer } from "react";
@@ -133,8 +135,8 @@ export function PointerLayer({ surface, participants, followed = null }: Pointer
     return { ...placed, x: placed.x + rect.left, y: placed.y + rect.top };
   };
   // A position over a panel is the screen's, from the diagram's top-left corner; any other is the diagram's.
-  const clientOf = (where: Point & PointerFrame) =>
-    where.frame === "screen" ? { x: rect.left + where.x, y: rect.top + where.y } : where.frame ? clientInFrame(where.frame, where) : surface.toClient(where);
+  const clientOf = (where: Point & PointerFrame & { half?: Side }) =>
+    where.half === "a" && !where.frame ? (surfaceOfHalf("a") ?? surface).toClient(where) : where.frame === "screen" ? { x: rect.left + where.x, y: rect.top + where.y } : where.frame ? clientInFrame(where.frame, where) : surface.toClient(where);
   const drawn = participants.flatMap((participant) => {
     const pointer = pointers.get(participant.id);
     if (!pointer || !pointerVisible(pointer, now)) return [];

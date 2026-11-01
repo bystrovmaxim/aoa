@@ -42,7 +42,10 @@ describe("the picker", () => {
     expect(diff.getAttribute("aria-disabled")).toBeNull();
     fireEvent.click(diff);
     expect(onMode).toHaveBeenCalledWith("diff");
-    expect(screen.getByRole("radio", { name: "Side by side" }).getAttribute("aria-disabled")).toBe("true");
+    const split = screen.getByRole("radio", { name: "Side by side" });
+    expect(split.getAttribute("aria-disabled")).toBeNull();
+    fireEvent.click(split);
+    expect(onMode).toHaveBeenCalledWith("split");
   });
 
   it("greys Diff out with \"needs two versions\" where there is one point (M3, M6)", () => {
@@ -51,6 +54,7 @@ describe("the picker", () => {
     const diff = screen.getByRole("radio", { name: "Diff" });
     expect(diff.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(diff);
+    fireEvent.click(screen.getByRole("radio", { name: "Side by side" }));
     expect(onMode).not.toHaveBeenCalled();
     fireEvent.mouseOver(diff);
     return screen.findByText("needs two versions");

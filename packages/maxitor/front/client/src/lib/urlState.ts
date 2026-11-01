@@ -18,12 +18,12 @@ const PARAM_MODE = "mode";
 /**
  * The history this tab shows and its version, or ``null``. While one is set, every address this
  * module writes names it as ``history`` and ``b`` in place of ``source``, and never its key (spec 037, FR-022);
- * in Diff also ``mode=diff`` and ``a``, the older version (spec 038, FR-014).
+ * in Diff also ``mode=diff`` and ``a``, the older version (spec 038, FR-014); in Side by side ``mode=split`` and ``a`` (spec 044).
  */
-let currentHistory: { name: string; b: string | null; a?: string | null } | null = null;
+let currentHistory: { name: string; b: string | null; a?: string | null; split?: boolean } | null = null;
 
 /** Name the history and version — or, with ``a``, the two compared — every later address carries; ``null`` for a plain source. */
-export function setUrlHistory(history: { name: string; b: string | null; a?: string | null } | null): void {
+export function setUrlHistory(history: { name: string; b: string | null; a?: string | null; split?: boolean } | null): void {
   currentHistory = history;
 }
 
@@ -74,12 +74,16 @@ export type UrlDeepLink = {
   history?: string | null;
   /** The version the address names: a short sha, ``live``, or ``null``. In Diff, B. */
   b?: string | null;
-  /** In Diff (``mode=diff``), A — the older version; ``null`` otherwise. */
+  /** In Diff or Side by side (``mode=diff``, ``mode=split``), A — the older version; ``null`` otherwise. */
   a?: string | null;
+  /** Whether the address opens Side by side: ``mode=split`` with an ``a``. */
+  split?: boolean;
 };
 
 export function readUrlDeepLink(): UrlDeepLink {
   const params = new URLSearchParams(window.location.search);
+  const mode = params.get(PARAM_MODE);
+  const older = mode === "diff" || mode === "split" ? params.get(PARAM_OLDER) : null;
   return {
     source: params.get(PARAM_SOURCE),
     view: params.get(PARAM_VIEW),
@@ -89,7 +93,8 @@ export function readUrlDeepLink(): UrlDeepLink {
     room: params.get(PARAM_ROOM),
     history: params.get(PARAM_HISTORY),
     b: params.get(PARAM_VERSION),
-    a: params.get(PARAM_MODE) === "diff" ? params.get(PARAM_OLDER) : null,
+    a: older,
+    split: mode === "split" && older !== null,
   };
 }
 
@@ -125,7 +130,7 @@ function buildUrl(serviceUrl: string | null, selection: DiagramSelection | null)
   if (currentHistory) {
     params.set(PARAM_HISTORY, currentHistory.name);
     if (currentHistory.a && currentHistory.b) {
-      params.set(PARAM_MODE, "diff");
+      params.set(PARAM_MODE, currentHistory.split ? "split" : "diff");
       params.set(PARAM_OLDER, currentHistory.a);
     }
     if (currentHistory.b) params.set(PARAM_VERSION, currentHistory.b);

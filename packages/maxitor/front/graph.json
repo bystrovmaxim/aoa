@@ -2092,6 +2092,24 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult|field|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_a",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_a",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult|field|maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_b",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult",
+      "target_id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_b",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params|field|maxitor.front.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params:domain_id",
       "is_dag": false,
       "properties": {},
@@ -3646,6 +3664,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:opening_view",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams",
+      "target_id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:opening_view",
+      "type": "field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams|field|maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:origin",
       "is_dag": false,
       "properties": {},
@@ -4411,6 +4438,15 @@
       "relationship": "Composition",
       "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
       "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:b",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams|field|maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:view",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams",
+      "target_id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:view",
       "type": "field"
     },
     {
@@ -6148,6 +6184,28 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_a",
+      "label": "sha_a",
+      "properties": {
+        "description": "The sha256 of A's graph",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.diagrams.actions.compare_versions_action.CompareVersionsResult:sha_b",
+      "label": "sha_b",
+      "properties": {
+        "description": "The sha256 of B's graph",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
@@ -7893,6 +7951,17 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:opening_view",
+      "label": "opening_view",
+      "properties": {
+        "description": "A new room's view: 'split' stands the two side by side; otherwise Diff with ``version_a``, One without",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.front.model.rooms.actions.join_room_action.JoinRoomParams:origin",
       "label": "origin",
       "properties": {
@@ -8324,6 +8393,17 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.front.model.rooms.actions.set_room_version_action.SetRoomVersionParams:view",
+      "label": "view",
+      "properties": {
+        "description": "'one', 'diff' or 'split'; absent means 'diff' with ``a`` and 'one' without",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },

@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "@/rooms/coordinates";
 import type { DiagramSurface, SavedView } from "@/rooms/diagramSurface";
-import { GLIDE_MAX_MS, createGlide, followCentre, followHead, followNavigation, followTarget, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
+import { GLIDE_MAX_MS, REFIT_GRACE_MS, createGlide, followCentre, followHead, followNavigation, followTarget, followZoom, useFollow, watchOwnPan } from "@/rooms/follow";
 import { clearPointers, putViewport } from "@/rooms/pointerStore";
 import type { Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
@@ -248,5 +248,54 @@ describe("following a follower (spec 038)", () => {
 
   it("never comes back to you, even through a circle the server would refuse", () => {
     expect(followHead(roomWith({ anna: "boris", boris: "anna", vera: null }, ERD))?.id).toBe("boris");
+  });
+});
+
+describe("following on a screen of another height", () => {
+  const theirs = { cx: 500, cy: 400, w: 1000, h: 800, pw: 1000, ph: 800 };
+  const yours = { cx: 0, cy: 0, w: 1000, h: 900 };
+
+  it("keeps their top edge on yours where y grows down", () => {
+    expect(followTarget({ w: 1000, h: 900 }, yours, theirs, 1).centre).toEqual({ x: 500, y: 450 });
+  });
+
+  it("keeps their top edge on yours where y grows up, as on a map", () => {
+    expect(followTarget({ w: 1000, h: 900 }, yours, theirs, 1, undefined, true).centre).toEqual({ x: 500, y: 350 });
+  });
+});
+
+describe("a screen told while a drawing lands here", () => {
+  function refitted() {
+    const [first, second] = [surface(), surface()];
+    const hook = renderHook(({ view }) => useFollow({ room: roomWith({ anna: "boris" }, ERD), send: vi.fn(), surface: view, page: ERD, navigate: vi.fn() }), { initialProps: { view: first } });
+    act(() => putViewport("boris", { cx: 10, cy: 0, w: 2000, h: 1000 }));
+    act(() => vi.advanceTimersByTime(GLIDE_MAX_MS + 50));
+    hook.rerender({ view: second });
+    return second;
+  }
+
+  it("is left alone at first, and taken when no newer one comes: they moved while it was drawn", () => {
+    vi.useFakeTimers();
+    try {
+      const view = refitted();
+      expect(view.centreOn).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(REFIT_GRACE_MS + 50));
+      expect(view.centreOn).toHaveBeenLastCalledWith({ x: 10, y: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives way to the screen their own refit tells", () => {
+    vi.useFakeTimers();
+    try {
+      const view = refitted();
+      act(() => putViewport("boris", { cx: 70, cy: 0, w: 2000, h: 1000 }));
+      act(() => vi.advanceTimersByTime(REFIT_GRACE_MS + GLIDE_MAX_MS + 50));
+      expect(view.centreOn).toHaveBeenLastCalledWith({ x: 70, y: 0 });
+      expect(view.centreOn).not.toHaveBeenCalledWith({ x: 10, y: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

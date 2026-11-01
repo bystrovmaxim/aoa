@@ -96,3 +96,16 @@ describe("the page report", () => {
     expect(pageReport("view=domain-erd", "b1", "f1", null, NOW + RELOAD_GUARD_MS)).not.toHaveProperty("layout_reloaded");
   });
 });
+
+describe("the report of Side by side (spec 044)", () => {
+  const element = (hash: string, input: string) => {
+    const made = document.createElement("div");
+    made.setAttribute("data-layout-hash", hash);
+    made.setAttribute("data-layout-input", input);
+    return made;
+  };
+
+  it("names both pictures and both inputs", () => {
+    expect(pageReport("view=domain-erd", "b1", "f1", element("hb", "db"), 0, element("ha", "da"))).toMatchObject({ layout_hash: "ha.hb", settings_digest: "da.db" });
+  });
+});

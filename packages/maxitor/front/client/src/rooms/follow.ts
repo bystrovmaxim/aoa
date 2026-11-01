@@ -21,7 +21,7 @@ import { isZoomWheel } from "@/lib/wheelGesture";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
 import type { DiagramSurface } from "@/rooms/diagramSurface";
 import { focusToSend, followedParticipant, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
-import { screenOfParticipant, subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
+import { screenOfParticipant, subscribePointers, viewportOfHalfA, viewportOfParticipant } from "@/rooms/pointerStore";
 import type { ClientMessage, Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
 import { throttle } from "@/rooms/throttle";
@@ -135,13 +135,15 @@ export function followZoom(yours: DiagramViewport, theirs: DiagramViewport, zoom
  * corner; a smaller screen then shows less on the right and below, a bigger one more. Without it: their centre, at the
  * zoom that shows all of their area. ``zoom`` in the answer is ``null`` when yours already is it.
  */
-export function followTarget(yourPixels: { w: number; h: number }, yours: DiagramViewport, theirs: DiagramViewport, zoom: number, tolerance = ZOOM_TOLERANCE): { centre: Point; zoom: number | null } {
+export function followTarget(yourPixels: { w: number; h: number }, yours: DiagramViewport, theirs: DiagramViewport, zoom: number, tolerance = ZOOM_TOLERANCE, yUp = false): { centre: Point; zoom: number | null } {
   const { pw, ph } = theirs;
   if (pw && ph && pw > 0 && ph > 0 && theirs.w > 0 && yours.w > 0 && yourPixels.w > 0 && zoom > 0) {
     const scale = pw / theirs.w;
     const next = (zoom * scale) / (yourPixels.w / yours.w);
+    // Their top edge, and from it down half of your screen: "down" is minus where a diagram's y grows upward, as a map's does.
+    const down = yUp ? -1 : 1;
     return {
-      centre: { x: theirs.cx - theirs.w / 2 + yourPixels.w / scale / 2, y: theirs.cy - theirs.h / 2 + yourPixels.h / scale / 2 },
+      centre: { x: theirs.cx - theirs.w / 2 + yourPixels.w / scale / 2, y: theirs.cy + down * (yourPixels.h / scale / 2 - theirs.h / 2) },
       zoom: Math.abs(next - zoom) / zoom > tolerance ? next : null,
     };
   }
@@ -157,6 +159,9 @@ export function followedScreen(): { w: number; h: number } | null {
   const id = followedParticipant();
   return (id && screenOfParticipant(id)) || null;
 }
+
+/** How long a screen told before a refit waits for a newer one before it counts as their screen. */
+export const REFIT_GRACE_MS = 1000;
 
 /** Distance a pointer travels with its button down before it counts as a pan, in pixels. */
 const PAN_THRESHOLD_PX = 4;
@@ -203,32 +208,21 @@ export type FollowOptions = {
   room: RoomState | null;
   send: (message: ClientMessage) => void;
   surface: DiagramSurface | null;
+  /** In Side by side, half A's surface: ``surface`` is then B's. */
+  surfaceA?: DiagramSurface | null;
   page: string | null;
   /** Open a page; following always replaces the history entry. */
   navigate: (page: string, options: { replace: boolean }) => void;
 };
 
-/** Follow, switch and stop; while following, keep this tab on the followed person's page and centre. */
-export function useFollow({ room, send, surface, page, navigate }: FollowOptions) {
-  const following = followedBy(room);
-  // The view comes from the end of the chain; whom you follow stays whom you chose.
-  const target = followHead(room);
-  const targetId = target?.id ?? null;
-  const targetPage = target?.page ?? null;
-
-  /** **Follow**, or **Follow <name> instead**: one message, the server switches in one step (FR-053). */
-  const follow = useCallback((participant: string) => send({ type: "follow", target: participant }), [send]);
-  const stop = useCallback(() => send({ type: "stop_following" }), [send]);
-
-  // Their page.
-  useEffect(() => {
-    if (!target) return;
-    const next = followNavigation(target, page);
-    if (next) navigate(next.page, { replace: next.replace });
-    // ``target`` changes identity with every presence; its id and page are what matter.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetId, targetPage, page, navigate]);
-
+/** While following, keep ``surface`` on the screen ``screenOf`` tells of the person followed. */
+function useFollowScreen(
+  targetId: string | null,
+  targetPage: string | null,
+  surface: DiagramSurface | null,
+  page: string | null,
+  screenOf: (participant: string) => DiagramViewport | undefined,
+): void {
   // Their screen's centre: at once on every new surface, then gliding to every screen they report.
   const placedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -241,7 +235,7 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     // not put back, and only a screen they report after it is followed (spec 038).
     const refit = placedFor.current === `${targetId}|${page}`;
     placedFor.current = `${targetId}|${page}`;
-    const stale = refit ? viewportOfParticipant(targetId) : undefined;
+    let stale = refit ? screenOf(targetId) : undefined;
     const glide = createGlide();
     // Their zoom glides like their centre: ``x`` is the zoom, so a zoom they make arrives as smoothly as a pan.
     const zoomGlide = createGlide();
@@ -266,10 +260,10 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       const rect = surface.element.getBoundingClientRect();
       const yours = viewportOf(rect, surface.toDiagram);
       const zoom = surface.view()?.zoom;
-      return yours && zoom ? followTarget({ w: rect.width, h: rect.height }, yours, theirs, zoom, surface.zoomTolerance) : null;
+      return yours && zoom ? followTarget({ w: rect.width, h: rect.height }, yours, theirs, zoom, surface.zoomTolerance, surface.yUp) : null;
     };
     const onScreen = () => {
-      const theirs = viewportOfParticipant(targetId);
+      const theirs = screenOf(targetId);
       if (!theirs || theirs === stale) return;
       const target = targetFor(theirs);
       const point = target?.centre ?? followCentre(theirs);
@@ -295,7 +289,7 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       glide.push(point, now);
       schedule();
     };
-    const firstScreen = refit ? undefined : viewportOfParticipant(targetId);
+    const firstScreen = refit ? undefined : screenOf(targetId);
     const firstTarget = firstScreen ? targetFor(firstScreen) : null;
     const first = firstTarget?.centre ?? followCentre(firstScreen);
     if (first) {
@@ -306,11 +300,46 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
       else surface.centreOn(first);
     }
     const unsubscribe = subscribePointers(onScreen);
+    // Their own refit tells a new screen. When none comes, what they told before was no older than this drawing: they
+    // moved while it was being drawn here, and it is their screen after all.
+    const told = stale
+      ? setTimeout(() => {
+          stale = undefined;
+          onScreen();
+        }, REFIT_GRACE_MS)
+      : undefined;
     return () => {
       unsubscribe();
+      clearTimeout(told);
       if (frame !== null) cancelAnimationFrame(frame);
     };
-  }, [targetId, targetPage, surface, page]);
+  }, [targetId, targetPage, surface, page, screenOf]);
+}
+
+/** Follow, switch and stop; while following, keep this tab on the followed person's page and centre. */
+export function useFollow({ room, send, surface, surfaceA = null, page, navigate }: FollowOptions) {
+  const following = followedBy(room);
+  // The view comes from the end of the chain; whom you follow stays whom you chose.
+  const target = followHead(room);
+  const targetId = target?.id ?? null;
+  const targetPage = target?.page ?? null;
+
+  /** **Follow**, or **Follow <name> instead**: one message, the server switches in one step (FR-053). */
+  const follow = useCallback((participant: string) => send({ type: "follow", target: participant }), [send]);
+  const stop = useCallback(() => send({ type: "stop_following" }), [send]);
+
+  // Their page.
+  useEffect(() => {
+    if (!target) return;
+    const next = followNavigation(target, page);
+    if (next) navigate(next.page, { replace: next.replace });
+    // ``target`` changes identity with every presence; its id and page are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetId, targetPage, page, navigate]);
+
+  useFollowScreen(targetId, targetPage, surface, page, viewportOfParticipant);
+  // In Side by side each half follows the same half, zoom and all: the two pictures are the leader's (spec 044).
+  useFollowScreen(targetId, targetPage, surfaceA, page, viewportOfHalfA);
 
   // What the followed person sees shows here; the viewers then ignore this tab's own mouse.
   useEffect(() => {

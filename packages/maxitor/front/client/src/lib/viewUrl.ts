@@ -13,6 +13,8 @@ type Kind = "list" | "switch" | "choice";
 /** Page setting → its parameter in the address and how its value is written. */
 const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   layout: { param: "layout", kind: "choice" },
+  layout_a: { param: "layout_a", kind: "choice" },
+  layout_b: { param: "layout_b", kind: "choice" },
   domains: { param: "domains", kind: "list" },
   disabled_entities: { param: "off_entities", kind: "list" },
   disabled_kinds: { param: "off_kinds", kind: "list" },
@@ -24,6 +26,8 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   fields_except: { param: "except", kind: "list" },
   boundary: { param: "boundary", kind: "switch" },
   rankdir: { param: "rankdir", kind: "choice" },
+  rankdir_a: { param: "rankdir_a", kind: "choice" },
+  rankdir_b: { param: "rankdir_b", kind: "choice" },
   paint: { param: "paint", kind: "choice" },
   paint_diff: { param: "paint_diff", kind: "choice" },
 };
@@ -42,7 +46,7 @@ export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((s
 export function cameraToParams(view: SavedView | null): Record<string, string> {
   if (!view || !(view.zoom > 0)) return {};
   const round = (value: number, places: number) => String(Number(value.toFixed(places)));
-  return { [ZOOM_PARAM]: round(view.zoom, 3), [AT_PARAM]: `${round(view.x, 1)},${round(view.y, 1)}` };
+  return { [ZOOM_PARAM]: round(view.zoom, 3), [AT_PARAM]: `${round(view.x, 2)},${round(view.y, 2)}` };
 }
 
 /** The view of the diagram an address names, or ``null`` when it names none or one out of shape. */

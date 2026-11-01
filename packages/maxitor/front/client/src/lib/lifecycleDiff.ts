@@ -5,6 +5,8 @@
  * "changed inside" here. A version without the lifecycle gives no read: the left panel says which versions hold it.
  */
 import { getActiveBase, type GraphRead } from "@/api/client";
+import { drawnOn, type Side } from "@/lib/half";
+import type { ElementRef } from "@/rooms/focusStore";
 import { compareVersions, type CompareResult, type DiffStatus } from "@/api/compare";
 import { fetchLifecycleFiniteAutomaton } from "@/api/lifecycleFiniteAutomaton";
 import { getSidebar } from "@/api/sidebar";
@@ -27,6 +29,19 @@ function arrows(older: readonly string[], newer: readonly string[]): LifecycleFs
   const now = new Set(newer);
   const status = (key: string): DiffStatus => (!was.has(key) ? "added" : !now.has(key) ? "removed" : "unchanged");
   return [...new Set([...newer, ...older])].map((key) => ({ key, diff: status(key) }));
+}
+
+/** The part of a merged lifecycle that one version has, with its marks (spec 044). */
+export function lifecycleOfSide(diagram: LifecycleFiniteAutomatonPayload, side: Side): LifecycleFiniteAutomatonPayload {
+  const drawn = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
+  const entries = diagram.entries ? drawn(diagram.entries) : undefined;
+  return { ...diagram, states: drawn(diagram.states), transitions: drawn(diagram.transitions), entries, exits: diagram.exits ? drawn(diagram.exits) : undefined, initial_state_keys: entries ? entries.map((arrow) => arrow.key) : diagram.initial_state_keys };
+}
+
+/** Whether a version's part of a lifecycle holds a state, by its key, or a transition, by its title or its cell. */
+export function lifecycleHolds(diagram: LifecycleFiniteAutomatonPayload, ref: ElementRef): boolean {
+  if (ref.kind === "edge") return diagram.transitions.some((transition) => lifecycleCellId(transition.id) === ref.id || ref.id === `${transition.source}->${transition.target}`);
+  return diagram.states.some((state) => state.key === ref.id);
 }
 
 /** The keys of the final states of a version. */

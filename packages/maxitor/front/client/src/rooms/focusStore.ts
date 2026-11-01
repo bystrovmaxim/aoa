@@ -9,6 +9,7 @@
  * focus is what it shows: its own state, or — while following — the followed person's, so a chain of
  * followers sees the same thing.
  */
+import type { Side } from "@/lib/half";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /** A diagram element, named by the id every viewer already uses for it — or a version on the picker's track. */
@@ -41,6 +42,10 @@ export type Panels = {
   changes: ChangeListState | null;
   why: string | null;
   card?: CardPanel | null;
+  /** In Side by side, the half that card stands in: a follower opens it there, not in both (spec 044). */
+  cardHalf?: Side | null;
+  /** The left panel narrowed to what changed (spec 044). */
+  narrow?: boolean;
 };
 
 export type FocusState = {
@@ -172,6 +177,12 @@ export function useShownPanel<T>(own: T, setOwn: (value: T) => void, pick: (pane
   return shown;
 }
 
+/** The element of the card the panels hold, for half ``side`` or a page with no halves; ``null`` when it stands elsewhere. */
+export function cardFor(panels: Panels | undefined, side: Side | null): ElementRef | null {
+  if (!panels?.card || (side && panels.cardHalf !== side)) return null;
+  return panels.card.ref;
+}
+
 export function sameRef(a: ElementRef | null, b: ElementRef | null): boolean {
   return a === b || (a !== null && b !== null && a.kind === b.kind && a.id === b.id);
 }
@@ -185,7 +196,7 @@ function sameChanges(a: ChangeListState | null | undefined, b: ChangeListState |
 }
 
 function samePanels(a: Panels, b: Panels): boolean {
-  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && sameCard(a.card, b.card) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
+  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && sameCard(a.card, b.card) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && (a.narrow ?? false) === (b.narrow ?? false) && (a.cardHalf ?? null) === (b.cardHalf ?? null) && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
 }
 
 /** Whether two focus states show the same thing (the sender sends only changes). */

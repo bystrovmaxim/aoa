@@ -21,6 +21,12 @@ export type PageSettings = Record<string, Record<string, unknown>>;
 /** Follower id → the id they follow, or ``null``. */
 export type FollowLinks = Record<string, string | null>;
 
+/** How a room looks at its versions (spec 044). */
+export type RoomView = "one" | "diff" | "split";
+
+/** Which half of Side by side a position stands in. */
+type InHalf = { half?: "a" | "b" };
+
 export type WelcomeEvent = {
   type: "welcome";
   you: { id: string; colour: string };
@@ -32,6 +38,7 @@ export type WelcomeEvent = {
     version?: string | null;
     /** In Diff, the room's A — the older version; ``null`` while it shows one version (spec 038). */
     version_a?: string | null;
+    view?: RoomView;
     created_by: string;
     participants: Participant[];
     settings: PageSettings;
@@ -50,13 +57,13 @@ export type ServerEvent =
   | { type: "setting"; page: string; name: string; value: unknown; by: string }
   | { type: "follows"; follows: FollowLinks }
   | { type: "follow_refused"; target: string; reason: string }
-  | { type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: string }
-  | { type: "click"; participant: string; x: number; y: number; frame?: string }
-  | { type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
+  | ({ type: "pointer"; participant: string; x: number; y: number; kind: "mouse" | "touch"; frame?: string } & InHalf)
+  | ({ type: "click"; participant: string; x: number; y: number; frame?: string } & InHalf)
+  | ({ type: "viewport"; participant: string; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number } & InHalf)
   | ({ type: "focus"; participant: string } & FocusState)
   | { type: "check"; build: "ok" | "reload"; fingerprint: "ok" | "reread"; layout: "ok" | "reload" | "off" }
   | { type: "graph_changed"; fingerprint: string }
-  | { type: "version"; b: string | null; a?: string | null; by: string | null }
+  | { type: "version"; b: string | null; a?: string | null; view?: RoomView; by: string | null }
   | { type: "history_changed" }
   | { type: "refused"; code: number; reason: string }
   | { type: "error"; reason: string };
@@ -71,10 +78,10 @@ export type ClientMessage =
   | { type: "stop_following" }
   | { type: "leave" }
   | { type: "reload" }
-  | { type: "version"; b: string; a?: string | null }
-  | { type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: string }
-  | { type: "click"; x: number; y: number; frame?: string }
-  | { type: "viewport"; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number }
+  | { type: "version"; b: string; a?: string | null; view?: RoomView }
+  | ({ type: "pointer"; kind: "mouse" | "touch"; x: number; y: number; frame?: string } & InHalf)
+  | ({ type: "click"; x: number; y: number; frame?: string } & InHalf)
+  | ({ type: "viewport"; cx: number; cy: number; w: number; h: number; pw?: number; ph?: number } & InHalf)
   | ({ type: "focus" } & FocusState);
 
 /** The largest room message Maxitor accepts, in bytes; a larger one closes the connection with 4413. */

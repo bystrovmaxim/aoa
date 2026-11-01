@@ -13,12 +13,12 @@ from tests.fixtures.stand_in_port import StandInPort
 from tests.history_fixtures import maxitor, open_history, port  # noqa: F401 — fixtures
 
 
-def _join(maxitor: TestClient, port: StandInPort, room: str, participant: str, version: str = "", version_a: str = "") -> Any:  # noqa: F811
+def _join(maxitor: TestClient, port: StandInPort, room: str, participant: str, version: str = "", version_a: str = "", view: str = "") -> Any:  # noqa: F811
     """A connection of ``participant`` to ``room`` (``new`` opens one on ``two``), with a fresh ticket."""
     ticket = open_history(maxitor, port, "two").json()["room_ticket"]
     query = {"participant": participant, "tab": f"{participant}-tab", "participant_name": participant.title(), "start_page": "view=full-graph", "ticket": ticket}
     if room == "new":
-        query.update(history=port.name("two"), version=version, version_a=version_a)
+        query.update(history=port.name("two"), version=version, version_a=version_a, opening_view=view)
     return maxitor.websocket_connect(f"/api/v1/rooms/{room}/live?{urlencode(query)}")
 
 
@@ -132,3 +132,56 @@ def test_a_room_opened_in_diff_keeps_its_pair_only_when_it_holds(maxitor: TestCl
         assert (room["version_a"], room["version"]) == (oldest, newest)
     with _join(maxitor, port, "new", "boris", oldest, newest) as boris:
         assert boris.receive_json()["room"]["version_a"] is None
+
+
+def test_the_view_moves_the_room_with_its_versions_and_a_newcomer_gets_it(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    """Side by side in a room: the view travels with A and B, as one value (spec 044)."""
+    oldest, newest = (port.histories["two"].versions[i]["sha"][:12] for i in (0, 2))
+    with ExitStack() as stack:
+        anna = stack.enter_context(_join(maxitor, port, "new", "anna"))
+        room = anna.receive_json()["room"]["id"]
+        boris = stack.enter_context(_join(maxitor, port, room, "boris"))
+        _next(boris, "welcome")
+        anna.send_json({"type": "version", "b": newest, "a": oldest, "view": "split"})
+        for ws in (anna, boris):
+            assert _next(ws, "version")["view"] == "split"
+        with _join(maxitor, port, room, "vera") as vera:
+            assert _next(vera, "welcome")["room"]["view"] == "split"
+        anna.send_json({"type": "version", "b": newest, "a": oldest})
+        for ws in (anna, boris):
+            assert _next(ws, "version")["view"] == "diff"
+
+
+def test_a_view_that_does_not_go_with_its_versions_is_refused_to_its_sender_only(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    """Side by side needs two versions, One one, and there is no fourth view."""
+    oldest, newest = (port.histories["two"].versions[i]["sha"][:12] for i in (0, 2))
+    with _join(maxitor, port, "new", "anna") as anna:
+        room = anna.receive_json()["room"]["id"]
+        for message in ({"b": newest, "view": "split"}, {"b": newest, "a": oldest, "view": "one"}, {"b": newest, "a": oldest, "view": "both"}):
+            anna.send_json({"type": "version", **message})
+            assert _next(anna, "error")["reason"]
+        assert maxitor.app.state.rooms.room(room).view == "one"  # type: ignore[attr-defined]
+
+
+def test_a_room_opened_side_by_side_keeps_its_view_only_with_a_pair(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    """A new room's view: ``split`` with two versions, One with one."""
+    oldest, newest = (port.histories["two"].versions[i]["sha"][:12] for i in (0, 2))
+    with _join(maxitor, port, "new", "anna", newest, oldest, "split") as anna:
+        assert anna.receive_json()["room"]["view"] == "split"
+    with _join(maxitor, port, "new", "boris", newest, "", "split") as boris:
+        assert boris.receive_json()["room"]["view"] == "one"
+
+
+def test_a_position_says_its_half_and_nothing_else_passes_for_one(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    """A point of half A means nothing on half B, so the half travels with it (spec 044)."""
+    with ExitStack() as stack:
+        anna = stack.enter_context(_join(maxitor, port, "new", "anna"))
+        room = anna.receive_json()["room"]["id"]
+        boris = stack.enter_context(_join(maxitor, port, room, "boris"))
+        _next(boris, "welcome")
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 1, "y": 2, "half": "a"})
+        assert _next(boris, "pointer")["half"] == "a"
+        anna.send_json({"type": "viewport", "cx": 1, "cy": 2, "w": 3, "h": 4, "half": "b"})
+        assert _next(boris, "viewport")["half"] == "b"
+        anna.send_json({"type": "pointer", "kind": "mouse", "x": 5, "y": 6, "half": "c"})
+        assert "half" not in _next(boris, "pointer")
