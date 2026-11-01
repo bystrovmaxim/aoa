@@ -1,13 +1,12 @@
 // src/components/history/DiffCard/DiffCard.test.tsx
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cardAt } from "@/lib/erdDiffCard";
-import type { ErdEntity } from "@/lib/buildDotSource";
 
 const compareElement = vi.fn();
 vi.mock("@/api/compare", () => ({ compareElement: (...args: unknown[]) => compareElement(...args) }));
 
 const { DiffCard } = await import("./DiffCard");
+const { StatusIcon } = await import("./StatusIcon");
 
 afterEach(() => {
   cleanup();
@@ -103,23 +102,14 @@ describe("the card of a changed element", () => {
   });
 });
 
-describe("what a click opens a card for", () => {
-  const entities: ErdEntity[] = [
-    { id: "a.Quiet", diff: "unchanged", fields: [{ name: "id", diff: "unchanged" }] },
-    { id: "a.Offer", label: "Offer", diff: "changed", fields: [{ name: "id", diff: "unchanged" }, { name: "chosen", diff: "changed" }] },
-  ];
-  const cell = (id: string) => {
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("id", id);
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    group.appendChild(text);
-    return text;
-  };
-
-  it("a marked table's header is its node; a marked row its node and edges; anything unmarked nothing", () => {
-    expect(cardAt(cell("a_hn1"), entities)).toEqual({ title: "Offer", status: "changed", elements: [{ kind: "node", id: "a.Offer" }] });
-    expect(cardAt(cell("a_ft1_1"), entities)?.elements.map((element) => element.id)).toEqual(["a.Offer:chosen", "a.Offer|entity_field|a.Offer:chosen", "a.Offer|entity_relation|chosen"]);
-    expect(cardAt(cell("a_fn1_0"), entities)).toBeNull();
-    expect(cardAt(cell("a_hd0"), entities)).toBeNull();
+describe("the status icon", () => {
+  it("has a sign for every status, unchanged too", () => {
+    const signOf = (status: "added" | "removed" | "changed" | "unchanged") => {
+      const { container, unmount } = render(<StatusIcon status={status} />);
+      const svg = decodeURIComponent(container.querySelector("img")!.getAttribute("src")!);
+      unmount();
+      return />([^<]+)<\/text>/.exec(svg)?.[1];
+    };
+    expect([signOf("added"), signOf("removed"), signOf("changed"), signOf("unchanged")]).toEqual(["+", "−", "~", "="]);
   });
 });

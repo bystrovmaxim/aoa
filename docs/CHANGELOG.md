@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-01] — Maxitor reads from far away: one card for everything, and tables that collapse
+
+Every field, table and line of the ERD, and everything on the full graph, now has one white card. Rest the pointer on an element and it says what the element is, what it is for and, in a comparison, what changed. The old tooltips with their long dotted paths are gone. A click on a name now only copies it, on every field; it used to open a card on changed ones.
+
+The card is built for looking at a big diagram without zooming in. When rows are too small to read, the pointer anywhere on a table opens the whole table: its description, what changed, and a small picture of each lifecycle. Its fields open from one control, and that choice holds for every table in your browser. Rest on a field and its type and description appear below the list; a lifecycle field lights its picture. A click on a picture opens the full lifecycle. On a phone a tap does what the hover does, someone following you in a room sees all of it on the same spot of the diagram, whatever their screen, and another icon switches cards off if you prefer the diagram quiet.
+
+Tables can now collapse. A chevron on the header leaves only the keys and the rows with lines, and in a comparison everything that changed; an icon on the toolbar does it for every table. A collapsed table keeps its width and its lines, the header you clicked stays where it was, though other tables move as the diagram is laid out again. A room shares this, and the address keeps it.
+
+Descriptions now reach the graph. Field descriptions, along with those of lifecycles, roles and `@connection`, used to stop at the code; the Open Gnomon Protocol gained version 1.2 to carry them. Earlier graphs open as before, but comparing a 1.1 graph with a 1.2 one marks those elements as changed once, because their descriptions are new.
+
+A table that moved to another domain now counts as changed in a comparison, and says so. Status disks are one set everywhere, with a grey `=` for unchanged in the filter panels too.
+
 ## [2026-11-01] — Maxitor compares two versions on lifecycle diagrams
 
 Lifecycle diagrams now take part in Diff, the last diagram that did not. States and transitions turn green, amber, or red and dashed, everything else goes grey and dim, the version button counts them, and the stepper walks them with a card on each. A lifecycle only one version has opens from the left panel, all green or all red.

@@ -69,3 +69,12 @@ describe("the view in the address (spec 038)", () => {
   });
 });
 
+
+describe("collapsed tables in the address (spec 043)", () => {
+  it("round-trips the switch and its exceptions", () => {
+    const params = new URLSearchParams(viewToParams({ fields_collapsed: true, fields_except: ["a.Lot"] }));
+    expect(params.get("collapsed")).toBe("1");
+    expect(params.get("except")).toBe("a.Lot");
+    expect(paramsToView(params).settings).toEqual({ fields_collapsed: true, fields_except: ["a.Lot"] });
+  });
+});

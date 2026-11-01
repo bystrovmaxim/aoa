@@ -15,7 +15,7 @@
  */
 
 // Relative, with its extension: the ERD checks in ``scripts/`` run this module under plain Node, which knows no ``@/``.
-import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity } from "./buildDotSource.ts";
+import { ERD_DIFF_COLOUR, erdHeadInk, type ErdEntity, type ErdFold } from "./buildDotSource.ts";
 
 /** Draws a kind's glyph in a 24-unit box: ``(word, ink, strokeWidth) => inner SVG``. */
 export type KindGlyphDrawer = (word: string, ink: string, strokeWidth: number) => string;
@@ -81,12 +81,27 @@ function textPlace(markup: string, cellId: string): { x: Attribute; y: Attribute
 }
 
 /**
+ * The control that collapses a table, at the right of its header (spec 043): a chevron up on a whole table, down on a
+ * collapsed one, over a larger clear square that takes the click. It stays inside the cell's group, which names the table.
+ */
+function collapseChevron(x: number, axis: number, size: number, ink: string, collapsed: boolean): string {
+  const half = size * 0.3;
+  const rise = (collapsed ? half : -half) / 2;
+  const middle = x + size / 2;
+  const reach = size / 2 + 4;
+  return (
+    `<rect class="erd-collapse-hit" x="${(middle - reach).toFixed(2)}" y="${(axis - reach).toFixed(2)}" width="${(reach * 2).toFixed(2)}" height="${(reach * 2).toFixed(2)}" fill="transparent"/>` +
+    `<path class="erd-collapse-chevron" pointer-events="none" d="M${(middle - half).toFixed(2)} ${(axis - rise).toFixed(2)} L${middle.toFixed(2)} ${(axis + rise).toFixed(2)} L${(middle + half).toFixed(2)} ${(axis - rise).toFixed(2)}" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+  );
+}
+
+/**
  * Draw each table's kind glyph at the left of its header, after the inset, and its name right after it,
  * both on one axis — the middle of the header band: the glyph's centre on it, and the name's capitals
  * centred on it (spec 029, FR-033). ``entities`` is the list the DOT was built from (its order gives the
  * cell ids).
  */
-export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer): string {
+export function placeKindIcons(markup: string, entities: readonly ErdEntity[], drawGlyph: KindGlyphDrawer, folds?: ReadonlyMap<string, ErdFold>): string {
   const edits: Array<{ at: number; remove: number; text: string }> = [];
   entities.forEach((entity, table) => {
     const slot = cellBox(markup, `ks${table}`);
@@ -109,6 +124,8 @@ export function placeKindIcons(markup: string, entities: readonly ErdEntity[], d
         `<g class="erd-kind-icon" pointer-events="none" transform="translate(${iconX.toFixed(2)},${iconY.toFixed(2)}) ` +
         `scale(${(slot.size / 24).toFixed(4)})">${drawGlyph(kind, erdHeadInk(entity), HEADER_GLYPH_STROKE)}</g>`,
     });
+    const control = cellBox(markup, `cl${table}`);
+    if (control) edits.push({ at: control.end, remove: 0, text: collapseChevron(header.right - HEADER_INSET_PT - slot.size, axis, slot.size, erdHeadInk(entity), folds?.get(entity.id)?.collapsed === true) });
   });
   let out = markup;
   for (const { at, remove, text } of edits.sort((a, b) => b.at - a.at)) {

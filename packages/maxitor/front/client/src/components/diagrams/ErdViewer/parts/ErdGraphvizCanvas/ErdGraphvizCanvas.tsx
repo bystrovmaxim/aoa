@@ -6,29 +6,28 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type SVGProps } from "react";
 import { useSvgLayoutPair } from "@/lib/useSvgLayoutHash";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { useGraphvizFocus } from "@/rooms/graphvizFocus";
 import { enabledKeys } from "@/lib/freshGraph";
 import { useCurrentPage, usePageSetting } from "@/lib/pageSettings";
-import { ZoomToolbar } from "@/components/ui/ZoomToolbar";
+import { CollapseAllButton, HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { OneHopToggle } from "@/components/ui/OneHopToggle";
-import { loadGraphvizWasmFor } from "../../hooks/useGraphviz";
+import { loadGraphvizWasm, loadGraphvizWasmFor } from "../../hooks/useGraphviz";
 import { useSvgPanZoom } from "../../hooks/useSvgPanZoom";
 import {
   buildDotSource,
   buildErdDot,
   ERD_CARD_RADIUS,
   ERD_CARD_STROKE,
-  ERD_DIFF_COLOUR,
-  ERD_DIFF_SIGN,
   ERD_KIND_PAINT_PALETTE,
   setErdPaint,
   erdDiffMarks,
   erdGraphvizEngine,
+  erdEdgeId,
   type ErdEntity,
   type ErdGraphPayload,
   type ErdGroup,
@@ -38,11 +37,18 @@ import {
 import { containNodeFills } from "@/lib/containNodeFills";
 import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
-import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, statusDiskUri, tablesToDraw } from "@/lib/erdFilterPresence";
+import { changeDiskUri, changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
-import { cardAt, erdChanges, isMarkedCell } from "@/lib/erdDiffCard";
+import { erdChanges } from "@/lib/erdDiffCard";
+import { erdSubject, fromAfar, litBy } from "@/lib/erdCard";
+import { erdFolds } from "@/lib/erdCollapse";
+import { cardBeside, lineBoxes } from "@/lib/cardPlace";
+import { useHoverCard } from "@/lib/useHoverCard";
+import { ElementCard, type CardProjection, type CardSubject } from "@/components/diagrams/ElementCard";
+import { elementRefOf, elementsOf, type HoverCards } from "@/rooms/graphvizFocus";
+import { isFollowing, mirroredFocus, reportHover, type ElementRef } from "@/rooms/focusStore";
 import { useGraphvizChangeStepping } from "@/lib/useGraphvizChangeStepping";
 import { DiffCard } from "@/components/history/DiffCard";
 import { COPY_CLICK_SLOP_PX } from "@/lib/erdCopy";
@@ -215,13 +221,10 @@ export function ErdGraphvizCanvas({
   const disabledKinds = useMemo(() => new Set(disabledKindList), [disabledKindList]);
 
   const panZoom = useSvgPanZoom();
-  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag, needsFit } = panZoom;
+  const { viewportRef, pannerRef, zoomPct, fitToContainer, zoomIn, zoomOut, bindInteractions, resetFitFlag, needsFit, centreOnClient, onTransform } = panZoom;
   /** The tables the markup on hand was drawn from: a markup older than the tables shown now is never placed again. */
-  const markupDataRef = useRef<unknown>(null);
+  const markupDataRef = useRef<{ entities: ErdEntity[]; relations?: ErdRelation[] } | null>(null);
   useSvgDiagramSurface(viewportRef, panZoom, Boolean(svgMarkup) && panZoom.fitted);
-  // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
-  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table");
-
 
   const tabsOn = useMemo(() => (multiTab ? enabledDomains : new Set(domainKeyList)), [multiTab, enabledDomains, domainKeyList]);
 
@@ -290,8 +293,94 @@ export function ErdGraphvizCanvas({
   useEffect(() => setDiffCounts(counts), [counts]);
   // The steps through what the drawing marks (spec 040, FR-025e): the list follows the filters, as the counts do.
   const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(drawnData.entities, drawnData.relations ?? []) : []), [counts, drawnData]);
-  // A click on a marked table or row opens its card (spec 038, FR-028).
-  const { card, setCard, openCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
+  // A step opens its change's card (spec 038, FR-028); while it stands, a hover opens none (spec 043, FR-009).
+  const { card, setCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
+  const hoverCard = useHoverCard<CardSubject>(card !== null);
+  const { want: wantCard, wantNow: wantCardNow, close: closeCard, hold: holdCard, release: leaveCard } = hoverCard;
+  // A cell's index means a table of the picture on screen, which lags the tables chosen while a new one is laid out.
+  const drawnTables = useCallback(() => ({ entities: markupDataRef.current?.entities ?? [], relations: markupDataRef.current?.relations ?? [] }), []);
+  const projection = useMemo<CardProjection>(() => {
+    const frame = () => ({ picture: pannerRef.current!.getBoundingClientRect(), stage: viewportRef.current!.getBoundingClientRect(), scale: panZoom.getScale() });
+    return {
+      toDiagram: ({ x, y }) => {
+        const { picture, stage, scale } = frame();
+        return { x: (x + stage.left - picture.left) / scale, y: (y + stage.top - picture.top) / scale };
+      },
+      toStage: ({ x, y }) => {
+        const { picture, stage, scale } = frame();
+        return { x: x * scale + picture.left - stage.left, y: y * scale + picture.top - stage.top };
+      },
+    };
+  }, [pannerRef, viewportRef, panZoom.getScale]);
+  /** The card of ``ref``, placed beside its table, or ``null`` when it has none. */
+  const subjectOf = useCallback(
+    (ref: ElementRef, elements: readonly Element[], touch = false): CardSubject | null => {
+      const panner = pannerRef.current;
+      const stage = viewportRef.current?.getBoundingClientRect();
+      const { entities, relations } = drawnTables();
+      const named = fromAfar(ref, elements.at(-1), entities, touch);
+      const facts = panner ? erdSubject(named, entities, panner, relations) : null;
+      const [outer, inner] = [elements[0], named === ref ? elements.at(-1) : elements[0]];
+      if (!facts || !stage || !outer || !inner) return null;
+      // A line's box can span the screen: the card stands by its middle.
+      const middle = (box: DOMRect) => ({ left: box.left + box.width / 2 - 4, top: box.top + box.height / 2 - 4, right: box.left + box.width / 2 + 4, bottom: box.top + box.height / 2 + 4 });
+      const beside = named.kind === "edge" ? middle(outer.getBoundingClientRect()) : outer.getBoundingClientRect();
+      const level = named.kind === "edge" ? beside : inner.getBoundingClientRect();
+      const lit = litBy(named, entities, relations);
+      const avoid = [
+        ...lit.tables.flatMap((id) => elementsOf(panner!, { kind: "table", id }).slice(0, 1).map((table) => table.getBoundingClientRect())),
+        ...lit.lines.flatMap((line) => {
+          const edge = panner!.querySelector(`[id="${erdEdgeId(line)}"]`);
+          return edge ? lineBoxes(edge) : [];
+        }),
+      ];
+      return { ...facts, at: cardBeside(stage, beside, level), around: { beside, level, avoid }, project: projection };
+    },
+    [drawnTables, pannerRef, projection, viewportRef],
+  );
+  const hoverCards = useMemo<HoverCards>(
+    () => ({
+      has: (ref) => pannerRef.current !== null && erdSubject(ref, drawnTables().entities, pannerRef.current, drawnTables().relations) !== null,
+      show: (ref, elements) => wantCard(ref ? subjectOf(ref, elements) : null),
+      open: (ref, elements) => {
+        const subject = subjectOf(ref, elements);
+        if (subject) wantCardNow(subject);
+      },
+      close: closeCard,
+    }),
+    [closeCard, drawnTables, pannerRef, subjectOf, wantCard, wantCardNow],
+  );
+  // Hover and tooltip shared with followers, and the followed person's shown here (spec 029).
+  useGraphvizFocus(pannerRef.current, svgMarkup, useCurrentPage(), "table", hoverCards);
+  // A card stands beside what it describes: a move or a new drawing takes that away, by whatever caused it.
+  // For a follower it stays as long as the followed person holds it, and goes with the picture.
+  const moveOrClose = useCallback(() => {
+    const ref = isFollowing() ? mirroredFocus()?.panels.card?.ref : null;
+    const panner = pannerRef.current;
+    const subject = ref && panner ? subjectOf(ref, elementsOf(panner, ref)) : null;
+    if (subject) wantCardNow(subject);
+    else closeCard();
+  }, [closeCard, pannerRef, subjectOf, wantCardNow]);
+  useEffect(() => onTransform(moveOrClose), [moveOrClose, onTransform]);
+  useEffect(() => moveOrClose(), [moveOrClose, svgMarkup]);
+  // Tables collapsed to their keys (spec 043): one switch and the tables that differ from it, both page settings.
+  const [fieldsCollapsed, setFieldsCollapsed] = usePageSetting<boolean>("fields_collapsed", false);
+  const [fieldsExcept, setFieldsExcept] = usePageSetting<string[]>("fields_except", []);
+  const folds = useMemo(() => erdFolds(drawnData.entities, drawnData.relations ?? [], fieldsCollapsed, new Set(fieldsExcept)), [drawnData, fieldsCollapsed, fieldsExcept]);
+  const foldedData = useMemo(() => ({ ...drawnData, folds }), [drawnData, folds]);
+  const allCollapsed = fieldsCollapsed && fieldsExcept.length === 0;
+  const canCollapse = useMemo(() => [...folds.values()].some((fold) => fold.hidden.size > 0), [folds]);
+  /** Where the header of the table just toggled stood, so the new drawing keeps it there (FR-029). */
+  const keptHeaderRef = useRef<{ table: number; left: number; top: number } | null>(null);
+  const toggleFoldRef = useRef<(table: number, header: Element | null) => void>(() => undefined);
+  toggleFoldRef.current = (table, header) => {
+    const id = drawnTables().entities[table]?.id;
+    if (!id) return;
+    const box = header?.getBoundingClientRect();
+    keptHeaderRef.current = box ? { table, left: box.left, top: box.top } : null;
+    closeCard();
+    setFieldsExcept(fieldsExcept.includes(id) ? fieldsExcept.filter((each) => each !== id) : [...fieldsExcept, id].sort());
+  };
   // which filter section paints the headers in Diff, and the kinds of change switched off.
   // A kind's colour is its place in the model's list of kinds, not in this diagram's: the same kind is the same
   // colour on every diagram, for everyone.
@@ -317,8 +406,8 @@ export function ErdGraphvizCanvas({
   // The text Graphviz is given carries the colours too: two tabs painting differently must not claim one input.
   const dot = useMemo(() => {
     setErdPaint(paintSection === "domains" ? "domain" : paintSection === "kinds" ? "kind" : "change", kindPaint);
-    return buildDotSource(drawnData, layout);
-  }, [drawnData, layout, paintSection, kindPaint]);
+    return buildDotSource(foldedData, layout);
+  }, [foldedData, layout, paintSection, kindPaint]);
   // The picture's hash and the text Graphviz was given, hashed with it as one pair: the settings digest a room
   // compares layouts under (FR-093).
   const layoutPair = useSvgLayoutPair(rawSvg, `${erdGraphvizEngine(layout)}\n${dot}`);
@@ -341,18 +430,24 @@ export function ErdGraphvizCanvas({
     setRenderError(null);
     setRawSvg("");
     const engine = erdGraphvizEngine(layout) as Engine;
-    loadGraphvizWasmFor(engine)
-      .then((gv) => {
-        if (cancelled) return;
-        // Every table of a specialization block as wide as its widest table (spec 029): measured first.
+    loadGraphvizWasm()
+      .then((measurer) => {
+        if (cancelled) return null;
+        // Every table of a specialization block as wide as its widest table (spec 029): measured first, on the shared
+        // instance. FDP depends on what ran before it in an instance, so the drawing itself is that instance's first layout.
         setErdPaint(paintSection === "domains" ? "domain" : paintSection === "kinds" ? "kind" : "change", kindPaint);
-        const svg = gv.layout(buildErdDot(drawnData, layout, (measureDot) => gv.layout(measureDot, "svg", "dot")), "svg", engine);
+        const source = buildErdDot(foldedData, layout, (measureDot) => measurer.layout(measureDot, "svg", "dot"));
+        return loadGraphvizWasmFor(engine).then((gv) => ({ gv, source }));
+      })
+      .then((prepared) => {
+        if (cancelled || !prepared) return;
+        const svg = prepared.gv.layout(prepared.source, "svg", engine);
         if (cancelled) return;
         setRawSvg(svg);
         // The renderer paints a card's band and row tints as rectangles inside a rounded outline;
         // this trims every fill to the contour before the markup reaches the page.
         markupDataRef.current = drawnData;
-        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg));
+        setSvgMarkup(placeKindIcons(drawErdCards(containNodeFills(svg), ERD_CARD_RADIUS, ERD_CARD_STROKE, erdDiffMarks(drawnData.entities)), drawnData.entities, kindGlyphSvg, folds));
         setSvgRenderVersion((v) => v + 1);
       })
       .catch((e) => {
@@ -398,19 +493,32 @@ export function ErdGraphvizCanvas({
       addEndLabelBadges(svg);
       bindLineHover(svg, drawnData.relations, drawnData.entities, ac.signal);
     }
-    bindNameCopy(panner, setCopyMessage, ac.signal, (cell) => isMarkedCell(cell, drawnData.entities));
+    bindNameCopy(panner, setCopyMessage, ac.signal);
     let press: { x: number; y: number } | null = null;
     panner.addEventListener("pointerdown", (event) => void (press = { x: event.clientX, y: event.clientY }), { signal: ac.signal });
+    const stayed = (event: MouseEvent) => press !== null && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= COPY_CLICK_SLOP_PX;
+    // On ``click``, not on the press's end: the new drawing rebinds the pan, and must not do so before ``mouseup`` has ended it.
+    panner.addEventListener(
+      "click",
+      (event) => {
+        const control = (event.target as Element | null)?.closest?.('g[id^="a_cl"]');
+        if (!control || !stayed(event)) return;
+        const table = Number(control.id.slice(4));
+        toggleFoldRef.current(table, panner.querySelector(`[id="a_hd${table}"]`));
+      },
+      { signal: ac.signal },
+    );
+    // A tap has no hover to rest on: it opens the card, and the card's button copies (FR-008).
     panner.addEventListener(
       "pointerup",
       (event) => {
-        const started = press;
-        press = null;
-        if (!started || Math.hypot(event.clientX - started.x, event.clientY - started.y) > COPY_CLICK_SLOP_PX) return;
-        const target = cardAt(event.target as Element | null, drawnData.entities);
-        const box = viewportRef.current?.getBoundingClientRect();
-        if (!target || !box) return;
-        openCard(target, { x: event.clientX - box.left + 8, y: event.clientY - box.top + 8 });
+        const target = event.target as Element | null;
+        if (event.pointerType !== "touch" || !target || !stayed(event) || target.closest?.('g[id^="a_cl"]')) return;
+        const ref = elementRefOf(target, "table");
+        const subject = ref ? subjectOf(ref, elementsOf(panner, ref), true) : null;
+        if (!ref || !subject) return;
+        reportHover(ref);
+        wantCardNow(subject);
       },
       { signal: ac.signal },
     );
@@ -430,6 +538,11 @@ export function ErdGraphvizCanvas({
     // A new drawing is fitted here, before the frame is painted, so no picture between the old view and the fitted one
     // ever shows; new colours alone keep the view. The triple rAF below fits again only if this one could not measure.
     if (needsFit()) fitToContainer();
+    const kept = keptHeaderRef.current;
+    keptHeaderRef.current = null;
+    const header = kept ? panner.querySelector(`[id="a_hd${kept.table}"]`)?.getBoundingClientRect() : null;
+    const stage = viewportRef.current?.getBoundingClientRect();
+    if (kept && header && stage) centreOnClient(stage.left + stage.width / 2 + header.left - kept.left, stage.top + stage.height / 2 + header.top - kept.top);
     let unbindPan: (() => void) | undefined;
     let cancelled = false;
 
@@ -510,7 +623,7 @@ export function ErdGraphvizCanvas({
     ? changesOnDiagram(baseEntities).map((status) => ({
         key: status,
         label: status.charAt(0).toUpperCase() + status.slice(1),
-        iconSrc: statusDiskUri(status === "unchanged" || changesGrey ? IDLE_DISK : ERD_DIFF_COLOUR[status], status === "unchanged" ? "" : ERD_DIFF_SIGN[status]),
+        iconSrc: changeDiskUri(status, !changesGrey),
         on: !offChanges.has(status),
         absent: !shown.changes.has(status),
       }))
@@ -598,6 +711,7 @@ export function ErdGraphvizCanvas({
           data-layout-hash={layoutPair?.hash}
           data-layout-input={layoutPair?.digest}
           className="erd-svg-viewport"
+          onPointerDownCapture={closeCard}
           sx={{
             position: "absolute",
             inset: 0,
@@ -628,8 +742,7 @@ export function ErdGraphvizCanvas({
               // A line's end labels show only on hover, on a white plate (spec 029, FR-042).
               ...erdEndLabelSx,
               "@media (prefers-reduced-motion: reduce)": { "& g.edge path": { transition: "none" } },
-              // Names copy on click.
-              "& g[id^='a_hn'] text, & g[id^='a_fn'] text": { cursor: "copy" },
+              "& g[id^='a_cl'], & g[id^='a_cl'] text": { cursor: "pointer" },
               "& svg": {
                 display: "block",
                 maxWidth: "none",
@@ -643,6 +756,16 @@ export function ErdGraphvizCanvas({
         </Box>
 
         {card && <DiffCard target={card.target} newer={diffNames?.b ?? "B"} at={card.at} onClose={() => setCard(null)} />}
+        {!card && hoverCard.shown && (
+          <ElementCard
+            key={hoverCard.shown.key}
+            subject={hoverCard.shown}
+            newer={diffNames?.b ?? "B"}
+            onEnter={holdCard}
+            onLeave={leaveCard}
+            onClose={closeCard}
+          />
+        )}
 
         <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
           <Box
@@ -715,6 +838,16 @@ export function ErdGraphvizCanvas({
             sx={{ width: "1px", height: "22px", bgcolor: "rgba(15, 23, 42, 0.12)", flexShrink: 0, mx: "2px" }}
           />
           <OneHopToggle checked={includeOneHop} onChange={onIncludeOneHopChange} />
+          {canCollapse && (
+            <CollapseAllButton
+              collapsed={allCollapsed}
+              onClick={() => {
+                setFieldsCollapsed(!allCollapsed);
+                setFieldsExcept([]);
+              }}
+            />
+          )}
+          <HoverCardsButton />
         </ZoomToolbar>
       </Box>
     </Box>

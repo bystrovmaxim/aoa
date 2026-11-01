@@ -71,6 +71,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             label=role_cls.__name__,
             properties={
                 "role_mode": CheckRolesIntentResolver.resolve_role_mode(role_cls).value,
+                "description": role_cls.description,
             },
             node_obj=role_cls,
         )
@@ -84,6 +85,7 @@ class RoleGraphNode(BaseGraphNode[type[TRole]]):
             "label": self.label,
             "properties": {
                 "role_mode": str(self.properties["role_mode"]),
+                "description": str(self.properties["description"]),
             },
         }
 

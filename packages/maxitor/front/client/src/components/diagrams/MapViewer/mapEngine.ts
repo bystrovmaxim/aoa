@@ -11,6 +11,8 @@ import Sigma from "sigma";
 import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigma/rendering";
 
 import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
+import type { CardProjection, CardSubject } from "@/components/diagrams/ElementCard";
+import { cardBeside } from "@/lib/cardPlace";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
@@ -21,7 +23,7 @@ import { WHEEL_CHUNK_PX, WHEEL_ZOOM_SENSITIVITY, isZoomWheel, wheelPan } from "@
 import { outlineOf, type FieldPoint, type OutlineLoop } from "@/lib/mapOutline";
 import { areaHolds, areaLeft, bundleLeft, bundleSays, cellsLeft, mapFacts, nodeLeft, type MapFacts, type MapFilters } from "@/lib/mapVisibility";
 import { registerDiagramSurface, type DiagramSurface } from "@/rooms/diagramSurface";
-import { isFollowing, mirroredFocus, reportHover, subscribeFocus } from "@/rooms/focusStore";
+import { isFollowing, mirroredFocus, reportHover, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
 
 /** How many nodes the browser keeps, a phone fewer. */
 const MOST_NODES = 3000;
@@ -64,7 +66,13 @@ export type MapElements = { stage: HTMLElement; sigma: HTMLElement; under: HTMLC
 export type MapCard = { target: CardTarget; at: { x: number; y: number } };
 
 /** What the viewer hears from the engine. */
-export type MapEvents = { onZoom: (zoom: number) => void; onCard: (card: MapCard | null) => void; onStep: (position: number | null) => void };
+/** What the map tells a hover card, and whether it opens at once, as a tap does (spec 043). */
+export type MapEvents = {
+  onZoom: (zoom: number) => void;
+  onCard: (card: MapCard | null) => void;
+  onStep: (position: number | null) => void;
+  onHoverElement: (subject: CardSubject | null, now?: boolean) => void;
+};
 
 type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
 
@@ -173,6 +181,7 @@ export class MapEngine {
   private levelTwo = 0;
   private levelThree = 0;
   private hovered: string | null = null;
+  private hoveredLink: string | null = null;
   private onBundle = false;
   private near: Set<string> | null = null;
   private refreshing = false;
@@ -590,6 +599,72 @@ export class MapEngine {
     if (node !== this.hovered) this.showHover(node);
   }
 
+  /** Between the stage and the map: a card's place is said on the map, so a follower sets it on the same spot. */
+  private readonly projection: CardProjection = {
+    toDiagram: (point) => this.sigma.viewportToGraph(point),
+    toStage: (point) => this.sigma.graphToViewport(point),
+  };
+
+  /** The card of what a followed person holds a card on, when this view has it. */
+  cardSubject(ref: ElementRef): CardSubject | null {
+    if (ref.kind === "node" && this.graph.hasNode(ref.id)) return this.nodeSubject(ref.id);
+    if (ref.kind === "edge" && this.graph.hasEdge(ref.id)) return this.linkSubject(ref.id);
+    return null;
+  }
+
+  /** The card's place beside a point of the stage. */
+  private cardAt(x: number, y: number, reach: number): { x: number; y: number } {
+    const { clientWidth, clientHeight } = this.elements.stage;
+    const box = { left: x - reach, top: y - reach, right: x + reach, bottom: y + reach };
+    return cardBeside({ left: 0, top: 0, right: clientWidth, bottom: clientHeight }, box, box);
+  }
+
+  /** A node's card: its name and type at once, the rest read when it opens (spec 043, FR-001). */
+  private nodeSubject(node: string): CardSubject {
+    const attributes = this.graph.getNodeAttributes(node);
+    const place = this.sigma.graphToViewport(attributes as never);
+    const mark = this.marking ? (attributes.diff as MapMark | undefined) : undefined;
+    const title = attributes.label as string;
+    return {
+      key: `node:${node}`,
+      ref: { kind: "node", id: node },
+      title,
+      detail: attributes.type as string,
+      nodeId: node,
+      change: mark ? { title, status: mark, elements: [{ kind: "node", id: node }] } : null,
+      copy: title,
+      at: this.cardAt(place.x, place.y, this.sigma.scaleSize(attributes.size as number)),
+      project: this.projection,
+    };
+  }
+
+  /** A link's card: the map holds its ends, and in Diff the comparison holds its changes. */
+  private linkSubject(edge: string, x?: number, y?: number): CardSubject {
+    const [source, target] = this.graph.extremities(edge) as [string, string];
+    const name = (node: string) => this.graph.getNodeAttribute(node, "label") as string;
+    const [from, to] = [this.sigma.graphToViewport(this.graph.getNodeAttributes(source) as never), this.sigma.graphToViewport(this.graph.getNodeAttributes(target) as never)];
+    const mark = this.marking ? (this.graph.getEdgeAttribute(edge, "diff") as MapMark | undefined) : undefined;
+    const title = `${name(source)} → ${name(target)}`;
+    return {
+      key: `edge:${edge}`,
+      ref: { kind: "edge", id: edge },
+      title,
+      detail: "Link",
+      nodeId: null,
+      change: mark ? { title, status: mark, elements: [{ kind: "edge", id: edge }] } : null,
+      at: this.cardAt(x ?? (from.x + to.x) / 2, y ?? (from.y + to.y) / 2, 8),
+      project: this.projection,
+    };
+  }
+
+  /** The pointer came onto a real link: bundles keep their label. */
+  private onHoverLink(edge: string, x: number, y: number): void {
+    if (isFollowing()) return;
+    this.hoveredLink = edge;
+    reportHover({ kind: "edge", id: edge });
+    this.events.onHoverElement(this.linkSubject(edge, x, y));
+  }
+
   private showHover(node: string | null): void {
     const { label, stage } = this.elements;
     const attributes = node ? this.graph.getNodeAttributes(node) : null;
@@ -598,16 +673,11 @@ export class MapEngine {
       this.hovered = null;
       this.near = null;
       label.style.display = "none";
+      if (!isFollowing()) this.events.onHoverElement(null);
     } else {
       this.hovered = node;
       this.near = new Set([node, ...this.graph.neighbors(node)]);
-      const place = this.sigma.graphToViewport(attributes as never);
-      const mark = this.marking ? (attributes.diff as MapMark | undefined) : undefined;
-      label.textContent = `${mark ? `${MARK_LOOK[mark].sign} ` : ""}${attributes.label as string}`;
-      label.style.display = "block";
-      label.style.left = `${place.x}px`;
-      label.style.top = `${place.y + this.sigma.scaleSize(attributes.size as number) + 6}px`;
-      label.style.borderLeftColor = this.overview.areas[attributes.area as number]?.colour ?? LINK_COLOUR;
+      if (!isFollowing()) this.events.onHoverElement(this.nodeSubject(node));
     }
     this.sigma.refresh({ skipIndexation: true });
   }
@@ -616,7 +686,11 @@ export class MapEngine {
   private onHoverBundle(edge: string, x: number, y: number): void {
     const { bundle, changed } = this.graph.getEdgeAttributes(edge);
     const left = this.bundlesLeft.get(edge) ?? 0;
-    if (!bundle || left === 0 || isFollowing()) return;
+    if (!bundle) {
+      this.onHoverLink(edge, x, y);
+      return;
+    }
+    if (left === 0 || isFollowing()) return;
     const marked = this.marking ? (changed as number) : 0;
     const { label } = this.elements;
     this.onBundle = true;
@@ -628,6 +702,11 @@ export class MapEngine {
   }
 
   private onLeaveBundle(): void {
+    if (this.hoveredLink !== null && !isFollowing()) {
+      this.hoveredLink = null;
+      reportHover(null);
+      this.events.onHoverElement(null);
+    }
     if (!this.onBundle) return;
     this.onBundle = false;
     this.elements.label.style.display = "none";
@@ -647,6 +726,8 @@ export class MapEngine {
     const position = this.marking && attributes.diff ? this.changes.findIndex((change) => change.id === node) : -1;
     if (position < 0) {
       this.closeCard();
+      // A tap has no hover to rest on: it opens the card (spec 043, FR-008).
+      if (window.matchMedia("(pointer: coarse)").matches && !attributes.centre) this.events.onHoverElement(this.nodeSubject(node), true);
       return;
     }
     this.position = position;

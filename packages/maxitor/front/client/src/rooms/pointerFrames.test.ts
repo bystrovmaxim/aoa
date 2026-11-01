@@ -23,6 +23,14 @@ describe("a pointer over a panel that names its frame (spec 038)", () => {
     expect(inFrame(track.querySelector("span"), { x: 520, y: 110 })).toEqual({ x: 60, y: 10, frame: "version-track" });
   });
 
+  it("stands in the window of a panel whose scroll a follower shares, so it stays when the rows move under it", () => {
+    const list = panel("changes", 500, 100, 40);
+    list.setAttribute("data-pointer-shared-scroll", "");
+    const sent = inFrame(list.querySelector("span"), { x: 520, y: 110 });
+    expect(sent).toEqual({ x: 20, y: 10, frame: "changes" });
+    expect(clientInFrame("changes", sent!)).toEqual({ x: 520, y: 110 });
+  });
+
   it("lands on the same place of the follower's panel, wherever it opened and however far it scrolled", () => {
     panel("version-track", 200, 300, 0);
     expect(clientInFrame("version-track", { x: 60, y: 10 })).toEqual({ x: 260, y: 310 });

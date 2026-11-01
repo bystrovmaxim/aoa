@@ -28,14 +28,17 @@ function GroupRow({ group, top }: { group: string; top: number }) {
   );
 }
 
-function ChangeRow({ line, top, chosen, onPick }: { line: Extract<ChangeLine, { entry: unknown }>; top: number; chosen: boolean; onPick: (position: number) => void }) {
+function ChangeRow({ line, top, chosen, hot, onHot, onPick }: { line: Extract<ChangeLine, { entry: unknown }>; top: number; chosen: boolean; hot: boolean; onHot: (key: string | null) => void; onPick: (position: number) => void }) {
   const { entry, position } = line;
   const look = MARK_LOOK[entry.status];
   return (
     <ButtonBase
       aria-current={chosen || undefined}
+      data-hot={hot || undefined}
       onClick={() => onPick(position)}
-      sx={{ position: "absolute", top, left: 0, right: 0, height: ROW_PX, display: "flex", justifyContent: "flex-start", gap: "8px", px: "12px", fontSize: 12.5, color: "#0f172a", textAlign: "left", bgcolor: chosen ? "rgba(15, 23, 42, 0.08)" : "transparent", "&:hover": { bgcolor: chosen ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)" } }}
+      onMouseEnter={() => onHot(entry.key)}
+      onMouseLeave={() => onHot(null)}
+      sx={{ position: "absolute", top, left: 0, right: 0, height: ROW_PX, display: "flex", justifyContent: "flex-start", gap: "8px", px: "12px", fontSize: 12.5, color: "#0f172a", textAlign: "left", bgcolor: hot ? (chosen ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.05)") : chosen ? "rgba(15, 23, 42, 0.08)" : "transparent" }}
     >
       <Box component="span" sx={{ width: 10, flexShrink: 0, fontWeight: 700, color: look.colour }}>
         {look.sign}
@@ -62,6 +65,9 @@ type ChangeListProps = {
   /** The followed person's scroll, while following. */
   offset: number;
   onScrolled: (offset: number) => void;
+  /** The row under the pointer, the followed person's while following. */
+  hot: string | null;
+  onHot: (key: string | null) => void;
   onPick: (position: number) => void;
 };
 
@@ -69,7 +75,7 @@ type ChangeListProps = {
  * The list of changes, on the page only while it is open, so each opening starts from where the person stands. Only
  * the rows that can show are drawn, however long the list; which ones follows the list's own scroll.
  */
-function ChangeList({ lines, position, following, offset, onScrolled, onPick }: ChangeListProps) {
+function ChangeList({ lines, position, following, offset, onScrolled, hot, onHot, onPick }: ChangeListProps) {
   const list = useRef<HTMLDivElement | null>(null);
   const [scroll, setScroll] = useState(() => (following ? offset : openingOffset(lines, position)));
 
@@ -92,6 +98,7 @@ function ChangeList({ lines, position, following, offset, onScrolled, onPick }: 
     <Box
       ref={list}
       data-pointer-frame="changes"
+      data-pointer-shared-scroll=""
       data-testid="change-list"
       onScroll={(event) => {
         const next = event.currentTarget.scrollTop;
@@ -103,7 +110,7 @@ function ChangeList({ lines, position, following, offset, onScrolled, onPick }: 
       <Box sx={{ position: "relative", height: lines.length * ROW_PX }}>
         {lines.slice(first, last).map((line, index) => {
           const top = (first + index) * ROW_PX;
-          return "entry" in line ? <ChangeRow key={line.entry.key} line={line} top={top} chosen={line.position === position} onPick={onPick} /> : <GroupRow key={`group-${first + index}`} group={line.group} top={top} />;
+          return "entry" in line ? <ChangeRow key={line.entry.key} line={line} top={top} chosen={line.position === position} hot={line.entry.key === hot} onHot={onHot} onPick={onPick} /> : <GroupRow key={`group-${first + index}`} group={line.group} top={top} />;
         })}
       </Box>
     </Box>
@@ -122,9 +129,10 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
   const entries = stepping?.entries;
   const [ownOpen, setOwnOpen] = useState(false);
   const [ownOffset, setOwnOffset] = useState(0);
+  const [ownHot, setOwnHot] = useState<string | null>(null);
   const pill = useRef<HTMLDivElement | null>(null);
   const ownAt = stepping && stepping.position !== null ? (entries?.[stepping.position]?.key ?? null) : null;
-  const own = useMemo<ChangeListState>(() => ({ open: ownOpen, at: ownAt, card: stepping?.card ?? false, offset: ownOffset }), [ownOpen, ownAt, stepping?.card, ownOffset]);
+  const own = useMemo<ChangeListState>(() => ({ open: ownOpen, at: ownAt, card: stepping?.card ?? false, offset: ownOffset, hot: ownHot }), [ownOpen, ownAt, stepping?.card, ownOffset, ownHot]);
   const following = useMirroredFocus() !== null;
   const shown = useShownPanel<ChangeListState>(
     own,
@@ -213,7 +221,7 @@ export function ChangeStepper({ compact = false }: { compact?: boolean }) {
             elevation={0}
             sx={{ width: 340, maxWidth: "calc(100vw - 20px)", py: "4px", boxSizing: "border-box", bgcolor: "#fff", border: "1px solid rgba(15, 23, 42, 0.1)", borderRadius: "10px", boxShadow: "0 12px 40px rgba(15, 23, 42, 0.16), 0 1px 2px rgba(15, 23, 42, 0.06)", overflow: "hidden" }}
           >
-            <ChangeList lines={lines} position={position} following={following} offset={shown.offset} onScrolled={setOwnOffset} onPick={pick} />
+            <ChangeList lines={lines} position={position} following={following} offset={shown.offset} onScrolled={setOwnOffset} hot={shown.hot ?? null} onHot={(key) => !following && setOwnHot(key)} onPick={pick} />
           </Paper>
         </ClickAwayListener>
       </Popper>

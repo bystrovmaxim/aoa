@@ -102,6 +102,18 @@ describe("the change stepper", () => {
   });
 });
 
+describe("the row under the pointer", () => {
+  it("is reported for followers", () => {
+    render(<ChangeStepper />);
+    act(() => setChangeStepping(stepping({})));
+    fireEvent.click(screen.getByLabelText(/^Changes: \d/));
+    fireEvent.mouseEnter(screen.getByText("Stock"));
+    expect(focusToSend("page").panels.changes?.hot).toBeTruthy();
+    fireEvent.mouseLeave(screen.getByText("Stock"));
+    expect(focusToSend("page").panels.changes?.hot).toBeNull();
+  });
+});
+
 describe("the change stepper of a follower", () => {
   const PANELS: Panels = { sidebar: [], filter: null, legend: false, versions: false, track: null, changes: { open: true, at: "c", card: true, offset: 0 }, why: null };
 
@@ -121,6 +133,19 @@ describe("the change stepper of a follower", () => {
     expect(mirror).toHaveBeenLastCalledWith(2, true);
   });
 
+  it("shows the row the followed person points at", () => {
+    following(() => undefined);
+    expect(document.querySelector("[data-hot]")).toBeNull();
+    act(() => putFocus("anna", { page: "page", hover: null, tooltip: null, selection: null, panels: { ...PANELS, changes: { ...PANELS.changes!, hot: "b" } } }));
+    expect(document.querySelectorAll("[data-hot]")).toHaveLength(1);
+  });
+
+  it("takes no row from its own pointer", () => {
+    following(() => undefined);
+    fireEvent.mouseEnter(screen.getByText("Stock"));
+    expect(document.querySelector("[data-hot]")).toBeNull();
+  });
+
   it("does not act on the follower's own clicks", () => {
     const go = vi.fn();
     following(() => undefined, go);
@@ -138,6 +163,7 @@ describe("the change stepper of a follower", () => {
 
   it("marks the list and the pill as frames, so a pointer lands on the same row", () => {
     following(() => undefined);
+    expect(screen.getByTestId("change-list").hasAttribute("data-pointer-shared-scroll")).toBe(true);
     expect(screen.getByTestId("change-list").getAttribute("data-pointer-frame")).toBe("changes");
     expect(screen.getByTestId("change-stepper").getAttribute("data-pointer-frame")).toBe("change-steps");
   });

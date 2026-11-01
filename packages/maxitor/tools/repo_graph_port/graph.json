@@ -82,6 +82,7 @@
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
       "is_dag": true,
       "properties": {
+        "description": "The repositories' history, read with git",
         "key": "GitMirror"
       },
       "relationship": "Association",
@@ -93,6 +94,7 @@
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "is_dag": true,
       "properties": {
+        "description": "GitHub: the App's token, pull requests, releases",
         "key": "GitHubHost"
       },
       "relationship": "Association",
@@ -104,6 +106,7 @@
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
+        "description": "The histories this server serves",
         "key": "HistoriesConfig"
       },
       "relationship": "Association",
@@ -115,6 +118,7 @@
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
       "is_dag": true,
       "properties": {
+        "description": "When each repository was fetched",
         "key": "VersionCache"
       },
       "relationship": "Association",
@@ -294,6 +298,7 @@
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
       "is_dag": true,
       "properties": {
+        "description": "The repositories' history, read with git",
         "key": "GitMirror"
       },
       "relationship": "Association",
@@ -305,6 +310,7 @@
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "is_dag": true,
       "properties": {
+        "description": "GitHub: the App's token, pull requests, releases",
         "key": "GitHubHost"
       },
       "relationship": "Association",
@@ -316,6 +322,7 @@
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
+        "description": "The histories this server serves",
         "key": "HistoriesConfig"
       },
       "relationship": "Association",
@@ -327,6 +334,7 @@
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
       "is_dag": true,
       "properties": {
+        "description": "Each version's facts, read once",
         "key": "VersionCache"
       },
       "relationship": "Association",
@@ -428,6 +436,7 @@
       "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
       "is_dag": true,
       "properties": {
+        "description": "The repository's mirror, fetched once",
         "key": "GitMirror"
       },
       "relationship": "Association",
@@ -439,6 +448,7 @@
       "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "is_dag": true,
       "properties": {
+        "description": "The App's token for the fetch",
         "key": "GitHubHost"
       },
       "relationship": "Association",
@@ -450,6 +460,7 @@
       "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
+        "description": "The histories of the event's repository",
         "key": "HistoriesConfig"
       },
       "relationship": "Association",
@@ -461,6 +472,7 @@
       "id": "maxitor.repo_graph_port.actions.receive_host_event_action.ReceiveHostEventAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
       "is_dag": true,
       "properties": {
+        "description": "Pull requests and releases to forget",
         "key": "VersionCache"
       },
       "relationship": "Association",
@@ -694,6 +706,7 @@
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.git_mirror.GitMirror",
       "is_dag": true,
       "properties": {
+        "description": "The repositories' history, read with git",
         "key": "GitMirror"
       },
       "relationship": "Association",
@@ -705,6 +718,7 @@
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.github_host.GitHubHost",
       "is_dag": true,
       "properties": {
+        "description": "GitHub: the App's token, pull requests, releases",
         "key": "GitHubHost"
       },
       "relationship": "Association",
@@ -716,6 +730,7 @@
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.histories_config.HistoriesConfig",
       "is_dag": true,
       "properties": {
+        "description": "The histories this server serves",
         "key": "HistoriesConfig"
       },
       "relationship": "Association",
@@ -727,6 +742,7 @@
       "id": "maxitor.repo_graph_port.actions.version_action.VersionAction|@connection|maxitor.repo_graph_port.resources.version_cache.VersionCache",
       "is_dag": true,
       "properties": {
+        "description": "Each version's file, read once",
         "key": "VersionCache"
       },
       "relationship": "Association",
@@ -875,6 +891,7 @@
       "id": "aoa.action_machine.auth.any_role.AnyRole",
       "label": "AnyRole",
       "properties": {
+        "description": "Engine sentinel: at least one assignable role required.",
         "role_mode": "alive"
       },
       "type": "Role"
@@ -883,6 +900,7 @@
       "id": "aoa.action_machine.auth.guest_role.GuestRole",
       "label": "GuestRole",
       "properties": {
+        "description": "Engine sentinel: no authentication required for the action.",
         "role_mode": "alive"
       },
       "type": "Role"
@@ -1462,6 +1480,7 @@
       "id": "maxitor.repo_graph_port.history_reader_role.HistoryReaderRole",
       "label": "HistoryReaderRole",
       "properties": {
+        "description": "Holds a read key that opens one configured history",
         "role_mode": "alive"
       },
       "type": "Role"
@@ -1508,5 +1527,5 @@
       "type": "Resource"
     }
   ],
-  "schema_version": "1.1"
+  "schema_version": "1.2"
 }

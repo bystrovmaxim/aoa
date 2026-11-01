@@ -80,7 +80,7 @@ def test_to_json_empty_graph_round_trip() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_EmptyInspector()], export_json_schema=GRAPH_JSON_SCHEMA)
     raw = coord.to_json()
-    assert json.loads(raw) == {"edges": [], "nodes": [], "schema_version": "1.1"}
+    assert json.loads(raw) == {"edges": [], "nodes": [], "schema_version": "1.2"}
 
 
 def test_to_json_minimal_params_graph_shape() -> None:
@@ -95,7 +95,7 @@ def test_to_json_minimal_params_graph_shape() -> None:
     coord = NodeGraphCoordinator()
     coord.build([_HarnessInspector(left)], export_json_schema=GRAPH_JSON_SCHEMA)
     payload = json.loads(coord.to_json())
-    assert payload["schema_version"] == "1.1"
+    assert payload["schema_version"] == "1.2"
     assert {n["id"] for n in payload["nodes"]} == {"pkg.left", "pkg.right"}
     assert len(payload["edges"]) == 1
     assert payload["edges"][0]["type"] == "field"
@@ -193,7 +193,7 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
     )
     raw = coord.to_json()
     payload = json.loads(raw)
-    assert payload["schema_version"] == "1.1"
+    assert payload["schema_version"] == "1.2"
     assert any(n.get("type") == "Action" for n in payload["nodes"])
     assert any(n.get("type") == "Domain" for n in payload["nodes"])
     assert any(n.get("type") == "Params" for n in payload["nodes"])
@@ -207,11 +207,11 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
 def test_graph_json_schema_rejects_invalid_payload() -> None:
     validator = Draft202012Validator(GRAPH_JSON_SCHEMA)
     with pytest.raises(ValidationError):
-        validator.validate({"schema_version": "1.1"})
+        validator.validate({"schema_version": "1.2"})
     with pytest.raises(ValidationError):
         validator.validate(
             {
-                "schema_version": "1.1",
+                "schema_version": "1.2",
                 "nodes": [
                     {
                         "id": "x",
@@ -288,7 +288,7 @@ def test_every_exported_edge_carries_a_unique_id_in_id_order() -> None:
     payload = _full_export()
     ids = [edge["id"] for edge in payload["edges"]]
 
-    assert payload["schema_version"] == "1.1"
+    assert payload["schema_version"] == "1.2"
     assert ids
     assert len(set(ids)) == len(ids)
     assert ids == sorted(ids)

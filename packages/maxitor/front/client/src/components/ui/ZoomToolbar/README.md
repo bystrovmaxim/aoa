@@ -15,3 +15,4 @@
 | File | Responsibility |
 |------|----------------|
 | `ZoomToolbar.tsx` | Toolbar UI and optional trailing slot (`children`). |
+| `ToolbarIcons.tsx` | Icons for that slot: collapse all tables, cards on and off. |

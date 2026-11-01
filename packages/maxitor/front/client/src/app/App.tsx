@@ -49,6 +49,9 @@ import { NameDialog } from "@/rooms/NameDialog";
 import { PointerLayer } from "@/rooms/PointerLayer";
 import { useDiagramSurface } from "@/rooms/diagramSurface";
 import { usePointerSender } from "@/rooms/usePointerSender";
+import { forgetElementCards } from "@/api/elementCard";
+import { forgetMiniatures } from "@/lib/lifecycleMiniature";
+import { OpenDiagramContext } from "@/lib/openDiagram";
 import { useGoTo } from "@/rooms/goTo";
 import { useFollow } from "@/rooms/follow";
 import { FollowFrame } from "@/rooms/FollowFrame";
@@ -469,6 +472,8 @@ export function App() {
 
   /** Rebuild the open source from its service, then read its sidebar and the current diagram again. */
   async function handleReloadFromService() {
+    forgetElementCards();
+    forgetMiniatures();
     if (!serviceUrl || reloading) return;
     if (room.inRoom) {
       // Inside a room Reload rebuilds the graph for everyone and nobody leaves (FR-065).
@@ -567,7 +572,9 @@ export function App() {
         <WorkspaceNote text={`A ${olderName ?? "This version"} is refused: ${olderVersion.refused}`} />
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
-          <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} />
+          <OpenDiagramContext.Provider value={handleSelectDiagram}>
+            <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} />
+          </OpenDiagramContext.Provider>
         </PageSettingsProvider>
       )}
       {shown && (

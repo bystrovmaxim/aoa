@@ -18,7 +18,7 @@ The schemas belong to the Open Gnomon Protocol, ``packages/open-gnomon-protocol/
 in this repository; the files beside this module, ``<version>.json``, are copies of them,
 kept byte for byte by ``tests/scripts/test_schema_copies.py``. A published version never
 changes; a new shape of the graph is a new file and a new entry in ``SCHEMA_VERSIONS``.
-``1.0`` is the first shape; ``1.1`` gave every edge an ``id``.
+``1.0`` is the first shape; ``1.1`` gave every edge an ``id``; ``1.2`` lets entity fields, lifecycles, roles and ``@connection`` links carry their description.
 
 Two validators share the work. ``jsonschema-rs`` decides whether a document is a
 graph — a union of 21 node shapes and 17 edge shapes makes a pure-Python check of
@@ -38,7 +38,7 @@ import jsonschema_rs
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
 
-SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1")
+SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1", "1.2")
 SHOWN_CHARACTERS = 200
 
 
