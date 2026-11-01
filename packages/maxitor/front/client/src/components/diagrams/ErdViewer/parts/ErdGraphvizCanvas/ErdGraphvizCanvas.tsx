@@ -39,7 +39,7 @@ import { enrichErdDataForViewer } from "@/lib/enrichErdData";
 import { filterGraphByKinds, kindsOnDiagram, pruneGraphToEntities } from "@/lib/erdKindFilter";
 import { changeDiskUri, changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw } from "@/lib/erdFilterPresence";
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
-import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
+import { diagramCounts, erdOfSide, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { useHalf, writesForPair } from "@/lib/half";
 import { erdChanges } from "@/lib/erdDiffCard";
@@ -290,13 +290,16 @@ export function ErdGraphvizCanvas({
   // In Diff the drawn diagram's counts go to the version button; when nothing on it changed it is drawn as One,
   // nothing faded (spec 038, FR-025, FR-026).
   const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
-  const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
-  const writesPair = writesForPair(useHalf());
+  const pairData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
+  const half = useHalf();
+  // A half draws what its version has, in its own layout; the counts and the steps stay the pair's (spec 044).
+  const drawnData = useMemo(() => (half ? erdOfSide(pairData, half.side) : pairData), [half, pairData]);
+  const writesPair = writesForPair(half);
   useEffect(() => {
     if (writesPair) setDiffCounts(counts);
   }, [counts, writesPair]);
   // The steps through what the drawing marks (spec 040, FR-025e): the list follows the filters, as the counts do.
-  const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(drawnData.entities, drawnData.relations ?? []) : []), [counts, drawnData]);
+  const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(pairData.entities, pairData.relations ?? []) : []), [counts, pairData]);
   // A step opens its change's card (spec 038, FR-028); while it stands, a hover opens none (spec 043, FR-009).
   const { card, setCard } = useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup });
   const hoverCard = useHoverCard<CardSubject>(card !== null);
@@ -691,7 +694,7 @@ export function ErdGraphvizCanvas({
           backgroundSize: "20px 20px",
         }}
       >
-        {domainRows.length > 0 && (
+        {domainRows.length > 0 && half?.side !== "b" && (
           <ErdFilterPanel
             domainRows={domainRows}
             kindRows={kindRows}
@@ -703,6 +706,11 @@ export function ErdGraphvizCanvas({
           />
         )}
         {erdEmptyOverlay}
+        {half && !erdEmptyOverlay && drawnData.entities.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={diagramCanvasEmptyMessageSx}>
+            Not in {half.name}
+          </Typography>
+        )}
         <Snackbar
           open={copyMessage !== null}
           message={copyMessage ?? ""}

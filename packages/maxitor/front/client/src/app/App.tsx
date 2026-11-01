@@ -117,11 +117,22 @@ export function App() {
   // In Diff (spec 038) the tab compares A with B; the diagram shows B until the comparison draws both.
   const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals) : null;
   const trackPoints = shown ? keysOf(shown) : [];
-  const pickerMode: PickerMode = shown?.a ? "diff" : "one";
+  const pickerMode: PickerMode = shown?.a ? (shown.split ? "split" : "diff") : "one";
   const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
   // A is Live when a pull request, which stands after it, is B (spec 041).
   const olderSource = shown?.a === "live" ? shown.live : olderVersion && !olderVersion.refused ? olderVersion.source : null;
   const diffCounts = useDiffCounts();
+  // Side by side (spec 044): each half names the version it draws, and the map reads it.
+  const halves = useMemo(
+    () =>
+      shown?.split && olderSource && shownSource
+        ? {
+            a: { side: "a" as const, read: { source: olderSource, key: shown.key }, name: olderName ?? "A" },
+            b: { side: "b" as const, read: { source: shownSource, key: shown.key }, name: shownName ?? "B" },
+          }
+        : null,
+    [shown?.split, shown?.key, olderSource, shownSource, olderName, shownName],
+  );
   // The picker opens under the version button there is now: the button may be drawn anew while it is open.
   // A follower sees the version picker open while the person they follow has it open (spec 038).
   const [ownPickerOpen, setPickerOpen] = useState(false);
@@ -435,9 +446,13 @@ export function App() {
   function pickMode(mode: PickerMode) {
     if (!shown?.b) return;
     if (mode === "one") pickVersion(shown.b);
+    else if (shown.a) opened.pickSplit(mode === "split");
     else {
       const range = oneToDiff(trackPoints, shown.b);
-      if (range) pickRange(range);
+      if (range) {
+        pickRange(range);
+        opened.pickSplit(mode === "split");
+      }
     }
   }
 
@@ -501,7 +516,7 @@ export function App() {
           {shown && hasPicker(opened.mode) && (
             <VersionButton
               ref={versionButton}
-              name={shown.a ? (phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`) : (shownName ?? "—")}
+              name={shown.a ? `${phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`}${shown.split ? " · side by side" : ""}` : (shownName ?? "—")}
               compact={phone}
               counts={shown.a ? diffCounts : null}
               open={pickerOpen}
@@ -574,7 +589,7 @@ export function App() {
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
           <OpenDiagramContext.Provider value={handleSelectDiagram}>
-            <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} />
+            <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} halves={halves} />
           </OpenDiagramContext.Provider>
         </PageSettingsProvider>
       )}
@@ -617,7 +632,7 @@ export function App() {
           />
         </VersionPicker>
       )}
-      <ViewInAddress page={page} shared={sharedSettings} camera={camera} />
+      <ViewInAddress page={page} shared={sharedSettings} camera={shown?.split ? null : camera} />
       {surface && pointersLive && !room.hidePointers && <PointerLayer surface={surface} participants={pointerPeople} followed={lead?.id ?? null} />}
       <NameDialog
         mode={room.dialog?.mode ?? null}

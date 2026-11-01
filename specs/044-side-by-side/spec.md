@@ -116,7 +116,7 @@ People in a room look at the same pair in the same view. One changes A, B, the v
 ### Edge Cases
 
 - **A whole diagram absent from one version** (a domain or a lifecycle that is added later): that half says "Not in" its version, and the other half still works.
-- **One half cannot be read**: it shows its own error and a way to retry; the other half stays.
+- **One half cannot be read**: it shows its own error; the other half stays.
 - **An element hidden by a filter in the other half**: that half says it is hidden by the filters, which differs from "Not in".
 - **A field inside a collapsed table**: the other half centres the table. A selected field in a collapsed table stays visible, as a changed row does.
 - **The pair changes while something is selected**: the selection stays, and each half locates it again or says "Not in".
