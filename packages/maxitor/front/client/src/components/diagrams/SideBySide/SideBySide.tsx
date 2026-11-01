@@ -4,6 +4,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { HalfProvider, type Half, type Side } from "@/lib/half";
+import { setHalfTracking, useHalfTracking } from "@/lib/halfPicking";
 
 type SideBySideProps = {
   a: Half;
@@ -32,6 +33,16 @@ function HalfPane({ half, head, children }: { half: Half; head?: ReactNode; chil
       </Box>
       <HalfProvider half={half}>{children}</HalfProvider>
     </Box>
+  );
+}
+
+/** The switch of tracking: whether a half's camera goes to what the pointer rests on in the other. */
+function TrackSwitch() {
+  const on = useHalfTracking();
+  return (
+    <ButtonBase role="switch" aria-checked={on} aria-label="Track" onClick={() => setHalfTracking(!on)} sx={{ flexShrink: 0, height: 20, px: 1, fontSize: 11.5, fontWeight: 600, borderRadius: "6px", color: on ? "#1d4ed8" : "#64748b", bgcolor: on ? "rgba(37, 99, 235, 0.1)" : "transparent" }}>
+      Track
+    </ButtonBase>
   );
 }
 
@@ -71,7 +82,9 @@ export function SideBySide({ a, b, children }: SideBySideProps) {
   return (
     <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
       <HalfPane half={a}>{children}</HalfPane>
-      <HalfPane half={b}>{children}</HalfPane>
+      <HalfPane half={b} head={<TrackSwitch />}>
+        {children}
+      </HalfPane>
     </Box>
   );
 }

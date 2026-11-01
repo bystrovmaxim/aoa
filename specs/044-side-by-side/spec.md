@@ -30,6 +30,8 @@ Decisions of the maintainer:
 - Q: How do collapse and the hover card behave across halves? → A: Collapse is shared like filters; a hover card opens in the half under the pointer.
 - Q: When is Side by side offered? → A: Like Diff: it needs two versions, and Live can only be B.
 - Q: What does a half show of a change inside a table? → A: An element changed on one half is marked changed on the other too: a table with a row only B has is changed on A as well. The Changes filter works as in Diff, on both halves together.
+- Q: What does the other half do when the element pointed at has no pair there? → A: On a hover or a selection of a removed element in A, or an added one in B, everything in the other half goes out.
+- Q: How does a person find what they hover when it is out of the other half's view? → A: Tracking, a switch in the head, on by default and each person's own: after the pointer rests about 300 ms, the other half's camera glides to the element, keeping its zoom; an element already in view moves nothing. On the full graph, which draws by its zoom, the camera takes the pointer half's zoom too.
 - Q: What does a click on a name do in Side by side? → A: It selects the element in both halves, and copies the name as everywhere.
 
 ## User Scenarios & Testing *(mandatory)*

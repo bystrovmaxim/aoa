@@ -55,6 +55,19 @@ export function surfaceOfHalf(side: Side): DiagramSurface | null {
   return surfaces.get(side) ?? null;
 }
 
+/** The surface of half ``side``, followed as it comes and goes. */
+export function useHalfSurface(side: Side): DiagramSurface | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    () => surfaces.get(side) ?? null,
+  );
+}
+
 /** The diagram on screen — in Side by side, B's —, or ``null`` while none is drawn. */
 export function useDiagramSurface(): DiagramSurface | null {
   return useSyncExternalStore(

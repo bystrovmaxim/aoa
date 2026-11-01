@@ -62,6 +62,56 @@ export function pickedArea(): string | null {
   return areaPicked;
 }
 
+let tracking = true;
+const trackingListeners = new Set<() => void>();
+
+/** Turn tracking on or off: whether a half's camera goes to what the pointer rests on across. It is each person's own. */
+export function setHalfTracking(on: boolean): void {
+  tracking = on;
+  for (const listener of trackingListeners) listener();
+}
+
+/** Whether a half's camera goes to what the pointer rests on across. */
+export function halfTracking(): boolean {
+  return tracking;
+}
+
+/** The tracking switch, followed as it moves. */
+export function useHalfTracking(): boolean {
+  return useSyncExternalStore((listener) => {
+    trackingListeners.add(listener);
+    return () => trackingListeners.delete(listener);
+  }, halfTracking);
+}
+
+/** How long the pointer rests before the other half's camera goes: passing over a drawing moves nothing. */
+export const TRACK_REST_MS = 300;
+
+/** How far a half goes out when what the other one points at has no pair in it. */
+const UNPAIRED_OPACITY = "0.14";
+
+/**
+ * Put a drawing out, or back. Two things may ask, the hover across and the selection, and each is said apart: the
+ * drawing stays out until neither does (spec 044).
+ */
+export function dimUnpaired(root: HTMLElement, reason: "hover" | "selection", out: boolean): void {
+  if (out) root.dataset[`unpaired${reason}`] = "1";
+  else delete root.dataset[`unpaired${reason}`];
+  root.style.opacity = root.dataset.unpairedhover || root.dataset.unpairedselection ? UNPAIRED_OPACITY : "";
+}
+
+let ratioPicked: number | null = null;
+
+/** Say the zoom of the full graph's half under the pointer: tracking there takes it, since a map draws by its zoom. */
+export function setPickedRatio(ratio: number): void {
+  ratioPicked = ratio;
+}
+
+/** The zoom of the half under the pointer, or ``null``. */
+export function pickedRatio(): number | null {
+  return ratioPicked;
+}
+
 /** A pair's steps: each half's way to go to a change, so that one step moves both. */
 const steppers = new Map<Side, (index: number) => void>();
 
@@ -163,8 +213,10 @@ export function useHalfPicking({ pannerRef, viewportRef, centreOnClient, drawing
     const elements = here ? elementsOf(panner, here) : [];
     const target = elements.at(-1) as (Element & ElementCSSInlineStyle) | undefined;
     if (!target) {
-      setNote(noteOf(latest.current.holds(selected) ? "hidden" : "absent", half.name));
-      return undefined;
+      const held = latest.current.holds(selected);
+      setNote(noteOf(held ? "hidden" : "absent", half.name));
+      dimUnpaired(panner, "selection", !held);
+      return () => dimUnpaired(panner, "selection", false);
     }
     target.style.filter = SELECTED_GLOW;
     const box = (elements[0] ?? target).getBoundingClientRect();
@@ -185,6 +237,35 @@ export function useHalfPicking({ pannerRef, viewportRef, centreOnClient, drawing
       panner.style.transition = "";
     };
   }, [active, half, selected, drawing, pannerRef, viewportRef]);
+
+  // Tracking: what the pointer rests on across, out of this half's view, is brought into it, keeping the zoom (spec 044).
+  useEffect(() => {
+    if (!active || !half) return undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const glide = () => {
+      const panner = pannerRef.current;
+      const stage = viewportRef.current?.getBoundingClientRect();
+      const across = hoverAcross(half.side);
+      const here = across ? latest.current.portable.fromIdentity(across) : null;
+      const element = here && panner ? elementsOf(panner, here)[0] : undefined;
+      if (!panner || !stage || !element || !halfTracking()) return;
+      const box = element.getBoundingClientRect();
+      if (inView(box, stage)) return;
+      panner.style.transition = `transform ${GLIDE_MS}ms ease`;
+      latest.current.centreOnClient(box.left + box.width / 2, box.top + box.height / 2);
+      setTimeout(() => {
+        panner.style.transition = "";
+      }, GLIDE_MS);
+    };
+    const stop = subscribeHalfHover(() => {
+      clearTimeout(timer);
+      timer = setTimeout(glide, TRACK_REST_MS);
+    });
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+  }, [active, half, pannerRef, viewportRef]);
 
   return note;
 }

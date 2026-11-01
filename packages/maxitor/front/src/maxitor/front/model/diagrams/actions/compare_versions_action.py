@@ -49,6 +49,8 @@ class CompareVersionsResult(BaseResult):
     counts: dict[str, dict[str, int]] = Field(description="Per kind ('nodes', 'edges'): how many were added, removed and changed")
     nodes: dict[str, str] = Field(description="Node id → 'added', 'removed' or 'changed'; a node left out is unchanged")
     edges: dict[str, str] = Field(description="Edge id → 'added', 'removed' or 'changed'; an edge left out is unchanged")
+    sha_a: str = Field(default="", description="The sha256 of A's graph")
+    sha_b: str = Field(default="", description="The sha256 of B's graph")
 
 
 @meta(description="Compare two versions of a history: the elements that changed and the counts", domain=DiagramsDomain)
@@ -84,7 +86,10 @@ class CompareVersionsAction(BaseAction[ParamsStub, CompareVersionsResult]):
                 nodes=_said(comparison.node_counts),
                 edges=_said(comparison.edge_counts),
             )
+        sha_a, sha_b = store.digests()
         return CompareVersionsResult(
+            sha_a=sha_a,
+            sha_b=sha_b,
             counts={"nodes": _counts(comparison.node_counts), "edges": _counts(comparison.edge_counts)},
             nodes=_changed(comparison.nodes),
             edges=_changed(comparison.edges),

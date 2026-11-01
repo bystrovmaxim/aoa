@@ -7,20 +7,21 @@
  * Nothing goes out from a hidden tab, while pointers are off on this page, or outside a room.
  */
 import { useEffect } from "react";
-import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { surfaceOfHalf, type DiagramSurface } from "@/rooms/diagramSurface";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
 import { inFrame } from "@/rooms/pointerFrames";
 import type { ClientMessage } from "@/rooms/protocol";
 import { POINTER_RATE, VIEWPORT_RATE, throttle } from "@/rooms/throttle";
 
-type Position = Point & { frame?: string };
+type Position = Point & { frame?: string; half?: "a" | "b" };
 type PointerMessage = Position & { kind: "mouse" | "touch" };
 
-const samePointer = (a: PointerMessage, b: PointerMessage) => a.x === b.x && a.y === b.y && a.kind === b.kind && a.frame === b.frame;
+const samePointer = (a: PointerMessage, b: PointerMessage) => a.x === b.x && a.y === b.y && a.kind === b.kind && a.frame === b.frame && a.half === b.half;
 const sameViewport = (a: DiagramViewport, b: DiagramViewport) => a.cx === b.cx && a.cy === b.cy && a.w === b.w && a.h === b.h && a.pw === b.pw && a.ph === b.ph;
 
 /** Start sending for ``surface``; returns the call that stops. */
 export function startPointerSender(surface: DiagramSurface, send: (message: ClientMessage) => void): () => void {
+  const sideOfScreen = surfaceOfHalf("b") === surface ? "b" : undefined;
   const pointer = throttle<PointerMessage>(POINTER_RATE, (p) => send({ type: "pointer", ...p }), samePointer);
   const viewport = throttle<DiagramViewport>(VIEWPORT_RATE, (v) => send({ type: "viewport", ...v }), sameViewport);
   const hidden = () => document.visibilityState === "hidden";
@@ -29,6 +30,13 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
   // that panel's; over anything else — a panel fixed to the screen — it is the screen's, from the diagram's top-left
   // corner, so it lands on the same control for someone whose window differs.
   const positionOf = (event: PointerEvent): Position | null => {
+    // In Side by side each half has its own coordinates, and the position says which (spec 044).
+    const side = event.target instanceof Element ? event.target.closest("[data-half]")?.getAttribute("data-half") : null;
+    const half = side === "a" || side === "b" ? surfaceOfHalf(side) : null;
+    if (half && (side === "a" || side === "b") && event.target instanceof Node && half.element.contains(event.target)) {
+      const point = half.toDiagram({ x: event.clientX, y: event.clientY });
+      return point ? { ...point, half: side } : null;
+    }
     if (event.target instanceof Node && surface.element.contains(event.target)) return surface.toDiagram({ x: event.clientX, y: event.clientY });
     const framed = inFrame(event.target, { x: event.clientX, y: event.clientY });
     if (framed) return framed;
@@ -52,7 +60,7 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
     const rect = surface.element.getBoundingClientRect();
     const v = viewportOf(rect, surface.toDiagram);
     // With the screen's size in pixels a follower takes the same zoom and the same top-left corner (spec 038).
-    if (v) viewport.push({ ...v, pw: rect.width, ph: rect.height });
+    if (v) viewport.push({ ...v, pw: rect.width, ph: rect.height, ...(sideOfScreen && { half: sideOfScreen }) });
   };
 
   // The whole page, captured before a panel or a picker can stop the event.
@@ -70,6 +78,24 @@ export function startPointerSender(surface: DiagramSurface, send: (message: Clie
 }
 
 /** Send while ``enabled`` and a diagram is on screen. */
+/** Send half A's screen: B's goes with the pointer sender, and a follower's half A follows this (spec 044). */
+export function useHalfScreenSender(surface: DiagramSurface | null, send: (message: ClientMessage) => void, enabled: boolean): void {
+  useEffect(() => {
+    if (!surface || !enabled) return undefined;
+    const viewport = throttle<DiagramViewport>(VIEWPORT_RATE, (v) => send({ type: "viewport", ...v, half: "a" }), sameViewport);
+    const report = () => {
+      const v = viewportOf(surface.element.getBoundingClientRect(), surface.toDiagram);
+      if (v && document.visibilityState !== "hidden") viewport.push(v);
+    };
+    const stop = surface.subscribe(report);
+    report();
+    return () => {
+      stop();
+      viewport.cancel();
+    };
+  }, [surface, send, enabled]);
+}
+
 export function usePointerSender(surface: DiagramSurface | null, send: (message: ClientMessage) => void, enabled: boolean): void {
   useEffect(() => {
     if (!surface || !enabled) return undefined;

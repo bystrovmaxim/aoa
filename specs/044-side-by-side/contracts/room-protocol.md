@@ -16,6 +16,8 @@ All additions are optional: a message without them means what it means today.
 Refused with `error` to the sender: `view` unknown; `split` or `diff` without `a`; `one` with `a`.
 A `half` other than `a` or `b` is dropped from the relay.
 
+A new room takes its view by the query parameter `opening_view`: a connection's parameter may not share a name with a message's field.
+
 ## Server → client
 
 `version` gains `view`; `welcome`'s room gains `view`. `pointer`, `click` and `viewport` pass `half` on.

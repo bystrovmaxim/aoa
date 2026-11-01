@@ -119,6 +119,13 @@ class ComparisonStore(BaseController):
         """What changed inside each action of the read's pair, computed with its comparison."""
         return (await self._read())[1]
 
+    def digests(self) -> tuple[str, str]:
+        """The sha256 of A's graph and of B's: what a room's check compares a pair by (spec 044)."""
+        pair = self._pair()
+        if pair is None:
+            raise NotComparingError("This read names no two versions to compare.")
+        return pair[0].content_sha256, pair[1].content_sha256
+
     async def _read(self) -> tuple[Comparison, ChangedInside]:
         """The read's pair as held, computed on its first read."""
         pair = self._pair()

@@ -19,9 +19,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { isZoomWheel } from "@/lib/wheelGesture";
 import { viewportOf, type DiagramViewport, type Point } from "@/rooms/coordinates";
-import type { DiagramSurface } from "@/rooms/diagramSurface";
+import { surfaceOfHalf, type DiagramSurface } from "@/rooms/diagramSurface";
 import { focusToSend, followedParticipant, sameFocus, setFollowTarget, subscribeFocus, type FocusState } from "@/rooms/focusStore";
-import { screenOfParticipant, subscribePointers, viewportOfParticipant } from "@/rooms/pointerStore";
+import { screenOfParticipant, subscribePointers, viewportOfHalfA, viewportOfParticipant } from "@/rooms/pointerStore";
 import type { ClientMessage, Participant } from "@/rooms/protocol";
 import type { RoomState } from "@/rooms/roomStore";
 import { throttle } from "@/rooms/throttle";
@@ -209,6 +209,20 @@ export type FollowOptions = {
 };
 
 /** Follow, switch and stop; while following, keep this tab on the followed person's page and centre. */
+/** While following, half A's pan follows theirs; its zoom stays this person's (spec 044, FR-033). */
+export function useFollowHalfA(surface: DiagramSurface | null, targetId: string | null): void {
+  useEffect(() => {
+    if (!surface || !targetId) return undefined;
+    let last: DiagramViewport | undefined;
+    return subscribePointers(() => {
+      const theirs = viewportOfHalfA(targetId);
+      if (!theirs || theirs === last) return;
+      last = theirs;
+      surface.centreOn({ x: theirs.cx, y: theirs.cy });
+    });
+  }, [surface, targetId]);
+}
+
 export function useFollow({ room, send, surface, page, navigate }: FollowOptions) {
   const following = followedBy(room);
   // The view comes from the end of the chain; whom you follow stays whom you chose.
@@ -263,6 +277,8 @@ export function useFollow({ room, send, surface, page, navigate }: FollowOptions
     };
     /** Where your screen goes for their screen: its centre, and a new zoom or ``null``. */
     const targetFor = (theirs: DiagramViewport): { centre: Point; zoom: number | null } | null => {
+      // In Side by side a half keeps its own zoom, following or not: only its pan follows (spec 044, FR-033).
+      if (surfaceOfHalf("b") === surface) return null;
       const rect = surface.element.getBoundingClientRect();
       const yours = viewportOf(rect, surface.toDiagram);
       const zoom = surface.view()?.zoom;

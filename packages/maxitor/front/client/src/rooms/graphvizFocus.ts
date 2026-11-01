@@ -11,7 +11,7 @@
  * element's tooltip text in a small label beside it — and so does everyone over their own diagram: the native tooltip
  * is taken off, its text kept as ``data-tooltip``, so the two always look alike (spec 038).
  */
-import { hoverAcross, reportHalfHover, subscribeHalfHover, type Portable } from "@/lib/halfPicking";
+import { dimUnpaired, hoverAcross, reportHalfHover, subscribeHalfHover, type Portable } from "@/lib/halfPicking";
 import { useHalf } from "@/lib/half";
 import { useEffect, useRef } from "react";
 import { isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
@@ -256,12 +256,15 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       const focus = mirroredFocus();
       const across = side ? hoverAcross(side) : null;
       const hover = focus && focus.page === page ? focus.hover : across && portableRef.current ? portableRef.current.fromIdentity(across) : across;
+      if (side && across && !hover) dimUnpaired(root, "hover", true);
       if (sameRef(hover, shown) && (hover === null || entered.length > 0)) return;
       sendMouse(entered, "mouseleave");
       hideLabel();
       shown = hover;
       entered = hover ? elementsOf(root, hover) : [];
       sendMouse(entered, "mouseenter");
+      // What the other half points at has no pair here: this half goes out (spec 044).
+      if (side) dimUnpaired(root, "hover", across !== null && entered.length === 0);
       // A hover from the other half lights; its card and label stand under the pointer, there (FR-015).
       if (!focus || (hover !== null && cardsRef.current?.has(hover) === true)) return;
       const anchor = entered.at(-1);

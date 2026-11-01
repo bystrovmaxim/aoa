@@ -86,6 +86,7 @@ class JoinRoomParams(BaseParams):
     history: str = Field(default="", description="The history a new room is on, its address without a key; ignored when joining")
     version: str = Field(default="", description="The version a new room on a history opens on: a short sha or 'live'")
     version_a: str = Field(default="", description="In Diff, the older version a new room compares with ``version``; empty for one version")
+    opening_view: str = Field(default="", description="A new room's view: 'split' stands the two side by side; otherwise Diff with ``version_a``, One without")
     ticket: str = Field(default="", description="The one-use ticket into a room on a private history, from OpenHistoryAction")
     origin: str = Field(default="", description="The connection's Origin header")
     host: str = Field(default="", description="The connection's Host header")
@@ -238,7 +239,8 @@ async def _history_room(
     entry = await _built(store, source, key)
     # A new room in Diff keeps its pair only when it holds (spec 038): A offered and before B.
     version_a = params.version_a if params.version_a and params.version_a != version and history.offers(params.version_a) and history.older(params.version_a, version) else None
-    room = registry.open_room(source, params.participant, history=history.name, version=version, version_a=version_a)
+    view = "one" if version_a is None else "split" if params.opening_view == "split" else "diff"
+    room = registry.open_room(source, params.participant, history=history.name, version=version, version_a=version_a, view=view)
     await box.info(Channel.business, "Room {%var.room} created on {%var.history}", room=room.id, history=history_line(history))
     return room, entry
 
