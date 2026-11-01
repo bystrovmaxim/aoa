@@ -57,8 +57,8 @@ describe("the view in the address (spec 038)", () => {
 
   it("carries where the diagram is looked at — zoom and the diagram point at the centre — and reads it back", () => {
     const params = cameraToParams({ x: 1234.5678, y: -98.76, zoom: 0.4567 });
-    expect(params).toEqual({ zoom: "0.457", at: "1234.6,-98.8" });
-    expect(paramsToCamera(new URLSearchParams(params))).toEqual({ x: 1234.6, y: -98.8, zoom: 0.457 });
+    expect(params).toEqual({ zoom: "0.457", at: "1234.57,-98.76" });
+    expect(paramsToCamera(new URLSearchParams(params))).toEqual({ x: 1234.57, y: -98.76, zoom: 0.457 });
   });
 
   it("names no view when the address has none or one out of shape", () => {
