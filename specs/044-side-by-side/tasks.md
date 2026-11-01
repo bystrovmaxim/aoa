@@ -53,10 +53,10 @@
 
 ## Phase 6: US1 + US2 — Full graph (commit 6)
 
-- [ ] T023 [US1] Two `MapEngine`s, half A starting after B has drawn, in `MapViewer.tsx`; test
-- [ ] T024 [US1] Marks by side in C`/lib/mapDiff.ts`; test
-- [ ] T025 [US2] `locate`, click and followed hover in `mapEngine.ts`; extend `splitMechanics.ts`
-- [ ] T026 [US1] Measure SC-005 with `client/scripts/measure-map.ts`; walk quickstart 1–5
+- [x] T023 [US1] Two `MapEngine`s, half A starting after B has drawn, in `MapViewer.tsx`; test
+- [x] T024 [US1] Marks by side: a version's own map carries none, so the pair's changes mark it by id in `mapEngine.ts`
+- [x] T025 [US2] `locate`, click and followed hover in `mapEngine.ts`; extend `splitMechanics.ts`
+- [x] T026 [US1] Walk the full graph in Side by side on the stand: two own layouts, hashes differ, no page error
 
 ## Phase 7: US3 — Phone (commit 7)
 

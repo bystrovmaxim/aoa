@@ -11,6 +11,7 @@ import Sigma from "sigma";
 import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigma/rendering";
 
 import type { Half, Side } from "@/lib/half";
+import { hoverAcross, pickedArea, reportHalfHover, setPickedArea, subscribeHalfHover, type Located } from "@/lib/halfPicking";
 import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
 import type { CardProjection, CardSubject } from "@/components/diagrams/ElementCard";
 import { cardBeside } from "@/lib/cardPlace";
@@ -73,6 +74,8 @@ export type MapEvents = {
   onCard: (card: MapCard | null) => void;
   onStep: (position: number | null) => void;
   onHoverElement: (subject: CardSubject | null, now?: boolean) => void;
+  /** In Side by side, a click on a node, or on nothing (spec 044). */
+  onPick?: (node: string | null) => void;
 };
 
 type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
@@ -181,6 +184,10 @@ export class MapEngine {
   private readonly mostNodes = window.matchMedia("(max-width: 600px)").matches ? MOST_NODES_ON_A_PHONE : MOST_NODES;
   private levelTwo = 0;
   private levelThree = 0;
+  /** In a half: what the pair marks, by id: a version's own map carries no marks of its own. */
+  private readonly marks: ReadonlyMap<string, MapMark>;
+  /** In a half: the element selected, lit as a hover is. */
+  private pinned: string | null = null;
   private hovered: string | null = null;
   private hoveredLink: string | null = null;
   private onBundle = false;
@@ -200,6 +207,7 @@ export class MapEngine {
     private readonly events: MapEvents,
     private readonly half: Half | null,
   ) {
+    this.marks = new Map(half ? changes.map((change) => [change.id, change.status]) : []);
     this.areaIndex = new Map(overview.areas.map((area, index) => [area.id, index]));
     this.facts = mapFacts(overview);
     this.paint = overview.links_changed === undefined ? "domains" : "changes";
@@ -240,8 +248,13 @@ export class MapEngine {
     this.sigma.on("leaveEdge", () => this.onLeaveBundle());
     this.fit();
     this.restoreKeptView();
-    this.unregister = registerDiagramSurface(this.surface());
-    this.stopHearing = subscribeFocus(() => this.followHover());
+    this.unregister = registerDiagramSurface(this.surface(), half?.side ?? null);
+    const stopFollowing = subscribeFocus(() => this.followHover());
+    const stopAcross = subscribeHalfHover(() => this.hoverFromAcross());
+    this.stopHearing = () => {
+      stopFollowing();
+      stopAcross();
+    };
     this.setView({ filters: this.filters, paint: this.paint, changes });
   }
 
@@ -509,7 +522,7 @@ export class MapEngine {
 
   private addNode(node: MapNode, area: number): void {
     if (this.graph.hasNode(node.id)) return;
-    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type], diff: node.diff, chain: node.chain ?? 0, status: node.diff ?? node.glance ?? "unchanged" });
+    this.graph.addNode(node.id, { x: node.x, y: node.y, size: node.type === "Domain" ? DOMAIN_NODE_SIZE : NODE_SIZE[node.level], label: node.label, type2: node.type, level: node.level, area, image: this.icons[node.type], diff: node.diff ?? this.marks.get(node.id), chain: node.chain ?? 0, status: node.diff ?? this.marks.get(node.id) ?? node.glance ?? "unchanged" });
   }
 
   private addLinks(index: number): void {
@@ -524,7 +537,7 @@ export class MapEngine {
 
   private addLink(link: MapLink): void {
     if (this.graph.hasEdge(link.id) || !this.graph.hasNode(link.source) || !this.graph.hasNode(link.target)) return;
-    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level, diff: link.diff });
+    this.graph.addDirectedEdgeWithKey(link.id, link.source, link.target, { level: link.level, diff: link.diff ?? this.marks.get(link.id) });
   }
 
   private letGo(): void {
@@ -591,7 +604,39 @@ export class MapEngine {
     if (isFollowing()) return;
     const real = node !== null && !this.graph.getNodeAttribute(node, "centre");
     reportHover(real ? { kind: "node", id: node } : null);
-    this.showHover(node);
+    if (this.half) reportHalfHover(this.half.side, real ? { kind: "node", id: node } : null);
+    this.showHover(node ?? this.pinned);
+  }
+
+  /** The other half's hover lights the same node here, by identity; its card stands there (spec 044, FR-010). */
+  private hoverFromAcross(): void {
+    if (!this.half) return;
+    const hover = hoverAcross(this.half.side);
+    const node = hover?.kind === "node" && this.graph.hasNode(hover.id) ? hover.id : this.pinned;
+    if (node !== this.hovered) this.showHover(node, true);
+  }
+
+  /**
+   * Bring a selected node into view, keeping the zoom, or say why not (spec 044). The half that was clicked says which
+   * area holds it, so this one can read that area first; without that, a node not read yet stays where it is.
+   */
+  async locate(node: string | null): Promise<Located> {
+    this.pinned = node;
+    this.showHover(node, true);
+    if (node === null) return "in_view";
+    const area = pickedArea();
+    if (!this.graph.hasNode(node) && area && this.areaIndex.has(area)) await this.ensure(area, 3);
+    if (this.killed || !this.graph.hasNode(node)) return "absent";
+    this.pinned = node;
+    this.showHover(node, true);
+    const attributes = this.graph.getNodeAttributes(node);
+    if (!this.stays(node, attributes)) return "hidden";
+    const place = this.sigma.graphToViewport({ x: attributes.x as number, y: attributes.y as number });
+    const { clientWidth, clientHeight } = this.elements.stage;
+    if (!this.half?.phone && place.x >= 0 && place.y >= 0 && place.x <= clientWidth && place.y <= clientHeight) return "in_view";
+    const target = this.sigma.viewportToFramedGraph(place);
+    await this.sigma.getCamera().animate({ x: target.x, y: target.y }, { duration: ARRIVAL_MS, easing: "cubicInOut" });
+    return "moved";
   }
 
   private followHover(): void {
@@ -667,7 +712,7 @@ export class MapEngine {
     this.events.onHoverElement(this.linkSubject(edge, x, y));
   }
 
-  private showHover(node: string | null): void {
+  private showHover(node: string | null, quiet = false): void {
     const { label, stage } = this.elements;
     const attributes = node ? this.graph.getNodeAttributes(node) : null;
     stage.style.cursor = attributes && !attributes.centre ? "pointer" : "";
@@ -675,11 +720,11 @@ export class MapEngine {
       this.hovered = null;
       this.near = null;
       label.style.display = "none";
-      if (!isFollowing()) this.events.onHoverElement(null);
+      if (!isFollowing() && !quiet) this.events.onHoverElement(null);
     } else {
       this.hovered = node;
       this.near = new Set([node, ...this.graph.neighbors(node)]);
-      if (!isFollowing()) this.events.onHoverElement(this.nodeSubject(node));
+      if (!isFollowing() && !quiet) this.events.onHoverElement(this.nodeSubject(node));
     }
     this.sigma.refresh({ skipIndexation: true });
   }
@@ -719,12 +764,17 @@ export class MapEngine {
     this.closeCard();
     const badge = this.badges.find((each) => x >= each.x && x <= each.x + each.width && y >= each.y && y <= each.y + each.height);
     const first = badge ? firstChangeOf(this.changes, badge.area) : -1;
+    if (!badge) this.events.onPick?.(null);
     if (first >= 0) this.goTo(first);
     else this.flyToAreaAt(x, y);
   }
 
   private onClickNode(node: string): void {
     const attributes = this.graph.getNodeAttributes(node);
+    if (!attributes.centre) {
+      setPickedArea(this.overview.areas[attributes.area as number]?.id ?? null);
+      this.events.onPick?.(node);
+    }
     const position = this.marking && attributes.diff ? this.changes.findIndex((change) => change.id === node) : -1;
     if (position < 0) {
       this.closeCard();
@@ -770,6 +820,12 @@ export class MapEngine {
     void this.flyTo(position);
   }
 
+  /** Go to a change by its id: a half's list holds only what its version has, and a change it lacks moves nothing. */
+  goToChange(id: string): void {
+    const position = this.changes.findIndex((change) => change.id === id);
+    if (position >= 0) void this.flyTo(position);
+  }
+
   /** Fly to a change, read what it stands in if that has not been read, and open its card (FR-025a, FR-025c). */
   private async flyTo(position: number): Promise<void> {
     const change = this.changes[position];
@@ -780,13 +836,16 @@ export class MapEngine {
     const flight = this.flight;
     this.closeCard();
     this.events.onStep(position);
-    const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport({ x: change.x, y: change.y }));
+    // A change's place is the pair's drawing; a half stands it where its own version has it.
+    if (this.half) await this.ensure(change.area, level);
+    const own = this.half && this.graph.hasNode(change.id) ? this.graph.getNodeAttributes(change.id) : null;
+    const target = this.sigma.viewportToFramedGraph(this.sigma.graphToViewport(own ? { x: own.x as number, y: own.y as number } : { x: change.x, y: change.y }));
     const { clientWidth, clientHeight } = this.elements.stage;
     const ratio = Math.max(CLOSEST_RATIO, ARRIVAL_WIDTH[level] / LEVEL_SCREEN_PX, ((change.span ?? 0) * LINK_MARGIN) / Math.min(clientWidth, clientHeight));
     await Promise.all([this.sigma.getCamera().animate({ x: target.x, y: target.y, ratio }, { duration: ARRIVAL_MS, easing: "cubicInOut" }), this.ensure(change.area, level)]);
     if (flight !== this.flight || this.killed) return;
     this.sigma.scheduleRefresh();
-    this.openCard(change);
+    if (this.half?.side !== "a" || change.status === "removed") this.openCard(change);
   }
 
   /** A click on a folded domain flies to it (FR-007). */
