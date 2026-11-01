@@ -8,6 +8,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import type { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { useHalf, writesForPair } from "@/lib/half";
+import { joinSteps, stepBoth, type Portable } from "@/lib/halfPicking";
+import { usePageSetting } from "@/lib/pageSettings";
+import type { ElementRef } from "@/rooms/focusStore";
+import { elementRefOf } from "@/rooms/graphvizFocus";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { isFollowing } from "@/rooms/focusStore";
 
@@ -36,11 +40,16 @@ export type GraphvizChangeSteppingOptions = {
   panZoom: Pick<ReturnType<typeof useSvgPanZoom>, "getScale" | "setScale" | "centreOnClient" | "onTransform">;
   /** The drawing on screen: a new one needs its light again. */
   svgMarkup: string;
+  /** What names a node on this drawing, and the refs across a pair; for Side by side. */
+  nodeKind?: "node" | "table";
+  portable?: Portable | null;
 };
 
 /** The card and the position of a Graphviz diagram's steps, and ``openCard`` for a click that opens one. */
-export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup }: GraphvizChangeSteppingOptions) {
-  const writesPair = writesForPair(useHalf());
+export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, panZoom, svgMarkup, nodeKind = "node", portable }: GraphvizChangeSteppingOptions) {
+  const half = useHalf();
+  const writesPair = writesForPair(half);
+  const [, setSelected] = usePageSetting<ElementRef | null>("selected", null);
   const [card, setCard] = useState<OpenCard | null>(null);
   const changesRef = useRef(changes);
   changesRef.current = changes;
@@ -60,12 +69,17 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
     (index: number) => {
       setPosition(index);
       setCard(null);
+      if (half && !cellOf(index)) return;
       if (panZoom.getScale() < STEP_SCALE) panZoom.setScale(STEP_SCALE);
       const cell = cellOf(index)?.getBoundingClientRect();
       if (cell) panZoom.centreOnClient(cell.left + cell.width / 2, cell.top + cell.height / 2);
-      showCard(index);
+      const element = half ? cellOf(index) : null;
+      const ref = element ? elementRefOf(element, nodeKind) : null;
+      // A step is a click: it selects in both; the card stands in B, or in A for what only A has (spec 044, FR-014).
+      if (ref) setSelected(portable ? portable.toIdentity(ref) : ref);
+      if (half?.side !== "a" || changesRef.current[index]?.status === "removed") showCard(index);
     },
-    [cellOf, panZoom, showCard],
+    [cellOf, half, nodeKind, panZoom, portable, setSelected, showCard],
   );
   const mirrorChange = useCallback(
     (index: number | null, open: boolean) => {
@@ -95,9 +109,11 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
       }),
     [panZoom.onTransform, showCard],
   );
+  const side = half?.side ?? null;
+  useEffect(() => (side ? joinSteps(side, goToChange) : undefined), [side, goToChange]);
   useEffect(() => {
-    if (writesPair) setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: goToChange, mirror: mirrorChange } : null);
-  }, [changes, position, card, goToChange, mirrorChange]);
+    if (writesPair) setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: side ? stepBoth : goToChange, mirror: mirrorChange } : null);
+  }, [changes, position, card, goToChange, mirrorChange, side, writesPair]);
   useEffect(() => () => {
     if (writesPair) setChangeStepping(null);
   }, [writesPair]);

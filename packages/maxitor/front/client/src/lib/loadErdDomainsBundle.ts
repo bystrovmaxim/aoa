@@ -1,5 +1,5 @@
 // src/lib/loadErdDomainsBundle.ts
-import { getActiveBase } from "@/api/client";
+import { getActiveBase, getActiveSource } from "@/api/client";
 import { compareVersions } from "@/api/compare";
 import { listDomains, listEntities, listEntityKinds } from "@/api/erd";
 import { markErd, mergeErdSlices, mergeRelations, type ErdSlice } from "@/lib/erdDiff";
@@ -112,12 +112,24 @@ export async function loadErdDomainSlicesBundle(
   return { domains, domain_qualifiers, domain_qualifier_colors };
 }
 
+/** The reads of a pair under way: the two halves of Side by side ask for the same one at once (spec 044). */
+const pairReads = new Map<string, Promise<ErdDomainsBundle>>();
+
 /**
  * The ERD of two versions (spec 038, research R10): A's and B's domains, and each domain's tables, rows and lines
  * read from both and merged, then marked with what the comparison says. A domain that only one version has comes
  * from that one alone, so everything on it is added or removed.
  */
-async function loadErdDiffBundle(selection: ErdViewerSelection, includeOneHopNeighbors: boolean): Promise<ErdDomainsBundle> {
+function loadErdDiffBundle(selection: ErdViewerSelection, includeOneHopNeighbors: boolean): Promise<ErdDomainsBundle> {
+  const key = `${getActiveBase()?.source}|${getActiveSource()}|${selection.qualifier}|${includeOneHopNeighbors}`;
+  const running = pairReads.get(key);
+  if (running) return running;
+  const reading = readErdDiffBundle(selection, includeOneHopNeighbors).finally(() => pairReads.delete(key));
+  pairReads.set(key, reading);
+  return reading;
+}
+
+async function readErdDiffBundle(selection: ErdViewerSelection, includeOneHopNeighbors: boolean): Promise<ErdDomainsBundle> {
   const base = getActiveBase()!;
   const [newerListing, olderListing, kinds, compared] = await Promise.all([listDomains(), listDomains(base), listEntityKinds(), compareVersions()]);
   const rows = [...newerListing.list_domains, ...olderListing.list_domains.filter((row) => !newerListing.list_domains.some((each) => each.qualname === row.qualname))];

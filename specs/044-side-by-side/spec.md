@@ -29,6 +29,7 @@ Decisions of the maintainer:
 - Q: How many counts and steppers does a pair have? → A: One of each; a step acts as a click and selects in both halves.
 - Q: How do collapse and the hover card behave across halves? → A: Collapse is shared like filters; a hover card opens in the half under the pointer.
 - Q: When is Side by side offered? → A: Like Diff: it needs two versions, and Live can only be B.
+- Q: What does a half show of a change inside a table? → A: An element changed on one half is marked changed on the other too: a table with a row only B has is changed on A as well. The Changes filter works as in Diff, on both halves together.
 - Q: What does a click on a name do in Side by side? → A: It selects the element in both halves, and copies the name as everywhere.
 
 ## User Scenarios & Testing *(mandatory)*

@@ -34,3 +34,11 @@ describe("erdFolds", () => {
     expect(erdFolds([entity], relations, true, new Set()).get("t")).toEqual({ hidden: new Set([2, 5]), collapsed: true });
   });
 });
+
+describe("a selected row (spec 044)", () => {
+  it("stays in a collapsed table", () => {
+    const entity = { id: "t", fields: [{ name: "plain" }, { name: "kept" }] };
+    expect(rowsToHide(entity, [])).toEqual(new Set([0, 1]));
+    expect(rowsToHide(entity, [], "t:kept")).toEqual(new Set([0]));
+  });
+});

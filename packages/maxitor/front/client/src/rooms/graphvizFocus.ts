@@ -11,6 +11,8 @@
  * element's tooltip text in a small label beside it — and so does everyone over their own diagram: the native tooltip
  * is taken off, its text kept as ``data-tooltip``, so the two always look alike (spec 038).
  */
+import { hoverAcross, reportHalfHover, subscribeHalfHover, type Portable } from "@/lib/halfPicking";
+import { useHalf } from "@/lib/half";
 import { useEffect, useRef } from "react";
 import { isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
 
@@ -30,7 +32,8 @@ export function elementRefOf(target: Element, nodeKind: "node" | "table"): Eleme
   const cell = target.closest(ROW_CELL);
   if (cell) return { kind: "row", id: cell.id.slice(2) };
   const edge = target.closest("g.edge");
-  if (edge) return { kind: "edge", id: edge.id || titleOf(edge) };
+  // Graphviz's own ``edge<n>`` is a place on one drawing; a line's title is the same on any.
+  if (edge) return { kind: "edge", id: /^edge\d+$/.test(edge.id) ? titleOf(edge) : edge.id || titleOf(edge) };
   const node = target.closest("g.node");
   const title = node ? titleOf(node) : "";
   return title ? { kind: nodeKind, id: title } : null;
@@ -141,9 +144,16 @@ export type HoverCards = {
  * new one. ``nodeKind`` names a node: ``table`` on the ERD, ``node`` elsewhere. ``cards`` takes what
  * has a card; the rest keeps its label.
  */
-export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, page: string | null, nodeKind: "node" | "table", cards?: HoverCards): void {
+export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, page: string | null, nodeKind: "node" | "table", cards?: HoverCards, portable?: Portable | null): void {
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
+  // In Side by side a hover passes to the other half by identity, the way a followed person's is replayed (spec 044).
+  const side = useHalf()?.side ?? null;
+  const portableRef = useRef(portable);
+  portableRef.current = portable;
+  const toAcross = (ref: ElementRef | null) => {
+    if (side) reportHalfHover(side, ref && portableRef.current ? portableRef.current.toIdentity(ref) : ref);
+  };
   // No native tooltip on any drawing: the app's own label shows instead, the same for everyone. The viewer places its
   // SVG after this hook's effects run, and may place it again, so every new drawing is caught as it lands.
   useEffect(() => {
@@ -188,12 +198,14 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       if (!event.isTrusted || isFollowing() || !(event.target instanceof Element)) return;
       const ref = elementRefOf(event.target, nodeKind);
       reportHover(ref);
+      toAcross(ref);
       // A press is a drag on its way: what passes under the pointer then is not being looked at.
       if (event.buttons === 0) show(ref);
     };
     const onLeave = (event: MouseEvent) => {
       if (!event.isTrusted || isFollowing()) return;
       reportHover(null);
+      toAcross(null);
       show(null);
     };
     // A press or a wheel hides it, as a native tooltip goes away.
@@ -215,7 +227,7 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     root.addEventListener("mouseleave", onLeave, { signal: ac.signal });
     for (const type of HELD_BACK) root.addEventListener(type, holdBack, { capture: true, signal: ac.signal });
     return () => ac.abort();
-  }, [root, nodeKind]);
+  }, [root, nodeKind, side]);
 
   // The follower: replay the followed person's hover on this drawing and show its tooltip.
   useEffect(() => {
@@ -242,14 +254,16 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     };
     const apply = () => {
       const focus = mirroredFocus();
-      const hover = focus && focus.page === page ? focus.hover : null;
+      const across = side ? hoverAcross(side) : null;
+      const hover = focus && focus.page === page ? focus.hover : across && portableRef.current ? portableRef.current.fromIdentity(across) : across;
       if (sameRef(hover, shown) && (hover === null || entered.length > 0)) return;
       sendMouse(entered, "mouseleave");
       hideLabel();
       shown = hover;
       entered = hover ? elementsOf(root, hover) : [];
       sendMouse(entered, "mouseenter");
-      if (hover !== null && cardsRef.current?.has(hover) === true) return;
+      // A hover from the other half lights; its card and label stand under the pointer, there (FR-015).
+      if (!focus || (hover !== null && cardsRef.current?.has(hover) === true)) return;
       const anchor = entered.at(-1);
       const text = anchor && focus?.tooltip && sameRef(focus.tooltip, hover) ? tooltipOf(anchor) : "";
       if (!text) return;
@@ -276,12 +290,14 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
     };
     applyAll();
     const unsubscribe = subscribeFocus(applyAll);
+    const stopAcross = subscribeHalfHover(apply);
     return () => {
       unsubscribe();
+      stopAcross();
       sendMouse(entered, "mouseleave");
       hideLabel();
       if (frame !== null) cancelAnimationFrame(frame);
       label.remove();
     };
-  }, [root, drawing, page]);
+  }, [root, drawing, page, side]);
 }
