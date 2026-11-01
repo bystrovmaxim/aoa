@@ -11,7 +11,7 @@
  * element's tooltip text in a small label beside it — and so does everyone over their own diagram: the native tooltip
  * is taken off, its text kept as ``data-tooltip``, so the two always look alike (spec 038).
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { isFollowing, mirroredFocus, reportHover, sameRef, subscribeFocus, type ElementRef } from "@/rooms/focusStore";
 
 /** Mouse events a follower's own mouse may not deliver to the diagram while following. */
@@ -97,9 +97,11 @@ function makeLabel(kind: "follow" | "own" = "follow"): HTMLDivElement {
     pointerEvents: "none",
     maxWidth: "320px",
     padding: "4px 8px",
-    borderRadius: "4px",
-    background: "rgba(97, 97, 97, 0.92)",
-    color: "#fff",
+    borderRadius: "6px",
+    background: "#fff",
+    color: "#0f172a",
+    border: "1px solid rgba(15, 23, 42, 0.1)",
+    boxShadow: "0 4px 16px rgba(15, 23, 42, 0.12)",
     font: "11px/1.4 Helvetica, Arial, sans-serif",
     whiteSpace: "pre-wrap",
     display: "none",
@@ -122,12 +124,26 @@ export function placeLabel(label: HTMLDivElement, element: Element): void {
   label.style.top = `${top}px`;
 }
 
+/** Where a card stands in place of the label (spec 043): the elements under the hover, or ``null`` when it ended. */
+export type HoverCards = {
+  /** Whether ``ref`` has a card. */
+  has(ref: ElementRef): boolean;
+  show(ref: ElementRef | null, elements: readonly Element[]): void;
+  /** The followed person's card, as they hold it: at once. */
+  open(ref: ElementRef, elements: readonly Element[]): void;
+  /** A press, a wheel, or the followed person's card gone: no waiting. */
+  close(): void;
+};
+
 /**
  * Share the hover of the Graphviz drawing inside ``root`` with followers, and show the followed
  * person's. ``drawing`` changes whenever the SVG is replaced, so a mirrored hover is replayed on the
- * new one. ``nodeKind`` names a node: ``table`` on the ERD, ``node`` elsewhere.
+ * new one. ``nodeKind`` names a node: ``table`` on the ERD, ``node`` elsewhere. ``cards`` takes what
+ * has a card; the rest keeps its label.
  */
-export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, page: string | null, nodeKind: "node" | "table"): void {
+export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, page: string | null, nodeKind: "node" | "table", cards?: HoverCards): void {
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
   // No native tooltip on any drawing: the app's own label shows instead, the same for everyone. The viewer places its
   // SVG after this hook's effects run, and may place it again, so every new drawing is caught as it lands.
   useEffect(() => {
@@ -156,6 +172,9 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       hide();
       shown = ref;
       const elements = ref ? elementsOf(root, ref) : [];
+      const carded = ref !== null && cardsRef.current?.has(ref) === true;
+      cardsRef.current?.show(carded ? ref : null, elements);
+      if (carded) return;
       const anchor = elements.at(-1);
       const text = anchor ? tooltipOf(anchor) : "";
       if (!anchor || !text) return;
@@ -169,7 +188,8 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       if (!event.isTrusted || isFollowing() || !(event.target instanceof Element)) return;
       const ref = elementRefOf(event.target, nodeKind);
       reportHover(ref);
-      show(ref);
+      // A press is a drag on its way: what passes under the pointer then is not being looked at.
+      if (event.buttons === 0) show(ref);
     };
     const onLeave = (event: MouseEvent) => {
       if (!event.isTrusted || isFollowing()) return;
@@ -177,8 +197,12 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       show(null);
     };
     // A press or a wheel hides it, as a native tooltip goes away.
-    root.addEventListener("pointerdown", () => show(null), { signal: ac.signal });
-    root.addEventListener("wheel", () => show(null), { signal: ac.signal, passive: true });
+    const dismiss = () => {
+      show(null);
+      cardsRef.current?.close();
+    };
+    root.addEventListener("pointerdown", dismiss, { signal: ac.signal });
+    root.addEventListener("wheel", dismiss, { signal: ac.signal, passive: true });
     ac.signal.addEventListener("abort", () => {
       hide();
       label.remove();
@@ -225,6 +249,7 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
       shown = hover;
       entered = hover ? elementsOf(root, hover) : [];
       sendMouse(entered, "mouseenter");
+      if (hover !== null && cardsRef.current?.has(hover) === true) return;
       const anchor = entered.at(-1);
       const text = anchor && focus?.tooltip && sameRef(focus.tooltip, hover) ? tooltipOf(anchor) : "";
       if (!text) return;
@@ -234,8 +259,23 @@ export function useGraphvizFocus(root: HTMLElement | null, drawing: unknown, pag
         follow();
       }, TOOLTIP_DELAY_MS);
     };
-    apply();
-    const unsubscribe = subscribeFocus(apply);
+    // The followed person's card goes by what they say of it, not by their hover: on the card they hover nothing.
+    let card: ElementRef | null = null;
+    const applyCard = () => {
+      const focus = mirroredFocus();
+      if (!focus) return;
+      const said = focus.page === page ? (focus.panels.card?.ref ?? null) : null;
+      if (sameRef(said, card)) return;
+      card = said;
+      if (said) cardsRef.current?.open(said, elementsOf(root, said));
+      else cardsRef.current?.close();
+    };
+    const applyAll = () => {
+      apply();
+      applyCard();
+    };
+    applyAll();
+    const unsubscribe = subscribeFocus(applyAll);
     return () => {
       unsubscribe();
       sendMouse(entered, "mouseleave");

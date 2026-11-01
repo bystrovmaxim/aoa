@@ -163,6 +163,7 @@ def test_a_reference_field_is_a_relation_entry(diagram: dict[str, Any]) -> None:
             "target_cardinality": "one",
             "source_field": "currency",
             "target_field": None,
+        "description": None,
         },
     ]
 

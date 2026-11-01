@@ -6,7 +6,7 @@
  * ``<g id="a_fn<i>_<n>">`` for a field name). A press counts as a click only when the pointer moved at
  * most 4 px before release, so panning the canvas by dragging never copies. When the browser refuses the
  * clipboard, the name is selected instead and the message says how to copy it by hand. In Diff (spec 038) a
- * name carries its sign (``+ region``): the bare name is copied, and a marked cell opens its card instead.
+ * name carries its sign (``+ region``): the bare name is copied. A tap opens the card, whose button copies (spec 043).
  */
 
 const NAME_CELL = 'g[id^="a_hn"], g[id^="a_fn"]';
@@ -28,14 +28,14 @@ export function bareName(text: string): string {
   return text.trim().replace(/^[+−~] /, "");
 }
 
-/** Copy names clicked inside ``root``; ``report`` receives the message to show; a cell ``skip`` takes is left alone. */
-export function bindNameCopy(root: HTMLElement, report: (message: string) => void, signal: AbortSignal, skip: (cell: Element) => boolean = () => false): void {
+/** Copy names clicked inside ``root``; ``report`` receives the message to show. */
+export function bindNameCopy(root: HTMLElement, report: (message: string) => void, signal: AbortSignal): void {
   let press: { x: number; y: number; cell: Element } | null = null;
   root.addEventListener(
     "pointerdown",
     (event) => {
-      const cell = (event.target as Element | null)?.closest?.(NAME_CELL) ?? null;
-      press = cell && !skip(cell) ? { x: event.clientX, y: event.clientY, cell } : null;
+      const cell = event.pointerType === "touch" ? null : ((event.target as Element | null)?.closest?.(NAME_CELL) ?? null);
+      press = cell ? { x: event.clientX, y: event.clientY, cell } : null;
     },
     { signal },
   );

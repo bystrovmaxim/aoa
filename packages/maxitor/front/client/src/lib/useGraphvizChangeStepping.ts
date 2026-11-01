@@ -8,6 +8,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import type { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
+import { isFollowing } from "@/rooms/focusStore";
 
 /** One change a Graphviz diagram draws: what it steps to, and its card where it has one. */
 export type GraphvizChange = ChangeEntry & { cell: string; card: CardTarget | null };
@@ -31,7 +32,7 @@ export type GraphvizChangeSteppingOptions = {
   changes: readonly GraphvizChange[];
   pannerRef: RefObject<HTMLElement | null>;
   viewportRef: RefObject<HTMLElement | null>;
-  panZoom: Pick<ReturnType<typeof useSvgPanZoom>, "getScale" | "setScale" | "centreOnClient">;
+  panZoom: Pick<ReturnType<typeof useSvgPanZoom>, "getScale" | "setScale" | "centreOnClient" | "onTransform">;
   /** The drawing on screen: a new one needs its light again. */
   svgMarkup: string;
 };
@@ -72,11 +73,26 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
     },
     [showCard],
   );
-  const openCard = useCallback((target: CardTarget, at: { x: number; y: number }) => {
-    setCard({ target, at });
-    const stepped = changesRef.current.findIndex((change) => change.card?.elements[0]?.id === target.elements[0]?.id);
-    setPosition(stepped >= 0 ? stepped : null);
-  }, []);
+  /** A card of a change stands by its element, wherever the click was: so it stands for a follower too. */
+  const openCard = useCallback(
+    (target: CardTarget, at: { x: number; y: number }) => {
+      const stepped = changesRef.current.findIndex((change) => change.card?.elements[0]?.id === target.elements[0]?.id);
+      setPosition(stepped >= 0 ? stepped : null);
+      if (stepped >= 0) showCard(stepped);
+      else setCard({ target, at });
+    },
+    [showCard],
+  );
+  // A follower's picture glides after the followed person's: the card goes with what it stands by.
+  const followed = useRef<number | null>(null);
+  followed.current = card ? position : null;
+  useEffect(
+    () =>
+      panZoom.onTransform(() => {
+        if (isFollowing() && followed.current !== null) showCard(followed.current);
+      }),
+    [panZoom.onTransform, showCard],
+  );
   useEffect(() => {
     setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: goToChange, mirror: mirrorChange } : null);
   }, [changes, position, card, goToChange, mirrorChange]);

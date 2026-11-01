@@ -74,11 +74,22 @@ function relationStatus(relation: ErdRelation, compared: CompareResult): DiffSta
   return compared.edges[`${relation.source}|parent_entity|${relation.target}`] ?? compared.edges[`${relation.target}|parent_entity|${relation.source}`] ?? "unchanged";
 }
 
+/** The tables whose domain differs between the versions: their ``domain`` edges changed, whatever their own properties did. */
+function movedTables(compared: CompareResult): Set<string> {
+  return new Set(Object.keys(compared.edges).flatMap((id) => {
+    const at = id.indexOf("|domain|");
+    return at > 0 ? [id.slice(0, at)] : [];
+  }));
+}
+
 /** Every table, row and line of a merged slice marked with its status. */
 export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
+  const moved = movedTables(compared);
   const entities = (slice.entities ?? []).map((entity) => ({
     ...entity,
-    diff: compared.nodes[entity.id] ?? "unchanged",
+    // A table that stands in another domain changed, though its own properties did not (spec 043).
+    diff: compared.nodes[entity.id] ?? (moved.has(entity.id) ? "changed" : "unchanged"),
+    movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
     fields: (entity.fields ?? []).map((field) => ({
       ...field,
       diff: strongest(

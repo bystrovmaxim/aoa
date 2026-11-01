@@ -1,7 +1,7 @@
 // src/lib/erdFilterPresence.test.ts
 import { describe, expect, it } from "vitest";
 import type { ErdDiff, ErdEntity, ErdGraphPayload } from "@/lib/buildDotSource";
-import { changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw, withOneHop } from "./erdFilterPresence";
+import { changeDiskUri, changesOnDiagram, domainsOn, filterGraphByChanges, onScreen, tablesToDraw, withOneHop } from "./erdFilterPresence";
 
 const table = (id: string, domain: string, kind: string, diff?: ErdDiff, rowDiff?: ErdDiff): ErdEntity =>
   ({ id, label: id, domain_qualname: domain, entity_kind: kind, diff, fields: [{ name: "id", type: "str", diff: rowDiff }] }) as unknown as ErdEntity;
@@ -83,5 +83,20 @@ describe("a kind of change switched off", () => {
     const shown = withOneHop(filterGraphByChanges(graph, new Set(["unchanged"])), graph);
     expect(shown.entities.map((entity) => entity.id)).toEqual(["New", "Same"]);
     expect(shown.relations).toEqual([{ source: "New", target: "Same" }]);
+  });
+});
+
+describe("the disk of a status", () => {
+  const svg = (uri: string) => decodeURIComponent(uri);
+
+  it("gives unchanged its sign, whatever paints", () => {
+    expect(svg(changeDiskUri("unchanged"))).toContain(">=<");
+    expect(changeDiskUri("unchanged", false)).toBe(changeDiskUri("unchanged"));
+  });
+
+  it("greys a change only when something else paints, and keeps its sign", () => {
+    expect(svg(changeDiskUri("added"))).toContain("#16a34a");
+    expect(svg(changeDiskUri("added", false))).not.toContain("#16a34a");
+    expect(svg(changeDiskUri("added", false))).toContain(">+<");
   });
 });
