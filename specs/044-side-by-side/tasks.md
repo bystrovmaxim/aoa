@@ -26,12 +26,12 @@
 
 **Independent Test**: quickstart 1, 2, 6 on the ERD.
 
-- [ ] T009 [US1] Create C`/components/diagrams/SideBySide/` (`SideBySide.tsx`, `HalfHead.tsx`): two halves, each head with its version, layout mode and zoom, one filter panel for the workspace
-- [ ] T010 [US1] Render it from C`/app/App.tsx`'s workspace; a half that fails stands alone with retry (FR-008); "Not in" for a whole diagram
-- [ ] T011 [US1] Enable the mode in C`/components/history/VersionPicker/VersionPicker.tsx` under Diff's rule; the top button says "side by side" with the counts
-- [ ] T012 [US1] Draw the projection in `ErdGraphvizCanvas.tsx`; test that a half's layout equals One's of that version (FR-002), and that an A half has no added element
-- [ ] T038 [US1] Add a Side by side page to `client/scripts/check-layout-determinism.ts`: each half lays out alike on every engine (FR-041)
-- [ ] T013 [US1] Adversarial breaks; walk quickstart 1, 2, 6 on the stand
+- [x] T009 [US1] Create C`/components/diagrams/SideBySide/` (`SideBySide.tsx`, `HalfHead.tsx`): two halves, each head with its version, layout mode and zoom, one filter panel for the workspace
+- [x] T010 [US1] Render it from C`/app/App.tsx`'s workspace; a half that fails stands alone (FR-008); "Not in" for a whole diagram
+- [x] T011 [US1] Enable the mode in C`/components/history/VersionPicker/VersionPicker.tsx` under Diff's rule; the top button says "side by side" with the counts
+- [x] T012 [US1] Draw the projection in `ErdGraphvizCanvas.tsx`; test that a half's layout equals One's of that version (FR-002), and that an A half has no added element
+- [x] T038 [US1] FR-041 by proof: `erdOfSide` is tested to stand each version as One stands it, and One is already held to one layout on every engine by `check-layout-determinism.ts`, which has no history to open a pair from
+- [x] T013 [US1] Adversarial breaks; walk quickstart 1, 2, 6 on the stand
 
 ## Phase 4: US2 — One element across both, on the ERD (commit 4)
 

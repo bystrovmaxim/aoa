@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
 import { buildDotSource, erdDiffMarks, erdEdgeId, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
 import { drawErdCards } from "./erdPostPass";
-import { diagramCounts, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
+import { diagramCounts, erdOfSide, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
 
 const OFFER = "g.OfferEntity";
 const CORE = "g.CoreEntity";
@@ -57,7 +57,7 @@ describe("the ERD of two versions", () => {
   it("keeps a changed type's old name, and a retargeted relation as one changed line with where it pointed", () => {
     expect(row(OFFER, "erid").previous_type).toBe("str");
     expect(row(OFFER, "chosen")).toMatchObject({ diff: "changed", previous_type: "CoreEntity" });
-    expect(merged.relations).toEqual([{ ...chosenToDetail, previous_target: CORE, diff: "changed" }]);
+    expect(merged.relations).toMatchObject([{ ...chosenToDetail, previous_target: CORE, diff: "changed" }]);
   });
 
   it("counts each table, row and line once: a relation by its row, a row of a new table as added", () => {
@@ -117,5 +117,56 @@ describe("the drawing of two versions", () => {
     expect(drawn).toContain('<g id="node1" class="node" opacity="0.32">');
     expect(drawn).toMatch(/<rect fill="none" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="5 3"/);
     expect(drawErdCards(svg, 9, 1.4)).not.toContain("opacity");
+  });
+});
+
+describe("the part of a drawing one version has (spec 044)", () => {
+  const field = (name: string, type = "str") => ({ name, type });
+  const older = {
+    entities: [
+      { id: "b.Second", fields: [field("z"), field("gone"), field("kept", "int")] },
+      { id: "b.Removed", fields: [field("x")] },
+      { id: "b.First", fields: [field("y")] },
+    ],
+    relations: [
+      { source: "b.First", target: "b.Second", source_field: "to", relationship_kind: "AssociationOne" },
+      { source: "b.Removed", target: "b.Second", source_field: "dead", relationship_kind: "AssociationOne" },
+    ],
+  };
+  const newer = {
+    entities: [
+      { id: "b.First", fields: [field("y")] },
+      { id: "b.Second", fields: [field("kept", "str"), field("z"), field("fresh")] },
+      { id: "b.Added", fields: [field("n")] },
+    ],
+    relations: [{ source: "b.First", target: "b.Added", source_field: "to", relationship_kind: "AssociationOne" }],
+  };
+  const compared = {
+    counts: { nodes: { added: 0, removed: 0, changed: 0 }, edges: { added: 0, removed: 0, changed: 0 } },
+    nodes: { "b.Removed": "removed", "b.Added": "added", "b.Second:gone": "removed", "b.Second:fresh": "added", "b.Second:kept": "changed", "b.Removed:x": "removed", "b.Added:n": "added" },
+    edges: { "b.First|entity_relation|to": "changed", "b.Removed|entity_relation|dead": "removed" },
+  } as unknown as CompareResult;
+  const merged = markErd(mergeErdSlices(older, newer), compared) as { entities: ErdEntity[]; relations: ErdRelation[] };
+  /** What the layout reads of a drawing. */
+  const shape = (data: { entities: ErdEntity[]; relations?: ErdRelation[] }) => ({
+    tables: data.entities.map((entity) => [entity.id, (entity.fields ?? []).map((each) => `${each.name}:${each.type}`)]),
+    lines: (data.relations ?? []).map((relation) => `${relation.source}>${relation.target}`),
+  });
+
+  it("stands A as A had it: its tables, rows, order, types and targets", () => {
+    expect(shape(erdOfSide(merged, "a"))).toEqual(shape(older));
+  });
+
+  it("stands B as B has it", () => {
+    expect(shape(erdOfSide(merged, "b"))).toEqual(shape(newer));
+  });
+
+  it("keeps the marks each version can show", () => {
+    const a = erdOfSide(merged, "a");
+    expect(a.entities.find((entity) => entity.id === "b.Removed")?.diff).toBe("removed");
+    expect(a.entities.flatMap((entity) => entity.fields ?? []).find((each) => each.name === "kept")?.diff).toBe("changed");
+    expect(a.relations[0].diff).toBe("changed");
+    const b = erdOfSide(merged, "b");
+    expect(b.entities.find((entity) => entity.id === "b.Added")?.diff).toBe("added");
   });
 });

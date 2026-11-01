@@ -8,6 +8,7 @@
  */
 
 import type { CompareResult, DiffStatus } from "@/api/compare";
+import { drawnOn, type Side } from "@/lib/half";
 import type { ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
 
 /** One domain's slice of the ERD, as ``list-entities`` gives it. */
@@ -28,16 +29,24 @@ export function relationKey(relation: ErdRelation): string {
   return relation.source_field ? `${relation.source}|${relation.source_field}` : `${relation.source}|${relation.relationship_kind ?? ""}|${relation.target}`;
 }
 
+/** ``list`` with each item told what A held there and where, so that a half can stand them as A had them (spec 044). */
+function remembered<T>(list: readonly T[]): Map<T, { was: T; wasAt: number }> {
+  return new Map(list.map((was, wasAt) => [was, { was, wasAt }]));
+}
+
 /** A table's rows of both versions: B's in B's order, then the rows only A had; a row whose type changed keeps A's. */
 function mergedFields(older: readonly ErdField[], newer: readonly ErdField[]): ErdField[] {
   const before = new Map(older.map((field) => [field.name, field]));
+  const place = remembered(older);
   const now = new Set(newer.map((field) => field.name));
   return [
     ...newer.map((field) => {
       const was = before.get(field.name);
-      return was && (was.type ?? "") !== (field.type ?? "") ? { ...field, previous_type: was.type ?? "" } : field;
+      if (!was) return field;
+      const kept = { ...field, ...place.get(was) };
+      return (was.type ?? "") !== (field.type ?? "") ? { ...kept, previous_type: was.type ?? "" } : kept;
     }),
-    ...older.filter((field) => !now.has(field.name)),
+    ...older.filter((field) => !now.has(field.name)).map((field) => ({ ...field, ...place.get(field) })),
   ];
 }
 
@@ -45,12 +54,15 @@ function mergedFields(older: readonly ErdField[], newer: readonly ErdField[]): E
 export function mergeRelations(older: readonly ErdRelation[] = [], newer: readonly ErdRelation[] = []): ErdRelation[] {
   const before = new Map(older.map((relation) => [relationKey(relation), relation]));
   const now = new Set(newer.map(relationKey));
+  const place = remembered(older);
   return [
     ...newer.map((relation) => {
       const was = before.get(relationKey(relation));
-      return was && was.target !== relation.target ? { ...relation, previous_target: was.target } : relation;
+      if (!was) return relation;
+      const kept = { ...relation, ...place.get(was) };
+      return was.target !== relation.target ? { ...kept, previous_target: was.target } : kept;
     }),
-    ...older.filter((relation) => !now.has(relationKey(relation))),
+    ...older.filter((relation) => !now.has(relationKey(relation))).map((relation) => ({ ...relation, ...place.get(relation) })),
   ];
 }
 
@@ -58,12 +70,13 @@ export function mergeRelations(older: readonly ErdRelation[] = [], newer: readon
 export function mergeErdSlices(older: ErdSlice | undefined, newer: ErdSlice | undefined): ErdSlice {
   const before = new Map((older?.entities ?? []).map((entity) => [entity.id, entity]));
   const now = new Set((newer?.entities ?? []).map((entity) => entity.id));
+  const place = remembered(older?.entities ?? []);
   const entities = [
     ...(newer?.entities ?? []).map((entity) => {
       const was = before.get(entity.id);
-      return was ? { ...entity, fields: mergedFields(was.fields ?? [], entity.fields ?? []) } : entity;
+      return was ? { ...entity, ...place.get(was), fields: mergedFields(was.fields ?? [], entity.fields ?? []) } : entity;
     }),
-    ...(older?.entities ?? []).filter((entity) => !now.has(entity.id)),
+    ...(older?.entities ?? []).filter((entity) => !now.has(entity.id)).map((entity) => ({ ...entity, ...place.get(entity), fields: mergedFields(entity.fields ?? [], []) })),
   ];
   return { ...(newer ?? older ?? {}), entities, relations: mergeRelations(older?.relations, newer?.relations) };
 }
@@ -123,6 +136,28 @@ export function diagramCounts(entities: readonly ErdEntity[], relations: readonl
 /** Whether the counts say nothing changed: the diagram is then drawn as one version, nothing faded (FR-026). */
 export function nothingChanged(counts: DiagramCounts): boolean {
   return counts.added + counts.removed + counts.changed === 0;
+}
+
+/** ``list`` in A's order. */
+function inOlderOrder<T extends { wasAt?: number }>(list: readonly T[]): T[] {
+  return [...list].sort((one, other) => (one.wasAt ?? 0) - (other.wasAt ?? 0));
+}
+
+/**
+ * The part of a merged drawing that one version has, with its marks (spec 044, research R2): on A every table, row and
+ * line stands as A had it and where A had it, so a half is laid out as One lays out that version.
+ */
+export function erdOfSide<T extends { entities: ErdEntity[]; relations?: ErdRelation[] }>(data: T, side: Side): T {
+  const drawn = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
+  const entities = drawn(data.entities).map((entity) => {
+    const fields = drawn(entity.fields ?? []);
+    if (side === "b") return { ...entity, fields };
+    return { ...entity, ...entity.was, diff: entity.diff, fields: inOlderOrder(fields).map((field) => ({ ...field, ...field.was, diff: field.diff })) };
+  });
+  const tables = new Set(entities.map((entity) => entity.id));
+  const relations = drawn(data.relations ?? []).map((relation) => (side === "a" ? { ...relation, ...relation.was, diff: relation.diff } : relation));
+  const ordered = side === "a" ? { entities: inOlderOrder(entities), relations: inOlderOrder(relations) } : { entities, relations };
+  return { ...data, entities: ordered.entities, relations: ordered.relations.filter((relation) => tables.has(relation.source) && tables.has(relation.target)) };
 }
 
 /** The same drawing with every mark taken off, as One draws it. */
