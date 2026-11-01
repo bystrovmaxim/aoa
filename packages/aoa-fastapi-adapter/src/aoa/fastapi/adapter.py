@@ -130,6 +130,8 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Annotated, Any, Self, get_origin
 
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
@@ -152,8 +154,6 @@ from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 from aoa.fastapi.conditional_get import ConditionalGetMiddleware
 from aoa.fastapi.route_record import FastApiRouteRecord
 from aoa.fastapi.websocket_route import SOCKET_KEY, FastApiWebSocketRoute, make_websocket_endpoint
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import JSONResponse
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Module-level helper functions
@@ -708,9 +708,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register POST endpoint. Returns self for fluent chain."""
         return self._register(
-            "POST", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
+            "POST",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
+            auth_coordinator=auth_coordinator,
         )
 
     def get(
@@ -732,9 +743,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register GET endpoint. Returns self for fluent chain."""
         return self._register(
-            "GET", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
+            "GET",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
+            auth_coordinator=auth_coordinator,
         )
 
     def put(
@@ -756,9 +778,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register PUT endpoint. Returns self for fluent chain."""
         return self._register(
-            "PUT", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
+            "PUT",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
+            auth_coordinator=auth_coordinator,
         )
 
     def delete(
@@ -780,9 +813,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register DELETE endpoint. Returns self for fluent chain."""
         return self._register(
-            "DELETE", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
+            "DELETE",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
+            auth_coordinator=auth_coordinator,
         )
 
     def patch(
@@ -804,9 +848,20 @@ class FastApiAdapter(BaseAdapter[FastApiRouteRecord]):
     ) -> Self:
         """Register PATCH endpoint. Returns self for fluent chain."""
         return self._register(
-            "PATCH", path, action_class, request_model, response_model,
-            params_mapper, response_mapper, tags, summary, description,
-            operation_id, deprecated, connections=connections, auth_coordinator=auth_coordinator,
+            "PATCH",
+            path,
+            action_class,
+            request_model,
+            response_model,
+            params_mapper,
+            response_mapper,
+            tags,
+            summary,
+            description,
+            operation_id,
+            deprecated,
+            connections=connections,
+            auth_coordinator=auth_coordinator,
         )
 
     def websocket(

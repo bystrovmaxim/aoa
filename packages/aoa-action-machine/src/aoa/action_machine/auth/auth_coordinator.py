@@ -88,9 +88,9 @@ class AuthCoordinator(BaseCoordinator):
         context_class: type[Context] | None = None,
     ) -> None:
         if context_class is None:
-            from aoa.action_machine.context.context import (  # pylint: disable=import-outside-toplevel
-                Context as _DefaultContext,
-            )
+            # pylint: disable-next=import-outside-toplevel
+            from aoa.action_machine.context.context import Context as _DefaultContext
+
             context_class = _DefaultContext
         self.extractor = extractor
         self.authenticator = auth_instance
