@@ -83,6 +83,10 @@ type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
 /** What of an area stands on the map: its outline and what the name stands with, around what the filters leave. */
 type AreaView = { path: Path2D; whole: Path2D | null; left: number; total: number; x: number; y: number; radius: number };
 
+/** The ring and the size of the element pointed at across the two halves. */
+const POINTED_RING = "#2563eb";
+const POINTED_SIZE = 1.5;
+
 /** How far two zooms may stand apart, as a log of their ratio, and still count as one. */
 const ZOOM_ALIKE = 0.05;
 
@@ -577,7 +581,9 @@ export class MapEngine {
     if (this.fading && !mark) opacity *= FADED_NODE;
     if (this.near && !this.near.has(id)) opacity *= 0.25;
     const named = id === this.hovered ? "visible" : this.levelTwo < 0.9 ? "hidden" : node.level === 2 || this.levelThree > 0.9 ? "auto" : "hidden";
-    return { ...node, color: this.nodeColour(area, node.type2 as string, mark), ring: mark && mark !== "removed" ? MARK_LOOK[mark].colour : "#00000000", opacity, size: (node.size as number) * (0.7 + 0.3 * reveal), visibility: "visible", labelVisibility: named, zIndex: mark ? 2 : 1 };
+    // In a half the element pointed at stands out from its neighbours, on both sides: they are lit too (spec 044).
+    const pointedAt = this.half !== null && id === this.hovered;
+    return { ...node, color: this.nodeColour(area, node.type2 as string, mark), ring: pointedAt ? POINTED_RING : mark && mark !== "removed" ? MARK_LOOK[mark].colour : "#00000000", opacity: pointedAt ? 1 : opacity, size: (node.size as number) * (0.7 + 0.3 * reveal) * (pointedAt ? POINTED_SIZE : 1), visibility: "visible", labelVisibility: named, zIndex: pointedAt ? 3 : mark ? 2 : 1 };
   }
 
   private stays(id: string, node: Record<string, unknown>): boolean {

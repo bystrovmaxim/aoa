@@ -357,7 +357,7 @@ export function LeftSidebar({
                 // What is left should be seen at once: every domain over it opens.
                 if (!changedOnly) setExpandedById((prev) => ({ ...prev, domains_root: true, ...Object.fromEntries(sidebar.level2_nodes.map((row) => [row.id, true])) }));
               }}
-              sx={{ ml: "auto", p: 0, width: 32, minWidth: 32, height: 32, color: changedOnly ? "#fff" : SB.icon, bgcolor: changedOnly ? "#2563eb" : "transparent", borderRadius: 1.5, "&:hover": { bgcolor: changedOnly ? "#1d4ed8" : SB.hover } }}
+              sx={{ ml: "auto", p: 0, width: 32, minWidth: 32, height: 32, color: changedOnly ? "#2563eb" : SB.icon, borderRadius: 1.5, "&:hover": { bgcolor: SB.hover } }}
             >
               <FilterListIcon sx={{ fontSize: 17.6 }} />
             </IconButton>
