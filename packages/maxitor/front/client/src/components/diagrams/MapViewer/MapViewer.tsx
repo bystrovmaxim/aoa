@@ -9,11 +9,11 @@ import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { DiffCard } from "@/components/history/DiffCard";
 import { getActiveBase } from "@/api/client";
-import { mapChanges, mapOverview } from "@/api/map";
+import { mapChanges, mapOverview, type MapChange, type MapOverview } from "@/api/map";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { HalfNote } from "@/components/diagrams/SideBySide";
-import { drawnOn, useHalf, writesForPair } from "@/lib/half";
+import { drawnOn, useHalf, writesForPair, type Half } from "@/lib/half";
 import { joinSteps, noteOf, stepBoth } from "@/lib/halfPicking";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { layoutHash } from "@/lib/layoutHash";
@@ -36,6 +36,13 @@ function canDrawMap(): boolean {
 /** Switch a key of a list of what is off. */
 function toggled(list: readonly string[], key: string): string[] {
   return list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort();
+}
+
+/** The pair's changes for what is on screen. A half reads its own version's map, so it first asks for the pair's, which the changes are read from (spec 044). */
+async function changesFor(half: Half | null, overview: MapOverview, onLayingOut: () => void): Promise<MapChange[]> {
+  if (!half) return overview.links_changed === undefined ? [] : mapChanges();
+  await mapOverview(onLayingOut);
+  return mapChanges();
 }
 
 /**
@@ -97,7 +104,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
 
   const load = useCallback(async () => {
     const [overview, module] = await Promise.all([mapOverview(() => setLayingOut(true), half?.read), import("./mapEngine")]);
-    return { overview, module, changes: !half && overview.links_changed === undefined ? [] : await mapChanges() };
+    return { overview, module, changes: await changesFor(half, overview, () => setLayingOut(true)) };
   }, [half]);
   const { data, loading, error } = useDiagramLoader(load);
 
