@@ -7,7 +7,7 @@ import ast
 import sys
 from pathlib import Path
 
-PART = Path(__file__).resolve().parents[1] / "src" / "maxitor" / "graph_map"
+PART = Path(__file__).resolve().parents[1] / "maxitor" / "graph_map"
 
 
 def _imported(module: Path) -> set[str]:

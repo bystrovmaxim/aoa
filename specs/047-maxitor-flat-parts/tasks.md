@@ -42,13 +42,13 @@ description: "Tasks — Maxitor parts one level shallower, and front named web"
 
 **Independent test**: `check_before_commit.sh` green, both graphs the same by `cmp`, `find` shows no `src/` but the client's.
 
-- [ ] T012 [US1] `git mv` `src/maxitor` to `maxitor` in `packages/maxitor/tools/graph_builder`, `packages/maxitor/tools/repo_graph_port`, `packages/maxitor/core/graph_compare` and `packages/maxitor/core/graph_map`, remove each empty `src/`, and rewrite line 1 of every moved module
-- [ ] T013 [US1] Update `packages/maxitor/pyproject.toml` for the four parts, and replace the comment "each part keeps its own ``src``"
-- [ ] T014 [US1] Update `pyproject.toml` for the four parts: `pythonpath`, `mypy_path`, `typecheck` targets ending at `/maxitor`, vulture paths, and the per-file ruff rule for `graph_builder`
-- [ ] T015 [P] [US1] Update `scripts/package_boundaries.toml` roots for the four parts, and `pythonpath = .` in `packages/maxitor/tools/graph_builder/pytest.ini`, `packages/maxitor/tools/repo_graph_port/pytest.ini`, `packages/maxitor/core/graph_compare/pytest.ini` and `packages/maxitor/core/graph_map/pytest.ini`
-- [ ] T016 [P] [US1] Update the three schema paths in `tests/scripts/test_schema_copies.py`, and the `$id` of `packages/maxitor/tools/graph_builder/maxitor/graph_builder/config_schema.json` to the file's new raw address
-- [ ] T017 [US1] Run `uv sync --all-extras`, then `bash scripts/check_before_commit.sh` until green, and `cmp` both graph files against the baseline
-- [ ] T018 [US1] Confirm `find packages/maxitor -type d -name src -not -path '*/node_modules/*'` shows only `packages/maxitor/front/client/src`, and that `graph-builder` and `repo-graph-port` start after a clean install of the built wheel
+- [x] T012 [US1] `git mv` `src/maxitor` to `maxitor` in `packages/maxitor/tools/graph_builder`, `packages/maxitor/tools/repo_graph_port`, `packages/maxitor/core/graph_compare` and `packages/maxitor/core/graph_map`, remove each empty `src/`, and rewrite line 1 of every moved module
+- [x] T013 [US1] Update `packages/maxitor/pyproject.toml` for the four parts, and replace the comment "each part keeps its own ``src``"
+- [x] T014 [US1] Update `pyproject.toml` for the four parts: `pythonpath`, `mypy_path`, `typecheck` targets ending at `/maxitor`, vulture paths, and the per-file ruff rule for `graph_builder`
+- [x] T015 [P] [US1] Update `scripts/package_boundaries.toml` roots for the four parts, and `pythonpath = .` in `packages/maxitor/tools/graph_builder/pytest.ini`, `packages/maxitor/tools/repo_graph_port/pytest.ini`, `packages/maxitor/core/graph_compare/pytest.ini` and `packages/maxitor/core/graph_map/pytest.ini`
+- [x] T016 [P] [US1] Update the three schema paths in `tests/scripts/test_schema_copies.py`, and the `$id` of `packages/maxitor/tools/graph_builder/maxitor/graph_builder/config_schema.json` to the file's new raw address
+- [x] T017 [US1] Run `uv sync --all-extras`, then `bash scripts/check_before_commit.sh` until green, and `cmp` both graph files against the baseline
+- [x] T018 [US1] Confirm `find packages/maxitor -type d -name src -not -path '*/node_modules/*'` shows only `packages/maxitor/front/client/src`, and that `graph-builder` and `repo-graph-port` start after a clean install of the built wheel
 
 **Checkpoint**: show the diff and wait for the commit instruction.
 

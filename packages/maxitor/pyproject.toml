@@ -55,18 +55,18 @@ maxitor = "maxitor.front.launch:main"
 repo-graph-port = "maxitor.repo_graph_port.launch:main"
 
 # One package from several folders: the web part (front/), the tools and services (tools/<name>/), the
-# code they share (core/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
+# code they share (core/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its code in ``<part>/maxitor/<name>/``.
 [tool.hatch.build.targets.wheel]
-only-include = ["front/maxitor", "tools/repo_graph_port/src/maxitor", "tools/graph_builder/src/maxitor", "core/graph_compare/src/maxitor", "core/graph_map/src/maxitor"]
+only-include = ["front/maxitor", "tools/repo_graph_port/maxitor", "tools/graph_builder/maxitor", "core/graph_compare/maxitor", "core/graph_map/maxitor"]
 artifacts = ["front/maxitor/front/static/**/*"]
-dev-mode-dirs = ["front", "tools/repo_graph_port/src", "tools/graph_builder/src", "core/graph_compare/src", "core/graph_map/src"]
+dev-mode-dirs = ["front", "tools/repo_graph_port", "tools/graph_builder", "core/graph_compare", "core/graph_map"]
 
 [tool.hatch.build.targets.wheel.sources]
 "front" = ""
-"tools/repo_graph_port/src" = ""
-"tools/graph_builder/src" = ""
-"core/graph_compare/src" = ""
-"core/graph_map/src" = ""
+"tools/repo_graph_port" = ""
+"tools/graph_builder" = ""
+"core/graph_compare" = ""
+"core/graph_map" = ""
 
 [tool.hatch.build.targets.wheel.force-include]
 "skills" = "maxitor/skills"

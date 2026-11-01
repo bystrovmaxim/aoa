@@ -74,7 +74,7 @@ The [Open Gnomon Protocol](../../../open-gnomon-protocol/README.md) defines the 
 
 ### The project configuration
 
-A repository lists its graphs in `graph-builder.toml` at its root ([its schema](src/maxitor/graph_builder/config_schema.json)):
+A repository lists its graphs in `graph-builder.toml` at its root ([its schema](maxitor/graph_builder/config_schema.json)):
 
 ```toml
 graph_builder = "1.0"                         # the configuration's own version
