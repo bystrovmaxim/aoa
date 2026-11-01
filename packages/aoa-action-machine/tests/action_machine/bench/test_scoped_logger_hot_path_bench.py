@@ -42,8 +42,8 @@ pytestmark = pytest.mark.benchmark
 
 # Budgets: catch large regressions. Developer laptops under load often exceed CI-era caps;
 # values include headroom for virtualization and noisy neighbors.
-_SCOPED_LOGGER_10K_SEC = 0.35
-_LOG_SCOPE_50K_SEC = 0.45
+_SCOPED_LOGGER_10K_SEC = 0.7
+_LOG_SCOPE_50K_SEC = 0.9
 _SCOPED_LOGGER_ITERATIONS = 10_000
 _LOG_SCOPE_ITERATIONS = 50_000
 
