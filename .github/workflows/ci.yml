@@ -89,6 +89,11 @@ jobs:
       - name: Project environment
         run: uv sync --all-extras
 
+      # The map the three-engine check opens is laid out by the API with Graphviz's `sfdp`;
+      # without it the API refuses the read with 422 and the page never gets a layout hash.
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
       # playwright install is incremental: it downloads only the browser version the lockfile
       # asks for, so the cache misses only when Playwright itself changes.
       - name: Cache Playwright browsers
@@ -97,17 +102,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('packages/maxitor/front/client/package-lock.json') }}
 
-      # The three-engine layout check needs a working browser pipeline. On the hosted Ubuntu
-      # runner the browsers install and the client builds, but the check times out waiting for
-      # the first layout hash (`page.waitForFunction: Timeout 60000ms` at `nextHash`). It runs
-      # here so the gap stays visible, and it does not block the pull request until the check is
-      # made headless-safe; that is a follow-up of its own.
       - name: Check run (browser)
-        continue-on-error: true
         run: bash scripts/run_checks_with_log.sh --where ci --only-browser
 
-      - name: Show the check log
-        if: always()
+      - name: Show the check log on failure
+        if: failure()
         run: cat archive/logs/check-all.txt || true
 
   packaging:
