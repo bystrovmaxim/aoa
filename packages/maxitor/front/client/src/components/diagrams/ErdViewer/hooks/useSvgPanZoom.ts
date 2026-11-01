@@ -531,6 +531,9 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
 
     return () => {
       ac.abort();
+      // ``mouseup`` no longer reaches this binding: a drag it held must not stay stuck to the pointer.
+      dragRef.current = null;
+      vp.classList.remove("erd-panning");
       if (wheelIdleTimeoutRef.current !== null) {
         window.clearTimeout(wheelIdleTimeoutRef.current);
         wheelIdleTimeoutRef.current = null;

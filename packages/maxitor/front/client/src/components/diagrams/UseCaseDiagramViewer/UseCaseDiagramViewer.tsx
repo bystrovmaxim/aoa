@@ -34,8 +34,7 @@ import {
 } from "@/lib/buildDomainUseCaseDotSource";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { nothingChanged } from "@/lib/erdDiff";
-import { MARK_LOOK } from "@/lib/erdDiffCard";
-import { statusDiskUri } from "@/lib/erdFilterPresence";
+import { changeDiskUri, statusDiskUri } from "@/lib/erdFilterPresence";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { filterUseCaseDiagramByDomains } from "@/lib/filterUseCaseDiagramByDomains";
@@ -257,7 +256,7 @@ export function UseCaseDiagramViewer({ domainId }: UseCaseDiagramViewerProps) {
   const changeRows: ErdFilterRow[] = baseChanges.map((status) => ({
     key: status,
     label: status.charAt(0).toUpperCase() + status.slice(1),
-    iconSrc: statusDiskUri(status === "unchanged" || paintSection !== "changes" ? IDLE_DISK : MARK_LOOK[status].colour, status === "unchanged" ? "" : MARK_LOOK[status].sign),
+    iconSrc: changeDiskUri(status, paintSection === "changes"),
     on: !offChanges.has(status),
     absent: !shownChanges.has(status),
   }));

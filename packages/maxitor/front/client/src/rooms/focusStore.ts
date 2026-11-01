@@ -18,7 +18,13 @@ export type ElementRef = { kind: "node" | "row" | "edge" | "table" | "version"; 
 export type TrackState = { a: string | null; b: string | null; offset: number };
 
 /** The steps through a comparison's changes as their person moves them: the list open or not, the change they stand on, its card, the list's scroll (spec 040). */
-export type ChangeListState = { open: boolean; at: string | null; card: boolean; offset: number };
+export type ChangeListState = { open: boolean; at: string | null; card: boolean; offset: number; hot?: string | null };
+
+/**
+ * An open card, as its person holds it (spec 043, FR-010): the element it is about, the field list open or not, the row
+ * pointed at, the scroll, and its place on the diagram. It is said outright, not read from the hover: on the card itself the pointer hovers nothing.
+ */
+export type CardPanel = { ref: ElementRef; fields: boolean; field: number | null; scroll: number; at: { x: number; y: number } | null };
 
 /**
  * The open panels: the open left-panel branches; the filter panel — closed (``null``), open with no
@@ -34,6 +40,7 @@ export type Panels = {
   track: TrackState | null;
   changes: ChangeListState | null;
   why: string | null;
+  card?: CardPanel | null;
 };
 
 export type FocusState = {
@@ -55,6 +62,10 @@ const byParticipant = new Map<string, FocusState>();
 let target: string | null = null;
 let version = 0;
 const listeners = new Set<() => void>();
+
+function sameCard(a: CardPanel | null | undefined, b: CardPanel | null | undefined): boolean {
+  return sameRef(a?.ref ?? null, b?.ref ?? null) && a?.fields === b?.fields && a?.field === b?.field && a?.scroll === b?.scroll && a?.at?.x === b?.at?.x && a?.at?.y === b?.at?.y;
+}
 
 function changed(): void {
   version += 1;
@@ -170,11 +181,11 @@ function sameTrack(a: TrackState | null, b: TrackState | null): boolean {
 }
 
 function sameChanges(a: ChangeListState | null | undefined, b: ChangeListState | null | undefined): boolean {
-  return a?.open === b?.open && a?.at === b?.at && a?.card === b?.card && a?.offset === b?.offset;
+  return a?.open === b?.open && a?.at === b?.at && a?.card === b?.card && a?.offset === b?.offset && (a?.hot ?? null) === (b?.hot ?? null);
 }
 
 function samePanels(a: Panels, b: Panels): boolean {
-  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
+  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && sameCard(a.card, b.card) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
 }
 
 /** Whether two focus states show the same thing (the sender sends only changes). */

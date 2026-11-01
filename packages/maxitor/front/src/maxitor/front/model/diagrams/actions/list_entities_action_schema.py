@@ -17,6 +17,7 @@ _RELATION_ROW: dict[str, Any] = {
         "target": {"type": "string"},
         "label": {"type": "string"},
         "relationship_kind": {"type": "string"},
+        "description": {"type": ["string", "null"]},
         "source_field": {
             "type": ["string", "null"],
             "description": "The field on the source table that points at the target; written at the target's end.",
@@ -125,6 +126,14 @@ ListEntitiesDomainSlicesJson = JsonSchemaValue.define(
                                                         "Interchange qualname of the closed dictionary this field "
                                                         "references; null for a scalar field."
                                                     ),
+                                                },
+                                                "description": {
+                                                    "type": ["string", "null"],
+                                                    "description": "What the field is for; null on a graph older than protocol 1.2.",
+                                                },
+                                                "lifecycle_id": {
+                                                    "type": ["string", "null"],
+                                                    "description": "The id of the lifecycle this row is, when it is one.",
                                                 },
                                                 "annotation": {
                                                     "type": ["string", "null"],

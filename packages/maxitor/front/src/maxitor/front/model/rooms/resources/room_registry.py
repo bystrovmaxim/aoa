@@ -229,6 +229,8 @@ def _panels_fit(value: Any) -> bool:
         and (value.get("changes") is None or _change_list(value["changes"]))
         # The filter row whose card says what keeps it hidden (spec 040).
         and (value.get("why") is None or _short_text(value["why"]))
+        # Inside an open card, as its person moves there (spec 043).
+        and (value.get("card") is None or _card_inside(value["card"]))
     )
 
 
@@ -244,7 +246,27 @@ def _panels(value: Any) -> dict[str, Any] | None:
         "track": value.get("track"),
         "changes": value.get("changes"),
         "why": value.get("why"),
+        "card": value.get("card"),
     }
+
+
+def _point(value: Any) -> bool:
+    """Whether ``value`` is a point on a diagram: ``x`` and ``y`` numbers."""
+    return isinstance(value, dict) and set(value) == {"x", "y"} and _is_number(value["x"]) and _is_number(value["y"])
+
+
+def _card_inside(value: Any) -> bool:
+    """Whether ``value`` is an open card: its element, a ``fields`` flag, ``field`` a row or ``null``, a ``scroll`` number, and ``at`` its place on the diagram or ``null``."""
+    return (
+        isinstance(value, dict)
+        and set(value) == {"ref", "fields", "field", "scroll", "at"}
+        and (value["at"] is None or _point(value["at"]))
+        and value["ref"] is not None
+        and _element_ref(value["ref"])[0]
+        and isinstance(value["fields"], bool)
+        and (value["field"] is None or (_is_number(value["field"]) and value["field"] >= 0))
+        and _is_number(value["scroll"])
+    )
 
 
 def _track(value: Any) -> bool:
@@ -258,10 +280,11 @@ def _track(value: Any) -> bool:
 
 
 def _change_list(value: Any) -> bool:
-    """Whether ``value`` is a list of changes: ``open`` and ``card`` flags, ``at`` a short text or ``null``, and an ``offset`` number."""
+    """Whether ``value`` is a list of changes: ``open`` and ``card`` flags, ``at`` and ``hot`` short texts or ``null``, and an ``offset`` number."""
     return (
         isinstance(value, dict)
-        and set(value) == {"open", "at", "card", "offset"}
+        and set(value) - {"hot"} == {"open", "at", "card", "offset"}
+        and (value.get("hot") is None or _short_text(value["hot"]))
         and isinstance(value["open"], bool)
         and isinstance(value["card"], bool)
         and (value["at"] is None or _short_text(value["at"]))

@@ -35,7 +35,8 @@ from tests.test_rooms_server import _ALL_DOMAINS, _FULL_GRAPH, _connect, _expect
 
 __all__ = ["client", "source"]
 
-_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None, "why": None}
+_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None, "why": None, "card": None}
+_ROW = {"kind": "row", "id": "fn0_1"}
 _FOCUS: dict[str, Any] = {
     "type": "focus",
     "page": _FULL_GRAPH,
@@ -59,6 +60,17 @@ _FOCUS: dict[str, Any] = {
         ({"panels": {**_PANELS, "legend": "yes"}}, False),
         ({"panels": {**_PANELS, "versions": True}}, True),
         ({"panels": {**_PANELS, "versions": "open"}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": True, "field": 2, "scroll": 40, "at": {"x": 120.5, "y": 40}}}}, True),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": False, "field": None, "scroll": 0, "at": None}}}, True),
+        ({"panels": {**_PANELS, "card": None}}, True),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": "yes", "field": None, "scroll": 0, "at": None}}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": True, "field": -1, "scroll": 0, "at": None}}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": None, "fields": True, "field": None, "scroll": 0, "at": None}}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": {"kind": "planet", "id": "x"}, "fields": True, "field": None, "scroll": 0, "at": None}}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": True, "field": None, "scroll": 0}}}, False),
+        ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": True, "field": None, "scroll": 0, "at": {"x": "left", "y": 0}}}}, False),
+        ({"panels": {**_PANELS, "changes": {"open": True, "at": None, "card": False, "offset": 0, "hot": "shop.Order"}}}, True),
+        ({"panels": {**_PANELS, "changes": {"open": True, "at": None, "card": False, "offset": 0, "hot": 7}}}, False),
         ({"panels": {**_PANELS, "changes": {"open": True, "at": "shop.Order", "card": False, "offset": 90}}}, True),
         ({"panels": {**_PANELS, "changes": {"open": True, "at": None, "card": False, "offset": 0}}}, True),
         ({"panels": {**_PANELS, "changes": {"open": "yes", "at": None, "card": False, "offset": 0}}}, False),
@@ -151,3 +163,11 @@ def _events_until(ws: Any, kind: str, seconds: float = 3.0) -> list[dict[str, An
             pytest.fail(f"no {kind!r} within {seconds} s; got {[e['type'] for e in events]}")
         events.append(box[0])
     return events
+
+
+def test_the_inside_of_a_card_travels_to_followers() -> None:
+    """(043) What a follower needs to see inside a card survives the check."""
+    inside = {"ref": _ROW, "fields": True, "field": 2, "scroll": 40, "at": {"x": 120.5, "y": 40}}
+    values = focus_values({"page": "p", "panels": {**_PANELS, "card": inside}})
+    assert values is not None
+    assert values["panels"]["card"] == inside

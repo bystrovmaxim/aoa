@@ -149,7 +149,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       field_type VARCHAR NOT NULL,
       primary_key_hint BOOLEAN NOT NULL,
       reference_qualname VARCHAR,
-      field_annotation VARCHAR
+      field_annotation VARCHAR,
+      description VARCHAR
     );""",
             """CREATE TABLE resource (
       id VARCHAR NOT NULL,
@@ -221,7 +222,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
             """CREATE TABLE lifecycle (
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
-      field_name VARCHAR NOT NULL
+      field_name VARCHAR NOT NULL,
+      description VARCHAR
     );""",
             """CREATE TABLE state (
       id VARCHAR NOT NULL,
@@ -239,7 +241,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
             """CREATE TABLE role (
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
-      role_mode VARCHAR NOT NULL
+      role_mode VARCHAR NOT NULL,
+      description VARCHAR
     );""",
             # --- edges: ``empty_properties`` enum members (separate tables) ---
             """CREATE TABLE application_edges (
@@ -358,7 +361,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL,
-      conn_key VARCHAR NOT NULL
+      conn_key VARCHAR NOT NULL,
+      description VARCHAR
     );""",
             """CREATE TABLE required_context_edges (
       source_id VARCHAR NOT NULL,
@@ -607,7 +611,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('application' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM application",
         "SELECT id, label, CAST('domain' AS VARCHAR) AS type, json_object('name', name, 'description', description) AS payload FROM domain",
         "SELECT id, label, CAST('entity' AS VARCHAR) AS type, json_object('description', description, 'entity_kind', entity_kind, 'entity_kind_label', entity_kind_label, 'values', from_json(values_json, '[\"json\"]')) AS payload FROM entity",
-        "SELECT id, label, CAST('entity_field' AS VARCHAR) AS type, json_object('field_type', field_type, 'primary_key_hint', primary_key_hint) AS payload FROM entity_field",
+        "SELECT id, label, CAST('entity_field' AS VARCHAR) AS type, json_object('field_type', field_type, 'primary_key_hint', primary_key_hint, 'description', description) AS payload FROM entity_field",
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
         f"SELECT id, label, CAST('result' AS VARCHAR) AS type, {_nj()} AS payload FROM result",
@@ -620,10 +624,10 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('error_handler' AS VARCHAR) AS type, json_object('description', description, 'exception_types', exception_types) AS payload FROM error_handler",
         "SELECT id, label, CAST('checker' AS VARCHAR) AS type, json_object('type_checker', type_checker, 'checker_required', checker_required) AS payload FROM checker",
         "SELECT id, label, CAST('required_context' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context",
-        "SELECT id, label, CAST('lifecycle' AS VARCHAR) AS type, json_object('field_name', field_name) AS payload FROM lifecycle",
+        "SELECT id, label, CAST('lifecycle' AS VARCHAR) AS type, json_object('field_name', field_name, 'description', description) AS payload FROM lifecycle",
         "SELECT id, label, kind AS type, json_object('lifecycle_class_id', lifecycle_class_id, 'state_key', state_key, 'attributes', attributes) AS payload FROM state",
         "SELECT id, label, CAST('sensitive' AS VARCHAR) AS type, json_object('properties', properties) AS payload FROM sensitive",
-        "SELECT id, label, CAST('role' AS VARCHAR) AS type, json_object('role_mode', role_mode) AS payload FROM role",
+        "SELECT id, label, CAST('role' AS VARCHAR) AS type, json_object('role_mode', role_mode, 'description', description) AS payload FROM role",
     ]
     edge_parts: list[str] = [
         f"SELECT source_id, target_id, relationship, is_dag, CAST('application_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM application_edges",
@@ -644,7 +648,7 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('field_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM field_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('property_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM property_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('depends_edges' AS VARCHAR) AS type, json_object('description', description, 'mode', mode) AS payload FROM depends_edges",
-        "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key) AS payload FROM connection_edges",
+        "SELECT source_id, target_id, relationship, is_dag, CAST('connection_edges' AS VARCHAR) AS type, json_object('conn_key', conn_key, 'description', description) AS payload FROM connection_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('required_context_edges' AS VARCHAR) AS type, json_object('ctx_key', ctx_key) AS payload FROM required_context_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_relation_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'relation_type', relation_type, 'cardinality', cardinality, 'description', description, 'has_inverse', has_inverse, 'deprecated', deprecated, 'inverse_entity_id', inverse_entity_id, 'inverse_field', inverse_field, 'optional', optional) AS payload FROM entity_relation_edges",
         "SELECT source_id, target_id, relationship, is_dag, CAST('entity_reference_edges' AS VARCHAR) AS type, json_object('field_name', field_name, 'cardinality', cardinality) AS payload FROM entity_reference_edges",
@@ -852,8 +856,8 @@ def _fill_table_lifecycle(con: duckdb.DuckDBPyConnection, rows: list[dict[str, A
     for node in rows:
         p = _get_properties(node)
         con.execute(
-            "INSERT INTO lifecycle VALUES (?, ?, ?)",
-            [node["id"], node["label"], p["field_name"]],
+            "INSERT INTO lifecycle VALUES (?, ?, ?, ?)",
+            [node["id"], node["label"], p["field_name"], p.get("description")],
         )
 
 
@@ -886,7 +890,7 @@ def _fill_table_sensitive(con: duckdb.DuckDBPyConnection, rows: list[dict[str, A
 def _fill_table_role(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     for node in rows:
         p = _get_properties(node)
-        con.execute("INSERT INTO role VALUES (?, ?, ?)", [node["id"], node["label"], p["role_mode"]])
+        con.execute("INSERT INTO role VALUES (?, ?, ?, ?)", [node["id"], node["label"], p["role_mode"], p.get("description")])
 
 
 def _fill_table_application_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
@@ -1014,8 +1018,8 @@ def _fill_table_depends_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[st
 def _fill_table_connection_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
     _executemany(
         con,
-        "INSERT INTO connection_edges (source_id, target_id, relationship, is_dag, conn_key) VALUES (?, ?, ?, ?, ?)",
-        [[*_base_edge_row(edge), _get_properties(edge)["key"]] for edge in rows],
+        "INSERT INTO connection_edges (source_id, target_id, relationship, is_dag, conn_key, description) VALUES (?, ?, ?, ?, ?, ?)",
+        [[*_base_edge_row(edge), _get_properties(edge)["key"], _get_properties(edge).get("description")] for edge in rows],
     )
 
 
@@ -1236,7 +1240,7 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     entity_field_nodes = nodes_by_type.get("EntityField", [])
     _executemany(
         con,
-        "INSERT INTO entity_field VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO entity_field VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
             [
                 n["id"],
@@ -1246,6 +1250,8 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
                 _get_properties(n).get("reference_qualname"),
                 # The full annotation (spec 029); a service on an older aoa-action-machine sends none.
                 _get_properties(n).get("field_annotation"),
+                # Protocol 1.2; a graph of an earlier version has none.
+                _get_properties(n).get("description"),
             ]
             for n in entity_field_nodes
         ],
@@ -1339,8 +1345,8 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO lifecycle VALUES (?, ?, ?)",
-        [[n["id"], n["label"], _get_properties(n)["field_name"]] for n in nodes_by_type.get("Lifecycle", [])],
+        "INSERT INTO lifecycle VALUES (?, ?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["field_name"], _get_properties(n).get("description")] for n in nodes_by_type.get("Lifecycle", [])],
     )
     _executemany(
         con,
@@ -1368,8 +1374,8 @@ def _fill_database(con: duckdb.DuckDBPyConnection, json_data: dict[str, Any]) ->
     )
     _executemany(
         con,
-        "INSERT INTO role VALUES (?, ?, ?)",
-        [[n["id"], n["label"], _get_properties(n)["role_mode"]] for n in nodes_by_type.get("Role", [])],
+        "INSERT INTO role VALUES (?, ?, ?, ?)",
+        [[n["id"], n["label"], _get_properties(n)["role_mode"], _get_properties(n).get("description")] for n in nodes_by_type.get("Role", [])],
     )
 
     _fill_table_depends_edges(con, edges_by_type.get("@depends", []))

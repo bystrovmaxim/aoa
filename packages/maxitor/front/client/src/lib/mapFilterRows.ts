@@ -4,11 +4,11 @@
  * grey disks, a row with nothing left under the other filters dims and knows what keeps it off the screen, and whether
  * it is on stays the person's.
  */
-import type { MapMark, MapOverview } from "@/api/map";
+import type { MapOverview } from "@/api/map";
 import type { ErdFilterRow } from "@/components/ui/ErdFilterPanel";
 import { svgDataUriForGraphNodeIcon, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
-import { MARK_LOOK } from "@/lib/erdDiffCard";
-import { CHANGE_ORDER, statusDiskUri } from "@/lib/erdFilterPresence";
+import type { ErdDiff } from "@/lib/buildDotSource";
+import { CHANGE_ORDER, changeDiskUri } from "@/lib/erdFilterPresence";
 import type { PaintSection } from "@/lib/erdPaint";
 import { OUTSIDE_AREA, type HiddenBy, type MapFilters, type MapPresence, type RowLeft } from "@/lib/mapVisibility";
 
@@ -28,8 +28,7 @@ function shownReason(reason: HiddenBy, names: Names): { key: string; label: stri
     return { key: reason.key, label: area?.name ?? reason.key, iconSrc: svgDataUriForInterchangeDomainLegend(area?.colour ?? IDLE_DISK) };
   }
   if (reason.section === "types") return { key: reason.key, label: reason.key, iconSrc: svgDataUriForGraphNodeIcon(names.typeColours[reason.key] ?? IDLE_DISK, reason.key) };
-  const look = reason.key === "unchanged" ? null : MARK_LOOK[reason.key as MapMark];
-  return { key: reason.key, label: CHANGE_NAMES[reason.key] ?? reason.key, iconSrc: statusDiskUri(look?.colour ?? IDLE_DISK, look?.sign ?? "") };
+  return { key: reason.key, label: CHANGE_NAMES[reason.key] ?? reason.key, iconSrc: changeDiskUri(reason.key as ErdDiff) };
 }
 
 function rowState(on: boolean, row: RowLeft | undefined, names: Names, reveal: (reasons: readonly HiddenBy[]) => void): Pick<ErdFilterRow, "on" | "absent" | "hidden"> {
@@ -48,8 +47,7 @@ export function mapFilterRows(overview: MapOverview, filters: MapFilters, rows: 
   const typeRows = overview.types.map((type) => ({ key: type, label: type, iconSrc: svgDataUriForGraphNodeIcon(paint === "kinds" ? (overview.type_colours[type] ?? IDLE_DISK) : IDLE_DISK, type), ...rowState(!filters.types.has(type), rows.types.get(type), names, reveal) }));
   const changeRows = comparing
     ? CHANGE_ORDER.filter((status) => (rows.changes.get(status)?.total ?? 0) > 0).map((status) => {
-        const look = status === "unchanged" ? null : MARK_LOOK[status];
-        return { key: status, label: CHANGE_NAMES[status], iconSrc: statusDiskUri(look && paint === "changes" ? look.colour : IDLE_DISK, look?.sign ?? ""), ...rowState(!filters.changes.has(status), rows.changes.get(status), names, reveal) };
+        return { key: status, label: CHANGE_NAMES[status], iconSrc: changeDiskUri(status, paint === "changes"), ...rowState(!filters.changes.has(status), rows.changes.get(status), names, reveal) };
       })
     : [];
   return { domainRows, typeRows, changeRows };
