@@ -46,7 +46,7 @@ export const VIEW_PARAMS: readonly string[] = [...Object.values(SETTINGS).map((s
 export function cameraToParams(view: SavedView | null): Record<string, string> {
   if (!view || !(view.zoom > 0)) return {};
   const round = (value: number, places: number) => String(Number(value.toFixed(places)));
-  return { [ZOOM_PARAM]: round(view.zoom, 3), [AT_PARAM]: `${round(view.x, 1)},${round(view.y, 1)}` };
+  return { [ZOOM_PARAM]: round(view.zoom, 3), [AT_PARAM]: `${round(view.x, 2)},${round(view.y, 2)}` };
 }
 
 /** The view of the diagram an address names, or ``null`` when it names none or one out of shape. */
