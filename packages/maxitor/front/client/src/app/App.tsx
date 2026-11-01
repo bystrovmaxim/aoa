@@ -262,10 +262,10 @@ export function App() {
   }
 
   /** Open the history an address names, with the key this tab or Recent holds; a refusal is a notice. */
-  async function openHistoryOf(name: string, b: string | null, a: string | null = null) {
+  async function openHistoryOf(name: string, b: string | null, a: string | null = null, split = false) {
     const key = keyFor(name);
     try {
-      opened.show(await openHistory(name, key), key, b, a);
+      opened.show(await openHistory(name, key), key, b, a, split);
     } catch (e) {
       setUrlHistory(null);
       opened.close();
@@ -277,12 +277,13 @@ export function App() {
   function applyDeepLink(link: UrlDeepLink, activeServiceUrl: string | null, activeSidebar: SidebarPayload | null) {
     if (link.history) {
       // Named at once, so the address keeps ``history`` and ``b`` while the history is still being opened.
-      setUrlHistory({ name: link.history, b: link.b ?? null, a: link.a ?? null });
+      setUrlHistory({ name: link.history, b: link.b ?? null, a: link.a ?? null, split: link.split ?? false });
       const resolvedHistory = deepLinkToSelection(link);
       if (resolvedHistory) setDiagram(resolvedHistory);
-      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null, link.a ?? null);
+      if (link.history !== shown?.name) void openHistoryOf(link.history, link.b ?? null, link.a ?? null, link.split ?? false);
       else if (link.a && link.b && (link.a !== shown.a || link.b !== shown.b)) opened.pickRange({ a: link.a, b: link.b });
       else if (link.b && (link.b !== shown.b || (!link.a && shown.a))) opened.pick(link.b);
+      if (link.history === shown?.name && link.a) opened.pickSplit(link.split ?? false);
       return;
     }
     setUrlHistory(null);
@@ -358,7 +359,7 @@ export function App() {
   // The address follows A as well: it names the two compared (spec 038, FR-014). The diagrams read A beside B, with
   // the history's key — B may be Live, which needs none —, and the diagram on screen is drawn again from both.
   useEffect(() => {
-    if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a });
+    if (shown) setUrlHistory({ name: shown.name, b: shown.b, a: shown.a, split: shown.split });
     syncUrlToState(serviceUrl, diagram);
     setActiveBase(olderSource ? { source: olderSource, key: shown?.key ?? "" } : null);
     if (shown) {
@@ -367,7 +368,7 @@ export function App() {
       rereadSidebar();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.a, olderSource]);
+  }, [shown?.a, shown?.split, olderSource]);
 
   // A changed element's card says what it was added or removed in: the two versions' names.
   useEffect(() => setDiffNames(shown?.a ? { a: olderName ?? "A", b: shownName ?? "B" } : null), [shown?.a, olderName, shownName]);

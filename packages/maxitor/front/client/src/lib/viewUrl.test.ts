@@ -1,7 +1,7 @@
 // src/lib/viewUrl.test.ts
 import { afterEach, describe, expect, it } from "vitest";
 import { clearLocalPageSettings, seedPageSettings, shownPageSettings } from "@/lib/pageSettings";
-import { setUrlView, syncUrlToState } from "@/lib/urlState";
+import { readUrlDeepLink, setUrlHistory, setUrlView, syncUrlToState } from "@/lib/urlState";
 import { cameraToParams, paramsToCamera, paramsToView, viewToParams } from "./viewUrl";
 
 afterEach(() => {
@@ -76,5 +76,31 @@ describe("collapsed tables in the address (spec 043)", () => {
     expect(params.get("collapsed")).toBe("1");
     expect(params.get("except")).toBe("a.Lot");
     expect(paramsToView(params).settings).toEqual({ fields_collapsed: true, fields_except: ["a.Lot"] });
+  });
+});
+
+describe("Side by side in the address", () => {
+  afterEach(() => setUrlHistory(null));
+
+  it("is written as mode=split with A and B, and read back", () => {
+    setUrlHistory({ name: "h", b: "bbb", a: "aaa", split: true });
+    syncUrlToState(null, null);
+    expect(window.location.search).toContain("mode=split");
+    expect(readUrlDeepLink()).toMatchObject({ a: "aaa", b: "bbb", split: true });
+  });
+
+  it("opens One without an a", () => {
+    window.history.replaceState(null, "", "/?history=h&b=bbb&mode=split");
+    expect(readUrlDeepLink()).toMatchObject({ a: null, split: false });
+  });
+
+  it("leaves Diff as it was", () => {
+    window.history.replaceState(null, "", "/?history=h&b=bbb&mode=diff&a=aaa");
+    expect(readUrlDeepLink()).toMatchObject({ a: "aaa", split: false });
+  });
+
+  it("carries each half's layout mode", () => {
+    expect(viewToParams({ layout_a: "gv-neato", rankdir_b: "TB" })).toEqual({ layout_a: "gv-neato", rankdir_b: "TB" });
+    expect(paramsToView(new URLSearchParams("layout_a=gv-neato")).settings).toEqual({ layout_a: "gv-neato" });
   });
 });

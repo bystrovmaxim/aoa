@@ -81,9 +81,25 @@ def _boolean(value: Any) -> bool:
     return isinstance(value, bool)
 
 
+def _element(value: Any) -> bool:
+    """A selected element: ``null``, or its kind and a short id (spec 044)."""
+    if value is None:
+        return True
+    return (
+        isinstance(value, dict)
+        and set(value) == {"kind", "id"}
+        and value["kind"] in ("node", "row", "edge", "table")
+        and isinstance(value["id"], str)
+        and 0 < len(value["id"]) <= 512
+    )
+
+
 #: The settings of a use-case diagram, of one domain or of all (spec 041).
 _USE_CASE_SETTINGS: dict[str, Callable[[Any], bool]] = {
     "layout": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
+    "layout_a": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
+    "layout_b": _one_of("dot_lr", "dot_tb", "neato", "fdp"),
+    "selected": _element,
     "domains": _strings,
     "boundary": _boolean,
     "disabled_kinds": _strings,
@@ -97,6 +113,9 @@ _USE_CASE_SETTINGS: dict[str, Callable[[Any], bool]] = {
 SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "domain-erd": {
         "layout": _one_of("gv-dot-lr", "gv-dot-tb", "gv-neato", "gv-fdp", "gv-circo"),
+        "layout_a": _one_of("gv-dot-lr", "gv-dot-tb", "gv-neato", "gv-fdp", "gv-circo"),
+        "layout_b": _one_of("gv-dot-lr", "gv-dot-tb", "gv-neato", "gv-fdp", "gv-circo"),
+        "selected": _element,
         "domains": _strings,
         "disabled_entities": _strings,
         "disabled_kinds": _strings,
@@ -111,9 +130,13 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "use-case-all": _USE_CASE_SETTINGS,
     "lifecycle-fsm": {
         "rankdir": _one_of("LR", "TB"),
+        "rankdir_a": _one_of("LR", "TB"),
+        "rankdir_b": _one_of("LR", "TB"),
+        "selected": _element,
     },
     "full-graph": {
         "disabled_node_types": _strings,
+        "selected": _element,
         "disabled_domains": _strings,
         "disabled_changes": _strings,
         "paint": _one_of("domains", "kinds"),

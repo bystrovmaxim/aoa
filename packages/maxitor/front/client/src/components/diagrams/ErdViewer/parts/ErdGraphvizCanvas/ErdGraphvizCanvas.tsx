@@ -41,6 +41,7 @@ import { changeDiskUri, changesOnDiagram, domainsOn, filterGraphByChanges, onScr
 import { mergeRelationsOnScreen } from "@/lib/mergeErdRelations";
 import { diagramCounts, nothingChanged, unmarked } from "@/lib/erdDiff";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { useHalf, writesForPair } from "@/lib/half";
 import { erdChanges } from "@/lib/erdDiffCard";
 import { erdSubject, fromAfar, litBy } from "@/lib/erdCard";
 import { erdFolds } from "@/lib/erdCollapse";
@@ -290,7 +291,10 @@ export function ErdGraphvizCanvas({
   // nothing faded (spec 038, FR-025, FR-026).
   const counts = useMemo(() => (bundle.diff ? diagramCounts(labelledData.entities, labelledData.relations ?? []) : null), [bundle.diff, labelledData]);
   const drawnData = useMemo(() => (counts && nothingChanged(counts) ? unmarked({ ...labelledData, relations: labelledData.relations ?? [] }) : labelledData), [counts, labelledData]);
-  useEffect(() => setDiffCounts(counts), [counts]);
+  const writesPair = writesForPair(useHalf());
+  useEffect(() => {
+    if (writesPair) setDiffCounts(counts);
+  }, [counts, writesPair]);
   // The steps through what the drawing marks (spec 040, FR-025e): the list follows the filters, as the counts do.
   const changes = useMemo(() => (counts && !nothingChanged(counts) ? erdChanges(drawnData.entities, drawnData.relations ?? []) : []), [counts, drawnData]);
   // A step opens its change's card (spec 038, FR-028); while it stands, a hover opens none (spec 043, FR-009).
@@ -401,7 +405,9 @@ export function ErdGraphvizCanvas({
   const paintSection = paintSource(paintSections, chosenPaint);
   const paintKey = `${paintSection}|${JSON.stringify(kindPaint)}`;
   const diffNames = useDiffNames();
-  useEffect(() => () => setDiffCounts(null), []);
+  useEffect(() => () => {
+    if (writesPair) setDiffCounts(null);
+  }, [writesPair]);
 
   // The text Graphviz is given carries the colours too: two tabs painting differently must not claim one input.
   const dot = useMemo(() => {

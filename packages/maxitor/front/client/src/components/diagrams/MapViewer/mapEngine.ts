@@ -10,6 +10,7 @@ import Graph from "graphology";
 import Sigma from "sigma";
 import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigma/rendering";
 
+import type { Half, Side } from "@/lib/half";
 import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
 import type { CardProjection, CardSubject } from "@/components/diagrams/ElementCard";
 import { cardBeside } from "@/lib/cardPlace";
@@ -79,8 +80,8 @@ type Loaded = { detail: MapDetail; level: 2 | 3; usedAt: number };
 /** What of an area stands on the map: its outline and what the name stands with, around what the filters leave. */
 type AreaView = { path: Path2D; whole: Path2D | null; left: number; total: number; x: number; y: number; radius: number };
 
-/** The map's view in map units, kept across versions: switching to another version moves nothing on screen. */
-let keptView: { x: number; y: number; zoom: number } | null = null;
+/** The map's view in map units, kept across versions: switching to another version moves nothing on screen. Each half keeps its own. */
+const keptViews = new Map<Side | null, { x: number; y: number; zoom: number } | null>();
 
 /** ``#rrggbb`` with an alpha. */
 function faded(colour: string, alpha: number): string {
@@ -197,6 +198,7 @@ export class MapEngine {
     private readonly icons: Record<string, string>,
     private readonly elements: MapElements,
     private readonly events: MapEvents,
+    private readonly half: Half | null,
   ) {
     this.areaIndex = new Map(overview.areas.map((area, index) => [area.id, index]));
     this.facts = mapFacts(overview);
@@ -297,20 +299,20 @@ export class MapEngine {
   }
 
   /** Make the map; loads the icons first, so that no node is drawn without one. */
-  static async create(overview: MapOverview, changes: readonly MapChange[], elements: MapElements, events: MapEvents): Promise<MapEngine> {
-    return new MapEngine(overview, changes, await rasterIcons(overview.types), elements, events);
+  static async create(overview: MapOverview, changes: readonly MapChange[], elements: MapElements, events: MapEvents, half: Half | null = null): Promise<MapEngine> {
+    return new MapEngine(overview, changes, await rasterIcons(overview.types), elements, events, half);
   }
 
   /** Stay where the last map stood, when that place is on this one. */
   private restoreKeptView(): void {
-    const view = keptView;
+    const view = keptViews.get(this.half?.side ?? null);
     if (view && this.overview.areas.some((area) => Math.hypot(area.x - view.x, area.y - view.y) < area.radius)) this.surface().restore(view);
   }
 
   /** Let go of everything. */
   destroy(): void {
     this.killed = true;
-    keptView = this.surface().view();
+    keptViews.set(this.half?.side ?? null, this.surface().view());
     this.listening.abort();
     this.stopHearing();
     this.unregister();
@@ -470,7 +472,7 @@ export class MapEngine {
   private read(area: string, level: 2 | 3): Promise<void> {
     const running = this.reading.get(area);
     if (running) return running;
-    const reading = mapArea(area, level)
+    const reading = mapArea(area, level, this.half?.read)
       .then((detail) => this.take(this.areaIndex.get(area)!, detail, level))
       .catch(() => undefined)
       .finally(() => this.reading.delete(area));
