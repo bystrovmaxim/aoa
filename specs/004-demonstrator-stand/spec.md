@@ -6,13 +6,13 @@
 
 **Status**: Draft
 
-**Input**: User description: "The demonstrator stand: the demonstrator and Maxitor each in their own container on 194.67.66.48, reachable at dev.demo.aoa.run and dev.maxitor.aoa.run, built from this repository — so a feature can be accepted by looking at a diagram. It also carries the demonstrator's own shapes for generalization, which the diagram does not show today."
+**Input**: User description: "The demonstrator stand: the demonstrator and Maxitor each in their own container on 203.0.113.10, reachable at dev.demo.aoa.run and dev.maxitor.aoa.run, built from this repository — so a feature can be accepted by looking at a diagram. It also carries the demonstrator's own shapes for generalization, which the diagram does not show today."
 
 ## Clarifications
 
 ### Session 2026-10-10
 
-- Q: Which access to the host do we use for deployment — one of the two existing keys, or a key of its own? → A: Either of the two existing keys (`up2y-prod` / `digtwin-prod`), whichever one works — no separate key.
+- Q: Which access to the host do we use for deployment — one of the two existing keys, or a key of its own? → A: Either of the two existing keys (`key-a` / `key-b`), whichever one works — no separate key.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,8 +144,8 @@ From a clean checkout, one command builds both images, runs both containers, ver
 
 ## Assumptions
 
-- The target host is `194.67.66.48` (given by the issue), and it already serves other projects.
-- **Host access:** either of the two existing SSH keys (`up2y-prod` / `digtwin-prod`), whichever one works, is used for this work — no separate key is created.
+- The target host is `203.0.113.10` (given by the issue), and it already serves other projects.
+- **Host access:** either of the two existing SSH keys (`key-a` / `key-b`), whichever one works, is used for this work — no separate key is created.
 - **DNS (open question 2):** the `A` records for both `aoa.run` names are created by whoever manages the zone, before acceptance.
 - **Front end (open question 3):** the TLS terminator already running on the host is identified first; the stand extends it, never replaces it.
 - Entity specialization (issue #199) has landed in the repository by the time FR-009 is verified; until then the axis shape is recorded as a named gap.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check_before_pr.sh - the full local run on the pushed commit, and its proof on GitHub, before a pull request.
+# check_before_pr.sh - the browser checks CI cannot run, on the pushed commit, and their proof on GitHub.
 # Usage: bash /path/to/repo/scripts/check_before_pr.sh
 #        or from any directory: bash ~/.../check_before_pr.sh
 #
@@ -26,5 +26,5 @@ if [[ -z "$(git -C "$REPO_ROOT" branch -r --contains HEAD)" ]]; then
   exit 1
 fi
 
-bash "$SCRIPT_DIR/run_checks_with_log.sh" || exit $?
+bash "$SCRIPT_DIR/run_checks_with_log.sh" --only-browser || exit $?
 exec bash "$SCRIPT_DIR/run_checks_with_log.sh" --sign-off

@@ -54,6 +54,7 @@ dev = [
     "pylint>=3.0,<4.0",
     "vulture>=2.11,<3.0",
     "radon>=6.0,<7.0",
+    "detect-secrets>=1.5,<2.0",
     "taskipy>=1.12,<2.0",
     "httpx>=0.27,<1.0",
     "aoa-action-machine[postgres]",
@@ -106,7 +107,7 @@ aoa-otel = { workspace = true }
 # HATCHLING — meta wheel ``aoa-run`` (workspace root; ``aoa.*`` live in member packages)
 # ============================================================================
 [tool.hatch.build.targets.wheel]
-packages = ["aoa_run"]
+bypass-selection = true
 
 # ============================================================================
 # PYTEST
@@ -322,8 +323,8 @@ ignored-modules = ["asyncpg"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-# `packages/` — исходники `aoa.*`; плюс тесты, скрипты и meta-package ``aoa_run``.
-src = ["packages", "tests", "scripts", "aoa_run"]
+# `packages/` — исходники `aoa.*`; плюс тесты, скрипты.
+src = ["packages", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = [
@@ -397,8 +398,8 @@ profile = "black"
 line_length = 120
 known_first_party = ["aoa"]
 known_third_party = ["langgraph"]
-# Единый корень `packages/`: исходники `aoa.*`, meta ``aoa_run``, тесты.
-src_paths = ["packages", "aoa_run", "tests"]
+# Единый корень `packages/`: исходники `aoa.*`, тесты.
+src_paths = ["packages", "tests"]
 
 # ============================================================================
 # VULTURE
@@ -433,9 +434,9 @@ maxitor = "uv run uvicorn maxitor.front.api.app:app --reload --host 127.0.0.1 --
 packaging-smoke = "pytest tests/packaging -v"
 build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/maxitor && uv run --group dev python -m build packages/aoa-demo"
 cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
-# Lint sources under packages/, tests/, scripts/, and the root meta package ``aoa_run``.
-lint = "ruff check packages/ tests/ scripts/ aoa_run/"
-fmt = "black packages/ tests/ aoa_run/ && isort packages/ tests/ aoa_run/"
+# Lint sources under packages/, tests/ and scripts/.
+lint = "ruff check packages/ tests/ scripts/"
+fmt = "black packages/ tests/ && isort packages/ tests/"
 # Narrow mypy pass on action_machine; full tree: ``task typecheck``.
 types = "mypy packages/aoa-action-machine/src"
 samples-public-api = "python scripts/check_maxitor_samples_public_api.py"

@@ -304,6 +304,7 @@ all = [
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
     { name = "black" },
+    { name = "detect-secrets" },
     { name = "httpx" },
     { name = "isort" },
     { name = "mypy" },
@@ -328,6 +329,7 @@ dev = [
     { name = "aoa-ocel" },
     { name = "aoa-otel" },
     { name = "black" },
+    { name = "detect-secrets" },
     { name = "httpx" },
     { name = "isort" },
     { name = "mypy" },
@@ -382,6 +384,7 @@ requires-dist = [
     { name = "aoa-otel", marker = "extra == 'dev'", editable = "packages/aoa-otel" },
     { name = "aoa-run", extras = ["fastapi", "mcp", "postgres", "dev"], marker = "extra == 'all'" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0,<25.0" },
+    { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.5,<2.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
     { name = "maxitor", extras = ["all"], editable = "packages/maxitor" },
@@ -1066,6 +1069,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a9/95/a3dbbb5028f35eafb79008e7522a75244477d2838f38cbb722248dabc2a8/cycler-0.12.1.tar.gz", hash = "sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c", size = 7615, upload-time = "2023-10-07T05:32:18.335Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl", hash = "sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30", size = 8321, upload-time = "2023-10-07T05:32:16.783Z" },
+]
+
+[[package]]
+name = "detect-secrets"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/69/67/382a863fff94eae5a0cf05542179169a1c49a4c8784a9480621e2066ca7d/detect_secrets-1.5.0.tar.gz", hash = "sha256:6bb46dcc553c10df51475641bb30fd69d25645cc12339e46c824c1e0c388898a", size = 97351, upload-time = "2024-05-06T17:46:19.721Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/5e/4f5fe4b89fde1dc3ed0eb51bd4ce4c0bca406246673d370ea2ad0c58d747/detect_secrets-1.5.0-py3-none-any.whl", hash = "sha256:e24e7b9b5a35048c313e983f76c4bd09dad89f045ff059e354f9943bf45aa060", size = 120341, upload-time = "2024-05-06T17:46:16.628Z" },
 ]
 
 [[package]]

@@ -43,11 +43,11 @@ repos:
       - id: ruff
         description: "Запуск линтера ruff с авто-исправлением"
         args: [--fix, --exit-non-zero-on-fix]
-        files: ^(packages/|tests/|aoa_run/)
+        files: ^(packages/|tests/)
 
       - id: ruff-format
         description: "Форматирование кода через ruff"
-        files: ^(packages/|tests/|aoa_run/)
+        files: ^(packages/|tests/)
 
   # ------------------------------------------------------------------------
   # ISORT — сортировка импортов (можно убрать, так как ruff уже делает это)
@@ -57,7 +57,7 @@ repos:
     hooks:
       - id: isort
         description: "Сортировка импортов"
-        files: ^(packages/|tests/|aoa_run/)
+        files: ^(packages/|tests/)
         args: [--profile, black, --line-length=120]
 
   # ------------------------------------------------------------------------
@@ -117,10 +117,11 @@ repos:
   # ------------------------------------------------------------------------
   # Безопасность: поиск секретов в коде
   # ------------------------------------------------------------------------
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+  - repo: local
     hooks:
-      - id: detect-secrets
-        description: "Поиск возможных секретов в коде"
-        args: ['--baseline', '.secrets.baseline']
-        exclude: ^(tests/|docs/|archive/|\.secrets\.baseline$)
+      - id: check-no-secrets
+        name: No secrets in tracked files
+        entry: uv run --extra dev python scripts/check_no_secrets.py
+        language: system
+        pass_filenames: false
+        always_run: true

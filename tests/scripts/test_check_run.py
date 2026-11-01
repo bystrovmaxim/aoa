@@ -131,7 +131,11 @@ def _graph_rows(runner, graph_file: Path) -> tuple:
     rows = {step.name: step for step in runner.STEPS}
     return (
         replace(rows[write], command=f"echo current > {graph_file}"),
-        replace(rows[check], command=f"grep -q current {graph_file}", after=tuple(a for a in rows[check].after if a == write)),
+        replace(
+            rows[check],
+            command=f"grep -q current {graph_file}",
+            after=tuple(a for a in rows[check].after if a == write),
+        ),
     )
 
 
@@ -182,7 +186,9 @@ def _git_repo(tmp_path: Path, runner: ModuleType, monkeypatch: pytest.MonkeyPatc
     subprocess.run(["git", "commit", "-qm", "one"], cwd=tmp_path, check=True)
     monkeypatch.setattr(runner, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(runner, "RECEIPT_FILE", tmp_path / ".git" / "receipt.json")
-    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True, text=True
+    ).stdout.strip()
 
 
 def test_a_green_run_on_one_commit_leaves_a_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -194,7 +200,9 @@ def test_a_green_run_on_one_commit_leaves_a_receipt(tmp_path: Path, monkeypatch:
 
 
 @pytest.mark.parametrize("case", ["dirty from the start", "dirtied during the run", "another commit by the end"])
-def test_no_receipt_when_the_tree_was_not_one_commit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str) -> None:
+def test_no_receipt_when_the_tree_was_not_one_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+) -> None:
     """What ran was not the commit, so nothing is recorded: an auto-fix, a graph write or a new commit each change what was proved."""
     runner = _runner()
     commit = _git_repo(tmp_path, runner, monkeypatch)
@@ -246,7 +254,9 @@ def test_sign_off_refuses_a_tree_with_uncommitted_changes(tmp_path: Path, monkey
     assert calls == []
 
 
-def test_sign_off_refuses_a_commit_the_run_did_not_prove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_sign_off_refuses_a_commit_the_run_did_not_prove(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """A new commit has no proof of its own until it is run."""
     runner = _runner()
     commit = _git_repo(tmp_path, runner, monkeypatch)
@@ -255,7 +265,7 @@ def test_sign_off_refuses_a_commit_the_run_did_not_prove(tmp_path: Path, monkeyp
     calls = _signed(runner, monkeypatch)
     assert runner.main(["--sign-off"]) == 1
     assert calls == []
-    assert "no full green run on record" in capsys.readouterr().out
+    assert "no green browser run on record" in capsys.readouterr().out
 
 
 def test_sign_off_refuses_with_no_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -267,7 +277,9 @@ def test_sign_off_refuses_with_no_receipt(tmp_path: Path, monkeypatch: pytest.Mo
     assert calls == []
 
 
-def test_sign_off_fails_when_github_takes_no_status(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_sign_off_fails_when_github_takes_no_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """An unpushed commit is refused by GitHub, and the run says so instead of claiming the mark."""
     runner = _runner()
     commit = _git_repo(tmp_path, runner, monkeypatch)
@@ -289,6 +301,17 @@ def test_only_the_whole_local_run_touches_the_receipt(tmp_path: Path, monkeypatc
     assert runner.RECEIPT_FILE.read_text(encoding="utf-8") == before
     assert runner.main([]) == 0
     assert json.loads(runner.RECEIPT_FILE.read_text(encoding="utf-8")) == {"commit": commit, "steps": 2}
+
+
+def test_a_green_browser_run_alone_proves_the_commit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CI runs everything else, so the browsers are all a pull request has to run locally."""
+    runner = _runner()
+    commit = _git_repo(tmp_path, runner, monkeypatch)
+    monkeypatch.setattr(runner, "LOG_FILE", tmp_path / ".git" / "log.txt")
+    browser = runner.Step("engines", "true", "client", browser=True, home=runner.LOCAL)
+    monkeypatch.setattr(runner, "STEPS", (browser, runner.Step("other", "false", "wide")))
+    assert runner.main(["--only-browser"]) == 0
+    assert json.loads(runner.RECEIPT_FILE.read_text(encoding="utf-8")) == {"commit": commit, "steps": 1}
 
 
 def test_a_red_whole_run_drops_the_receipt_of_the_same_commit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -335,7 +358,9 @@ def test_ci_waits_for_a_run_still_going(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.parametrize("answer", ["", "pending\n", "failure\n"], ids=["no status", "pending", "failure"])
-def test_ci_fails_a_commit_with_no_proof(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], answer: str) -> None:
+def test_ci_fails_a_commit_with_no_proof(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], answer: str
+) -> None:
     """Only a success is a proof, and the failure says what to do."""
     runner = _runner()
     _github_says(runner, monkeypatch, [answer])
@@ -356,7 +381,12 @@ def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
     origin, work = tmp_path / "origin.git", tmp_path / "work"
     subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
     subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
-    for arguments in (["config", "user.email", "t@t"], ["config", "user.name", "t"], ["commit", "-qm", "one", "--allow-empty"], ["push", "-q", "origin", "HEAD"]):
+    for arguments in (
+        ["config", "user.email", "t@t"],
+        ["config", "user.name", "t"],
+        ["commit", "-qm", "one", "--allow-empty"],
+        ["push", "-q", "origin", "HEAD"],
+    ):
         subprocess.run(["git", *arguments], cwd=work, check=True)
     calls = tmp_path / "calls"
     scripts = work / "scripts"
@@ -383,19 +413,21 @@ def test_before_commit_is_the_fast_run(tmp_path: Path) -> None:
     assert _calls(calls) == ["--fast --skip-group tests"]
 
 
-def test_before_pr_runs_everything_then_signs_off(tmp_path: Path) -> None:
-    """On a pushed commit: the full run, and then its proof."""
+def test_before_pr_runs_the_browsers_then_signs_off(tmp_path: Path) -> None:
+    """On a pushed commit: only what CI cannot run, and then its proof."""
     work, calls = _pr_repo(tmp_path)
     subprocess.run(["bash", "scripts/check_before_pr.sh"], cwd=work, check=True)
-    assert _calls(calls) == ["", "--sign-off"]
+    assert _calls(calls) == ["--only-browser", "--sign-off"]
 
 
 def test_before_pr_signs_nothing_after_a_red_run(tmp_path: Path) -> None:
     """A red run is reported with its own code, and no proof leaves."""
     work, calls = _pr_repo(tmp_path)
-    run = subprocess.run(["bash", "scripts/check_before_pr.sh"], cwd=work, check=False, env={**os.environ, "RUN_EXIT": "1"})
+    run = subprocess.run(
+        ["bash", "scripts/check_before_pr.sh"], cwd=work, check=False, env={**os.environ, "RUN_EXIT": "1"}
+    )
     assert run.returncode == 1
-    assert _calls(calls) == [""]
+    assert _calls(calls) == ["--only-browser"]
 
 
 def test_before_pr_refuses_uncommitted_changes_before_the_run(tmp_path: Path) -> None:
