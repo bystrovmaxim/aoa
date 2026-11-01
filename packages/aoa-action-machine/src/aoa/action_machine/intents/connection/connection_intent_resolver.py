@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.connection.connection_decorator import ConnectionInfo
+
 
 class ConnectionIntentResolver:
     """
@@ -39,3 +41,12 @@ class ConnectionIntentResolver:
             if isinstance(connection_type, type) and isinstance(key, str):
                 pairs.append((connection_type, key))
         return pairs
+
+    @staticmethod
+    def resolve_connections(host_cls: type) -> list[ConnectionInfo]:
+        """Return each ``@connection`` whole, its description too, in declaration order."""
+        return [
+            connection
+            for connection in getattr(host_cls, "_connection_info", None) or []
+            if isinstance(connection, ConnectionInfo)
+        ]

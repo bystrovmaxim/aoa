@@ -93,7 +93,7 @@ def test_state_row_carries_all_status_fields() -> None:
 
 def test_state_row_validates_against_the_graph_schema() -> None:
     jsonschema.Draft202012Validator(GRAPH_JSON_SCHEMA).validate(
-        {"schema_version": "1.1", "nodes": _state_rows(), "edges": []}
+        {"schema_version": "1.2", "nodes": _state_rows(), "edges": []}
     )
 
 

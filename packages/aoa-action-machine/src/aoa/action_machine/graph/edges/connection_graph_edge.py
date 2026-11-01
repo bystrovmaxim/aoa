@@ -41,13 +41,14 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         target_node_id: str,
         connection_key: str,
         target_node: BaseGraphNode[Any] | None = None,
+        description: str = "",
     ) -> None:
         super().__init__(
             edge_name="@connection",
             is_dag=True,
             target_node_id=target_node_id,
             target_node=target_node,
-            properties={"key": connection_key},
+            properties={"key": connection_key, **({"description": description} if description else {})},
         )
 
     def to_dict(self, *, source_id: str) -> dict[str, Any]:
@@ -57,9 +58,7 @@ class ConnectionGraphEdge(AssociationGraphEdge):
             "type": self.edge_name,
             "relationship": self.edge_relationship.archimate_name,
             "is_dag": self.is_dag,
-            "properties": {
-                "key": str(self.properties["key"]),
-            },
+            "properties": {key: str(value) for key, value in self.properties.items()},
         }
 
     @staticmethod
@@ -69,11 +68,10 @@ class ConnectionGraphEdge(AssociationGraphEdge):
         """Return one typed edge per ``@connection`` declaration on ``action_cls``."""
         return [
             ConnectionGraphEdge(
-                target_node_id=TypeIntrospection.full_qualname(connection_type),
+                target_node_id=TypeIntrospection.full_qualname(info.cls),
                 target_node=None,
-                connection_key=connection_key,
+                connection_key=info.key,
+                description=info.description,
             )
-            for connection_type, connection_key in ConnectionIntentResolver.resolve_connection_types_and_keys(
-                action_cls,
-            )
+            for info in ConnectionIntentResolver.resolve_connections(action_cls)
         ]

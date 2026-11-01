@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.1.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.2.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.1"
+      "const": "1.2"
     },
     "nodes": {
       "type": "array",
@@ -358,6 +358,10 @@
                 "field_annotation": {
                   "type": "string",
                   "description": "The full annotation as Python spells it, for a tooltip."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the field is for, as its model declares it."
                 },
                 "primary_key_hint": {
                   "type": "boolean",
@@ -721,6 +725,10 @@
               "properties": {
                 "field_name": {
                   "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What it is for, as the model declares it."
                 }
               }
             }
@@ -801,6 +809,10 @@
               "properties": {
                 "role_mode": {
                   "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What it is for, as the model declares it."
                 }
               }
             }
@@ -1071,6 +1083,10 @@
               "properties": {
                 "key": {
                   "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What it is for, as the model declares it."
                 }
               }
             }
@@ -1161,13 +1177,34 @@
       ]
     },
     "entity_reference": {
-      "allOf": [{"$ref": "#/$defs/link_row"}, {
-        "properties": {
-          "type": {"const": "entity_reference"},
-          "properties": {"type": "object", "additionalProperties": false, "required": ["field_name", "cardinality"],
-            "properties": {"field_name": {"type": "string"}, "cardinality": {"type": "string"}}}
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "entity_reference"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field_name",
+                "cardinality"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string"
+                },
+                "cardinality": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
-      }]
+      ]
     },
     "entity_specialization": {
       "allOf": [

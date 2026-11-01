@@ -96,7 +96,7 @@ def test_validate_standard_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest
     """``-`` reads the document from standard input, so a build can be piped in."""
     monkeypatch.setattr("sys.stdin", io.StringIO('{"schema_version": "9.9", "nodes": [], "edges": []}'))
     assert main(["validate", "-"]) == 1
-    assert capsys.readouterr().out == "refused: graph 9.9: unknown schema version '9.9'; known: 1.0, 1.1\n"
+    assert capsys.readouterr().out == "refused: graph 9.9: unknown schema version '9.9'; known: 1.0, 1.1, 1.2\n"
 
 
 def test_validate_refuses_what_is_not_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

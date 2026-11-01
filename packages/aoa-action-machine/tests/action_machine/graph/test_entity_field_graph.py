@@ -12,6 +12,7 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import Field
 
+from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.domain import (
     AssociationOne,
     BaseCoreEntity,
@@ -20,10 +21,14 @@ from aoa.action_machine.domain import (
     NoInverse,
     value,
 )
+from aoa.action_machine.domain.lifecycle import Lifecycle
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph.edges.connection_graph_edge import ConnectionGraphEdge
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_field_graph_node import EntityFieldGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
+from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -80,7 +85,7 @@ def test_an_entity_row_without_a_kind_is_rejected() -> None:
     assert row["properties"]["entity_kind"] == "core"
 
     broken = {**row, "properties": {"description": row["properties"]["description"]}}
-    payload = {"schema_version": "1.1", "nodes": [broken], "edges": []}
+    payload = {"schema_version": "1.2", "nodes": [broken], "edges": []}
     with pytest.raises(jsonschema.ValidationError):
         Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
 
@@ -157,5 +162,28 @@ def test_a_reference_field_row_validates_against_the_schema() -> None:
     row = _field_nodes(ReferenceTagCoreEntity)["currency"].to_dict()
     assert row["properties"]["reference_qualname"] == TypeIntrospection.full_qualname(ReferenceCurrencyEnumEntity)
 
-    document = {"schema_version": "1.1", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
+    document = {"schema_version": "1.2", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
     Draft202012Validator(GRAPH_JSON_SCHEMA).validate(document)
+
+
+def test_a_field_carries_the_description_its_model_declares() -> None:
+    """(043) Protocol 1.2: the description is on the node, and a field without one has no such property."""
+    with_text = EntityFieldGraphNode(SampleCoreEntity, "named", annotation=str, description="What it is")
+    without = EntityFieldGraphNode(SampleCoreEntity, "named", annotation=str)
+    assert with_text.to_dict()["properties"]["description"] == "What it is"
+    assert "description" not in without.to_dict()["properties"]
+
+
+def test_a_connection_keeps_the_description_it_declares() -> None:
+    """(043) The description of ``@connection`` reaches the ``@connection`` edge."""
+    described = ConnectionGraphEdge(target_node_id="r", connection_key="db", description="Primary DB")
+    bare = ConnectionGraphEdge(target_node_id="r", connection_key="db")
+    assert described.to_dict(source_id="a")["properties"] == {"key": "db", "description": "Primary DB"}
+    assert bare.to_dict(source_id="a")["properties"] == {"key": "db"}
+
+
+def test_a_lifecycle_and_a_role_keep_their_descriptions() -> None:
+    """(043) A lifecycle takes its field's description; a role its own."""
+    lifecycle = LifeCycleGraphNode(SampleCoreEntity, "status", Lifecycle, description="Where it stands")
+    assert lifecycle.to_dict()["properties"] == {"field_name": "status", "description": "Where it stands"}
+    assert RoleGraphNode(GuestRole).to_dict()["properties"]["description"] == GuestRole.description

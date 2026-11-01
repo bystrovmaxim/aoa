@@ -292,7 +292,7 @@ def test_a_graph_document_with_an_ordinary_association_edge_validates() -> None:
     node = EntityGraphNode(ReferenceHostCoreEntity)
     dictionary = EntityGraphNode(CurrencyEnumEntity)
     document = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "nodes": [node.to_dict(), dictionary.to_dict()],
         "edges": [{**row, "id": edge_id(row)} for row in (edge.to_dict(source_id=node.node_id) for edge in node.relations)],
     }

@@ -53,7 +53,7 @@ from maxitor.graph_compare.comparison import (
 )
 from maxitor.graph_compare.edge_ids import edge_id
 
-KNOWN_VERSIONS = ("1.0", "1.1")
+KNOWN_VERSIONS = ("1.0", "1.1", "1.2")
 """The protocol's versions this comparison reads; any other is refused, never guessed."""
 
 
