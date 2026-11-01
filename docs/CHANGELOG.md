@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-11-01] — Maxitor shows two versions side by side, and a room compares them together
+
+The picker's third mode now works. **Side by side** stands the older version on the left and the newer on the right, on every diagram, each laid out as that version really was. A serious change can rebuild a picture completely, and here you see both pictures rather than one drawn over the other.
+
+The two halves work as one comparison. Rest the pointer on an element and both light it; **Track** then brings it into view on the other side, so nothing has to be hunted for. A click selects it in both. An element with no pair, removed on the left or added on the right, puts the other half out and says it is not in that version. Filters, collapsed tables, the counts and the stepper are common to both halves, while pan, zoom and layout mode belong to each. On a phone an **A / B** switch flips one diagram between the versions.
+
+A change inside a table now marks the table on both sides, even when the row exists on one. A change in a lifecycle marks its table too, in Diff as well, because a lifecycle is part of the table.
+
+In a room everyone shares the versions, the view, the filters, the layout of each half and the selection. Following is exact: each half is the leader's, zoom included, with the left panel and every card in the half where it stands.
+
+The left panel gained a filter icon in its corner that leaves only what changed, so a new pair of versions can be read top to bottom. The panel also stays as you left it after a reload.
+
+Following on the full graph used to line up the bottom of two screens of different heights; it now lines up the top, as on every other diagram. A follower no longer loses a zoom made while its drawing lands, and the address holds the camera closely enough that a reload at high zoom stays put.
+
 ## [2026-11-01] — Maxitor reads from far away: one card for everything, and tables that collapse
 
 Every field, table and line of the ERD, and everything on the full graph, now has one white card. Rest the pointer on an element and it says what the element is, what it is for and, in a comparison, what changed. The old tooltips with their long dotted paths are gone. A click on a name now only copies it, on every field; it used to open a card on changed ones.
