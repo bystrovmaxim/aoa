@@ -890,6 +890,13 @@ export class MapEngine {
     });
   }
 
+  /** Show what a followed person stands on, by its id: a half's list has its own places, and its card opens where a step's does. */
+  mirrorChange(id: string | null, card: boolean): void {
+    const position = id === null ? -1 : this.changes.findIndex((change) => change.id === id);
+    const here = position >= 0 && (this.half?.side !== "a" || this.changes[position].status === "removed");
+    this.mirror(position >= 0 ? position : null, card && here);
+  }
+
   /** Go to a change. */
   goTo(position: number): void {
     void this.flyTo(position);

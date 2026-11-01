@@ -14,7 +14,7 @@ import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { HalfNote } from "@/components/diagrams/SideBySide";
 import { drawnOn, useHalf, writesForPair, type Half } from "@/lib/half";
-import { joinSteps, noteOf, stepBoth } from "@/lib/halfPicking";
+import { joinMirror, joinSteps, mirrorBoth, noteOf, reportStepCard, stepBoth, useStepCardOpen } from "@/lib/halfPicking";
 import { defaultPaint, paintSettingName, paintSource, type PaintSection } from "@/lib/erdPaint";
 import { layoutHash } from "@/lib/layoutHash";
 import { countChanges } from "@/lib/mapDiff";
@@ -199,6 +199,16 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [half]);
+  useEffect(
+    () =>
+      engine && half
+        ? joinMirror(half.side, (index, open) => {
+            setPosition(index);
+            engine.mirrorChange(index === null ? null : (entriesRef.current[index]?.key ?? null), open);
+          })
+        : undefined,
+    [engine, half],
+  );
   useEffect(() => (engine && half ? joinSteps(half.side, (index) => {
     setPosition(index);
     engine.goToChange(entriesRef.current[index]?.key ?? "");
@@ -209,8 +219,14 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   }, [comparing, shownChanges]);
 
   useEffect(() => {
-    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: half ? setPosition : (next, open) => engine.mirror(next, open) } : null);
-  }, [engine, entries, position, card]);
+    if (!half) return undefined;
+    reportStepCard(half.side, card !== null);
+    return () => reportStepCard(half.side, false);
+  }, [half, card]);
+  const cardOfPair = useStepCardOpen();
+  useEffect(() => {
+    if (writesForPair(half)) setChangeStepping(engine && entries.length ? { entries, position, card: half ? cardOfPair : card !== null, go: half ? stepBoth : (next) => engine.goTo(next), mirror: half ? mirrorBoth : (next, open) => engine.mirror(next, open) } : null);
+  }, [engine, entries, position, card, cardOfPair]);
 
   useEffect(
     () => () => {

@@ -1,6 +1,6 @@
 // src/lib/halfPicking.test.ts
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { dimUnpaired, halfTracking, hoverAcross, inView, joinSteps, noteOf, reportHalfHover, setHalfTracking, stepBoth } from "@/lib/halfPicking";
+import { dimUnpaired, halfTracking, hoverAcross, inView, joinMirror, joinSteps, mirrorBoth, noteOf, reportHalfHover, setHalfTracking, stepBoth } from "@/lib/halfPicking";
 
 afterEach(() => {
   reportHalfHover("a", null);
@@ -44,6 +44,19 @@ describe("one element across the halves", () => {
     setHalfTracking(false);
     expect(halfTracking()).toBe(false);
     setHalfTracking(true);
+  });
+
+  it("shows a followed step in both halves, and a half that left hears nothing", () => {
+    const [a, b] = [vi.fn(), vi.fn()];
+    const leaveA = joinMirror("a", a);
+    const leaveB = joinMirror("b", b);
+    mirrorBoth(5, true);
+    expect(a).toHaveBeenCalledWith(5, true);
+    expect(b).toHaveBeenCalledWith(5, true);
+    leaveA();
+    mirrorBoth(null, false);
+    expect(a).toHaveBeenCalledTimes(1);
+    leaveB();
   });
 
   it("takes one step in both halves, and a half that left takes none", () => {

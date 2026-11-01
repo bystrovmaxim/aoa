@@ -123,6 +123,43 @@ export function joinSteps(side: Side, go: (index: number) => void): () => void {
   };
 }
 
+/** Each half's way to show what a followed person stands on. */
+const mirrors = new Map<Side, (index: number | null, card: boolean) => void>();
+
+/** Hear what a followed person stands on as half ``side``; returns the call that stops. */
+export function joinMirror(side: Side, mirror: (index: number | null, card: boolean) => void): () => void {
+  mirrors.set(side, mirror);
+  return () => {
+    if (mirrors.get(side) === mirror) mirrors.delete(side);
+  };
+}
+
+/** Show in both halves what a followed person stands on: its card opens in the half the leader's does. */
+export function mirrorBoth(index: number | null, card: boolean): void {
+  for (const mirror of mirrors.values()) mirror(index, card);
+}
+
+let stepCards: Record<Side, boolean> = { a: false, b: false };
+const stepCardListeners = new Set<() => void>();
+
+/** Say whether half ``side`` has a step's card open: the pair's step has one wherever it stands. */
+export function reportStepCard(side: Side, open: boolean): void {
+  if (stepCards[side] === open) return;
+  stepCards = { ...stepCards, [side]: open };
+  for (const listener of stepCardListeners) listener();
+}
+
+/** Whether either half has a step's card open, followed as it moves. */
+export function useStepCardOpen(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      stepCardListeners.add(listener);
+      return () => stepCardListeners.delete(listener);
+    },
+    () => stepCards.a || stepCards.b,
+  );
+}
+
 /** Take one step in both halves. */
 export function stepBoth(index: number): void {
   for (const go of steppers.values()) go(index);
