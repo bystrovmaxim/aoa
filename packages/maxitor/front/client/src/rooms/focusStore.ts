@@ -41,6 +41,8 @@ export type Panels = {
   changes: ChangeListState | null;
   why: string | null;
   card?: CardPanel | null;
+  /** The left panel narrowed to what changed (spec 044). */
+  narrow?: boolean;
 };
 
 export type FocusState = {
@@ -185,7 +187,7 @@ function sameChanges(a: ChangeListState | null | undefined, b: ChangeListState |
 }
 
 function samePanels(a: Panels, b: Panels): boolean {
-  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && sameCard(a.card, b.card) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
+  return sameChanges(a.changes, b.changes) && (a.why ?? null) === (b.why ?? null) && sameCard(a.card, b.card) && a.filter === b.filter && a.legend === b.legend && a.versions === b.versions && (a.narrow ?? false) === (b.narrow ?? false) && sameTrack(a.track, b.track) && a.sidebar.length === b.sidebar.length && a.sidebar.every((id, i) => id === b.sidebar[i]);
 }
 
 /** Whether two focus states show the same thing (the sender sends only changes). */

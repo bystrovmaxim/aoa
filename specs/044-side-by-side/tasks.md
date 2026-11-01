@@ -85,6 +85,7 @@
 - [x] T041 What has no pair puts the other half out, on a hover and on a selection
 - [x] T042 Tracking: the other half's camera goes to what the pointer rests on, a switch each person holds
 - [x] T044 On the full graph tracking takes the pointer half's zoom; a half's details carry the pair's marks, its filter the pair's rows, its steps the pair's place
+- [x] T047 The left panel survives a reload, in this browser; a follower is shown the followed panel, the switch too, and what they are shown is not kept
 - [x] T043 A lifecycle is part of its table: a change in it marks the table and its field, in Diff too
 
 ## Phase 9: Closing

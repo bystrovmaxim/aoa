@@ -35,7 +35,7 @@ from tests.test_rooms_server import _ALL_DOMAINS, _FULL_GRAPH, _connect, _expect
 
 __all__ = ["client", "source"]
 
-_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None, "why": None, "card": None}
+_PANELS = {"sidebar": ["domains"], "filter": "kinds", "legend": False, "versions": False, "track": None, "changes": None, "why": None, "card": None, "narrow": False}
 _ROW = {"kind": "row", "id": "fn0_1"}
 _FOCUS: dict[str, Any] = {
     "type": "focus",
@@ -58,6 +58,8 @@ _FOCUS: dict[str, Any] = {
         ({"panels": {**_PANELS, "filter": "changes"}}, True),
         ({"panels": {**_PANELS, "filter": "colours"}}, False),
         ({"panels": {**_PANELS, "legend": "yes"}}, False),
+        ({"panels": {**_PANELS, "narrow": True}}, True),
+        ({"panels": {**_PANELS, "narrow": "yes"}}, False),
         ({"panels": {**_PANELS, "versions": True}}, True),
         ({"panels": {**_PANELS, "versions": "open"}}, False),
         ({"panels": {**_PANELS, "card": {"ref": _ROW, "fields": True, "field": 2, "scroll": 40, "at": {"x": 120.5, "y": 40}}}}, True),
