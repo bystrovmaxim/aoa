@@ -1,12 +1,12 @@
 # Run the checks
 
-No change in this repository is finished until the check run is green. It is one command, run from anywhere inside the repository:
+No change in this repository is finished until the check run is green. The local run is one command, run from anywhere inside the repository:
 
 ```bash
 bash scripts/run_checks_with_log.sh
 ```
 
-It runs 37 steps — two repository guards, the Maxitor client's build and its tests (including the layout in three browser engines), Ruff, mypy, pylint, the package-boundary and package-metadata checkers, a wheel and sdist build of every package and a smoke test that installs them, vulture, the samples public-API check, the tests of every package, and Radon — and writes everything they print into one log, `archive/logs/check-all.txt`. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them: on an Apple M3 Max with 14 cores, **about 57 s instead of about 220 s**.
+It runs the local gate — two repository guards, Ruff, mypy, pylint, the package-boundary and package-metadata checkers, vulture, the samples public-API check, the Maxitor client's build and its tests (including the layout in three browser engines), the five ERD scripts, the tests of every package, Radon, and a check of the saved graph files — and writes everything they print into one log, `archive/logs/check-all.txt`. The wheel and sdist build and the packaging smoke test are **not** part of the local run: they need the network and matter when a package is released, so CI runs them. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them.
 
 This page shows each case as the command and what it really printed.
 
@@ -29,7 +29,6 @@ OK Ruff auto-fix (exit 0, 0.1 s)
 > Ruff lint
 …
 OK Maxitor client: unit tests (exit 0, 13.5 s)
-OK Packaging wheel install smoke (exit 0, 7.7 s)
 OK Pytest maxitor/front (exit 0, 39.4 s)
 OK Pytest maxitor/tools/graph_builder (exit 0, 6.4 s)
 OK Maxitor client: the same layout in three engines (exit 0, 30.1 s)
@@ -81,11 +80,11 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, vulture, samples public API, Radon | the auto-fix |
-| Packaging | nine package builds, then the packaging smoke test | the auto-fix; the Maxitor package build never runs during the client build, because its source archive packs the client folder; the smoke test waits for all nine builds |
+| Always | `Graph files (graph-builder check)`: verifies the saved graph files are current | nothing; it runs even when another step fails |
 | Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/front` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
 | Last, only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 
-The last step may change `packages/aoa-demo/graph.json` and `packages/maxitor/front/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. CI only checks them with `graph-builder check`.
+The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/front/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The graph check runs on every run, local and CI, so a failure in an unrelated step never leaves the files neither written nor checked. The nine package builds and the packaging smoke test are not in the local table: they run only in CI.
 
 The run is as long as its longest chain. Today two chains are almost equal: the client build and then the three-engine layout step (about 22 + 30 s), and the tests of `aoa-action-machine` (about 50 s). Every other step finishes beside them, so making one of these two shorter alone gains only a few seconds.
 
@@ -113,6 +112,42 @@ part C (following) 7.1 s
 ```
 
 Its lines always come in the same order — pages in the left panel's order, then the pointer cases, then the pairs — whichever part or engine finishes first.
+
+## The two gates, and the fast mode
+
+The same table drives the local run and every CI job; each context selects its rows:
+
+```bash
+bash scripts/run_checks_with_log.sh                                                   # local full gate
+bash scripts/run_checks_with_log.sh --fast                                            # local fast mode
+bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging  # CI checks job
+bash scripts/run_checks_with_log.sh --where ci --only-browser                         # CI browser job
+bash scripts/run_checks_with_log.sh --where ci --only-group packaging                 # CI packaging job
+```
+
+`--fast` keeps the cheap rows — the guards, the static checks and the Python tests — and skips the client build, the browsers, the package build and the graph write. The full run stays the default. CI runs the full gate on every pull request, in three parallel jobs: the checks job, the browser job and the packaging job. The browser job caches its engines by the lockfile hash, so they are downloaded only when Playwright changes. The speed-sensitive tests are marked `benchmark`: the local suites run them, CI runs `-m "not benchmark"`.
+
+A fast run prints only the rows it selected:
+
+```bash
+bash scripts/run_checks_with_log.sh --fast
+```
+
+```text
+> Ban __getattr__ in package __init__.py
+OK Ban __getattr__ in package __init__.py (exit 0, 0.4 s)
+> Maxitor client: README beside components/*/ index.ts
+OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
+> Ruff auto-fix
+OK Ruff auto-fix (exit 0, 0.2 s)
+> Ruff lint
+> Mypy typecheck
+> Pylint
+…
+OK Pytest aoa-ocel (exit 0, 3.4 s)
+…
+Wall time: 66.9 s
+```
 
 ## The limit, and running one step at a time
 
