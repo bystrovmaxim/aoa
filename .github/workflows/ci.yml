@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/maxitor/front/client/package-lock.json
+          cache-dependency-path: packages/maxitor/web/client/package-lock.json
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5

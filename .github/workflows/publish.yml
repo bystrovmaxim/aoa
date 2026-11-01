@@ -131,12 +131,12 @@ jobs:
         with:
           node-version: '20'
       - name: Build frontend
-        working-directory: packages/maxitor/front/client
+        working-directory: packages/maxitor/web/client
         run: |
           npm ci
           npx vite build \
             --base=/ \
-            --outDir ../maxitor/front/static \
+            --outDir ../maxitor/web/static \
             --emptyOutDir
       - name: Build
         run: uv build --package maxitor --out-dir packages/maxitor/dist

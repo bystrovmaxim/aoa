@@ -62,18 +62,18 @@ description: "Tasks — Maxitor parts one level shallower, and front named web"
 
 **Rule (research R6)**: change identifiers only. Comments and docstrings that say "the front" in plain words stay, so the graph proof holds. The message in `launch.py` is the one text that changes.
 
-- [ ] T019 [US3] `git mv packages/maxitor/front packages/maxitor/web` and `git mv packages/maxitor/web/maxitor/front packages/maxitor/web/maxitor/web`, and rewrite line 1 of every moved module
-- [ ] T020 [US3] Replace `maxitor.front` with `maxitor.web` in every Python file, notebook and script outside `specs/`, past changelog entries and the graph files, including `packages/maxitor/web/`, `examples/`, `docs/reports/evidence/`, `docs/tutorials/step-26-maxitor.md` and `packages/maxitor/web/client/scripts/check-layout-determinism.ts`
-- [ ] T021 [US3] Update `packages/maxitor/pyproject.toml`: extra `front` to `web`, `all` to `maxitor[web]`, the `maxitor` script to `maxitor.web.launch:main`, and every path. Run `uv lock` to update `uv.lock`
-- [ ] T022 [US3] Update the message in `packages/maxitor/web/maxitor/web/launch.py`: `FRONT_HINT` to `WEB_HINT`, with the text `maxitor needs its web part: pip install "maxitor[web]"`, and the expected text in `packages/maxitor/web/tests/test_launch.py` and `tests/packaging/test_wheel_install_smoke.py`
-- [ ] T023 [P] [US3] Update `pyproject.toml` and `scripts/package_boundaries.toml` paths to `packages/maxitor/web` and `packages/maxitor/web/maxitor`, and `AOA_ONLY_IN_EXTRA` in `scripts/check_package_metadata.py` to `web`
-- [ ] T024 [P] [US3] Update `scripts/check_run.py` (`CLIENT`, the test package `maxitor/web`) and the client's folder in `scripts/run_checks_with_log.sh`
-- [ ] T025 [P] [US3] Update `graph-builder.toml` (the build module `maxitor.web.build_graph`, the file `packages/maxitor/web/graph.json`)
-- [ ] T026 [P] [US3] Update `.github/workflows/ci.yml`, `.github/workflows/publish.yml`, `deploy/stand/docker-compose.yml`, `.gitignore`, `.claude/launch.json`, `.vscode/launch.json` and `packages/maxitor/web/Dockerfile`, including its `--extra web`
-- [ ] T027 [US3] Run `uv sync --all-extras`, then `uv run --extra dev ruff check --fix packages/ tests/ scripts/`, and review the reordered imports (research R7)
-- [ ] T028 [US3] Run `uv run --extra dev graph-builder write`, then the `sed | cmp` line of quickstart, and `cmp` for `packages/maxitor/tools/repo_graph_port/graph.json`. Adversarial: change one id in `packages/maxitor/web/graph.json`, confirm `cmp` reports it, and regenerate
-- [ ] T029 [US3] Run the old-names search and the `find` of quickstart, leaving aside the prose rule of research R6, then `bash scripts/check_before_commit.sh` until green
-- [ ] T030 [US2] Build both images: `packages/maxitor/web/Dockerfile` and `packages/maxitor/tools/repo_graph_port/Dockerfile`. Then repeat the wheel check for `maxitor/web/static/`
+- [x] T019 [US3] `git mv packages/maxitor/front packages/maxitor/web` and `git mv packages/maxitor/web/maxitor/front packages/maxitor/web/maxitor/web`, and rewrite line 1 of every moved module
+- [x] T020 [US3] Replace `maxitor.front` with `maxitor.web` in every Python file, notebook and script outside `specs/`, past changelog entries and the graph files, including `packages/maxitor/web/`, `examples/`, `docs/reports/evidence/`, `docs/tutorials/step-26-maxitor.md` and `packages/maxitor/web/client/scripts/check-layout-determinism.ts`
+- [x] T021 [US3] Update `packages/maxitor/pyproject.toml`: extra `front` to `web`, `all` to `maxitor[web]`, the `maxitor` script to `maxitor.web.launch:main`, and every path. Run `uv lock` to update `uv.lock`
+- [x] T022 [US3] Update the message in `packages/maxitor/web/maxitor/web/launch.py`: `FRONT_HINT` to `WEB_HINT`, with the text `maxitor needs its web part: pip install "maxitor[web]"`, and the expected text in `packages/maxitor/web/tests/test_launch.py` and `tests/packaging/test_wheel_install_smoke.py`
+- [x] T023 [P] [US3] Update `pyproject.toml` and `scripts/package_boundaries.toml` paths to `packages/maxitor/web` and `packages/maxitor/web/maxitor`, and `AOA_ONLY_IN_EXTRA` in `scripts/check_package_metadata.py` to `web`
+- [x] T024 [P] [US3] Update `scripts/check_run.py` (`CLIENT`, the test package `maxitor/web`) and the client's folder in `scripts/run_checks_with_log.sh`
+- [x] T025 [P] [US3] Update `graph-builder.toml` (the build module `maxitor.web.build_graph`, the file `packages/maxitor/web/graph.json`)
+- [x] T026 [P] [US3] Update `.github/workflows/ci.yml`, `.github/workflows/publish.yml`, `deploy/stand/docker-compose.yml`, `.gitignore`, `.claude/launch.json`, `.vscode/launch.json` and `packages/maxitor/web/Dockerfile`, including its `--extra web`
+- [x] T027 [US3] Run `uv sync --all-extras`, then `uv run --extra dev ruff check --fix packages/ tests/ scripts/`, and review the reordered imports (research R7)
+- [x] T028 [US3] Run `uv run --extra dev graph-builder write`, then the `sed | cmp` line of quickstart, and `cmp` for `packages/maxitor/tools/repo_graph_port/graph.json`. Adversarial: change one id in `packages/maxitor/web/graph.json`, confirm `cmp` reports it, and regenerate
+- [x] T029 [US3] Run the old-names search and the `find` of quickstart, leaving aside the prose rule of research R6, then `bash scripts/check_before_commit.sh` until green
+- [x] T030 [US2] Build both images: `packages/maxitor/web/Dockerfile` and `packages/maxitor/tools/repo_graph_port/Dockerfile`. Then repeat the wheel check for `maxitor/web/static/`
 
 **Checkpoint**: show the diff and wait for the commit instruction.
 

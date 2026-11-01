@@ -58,11 +58,11 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from maxitor.front.api import app as app_module
-from maxitor.front.api.app import create_app
-from maxitor.front.api.graph_source_middleware import MISSING_SOURCE_DETAIL
-from maxitor.front.api.graph_store import GraphEntry
-from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+from maxitor.web.api import app as app_module
+from maxitor.web.api.app import create_app
+from maxitor.web.api.graph_source_middleware import MISSING_SOURCE_DETAIL
+from maxitor.web.api.graph_store import GraphEntry
+from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
 SOURCE = "https://fixture.test/graph-json"
 ASSET = "/assets/index-abc123.js"

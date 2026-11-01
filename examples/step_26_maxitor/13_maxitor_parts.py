@@ -1,9 +1,9 @@
 """
 13_maxitor_parts.py — Maxitor is one package; an install chooses its parts, and the protocol needs no Python
 
-``maxitor`` holds the front (``maxitor.front``), the ``graph-builder`` command and the skills. ``pip install
+``maxitor`` holds the front (``maxitor.web``), the ``graph-builder`` command and the skills. ``pip install
 maxitor`` with no extra installs the command alone — nothing of AOA, no server — which is all a CI job
-needs; ``maxitor[front]`` adds the front. The graph's format, the Open Gnomon Protocol, is a folder of JSON
+needs; ``maxitor[web]`` adds the front. The graph's format, the Open Gnomon Protocol, is a folder of JSON
 Schemas with no code: any validator in any language checks a graph against it.
 
 The cases, with the real output at the bottom:
@@ -12,7 +12,7 @@ The cases, with the real output at the bottom:
   2. the front's command in that environment names the extra it needs, and exits with 2;
   3. any language: a plain JSON Schema validator — not Maxitor — accepts the demo's graph against the
      protocol's schema, and refuses it without one edge's ``id``;
-  4. the front's import is ``maxitor.front``.
+  4. the front's import is ``maxitor.web``.
 
 Case 1 builds the ``maxitor`` wheel and a clean environment in a temporary folder (``uv`` required).
 
@@ -24,12 +24,12 @@ Output:
        installed: attrs, jsonschema, jsonschema-specifications, jsonschema_rs, maxitor, referencing, rpds-py, typing_extensions
        anything of AOA or of the server: none
     2. The front without its extra
-       exit 2: maxitor needs its front: pip install "maxitor[front]"
+       exit 2: maxitor needs its web part: pip install "maxitor[web]"
     3. Any language: a plain JSON Schema validator
        the demo's graph against packages/open-gnomon-protocol/graph/1.1.json: valid
        the same without edges[0].id: refused — 'id' is a required property
     4. The front's import
-       maxitor.front.api.app.create_app
+       maxitor.web.api.app.create_app
 
 Tutorial: ../../docs/tutorials/step-26-maxitor.md  ·  topic: Maxitor (parts and install)
 
@@ -47,7 +47,7 @@ import tempfile
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
-from maxitor.front.api.app import create_app
+from maxitor.web.api.app import create_app
 
 # The repository root: the folder that holds graph-builder.toml, wherever this runs from.
 REPO_ROOT = next(path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "graph-builder.toml").is_file())
@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory() as folder:
     subprocess.run(["uv", "pip", "install", "-q", f"--python={python}", *map(str, (tmp / "dist").glob("maxitor-*.whl"))], check=True)
     graph_builder = str(tmp / "venv" / "bin" / "graph-builder")
     print("  ", subprocess.run([graph_builder, "--version"], capture_output=True, text=True, check=True).stdout.strip())
-    print("  ", subprocess.run([graph_builder, "validate", "packages/maxitor/front/graph.json"], capture_output=True, text=True, check=True).stdout.strip())
+    print("  ", subprocess.run([graph_builder, "validate", "packages/maxitor/web/graph.json"], capture_output=True, text=True, check=True).stdout.strip())
     listing = "import importlib.metadata as m; print(' '.join(sorted(d.metadata['Name'].lower() for d in m.distributions())))"
     installed = subprocess.run([str(python), "-c", listing], capture_output=True, text=True, check=True).stdout.split()
     print("   installed:", ", ".join(installed))

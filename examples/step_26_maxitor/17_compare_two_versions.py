@@ -37,7 +37,7 @@ Output:
       History orders version read for anna
       Comparison computed in 5 ms: nodes +1 −0 ~1, edges +0 −0 ~0
        nodes +1 −0 ~1 · links +0 −0 ~0
-       changed: maxitor.front.model.core.entities.node_entity.NodeCoreEntity
+       changed: maxitor.web.model.core.entities.node_entity.NodeCoreEntity
          properties.description: 'Hierarchical UI node row (id, optional parent, label, coarse type)' → 'Orders a customer places, now billed.'
        added: example.billing
     5. 0.1.0 → 0.3.0
@@ -73,7 +73,7 @@ from typing import Any
 
 import uvicorn
 from fastapi.testclient import TestClient
-from maxitor.front.api.app import create_app as create_maxitor
+from maxitor.web.api.app import create_app as create_maxitor
 from maxitor.repo_graph_port.cli import main as history_command
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.server import create_app as create_port
@@ -82,7 +82,7 @@ from maxitor.repo_graph_port.server import create_app as create_port
 REPO_ROOT = next(
     path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "graph-builder.toml").is_file()
 )
-FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/front/graph.json").read_text(encoding="utf-8"))
+FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/web/graph.json").read_text(encoding="utf-8"))
 WORK = Path(tempfile.mkdtemp(prefix="compare-two-versions-"))
 ENTITY = next(node for node in FRONT_GRAPH["nodes"] if node["type"] == "Entity")
 

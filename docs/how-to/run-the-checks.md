@@ -36,7 +36,7 @@ OK Ruff auto-fix (exit 0, 0.1 s)
 > Ruff lint
 …
 OK Pytest aoa-action-machine (exit 0, 52.7 s)
-OK Pytest maxitor/front (exit 0, 70.3 s)
+OK Pytest maxitor/web (exit 0, 70.3 s)
 OK Maxitor client: npm ci and Vite build (exit 0, 208.2 s)
 OK Maxitor client: the same layout in three engines (exit 0, 280.1 s)
 > Graph files (graph-builder write)
@@ -90,11 +90,11 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | Ruff lint, mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
-| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/front` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/web` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
 | Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
 
-The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/front/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
+The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/web/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
 
 ```text
 OK Graph files (graph-builder write) (exit 0, 3.8 s)

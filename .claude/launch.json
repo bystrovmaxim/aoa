@@ -19,7 +19,7 @@
         "--extra",
         "dev",
         "uvicorn",
-        "maxitor.front.api.app:app",
+        "maxitor.web.api.app:app",
         "--host",
         "127.0.0.1",
         "--port",
@@ -47,7 +47,7 @@
         "run",
         "dev",
         "--prefix",
-        "packages/maxitor/front/client"
+        "packages/maxitor/web/client"
       ],
       "port": 5173
     }

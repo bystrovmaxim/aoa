@@ -29,12 +29,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from maxitor.front.model.diagrams.actions.get_element_card_action import (
+from maxitor.web.model.diagrams.actions.get_element_card_action import (
     ElementNotInGraphError,
     GetElementCardAction,
     GetElementCardParams,
 )
-from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
+from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GRAPH_CONNECTION_KEY, DuckDBGraphResource
 
 from aoa.action_machine.model import BaseState
 

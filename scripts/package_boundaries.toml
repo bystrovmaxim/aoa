@@ -21,9 +21,9 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/maxitor/front/maxitor/front"]
-future_roots = ["packages/maxitor/front/maxitor/front"]
-import_prefixes = ["maxitor.front"]
+current_roots = ["packages/maxitor/web/maxitor/web"]
+future_roots = ["packages/maxitor/web/maxitor/web"]
+import_prefixes = ["maxitor.web"]
 may_import = ["action_machine", "graph_builder", "graph_compare", "graph_map"]
 
 # The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
@@ -48,17 +48,17 @@ allow = []
 [standalone.graph_builder]
 roots = ["packages/maxitor/tools/graph_builder/maxitor/graph_builder"]
 import_prefixes = ["maxitor.graph_builder"]
-forbid = ["maxitor.front", "maxitor.repo_graph_port"]
+forbid = ["maxitor.web", "maxitor.repo_graph_port"]
 
 # ``maxitor.graph_compare`` compares two graph documents for the front and the tools alike: it needs the standard
 # library alone (its own test checks that) and imports nothing of ``aoa``, the front or a tool.
 [standalone.graph_compare]
 roots = ["packages/maxitor/core/graph_compare/maxitor/graph_compare"]
 import_prefixes = ["maxitor.graph_compare"]
-forbid = ["maxitor.front", "maxitor.repo_graph_port", "maxitor.graph_builder"]
+forbid = ["maxitor.web", "maxitor.repo_graph_port", "maxitor.graph_builder"]
 
 # ``maxitor.graph_map`` turns a graph document into the map the front reads: the standard library alone, like the comparison.
 [standalone.graph_map]
 roots = ["packages/maxitor/core/graph_map/maxitor/graph_map"]
 import_prefixes = ["maxitor.graph_map"]
-forbid = ["maxitor.front", "maxitor.repo_graph_port", "maxitor.graph_builder"]
+forbid = ["maxitor.web", "maxitor.repo_graph_port", "maxitor.graph_builder"]
