@@ -20,6 +20,8 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   disabled_node_types: { param: "off_types", kind: "list" },
   disabled_domains: { param: "off_domains", kind: "list" },
   one_hop: { param: "one_hop", kind: "switch" },
+  fields_collapsed: { param: "collapsed", kind: "switch" },
+  fields_except: { param: "except", kind: "list" },
   boundary: { param: "boundary", kind: "switch" },
   rankdir: { param: "rankdir", kind: "choice" },
   paint: { param: "paint", kind: "choice" },
