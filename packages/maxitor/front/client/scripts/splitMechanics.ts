@@ -128,6 +128,31 @@ async function following(url: string): Promise<void> {
   for (const [name, row] of [...diagrams, ["lifecycle", "lifecycle view"]] as [string, string][]) {
     await leader.getByText(row).first().click();
     await leader.waitForTimeout(7000);
+    // A step's card stands in the same half for the leader and the follower, and in neither twice.
+    const next = leader.getByTestId("change-stepper").locator("button").last();
+    for (const step of [1, 2, 3, 4]) {
+      await next.click();
+      await leader.waitForTimeout(1600);
+      const cards = (page: Page) =>
+        page.evaluate(() =>
+          ["a", "b"].map((half) => document.querySelector(`[data-half="${half}"] [data-testid="diff-card"], [data-half="${half}"] [data-testid="element-card"]`) !== null),
+        );
+      const [theirs, yours] = [await cards(leader), await cards(follower)];
+      say(`following ${name}, step ${step}: the card stands in the same half`, theirs.join() === yours.join() && theirs.some(Boolean), `${theirs} / ${yours}`);
+    }
+    await leader.keyboard.press("Escape");
+    await leader.waitForTimeout(400);
+    // The card of a hover too: it stands in the half under the leader's pointer, for the follower as well.
+    const [resting] = name === "full graph" ? [] : await nodes(leader, "a");
+    if (resting) {
+      await leader.mouse.move(resting.x, resting.y);
+      await leader.waitForTimeout(1200);
+      const inHalf = (page: Page) => page.evaluate(() => ["a", "b"].map((half) => document.querySelector(`[data-half="${half}"] [data-testid="element-card"]`) !== null));
+      const [theirs, yours] = [await inHalf(leader), await inHalf(follower)];
+      say(`following ${name}: a hover's card stands in the same half`, theirs.join() === "true,false" && yours.join() === "true,false", `${theirs} / ${yours}`);
+      await leader.mouse.move(2, 2);
+      await leader.waitForTimeout(400);
+    }
     await leader.locator('[data-half="b"] button[aria-label="Zoom in"]').first().click();
     await leader.locator('[data-half="a"] button[aria-label="Zoom in"]').first().click();
     await leader.waitForTimeout(2500);

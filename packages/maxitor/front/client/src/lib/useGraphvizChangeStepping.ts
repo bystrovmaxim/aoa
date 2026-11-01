@@ -8,7 +8,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import type { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { useHalf, writesForPair } from "@/lib/half";
-import { joinSteps, stepBoth, type Portable } from "@/lib/halfPicking";
+import { joinMirror, joinSteps, mirrorBoth, reportStepCard, stepBoth, useStepCardOpen, type Portable } from "@/lib/halfPicking";
 import { usePageSetting } from "@/lib/pageSettings";
 import type { ElementRef } from "@/rooms/focusStore";
 import { elementRefOf } from "@/rooms/graphvizFocus";
@@ -84,10 +84,12 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
   const mirrorChange = useCallback(
     (index: number | null, open: boolean) => {
       setPosition(index);
-      if (index !== null && open) showCard(index);
+      // A half opens the card where a step does: in B, or in A for what only A has (spec 044).
+      const here = half?.side !== "a" || (index !== null && changesRef.current[index]?.status === "removed");
+      if (index !== null && open && here) showCard(index);
       else setCard(null);
     },
-    [showCard],
+    [half, showCard],
   );
   /** A card of a change stands by its element, wherever the click was: so it stands for a follower too. */
   const openCard = useCallback(
@@ -111,9 +113,16 @@ export function useGraphvizChangeStepping({ changes, pannerRef, viewportRef, pan
   );
   const side = half?.side ?? null;
   useEffect(() => (side ? joinSteps(side, goToChange) : undefined), [side, goToChange]);
+  useEffect(() => (side ? joinMirror(side, mirrorChange) : undefined), [side, mirrorChange]);
   useEffect(() => {
-    if (writesPair) setChangeStepping(changes.length ? { entries: changes, position, card: card !== null, go: side ? stepBoth : goToChange, mirror: mirrorChange } : null);
-  }, [changes, position, card, goToChange, mirrorChange, side, writesPair]);
+    if (!side) return undefined;
+    reportStepCard(side, card !== null);
+    return () => reportStepCard(side, false);
+  }, [side, card]);
+  const cardOfPair = useStepCardOpen();
+  useEffect(() => {
+    if (writesPair) setChangeStepping(changes.length ? { entries: changes, position, card: side ? cardOfPair : card !== null, go: side ? stepBoth : goToChange, mirror: side ? mirrorBoth : mirrorChange } : null);
+  }, [changes, position, card, cardOfPair, goToChange, mirrorChange, side, writesPair]);
   useEffect(() => () => {
     if (writesPair) setChangeStepping(null);
   }, [writesPair]);

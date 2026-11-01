@@ -87,6 +87,7 @@
 - [x] T044 On the full graph tracking takes the pointer half's zoom; a half's details carry the pair's marks, its filter the pair's rows, its steps the pair's place
 - [x] T047 The left panel survives a reload, in this browser; a follower is shown the followed panel, the switch too, and what they are shown is not kept
 - [x] T048 Following in Side by side is whole: each half takes pan and zoom, a card opens in its own half; a follower of the full graph keeps the top edge, whose y grows upward (found in rooms, any view); `splitMechanics.ts` compares the two windows on all four diagrams
+- [x] T049 A follower gets every card in the half it stands in: a step's, the removed in A, and a hover's
 - [x] T043 A lifecycle is part of its table: a change in it marks the table and its field, in Diff too
 
 ## Phase 9: Closing
