@@ -89,7 +89,7 @@ const MODES = [
  * The mode switch (spec 038, FR-009, FR-015): One and Diff, Diff greyed out with "needs two versions" where the
  * history has fewer than two points; Side by side too (spec 044).
  */
-function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onChange?: (mode: PickerMode) => void; diffOffered: boolean }) {
+function ModeSwitch({ value, onChange, diffOffered, phone = false }: { value: PickerMode; onChange?: (mode: PickerMode) => void; diffOffered: boolean; phone?: boolean }) {
   return (
     <Box role="radiogroup" aria-label="Mode" sx={{ display: "inline-flex", flexShrink: 0, border: "1px solid rgba(15, 23, 42, 0.12)", borderRadius: "8px", p: "2px", gap: "2px" }}>
       {MODES.map((mode) => {
@@ -127,7 +127,7 @@ function ModeSwitch({ value, onChange, diffOffered }: { value: PickerMode; onCha
             }}
           >
             <ModeIcon>{mode.icon}</ModeIcon>
-            {mode.label}
+            {(phone && mode.value === "split" ? "A / B" : mode.label)}
           </Box>
         );
         return hint === null || on ? (
@@ -205,7 +205,7 @@ export function VersionPicker({
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TrackLegend />
-          <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} />
+          <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} phone={phone} />
         </Box>
       </Box>
       <VersionTrack

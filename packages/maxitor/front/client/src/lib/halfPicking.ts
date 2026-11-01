@@ -169,7 +169,7 @@ export function useHalfPicking({ pannerRef, viewportRef, centreOnClient, drawing
     target.style.filter = SELECTED_GLOW;
     const box = (elements[0] ?? target).getBoundingClientRect();
     let moved: ReturnType<typeof setTimeout> | undefined;
-    if (inView(box, stage)) setNote(null);
+    if (inView(box, stage) && !half.phone) setNote(null);
     else {
       panner.style.transition = `transform ${GLIDE_MS}ms ease`;
       latest.current.centreOnClient(box.left + box.width / 2, box.top + box.height / 2);
