@@ -60,8 +60,8 @@
 
 ## Phase 7: US3 — Phone (commit 7)
 
-- [ ] T027 [US3] A / B in place of Side by side at the `sm` breakpoint in `VersionPicker.tsx` and `SideBySide/`; a link opens on B; narrowing and widening; test
-- [ ] T028 [US3] Keep the selection centred across a flip, or say "Not in"; test; walk quickstart 7
+- [x] T027 [US3] A / B in place of Side by side at the `sm` breakpoint in `VersionPicker.tsx` and `SideBySide/`; a link opens on B; narrowing and widening; test
+- [x] T028 [US3] Keep the selection centred across a flip, or say "Not in"; test; walk quickstart 7
 
 ## Phase 8: US4 — Rooms (commit 8)
 

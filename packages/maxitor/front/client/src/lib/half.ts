@@ -18,6 +18,8 @@ export type Half = {
   read: GraphRead;
   /** The version's name, for what the half says. */
   name: string;
+  /** On a phone one half stands at a time, and what is selected stands in its centre. */
+  phone?: boolean;
 };
 
 const HalfContext = createContext<Half | null>(null);
