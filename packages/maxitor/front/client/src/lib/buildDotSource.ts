@@ -5,6 +5,9 @@
  */
 
 /** What happened to a table, a row or a line between two versions (spec 038); absent while one version is drawn. */
+/** A table in the drawing: the rows a collapse hides, and whether it is collapsed. */
+export type ErdFold = { hidden: ReadonlySet<number>; collapsed: boolean };
+
 export type ErdDiff = "added" | "removed" | "changed" | "unchanged";
 
 export type ErdField = {
@@ -16,6 +19,10 @@ export type ErdField = {
   reference_qualname?: string | null;
   /** The full annotation, for the type cell's tooltip; absent from a service on an older aoa-action-machine. */
   annotation?: string | null;
+  /** What the field is for; a graph older than protocol 1.2 has none. */
+  description?: string | null;
+  /** The lifecycle this row is, when it is one: its interchange id. */
+  lifecycle_id?: string | null;
   /** In Diff: what happened to the row. */
   diff?: ErdDiff;
   /** In Diff: the row's type in A, when it differs from B's — written struck through before it. */
@@ -38,6 +45,8 @@ export type ErdEntity = {
   /** Interchange domain qualname (for legend / filter when 1-hop adds neighbors). */
   domain_qualname?: string;
   fields?: ErdField[];
+  /** In Diff: it stands in another domain than it did in A. */
+  movedDomain?: boolean;
   /** In Diff: what happened to the table itself — its own properties, not its rows. */
   diff?: ErdDiff;
 };
@@ -63,6 +72,8 @@ export type ErdRelation = {
   source_field?: string | null;
   /** Its declared inverse on the target table, or null: the role written at the source's end. */
   target_field?: string | null;
+  /** What the relation is for, as its model declares it. */
+  description?: string | null;
   /** In Diff: what happened to the line. */
   diff?: ErdDiff;
   /** In Diff: where the line pointed in A, when its field now points elsewhere — drawn thin and dashed. */
@@ -169,6 +180,8 @@ export type ErdGraphPayload = {
   entities: ErdEntity[];
   relations: ErdRelation[];
   groups?: ErdGroup[];
+  /** Each table's rows a collapse hides and whether it is collapsed (spec 043); absent, every table is whole with no control. */
+  folds?: ReadonlyMap<string, ErdFold>;
 };
 
 /**
@@ -209,6 +222,7 @@ export const erdCellId = {
   headerName: (table: number) => `hn${table}`,
   fieldName: (table: number, row: number) => `fn${table}_${row}`,
   fieldType: (table: number, row: number) => `ft${table}_${row}`,
+  collapse: (table: number) => `cl${table}`,
 };
 
 /** Layout presets matching the old ``activeLayout`` Graphviz branch. */
@@ -345,14 +359,15 @@ export function erdGraphvizEngine(layout: ErdGraphvizLayout): string {
 }
 
 /**
- * The DOT that measures the tables of every specialization block: those tables alone, as they are
- * drawn, with no lines and no blocks around them (spec 029). Laid out once, it tells each table's
- * natural width; ``erdBlockWidths`` reads them back.
+ * The DOT that measures the tables whose width is set from outside: those of a specialization block, and collapsed ones,
+ * which stay as wide as they are whole (spec 043). Those tables alone, whole, with no lines and no blocks around them
+ * (spec 029). Laid out once, it tells each table's natural width; ``erdBlockWidths`` reads them back.
  */
 export function buildBlockMeasureDot(data: ErdGraphPayload): string {
   const grouped = new Set((data.groups ?? []).filter((g) => g.members.length > 1).flatMap((g) => g.members));
-  const entities = data.entities.filter((e) => grouped.has(e.id));
-  return buildDotSource({ entities, relations: [], groups: [] }, "gv-dot-lr");
+  const entities = data.entities.filter((e) => grouped.has(e.id) || data.folds?.get(e.id)?.collapsed);
+  const folds = data.folds && new Map([...data.folds].map(([id, fold]) => [id, { ...fold, collapsed: false }]));
+  return buildDotSource({ entities, relations: [], groups: [], folds }, "gv-dot-lr");
 }
 
 /** The width of each table's header in a laid-out drawing, by table id (its node's ``<title>``). */
@@ -369,8 +384,8 @@ function headerWidths(svg: string): Map<string, number> {
 }
 
 /**
- * One width for every table of a specialization block — its widest table's header — read from the
- * drawing of ``buildBlockMeasureDot``; tables outside blocks are absent, so they keep their own.
+ * One width for every table of a specialization block — its widest table's header — and a collapsed table's own width
+ * when whole, read from the drawing of ``buildBlockMeasureDot``; any other table is absent, so it keeps its own.
  */
 export function erdBlockWidths(data: ErdGraphPayload, measuredSvg: string): Map<string, number> {
   const natural = headerWidths(measuredSvg);
@@ -381,17 +396,21 @@ export function erdBlockWidths(data: ErdGraphPayload, measuredSvg: string): Map<
     const widest = Math.ceil(Math.max(...members.map((id) => natural.get(id)!)));
     for (const id of members) widths.set(id, widest);
   }
+  for (const [id, fold] of data.folds ?? []) {
+    const whole = natural.get(id);
+    if (fold.collapsed && whole !== undefined && !widths.has(id)) widths.set(id, Math.ceil(whole));
+  }
   return widths;
 }
 
 /**
  * The DOT the page lays out: as ``buildDotSource``, with every specialization block's tables given
  * one width. ``measure`` lays a DOT out to SVG (Graphviz's ``layout(dot, "svg", "dot")``); it runs
- * only when the diagram has a block.
+ * only when the diagram has a block or a collapsed table.
  */
 export function buildErdDot(data: ErdGraphPayload, layout: ErdGraphvizLayout, measure: (dot: string) => string): string {
-  const hasBlock = (data.groups ?? []).some((group) => group.members.length > 1);
-  return buildDotSource(data, layout, hasBlock ? erdBlockWidths(data, measure(buildBlockMeasureDot(data))) : undefined);
+  const measured = (data.groups ?? []).some((group) => group.members.length > 1) || [...(data.folds?.values() ?? [])].some((fold) => fold.collapsed);
+  return buildDotSource(data, layout, measured ? erdBlockWidths(data, measure(buildBlockMeasureDot(data))) : undefined);
 }
 
 export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout, blockWidths?: ReadonlyMap<string, number>): string {
@@ -453,8 +472,12 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
     const kind = nd.entity_kind?.trim() || "unknown";
     const kindLabel = nd.entity_kind_label || kind.charAt(0).toUpperCase() + kind.slice(1);
 
+    // A row keeps its index when others are hidden: cards, hovers and rooms address rows by it (spec 043).
+    const fold = data.folds?.get(nd.id);
+    const hides = (row: number) => fold?.collapsed === true && fold.hidden.has(row);
     const rows = (nd.fields || [])
       .map((f, row) => {
+        if (hides(row)) return "";
         // Every second row carries the domain colour faintly; keys are told by their word, not by a fill. In Diff a
         // marked row is tinted with its status's colour instead.
         const rowMark = markOf(f.diff);
@@ -503,7 +526,16 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
           "</TR>"
         );
       })
+      .filter(Boolean)
       .join("\n      ");
+    const hiddenCount = fold?.collapsed ? fold.hidden.size : 0;
+    const hiddenRow = hiddenCount
+      ? `<TR><TD COLSPAN="3" ALIGN="LEFT" BGCOLOR="#ffffff" HEIGHT="${ERD_ROW_HEIGHT_PT}"><FONT COLOR="${ERD_FADED_COLOUR}" POINT-SIZE="9">${hiddenCount} field${hiddenCount === 1 ? "" : "s"} hidden</FONT></TD></TR>`
+      : "";
+    // The control stands only where it would hide a row (spec 043).
+    const control = fold?.hidden.size
+      ? `<TD WIDTH="4"></TD><TD ID="${erdCellId.collapse(table)}" TOOLTIP="${fold.collapsed ? "Show all fields" : "Hide the fields"}" BGCOLOR="${color}" WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>`
+      : "";
 
     return (
       `  "${nd.id}" [label=<<TABLE BGCOLOR="white" BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" STYLE="ROUNDED" COLOR="${frameColour}">` +
@@ -517,8 +549,8 @@ export function buildDotSource(data: ErdGraphPayload, layout: ErdGraphvizLayout,
       `WIDTH="${ERD_KIND_SLOT_PT}" HEIGHT="${ERD_KIND_SLOT_PT}" FIXEDSIZE="TRUE"></TD>` +
       `<TD WIDTH="4"></TD>` +
       `<TD ID="${erdCellId.headerName(table)}" TOOLTIP="${escHtml(title)}" BGCOLOR="${color}">` +
-      `<FONT COLOR="${headInk}" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>` +
-      `</TR></TABLE></TD></TR>${rows}</TABLE>>]`
+      `<FONT COLOR="${headInk}" POINT-SIZE="12.5"><B>${escHtml(title)}</B></FONT></TD>${control}` +
+      `</TR></TABLE></TD></TR>${rows}${hiddenRow}</TABLE>>]`
     );
   };
 

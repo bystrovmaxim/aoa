@@ -102,6 +102,8 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
         "disabled_kinds": _strings,
         "disabled_changes": _strings,
         "one_hop": _boolean,
+        "fields_collapsed": _boolean,
+        "fields_except": _strings,
         "paint": _one_of("domains", "kinds", "changes"),
         "paint_diff": _one_of("domains", "kinds", "changes"),
     },
