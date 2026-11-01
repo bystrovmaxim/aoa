@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-01] — Code that grows too complex now stops the checks
+
+The two complexity checks used to print a list that nobody acted on, and they could never fail. Now they can. A function that grows too branched, or a module that grows too hard to maintain, stops the run and is named with its file and grade, so the problem is met on the day it is made.
+
+The code that was already over the limit has been simplified, so the checks start from a clean tree. When something truly cannot be simplified, it can be excused by name, with the reason written beside it. An excuse stops working as soon as the code no longer needs it, so old excuses do not pile up.
+
+Ruff now appears once in the run instead of twice. It works as before: on your machine it fixes what it can and stops on the rest, and on a pull request it only reports, because GitHub must not change your code.
+
 ## [2026-11-01] — Before a pull request, only the browsers run on your machine
 
 `scripts/check_before_pr.sh` used to repeat everything GitHub then ran again. It now runs only the check in three browsers, which GitHub's machines cannot do, and leaves the proof on the commit. All the rest is checked once, on the pull request. The full run still exists for when you want everything on your machine, and the speed tests run only there.
