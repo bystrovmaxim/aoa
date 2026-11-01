@@ -8,9 +8,15 @@ on:
       - main
       - "feature/**"
 
+# Three jobs, run in parallel. Each one calls the same runner with a selector, so the
+# local run and CI run the same commands from one table (`scripts/check_run.py`):
+#   checks    — the deterministic gate (static checks, client build and unit tests,
+#               ERD scripts, Python tests minus benchmarks, graph files check);
+#   browser   — the three-engine layout check, with its browsers cached by the lockfile hash;
+#   packaging — the wheel/sdist build and the install smoke.
 jobs:
   checks:
-    name: Run Checks
+    name: Checks
     runs-on: ubuntu-latest
 
     steps:
@@ -24,27 +30,18 @@ jobs:
           cache: npm
           cache-dependency-path: packages/maxitor/front/client/package-lock.json
 
-      - name: Maxitor client — build
-        working-directory: packages/maxitor/front/client
-        run: |
-          npm ci
-          npm run build
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
-      # The graph files (graph-builder.toml) must be what the code builds: CI only checks, the
-      # developer runs `graph-builder write` and commits the files with the change. The builds run
-      # in the project's environment, prepared first; the check is maxitor's own action, the one
-      # other projects use, here running this checkout's graph-builder.
-      - name: Project environment for the graph builds
+      - name: Project environment
         run: uv sync --all-extras
 
-      - name: Graph files are current (graph-builder check)
-        uses: ./packages/maxitor/tools/graph_builder
-        with:
-          graph-builder: uv run --extra dev graph-builder
+      - name: Check run (checks)
+        run: bash scripts/run_checks_with_log.sh --where ci --skip-browser --skip-group packaging
 
+      # The graph files (graph-builder.toml) must be what the code builds: the check above only
+      # reads them. The developer runs `graph-builder write` locally and commits the files with the
+      # change, so any modification here is a failure.
       - name: Check for uncommitted changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
@@ -53,11 +50,6 @@ jobs:
             exit 1
           fi
           echo "✅ All changes are committed"
-
-      - name: Show last commit
-        run: |
-          echo "📌 Last commit:"
-          git log -1 --oneline
 
       - name: Check branch name
         env:
@@ -69,3 +61,52 @@ jobs:
             exit 1
           fi
           echo "✅ Branch name is valid"
+
+  browser:
+    name: Browser engines
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/maxitor/front/client/package-lock.json
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Project environment
+        run: uv sync --all-extras
+
+      # playwright install is incremental: it downloads only the browser version the lockfile
+      # asks for, so the cache misses only when Playwright itself changes.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('packages/maxitor/front/client/package-lock.json') }}
+
+      - name: Check run (browser)
+        run: bash scripts/run_checks_with_log.sh --where ci --only-browser
+
+  packaging:
+    name: Packaging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Project environment
+        run: uv sync --all-extras
+
+      - name: Check run (packaging)
+        run: bash scripts/run_checks_with_log.sh --where ci --only-group packaging
