@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-01] — The checks now have two homes: a fast local loop and a real gate on every pull request
+
+The long check that finishes a change no longer needs the internet. It used to download a build tool from the package index for every package it packed, and on a poor connection it failed for no reason of ours. Those package builds, and the smoke test that installs them, now run on GitHub with every pull request, where a broken package is caught before a release and never blocks a local run.
+
+A pull request now gets a real result. GitHub runs the whole deterministic gate — the static checks, the client's build and tests, the diagram checks, the tests of every package and the saved graph files — in three parallel jobs: the checks, the browsers (Chromium, Firefox and WebKit) and the packaging. The browsers are kept between runs, so they are downloaded only when the browser engine itself changes. A pull request can no longer be merged with no test having run outside one computer.
+
+A small change does not have to pay for the whole run. The same command with `--fast` runs only the cheap steps — the guards, the static checks and the tests — and leaves the client build, the browsers, the package build and the graph write out. The full run stays the default.
+
+The speed tests that used to fail on a busy machine are now marked as such and left out of the GitHub gate; they still run in the full local run. The saved graph files are always checked, even when another step failed, so they can never be left neither written nor verified.
+
 ## [2026-11-01] — Maxitor shows two versions side by side, and a room compares them together
 
 The picker's third mode now works. **Side by side** stands the older version on the left and the newer on the right, on every diagram, each laid out as that version really was. A serious change can rebuild a picture completely, and here you see both pictures rather than one drawn over the other.
