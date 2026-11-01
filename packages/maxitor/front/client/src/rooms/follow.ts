@@ -160,6 +160,9 @@ export function followedScreen(): { w: number; h: number } | null {
   return (id && screenOfParticipant(id)) || null;
 }
 
+/** How long a screen told before a refit waits for a newer one before it counts as their screen. */
+export const REFIT_GRACE_MS = 1000;
+
 /** Distance a pointer travels with its button down before it counts as a pan, in pixels. */
 const PAN_THRESHOLD_PX = 4;
 
@@ -232,7 +235,7 @@ function useFollowScreen(
     // not put back, and only a screen they report after it is followed (spec 038).
     const refit = placedFor.current === `${targetId}|${page}`;
     placedFor.current = `${targetId}|${page}`;
-    const stale = refit ? screenOf(targetId) : undefined;
+    let stale = refit ? screenOf(targetId) : undefined;
     const glide = createGlide();
     // Their zoom glides like their centre: ``x`` is the zoom, so a zoom they make arrives as smoothly as a pan.
     const zoomGlide = createGlide();
@@ -297,8 +300,17 @@ function useFollowScreen(
       else surface.centreOn(first);
     }
     const unsubscribe = subscribePointers(onScreen);
+    // Their own refit tells a new screen. When none comes, what they told before was no older than this drawing: they
+    // moved while it was being drawn here, and it is their screen after all.
+    const told = stale
+      ? setTimeout(() => {
+          stale = undefined;
+          onScreen();
+        }, REFIT_GRACE_MS)
+      : undefined;
     return () => {
       unsubscribe();
+      clearTimeout(told);
       if (frame !== null) cancelAnimationFrame(frame);
     };
   }, [targetId, targetPage, surface, page, screenOf]);
