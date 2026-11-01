@@ -326,6 +326,9 @@ async function runEngine(
         page.on("console", (message) => {
           if (message.type() === "error") console.error(`[${run}] console error: ${message.text()}`);
         });
+        page.on("response", (response) => {
+          if (response.status() >= 400) console.error(`[${run}] ${response.status()} ${response.url()}`);
+        });
         const keysByTarget: string[][] = [];
         seen.set(run, keysByTarget);
         for (const target of targets) {
