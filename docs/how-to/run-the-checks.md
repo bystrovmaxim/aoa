@@ -7,7 +7,7 @@ bash scripts/check_before_commit.sh   # during the work and before every commit
 bash scripts/check_before_pr.sh       # on the pushed commit, before a pull request
 ```
 
-The first runs the cheap steps. The second runs the full local gate and leaves its proof on the commit, where CI reads it. Under both lies one command, which is the full gate on its own:
+The first runs the cheap steps. The second runs only what CI cannot run, the browsers, and leaves its proof on the commit, where CI reads it. Under both lies one command, which is the full gate on its own, for when you want everything on your machine:
 
 ```bash
 bash scripts/run_checks_with_log.sh
@@ -163,7 +163,7 @@ bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Pa
 python3 scripts/check_run.py --await-sign-off "$COMMIT"                 # the Proof of the local run job
 ```
 
-`Checks` also runs `graph_builder`'s own action, the one other projects use. To run only the browsers again after a failure there, use `bash scripts/run_checks_with_log.sh --only-browser`.
+`Checks` also runs `graph_builder`'s own action, the one other projects use.
 
 ## During the work and before a commit
 
@@ -222,7 +222,7 @@ A CI machine has no graphics card, so Firefox has no WebGL there and the map can
 bash scripts/check_before_pr.sh
 ```
 
-It runs the full gate and then reports the result to GitHub as the commit status `Local check run`:
+It runs the client build and the three-engine layout step, about five minutes, and then reports the result to GitHub as the commit status `Local check run`. Everything else CI runs on the pull request, so nothing is checked twice. The speed tests run only when you start the full gate yourself:
 
 ```text
 …
@@ -243,7 +243,7 @@ FAIL the tree has uncommitted changes: a pull request is a commit, so commit the
 FAIL this commit is not pushed: GitHub can only mark a commit it has, so push it first.
 ```
 
-A red full run reports nothing and ends with the run's own exit code. The full run also keeps a receipt only when the tree was one commit from start to end. An auto-fix or a graph write changes what was proved, so the run says so, and you commit and run again:
+A red run reports nothing and ends with the run's own exit code. The run also keeps a receipt only when the tree was one commit from start to end. Anything that changes a tracked file during the run changes what was proved, so the run says so, and you commit and run again:
 
 ```text
 No receipt: the tree was not one commit from start to end. Commit, then run again to sign off.

@@ -45,8 +45,9 @@ a failure elsewhere never leaves them neither written nor checked.
 
 The browser rows run only locally: a GitHub machine has no graphics card, so Firefox
 has no WebGL there and the map cannot be drawn. Their proof reaches a pull request in
-two steps. A full local run that ends green, with the tree one commit from start to
-end, leaves a receipt naming that commit; the run itself needs no network. Then
+two steps. A browser run or a full local run that ends green, with the tree one commit
+from start to end, leaves a receipt naming that commit. Everything else is CI's to
+check, so the browsers are all a pull request has to run here. Then
 ``--sign-off`` reads the receipt and reports it to GitHub as the commit status
 ``Local check run``, and refuses when the tree is anything but the commit the receipt
 names. CI holds the other end: ``--await-sign-off`` asks GitHub for that status on the
@@ -69,7 +70,7 @@ ARCHITECTURE / DATA FLOW
                        └──► console: > name / OK|FAIL        ▼ table order
                                                   archive/logs/check-all.txt
 
-    full green run on one commit ──► archive/logs/check-run-receipt.json
+    green browser run on one commit ──► archive/logs/check-run-receipt.json
                                            │ --sign-off
                                            ▼
                                   gh api …/statuses/<commit>
@@ -525,7 +526,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_checks_with_log.sh", description="Run the repository's check run.")
     parser.add_argument("--where", choices=(LOCAL, CI, BOTH), default=LOCAL, help="which rows to run")
     parser.add_argument("--fast", action="store_true", help="only the cheap rows (local)")
-    parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build")
+    parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build; a green run proves the commit")
     parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
     parser.add_argument("--skip-group", metavar="NAME", help="drop the rows of one group")
     parser.add_argument("--sign-off", action="store_true", help="report the last full green run to GitHub, and run nothing")
@@ -569,7 +570,7 @@ def _clean_commit() -> str | None:
 
 
 def _leave_receipt(started_on: str | None, steps: int) -> None:
-    """Record the commit a full green run proved, when the tree was that commit from start to end."""
+    """Record the commit a green browser run proved, when the tree was that commit from start to end."""
     if started_on is None or _clean_commit() != started_on:
         _say(YELLOW, "No receipt: the tree was not one commit from start to end. Commit, then run again to sign off.")
         return
@@ -578,7 +579,7 @@ def _leave_receipt(started_on: str | None, steps: int) -> None:
 
 
 def _receipt() -> dict[str, object]:
-    """What the last full green run left, or nothing."""
+    """What the last green browser run left, or nothing."""
     try:
         return dict(json.loads(RECEIPT_FILE.read_text(encoding="utf-8")))
     except (OSError, ValueError):
@@ -586,13 +587,13 @@ def _receipt() -> dict[str, object]:
 
 
 def _sign_off() -> int:
-    """Report the last full green run to GitHub, on the commit it proved; refuse for a tree that is anything else."""
+    """Report the last green browser run to GitHub, on the commit it proved; refuse for a tree that is anything else."""
     commit, receipt = _clean_commit(), _receipt()
     if commit is None:
         _say(RED, "FAIL the tree has uncommitted changes: commit them and run again")
         return 1
     if receipt.get("commit") != commit:
-        _say(RED, f"FAIL no full green run on record for {commit[:8]}: run bash scripts/run_checks_with_log.sh on this commit")
+        _say(RED, f"FAIL no green browser run on record for {commit[:8]}: run bash scripts/check_before_pr.sh on this commit")
         return 1
     answer = subprocess.run(
         [
@@ -670,10 +671,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     signal.signal(signal.SIGTERM, _raise_interrupt)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    # Only the whole local run proves a commit, and a later run on it replaces what an earlier one said.
-    full = steps == _select(STEPS, LOCAL, False, False, None, None)
-    started_on = _clean_commit() if full else None
-    if full:
+    # The browsers are what CI cannot run, so they prove a commit, alone or inside the whole local
+    # run, and a later run on it replaces what an earlier one said.
+    proves = options.only_browser or steps == _select(STEPS, LOCAL, False, False, None, None)
+    started_on = _clean_commit() if proves else None
+    if proves:
         RECEIPT_FILE.unlink(missing_ok=True)
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
@@ -698,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
         _say(RED, "Run interrupted")
         return 130
     failed = any(result.failed for result in results.values())
-    if full and not failed:
+    if proves and not failed:
         _leave_receipt(started_on, len(steps))
     return 1 if failed else 0
 

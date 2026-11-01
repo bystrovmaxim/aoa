@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-01] — Before a pull request, only the browsers run on your machine
+
+`scripts/check_before_pr.sh` used to repeat everything GitHub then ran again. It now runs only the check in three browsers, which GitHub's machines cannot do, and leaves the proof on the commit. All the rest is checked once, on the pull request. The full run still exists for when you want everything on your machine, and the speed tests run only there.
+
 ## [2026-11-01] — Secrets stay out of the repository, and the checks stop any that try to return
 
 The file `.env` with working credentials had been public in this repository since March. Those credentials have been replaced, and the file is gone from the whole history, so branches and tags no longer contain it. Every commit therefore has a new identifier, and links to old commits may no longer open.
