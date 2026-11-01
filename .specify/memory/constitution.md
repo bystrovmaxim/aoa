@@ -22,6 +22,9 @@
     I — the paragraph making a request to write an issue an instruction to create it
       was added at the maintainer's instruction; commits, pushes, pull requests and
       merges keep their own instruction
+    The check-run section — the wheel/sdist build and the packaging smoke moved from
+      the local run to CI; the local run gained the always-on graph check and the
+      `--fast` mode (amendment for issue #326, drafted for the maintainer's ratification)
   Follow-up TODOs:
     - TODO(RATIFICATION_DATE): the maintainer confirms the date this text is adopted
     - TODO(GOVERNANCE_RULES): amendment procedure, versioning policy and compliance
@@ -143,10 +146,10 @@ Then, inside those steps:
 
 Work is not finished when the code looks right; it is finished when the repository's own check run says so.
 
-1. **The last step of any change is `bash scripts/run_checks_with_log.sh`**, executed from the repository root. It is the local counterpart of a gate CI does not yet provide, and it covers: the Maxitor client build; a ban on `__getattr__` in package `__init__.py`; README files beside `components/*/index.ts`; Ruff with `--fix`; Ruff lint; mypy across all eight packages; pylint; the package-boundary and package-metadata checkers; a wheel and sdist build of every package; the packaging smoke test; vulture; the Maxitor samples public-API check; Radon complexity and maintainability; and the test suite of every package.
+1. **The last step of any change is `bash scripts/run_checks_with_log.sh`**, executed from the repository root. It is the full local gate and it covers: a ban on `__getattr__` in package `__init__.py`; README files beside `components/*/index.ts`; Ruff with `--fix`; Ruff lint; mypy across all eight packages; pylint; the package-boundary and package-metadata checkers; vulture; the Maxitor samples public-API check; the Maxitor client build, its unit tests and its layout in three browser engines; the five ERD scripts; Radon complexity and maintainability; the test suite of every package; and a check of the saved graph files. `--fast` runs only the cheap steps for a small change; the full run is what finishes a change. The wheel and sdist build of every package and the packaging smoke test are **not** part of the local run — they need the network and belong to a release — so CI runs them on every pull request, in three parallel jobs (the checks, the browsers and the packaging), and the local run needs no network once its tools are installed.
 2. **Errors are fixed until the run is clean.** The point is not to report the failures but to leave the repository in a state where the script exits without errors. A failing check is either fixed in the change or reported to the maintainer with the exact command and output — "known failure" is not an outcome, and neither is skipping the step because the diff looked small.
 3. **The log is evidence, not a deliverable.** The script appends to `archive/logs/check-all.txt`, and `archive/` is outside Git; the pull request states that the run passed, and pastes the tail only for what could not be fixed.
-4. **The run may edit the code, and those edits are part of the change.** The first Python step is `ruff check --fix .`, so the run is not read-only: whatever it fixes is reviewed like any other change and re-committed, and an auto-fix the reviewer does not want is reverted rather than left in place.
+4. **The run may edit the code, and those edits are part of the change.** The first Python step is `ruff check --fix packages/ tests/ scripts/ aoa_run/`, so the run is not read-only: whatever it fixes is reviewed like any other change and re-committed, and an auto-fix the reviewer does not want is reverted rather than left in place.
 5. **The script itself is part of what is checked.** If it cannot run — a missing tool, a broken path, a command whose configuration no longer exists — that is a defect in the check run and is repaired as part of the change, not bypassed.
 
 
@@ -166,4 +169,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-08
+**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-01
