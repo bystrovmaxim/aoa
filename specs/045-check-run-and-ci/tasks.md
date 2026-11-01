@@ -24,7 +24,7 @@ description: "Tasks — check run and CI: decide what runs where"
 **Purpose**: One table with three axes; blocks every later phase.
 
 - [x] T003 [P] Extend `Step` in `scripts/check_run.py` with `home` (`"local"|"ci"|"both"`, default `"both"`), `fast: bool` (default `False`), `browser: bool` (default `False`); keep its AI-CORE block
-- [x] T004 Implement `--where local|ci|both`, `--fast`, `--only-browser`, `--skip-browser`, `--only-group NAME`, `--skip-group NAME` parsing and the row selection in `scripts/check_run.py`
+- [x] T004 Implement `--where local|ci|both`, `--fast`, `--only-browser`, `--only-group NAME`, `--skip-group NAME` parsing and the row selection in `scripts/check_run.py`
 - [x] T005 Tag every `STEPS` row with `home`/`fast`/`browser` per `data-model.md`
 - [x] T006 Add the always-run `Graph files (graph-builder check)` row and set `Graph files (graph-builder write)` to `home="local"`, `only_if_all_passed=True`
 - [x] T007 [P] Extend `tests/scripts/test_check_run.py` with selector tests (home filter, fast filter, only-browser, only-group, the always-run graph check); `pytest tests/scripts/test_check_run.py` is green (8 passed)
@@ -37,8 +37,8 @@ description: "Tasks — check run and CI: decide what runs where"
 
 **Goal**: Three jobs in `ci.yml`; browsers cached; packaging caught before release.
 
-- [x] T008 Rewrite `.github/workflows/ci.yml` to the three jobs of `contracts/ci-jobs.md` (`checks`, `browser`, `packaging`), each invoking `bash scripts/run_checks_with_log.sh` with its selector
-- [x] T009 [P] Add `actions/cache@v4` on `~/.cache/ms-playwright` keyed `playwright-${{ runner.os }}-${{ hashFiles('packages/maxitor/front/client/package-lock.json') }}` in the `browser` job
+- [x] T008 Rewrite `.github/workflows/ci.yml` to the jobs of `contracts/ci-jobs.md` (`checks`, `packaging`, and `local-run` since T034), each invoking `bash scripts/run_checks_with_log.sh` with its selector
+- [x] T009 [P] Add `actions/cache@v4` on `~/.cache/ms-playwright` in the `browser` job. Dropped with that job by T033
 - [x] T010 Keep the uncommitted-changes and branch-name guards in the `checks` job; leave `publish.yml` untouched
 
 ---
@@ -82,7 +82,7 @@ description: "Tasks — check run and CI: decide what runs where"
 - [x] T022 Write the documentation: `docs/how-to/run-the-checks.md` — the two gates, the fast mode, the always-run graph check, and the package steps in CI
 - [x] T023 Write `docs/CHANGELOG.md` as one article about what this work created
 - [x] T024 Draft the constitution amendment for "Final step: the check run" (agent drafts; maintainer ratifies) — `.specify/memory/constitution.md`, version 1.3.0
-- [ ] T025 Run the `quickstart.md` validation scenarios, including the full local run with the network off and the CI jobs on GitHub
+- [x] T025 Run the `quickstart.md` validation scenarios. The full local run and scenarios 2–7 are run; the full run with the network off is T039, and the CI jobs on GitHub are T040
 
 ---
 
@@ -110,9 +110,22 @@ Incremental, one commit per phase: T001–T007 (decision + selectors), T008–T0
 
 - [x] T026 Run the full local check run (`bash scripts/run_checks_with_log.sh`, without `--fast`). Result: 33 of 34 steps green, `Ruff auto-fix` passed, the graph check passed and the graph write was `SKIPPED` after the one failure. The only failure is the three-engine layout step, and it is the sandbox: `playwright install` cannot create `~/Library/Caches/ms-playwright/__dirlock` (`EPERM`), and running the check directly with the browsers already present crashes the browser process (`Target crashed`). The step's command is unchanged apart from `--with-deps`; it passes on the maintainer's machine and in CI
 - [x] T027 Update `docs/how-to/run-the-checks.ru_draft.md` to match the two gates and the fast mode, so the Russian page the maintainer reads is not stale
-- [x] T028 Open a pull request and confirm the three CI jobs. PR #328 ran: `packaging` passed; `checks` exposed a pre-existing test that broke only on CPython 3.12.3 (fixed, see T031); `browser` exposed a pre-existing headless timeout in the three-engine check (T032). The pull request also verified the cache step runs
+- [x] T028 Open a pull request and confirm the CI jobs. PR #328 ran: `packaging` passed; `checks` exposed a pre-existing test that broke only on CPython 3.12.3 (fixed, see T031); `browser` failed on every run (T032)
 - [x] T029 Scenario 4 verified: a broken package definition (`version = "not-a-version"`) makes `uv build --package aoa-ocel` fail (exit 2); restored. Scenario 7 (browser cache hit) needs GitHub and is part of T028
 - [x] T030 Correct the counts in `plan.md` (Scale/Scope now says `44 step rows (35 local, 9 CI-only)`)
 - [x] T031 Make `test_string_generic_arguments_resolve_on_python_3_12_3` run on the interpreter's own `ForwardRef._evaluate` signature: the monkeypatch now applies only on CPython 3.12.4+, where the real signature differs; on 3.12.0–3.12.3 the native signature is already the one the test describes
-- [ ] T032 Make the three-engine layout check headless-safe on Linux. Progress: the page's `/api/v1/map/overview` answered `422 {"detail":"Graphviz is not installed: sfdp was not found."}`, so the `browser` job now installs Graphviz and the 422 is gone. Remaining: `nextHash` still times out at 60 s on the first page with no console error and no failing request. Until then the CI `browser` job runs with `continue-on-error: true` and does not block the pull request
+- [x] T032 Find why the three-engine check fails on a CI machine. First cause: the API answered `422`, `sfdp` was not installed. Second and last: a CI machine has no graphics card, so Firefox has no WebGL, the map says "This browser cannot draw the map: WebGL is off", and no layout hash ever appears, which is why nothing was logged. Reproduced in a Linux container with the job's limits. The check now names the engine, the page and what the page said when it fails
+
+---
+
+## Phase 9: The browsers stay local, and CI reads their proof (the maintainer's change of Q3)
+
+- [x] T033 Set the browser row to `home="local"`, drop the `browser` job, `--skip-browser` and the Playwright cache from CI
+- [x] T034 Add the receipt of a green full run on one commit, `--sign-off`, `--await-sign-off`, and the CI job `Proof of the local run`
+- [x] T035 Add `scripts/check_before_commit.sh` and `scripts/check_before_pr.sh`, with the rule in the constitution (1.4.0) and in `AGENTS.md`
+- [x] T036 Run the graph write before the graph check: a stale file failed the check, and that failure skipped the write that would have fixed it
+- [x] T037 Drop the speed tests from the fast mode, as the spec says, and restore what the move lost: Maxitor's build waiting out the client build, and the run of the `graph_builder` action in CI
+- [x] T038 Write the one-home table into `docs/how-to/run-the-checks.md`, and correct `contracts/`, `plan.md` and `research.md` to what the code does
+- [ ] T039 Run the full local run with the network off (SC-001). Not run: it needs the maintainer's network switched off
+- [ ] T040 Require `Checks`, `Packaging` and `Proof of the local run` in the ruleset of `main`. It is a repository setting, the maintainer's to change
 
