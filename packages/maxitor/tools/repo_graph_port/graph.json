@@ -1011,7 +1011,8 @@
       "label": "TransportDomain",
       "properties": {
         "description": "Resources the FastAPI adapter creates for one connection",
-        "name": "transport"
+        "name": "transport",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -1670,7 +1671,8 @@
       "label": "RepoGraphDomain",
       "properties": {
         "description": "A graph's history read from the repository that keeps its file: versions, tags, graphs",
-        "name": "repo_graph"
+        "name": "repo_graph",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -1707,5 +1709,5 @@
       "type": "Resource"
     }
   ],
-  "schema_version": "1.2"
+  "schema_version": "1.3"
 }

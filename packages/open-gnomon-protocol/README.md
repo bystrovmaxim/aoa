@@ -43,7 +43,7 @@ The Open Gnomon Protocol makes the model a first-class artifact:
 }
 ```
 
-A real service is the same document at scale: the AOA demo describes itself in 3 213 nodes and 4 841 edges. When its model changes, the difference between two revisions is precise and readable:
+A real service is the same document at scale: the AOA demo describes itself in 3 245 nodes and 4 878 edges. When its model changes, the difference between two revisions is precise and readable:
 
 ```text
 nodes[id=aoa.demo.model.store.store_domain.StoreDomain].label: Shop → StoreDomain

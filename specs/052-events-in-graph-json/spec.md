@@ -167,4 +167,5 @@ Every consumer in the repository (the graph builder, the graph comparison, Maxit
 - The build check of FR-008 already exists from #333; here it stays and is proved for all five kinds of method.
 - The modes are those of #95: an event is matched by exact class, and one event may be in several vocabularies.
 - The build check adds nothing for modes 1 and 2, and it does not look for lines with `kwargs`, which are declared nowhere and fail at runtime.
+- The demo's graph file is built from `aoa.demo.model`; the orders service, which holds the demo's events, joins that build, so the file shows mode 3.
 - Publishing packages, tags and deployment are out of scope.

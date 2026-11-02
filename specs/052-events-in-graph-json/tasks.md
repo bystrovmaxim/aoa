@@ -55,8 +55,8 @@
 
 ## Phase 4: The graph files
 
-- [ ] T027 Add a `description` to every field in `packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/events.py`
-- [ ] T028 Regenerate `packages/aoa-demo/graph.json`, `packages/maxitor/web/graph.json` and `packages/maxitor/tools/repo_graph_port/graph.json` with `graph-builder`, check they hold events and pass `graph-builder check`, and update the demo's node and edge counts in `packages/open-gnomon-protocol/README.md`
+- [X] T027 Add a `description` to every field in `packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/events.py`
+- [X] T028 Add `aoa.demo.fastapi_mcp_services.actions` to `_MODULES` in `packages/aoa-demo/src/aoa/demo/model/build.py`, so the demo's graph holds its events. Regenerate `packages/aoa-demo/graph.json`, `packages/maxitor/web/graph.json` and `packages/maxitor/tools/repo_graph_port/graph.json` with `graph-builder`, check they hold events and pass `graph-builder check`, and update the demo's node and edge counts in `packages/open-gnomon-protocol/README.md`
 
 ## Phase 5: Closing check run
 

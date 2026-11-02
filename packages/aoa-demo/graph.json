@@ -19,6 +19,339 @@
       "type": "application"
     },
     {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:amount",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:amount",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:currency",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:currency",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:user_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:user_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:order_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:order_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:status",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:status",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:total",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:total",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect|@emits|aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "type": "@emits"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect|@result_checker|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect:validated_user",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect:validated_user",
+      "type": "@result_checker"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|@regular_aspect|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect",
+      "type": "@regular_aspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|@summary_aspect|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:build_result_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:build_result_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|domain|aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|generic:params|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction|generic:result|aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "type": "generic:result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params|field|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params:order_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params:order_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:order_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:order_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:status",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:status",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result|field|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:total",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:total",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction:get_order_summary|@emits|aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction:get_order_summary",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "type": "@emits"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction|@summary_aspect|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction:get_order_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction:get_order_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction|domain|aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction|generic:params|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction|generic:result|aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "type": "generic:result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result|field|aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result:message",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result:message",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction|@summary_aspect|aoa.demo.fastapi_mcp_services.actions.ping.PingAction:pong_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction:pong_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction|domain|aoa.demo.fastapi_mcp_services.system_domain.SystemDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.system_domain.SystemDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction|generic:params|aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction|generic:result|aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "target_id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result",
+      "type": "generic:result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent|field|aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent:order_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent:order_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent|field|aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:amount",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:amount",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent|field|aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:user_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:user_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain|domain_event|aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "type": "domain_event"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain|domain_event|aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "target_id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "type": "domain_event"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.system_domain.SystemDomain|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.fastapi_mcp_services.system_domain.SystemDomain",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
       "id": "aoa.demo.model.access_cascade.access_cascade_domain.AccessCascadeDomain|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -56377,11 +56710,303 @@
       "type": "Result"
     },
     {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction",
+      "label": "CreateOrderAction",
+      "properties": {
+        "description": "Create new order"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:amount",
+      "label": "amount",
+      "properties": {
+        "description": "Order amount in selected currency. Must be positive",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:currency",
+      "label": "currency",
+      "properties": {
+        "description": "Currency code in ISO 4217 format (3 uppercase letters)",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Params:user_id",
+      "label": "user_id",
+      "properties": {
+        "description": "Identifier of the user creating the order",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:order_id",
+      "label": "order_id",
+      "properties": {
+        "description": "Unique identifier of created order",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:status",
+      "label": "status",
+      "properties": {
+        "description": "Order status after creation",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction.Result:total",
+      "label": "total",
+      "properties": {
+        "description": "Final order total",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:build_result_summary",
+      "label": "build_result_summary",
+      "properties": {
+        "description": "Build order creation result"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect",
+      "label": "validate_aspect",
+      "properties": {
+        "description": "Validate order data"
+      },
+      "type": "RegularAspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.create_order.CreateOrderAction:validate_aspect:validated_user",
+      "label": "validated_user",
+      "properties": {
+        "TypeChecker": "String",
+        "max_length": null,
+        "min_length": null,
+        "not_empty": false,
+        "opaque": false,
+        "required": true
+      },
+      "type": "Checker"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction",
+      "label": "GetOrderAction",
+      "properties": {
+        "description": "Get order by identifier"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Params:order_id",
+      "label": "order_id",
+      "properties": {
+        "description": "Unique order identifier",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:order_id",
+      "label": "order_id",
+      "properties": {
+        "description": "Order identifier",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:status",
+      "label": "status",
+      "properties": {
+        "description": "Current order status",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction.Result:total",
+      "label": "total",
+      "properties": {
+        "description": "Final order total",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.get_order.GetOrderAction:get_order_summary",
+      "label": "get_order_summary",
+      "properties": {
+        "description": "Load and return order data"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction",
+      "label": "PingAction",
+      "properties": {
+        "description": "Service liveness check"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction.Result:message",
+      "label": "message",
+      "properties": {
+        "description": "Response message",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.actions.ping.PingAction:pong_summary",
+      "label": "pong_summary",
+      "properties": {
+        "description": "Build pong response"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent",
+      "label": "OrderRequestedEvent",
+      "properties": {},
+      "type": "Event"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderRequestedEvent:order_id",
+      "label": "order_id",
+      "properties": {
+        "description": "The order that was asked for",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent",
+      "label": "OrderValidatedEvent",
+      "properties": {},
+      "type": "Event"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:amount",
+      "label": "amount",
+      "properties": {
+        "description": "The order total",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.events.OrderValidatedEvent:user_id",
+      "label": "user_id",
+      "properties": {
+        "description": "Who placed the order",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.orders_domain.OrdersDomain",
+      "label": "OrdersDomain",
+      "properties": {
+        "description": "Order lifecycle and lookup.",
+        "name": "orders",
+        "typed_events": true
+      },
+      "type": "Domain"
+    },
+    {
+      "id": "aoa.demo.fastapi_mcp_services.system_domain.SystemDomain",
+      "label": "SystemDomain",
+      "properties": {
+        "description": "Cross-cutting system utilities.",
+        "name": "system",
+        "typed_events": false
+      },
+      "type": "Domain"
+    },
+    {
       "id": "aoa.demo.model.access_cascade.access_cascade_domain.AccessCascadeDomain",
       "label": "AccessCascadeDomain",
       "properties": {
         "description": "Drawing fixtures for access-cascade shapes: cascade steps, role chains, matching paths and boundaries",
-        "name": "access_cascade"
+        "name": "access_cascade",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -56738,7 +57363,8 @@
       "label": "AnalyticsDomain",
       "properties": {
         "description": "Telemetry ingest + fact correlation hub built for sprawling ERD stress tests",
-        "name": "analytics"
+        "name": "analytics",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -60118,7 +60744,8 @@
       "label": "AssurancePortfolioDomain",
       "properties": {
         "description": "Portfolio-scoped principals, catalogs, traced work items versus scenario choreography, execution waves, and delegated evidence (structural analogue of multi-domain QA meshes)",
-        "name": "assurance_portfolio"
+        "name": "assurance_portfolio",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -64672,7 +65299,8 @@
       "label": "BillingDomain",
       "properties": {
         "description": "Payments, captures, and refunds for the sample storefront",
-        "name": "billing"
+        "name": "billing",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -69141,7 +69769,8 @@
       "label": "CatalogDomain",
       "properties": {
         "description": "Product catalog and merchandising slice for the sample app",
-        "name": "catalog"
+        "name": "catalog",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -71805,7 +72434,8 @@
       "label": "CatalogCustodyDomain",
       "properties": {
         "description": "Regulated product catalog: custody tiers, lineage attestations, posting reconciliations",
-        "name": "catalog_custody"
+        "name": "catalog_custody",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -71949,7 +72579,8 @@
       "label": "ClinicalSupplyDomain",
       "properties": {
         "description": "Partner-governed medical consumable intake, transport coupling, and ward dispatch lines (structural analogue of supply → detail → delivery line-item graphs)",
-        "name": "clinical_supply"
+        "name": "clinical_supply",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -74044,7 +74675,8 @@
       "label": "DictionariesDomain",
       "properties": {
         "description": "Shared reference dictionaries",
-        "name": "dictionaries"
+        "name": "dictionaries",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -74190,7 +74822,8 @@
       "label": "EntityProjectionDemoDomain",
       "properties": {
         "description": "Sample slice for entity wire projections (partial order JSON in action results)",
-        "name": "entity_projection_demo"
+        "name": "entity_projection_demo",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -74629,7 +75262,8 @@
       "label": "GeneralizationShapesDomain",
       "properties": {
         "description": "Drawing fixtures for generalization shapes: parent_action and parent_entity inheritance edges",
-        "name": "generalization_shapes"
+        "name": "generalization_shapes",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -74638,7 +75272,8 @@
       "label": "IdentityDomain",
       "properties": {
         "description": "Synthetic identity/account slice for heterogeneous ERD cardinality",
-        "name": "identity"
+        "name": "identity",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -75690,7 +76325,8 @@
       "label": "InventoryDomain",
       "properties": {
         "description": "Synthetic inventory chain + correlation hub for heterogeneous ERD demos",
-        "name": "inventory"
+        "name": "inventory",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -77816,7 +78452,8 @@
       "label": "LogisticsMeshDomain",
       "properties": {
         "description": "Facility hand-offs, gated relay legs, orchestrated marshalling waves",
-        "name": "logistics_mesh"
+        "name": "logistics_mesh",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -78208,7 +78845,8 @@
       "label": "MessagingDomain",
       "properties": {
         "description": "Transactional email/SMS/push stubs for the sample app",
-        "name": "messaging"
+        "name": "messaging",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -81161,7 +81799,8 @@
       "label": "SettlementDesksDomain",
       "properties": {
         "description": "Multi-desk liquidity clearing: mirrored venue forks and reconciliation bridge",
-        "name": "settlement_desks"
+        "name": "settlement_desks",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -90841,7 +91480,8 @@
       "label": "MarketplaceOperationsDomain",
       "properties": {
         "description": "Umbrella for multi-channel retail operations that concrete storefront slices specialize",
-        "name": "marketplace_operations"
+        "name": "marketplace_operations",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -90866,7 +91506,8 @@
       "label": "StoreDomain",
       "properties": {
         "description": "Sample storefront: checkout, entities, plugins, and persistence stubs",
-        "name": "store"
+        "name": "store",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -92025,7 +92666,8 @@
       "label": "SupportDomain",
       "properties": {
         "description": "Sample slice for action-to-action @depends (same and cross domain)",
-        "name": "support"
+        "name": "support",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -92363,10 +93005,11 @@
       "label": "TelemetryPipelineDomain",
       "properties": {
         "description": "Edge → normalisation tiers → correlator overlays for incident responders",
-        "name": "telemetry_pipeline"
+        "name": "telemetry_pipeline",
+        "typed_events": false
       },
       "type": "Domain"
     }
   ],
-  "schema_version": "1.2"
+  "schema_version": "1.3"
 }
