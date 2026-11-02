@@ -12,6 +12,12 @@ We also fixed a fault that was already there: two graphs in one repository could
 
 Maxitor does not draw any of this yet: the timeline changes in the next step.
 
+## [2026-11-02] — Every check now runs once
+
+A change used to be checked twice: on your machine before the pull request, and again in CI. Now CI gives the closing verdict. On your machine you run the tests of the phase you are working on, and the browser checks, which CI cannot run.
+
+A pull request can open before the browser run ends. It simply cannot merge until CI is green and the browser run has passed on that exact commit. A new commit needs a new browser run. If you want to see everything on one machine, the full run is still there as one command, and nothing requires it.
+
 ## [2026-11-02] — A change now has to raise the version of what it touches
 
 A pull request into `main` now fails when it changes a package and leaves its version where it was. Nothing checked this before, so a package could change for months under one number. The check is a separate tool, `version-gate`, which also works for projects in other languages.

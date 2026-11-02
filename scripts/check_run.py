@@ -18,10 +18,6 @@ the rows for a context — ``--where local`` (default) keeps ``local`` and ``bot
 ``--only-group``, ``--skip-group``) pick or drop named rows. The local run and every
 CI job therefore run the same commands from one table.
 
-``--fast`` keeps only the cheap rows (``fast`` true): the guards, the static
-checks and the Python tests without the speed tests, and neither the client build,
-the browsers, the package build nor the graph rows. The full run stays the default.
-
 Each step writes into its own file; when every step has ended, the log is joined
 from those files in the table's order, so it never depends on which step ended
 first and two steps' output never mix.
@@ -51,8 +47,8 @@ from start to end, leaves a receipt naming that commit. Everything else is CI's 
 check, so the browsers are all a pull request has to run here. Then
 ``--sign-off`` reads the receipt and reports it to GitHub as the commit status
 ``Local check run``, and refuses when the tree is anything but the commit the receipt
-names. CI holds the other end: ``--await-sign-off`` asks GitHub for that status on the
-pull request's commit, and fails when none comes, so a commit nobody ran does not merge.
+names. The merge rule of ``main`` requires that status on the exact commit, so a commit
+nobody ran does not merge, and the proof may arrive at any moment.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -62,7 +58,7 @@ ARCHITECTURE / DATA FLOW
 
     run_checks_with_log.sh  ──exec──►  check_run.py
                                            │
-             STEPS ── home/fast/browser seals ──► selector (--where, --fast, --only-*)
+             STEPS ── home/browser seals ──► selector (--where, --only-*)
                                            ▼
              STEPS ── after / not_during / AOA_CHECK_JOBS ──► ready steps
                                            ▼
@@ -75,9 +71,9 @@ ARCHITECTURE / DATA FLOW
                                            │ --sign-off
                                            ▼
                                   gh api …/statuses/<commit>
-                                           │ --await-sign-off, in CI
+                                           │ required status
                                            ▼
-                              the job "Proof of the local run"  ──► merge rule of main
+                                     merge rule of main
 
 Python's standard library only: the runner starts before anything is installed
 or built, and must not depend on what it checks.
@@ -102,8 +98,6 @@ LOG_FILE = REPO_ROOT / "archive" / "logs" / "check-all.txt"
 RECEIPT_FILE = REPO_ROOT / "archive" / "logs" / "check-run-receipt.json"
 SIGN_OFF_CONTEXT = "Local check run"
 # Long enough for a commit pushed to an open pull request to be run; a commit that had its run answers at once.
-SIGN_OFF_WAIT_SECONDS = 15 * 60
-SIGN_OFF_POLL_SECONDS = 20.0
 
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
@@ -140,7 +134,7 @@ class Step:
     AI-CORE-BEGIN
     ROLE: One step of the check run: what it is called, what it runs, and what it must wait for.
     CONTRACT: ``command`` runs through ``bash -c`` from the repository root; ``shown`` is the command line the log prints, ``command`` when empty.
-    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``fast`` marks the cheap rows; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``, and under ``--fast`` for the rows the fast mode keeps unless ``fast_keeps_command`` is set.
+    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``.
     AI-CORE-END
     """
 
@@ -153,10 +147,8 @@ class Step:
     blank_before_result: bool = True
     only_if_all_passed: bool = False
     home: str = BOTH
-    fast: bool = False
     browser: bool = False
     ci_command: str = ""
-    fast_keeps_command: bool = False
 
     @property
     def log_command(self) -> str:
@@ -173,7 +165,6 @@ def _guard(name: str, guard: str, function: str, after: tuple[str, ...] = ()) ->
         after=after,
         shown=f"{function} (shell function)",
         blank_before_result=False,
-        fast=True,
     )
 
 
@@ -201,9 +192,9 @@ def _build(package: str) -> Step:
     )
 
 
-def _after_fix(name: str, command: str, group: str, home: str = BOTH, fast: bool = True) -> Step:
+def _after_fix(name: str, command: str, group: str, home: str = BOTH) -> Step:
     """A step that reads files ``ruff --fix`` may have rewritten."""
-    return Step(name=name, command=command, group=group, after=(AUTO_FIX,), home=home, fast=fast)
+    return Step(name=name, command=command, group=group, after=(AUTO_FIX,), home=home)
 
 
 STEPS: tuple[Step, ...] = (
@@ -232,7 +223,7 @@ STEPS: tuple[Step, ...] = (
     _client("Maxitor client: group label composed once", "node scripts/check-erd-group-label.ts"),
     _client("Maxitor client: ERD kinds, tables and lines", "node scripts/check-erd-kinds-and-lines.ts"),
     _client("Maxitor client: ERD table style", "node scripts/check-erd-table-style.ts"),
-    # The only Ruff step: it fixes here and under --fast, and in CI, which must not change the tree, it
+    # The only Ruff step: it fixes here, and in CI, which must not change the tree, it
     # only reports. It takes the same scope as `task lint`, so the two agree on what this repository
     # lints. `examples/` and its notebooks are tutorial material and sit
     # outside that scope; while the step scanned everything (`.`) it reported 207 findings inside
@@ -244,9 +235,7 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev ruff check --fix packages/ tests/ scripts/",
         "first",
         after=(README_GUARD,),
-        fast=True,
         ci_command="uv run --extra dev ruff check packages/ tests/ scripts/",
-        fast_keeps_command=True,
     ),
     _after_fix("Mypy typecheck", "uv run --extra dev task typecheck", "static"),
     _after_fix("Pylint", "uv run --extra dev task pylint", "static"),
@@ -277,7 +266,6 @@ STEPS: tuple[Step, ...] = (
             f"uv run --extra dev pytest packages/{package}/tests/ -v",
             "tests",
             after=(AUTO_FIX,),
-            fast=True,
             ci_command=f'uv run --extra dev pytest packages/{package}/tests/ -v -m "not benchmark"',
         )
         for package in (
@@ -300,7 +288,6 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev pytest tests/scripts -v",
         "tests",
         after=(AUTO_FIX,),
-        fast=True,
         ci_command='uv run --extra dev pytest tests/scripts -v -m "not benchmark"',
     ),
     _after_fix("Radon cyclomatic complexity", "uv run --extra dev task cc", "static"),
@@ -489,15 +476,9 @@ def _as_in_ci(step: Step) -> Step:
     return replace(step, command=step.ci_command) if step.ci_command else step
 
 
-def _as_in_fast(step: Step) -> Step:
-    """The step as the fast mode runs it."""
-    return step if step.fast_keeps_command else _as_in_ci(step)
-
-
 def _select(
     steps: tuple[Step, ...],
     where: str,
-    fast: bool,
     only_browser: bool,
     only_group: str | None,
     skip_group: str | None,
@@ -511,9 +492,6 @@ def _select(
     else:
         if where != BOTH:
             rows = [step for step in rows if step.home in (where, BOTH)]
-        if fast:
-            # Deterministic steps only, so the Python suites drop the speed tests here as in CI.
-            rows = [_as_in_fast(step) for step in rows if step.fast]
     if skip_group is not None:
         rows = [step for step in rows if step.group != skip_group]
     if where == CI:
@@ -530,15 +508,13 @@ def _select(
 
 
 def _parser() -> argparse.ArgumentParser:
-    """The command line: a where, a fast switch, and the narrow selectors."""
+    """The command line: a where and the narrow selectors."""
     parser = argparse.ArgumentParser(prog="run_checks_with_log.sh", description="Run the repository's check run.")
     parser.add_argument("--where", choices=(LOCAL, CI, BOTH), default=LOCAL, help="which rows to run")
-    parser.add_argument("--fast", action="store_true", help="only the cheap rows (local)")
     parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build; a green run proves the commit")
     parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
     parser.add_argument("--skip-group", metavar="NAME", help="drop the rows of one group")
     parser.add_argument("--sign-off", action="store_true", help="report the last full green run to GitHub, and run nothing")
-    parser.add_argument("--await-sign-off", metavar="COMMIT", help="CI: wait for the proof of the full local run on a commit, and fail if none comes")
     return parser
 
 
@@ -629,31 +605,6 @@ def _sign_off() -> int:
     return 0
 
 
-def _signed_off(commit: str) -> bool:
-    """Whether GitHub holds the proof of the full local run on ``commit``; an answer that cannot be read is not a proof."""
-    answer = subprocess.run(
-        ["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{commit}/status", "--jq", f'.statuses[] | select(.context == "{SIGN_OFF_CONTEXT}") | .state'],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return answer.stdout.strip() == "success"
-
-
-def _await_sign_off(commit: str) -> int:
-    """CI's end of the sign-off: pass once ``commit`` carries the proof, fail when the wait ends without one."""
-    deadline = time.monotonic() + SIGN_OFF_WAIT_SECONDS
-    while not _signed_off(commit):
-        if time.monotonic() >= deadline:
-            _say(RED, f"FAIL {commit[:8]} has no proof of the full local run: run bash scripts/check_before_pr.sh on it, then re-run this job")
-            return 1
-        _say(YELLOW, f"Waiting for the proof of the full local run on {commit[:8]}...")
-        time.sleep(SIGN_OFF_POLL_SECONDS)
-    _say(GREEN, f"OK {commit[:8]} passed the full local run")
-    return 0
-
-
 def _raise_interrupt(signum: int, frame: object) -> None:
     """Turn a termination signal into the same stop as Ctrl+C."""
     del signum, frame
@@ -665,10 +616,8 @@ def main(argv: list[str] | None = None) -> int:
     options = _parser().parse_args(argv)
     if options.sign_off:
         return _sign_off()
-    if options.await_sign_off:
-        return _await_sign_off(options.await_sign_off)
-    where = LOCAL if options.fast else options.where
-    steps = _select(STEPS, where, options.fast, options.only_browser, options.only_group, options.skip_group)
+    where = options.where
+    steps = _select(STEPS, where, options.only_browser, options.only_group, options.skip_group)
     if not steps:
         _say(RED, "FAIL no step matches the selectors")
         return 2
@@ -681,7 +630,7 @@ def main(argv: list[str] | None = None) -> int:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     # The browsers are what CI cannot run, so they prove a commit, alone or inside the whole local
     # run, and a later run on it replaces what an earlier one said.
-    proves = options.only_browser or steps == _select(STEPS, LOCAL, False, False, None, None)
+    proves = options.only_browser or steps == _select(STEPS, LOCAL, False, None, None)
     started_on = _clean_commit() if proves else None
     if proves:
         RECEIPT_FILE.unlink(missing_ok=True)

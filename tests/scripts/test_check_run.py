@@ -67,7 +67,7 @@ def _names(steps: tuple) -> set[str]:
 def test_local_run_drops_the_packaging_steps() -> None:
     """The local full run selects no build and no install smoke; the network steps are CI only."""
     runner = _runner()
-    names = _names(runner._select(runner.STEPS, "local", False, False, None, None))
+    names = _names(runner._select(runner.STEPS, "local", False, None, None))
     assert not any(name.startswith("Build wheel/sdist") for name in names)
     assert "Packaging wheel install smoke" not in names
 
@@ -75,28 +75,23 @@ def test_local_run_drops_the_packaging_steps() -> None:
 def test_ci_checks_drops_browser_and_packaging() -> None:
     """The checks job keeps the graph check and drops the browser and the packaging rows."""
     runner = _runner()
-    names = _names(runner._select(runner.STEPS, "ci", False, False, None, "packaging"))
+    names = _names(runner._select(runner.STEPS, "ci", False, None, "packaging"))
     assert "Maxitor client: the same layout in three engines" not in names
     assert not any(name.startswith("Build wheel/sdist") for name in names)
     assert "Graph files (graph-builder check)" in names
 
 
-def test_fast_keeps_only_the_cheap_rows() -> None:
-    """The fast mode runs the guards, the static rows and the tests, and nothing heavy."""
+def test_the_fast_mode_is_refused() -> None:
+    """The closing run is CI's, so no cheaper local run exists."""
     runner = _runner()
-    names = _names(runner._select(runner.STEPS, "local", True, False, None, None))
-    assert "Ruff auto-fix" in names
-    assert "Pytest aoa-ocel" in names
-    assert "Maxitor client: npm ci and Vite build" not in names
-    assert "Graph files (graph-builder write)" not in names
+    with pytest.raises(SystemExit):
+        runner._parser().parse_args(["--fast"])
 
 
-def test_fast_drops_the_speed_tests_and_the_full_run_keeps_them() -> None:
-    """The fast mode is deterministic, so its Python suites leave the speed tests out; the default run keeps them."""
+def test_the_full_run_keeps_the_speed_tests() -> None:
+    """Only CI leaves the speed tests out."""
     runner = _runner()
-    fast = runner._select(runner.STEPS, "local", True, False, None, None)
-    full = runner._select(runner.STEPS, "local", False, False, None, None)
-    assert all('-m "not benchmark"' in step.command for step in fast if "pytest" in step.command)
+    full = runner._select(runner.STEPS, "local", False, None, None)
     assert not any("not benchmark" in step.command for step in full)
 
 
@@ -106,25 +101,24 @@ def _ruff_rows(rows: tuple) -> list:
 
 
 def test_one_ruff_row_in_every_selection() -> None:
-    """Fixing and linting are one step locally, under ``--fast`` and in CI."""
+    """Fixing and linting are one step locally and in CI."""
     runner = _runner()
-    for where, fast in (("local", False), ("local", True), ("ci", False)):
-        assert [step.name for step in _ruff_rows(runner._select(runner.STEPS, where, fast, False, None, None))] == [
+    for where in ("local", "ci"):
+        assert [step.name for step in _ruff_rows(runner._select(runner.STEPS, where, False, None, None))] == [
             "Ruff auto-fix"
         ]
 
 
-def test_ruff_fixes_locally_and_under_fast() -> None:
-    """The before-commit run takes the CI command of its other rows, but keeps fixing."""
+def test_ruff_fixes_locally() -> None:
+    """The full run on a machine fixes what it can."""
     runner = _runner()
-    for fast in (False, True):
-        assert "--fix" in _ruff_rows(runner._select(runner.STEPS, "local", fast, False, None, None))[0].command
+    assert "--fix" in _ruff_rows(runner._select(runner.STEPS, "local", False, None, None))[0].command
 
 
 def test_ruff_in_ci_reports_and_never_changes_the_tree() -> None:
     """CI must not rewrite files, and this is the only Ruff check a pull request gets."""
     runner = _runner()
-    command = _ruff_rows(runner._select(runner.STEPS, "ci", False, False, None, None))[0].command
+    command = _ruff_rows(runner._select(runner.STEPS, "ci", False, None, None))[0].command
     assert "ruff check" in command
     assert "--fix" not in command
     assert "packages/ tests/ scripts/" in command
@@ -133,8 +127,8 @@ def test_ruff_in_ci_reports_and_never_changes_the_tree() -> None:
 def test_the_browsers_run_only_locally() -> None:
     """A CI machine has no graphics card, so no CI selection holds a browser row; the local run holds it, with no system libraries asked for."""
     runner = _runner()
-    assert not any(step.browser for step in runner._select(runner.STEPS, "ci", False, False, None, None))
-    browsers = [step for step in runner._select(runner.STEPS, "local", False, False, None, None) if step.browser]
+    assert not any(step.browser for step in runner._select(runner.STEPS, "ci", False, None, None))
+    browsers = [step for step in runner._select(runner.STEPS, "local", False, None, None) if step.browser]
     assert len(browsers) == 1
     assert "--with-deps" not in browsers[0].command
 
@@ -142,7 +136,7 @@ def test_the_browsers_run_only_locally() -> None:
 def test_only_browser_includes_the_client_build_it_needs() -> None:
     """The browser selector carries the client build, which the layout check reads."""
     runner = _runner()
-    names = _names(runner._select(runner.STEPS, "ci", False, True, None, None))
+    names = _names(runner._select(runner.STEPS, "ci", True, None, None))
     assert "Maxitor client: npm ci and Vite build" in names
     assert "Maxitor client: the same layout in three engines" in names
 
@@ -150,7 +144,7 @@ def test_only_browser_includes_the_client_build_it_needs() -> None:
 def test_only_group_packaging_keeps_build_and_smoke() -> None:
     """The packaging selector keeps the eight builds and the install smoke."""
     runner = _runner()
-    names = _names(runner._select(runner.STEPS, "ci", False, False, "packaging", None))
+    names = _names(runner._select(runner.STEPS, "ci", False, "packaging", None))
     assert sum(name.startswith("Build wheel/sdist") for name in names) == 8
     assert "Packaging wheel install smoke" in names
 
@@ -195,14 +189,14 @@ def test_the_graph_check_runs_even_after_a_failure(tmp_path: Path) -> None:
 def test_the_graph_check_has_no_write_to_wait_for_in_ci() -> None:
     """CI selects no write, so the check does not wait for one."""
     runner = _runner()
-    rows = runner._select(runner.STEPS, "ci", False, False, None, "packaging")
+    rows = runner._select(runner.STEPS, "ci", False, None, "packaging")
     assert next(step for step in rows if step.name == "Graph files (graph-builder check)").after == (runner.AUTO_FIX,)
 
 
 def test_maxitors_build_waits_out_the_client_build() -> None:
     """Maxitor's sdist packs the client folder, so the two never overlap when one selection holds both."""
     runner = _runner()
-    rows = runner._select(runner.STEPS, "ci", False, False, None, None)
+    rows = runner._select(runner.STEPS, "ci", False, None, None)
     build = next(step for step in rows if step.name == "Build wheel/sdist (packages/maxitor)")
     assert build.not_during == ("Maxitor client: npm ci and Vite build",)
 
@@ -355,59 +349,23 @@ def test_a_red_whole_run_drops_the_receipt_of_the_same_commit(tmp_path: Path, mo
     assert not runner.RECEIPT_FILE.exists()
 
 
-def _github_says(runner: ModuleType, monkeypatch: pytest.MonkeyPatch, answers: list[str]) -> list[list[str]]:
-    """Stand in for ``gh``: each question gets the next answer, the last one for good; the wait takes no time."""
-    calls: list[list[str]] = []
-
-    def run(command: list[str], **options: object) -> object:
-        del options
-        calls.append(command)
-        return subprocess.CompletedProcess(command, 0, answers[min(len(calls), len(answers)) - 1], "")
-
-    monkeypatch.setattr(runner.subprocess, "run", run)
-    monkeypatch.setattr(runner.time, "sleep", lambda seconds: None)
-    return calls
-
-
-def test_ci_passes_a_commit_that_carries_the_proof(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A commit that had its run answers at once, and CI asks about that commit and that status."""
-    runner = _runner()
-    calls = _github_says(runner, monkeypatch, ["success\n"])
-    assert runner.main(["--await-sign-off", "abc123"]) == 0
-    assert len(calls) == 1
-    assert "repos/{owner}/{repo}/commits/abc123/status" in calls[0]
-    assert any('select(.context == "Local check run")' in part for part in calls[0])
-
-
-def test_ci_waits_for_a_run_still_going(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A commit pushed to an open pull request gets time for its run."""
-    runner = _runner()
-    calls = _github_says(runner, monkeypatch, ["", "", "success\n"])
-    assert runner.main(["--await-sign-off", "abc123"]) == 0
-    assert len(calls) == 3
-
-
-@pytest.mark.parametrize("answer", ["", "pending\n", "failure\n"], ids=["no status", "pending", "failure"])
-def test_ci_fails_a_commit_with_no_proof(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], answer: str
-) -> None:
-    """Only a success is a proof, and the failure says what to do."""
-    runner = _runner()
-    _github_says(runner, monkeypatch, [answer])
-    monkeypatch.setattr(runner, "SIGN_OFF_WAIT_SECONDS", 0)
-    assert runner.main(["--await-sign-off", "abc123"]) == 1
-    assert "bash scripts/check_before_pr.sh" in capsys.readouterr().out
-
-
-def test_ci_reads_the_proof_of_the_pull_requests_own_commit() -> None:
-    """``github.sha`` is GitHub's merge commit, which nobody ran, so the proof could never be there."""
+def test_ci_does_not_wait_for_the_proof() -> None:
+    """The merge rule requires the status itself, so no job spends minutes waiting for it."""
     workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    assert "COMMIT: ${{ github.event.pull_request.head.sha }}" in workflow
-    assert 'check_run.py --await-sign-off "$COMMIT"' in workflow
+    assert "await-sign-off" not in workflow
+    runner = _runner()
+    with pytest.raises(SystemExit):
+        runner._parser().parse_args(["--await-sign-off", "abc123"])
+
+
+def test_text_only_changes_skip_every_gate_job_but_versions() -> None:
+    """Each heavy job names the ``changes`` job, so a text-only pull request does not run it."""
+    workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert workflow.count("needs.changes.outputs.code == 'true'") == 3
 
 
 def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
-    """A repository pushed to a bare one, with the real two scripts and a run that records how it was called."""
+    """A repository pushed to a bare one, with the real script and a run that records how it was called."""
     origin, work = tmp_path / "origin.git", tmp_path / "work"
     subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
     subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
@@ -422,8 +380,7 @@ def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
     scripts = work / "scripts"
     scripts.mkdir()
     (work / ".gitignore").write_text("scripts/\n", encoding="utf-8")
-    for name in ("check_before_commit.sh", "check_before_pr.sh"):
-        shutil.copy(REPO_ROOT / "scripts" / name, scripts / name)
+    shutil.copy(REPO_ROOT / "scripts" / "check_before_pr.sh", scripts / "check_before_pr.sh")
     (scripts / "run_checks_with_log.sh").write_text(f'echo "$*" >> {calls}\nexit ${{RUN_EXIT:-0}}\n', encoding="utf-8")
     subprocess.run(["git", "add", ".gitignore"], cwd=work, check=True)
     subprocess.run(["git", "commit", "-qm", "ignore"], cwd=work, check=True)
@@ -434,13 +391,6 @@ def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
 def _calls(calls: Path) -> list[str]:
     """How the run was called, one entry per call; an empty string is the full run."""
     return calls.read_text(encoding="utf-8").splitlines() if calls.exists() else []
-
-
-def test_before_commit_is_the_fast_run(tmp_path: Path) -> None:
-    """During the work and before a commit: the cheap steps, with what the caller adds passed on."""
-    work, calls = _pr_repo(tmp_path)
-    subprocess.run(["bash", "scripts/check_before_commit.sh", "--skip-group", "tests"], cwd=work, check=True)
-    assert _calls(calls) == ["--fast --skip-group tests"]
 
 
 def test_before_pr_runs_the_browsers_then_signs_off(tmp_path: Path) -> None:

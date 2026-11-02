@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# check_before_pr.sh - the browser checks CI cannot run, on the pushed commit, and their proof on GitHub.
+# check_before_pr.sh - the browser checks CI cannot run, on a pushed commit, and their proof on GitHub.
 # Usage: bash /path/to/repo/scripts/check_before_pr.sh
 #        or from any directory: bash ~/.../check_before_pr.sh
 #
-# It leaves the commit status CI's job `Proof of the local run` looks for, and a new commit has none,
-# so what merges is what passed here. It refuses a tree that is not a pushed commit before spending
+# It leaves the commit status the merge rule of main requires, and a new commit has none, so what
+# merges is what passed here. It may run before or after the pull request opens. It refuses a tree that is not a pushed commit before spending
 # the run on it. It never commits or pushes.
 
 set -u
