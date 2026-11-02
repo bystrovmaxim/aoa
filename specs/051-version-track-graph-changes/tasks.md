@@ -94,9 +94,9 @@ Paths are relative to `packages/maxitor/web/` unless they start at the repositor
 
 ## Phase 8: The tail (one commit each)
 
-- [ ] T023 The closing check run: `bash scripts/check_before_pr.sh` on the pushed commit and CI's run, every remark fixed
-- [ ] T024 The documentation: every case as a script and a notebook, `examples/step_26_maxitor/23_version_track.py` and `.ipynb` at the repository root, executed, with the tutorial and how-to pages under `docs/`
-- [ ] T025 The changelog: one article at the top of `docs/CHANGELOG.md`
+- [X] T023 The closing check run: `bash scripts/check_before_pr.sh` on the pushed commit and CI's run, every remark fixed
+- [X] T024 The documentation: every case as a script and a notebook, `examples/step_26_maxitor/23_version_track.py` and `.ipynb` at the repository root, executed, with the tutorial and how-to pages under `docs/`
+- [X] T025 The changelog: one article at the top of `docs/CHANGELOG.md`
 
 ---
 

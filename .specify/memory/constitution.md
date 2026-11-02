@@ -139,9 +139,11 @@ Known debt: this rule is met for roughly half of the code. Classes 431 of 846 (5
 
 A change is not finished when its behaviour is finished. Once the code is what it will be, three steps follow, in this order and no other.
 
-1. **The check run, taken to zero.** CI's closing check run on the pull request is read and **every** remark it reports is fixed — none triaged away, none accepted as known, none left for later. The run is green or the change is not finished.
-2. **The documentation.** Written after the code is settled, never beside it.
-3. **The changelog, written last, as one article.** `docs/CHANGELOG.md` gets a single readable piece about this work: what it created, in plain words, with the nuances a user has to know — and without technical detail. It is not a log of the issue's changes, not a per-file account of what moved, and not a list of commits. A reader who has not followed the work should finish it knowing what they can now do.
+**A pull request opens whole.** Before it opens, the branch holds everything the change is: the code, its tests, the rebuilt graph files, the raised versions, the documentation with its scripts and notebooks, and the changelog. A draft is no exception, and no part is left for a later commit. What CI finds after that is fixed in the same pull request; it is never a reason to open one early.
+
+1. **The check run, taken to zero.** Before the pull request opens, every check that can run on this machine is taken to zero. CI's closing check run on the pull request is then read and **every** remark it reports is fixed — none triaged away, none accepted as known, none left for later. The run is green or the change is not finished.
+2. **The documentation.** Written after the code is settled, never beside it, and before the pull request opens.
+3. **The changelog, written last, as one article, and before the pull request opens.** `docs/CHANGELOG.md` gets a single readable piece about this work: what it created, in plain words, with the nuances a user has to know — and without technical detail. It is not a log of the issue's changes, not a per-file account of what moved, and not a list of commits. A reader who has not followed the work should finish it knowing what they can now do.
 
 Then, inside those steps:
 
@@ -180,4 +182,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.6.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-02
+**Version**: 1.7.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-02
