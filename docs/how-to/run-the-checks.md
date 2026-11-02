@@ -1,13 +1,20 @@
 # Run the checks
 
-No change in this repository is finished until the check run is green. Two scripts name the moments, and they run from anywhere inside the repository:
+No change in this repository is finished until the check run is green, and each check runs once:
+
+| When | Where | What runs |
+|------|-------|-----------|
+| After each phase | your machine | the tests of that phase |
+| On a pull request | CI | the closing check run: guards, static checks, client build, Python tests, packaging |
+| On a pushed commit, before or after the pull request opens | your machine | the browsers, the one thing CI cannot run |
+
+The browsers have their own script, which runs from anywhere inside the repository and leaves its proof on the commit:
 
 ```bash
-bash scripts/check_before_commit.sh   # during the work and before every commit
-bash scripts/check_before_pr.sh       # on the pushed commit, before a pull request
+bash scripts/check_before_pr.sh
 ```
 
-The first runs the cheap steps. The second runs only what CI cannot run, the browsers, and leaves its proof on the commit, where CI reads it. Under both lies one command, which is the full gate on its own, for when you want everything on your machine:
+The merge rule of `main` requires a green CI and that proof on the exact commit. One more command is the full gate on its own, for when you want everything on your machine. No step requires it:
 
 ```bash
 bash scripts/run_checks_with_log.sh
@@ -156,12 +163,11 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Graph files: check | ✅ (always) | ✅ (always) | never skipped |
 | Versions grew | — | ✅ (pull requests into `main`) | compares a pull request with `main`; see [Versions](#versions) |
 
-CI runs on every pull request, in parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging` and `Proof of the local run`, and `Versions` on a pull request into `main`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
+CI runs on every pull request, in parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging`, and `Versions` on a pull request into `main`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
 
 ```bash
 bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # both Checks jobs
 bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Packaging job
-python3 scripts/check_run.py --await-sign-off "$COMMIT"                 # the Proof of the local run job
 ```
 
 `Checks` also runs `graph_builder`'s own action, the one other projects use.
@@ -188,34 +194,9 @@ Raise both, commit, and the job passes. A sub-issue merging into a feature branc
 
 Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages and of `maxitor`. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. Two things count on purpose: `SKILL.md`, which is what the skill is, and the README of `open-gnomon-protocol`, which is the protocol's normative text.
 
-## During the work and before a commit
-
-`check_before_commit.sh` is the full run's `--fast` mode: the guards, the static checks and the Python tests without the speed tests. It skips the client build, the browsers and the graph files. Anything you add to its command line goes on to the run.
-
-A fast run prints only the rows it selected:
-
-```bash
-bash scripts/check_before_commit.sh
-```
-
-```text
-> Ban __getattr__ in package __init__.py
-OK Ban __getattr__ in package __init__.py (exit 0, 0.4 s)
-> Maxitor client: README beside components/*/ index.ts
-OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
-> Ruff auto-fix
-OK Ruff auto-fix (exit 0, 0.2 s)
-> Mypy typecheck
-> Pylint
-…
-OK Pytest aoa-ocel (exit 0, 3.4 s)
-…
-Wall time: 66.9 s
-```
-
 ## Ruff
 
-There is one Ruff step, `Ruff auto-fix`. On your machine, in a full run and in `check_before_commit.sh`, it runs `ruff check --fix`: it fixes what it can and fails on what is left. In CI, which must not change the tree, it runs `ruff check` and fails on any finding.
+There is one Ruff step, `Ruff auto-fix`. On your machine, in a full run, it runs `ruff check --fix`: it fixes what it can and fails on what is left. In CI, which must not change the tree, it runs `ruff check` and fails on any finding.
 
 An error Ruff cannot fix, such as an undefined name, fails everywhere:
 
@@ -367,13 +348,7 @@ A red run reports nothing and ends with the run's own exit code. The run also ke
 No receipt: the tree was not one commit from start to end. Commit, then run again to sign off.
 ```
 
-The job `Proof of the local run` reads the status on the pull request's commit. A commit that had its run passes on the first read. A commit pushed to an open pull request gets 15 minutes for its run, so a push does not turn the job red while the run is going. With no proof by then the job fails, and a later run needs that job re-run:
-
-```text
-FAIL c0d3e765 has no proof of the full local run: run bash scripts/check_before_pr.sh on it, then re-run this job
-```
-
-The merge rule of `main` requires this job, so a new commit cannot merge until it is proved. The status is an attestation, not a proof: anyone with write access could post one.
+The merge rule of `main` requires the status `Local check run` itself, so no CI job waits for it. On GitHub a pull request shows it as `Expected` until the run ends, and it may arrive at any moment, with no job to re-run. A new commit has no status, so it cannot merge until it is proved. The status is an attestation, not a proof: anyone with write access could post one.
 
 ## The limit, and running one step at a time
 
@@ -475,4 +450,4 @@ An interrupted run is not a green run: start it again before calling a change fi
 | 2 | the run did not start: the limit is not a positive whole number, or the repository has no `pyproject.toml` |
 | 130 | interrupted; no step is left running |
 
-`--sign-off` exits 0 when GitHub took the status and 1 when it refuses or GitHub does; `--await-sign-off` exits 0 once the proof is there and 1 when the wait ends without it.
+`--sign-off` exits 0 when GitHub took the status and 1 when it refuses or GitHub does.
