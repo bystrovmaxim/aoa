@@ -44,7 +44,7 @@ Already have the package? `graph-builder skill > .claude/skills/aoa-graph-builde
 
 ### What the wizard asks you to decide
 
-Revision 2 also audits mandatory release versions on every run. Broken existing items come first, the new required version decision next, optional choices afterward. The familiar per-service questions below are unchanged. Decisions are retained in `[setup]` in `graph-builder.toml`; a version refusal leaves setup incomplete. See [mandatory release versions](../../docs/how-to/graph-setup-version-tags.md) for the audit, first-tag consent, CI and monorepo cases.
+The wizard sets up two independent parts, version checks and saved graphs; you may choose either, both or neither. Every run audits the project and proposes only the difference. Version decisions stay in `[setup]` of the root `version.toml`, graph decisions in `[setup]` of `graph-builder.toml`. It never raises a version number for you, and release tags stay optional. See [the setup guide](../../docs/how-to/graph-setup.md).
 
 It finishes one service before moving to the next. First decide whether to connect a newly discovered service (including its exporter if needed), then where to save its map if that is not already established. After the services, choose how to refresh their maps and how to detect a forgotten refresh. Existing working arrangements are retained, not turned into repeat questions. Technical commands and proof accompany the final review rather than crowding each question.
 
@@ -100,7 +100,7 @@ from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_
 
 
 def main() -> None:
-    importlib.import_module("my_service.app")   # registers the service's actions, entities and resources
+    importlib.import_module("my_service.app")  # registers the service's actions, entities and resources
     sys.stdout.write(create_node_graph_coordinator().to_json())
 
 

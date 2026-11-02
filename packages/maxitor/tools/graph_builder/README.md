@@ -58,9 +58,9 @@ Paths are relative to `graph-builder.toml`. A wrong config is refused by graph a
 
 ### Optional setup decisions
 
-The setup wizard may persist its checklist in a root `[setup]` table. It requires a string `skill` revision (for example `"2"`), unique `decided` IDs and unique `deferred` IDs. The closed ID families are `config`, `graph:<name>`, `exporter:<service>`, `local-update`, `ci-graph-check` and `version-tags`. Only `local-update` and `ci-graph-check` may be deferred; each must also be decided. Unknown fields, unknown ID families and mandatory deferrals are refused before a build.
+The setup wizard may persist its checklist in a root `[setup]` table. It requires a string `skill` revision (for example `"3"`), unique `decided` IDs and unique `deferred` IDs. The closed ID families are `config`, `graph:<name>`, `exporter:<service>`, `local-update`, `ci-graph-check` and `version-tags`. Only `local-update` and `ci-graph-check` may be deferred; each must also be decided. Unknown fields, unknown ID families and mandatory deferrals are refused before a build.
 
-Existing configurations without this optional table remain valid. The graph commands preserve the table and still return the same graphs; they do not certify its recorded decisions or enforce release tags themselves. The wizard re-audits evidence and prepares separate release CI. See [the guide](../../../../docs/how-to/graph-setup-version-tags.md), [script](../../../../examples/step_26_maxitor/15_setup_decisions.py) and [notebook](../../../../examples/step_26_maxitor/15_setup_decisions.ipynb).
+Existing configurations without this optional table remain valid. The graph commands preserve the table and still return the same graphs; they do not certify its recorded decisions. The wizard re-audits the evidence on every run. `version-tags` is still accepted so older files keep working; the wizard removes it on its next run. See [the guide](../../../../docs/how-to/graph-setup.md), [script](../../../../examples/step_26_maxitor/15_setup_decisions.py) and [notebook](../../../../examples/step_26_maxitor/15_setup_decisions.ipynb).
 
 ## Keeping graphs in a repository
 
@@ -100,8 +100,8 @@ A repository conforms when it lists its graphs in `graph-builder.toml`, keeps ea
 from maxitor.graph_builder.schemas import check_graph, graph_schema
 from maxitor.graph_builder.config import read_config
 
-check_graph(document)       # None, or GraphRefused("graph 1.1 at edges/3: 'id' is a required property")
-graph_schema("1.1")         # the JSON Schema of a protocol version
+check_graph(document)  # None, or GraphRefused("graph 1.1 at edges/3: 'id' is a required property")
+graph_schema("1.1")  # the JSON Schema of a protocol version
 read_config("graph-builder.toml")  # the repository's graphs, or ConfigRefused
 ```
 
