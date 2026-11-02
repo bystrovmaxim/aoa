@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-02] — A log line can now carry a typed fact
+
+A business fact used to be a string and loose variables. Now it can be a class of its own, `BaseEvent`, the tenth primitive: `OrderCompletedEvent` with typed fields. You pass it to `box.info`, `warning` or `critical` in place of `kwargs`, after the text. The text stays yours, with its variables and colours, and a logger receives the fact with its type.
+
+Nothing has to change. Lines with `kwargs` keep working, and loggers keep working as they are. Two optional switches make things stricter. `@emits` on a method lets it write only the listed events. `events` on a domain does that for the whole domain, and the build refuses a method that declares an event outside the list.
+
+Declaring `events` is the one breaking step: every line with `kwargs` left in the domain fails on its first call, and the build cannot see it. Move the methods to `@emits` first, and give compensators and error handlers tests of their own, because they run only on failure.
+
+An event goes out when the method runs, so a result served from the cache delivers none. Import `BaseEvent` from `aoa.action_machine.model.base_event`. An event cannot have fields named `level`, `channels`, `domain`, `domain_name`, `get`, `keys`, `values`, `items` or `resolve`. The new chapter, [Object events](tutorials/step-11-object-events.md), shows every case.
+
 ## [2026-11-02] — Every method of an action now has its own box
 
 A log line in an `@on_error` handler can now read the handler's `state`. Before, one ordinary line such as `reserved={%state.reserved}` failed, and the error the handler was dealing with turned into `OnErrorHandlerError`. Now the line is written and the handler finishes its work.
