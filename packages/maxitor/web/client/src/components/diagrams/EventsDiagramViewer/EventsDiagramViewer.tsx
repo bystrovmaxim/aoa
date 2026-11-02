@@ -208,8 +208,8 @@ export function EventsDiagramViewer({ domainId, onOpen }: EventsDiagramViewerPro
             </Box>
             {hoverCard.shown && <ElementCard key={hoverCard.shown.key} subject={hoverCard.shown} newer={diffNames?.b ?? "B"} onEnter={hold} onLeave={release} onClose={close} />}
             <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
-              <OneHopToggle checked={layout === "dot_tb"} onChange={(top) => setLayout(top ? "dot_tb" : "dot_lr")} label="Top to bottom" />
-              <OneHopToggle checked={boundary} onChange={setBoundary} label="Boundary" />
+              {!empty && <OneHopToggle checked={layout === "dot_tb"} onChange={(top) => setLayout(top ? "dot_tb" : "dot_lr")} label="Top to bottom" />}
+              {!empty && <OneHopToggle checked={boundary} onChange={setBoundary} label="Boundary" />}
             </ZoomToolbar>
           </Box>
         </Box>
