@@ -8,7 +8,7 @@ on:
       - main
       - "feature/**"
 
-# Four jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
+# A first job reads what changed, then four jobs run in parallel. Each one calls the same runner, so the local run and CI run the
 # same commands from one table (`scripts/check_run.py`):
 #   checks     — the deterministic gate (static checks, client build and unit tests,
 #                ERD scripts, Python tests minus benchmarks, graph files check);
@@ -19,6 +19,32 @@ on:
 # has no WebGL and the map cannot be drawn. It runs locally with `scripts/check_before_pr.sh`, whose
 # commit status `Local check run` the merge rule of main requires.
 jobs:
+  # A pull request that changes only text proves nothing the checks below could test. A job skipped
+  # by its `if` counts as passed for the merge rule, so nothing is left waiting.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Anything but text changed
+        id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$(git diff --name-only "$BASE...$HEAD" | grep -vE '^(docs/|specs/|AGENTS\.md$|\.specify/memory/)')" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   versions:
     name: Versions
     if: github.base_ref == 'main'
@@ -38,6 +64,8 @@ jobs:
 
   checks:
     name: Checks
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -98,6 +126,8 @@ jobs:
 
   checks-314:
     name: Checks on Python 3.14
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     env:
       # Overrides .python-version for every uv call in this job.
@@ -129,6 +159,8 @@ jobs:
 
   packaging:
     name: Packaging
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:

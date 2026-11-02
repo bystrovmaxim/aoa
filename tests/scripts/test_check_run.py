@@ -358,6 +358,12 @@ def test_ci_does_not_wait_for_the_proof() -> None:
         runner._parser().parse_args(["--await-sign-off", "abc123"])
 
 
+def test_text_only_changes_skip_every_gate_job_but_versions() -> None:
+    """Each heavy job names the ``changes`` job, so a text-only pull request does not run it."""
+    workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert workflow.count("needs.changes.outputs.code == 'true'") == 3
+
+
 def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
     """A repository pushed to a bare one, with the real script and a run that records how it was called."""
     origin, work = tmp_path / "origin.git", tmp_path / "work"

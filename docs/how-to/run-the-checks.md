@@ -8,6 +8,8 @@ No change in this repository is finished until the check run is green, and each 
 | On a pull request | CI | the closing check run: guards, static checks, client build, Python tests, packaging |
 | On a pushed commit, before or after the pull request opens | your machine | the browsers, the one thing CI cannot run |
 
+A pull request that changes only `docs/`, `specs/`, `AGENTS.md` or the constitution skips CI's checks: the job `Changes` sees that, and a skipped job counts as passed. Its commit still needs the browser proof below.
+
 The browsers have their own script, which runs from anywhere inside the repository and leaves its proof on the commit:
 
 ```bash
