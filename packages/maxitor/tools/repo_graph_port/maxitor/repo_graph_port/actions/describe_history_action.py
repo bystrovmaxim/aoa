@@ -20,10 +20,9 @@ ARCHITECTURE / DATA FLOW
 
 from __future__ import annotations
 
-import asyncio
 from typing import cast
 
-from maxitor.repo_graph_port.history_reading import chosen, refreshed
+from maxitor.repo_graph_port.history_reading import chosen, points_of, refreshed, version_problem_of
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
@@ -49,6 +48,8 @@ class DescribeHistoryParams(BaseParams):
 
     history: str | None = Field(default=None, description="A configured history's id; its read key must open it")
     link: str | None = Field(default=None, description="A link to a public repository's graph file, in place of an id")
+    version_link: str | None = Field(default=None, description="A link to the version file of a public history")
+    version_key: str | None = Field(default=None, description="The key of a public history's version file")
 
 
 class DescribeHistoryResult(BaseResult):
@@ -60,6 +61,8 @@ class DescribeHistoryResult(BaseResult):
     graph_file: str = Field(description="The graph file's path in the repository")
     versions: int = Field(description="How many versions the history has")
     newest: str | None = Field(default=None, description="The newest version's sha; none when there is no version")
+    version_file: str | None = Field(default=None, description="The file that holds the history's version; none when it names none")
+    version_problem: str | None = Field(default=None, description="Why the history's version cannot be read at the head of its branch")
     live: str | None = Field(default=None, description="The running service whose graph is Live; none when the config names none, and for a public link")
     reader: str | None = Field(default=None, description="The name of the key that opened the history; none for a public link")
 
@@ -92,17 +95,19 @@ class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryRes
         """Find the history, refresh its repository, count its versions."""
         mirror = cast(GitMirror, connections["GitMirror"])
         host = cast(GitHubHost, connections["GitHubHost"])
-        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
+        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
         await refreshed(mirror, cast(VersionCache, connections["VersionCache"]), host, history, ctx.get("env.history_refresh_seconds"))
         await box.info(Channel.business, "History {%var.history} described for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
-        commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
+        points = await points_of(mirror, cast(VersionCache, connections["VersionCache"]), host, history)
         return DescribeHistoryResult(
             id=history.id,
             repository=history.repository,
             branch=history.branch,
             graph_file=history.graph_file,
-            versions=len(commits),
-            newest=commits[-1].sha if commits else None,
+            versions=len(points),
+            newest=points[-1].commit.sha if points else None,
+            version_file=history.version_file,
+            version_problem=await version_problem_of(mirror, host, history),
             live=None if history.public else history.live,
             reader=None if history.public else ctx.get("user.user_id"),
         )

@@ -38,10 +38,12 @@ from maxitor.repo_graph_port.history_reading import (
     chosen,
     detail_of,
     facts_of,
+    points_of,
     proposals_of,
     pull_request_of,
     refreshed,
     release_of,
+    version_problem_of,
 )
 from maxitor.repo_graph_port.history_versions import place_tags, pull_request_in_message
 from maxitor.repo_graph_port.placed_tag import PlacedTag
@@ -71,6 +73,8 @@ class HistoryParams(BaseParams):
 
     history: str | None = Field(default=None, description="A configured history's id; its read key must open it")
     link: str | None = Field(default=None, description="A link to a public repository's graph file, in place of an id")
+    version_link: str | None = Field(default=None, description="A link to the version file of a public history")
+    version_key: str | None = Field(default=None, description="The key of a public history's version file")
     after: str | None = Field(default=None, description="Only the versions newer than this sha")
 
 
@@ -79,6 +83,7 @@ class HistoryResult(BaseResult):
 
     versions: list[VersionRecord] = Field(description="The history's versions, oldest first")
     proposals: list[VersionRecord] = Field(default_factory=list, description="Pull requests still open into the branch that change the graph, each with its state")
+    version_problem: str | None = Field(default=None, description="Why the history's version cannot be read at the head of its branch")
 
 
 @meta(description="List a graph's versions with their tags and facts", domain=RepoGraphDomain)
@@ -110,11 +115,11 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         mirror = cast(GitMirror, connections["GitMirror"])
         host = cast(GitHubHost, connections["GitHubHost"])
         cache = cast(VersionCache, connections["VersionCache"])
-        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
+        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
         interval = ctx.get("env.history_refresh_seconds")
         await refreshed(mirror, cache, host, history, interval)
-        commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
-        shas = [commit.sha for commit in commits]
+        points = await points_of(mirror, cache, host, history)
+        shas = [point.commit.sha for point in points]
         if params.after is not None and params.after not in shas:
             raise HistoryNotFoundError()
         chain = await asyncio.to_thread(mirror.first_parents, history.repository, history.branch)
@@ -122,9 +127,10 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         start = shas.index(params.after) + 1 if params.after is not None else 0
         pull_url = f"https://github.com/{history.repository}/pull/" if history.host == "github" else ""
         records: list[VersionRecord] = []
-        for index, commit in enumerate(commits[start:], start=start):
-            facts = await facts_of(mirror, cache, host, history, commit.sha)
-            contribution, change = await detail_of(mirror, cache, host, history, commit.sha, shas[index - 1] if index > 0 else None)
+        for point in points[start:]:
+            commit = point.commit
+            facts = await facts_of(mirror, cache, host, history, point.graph_at)
+            contribution, change = await detail_of(mirror, cache, host, history, commit.sha, point.before, point.graph_at == commit.sha)
             # The host tells a version's pull request; where it does not (a local repository, or GitHub without
             # an answer), the merge or squash commit's message names it.
             pull = await pull_request_of(cache, host, history, commit.sha, interval) or pull_request_in_message(commit.message, pull_url)
@@ -139,8 +145,11 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
                 edges=facts.edges,
                 refused=facts.refused,
                 contribution=contribution,
+                graph_changed=point.graph_changed,
+                version=point.version,
+                version_changed=point.version_changed,
                 change=change,
             ))
-        proposals = await proposals_of(mirror, cache, host, history, shas[-1] if shas else None, interval)
+        proposals = await proposals_of(mirror, cache, host, history, points[-1].graph_at if points else None, interval)
         await box.info(Channel.business, "History {%var.history} listed for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
-        return HistoryResult(versions=records, proposals=proposals)
+        return HistoryResult(versions=records, proposals=proposals, version_problem=await version_problem_of(mirror, host, history))

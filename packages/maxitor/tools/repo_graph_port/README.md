@@ -24,10 +24,24 @@ A history is one graph file on one branch of one repository. Its versions are th
 - `tags` — the repository's tags placed on it, each with its release's title and link: a tag on a later commit that did not change the graph belongs to the version before it;
 - `nodes` and `edges`, or `refused` — why the file is not a graph of the protocol's version it claims.
 
+## A history with a version file
+
+A graph belongs to a level with its own version number: usually a component, or a whole package. A history can name the file that holds it. Then the port lists the commits that changed either file, and a commit is a point only if the graph or the number really changed. Each point adds three fields:
+
+| Field | Meaning |
+|---|---|
+| `graph_changed` | the graph document differs from the previous point's; formatting and the order of top-level nodes and edges do not count |
+| `version` | the number in the file at this commit, or `null` when the file is missing or cannot be read |
+| `version_changed` | the number differs from the last readable one; a number going down counts, because judging it is the job of CI |
+
+The file is TOML or JSON, by its extension. The port reads one key, `version` by default, and computes nothing: a computed or inherited version is reported, not resolved. Rust can name `workspace.package.version` in the root `Cargo.toml`. A point that changed only the version reads no graph; opening it gives the graph in that commit.
+
+A link it cannot use never stops the history. Both the history answer and the versions answer carry `version_problem` in plain words, and the graph opens. Older commits with the same fault just have an empty `version`. Without a version file, a history has the points it always had.
+
 ## Two ways to name a history
 
 - **Configured** — a private repository, named by an `id` in the histories config; a reader sends a read key in the header `X-Maxitor-History-Key`. A key opens one history and nothing else.
-- **By link** — a public repository's graph file, `https://github.com/<owner>/<repo>/blob/<branch>/<path>`, given as `link=` with no key and no config.
+- **By link** — a public repository's graph file, `https://github.com/<owner>/<repo>/blob/<branch>/<path>`, given as `link=` with no key and no config. `version_link=` and `version_key=` name its version file; a link to another repository or branch is a `version_problem`.
 
 ## The routes
 

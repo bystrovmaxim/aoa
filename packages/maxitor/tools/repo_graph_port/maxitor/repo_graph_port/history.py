@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass(frozen=True)
@@ -39,17 +39,52 @@ class History:
     graph_file: str
     public: bool = False
     live: str | None = None
+    version_file: str | None = None
+    version_key: str = "version"
+    graph_file_before: tuple[str, ...] = ()
+    version_file_before: tuple[str, ...] = ()
+    version_refused: str | None = None
+
+    @property
+    def graph_paths(self) -> tuple[str, ...]:
+        """The graph file's paths, newest first."""
+        return (self.graph_file, *self.graph_file_before)
+
+    @property
+    def version_paths(self) -> tuple[str, ...]:
+        """The version file's paths, newest first; none without a version file."""
+        return (self.version_file, *self.version_file_before) if self.version_file else ()
+
+    @property
+    def watched_paths(self) -> tuple[str, ...]:
+        """Every path whose change can make a point."""
+        return (*self.graph_paths, *self.version_paths)
 
 
-def public_history(link: str) -> History | None:
-    """
-    AI-CORE-BEGIN
-    ROLE: Name a public history by a link to its graph file.
-    CONTRACT: ``https://github.com/<owner>/<repo>/blob/<branch>/<path>`` gives a public ``History`` whose id is the link; anything else gives ``None``. A branch with a slash in its name is not recognised.
-    AI-CORE-END
-    """
+def _blob(link: str) -> tuple[str, str, str, str] | None:
+    """The owner, repository, branch and path of a link to a public file."""
     found = re.fullmatch(r"https://github\.com/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)/blob/([A-Za-z0-9._-]+)/([^?#]+)", link)
     if found is None or ".." in found.group(4).split("/"):
         return None
     owner, name, branch, path = found.groups()
-    return History(id=link, host="github", repository=f"{owner}/{name}", branch=branch, graph_file=path, public=True)
+    return owner, name, branch, path
+
+
+def public_history(link: str, version_link: str | None = None, version_key: str | None = None) -> History | None:
+    """
+    AI-CORE-BEGIN
+    ROLE: Name a public history by a link to its graph file.
+    CONTRACT: ``https://github.com/<owner>/<repo>/blob/<branch>/<path>`` gives a public ``History`` whose id is the link; anything else gives ``None``. ``version_link`` names the version file the same way; one that is not a file of the same repository and branch sets ``version_refused``. A branch with a slash in its name is not recognised.
+    AI-CORE-END
+    """
+    blob = _blob(link)
+    if blob is None:
+        return None
+    owner, name, branch, path = blob
+    history = History(id=link, host="github", repository=f"{owner}/{name}", branch=branch, graph_file=path, public=True)
+    if version_link is None:
+        return history
+    version = _blob(version_link)
+    if version is None or version[:3] != blob[:3]:
+        return replace(history, version_refused=f"the version link is not a file of {owner}/{name} on {branch}")
+    return replace(history, version_file=version[3], version_key=version_key or "version")

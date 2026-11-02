@@ -38,7 +38,7 @@ import re
 import shutil
 import subprocess
 import threading
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -117,11 +117,11 @@ class GitMirror(BaseStorage):
             refspecs = ["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", "+refs/pull/*/head:refs/pull/*/head"]
             self._git(self._place(repository), ["fetch", "--prune", "--filter=blob:none", "origin", *refspecs], auth)
 
-    def versions(self, repository: str, branch: str, path: str) -> list[Commit]:
-        """The commits of ``branch``, by first parent, that changed ``path`` — oldest first."""
+    def versions(self, repository: str, branch: str, *paths: str) -> list[Commit]:
+        """The commits of ``branch``, by first parent, that changed any of ``paths`` — oldest first."""
         out = self._git(
             self._place(repository),
-            ["log", "--first-parent", "--reverse", "--format=%H%x1f%cI%x1f%B%x1e", branch, "--", path],
+            ["log", "--first-parent", "--reverse", "--format=%H%x1f%cI%x1f%B%x1e", branch, "--", *paths],
         )
         commits: list[Commit] = []
         for record in out.decode("utf-8").split("\x1e"):
@@ -167,6 +167,14 @@ class GitMirror(BaseStorage):
         if not self._git(place, ["ls-tree", "--name-only", sha, "--", path], auth).strip():
             return None
         return self._git(place, ["show", f"{sha}:{path}"], auth)
+
+    def first_file_at(self, repository: str, sha: str, paths: Sequence[str], auth: Mapping[str, str] | None = None) -> tuple[str, bytes] | None:
+        """The first of ``paths`` that exists at ``sha``, with its bytes, or ``None``."""
+        for path in paths:
+            content = self.file_at(repository, sha, path, auth)
+            if content is not None:
+                return path, content
+        return None
 
     def pull_heads(self, repository: str) -> dict[int, str]:
         """Every pull request head the repository keeps (``refs/pull/<n>/head``), by number."""

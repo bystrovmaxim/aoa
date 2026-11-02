@@ -26,7 +26,7 @@ import asyncio
 from typing import cast
 
 from maxitor.repo_graph_port.history_not_found_error import HistoryNotFoundError
-from maxitor.repo_graph_port.history_reading import chosen, graph_of, refreshed
+from maxitor.repo_graph_port.history_reading import chosen, graph_of, points_of, refreshed
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
@@ -53,6 +53,8 @@ class VersionParams(BaseParams):
     sha: str = Field(description="The version's commit")
     history: str | None = Field(default=None, description="A configured history's id; its read key must open it")
     link: str | None = Field(default=None, description="A link to a public repository's graph file, in place of an id")
+    version_link: str | None = Field(default=None, description="A link to the version file of a public history")
+    version_key: str | None = Field(default=None, description="The key of a public history's version file")
 
 
 class VersionResult(BaseResult):
@@ -90,14 +92,14 @@ class VersionAction(BaseAction[VersionParams, VersionResult]):
         mirror = cast(GitMirror, connections["GitMirror"])
         host = cast(GitHubHost, connections["GitHubHost"])
         cache = cast(VersionCache, connections["VersionCache"])
-        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"))
-        kept = cache.graph(history.repository, params.sha)
+        history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
+        kept = cache.graph(history.repository, history.graph_file, params.sha)
         if kept is None:
             await refreshed(mirror, cache, host, history, ctx.get("env.history_refresh_seconds"))
-            commits = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
+            points = await points_of(mirror, cache, host, history)
             # A version, or the head of a pull request still open: a reader looks at it before it is merged.
             heads = await asyncio.to_thread(mirror.pull_heads, history.repository)
-            if params.sha not in {commit.sha for commit in commits} and params.sha not in heads.values():
+            if params.sha not in {point.commit.sha for point in points} and params.sha not in heads.values():
                 raise HistoryNotFoundError()
             kept = await graph_of(mirror, cache, host, history, params.sha)
         await box.info(Channel.business, "History {%var.history} version read for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")

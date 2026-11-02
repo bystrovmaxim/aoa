@@ -181,6 +181,24 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_key",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_key",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_link",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:branch",
       "is_dag": false,
       "properties": {},
@@ -241,6 +259,24 @@
       "relationship": "Composition",
       "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
       "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:repository",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_file",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_file",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult|field|maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_problem",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_problem",
       "type": "field"
     },
     {
@@ -406,12 +442,39 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams|field|maxitor.repo_graph_port.actions.history_action.HistoryParams:version_key",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:version_key",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams|field|maxitor.repo_graph_port.actions.history_action.HistoryParams:version_link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:version_link",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
       "is_dag": false,
       "properties": {},
       "relationship": "Composition",
       "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
       "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:proposals",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult|field|maxitor.repo_graph_port.actions.history_action.HistoryResult:version_problem",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
+      "target_id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:version_problem",
       "type": "field"
     },
     {
@@ -814,6 +877,24 @@
       "type": "field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams|field|maxitor.repo_graph_port.actions.version_action.VersionParams:version_key",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams:version_key",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams|field|maxitor.repo_graph_port.actions.version_action.VersionParams:version_link",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.repo_graph_port.actions.version_action.VersionParams",
+      "target_id": "maxitor.repo_graph_port.actions.version_action.VersionParams:version_link",
+      "type": "field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.version_action.VersionResult|field|maxitor.repo_graph_port.actions.version_action.VersionResult:graph",
       "is_dag": false,
       "properties": {},
@@ -1003,6 +1084,28 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_key",
+      "label": "version_key",
+      "properties": {
+        "description": "The key of a public history's version file",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryParams:version_link",
+      "label": "version_link",
+      "properties": {
+        "description": "A link to the version file of a public history",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult",
       "label": "DescribeHistoryResult",
       "properties": {},
@@ -1082,6 +1185,28 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_file",
+      "label": "version_file",
+      "properties": {
+        "description": "The file that holds the history's version; none when it names none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.describe_history_action.DescribeHistoryResult:version_problem",
+      "label": "version_problem",
+      "properties": {
+        "description": "Why the history's version cannot be read at the head of its branch",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
@@ -1176,6 +1301,28 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:version_key",
+      "label": "version_key",
+      "properties": {
+        "description": "The key of a public history's version file",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryParams:version_link",
+      "label": "version_link",
+      "properties": {
+        "description": "A link to the version file of a public history",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult",
       "label": "HistoryResult",
       "properties": {},
@@ -1186,6 +1333,17 @@
       "label": "proposals",
       "properties": {
         "description": "Pull requests still open into the branch that change the graph, each with its state",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.history_action.HistoryResult:version_problem",
+      "label": "version_problem",
+      "properties": {
+        "description": "Why the history's version cannot be read at the head of its branch",
         "entity_schema": false,
         "json_schema_value": false,
         "required": false
@@ -1456,6 +1614,28 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams:version_key",
+      "label": "version_key",
+      "properties": {
+        "description": "The key of a public history's version file",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.repo_graph_port.actions.version_action.VersionParams:version_link",
+      "label": "version_link",
+      "properties": {
+        "description": "A link to the version file of a public history",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
