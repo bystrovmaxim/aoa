@@ -154,8 +154,9 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Build wheel/sdist × 8, packaging smoke | — | ✅ | need the network; matter at a release |
 | Graph files: write | ✅ (green run only) | — | writes files into the commit |
 | Graph files: check | ✅ (always) | ✅ (always) | never skipped |
+| Versions grew | — | ✅ (pull requests into `main`) | compares a pull request with `main`; see [Versions](#versions) |
 
-CI runs on every pull request, in four parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging` and `Proof of the local run`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
+CI runs on every pull request, in parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging` and `Proof of the local run`, and `Versions` on a pull request into `main`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
 
 ```bash
 bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # both Checks jobs
@@ -164,6 +165,28 @@ python3 scripts/check_run.py --await-sign-off "$COMMIT"                 # the Pr
 ```
 
 `Checks` also runs `graph_builder`'s own action, the one other projects use.
+
+## Versions
+
+[`version-gate`](https://github.com/bystrovmaxim/version-gate) fails a pull request into `main` when a level it changed did not raise its version. It runs only in CI, because it compares with `main`. A folder is a level when it holds a `version.toml`:
+
+| Level | Folders | Where the number is |
+|---|---|---|
+| Repository | the root | root `pyproject.toml`; `require_bump = false`, so it need not grow |
+| Package | the seven `aoa-*` packages and `maxitor` | their `pyproject.toml` |
+| Package | `open-gnomon-protocol` | its `version.toml` |
+| Component | `maxitor`'s `web`, `tools/repo_graph_port`, `tools/graph_builder` | their `version.toml` |
+
+A change raises the version of every level it lies in, apart from the repository. Here is a change in `repo_graph_port` with nothing raised:
+
+```text
+version-gate: package packages/maxitor (packages/maxitor/pyproject.toml): version 3.0.0 did not grow; main has 3.0.0, raise it above that
+version-gate: component packages/maxitor/tools/repo_graph_port (packages/maxitor/tools/repo_graph_port/version.toml): version 1.0.0 did not grow; main has 1.0.0, raise it above that
+```
+
+Raise both, commit, and the job passes. A sub-issue merging into a feature branch is not checked, so a large task raises its versions once, on its way into `main`.
+
+Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages and of `maxitor`. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. Two things count on purpose: `SKILL.md`, which is what the skill is, and the README of `open-gnomon-protocol`, which is the protocol's normative text.
 
 ## During the work and before a commit
 
