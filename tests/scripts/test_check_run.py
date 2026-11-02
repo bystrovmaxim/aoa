@@ -349,55 +349,13 @@ def test_a_red_whole_run_drops_the_receipt_of_the_same_commit(tmp_path: Path, mo
     assert not runner.RECEIPT_FILE.exists()
 
 
-def _github_says(runner: ModuleType, monkeypatch: pytest.MonkeyPatch, answers: list[str]) -> list[list[str]]:
-    """Stand in for ``gh``: each question gets the next answer, the last one for good; the wait takes no time."""
-    calls: list[list[str]] = []
-
-    def run(command: list[str], **options: object) -> object:
-        del options
-        calls.append(command)
-        return subprocess.CompletedProcess(command, 0, answers[min(len(calls), len(answers)) - 1], "")
-
-    monkeypatch.setattr(runner.subprocess, "run", run)
-    monkeypatch.setattr(runner.time, "sleep", lambda seconds: None)
-    return calls
-
-
-def test_ci_passes_a_commit_that_carries_the_proof(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A commit that had its run answers at once, and CI asks about that commit and that status."""
-    runner = _runner()
-    calls = _github_says(runner, monkeypatch, ["success\n"])
-    assert runner.main(["--await-sign-off", "abc123"]) == 0
-    assert len(calls) == 1
-    assert "repos/{owner}/{repo}/commits/abc123/status" in calls[0]
-    assert any('select(.context == "Local check run")' in part for part in calls[0])
-
-
-def test_ci_waits_for_a_run_still_going(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A commit pushed to an open pull request gets time for its run."""
-    runner = _runner()
-    calls = _github_says(runner, monkeypatch, ["", "", "success\n"])
-    assert runner.main(["--await-sign-off", "abc123"]) == 0
-    assert len(calls) == 3
-
-
-@pytest.mark.parametrize("answer", ["", "pending\n", "failure\n"], ids=["no status", "pending", "failure"])
-def test_ci_fails_a_commit_with_no_proof(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], answer: str
-) -> None:
-    """Only a success is a proof, and the failure says what to do."""
-    runner = _runner()
-    _github_says(runner, monkeypatch, [answer])
-    monkeypatch.setattr(runner, "SIGN_OFF_WAIT_SECONDS", 0)
-    assert runner.main(["--await-sign-off", "abc123"]) == 1
-    assert "bash scripts/check_before_pr.sh" in capsys.readouterr().out
-
-
-def test_ci_reads_the_proof_of_the_pull_requests_own_commit() -> None:
-    """``github.sha`` is GitHub's merge commit, which nobody ran, so the proof could never be there."""
+def test_ci_does_not_wait_for_the_proof() -> None:
+    """The merge rule requires the status itself, so no job spends minutes waiting for it."""
     workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    assert "COMMIT: ${{ github.event.pull_request.head.sha }}" in workflow
-    assert 'check_run.py --await-sign-off "$COMMIT"' in workflow
+    assert "await-sign-off" not in workflow
+    runner = _runner()
+    with pytest.raises(SystemExit):
+        runner._parser().parse_args(["--await-sign-off", "abc123"])
 
 
 def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:

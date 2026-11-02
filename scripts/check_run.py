@@ -47,8 +47,8 @@ from start to end, leaves a receipt naming that commit. Everything else is CI's 
 check, so the browsers are all a pull request has to run here. Then
 ``--sign-off`` reads the receipt and reports it to GitHub as the commit status
 ``Local check run``, and refuses when the tree is anything but the commit the receipt
-names. CI holds the other end: ``--await-sign-off`` asks GitHub for that status on the
-pull request's commit, and fails when none comes, so a commit nobody ran does not merge.
+names. The merge rule of ``main`` requires that status on the exact commit, so a commit
+nobody ran does not merge, and the proof may arrive at any moment.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -71,9 +71,9 @@ ARCHITECTURE / DATA FLOW
                                            │ --sign-off
                                            ▼
                                   gh api …/statuses/<commit>
-                                           │ --await-sign-off, in CI
+                                           │ required status
                                            ▼
-                              the job "Proof of the local run"  ──► merge rule of main
+                                     merge rule of main
 
 Python's standard library only: the runner starts before anything is installed
 or built, and must not depend on what it checks.
@@ -98,8 +98,6 @@ LOG_FILE = REPO_ROOT / "archive" / "logs" / "check-all.txt"
 RECEIPT_FILE = REPO_ROOT / "archive" / "logs" / "check-run-receipt.json"
 SIGN_OFF_CONTEXT = "Local check run"
 # Long enough for a commit pushed to an open pull request to be run; a commit that had its run answers at once.
-SIGN_OFF_WAIT_SECONDS = 15 * 60
-SIGN_OFF_POLL_SECONDS = 20.0
 
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
@@ -517,7 +515,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
     parser.add_argument("--skip-group", metavar="NAME", help="drop the rows of one group")
     parser.add_argument("--sign-off", action="store_true", help="report the last full green run to GitHub, and run nothing")
-    parser.add_argument("--await-sign-off", metavar="COMMIT", help="CI: wait for the proof of the full local run on a commit, and fail if none comes")
     return parser
 
 
@@ -608,31 +605,6 @@ def _sign_off() -> int:
     return 0
 
 
-def _signed_off(commit: str) -> bool:
-    """Whether GitHub holds the proof of the full local run on ``commit``; an answer that cannot be read is not a proof."""
-    answer = subprocess.run(
-        ["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{commit}/status", "--jq", f'.statuses[] | select(.context == "{SIGN_OFF_CONTEXT}") | .state'],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return answer.stdout.strip() == "success"
-
-
-def _await_sign_off(commit: str) -> int:
-    """CI's end of the sign-off: pass once ``commit`` carries the proof, fail when the wait ends without one."""
-    deadline = time.monotonic() + SIGN_OFF_WAIT_SECONDS
-    while not _signed_off(commit):
-        if time.monotonic() >= deadline:
-            _say(RED, f"FAIL {commit[:8]} has no proof of the full local run: run bash scripts/check_before_pr.sh on it, then re-run this job")
-            return 1
-        _say(YELLOW, f"Waiting for the proof of the full local run on {commit[:8]}...")
-        time.sleep(SIGN_OFF_POLL_SECONDS)
-    _say(GREEN, f"OK {commit[:8]} passed the full local run")
-    return 0
-
-
 def _raise_interrupt(signum: int, frame: object) -> None:
     """Turn a termination signal into the same stop as Ctrl+C."""
     del signum, frame
@@ -644,8 +616,6 @@ def main(argv: list[str] | None = None) -> int:
     options = _parser().parse_args(argv)
     if options.sign_off:
         return _sign_off()
-    if options.await_sign_off:
-        return _await_sign_off(options.await_sign_off)
     where = options.where
     steps = _select(STEPS, where, options.only_browser, options.only_group, options.skip_group)
     if not steps:
