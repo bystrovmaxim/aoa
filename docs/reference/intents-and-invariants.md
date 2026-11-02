@@ -239,6 +239,41 @@ The rules are the subject of [`examples/step_01_Action_and_pipeline/05_aspect_de
 
 The refusal rules above are the subject of [`examples/step_03_authorization_and_roles/06_the_declaration.py`](../../examples/step_03_authorization_and_roles/06_the_declaration.py), which runs each of them.
 
+## Every method gets its own box
+
+Every method of an action that receives `box` receives one of its own, carrying its own name. There are no exceptions, and an action cannot choose or change that name.
+
+| Kind of method | `{%scope.aspect}` | What `{%state.x}` reads |
+| --- | --- | --- |
+| `@regular_aspect` | the method's name | the current `state` |
+| `@summary_aspect` | the method's name | the current `state` |
+| `@compensate` | the method's name | the snapshot before its step |
+| `@on_error` | the handler's name | the `state` the handler receives |
+| `@access_decide` | the method's name | nothing: it has no `state` |
+
+What follows from it, case by case:
+
+- **A log line says who wrote it.** `{%scope.action}:{%scope.aspect}` is the id of the method's node in the graph, for all five kinds. A logger reads the same two names from `scope`.
+- **A handler's log reads the handler's `state`.** `{%state.reserved}` in an `@on_error` handler gives what its `state` argument holds at the moment of the failure.
+- **The name in a handler's line is the handler's**, not the failed aspect's. With several handlers it is the one that ran.
+- **A nested action keeps its own coordinates.** A child's handler writes under the child's action and the child's nesting level, one deeper than its parent's lines.
+- **`@context_requires` changes nothing about the box.** A handler or a check that declared it receives its `ctx` view and its own box together.
+- **A check has one name on both paths.** `@access_decide` writes the same name on a real call and in `check_access_decide`, always with an empty `state`.
+- **A field nobody wrote is still an error, for every kind.** In a handler the failed template is reported as `OnErrorHandlerError`. In a check, which has no `state`, the answer is `undecided` at `ACCESS_DECIDE`, and a real call raises `AccessUndecided`.
+- **An error no handler matches goes up unchanged.** No handler ran, so there is no handler's line; rollback runs as it always does.
+- **Apart from its name and `state`, a method's box does what any box does**: nested runs, dependencies, resources, nesting level and rollup are the same.
+
+Each case runs in [`examples/how_to/09_method_box.py`](../../examples/how_to/09_method_box.py), and step by step in its [notebook](../../examples/how_to/09_method_box.ipynb):
+
+```text
+2. A later step fails: the compensator and the handler name themselves, and the handler's log reads state:
+  [nest 1] ReserveAction:reserve_access_decide  checking access
+  [nest 1] ReserveAction:reserve_aspect  reserving
+  [nest 1] ReserveAction:reserve_compensate  releasing
+  [nest 1] ReserveAction:reserve_on_error  failed with reserved=yes
+  handled
+```
+
 ## A correct compensator
 
 `@compensate(target, description)` must reference an existing `@regular_aspect` of the same class. A compensator without a corresponding aspect is not allowed — it is a "dead rollback" that will never fire.

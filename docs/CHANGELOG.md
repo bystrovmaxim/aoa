@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-02] — Every method of an action now has its own box
+
+A log line in an `@on_error` handler can now read the handler's `state`. Before, one ordinary line such as `reserved={%state.reserved}` failed, and the error the handler was dealing with turned into `OnErrorHandlerError`. Now the line is written and the handler finishes its work.
+
+Handlers and `@access_decide` checks also name themselves in the log, as the other kinds of method always did. Every line can now be traced to the exact method that wrote it, and to that method's place in the graph. No action needs any change.
+
+If you write loggers, one thing looks different: lines from handlers and checks now carry a method name where the name used to be empty. A field that no step wrote is still an error in a log line, in a handler as anywhere else, and a check has no `state` to read at all.
+
 ## [2026-11-02] — Maxitor's web part is now called web
 
 If you install Maxitor's web part, ask for `maxitor[web]` from now on. `maxitor[front]` no longer exists. The name changed because this part holds the server as well as the web client, so "front" described only half of it. The command is still `maxitor` and the package is still called `maxitor`.

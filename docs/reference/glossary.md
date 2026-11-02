@@ -41,7 +41,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Pipeline** — a linear sequence of aspects executed top to bottom without branches. A direct composition `summary ∘ aₙ ∘ … ∘ a₁`.
 
-**box** — the instrument passed into every aspect. Through it: `box.info/warning/critical(...)` — business events; `box.resolve(T)` — dependencies; `box.run(Action, params)` — nested operations.
+**box** — the instrument every method of an action receives, each its own, carrying that method's name. Through it: `box.info/warning/critical(...)` — business events; `box.resolve(T)` — dependencies; `box.run(Action, params)` — nested operations.
 
 ## Dependencies and resources
 

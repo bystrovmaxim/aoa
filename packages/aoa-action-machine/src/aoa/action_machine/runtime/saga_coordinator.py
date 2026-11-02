@@ -39,8 +39,6 @@ from typing import Any, cast
 
 from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.intents.context_requires.context_requires_resolver import ContextRequiresResolver
-from aoa.action_machine.logging.domain_resolver import resolve_domain
-from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core.events import (
     AfterCompensateAspectEvent,
@@ -53,6 +51,7 @@ from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
+from aoa.action_machine.runtime.method_box import method_box
 from aoa.action_machine.runtime.saga_frame import SagaFrame
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -141,23 +140,14 @@ class SagaCoordinator(BaseCoordinator):
 
             comp_started_at = time.time()
             try:
-                comp_log = ScopedLogger(
+                comp_box = method_box(
+                    box,
                     coordinator=self._plugin_coordinator.log_coordinator,
-                    nest_level=box.nested_level,
-                    action_name=action.get_full_class_name(),
-                    aspect_name=compensator_name,
+                    action=action,
+                    method_name=compensator_name,
                     context=context,
                     state=(frame.state_before if isinstance(frame.state_before, BaseState) else BaseState()),
                     params=params,
-                    domain=resolve_domain(type(action)),
-                )
-                comp_box = ToolsBox(
-                    run_child=box.run_child,
-                    factory=box.factory,
-                    resources=box.resources,
-                    log=comp_log,
-                    nested_level=box.nested_level,
-                    rollup=box.rollup,
                 )
                 if context_keys:
                     ctx_view = ContextView(context, context_keys)

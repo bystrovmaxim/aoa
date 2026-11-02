@@ -27,6 +27,7 @@ ARCHITECTURE / DATA FLOW
                 ├── plugin_coordinator.base_fields / emit_extra_kwargs
                 ├── resolve first matching handler by isinstance
                 ├── emit BeforeOnErrorAspectEvent
+                ├── method_box(...): the handler's own name and state
                 ├── invoke handler (with ContextView when required)
                 ├── emit AfterOnErrorAspectEvent
                 └── or emit UnhandledErrorEvent and re-raise original error
@@ -48,6 +49,7 @@ from aoa.action_machine.intents.context_requires.context_requires_resolver impor
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.plugin.core.events import AfterOnErrorAspectEvent, BeforeOnErrorAspectEvent, UnhandledErrorEvent
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
+from aoa.action_machine.runtime.method_box import method_box
 
 
 class ErrorHandlerExecutor:
@@ -113,6 +115,15 @@ class ErrorHandlerExecutor:
             ),
             **plugin_kwargs,
         )
+        handler_box = method_box(
+            box,
+            coordinator=self._plugin_coordinator.log_coordinator,
+            action=action,
+            method_name=handler_name,
+            context=context,
+            state=state,
+            params=params,
+        )
         started_at = time.time()
         try:
             if context_keys:
@@ -121,7 +132,7 @@ class ErrorHandlerExecutor:
                     action,
                     params,
                     state,
-                    box,
+                    handler_box,
                     connections,
                     error,
                     ctx_view,
@@ -131,7 +142,7 @@ class ErrorHandlerExecutor:
                     action,
                     params,
                     state,
-                    box,
+                    handler_box,
                     connections,
                     error,
                 )

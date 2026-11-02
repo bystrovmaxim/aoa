@@ -48,14 +48,13 @@ from aoa.action_machine.graph.nodes.checker_graph_node import CheckerGraphNode
 from aoa.action_machine.graph.nodes.regular_aspect_graph_node import RegularAspectGraphNode
 from aoa.action_machine.graph.nodes.summary_aspect_graph_node import SummaryAspectGraphNode
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
-from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.method_box import method_box
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -101,23 +100,14 @@ class AspectExecutor:
         Not for compensators, saga rollback, ``@on_error``, or non-aspect hooks.
         ``aspect_node`` is a regular or summary interchange graph node; wraps ``node_obj`` with scoped log / ``ContextView``.
         """
-        aspect_log = ScopedLogger(
+        aspect_box = method_box(
+            box,
             coordinator=self._log_coordinator,
-            nest_level=box.nested_level,
-            action_name=action.get_full_class_name(),
-            aspect_name=aspect_node.label,
+            action=action,
+            method_name=aspect_node.label,
             context=context,
             state=state,
             params=params,
-            domain=resolve_domain(type(action)),
-        )
-        aspect_box = ToolsBox(
-            run_child=box.run_child,
-            factory=box.factory,
-            resources=box.resources,
-            log=aspect_log,
-            nested_level=box.nested_level,
-            rollup=box.rollup,
         )
         context_keys = aspect_node.get_required_context_keys()
         if context_keys:
