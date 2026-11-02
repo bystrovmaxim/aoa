@@ -8,6 +8,7 @@
   - [`BaseSchema` — the typed data contract](#baseschema--the-typed-data-contract)
   - [`BaseAction` — a unit of work](#baseaction--a-unit-of-work)
   - [`BaseEntity` — a domain object](#baseentity--a-domain-object)
+  - [`BaseEvent` — a recorded fact](#baseevent--a-recorded-fact)
   - [`BaseAdapter` — a bridge between systems](#baseadapter--a-bridge-between-systems)
   - [`BaseCoordinator` — extending the machine's behavior](#basecoordinator--extending-the-machines-behavior)
   - [`BaseObserver` — an observer with no right to intervene](#baseobserver--an-observer-with-no-right-to-intervene)
@@ -20,7 +21,7 @@
 
 ---
 
-AOA is built on nine fundamental building blocks. Each answers exactly one question: what exactly is this, in the system. If code doesn't fit into any of these slots, that's an architectural error. Clutter shows up immediately.
+AOA is built on ten fundamental building blocks. Each answers exactly one question: what exactly is this, in the system. If code doesn't fit into any of these slots, that's an architectural error. Clutter shows up immediately.
 
 ---
 
@@ -37,6 +38,7 @@ The system's data language. An immutable Pydantic model with dot-path navigation
 | `BaseState` | an intermediate execution snapshot (`frozen`, `extra="allow"`) |
 | `Context` | a slice of the call's environment (UserInfo + RequestInfo + RuntimeInfo) |
 | `BaseEntity` | a domain object (structure + Lifecycle) |
+| `BaseEvent` | a recorded business fact (`frozen`, `extra="forbid"`) |
 
 ```python
 class CreateOrderAction(BaseAction[...]):
@@ -50,7 +52,7 @@ class CreateOrderAction(BaseAction[...]):
         created: bool = False
 ```
 
-`BaseSchema` is the only primitive that other primitives (`BaseEntity`) inherit from.
+`BaseSchema` is the only primitive that other primitives (`BaseEntity`, `BaseEvent`) inherit from.
 
 ---
 
@@ -73,6 +75,27 @@ class OrderCoreEntity(BaseCoreEntity):
     order_id: str
     status: str
 ```
+
+---
+
+### `BaseEvent` — a recorded fact
+
+What **happened**. A typed fact that became true and that everyone who was not the caller should learn of. An event takes the place of `kwargs` in a call of `box`, after the text of the line, and a logger receives it with its type and fields.
+
+```python
+class OrderCompletedEvent(BaseEvent):
+    order_id: str
+    total: float
+
+
+await box.info(
+    Channel.business,
+    "Order {%var.order_id} total {%var.total}",
+    OrderCompletedEvent(order_id="o1", total=9.5),
+)
+```
+
+An event is not a `BaseEntity`: an entity is what the system models, it has a lifecycle and changes states; an event occurred and does not change. It is not a `Result`: one call returns one result to its caller, and may publish zero, one or many events to everyone else. It is not a plugin event: a plugin event says what the machine is doing, a `BaseEvent` says what became true in the domain. [The chapter on object events](../tutorials/step-11-object-events.md) shows how a method and a domain declare them.
 
 ---
 
@@ -259,6 +282,7 @@ Is this a domain-area model?                                 → Entity
 Do you need to store data that lives forever?                → BaseStorage
 Do you need to call someone else's service (SMS, payment, API)? → BaseGateway
 Do you need to run a local graph, FSM, or legacy engine?      → BaseController
+Is this an accomplished fact that others should learn of?     → BaseEvent
 Do you need to change the machine's own behavior?             → BaseCoordinator
 Do you need to observe the machine without intervening?       → BaseObserver
 Do you need to declare a class's participation in AOA's grammar? → BaseIntent
@@ -275,6 +299,7 @@ Primitives don't know about each other. They don't get in each other's way, don'
 - `Action` doesn't know which `Adapter` will call it.
 - `Action` doesn't know which `Coordinator` is attached to the machine.
 - `Action` doesn't know whether `Storage` is implemented on Postgres or MongoDB.
+- `Action` knows which `BaseEvent` it emits, but not who receives it.
 - `Entity` knows nothing at all except its own structure and its `Lifecycle`.
 
 This means any primitive can be replaced without touching the others. The transport changes — business logic is unaffected. Storage changes — the Action doesn't know about it. A coordinator gets added — not a single Action is rewritten.
@@ -290,9 +315,11 @@ AOA
 │   ├── BaseResult     — the result
 │   ├── BaseState      — an execution snapshot
 │   ├── Context        — a slice of the environment
-│   └── BaseEntity     — a domain object (↓ see below)
+│   ├── BaseEntity     — a domain object (↓ see below)
+│   └── BaseEvent      — a recorded fact (↓ see below)
 ├── BaseAction      — a unit of work
 ├── BaseEntity      — a domain object
+├── BaseEvent       — a recorded fact
 ├── BaseAdapter     — a bridge to a protocol
 ├── BaseCoordinator — extends the machine (changes it)
 ├── BaseObserver    — observes the machine (side effects only)

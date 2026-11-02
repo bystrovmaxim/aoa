@@ -57,6 +57,7 @@ The guide moves from a practical entry point to the complete project architectur
 - **[Cache](tutorials/step-08-cache.md)** — cache_key and on_cache_write: the operation is responsible for meaning, the coordinator for storage
 - **[Plugins](tutorials/step-09-plugins.md)** — an observer, not a participant: OpenTelemetry and OCEL out of the box
 - **[Logs as business events](tutorials/step-10-logs.md)** — box.info with channels and levels instead of logger.info in the business code
+- **[Object events](tutorials/step-11-object-events.md)** — a typed fact in place of `kwargs`, declared by a method with `@emits` and by a domain with `events`
 
 ---
 

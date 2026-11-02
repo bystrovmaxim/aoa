@@ -567,7 +567,7 @@ async def charge_aspect(self, params, state, box, connections):
 
 Unlike `logger.info()`, `box.info/warning/critical()` carries a severity level and is addressed to a specific **channel** — `business`, `audit`, `debug`, or `client`. The call itself merely produces a structured event with full context; who delivers it and how — DB, queue, SMS, push — is decided by subscribed loggers, not the operation code.
 
-→ [Logs](docs/tutorials/step-10-logs.md)
+→ [Logs](docs/tutorials/step-10-logs.md) · [Object events](docs/tutorials/step-11-object-events.md)
 
 ---
 

@@ -89,6 +89,7 @@ A suffix in AOA is not a matter of style. Each suffix is fixed by a base class o
 | `BaseAction` subclass | `Action` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | `BaseDomain` subclass | `Domain` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | `BaseRole` subclass | `Role` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseEvent` subclass | `Event` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | Entity-kind descendant | `CoreEntity`, `AssocEntity`, `DetailEntity`, `SpecEntity`, `EnumEntity` or `StateEntity`, matching its kind base | Inheritance hooks at class definition, including intermediate and undecorated classes | `NamingSuffixError` |
 | Method with `@regular_aspect` | `_aspect` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@summary_aspect` | `_summary` | the decorator at method definition | `NamingSuffixError` |
@@ -273,6 +274,24 @@ Each case runs in [`examples/how_to/09_method_box.py`](../../examples/how_to/09_
   [nest 1] ReserveAction:reserve_on_error  failed with reserved=yes
   handled
 ```
+
+## Typed events
+
+A line of `box` carries `kwargs` or a `BaseEvent`, never both. With neither switch on, nothing is checked. The rules, with every case, are in [Object events](../tutorials/step-11-object-events.md).
+
+| Rule | When | Error |
+|---|---|---|
+| A `BaseEvent` subclass has no field named `level`, `channels`, `domain`, `domain_name`, `get`, `keys`, `values`, `items`, `resolve` | class definition | `EventContractError` |
+| An author sets no system field | building the event | `ValidationError` |
+| In the event's place stands an instance of a `BaseEvent` subclass, with no `kwargs` | the call | `EventContractError` |
+| `@emits` lists distinct event classes, at least one, not `BaseEvent` | decorator | `DecoratorArgumentValueError`, `DecoratorArgumentTypeError` |
+| `@emits` is written once per method | decorator | `DuplicateDeclarationError` |
+| A method with `@emits` writes only the listed events | the call, before the text is rendered | `EventContractError` |
+| `events` is a tuple of distinct `BaseEvent` subclasses | domain definition | `EventContractError` |
+| Every `@emits` of a domain with `events` is in `events` | build | `EventContractError` |
+| In a domain with `events`, a line carries an event, from `events`, in the method's `@emits` | the call, before the text is rendered | `EventContractError` |
+
+Each method answers to its own action and that action's domain. A refusal takes the ordinary path of the method that made it. The rules cover operation code only: what plugins and the machine write is not checked. `@emits` and `events` do not change the graph.
 
 ## A correct compensator
 
