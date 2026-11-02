@@ -8,7 +8,7 @@
 <table width="100%"><tr>
   <td align="left"><a href="step-09-plugins.md">← Step 09 — Plugins</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-11-machine.md">Step 11 — ActionProductMachine →</a></td>
+  <td align="right"><a href="step-11-object-events.md">Step 11 — Object events →</a></td>
 </tr></table>
 
 - [box versus print](#box-versus-print)
@@ -147,7 +147,9 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `box` is the operation's own voice about business events: a structured event with a channel, level, and context instead of a context-free `print` string. Templates substitute and color values, `iif` branches the text, private names are blocked, and `@sensitive` masks what may be shown only in part. Where to deliver is decided by loggers, by channel and level, and the operation code does not know about it. Together with plugins this gives two independent layers of observation: meaning (`box`) and mechanics (plugins).
 
-With this the core — the **Business logic** part — is assembled: the operation, state, access, sagas, dependencies, context, cache, plugins, and logs. Next — **[Service](../index.md#iv-service)**: how to expose the same operation outward over HTTP and MCP.
+A line can also carry a typed fact instead of `kwargs`: that is [Object events](step-11-object-events.md), the next chapter.
+
+With this the core — the **Business logic** part — is assembled: the operation, state, access, sagas, dependencies, context, cache, plugins, and logs. Next — **[Object events](step-11-object-events.md)**, and then **[Service](../index.md#iv-service)**: how to expose the same operation outward over HTTP and MCP.
 
 ---
 
@@ -167,5 +169,5 @@ With this the core — the **Business logic** part — is assembled: the operati
 <table width="100%"><tr>
   <td align="left"><a href="step-09-plugins.md">← Step 09 — Plugins</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-11-machine.md">Step 11 — ActionProductMachine →</a></td>
+  <td align="right"><a href="step-11-object-events.md">Step 11 — Object events →</a></td>
 </tr></table>

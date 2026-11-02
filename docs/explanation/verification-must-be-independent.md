@@ -518,6 +518,6 @@ Case 5 is the one worth reading twice. The violating step is not merely reported
 - [Intent-Oriented AI Development](../research/intent-oriented-ai-development.md) — the two reasons intents must be checkable, and the grammar that narrows the solution space.
 - [What the system knows about itself](../research/self-knowledge.md) — the catalogue of graph detections, each marked with its honest status.
 - [The formal model: open questions](../reference/formal-model.md) — an operation as a tuple, and which questions become well-posed.
-- [The AOA Architectural Constitution](architectural-constitution.md) — the nine primitives and the algorithm for choosing between them.
+- [The AOA Architectural Constitution](architectural-constitution.md) — the ten primitives and the algorithm for choosing between them.
 - [Comparison with other frameworks](comparison.md) — where AOA sits next to FastAPI, Django, Clean/DDD, CQRS, and workflow engines.
 - [Maxitor](../../packages/maxitor/README.md) — the blueprint view of the same graph.

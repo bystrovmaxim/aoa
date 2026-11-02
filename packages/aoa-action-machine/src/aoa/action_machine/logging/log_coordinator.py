@@ -60,7 +60,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -68,7 +67,7 @@ from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import validate_channels
 from aoa.action_machine.logging.level import validate_level
 from aoa.action_machine.logging.log_scope import LogScope
-from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
+from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload, LogVar
 from aoa.action_machine.logging.variable_substitutor import VariableSubstitutor
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
@@ -131,7 +130,7 @@ class LogCoordinator(BaseCoordinator):
     async def emit(
         self,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,

@@ -45,6 +45,15 @@ var.get("domain")  # a BaseDomain subclass or None
 
 `mask` is for logic (filters, routing), `name`/`names` for display.
 
+`var` has two forms. In a line with `kwargs`, or with no variables, it is a dictionary. In a line with an [event](../tutorials/step-11-object-events.md), it is that event, with its system fields filled, so a sink can tell facts apart:
+
+```python
+if isinstance(var, OrderCompletedEvent):
+    send(var.model_dump())       # the fact's own fields
+```
+
+Reading by key works on both: `var["level"]`, `var.get("domain")`, `"level" in var`, `var.items()`. Writing into `var` or merging it as a dictionary works only on the dictionary.
+
 ## Step 1. Implement write
 
 Writing is I/O into your sink. The method is async, so you do not have to block the event loop:

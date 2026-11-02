@@ -22,6 +22,7 @@ SCOPE (IN / OUT)
     Enforcing the ``*Domain`` class-name suffix.
     Validating ``name`` and ``description`` as non-empty strings on concrete
     domain classes (with a defined MRO escape hatch for intermediate bases).
+    Validating ``events``, the vocabulary of a domain, when a class declares it.
 
 **Out of scope**
     Domain logic, workflows, or persistence.
@@ -72,8 +73,10 @@ LIFECYCLE (IMPORT VS BUILD)
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
+from aoa.action_machine.domain.event_marker import EventMarker
+from aoa.action_machine.exceptions.event_contract_error import EventContractError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 
@@ -90,6 +93,9 @@ class BaseDomain(ABC):
         INVARIANTS: No instances required; class definition enforces suffix and metadata quality.
         AI-CORE-END
     """
+
+    # The vocabulary of the domain; a domain without it has no event rules.
+    events: ClassVar[tuple[type[EventMarker], ...]]
 
     @property
     @abstractmethod
@@ -136,6 +142,21 @@ class BaseDomain(ABC):
 
         _validate_class_attr(cls, "name")
         _validate_class_attr(cls, "description")
+        _validate_events(cls)
+
+
+def _validate_events(cls: type) -> None:
+    """Refuse an ``events`` of this class that is not a tuple of distinct event classes."""
+    if "events" not in cls.__dict__:
+        return
+    events = cls.__dict__["events"]
+    if not isinstance(events, tuple):
+        raise EventContractError(f"Domain '{cls.__name__}': events must be a tuple, got {events!r}.")
+    for event in events:
+        if not isinstance(event, type) or not issubclass(event, EventMarker) or EventMarker in event.__bases__:
+            raise EventContractError(f"Domain '{cls.__name__}': {event!r} is not a BaseEvent subclass.")
+    if len(set(events)) != len(events):
+        raise EventContractError(f"Domain '{cls.__name__}': an event is listed twice in {events!r}.")
 
 
 def _validate_class_attr(cls: type, attr_name: str) -> None:

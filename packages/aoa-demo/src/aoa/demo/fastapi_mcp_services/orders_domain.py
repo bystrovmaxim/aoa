@@ -3,9 +3,12 @@
 
 from aoa.action_machine.domain import BaseDomain
 
+from .events import OrderRequestedEvent, OrderValidatedEvent
+
 
 class OrdersDomain(BaseDomain):
     """Order lifecycle actions (create, fetch, etc.)."""
 
     name = "orders"
     description = "Order lifecycle and lookup."
+    events = (OrderRequestedEvent, OrderValidatedEvent)

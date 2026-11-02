@@ -158,6 +158,7 @@ from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
+from aoa.action_machine.runtime.emission_rules import emission_rules_for
 from aoa.action_machine.runtime.sync_action_product_machine import SyncActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -688,6 +689,7 @@ class TestBench:
             log=log,
             nested_level=1,
             rollup=rollup,
+            emission=emission_rules_for(action_cls, aspect_name),
         )
 
         base_state = BaseState(**state) if state else BaseState()
@@ -748,6 +750,7 @@ class TestBench:
             log=log,
             nested_level=1,
             rollup=rollup,
+            emission=emission_rules_for(action_cls, summary_meta.method_name),
         )
 
         base_state = BaseState(**state) if state else BaseState()
@@ -816,6 +819,7 @@ class TestBench:
             log=log,
             nested_level=1,
             rollup=False,
+            emission=emission_rules_for(action_class, compensator_name),
         )
 
         conns = connections or {}

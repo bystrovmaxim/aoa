@@ -114,6 +114,12 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Lifecycle events** — start/finish, before/after an aspect, error, rollback — with the full surroundings (`params`, `state`, timings, nesting).
 
+**`BaseEvent`** — a recorded business fact, the tenth primitive. Takes the place of `kwargs` in `box.info/warning/critical`, after the text; a logger receives it as `var`.
+
+**`@emits`** — the events one method of an action may emit. A method with it is a typed zone.
+
+**`events`** — the vocabulary of a domain: the events it allows. Declaring it types the whole domain.
+
 **Channel** — a business event's channel (`business`, `debug`, `security`, `compliance`, `error`; `client` — planned) for `box.info/...`; combined with `|`.
 
 **Logger** — a recipient of `box` business events. Where to deliver (console, queue, Telegram) is decided by the logger, not the operation code.

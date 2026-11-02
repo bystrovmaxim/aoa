@@ -33,6 +33,7 @@ from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import Dom
 from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
 from aoa.action_machine.exceptions.duplicate_summary_aspect_error import DuplicateSummaryAspectError
+from aoa.action_machine.exceptions.event_contract_error import EventContractError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.include_contract_violation_error import IncludeContractViolationError
@@ -88,6 +89,7 @@ __all__ = [
     "DuplicateAccessDecideError",
     "DuplicateDeclarationError",
     "DuplicateSummaryAspectError",
+    "EventContractError",
     "GraphEdgeResolutionError",
     "HandleError",
     "IncludeContractViolationError",

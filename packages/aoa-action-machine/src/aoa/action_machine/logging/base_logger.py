@@ -53,13 +53,14 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Self, overload
+from typing import Self, overload
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.level import Level
 from aoa.action_machine.logging.log_scope import LogScope
+from aoa.action_machine.logging.log_var_payloads import LogVar
 from aoa.action_machine.logging.subscription import LogSubscription
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
@@ -169,7 +170,7 @@ class BaseLogger(BaseObserver, ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         ctx: Context,
         state: BaseState,
         params: BaseParams,
@@ -193,7 +194,7 @@ class BaseLogger(BaseObserver, ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         ctx: Context,
         state: BaseState,
         params: BaseParams,
@@ -218,7 +219,7 @@ class BaseLogger(BaseObserver, ABC):
         self,
         scope: LogScope,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         ctx: Context,
         state: BaseState,
         params: BaseParams,

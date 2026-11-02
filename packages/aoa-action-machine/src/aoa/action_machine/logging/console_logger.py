@@ -42,13 +42,12 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.level import Level
 from aoa.action_machine.logging.log_scope import LogScope
-from aoa.action_machine.logging.log_var_payloads import LogLevelPayload
+from aoa.action_machine.logging.log_var_payloads import LogLevelPayload, LogVar
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
 
@@ -114,7 +113,7 @@ class ConsoleLogger(BaseLogger):
         self,
         scope: LogScope,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         ctx: Context,
         state: BaseState,
         params: BaseParams,

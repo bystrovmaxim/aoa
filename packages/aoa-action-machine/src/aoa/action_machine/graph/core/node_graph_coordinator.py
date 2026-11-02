@@ -86,6 +86,7 @@ from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
 from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
 from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
 from aoa.action_machine.graph.validators import (
+    emits_vocabulary_validator,
     entity_field_validator,
     entity_inverse_validator,
     entity_role_compatibility_validator,
@@ -169,6 +170,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             SpecializationDeclarationError: an entity declares a field pointing at one of N
                 extensions in a way the framework cannot honour. A model that declares no such
                 field takes no new path: the pass finds no axis and returns.
+            EventContractError: a method declares in ``@emits`` an event outside its domain's ``events``.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.
         """
@@ -185,6 +187,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
         self._validate_edge_identity(nodes)
         entity_specialization_validator.validate_entity_specializations()
+        emits_vocabulary_validator.validate_emits_vocabulary(nodes.values())
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
         self._build_indexes(nodes)

@@ -37,11 +37,11 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import InitVar, dataclass, field
-from typing import Any
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.logging.channel import Channel, validate_channels
 from aoa.action_machine.logging.level import Level
+from aoa.action_machine.logging.log_var_payloads import LogVar
 
 
 def _validate_subscription_levels(levels: Level | None) -> None:
@@ -108,7 +108,7 @@ class LogSubscription:
         _validate_subscription_levels(self.levels)
         object.__setattr__(self, "domains", _normalize_subscription_domains(_domains_raw))
 
-    def matches(self, var: dict[str, Any]) -> bool:
+    def matches(self, var: LogVar) -> bool:
         """
         True if this subscription accepts ``var``.
 
