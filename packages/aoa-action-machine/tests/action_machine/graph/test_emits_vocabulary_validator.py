@@ -138,6 +138,18 @@ def test_a_domain_with_no_events_is_not_looked_at() -> None:
     validate_emits_vocabulary([SimpleNamespace(node_obj=_action("summary", OutsideEvent, OpenDomain))])
 
 
+def test_emits_on_a_method_of_no_kind_has_no_effect() -> None:
+    @meta(description="A helper with a declaration", domain=ShopDomain)
+    class HelperAction(BaseAction[_Params, _Result]):
+        """Its only declaration stands on a plain method."""
+
+        @emits(OutsideEvent)
+        async def helper(self) -> None:
+            """No kind of method."""
+
+    validate_emits_vocabulary([SimpleNamespace(node_obj=HelperAction)])
+
+
 def test_a_node_that_is_no_action_is_skipped() -> None:
     validate_emits_vocabulary([SimpleNamespace(node_obj=OpenDomain), SimpleNamespace(node_obj=lambda: None)])
 

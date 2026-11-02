@@ -21,6 +21,9 @@ from aoa.action_machine.intents.emits.emits_decorator import EMITS_ATTR
 from aoa.action_machine.logging.domain_resolver import resolve_domain
 from aoa.action_machine.model.base_action import BaseAction
 
+# The attribute each decorator of the five kinds of method writes; aspects share the first.
+_EMITTING_METHOD_MARKERS = ("_new_aspect_meta", "_compensate_meta", "_on_error_meta", "_access_decide_meta")
+
 
 def _check_action(action_cls: type[Any]) -> None:
     """Refuse an event in this action's ``@emits`` that its domain does not allow."""
@@ -28,6 +31,8 @@ def _check_action(action_cls: type[Any]) -> None:
     if domain is None or not hasattr(domain, "events"):
         return
     for method_name, member in vars(action_cls).items():
+        if not any(hasattr(member, marker) for marker in _EMITTING_METHOD_MARKERS):
+            continue
         for event in getattr(member, EMITS_ATTR, ()):
             if event not in domain.events:
                 raise EventContractError(
