@@ -25,12 +25,14 @@ SCOPE (IN / OUT)
     External services you call but do not own (→ ``BaseGateway``).
 """
 
+from abc import ABC
+
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 
 
 @exclude_graph_model
-class BaseController(BaseResource):
+class BaseController(BaseResource, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Root for internal resources whose lifecycle the process owns.

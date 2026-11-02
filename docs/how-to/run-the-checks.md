@@ -155,10 +155,10 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Graph files: write | ✅ (green run only) | — | writes files into the commit |
 | Graph files: check | ✅ (always) | ✅ (always) | never skipped |
 
-CI runs on every pull request, in three parallel jobs: `Checks`, `Packaging` and `Proof of the local run`. Each calls the same runner:
+CI runs on every pull request, in four parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging` and `Proof of the local run`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
 
 ```bash
-bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # the Checks job
+bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # both Checks jobs
 bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Packaging job
 python3 scripts/check_run.py --await-sign-off "$COMMIT"                 # the Proof of the local run job
 ```

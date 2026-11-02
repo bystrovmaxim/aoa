@@ -59,7 +59,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
-from types import MappingProxyType
+from types import MappingProxyType, NoneType
 from typing import Any, Literal, get_type_hints
 
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
@@ -461,7 +461,7 @@ def _validate_return(
             f"{_name_of(actual)}, but a regular aspect answers with the state fragment dict[str, Any]."
             + _ASSEMBLED_MOMENT
         )
-    if actual is None or actual is type(None):
+    if actual is None or actual is NoneType:
         return
     raise AspectSignatureError(
         f"@{contract.kind}: {action_cls.__name__}.{func.__name__} annotates its return as "

@@ -72,7 +72,7 @@ _END = "__end__"
 def _unwrap_optional(t: Any) -> Any:
     """Strip Optional[X] / X | None → X; everything else unchanged."""
     if get_origin(t) is Union or isinstance(t, _types.UnionType):
-        args = [a for a in get_args(t) if a is not type(None)]
+        args = [a for a in get_args(t) if a is not _types.NoneType]
         if len(args) == 1:
             return args[0]
     return t

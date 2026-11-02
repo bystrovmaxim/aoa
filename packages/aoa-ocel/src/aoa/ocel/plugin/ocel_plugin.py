@@ -18,6 +18,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
+from types import NoneType
 from typing import Annotated, Any, Union, get_args, get_origin
 
 from aoa.action_machine.domain.entity import BaseEntity
@@ -307,7 +308,7 @@ def _unwrap_annotation(annotation: Any) -> Any:
     if origin is Annotated:
         return get_args(annotation)[0]
     if origin is Union:
-        non_none = [arg for arg in get_args(annotation) if arg is not type(None)]
+        non_none = [arg for arg in get_args(annotation) if arg is not NoneType]
         if len(non_none) == 1:
             return _unwrap_annotation(non_none[0])
     return annotation

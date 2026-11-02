@@ -64,7 +64,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from types import UnionType
+from types import NoneType, UnionType
 from typing import Any, ClassVar, Literal, Union, get_args, get_origin
 from uuid import UUID
 
@@ -108,7 +108,7 @@ def _refused_property_type(annotation: Any, *, allow_none: bool = False) -> str 
     origin = get_origin(annotation)
     if annotation is Any:
         refused = "Any"
-    elif annotation is type(None):
+    elif annotation is NoneType:
         refused = None if allow_none else "NoneType"
     elif isinstance(annotation, type):
         supported = annotation in _SUPPORTED_LEAVES or issubclass(annotation, Enum)
@@ -161,11 +161,11 @@ def _union_refusal(runtime_value: Any, annotation: Any, path: str) -> tuple[str,
     """Return the refusal for a union annotation, or ``None`` when one member accepts the value."""
     arguments = get_args(annotation)
     if runtime_value is None:
-        if any(argument is type(None) for argument in arguments):
+        if any(argument is NoneType for argument in arguments):
             return None
         return _mismatch(runtime_value, annotation, path)
     for argument in arguments:
-        if argument is type(None):
+        if argument is NoneType:
             continue
         if _runtime_refusal(runtime_value, argument, path) is None:
             return None

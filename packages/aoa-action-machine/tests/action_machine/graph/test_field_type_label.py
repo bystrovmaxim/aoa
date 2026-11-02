@@ -87,4 +87,4 @@ def test_a_field_vertex_ships_the_label_and_the_full_annotation() -> None:
     node = EntityFieldGraphNode(_HeadCoreEntity, "nickname", annotation=str | None)
     properties = node.to_dict()["properties"]
     assert properties["field_type"] == "str | None"
-    assert properties["field_annotation"] == "UnionType[str, NoneType]"
+    assert properties["field_annotation"] == "Union[str, NoneType]"

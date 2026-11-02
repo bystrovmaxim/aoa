@@ -41,7 +41,7 @@ _COLLECTIONS: tuple[Any, ...] = (list, set, frozenset)
 
 def _name(annotation: Any) -> str:
     """A class by its qualified name, ``None`` as itself, anything else as Python prints it."""
-    if annotation is type(None) or annotation is None:
+    if annotation is types.NoneType or annotation is None:
         return "None"
     if isinstance(annotation, type):
         return annotation.__qualname__
@@ -50,7 +50,7 @@ def _name(annotation: Any) -> str:
 
 def _union(members: tuple[Any, ...]) -> str:
     """The members of a union joined by ``|``, ``None`` last."""
-    present = [field_type_label(member) for member in members if member is not type(None)]
+    present = [field_type_label(member) for member in members if member is not types.NoneType]
     if len(present) != len(members):
         present.append("None")
     return " | ".join(present)

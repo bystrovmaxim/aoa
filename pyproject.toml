@@ -51,7 +51,7 @@ dev = [
     "ruff>=0.4,<1.0",
     "black>=24.0,<25.0",
     "isort>=5.13,<6.0",
-    "pylint>=3.0,<4.0",
+    "pylint>=4.0,<5.0",
     "vulture>=2.11,<3.0",
     "radon>=6.0,<7.0",
     "detect-secrets>=1.5,<2.0",
@@ -259,6 +259,8 @@ load-plugins = [
     "pylint.extensions.docparams",
 ]
 jobs = 0
+# Each package root, so a module's name starts at its package and not at the repository.
+source-roots = ["packages/*/src", "packages/maxitor/*/src", "packages/maxitor/tools/*/src"]
 # Per-package test suites (packages/<pkg>/tests/) are linted by ruff, not pylint —
 # pylint's production rules (e.g. import-outside-toplevel) don't apply to test code.
 # The bulk of tests historically lived in the root tests/ tree, outside `pylint packages/`.
