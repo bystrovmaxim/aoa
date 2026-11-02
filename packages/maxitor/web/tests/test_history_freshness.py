@@ -98,3 +98,13 @@ def test_live_removed_moves_a_room_on_live(maxitor: TestClient, port: StandInPor
         assert _check(maxitor, port.name("live")) == "changed"
         moved = _next(ws, "version")
         assert moved["b"] == port.histories["live"].versions[2]["sha"][:12]
+
+
+def test_a_version_problem_appearing_with_the_same_versions_reaches_a_polling_tab(maxitor: TestClient, port: StandInPort) -> None:  # noqa: F811
+    """The list answers ``304``, the description says otherwise: the history changed."""
+    open_history(maxitor, port, "two")
+    assert _check(maxitor, port.name("two")) == "unchanged"
+    port.histories["two"].version_problem = "The file holds no version."
+    assert _check(maxitor, port.name("two")) == "changed"
+    polled = maxitor.get("/api/history/versions", params={"history": port.name("two")}, headers={"X-Maxitor-History-Key": port.histories["two"].key})
+    assert polled.json()["version_problem"] == "The file holds no version."

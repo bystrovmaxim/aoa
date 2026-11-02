@@ -68,6 +68,8 @@ class StandInHistory:
     live: str | None = None
     more_keys: list[str] = field(default_factory=list)
     proposals: list[dict[str, Any]] = field(default_factory=list)
+    version_file: str | None = None
+    version_problem: str | None = None
 
     def opens(self, key: str) -> bool:
         """Whether ``key`` opens this history."""
@@ -163,6 +165,7 @@ def _handler(port: StandInPort) -> type[BaseHTTPRequestHandler]:
                 body = {"id": name, "repository": "owner/service", "branch": "main", "graph_file": "graph.json", "versions": len(history.versions), "newest": history.versions[-1]["sha"] if history.versions else None}
                 if name != "public":
                     body.update(live=history.live, reader="anna")
+                body.update(version_file=history.version_file, version_problem=history.version_problem)
                 self._send(200, json.dumps(body).encode())
             elif rest == ["versions"]:
                 payload = json.dumps({"versions": history.versions, "proposals": history.proposals}).encode()

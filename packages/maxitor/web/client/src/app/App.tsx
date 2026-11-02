@@ -113,9 +113,9 @@ export function App() {
   const shown = opened.history;
   const shownSource = shown ? sourceOf(shown) : null;
   const shownVersion = shown ? versionOf(shown, shown.b) : null;
-  const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals) : null;
+  const shownName = shown ? shownNameOf(shown.versions, shown.b, shown.proposals, Boolean(shown.versionFile)) : null;
   // In Diff (spec 038) the tab compares A with B; the diagram shows B until the comparison draws both.
-  const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals) : null;
+  const olderName = shown?.a ? shownNameOf(shown.versions, shown.a, shown.proposals, Boolean(shown.versionFile)) : null;
   const trackPoints = shown ? keysOf(shown) : [];
   const pickerMode: PickerMode = shown?.a ? (shown.split ? "split" : "diff") : "one";
   const olderVersion = shown?.a ? versionOf(shown, shown.a) : null;
@@ -528,6 +528,7 @@ export function App() {
               name={shown.a ? `${phone ? `A ${shortNameOf(shown.versions, shown.a, shown.proposals)} → B ${shortNameOf(shown.versions, shown.b, shown.proposals)}` : `A ${olderName ?? "—"} → B ${shownName ?? "—"}`}${shown.split ? " · side by side" : ""}` : (shownName ?? "—")}
               compact={phone}
               counts={shown.a ? diffCounts : null}
+              problem={shown.versionProblem}
               open={pickerOpen}
               onClick={() => setPickerOpen((open) => !open)}
               onStep={step}
@@ -612,6 +613,8 @@ export function App() {
           live={shown.live}
           liveIs={shown.liveSameAs}
           proposals={shown.proposals}
+          versionFile={Boolean(shown.versionFile)}
+          versionProblem={shown.versionProblem}
           value={shown.b}
           onChange={pickVersion}
           phone={phone}
@@ -631,7 +634,7 @@ export function App() {
           }
           between={
             shown.a && shown.b ? (
-              <VersionsBetween versions={shown.versions} live={shown.live} liveIs={shown.liveSameAs} proposals={shown.proposals} range={{ a: shown.a, b: shown.b }} repository={shown.host === "github" ? shown.repository : null} />
+              <VersionsBetween versions={shown.versions} versionFile={Boolean(shown.versionFile)} live={shown.live} liveIs={shown.liveSameAs} proposals={shown.proposals} range={{ a: shown.a, b: shown.b }} repository={shown.host === "github" ? shown.repository : null} />
             ) : undefined
           }
         >

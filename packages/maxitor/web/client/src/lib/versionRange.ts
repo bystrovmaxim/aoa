@@ -14,6 +14,14 @@ import { shortSha } from "@/lib/versionNames";
 /** Two picked points, A before B on the track. */
 export type Range = { a: string; b: string };
 
+/** Whether two versions hold one graph: no point after the older, up to the newer, changed it. Live and pull requests are not on that line. */
+export function sameGraph(versions: readonly HistoryVersion[], range: Range): boolean {
+  const ends = [range.a, range.b].map((key) => versions.findIndex((version) => version.sha.startsWith(key)));
+  if (ends.includes(-1)) return false;
+  const [older, newer] = [Math.min(...ends), Math.max(...ends)];
+  return newer > older && versions.slice(older + 1, newer + 1).every((version) => version.graph_changed === false);
+}
+
 /** Which of the two a handle is now. */
 export type Side = "a" | "b";
 

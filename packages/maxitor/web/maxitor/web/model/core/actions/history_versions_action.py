@@ -66,6 +66,8 @@ class HistoryVersionsResult(BaseResult):
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
     proposals: list[dict[str, Any]] = Field(default_factory=list, description="Pull requests still open that change the graph, each with its state and source")
     live_same_as: str | None = Field(default=None, description="The newest version's sha when Live runs exactly its graph: the two are one point")
+    version_file: str | None = Field(default=None, description="The file that holds the history's version, or none")
+    version_problem: str | None = Field(default=None, description="Why the history's version cannot be read, in plain words, or none")
 
 
 @meta(description="Answer a held history's versions to a polling tab", domain=CoreDomain)
@@ -106,6 +108,8 @@ class HistoryVersionsAction(BaseAction[HistoryVersionsParams, HistoryVersionsRes
         cast(OpenTabsRegistry, connections[OPEN_TABS_CONNECTION_KEY]).seen(entry.name, store.now())
         graphs = cast(GraphSourceGateway, connections[GRAPH_SOURCE_CONNECTION_KEY])
         return HistoryVersionsResult(
+            version_file=entry.version_file,
+            version_problem=entry.version_problem,
             versions=entry.versions_with_sources(),
             proposals=entry.proposals_with_sources(),
             live=entry.live,

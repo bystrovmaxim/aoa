@@ -29,6 +29,10 @@ export type OpenHistory = {
   liveSameAs: string | null;
   /** Pull requests still open that change the graph: looked at, never opened on by default. */
   proposals: HistoryVersion[];
+  /** The file that holds the history's version, or ``null``. */
+  versionFile: string | null;
+  /** Why that version cannot be read, or ``null``. */
+  versionProblem: string | null;
   etag: string | null;
   /** The chosen version: a short sha, ``live``, or ``null`` in M7. In Diff it is B, the newer one. */
   b: string | null;
@@ -93,7 +97,7 @@ export function useOpenHistory(polling: boolean) {
       if (range) ({ a, b } = range);
     }
     setNotice(null);
-    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, etag: null, b, a, split: wantedSplit && a !== null });
+    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, versionFile: opened.version_file ?? null, versionProblem: opened.version_problem ?? null, etag: null, b, a, split: wantedSplit && a !== null });
   }, []);
 
   /** Show one version: in a room or not, a pick in One leaves Diff. */
@@ -122,11 +126,11 @@ export function useOpenHistory(polling: boolean) {
   }, []);
 
   /** Take a new list: keep the version when it is still offered, else move to the default and say why. */
-  const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null, more: { liveSameAs?: string | null; proposals?: HistoryVersion[] } = {}) => {
+  const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null, more: { liveSameAs?: string | null; proposals?: HistoryVersion[]; versionFile?: string | null; versionProblem?: string | null } = {}) => {
     const current = historyRef.current;
     if (!current) return;
     const liveSameAs = more.liveSameAs ?? null;
-    const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], etag, b: asLive(current.b, liveSameAs), a: current.a ? asLive(current.a, liveSameAs) : null };
+    const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], versionFile: more.versionFile === undefined ? current.versionFile : more.versionFile, versionProblem: more.versionProblem === undefined ? current.versionProblem : more.versionProblem, etag, b: asLive(current.b, liveSameAs), a: current.a ? asLive(current.a, liveSameAs) : null };
     if (current.a && current.b) {
       // In Diff an end that left moves toward the other; when they would meet, one version is left.
       const range = afterListChange(keysOf(current), keysOf(next), { a: current.a, b: current.b });
@@ -153,7 +157,7 @@ export function useOpenHistory(polling: boolean) {
       if (!current) return;
       void historyVersions(current.name, current.key, current.etag ?? undefined)
         .then((answer) => {
-          if (answer) takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals });
+          if (answer) takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals, versionFile: answer.version_file, versionProblem: answer.version_problem });
         })
         .catch(() => undefined);
     }, HISTORY_POLL_MS);

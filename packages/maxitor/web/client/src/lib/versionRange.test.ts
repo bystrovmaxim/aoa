@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { layOut } from "@/components/history/VersionTrack/VersionTrack";
 import { shortSha } from "@/lib/versionNames";
-import { afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, proposalsByDate, shiftBoth, shiftBy, stepHandle, stepShown, trackKeys, type Range } from "./versionRange";
+import { sameGraph, afterListChange, diffOffered, homeEnd, moveTo, normalise, oneToDiff, proposalsByDate, shiftBoth, shiftBy, stepHandle, stepShown, trackKeys, type Range } from "./versionRange";
 
 const P = ["v1", "v2", "v3", "v4", "live"];
 
@@ -175,5 +175,20 @@ describe("open pull requests after Live", () => {
 
   it("with no Live follow the versions", () => {
     expect(trackKeys(versions, null, null, [older])).toEqual([shortSha(versions[0]), shortSha(versions[1]), shortSha(older)]);
+  });
+});
+
+describe("two versions with one graph (spec 051)", () => {
+  const point = (n: number, changed: boolean): HistoryVersion => ({ sha: `${n}`.padEnd(40, "d"), date: "2026-10-01T00:00:00Z", tags: [], nodes: 1, edges: 1, source: `s${n}`, graph_changed: changed });
+  const history = [point(1, true), point(2, false), point(3, false), point(4, true)];
+  const key = (n: number) => shortSha(history[n - 1]);
+
+  it("holds while no point after the older one changed the graph", () => {
+    expect(sameGraph(history, { a: key(1), b: key(3) })).toBe(true);
+  });
+
+  it("does not hold across a change, and never for Live", () => {
+    expect(sameGraph(history, { a: key(3), b: key(4) })).toBe(false);
+    expect(sameGraph(history, { a: key(1), b: "live" })).toBe(false);
   });
 });

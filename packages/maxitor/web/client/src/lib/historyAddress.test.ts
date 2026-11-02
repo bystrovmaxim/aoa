@@ -19,6 +19,21 @@ describe("a history's address", () => {
     });
   });
 
+  it("joins a public history with its version file, in a fixed order, so the server names it the same", () => {
+    const link = "https://github.com/owner/repo/blob/main/graph.json";
+    const file = "https://github.com/owner/repo/blob/main/pyproject.toml";
+    const name = `${link}?version_link=${encodeURIComponent(file)}&version_key=project.version`;
+    const history = parseHistory(`${link}?version_key=project.version&version_link=${encodeURIComponent(file)}`);
+    expect(history).toMatchObject({ kind: "public", link, name, versionLink: file, versionKey: "project.version" });
+  });
+
+  it("refuses any other query of a public link, and a key with no file", () => {
+    const link = "https://github.com/owner/repo/blob/main/graph.json";
+    for (const address of [`${link}?x=1`, `${link}?version_key=a`, `${link}?version_link=a&version_link=b`, `${link}?version_link=`]) {
+      expect(() => parseHistory(address)).toThrow(HistoryAddressError);
+    }
+  });
+
   it("leaves a service or graph-json address alone", () => {
     for (const address of ["http://127.0.0.1:8001", "https://dev.demo.aoa.run/examples/model/graph-json", "demo:8100"]) {
       expect(parseHistory(address)).toBeNull();

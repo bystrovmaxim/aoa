@@ -234,6 +234,17 @@ Reading the track — colours, versions, release flags, the card — is [the how
 
 A history can also name the file that holds its version, so a change that raised the number without touching the graph shows too. [22_version_file.py](../../examples/step_26_maxitor/22_version_file.py) runs every case, and [its notebook](../../examples/step_26_maxitor/22_version_file.ipynb) goes through them one by one.
 
+On the track, a large point then changed the graph and a small one changed only the version. A number stands where the version rose. [23_version_track.py](../../examples/step_26_maxitor/23_version_track.py) ([notebook](../../examples/step_26_maxitor/23_version_track.ipynb)) runs a port and Maxitor and reads what the track reads:
+
+```text
+1. A history with a version file
+   first                          large  1.0.0
+   model and number               large  1.1.0
+   code and number                small  1.1.1
+   model only                     large  —
+   code, number                   small  1.1.2
+```
+
 Two versions can be compared: switch the picker to **Diff** and the ERD paints what was added, removed and changed between A and B. [17_compare_two_versions.py](../../examples/step_26_maxitor/17_compare_two_versions.py) ([notebook](../../examples/step_26_maxitor/17_compare_two_versions.ipynb)) calls the two reads behind it — the counts and statuses, then one element's differences:
 
 ```text

@@ -33,7 +33,7 @@ The version button sits at the left of the row above the diagram; a click opens 
 
 The **i** in the picker's head shows this legend on the screen.
 
-**Points.** Each point is a change that reached the branch and changed the graph, oldest at the left. Its colour says how it came, the same on the track, in its card and in the legend:
+**Points.** Each point is a change that reached the branch, oldest at the left. A large point changed the graph. A small point changed only the version, and appears only where a history names its version file. Its colour says how it came, the same on the track, in its card and in the legend:
 
 | Point | Colour | Meaning |
 |---|---|---|
@@ -46,7 +46,13 @@ The **i** in the picker's head shows this legend on the screen.
 
 The open pull requests stand after the history and before Live, past a dashed line; drafts are not shown. Each stretch of the line takes the colour of the point it leads to.
 
-**Versions and releases.** A point with its own version tag (`v0.8.0`) starts a version: it is larger and its number stands under it. The points after it, up to the next version, belong to it and stay unnamed. Nothing else is named under the track — no dates. A flag above a point marks a release: the tag is published as a GitHub Release, or a tag is named `release…` (`release-1.4`, `release/2026-10-30`), which works without GitHub. A history with no version tags shows its points and nothing under them.
+**Versions and releases.** A history with a version file takes its numbers from that file: a number stands under a point where the version rose. With no version file, numbers come from tags: a point with its own version tag (`v0.8.0`) has its number under it, and the points after it, up to the next version, belong to it and stay unnamed. Nothing else is named under the track — no dates. A flag above a point marks a release: the tag is published as a GitHub Release, or a tag is named `release…` (`release-1.4`, `release/2026-10-30`), which works without GitHub. A history with no version tags shows its points and nothing under them.
+
+**Hiding the small points.** The icon of three points on a line, beside the "i", shows and hides the points that did not change the graph. It is coloured while they are shown and grey while they are hidden, and it appears only where there is something to hide. It is your own setting: it stays in this browser, and it never reaches a room or a link. What you chose stays chosen, and a chosen small point stays on the track until you choose another. The flags of hidden points stand on the nearest point before them, and that point's card lists them.
+
+**Two versions with one graph.** Compared, they say `Both versions have the same graph.` in the picker and `no changes` on the button. The left panel, narrowed to what changed, stands empty with `No changes`.
+
+**A version that cannot be read.** A wrong path or a broken file does not cost you the graph. A dot on the version button and a line at the foot of the picker say what the track shows and why. When no version could be read, the track shows only the commits that changed the graph, with no numbers.
 
 **The chosen point** keeps its colour and carries its name in a chip: `0.11.0 · #147` — its version and pull request — or `#147` without a version, or `#57`, its place in the history, when it had no pull request.
 
@@ -57,6 +63,16 @@ The open pull requests stand after the history and before Live, past a dashed li
 **Move along it.** Click a point, or ← → for one step, Home and End for the ends. A long history scrolls like a page: a sideways swipe, the mouse wheel, or a drag; the right edge says how many points are out of view. A chosen point scrolled away stays pinned to its edge; a click brings it back.
 
 **The message.** Under the track: the chosen version's pull request description, or its commit message, line breaks kept; addresses and `#123` are links. Live has no message of its own: a line says when it was last checked.
+
+## Join a public link with its version file
+
+A public history can name its version file in the link's query, with the key when the file is not a `version.toml`:
+
+```text
+https://github.com/owner/repo/blob/main/graph.json?version_link=https%3A%2F%2Fgithub.com%2Fowner%2Frepo%2Fblob%2Fmain%2Fpyproject.toml&version_key=project.version
+```
+
+The file must be in the same repository and on the same branch. Any other query is refused, and so is `version_key=` with no `version_link=`. The same graph joined with another file is another history.
 
 ## Share what you see
 
@@ -72,6 +88,8 @@ The browser's address bar is the link: it holds the history, the chosen version 
 | `Too many wrong keys for this history; try again in a minute` | the port blocked this client after ten wrong keys in a minute |
 | `The history cannot be read now.` | the port does not answer |
 | `Public histories are not set up on this Maxitor` | a public link, but Maxitor has no port of its own |
+| `A public history's link takes only one 'version_link=' and one 'version_key=' in its query.` | a public link with any other query |
+| `'version_key=' names a key of the file in 'version_link=', so it needs one.` | a key with no file |
 | the reason instead of a diagram | the chosen version's file is not a valid graph; the point is hollow and red |
 
 ## What the port gives Maxitor

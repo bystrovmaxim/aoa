@@ -41,6 +41,10 @@ export type VersionTrackProps = {
   liveIs?: string | null;
   /** Pull requests still open that change the graph: drawn after Live, each in the colour of its state. */
   proposals?: readonly HistoryVersion[];
+  /** The history names a version file: its numbers come from there (spec 051). */
+  versionFile?: boolean;
+  /** Leave out the points that did not change the graph, except a chosen one; only this viewer's drawing. */
+  hideSmall?: boolean;
   /** In Diff: the two picked points, A before B (spec 038, FR-009 – FR-012); ``value`` is then not drawn. */
   range?: Range | null;
   /** A new range picked by a drag, a click, or the keys on a handle. */
@@ -49,11 +53,27 @@ export type VersionTrackProps = {
 
 
 
-type Point = { b: string; x: number; name: string; release: boolean; refused: boolean; flags: string[]; version: HistoryVersion | null; date: string | null;
+type Point = { b: string; x: number; name: string;
+  /** Drawn large: the graph changed here. */
+  large: boolean;
+  /** Its number stands under it. */
+  named: boolean;
+  refused: boolean; flags: string[];
+  /** The flags of hidden points drawn on this one. */
+  carried: string[];
+  version: HistoryVersion | null; date: string | null;
   /** Its version number — its own release, or the one it follows — where the history has one. */
   number: string | null;
   /** A pull request still open: where it stands. */
   state?: ProposalState };
+
+/** A version with its place in the whole history. */
+type Placed = { version: HistoryVersion; place: number };
+
+/** What decides which points a viewer sees and how they are numbered. */
+export type TrackLook = { versionFile?: boolean; hideSmall?: boolean; kept?: ReadonlySet<string> };
+
+const NOTHING: ReadonlySet<string> = new Set();
 
 /**
  * Where each version and Live stand: spread over the width as the mockup's track is, never closer than
@@ -66,29 +86,36 @@ export function layOut(
   minStep: number = MIN_STEP,
   liveIs: string | null = null,
   proposals: readonly HistoryVersion[] = [],
+  look: TrackLook = {},
 ): { points: Point[]; length: number } {
+  const { versionFile = false, hideSmall = false, kept = NOTHING } = look;
   const names = versionNames(all);
-  const numbers = numbersOf(all);
+  const numbers = numbersOf(all, versionFile);
   // While Live runs exactly the newest version's graph the two are one point: Live, carrying that version.
   const merged = live && liveIs && all.at(-1)?.sha === liveIs ? all.at(-1)! : null;
-  const versions = merged ? all.slice(0, -1) : all;
+  const held = (merged ? all.slice(0, -1) : all).map((version, place) => ({ version, place }));
+  // Names and numbers above read the whole history, so a hidden point never renames another; hiding only draws less.
+  const versions = hideSmall ? held.filter(({ version }) => version.graph_changed !== false || kept.has(shortSha(version))) : held;
   const slots = Math.max(versions.length - 1, 0) + (live ? LIVE_GAP_STEPS : 0) + (proposals.length ? LIVE_GAP_STEPS + proposals.length - 1 : 0);
   const step = slots > 0 ? Math.max(minStep, (width - 2 * PAD) / slots) : 0;
   const lone = versions.length === 1 && !live && !proposals.length;
-  const points: Point[] = versions.map((version, index) => ({
+  const carried = flagsOfHidden(held, versions);
+  const points: Point[] = versions.map(({ version, place }, index) => ({
     b: shortSha(version),
     x: lone ? width / 2 : PAD + index * step,
-    name: names[index],
-    release: releaseOf(version) !== null,
+    name: names[place],
+    large: version.graph_changed !== false,
+    named: versionFile ? Boolean(version.version_changed && version.version) : releaseOf(version) !== null,
     refused: Boolean(version.refused),
     flags: flagsOf(version),
+    carried: carried.get(place) ?? [],
     version,
-    number: numbers[index],
+    number: numbers[place],
     date: version.date,
   }));
   if (live) {
     const x = points.length ? (points.at(-1)?.x ?? PAD) + LIVE_GAP_STEPS * step : proposals.length ? PAD : width / 2;
-    points.push({ b: "live", x, name: "Live", release: true, refused: false, flags: merged ? flagsOf(merged) : [], version: merged, date: null, number: merged ? numbers[all.length - 1] : null });
+    points.push({ b: "live", x, name: "Live", large: true, named: false, refused: false, flags: merged ? flagsOf(merged) : [], carried: [], version: merged, date: null, number: merged ? numbers[all.length - 1] : null });
   }
   // Pull requests still open stand last, past a gap, the oldest first: work ahead of what runs, not yet part of it.
   const start = (points.at(-1)?.x ?? PAD - LIVE_GAP_STEPS * step) + LIVE_GAP_STEPS * step;
@@ -97,9 +124,11 @@ export function layOut(
       b: shortSha(proposal),
       x: start + at * step,
       name: `#${proposal.pr?.number ?? at + 1}`,
-      release: false,
+      large: false,
+      named: false,
       refused: Boolean(proposal.refused),
       flags: [],
+      carried: [],
       version: proposal,
       date: null,
       number: null,
@@ -108,6 +137,22 @@ export function layOut(
   );
   const length = Math.max(width, (points.at(-1)?.x ?? 0) + PAD);
   return { points, length };
+}
+
+/**
+ * Each hidden point's flags, by the place of the point they are drawn on: the nearest one drawn before it, or the
+ * earliest one drawn when none stands before it.
+ */
+function flagsOfHidden(held: readonly Placed[], drawn: readonly Placed[]): Map<number, string[]> {
+  const places = drawn.map(({ place }) => place);
+  const carried = new Map<number, string[]>();
+  for (const { version, place } of held) {
+    const flags = flagsOf(version);
+    if (!flags.length || places.includes(place) || !places.length) continue;
+    const host = places.filter((each) => each < place).at(-1) ?? places[0];
+    carried.set(host, [...(carried.get(host) ?? []), ...flags]);
+  }
+  return carried;
 }
 
 const EMPTY: readonly HistoryVersion[] = [];
@@ -176,7 +221,7 @@ function Knob({ x, point, shadow = true }: { x: number; point: Point; shadow?: b
 
 /**
  * One time axis of a history, drawn as the mockup draws it (spec 037, FR-016 – FR-027): light points,
- * releases a little larger, tags as small flags above, refused versions hollow and red, Live a hollow
+ * those that changed the graph a little larger (spec 051), tags as small flags above, refused versions hollow and red, Live a hollow
  * point after a dashed gap; the chosen version is a dark knob with its name in a dark chip below, and the
  * other names stand under their points, thinned before they collide. A long history scrolls sideways the
  * way the browser scrolls — a sideways swipe or wheel with its momentum, the vertical wheel over the track
@@ -189,14 +234,7 @@ function Knob({ x, point, shadow = true }: { x: number; point: Point; shadow?: b
  * too — roles follow position, so they swap as one passes the other —; Shift + ← → moves both; a click on a
  * point moves the nearer handle; a handle dragged to an edge scrolls the track along.
  */
-export function VersionTrack({ versions, live, value, onChange, width, touch = false, liveIs = null, proposals = EMPTY, range = null, onRange }: VersionTrackProps) {
-  const { points, length } = useMemo(
-    () => layOut(versions, live, width, touch ? TOUCH_STEP : MIN_STEP, liveIs, proposals),
-    [versions, live, width, touch, liveIs, proposals],
-  );
-  const keys = useMemo(() => points.map((point) => point.b), [points]);
-  const hitRadius = (touch ? TOUCH_STEP : MIN_STEP) / 2;
-  const maxOffset = Math.max(0, length - width);
+export function VersionTrack({ versions, live, value, onChange, width, touch = false, liveIs = null, proposals = EMPTY, versionFile = false, hideSmall = false, range = null, onRange }: VersionTrackProps) {
   // While a handle is dragged, the range it would leave is drawn; it is picked when the handle is let go.
   const [preview, setPreview] = useState<Range | null>(null);
   // A follower draws the range the person they follow is dragging, and scrolls the track as they do (spec 038).
@@ -204,6 +242,15 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const followedTrack = mirrored?.panels.track ?? null;
   const followedPreview = followedTrack?.a && followedTrack.b ? { a: followedTrack.a, b: followedTrack.b } : null;
   const shownRange = range ? ((mirrored ? followedPreview : preview) ?? range) : null;
+  // What is chosen stays on the track while it is chosen, hidden or not (spec 051, FR-010).
+  const chosenKeys = [value, range?.a, range?.b, shownRange?.a, shownRange?.b].filter((key) => key !== null && key !== undefined).join(" ");
+  const { points, length } = useMemo(
+    () => layOut(versions, live, width, touch ? TOUCH_STEP : MIN_STEP, liveIs, proposals, { versionFile, hideSmall, kept: new Set(chosenKeys.split(" ")) }),
+    [versions, live, width, touch, liveIs, proposals, versionFile, hideSmall, chosenKeys],
+  );
+  const keys = useMemo(() => points.map((point) => point.b), [points]);
+  const hitRadius = (touch ? TOUCH_STEP : MIN_STEP) / 2;
+  const maxOffset = Math.max(0, length - width);
   const pointOf = (b: string | null) => points.find((point) => point.b === b) ?? null;
   const index = points.findIndex((point) => point.b === (shownRange ? shownRange.b : value));
   const chosen = index >= 0 ? points[index] : null;
@@ -263,7 +310,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   useEffect(() => {
     if (chosen && (chosen.x < offset + PAD || chosen.x > offset + width - PAD)) scrollTo(chosen.x);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, range?.b]);
+  }, [value, range?.b, hideSmall]);
 
   // The handle that moved keeps the focus, whichever side it ended on (spec 038, FR-012).
   useEffect(() => {
@@ -505,7 +552,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
           </filter>
         </defs>
         {points.map((point) =>
-          point.flags.length ? (
+          point.flags.length || point.carried.length ? (
             <g key={`flag-${point.b}`} data-testid={`flag-${point.b}`}>
               <path d={`M${point.x} ${AXIS_Y - 6}V${AXIS_Y - 18}`} stroke={MUTED} strokeWidth={1.2} />
               <path d={`M${point.x} ${AXIS_Y - 18}h7l-2 2.4 2 2.4h-7z`} fill={MUTED} />
@@ -576,7 +623,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             ) : point.refused ? (
               <circle cx={point.x} cy={AXIS_Y} r={3.2} fill="#fff" stroke="#dc2626" strokeWidth={1.4} style={{ pointerEvents: "none" }} />
             ) : (
-              <circle cx={point.x} cy={AXIS_Y} r={point.release ? 3.4 : 2.4} fill={lookOf(point).colour} style={{ pointerEvents: "none" }} />
+              <circle cx={point.x} cy={AXIS_Y} data-size={point.large ? "large" : "small"} r={point.large ? 3.4 : 2.4} fill={lookOf(point).colour} style={{ pointerEvents: "none" }} />
             )}
             {shown.has(point.b) && (
               <text data-testid={`label-${point.b}`} x={point.x} y={LABEL_Y + 4} fontSize={10.5} fill={MUTED} textAnchor="middle">
@@ -687,7 +734,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
           sx={{ zIndex: 1400, pointerEvents: "none" }}
         >
           <Paper elevation={0} data-testid="version-tip" sx={TIP_SX}>
-            <VersionTip version={tipPoint.version} release={tipPoint.number} live={tipPoint.b === "live"} state={tipPoint.state} />
+            <VersionTip version={tipPoint.version} release={tipPoint.number} live={tipPoint.b === "live"} state={tipPoint.state} carried={tipPoint.carried} />
           </Paper>
         </Popper>
       )}
@@ -757,7 +804,7 @@ function apart(left: number, leftHalf: number, right: number, rightHalf: number,
 function trackLabels(points: readonly Point[], allowed: (point: Point) => boolean): Map<string, string> {
   const candidates = points.flatMap((point, at) => {
     if (!allowed(point)) return [];
-    const release = point.release && !point.state && point.b !== "live" && point.number !== null;
+    const release = point.named && !point.state && point.b !== "live" && point.number !== null;
     const text = point.b === "live" ? point.name : release ? point.number : null;
     return text === null ? [] : [{ b: point.b, x: point.x, text, kept: point.b === "live" || at === 0, release: true }];
   });

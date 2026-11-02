@@ -19,6 +19,12 @@ export type HistoryVersion = {
   nodes: number;
   edges: number;
   refused?: string;
+  /** Whether the graph differs from the previous point's; absent reads as changed. */
+  graph_changed?: boolean;
+  /** The number in the history's version file at this commit, when it names one. */
+  version?: string | null;
+  /** Whether that number differs from the last readable one before it. */
+  version_changed?: boolean;
   /** Who made it and how large it was, from git. */
   contribution?: { author: string; co_authors: number; merged_by: string | null; files: number; additions: number; deletions: number };
   /** What it did to the previous version's graph: nodes added and removed by kind, nodes changed. */
@@ -42,6 +48,10 @@ export type OpenedHistory = {
   versions: HistoryVersion[];
   /** Pull requests still open that change the graph, oldest number first, each with its state. */
   proposals?: HistoryVersion[];
+  /** The file that holds the history's version, or ``null``: numbers then come from tags. */
+  version_file?: string | null;
+  /** Why that version cannot be read, in plain words, or ``null``. */
+  version_problem?: string | null;
   count: number;
   room_ticket: string | null;
 };
@@ -86,10 +96,10 @@ export async function historyVersions(
   name: string,
   key: string,
   etag?: string,
-): Promise<{ versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null; etag: string | null } | null> {
+): Promise<{ versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null; version_file?: string | null; version_problem?: string | null; etag: string | null } | null> {
   const response = await fetch(`${apiUrl("/api/history/versions")}?${new URLSearchParams({ history: name })}`, { headers: headers(key, etag) });
   if (response.status === 304) return null;
   if (!response.ok) throw await refusal(response);
-  const body = (await response.json()) as { versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null };
+  const body = (await response.json()) as { versions: HistoryVersion[]; proposals?: HistoryVersion[]; live: string | null; live_same_as?: string | null; version_file?: string | null; version_problem?: string | null };
   return { ...body, etag: response.headers.get("etag") };
 }

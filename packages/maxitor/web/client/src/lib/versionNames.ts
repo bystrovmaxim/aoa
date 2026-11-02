@@ -1,13 +1,14 @@
 // src/lib/versionNames.ts
 /**
- * Names on the track (spec 037, FR-017, FR-018, FR-033, research R10).
+ * Names on the track (spec 037, FR-017, FR-018, FR-033, research R10; spec 051).
  *
  * A version is named from what every history has: its pull request's number (``#147``), or, with no pull
  * request, its place in the history, the oldest being 1 (``#57``) — never its commit's hash. Its version
  * number is the last version-number tag at or before it (``v0.11.0`` → ``0.11.0``), where there is one; the
  * version button and the chosen point's chip write it before the name (``0.11.0 · #147``). A flag marks a
  * release: a tag published as a GitHub Release, or a tag named ``release…``; any other tag is only in the
- * point's card. In the address and in a room a version is the first 12 hex characters of its commit.
+ * point's card. A history that names a version file (spec 051) takes each point's number from that file instead of
+ * from tags. In the address and in a room a version is the first 12 hex characters of its commit.
  */
 
 import type { HistoryVersion } from "@/api/history";
@@ -64,8 +65,9 @@ export function versionNames(versions: readonly HistoryVersion[]): string[] {
   return versions.map((version, index) => `#${version.pr ? version.pr.number : index + 1}`);
 }
 
-/** Each version's version number — its own release, or the last one before it — or ``null`` where there is none. */
-export function numbersOf(versions: readonly HistoryVersion[]): (string | null)[] {
+/** Each version's version number — its file's with ``versionFile``, else its own release or the last one before it — or ``null`` where there is none. */
+export function numbersOf(versions: readonly HistoryVersion[], versionFile = false): (string | null)[] {
+  if (versionFile) return versions.map((version) => version.version ?? null);
   let release: string | null = null;
   return versions.map((version) => {
     const own = releaseOf(version);
@@ -79,12 +81,12 @@ export function numbersOf(versions: readonly HistoryVersion[]): (string | null)[
  * number and its name (``0.11.0 · #147``) where the history has a number, its name alone otherwise (``#147``), an
  * open pull request by its number; ``null`` when none of them has it.
  */
-export function shownNameOf(versions: readonly HistoryVersion[], b: string | null, proposals: readonly HistoryVersion[] = []): string | null {
+export function shownNameOf(versions: readonly HistoryVersion[], b: string | null, proposals: readonly HistoryVersion[] = [], versionFile = false): string | null {
   if (b === "live") return "Live";
   if (!b) return null;
   const index = versions.findIndex((version) => version.sha.startsWith(b));
   if (index >= 0) {
-    const number = numbersOf(versions)[index];
+    const number = numbersOf(versions, versionFile)[index];
     const name = versionNames(versions)[index];
     return number ? `${number} · ${name}` : name;
   }
