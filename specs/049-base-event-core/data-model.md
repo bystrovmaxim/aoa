@@ -36,7 +36,7 @@ Writing into `var` or merging it as a dictionary works only on the dictionary.
 
 ## `@emits`
 
-`_emits_events`: a tuple of event classes on the function. At least one, no repeats, no `BaseEvent` itself, and written once per method. Allowed on the five kinds of method only. An action's emitting methods are those of its own class, so a declaration never comes from a parent action.
+`_emits_events`: a tuple of event classes on the function. At least one, no repeats, no `BaseEvent` itself, and written once per method. Read on the five kinds of method only. An action's emitting methods are those of its own class, so a declaration never comes from a parent action.
 
 ## `events` on a domain
 

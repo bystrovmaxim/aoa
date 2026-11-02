@@ -26,7 +26,7 @@
 
 **Constraints**: `ToolsBox` gains no public member (R5). `BaseLogger` keeps its methods and parameters (R9). Production code carries no linter pragma (R1). `BaseEvent` is imported from its own module, because importing it from `model/__init__` would close an import cycle (R1). No graph node or edge changes (R8).
 
-**Scale/Scope**: `aoa-action-machine`: 8 new modules, about 10 changed, 7 new test files. `aoa-demo`: 1 new module, 3 changed, 1 new test file. Documentation: 1 new chapter, 5 new example pairs, 8 changed pages.
+**Scale/Scope**: `aoa-action-machine`: 7 new modules, about 9 changed, 7 new test files. `aoa-demo`: 1 new module, 3 changed, 1 new test file. Documentation: 1 new chapter, 5 new example pairs, 8 changed pages.
 
 ## Constitution Check
 
@@ -64,9 +64,7 @@ specs/049-base-event-core/
 ```text
 packages/aoa-action-machine/src/aoa/action_machine/
 ├── model/
-│   ├── base_event.py                  # new: BaseEvent, imported from here
-│   ├── emitting_method_markers.py     # new: attribute names of the emitting methods
-│   └── base_action.py                 # refuses @emits on a wrong method
+│   └── base_event.py                  # new: BaseEvent, imported from here
 ├── domain/
 │   ├── event_marker.py                # new: recognises an event class without a cycle
 │   └── base_domain.py                 # validates events
@@ -121,7 +119,7 @@ docs/CHANGELOG.md                       # one article
 One phase is one commit, in the order of issue #333:
 
 1. **`BaseEvent` and `box`.** `EventMarker`, `BaseEvent`, `EventContractError`, `LogVar`, `ScopedLogger.emit_event`, and the three tools with their new signature. `@emits` and `events` do not exist yet, so every event is delivered. Tests: the event, a line with an event, parity of templates and subscriptions, refused calls, the order of imports.
-2. **`@emits`.** `intents/emits`, `EmissionRules` with its `declared` half, `method_box`, `TestBench`, the check in `BaseAction`. Tests: the five kinds, each by its own path; both paths of `@access_decide`; a plugin and the machine around a typed method; the cache.
+2. **`@emits`.** `intents/emits`, `EmissionRules` with its `declared` half, `method_box`, `TestBench`. Tests: the five kinds, each by its own path; both paths of `@access_decide`; a plugin and the machine around a typed method; the cache.
 3. **`events`.** Validation in `BaseDomain`, the `vocabulary` half of `EmissionRules`, the build check. Tests: the runtime rows of the table, the build check for each kind, nested actions, inheritance, `()`.
 4. **`aoa-demo`.** The two calls, `events.py`, `OrdersDomain.events`, and a test of the cascade on the product.
 5. **Closing check run** taken to zero.

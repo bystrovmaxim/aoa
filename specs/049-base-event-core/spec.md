@@ -148,8 +148,8 @@ A reader of the architectural constitution finds `BaseEvent` wherever the primit
 
 **`@emits`**
 
-- `@emits` on a method that is not one of the five kinds, such as a checker: refused when the class is defined.
-- `@emits()` with nothing listed, a class that is not an event, `BaseEvent` itself, the same event listed twice, or `@emits` applied twice to one method: refused when the class is defined.
+- `@emits` on a method that is not one of the five kinds: no effect, as with `@context_requires`. Nothing calls such a method through a `box` of its own.
+- `@emits()` with nothing listed, a class that is not an event, `BaseEvent` itself, the same event listed twice, or `@emits` applied twice to one method: refused when applied.
 - A subclass of an action: an action's emitting methods are those declared in its own class, so none of them, and no `@emits`, comes from a parent action.
 - A helper that a method calls with its `box`: part of that method, so the method's rules apply.
 - A mocked nested action under `TestBench`: it writes no lines, so no rule applies.
@@ -189,7 +189,7 @@ A reader of the architectural constitution finds `BaseEvent` wherever the primit
 
 **`@emits`, mode 2**
 
-- **FR-012**: `@emits` MUST work on all five kinds of method: `@regular_aspect`, `@summary_aspect`, `@compensate`, `@on_error`, `@access_decide`. Its position among the method's decorators MUST NOT matter. On any other method, with invalid arguments, or applied twice to one method, it MUST be refused when the class is defined.
+- **FR-012**: `@emits` MUST work on all five kinds of method: `@regular_aspect`, `@summary_aspect`, `@compensate`, `@on_error`, `@access_decide`. Its position among the method's decorators MUST NOT matter. With invalid arguments, or applied twice to one method, it MUST be refused when applied.
 - **FR-013**: A method with `@emits` MUST be able to emit only the listed events. Emitting another event, or logging a line with no event, MUST raise an exception at runtime, before the text is rendered and before any consumer receives anything. The exception MUST name the action, the method and what was refused.
 - **FR-014**: `@emits` MUST NOT require an emission. A method may emit any of the listed events, or none.
 - **FR-015**: A refused emission MUST take the ordinary path of the method that made it, and no new path MAY be added: an aspect fails as for any error; a compensator counts as a failed compensation and the rollback goes on; a handler gives `OnErrorHandlerError`; `@access_decide` gives `Undecided` naming the step, which a run raises as `AccessUndecided`.

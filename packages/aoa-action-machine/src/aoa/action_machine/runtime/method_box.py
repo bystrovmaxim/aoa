@@ -26,7 +26,7 @@ ARCHITECTURE / DATA FLOW
         │
         └── method_box(box, ..., method_name, state)
                 ├── ScopedLogger(action, method_name, state, ...)
-                └── ToolsBox(same tools as ``box``, log=that logger)
+                └── ToolsBox(same tools as ``box``, log=that logger, emission=the method's rules)
 
 """
 
@@ -40,6 +40,7 @@ from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.runtime.emission_rules import emission_rules_for
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -79,4 +80,5 @@ def method_box(
         log=log,
         nested_level=box.nested_level,
         rollup=box.rollup,
+        emission=emission_rules_for(type(action), method_name),
     )

@@ -57,11 +57,11 @@ Run: `info(1, "t", event=5)` gives `(None, {'event': 5})`; `info(1, "t", 7)` giv
 
 **Rationale**: all five decorators return the function unchanged, so the attribute survives whichever is applied first. #334 reads the same attribute to build the graph.
 
-## R7. How `@emits` is refused on a wrong method
+## R7. What `@emits` checks
 
-**Decision**: `@emits` validates its own arguments when applied. `BaseAction.__init_subclass__` then looks at the methods in the class body and refuses one with `_emits_events` that carries none of the four markers of an emitting method. The names of those markers and of `_emits_events` live in a leaf module, `model/emitting_method_markers.py`.
+**Decision**: `@emits` validates its own arguments when applied, as `@context_requires` does, and it does not look at the method it stands on. `_emits_events` is named in `emits_decorator.py`.
 
-**Rationale**: `@emits` may run before the method's own decorator, so only the finished class can tell. `BaseAction.__init_subclass__` already exists. The names stay out of the `intents/emits` package, because importing any module of a package runs its `__init__.py`, which reaches `emits_decorator.py` and `BaseEvent`, and that is the cycle of R1.
+**Rationale**: it is how the method decorators of this project work. On a method that is not one of the five kinds it has no effect, because only those run with a `box` of their own.
 
 ## R8. The build check
 

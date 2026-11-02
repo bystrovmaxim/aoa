@@ -42,7 +42,7 @@ from aoa.action_machine.intents.emits import emits
 async def finalize_summary(self, params, state, box, connections): ...
 ```
 
-On `@regular_aspect`, `@summary_aspect`, `@compensate`, `@on_error` and `@access_decide`, above or below that decorator.
+It has effect on `@regular_aspect`, `@summary_aspect`, `@compensate`, `@on_error` and `@access_decide`, above or below that decorator.
 
 ## Declaring a domain's vocabulary
 
@@ -75,7 +75,6 @@ async def write(self, scope, message, var, ctx, state, params, indent) -> None:
 | A wrong suffix, at class definition | `NamingSuffixError` |
 | `@emits` with bad arguments | `DecoratorArgumentValueError` or `DecoratorArgumentTypeError` |
 | `@emits` applied twice to one method | `DuplicateDeclarationError` |
-| `@emits` on another method, at class definition | `DecoratorTargetError` |
 | Invalid `events`, at domain definition | `EventContractError` |
 | The author sets a system field | `pydantic.ValidationError` |
 

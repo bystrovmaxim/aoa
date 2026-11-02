@@ -86,6 +86,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
+from aoa.action_machine.runtime.emission_rules import EmissionRules
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
@@ -110,6 +111,7 @@ class ToolsBox:
     """
 
     __slots__ = (
+        "__emission",
         "__factory",
         "__log",
         "__nested_level",
@@ -125,6 +127,7 @@ class ToolsBox:
     __log: ScopedLogger
     __nested_level: int
     __rollup: bool
+    __emission: EmissionRules | None
 
     def __init__(
         self,
@@ -135,6 +138,7 @@ class ToolsBox:
         rollup: bool = False,
         *,
         factory: DependencyFactory,
+        emission: EmissionRules | None = None,
     ) -> None:
         """
         Initialize ToolsBox.
@@ -146,6 +150,7 @@ class ToolsBox:
             nested_level: current execution nesting level.
             rollup: transaction auto-rollback mode flag.
             factory: stateless dependency factory (from interchange snapshot or cloned for aspects).
+            emission: what this method may write, when a switch is on.
         """
         object.__setattr__(self, "_ToolsBox__run_child", run_child)
         object.__setattr__(self, "_ToolsBox__factory", factory)
@@ -153,6 +158,7 @@ class ToolsBox:
         object.__setattr__(self, "_ToolsBox__log", log)
         object.__setattr__(self, "_ToolsBox__nested_level", nested_level)
         object.__setattr__(self, "_ToolsBox__rollup", rollup)
+        object.__setattr__(self, "_ToolsBox__emission", emission)
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError(f"ToolsBox is a frozen object. Attribute write for '{name}' is forbidden.")
@@ -228,6 +234,13 @@ class ToolsBox:
         )
         return cast("R", result)
 
+    def __permitted_event(self, event: Any, kwargs: dict[str, Any]) -> BaseEvent | None:
+        """Return the call's event once the call and this method's rules allow the line."""
+        accepted = _accepted_event(event, kwargs)
+        if self.__emission is not None:
+            self.__emission.check(accepted)
+        return accepted
+
     async def info(
         self,
         channels: Channel,
@@ -237,7 +250,7 @@ class ToolsBox:
         **kwargs: Any,
     ) -> None:
         """Write one line; its variables are ``event`` or ``kwargs``."""
-        accepted = _accepted_event(event, kwargs)
+        accepted = self.__permitted_event(event, kwargs)
         if accepted is None:
             await self.__log.info(channels, message, **kwargs)
         else:
@@ -252,7 +265,7 @@ class ToolsBox:
         **kwargs: Any,
     ) -> None:
         """Write one line; its variables are ``event`` or ``kwargs``."""
-        accepted = _accepted_event(event, kwargs)
+        accepted = self.__permitted_event(event, kwargs)
         if accepted is None:
             await self.__log.warning(channels, message, **kwargs)
         else:
@@ -267,7 +280,7 @@ class ToolsBox:
         **kwargs: Any,
     ) -> None:
         """Write one line; its variables are ``event`` or ``kwargs``."""
-        accepted = _accepted_event(event, kwargs)
+        accepted = self.__permitted_event(event, kwargs)
         if accepted is None:
             await self.__log.critical(channels, message, **kwargs)
         else:

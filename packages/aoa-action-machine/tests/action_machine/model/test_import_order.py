@@ -30,6 +30,7 @@ FIRST_IMPORTS = (
     "runtime.tools_box",
     "runtime.action_product_machine",
     "intents.aspects",
+    "intents.emits",
     "graph.node_graph_coordinator_factory",
     "testing.bench",
 )

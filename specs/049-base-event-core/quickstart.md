@@ -59,7 +59,6 @@ Each break must fail its own test and no other. Restore after each.
 | 13 | Move the check into `ScopedLogger` | a plugin's line is delivered around a typed method |
 | 14 | Remove the build check | `@emits` outside `events` fails the build |
 | 15 | The build check skips one kind of method, in turn | the build check names that kind |
-| 16 | Remove the wrong-method check in `BaseAction` | `@emits` on another method is refused |
 | 17 | Remove the argument checks of `@emits` | invalid `@emits` arguments are refused |
 | 18 | Remove the second-application check | `@emits` applied twice is refused |
 | 19 | Remove the validation of `events` in `BaseDomain` | invalid `events` are refused |
