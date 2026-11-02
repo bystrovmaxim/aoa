@@ -24,12 +24,14 @@ SCOPE (IN / OUT)
     Internal engines you create and own (→ ``BaseController``).
 """
 
+from abc import ABC
+
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
 
 
 @exclude_graph_model
-class BaseStorage(BaseResource):
+class BaseStorage(BaseResource, ABC):
     """
     AI-CORE-BEGIN
         ROLE: Root for resources that connect to external data stores.

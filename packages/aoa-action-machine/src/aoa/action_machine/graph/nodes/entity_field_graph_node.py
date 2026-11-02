@@ -41,7 +41,7 @@ def plain_annotation(annotation: Any) -> Any:
             current = get_args(current)[0]
             continue
         if get_origin(current) in (Union, types.UnionType):
-            members = [member for member in get_args(current) if member is not type(None)]
+            members = [member for member in get_args(current) if member is not types.NoneType]
             if len(members) != 1:
                 return current
             current = members[0]
@@ -100,7 +100,8 @@ class EntityFieldGraphNode(BaseGraphNode[EntityFieldGraphPayload]):
         if origin is None:
             return ann.__qualname__ if isinstance(ann, type) else str(ann)
         rendered_args = ", ".join(cls.pretty_annotation(arg) for arg in get_args(ann))
-        name = getattr(origin, "__qualname__", str(origin))
+        # ``str | None`` and ``Optional[str]`` have one spelling, whichever Python reads them.
+        name = "Union" if origin in (Union, types.UnionType) else getattr(origin, "__qualname__", str(origin))
         return f"{name}[{rendered_args}]" if rendered_args else name
 
     def __init__(self, entity_cls: type[BaseEntity], field_name: str, *, annotation: Any, description: str | None = None) -> None:

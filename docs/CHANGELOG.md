@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-02] — The project now passes on Python 3.14
+
+Every pull request is now checked on Python 3.14 as well as on 3.12, so a new machine or a new interpreter no longer comes as a surprise. Your own machine stays on 3.12.
+
+A graph file now reads the same on either version: a field written `str | None` shows `Union[str, NoneType]` in its full type, where it used to show `UnionType[str, NoneType]`. The short type on a diagram has not changed.
+
+A class refused at declaration can no longer break a graph build with an error about something else. Pylint moved to version 4, because the old one could not read Python 3.14.
+
 ## [2026-11-02] — A commit no longer needs its hooks switched off
 
 Some commit hooks could fail on correct code, and commits to `aoa-action-machine` had to skip two of them. Those two are gone, and so is the third that repeated Ruff's work. Types and package boundaries are still checked by `scripts/check_before_commit.sh`, and the Ruff hook now uses the same version as the repository.

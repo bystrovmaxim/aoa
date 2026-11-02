@@ -8,10 +8,11 @@ on:
       - main
       - "feature/**"
 
-# Three jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
+# Four jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
 # same commands from one table (`scripts/check_run.py`):
 #   checks     — the deterministic gate (static checks, client build and unit tests,
 #                ERD scripts, Python tests minus benchmarks, graph files check);
+#   checks-314 — the same gate on Python 3.14, the newest version the project supports;
 #   packaging  — the wheel/sdist build and the install smoke;
 #   local-run  — the proof that the full local run passed on this commit.
 # The three-engine layout check is not here: these machines have no graphics card, so Firefox
@@ -77,6 +78,37 @@ jobs:
             exit 1
           fi
           echo "✅ Branch name is valid"
+
+  checks-314:
+    name: Checks on Python 3.14
+    runs-on: ubuntu-latest
+    env:
+      # Overrides .python-version for every uv call in this job.
+      UV_PYTHON: "3.14"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/maxitor/front/client/package-lock.json
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Project environment
+        run: uv sync --all-extras
+
+      - name: Check run (checks)
+        run: bash scripts/run_checks_with_log.sh --where ci --skip-group packaging
+
+      - name: Show the check log on failure
+        if: failure()
+        run: cat archive/logs/check-all.txt || true
 
   local-run:
     name: Proof of the local run

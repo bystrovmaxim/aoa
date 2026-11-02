@@ -73,6 +73,7 @@ Edge case: empty inspector list completes without error.
 
 from __future__ import annotations
 
+import gc
 import json
 from collections.abc import Sequence
 from typing import Any, cast
@@ -174,6 +175,8 @@ class NodeGraphCoordinator(BaseCoordinator):
         if self._built:
             msg = "NodeGraphCoordinator.build() was already called on this instance."
             raise RuntimeError(msg)
+        # ``__subclasses__()`` keeps listing a dead class, such as one refused at declaration, until it is collected.
+        gc.collect()
         entity_field_validator.validate_entity_fields()
         entity_inverse_validator.validate_entity_inverses()
         entity_role_compatibility_validator.validate_entity_role_compatibility()

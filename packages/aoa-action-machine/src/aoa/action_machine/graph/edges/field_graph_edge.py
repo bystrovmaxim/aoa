@@ -34,7 +34,7 @@ def _unwrap_optional(annotation: Any) -> Any:
     """Return ``X`` from ``Optional[X]`` / ``X | None``, or ``annotation`` unchanged."""
     origin = get_origin(annotation)
     if origin is types.UnionType or origin is typing.Union:
-        args = [a for a in get_args(annotation) if a is not type(None)]
+        args = [a for a in get_args(annotation) if a is not types.NoneType]
         if len(args) == 1:
             return args[0]
     return annotation
