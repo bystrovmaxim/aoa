@@ -157,3 +157,12 @@ The rest run in order. One writer works on the repository at a time.
 ## Implementation strategy
 
 The first deliverable is Phase 1: a fact gets a type and a schema with nothing else switched on. Phases 2 and 3 add the two switches, and Phase 4 proves them. Each commit leaves the check run green.
+
+---
+
+## Phase 8: Convergence
+
+- [X] T048 Run `bash scripts/run_checks_with_log.sh` to one clean run, including the graph-file step that was skipped, and record the result per Constitution VI and FR-029 (partial)
+- [X] T049 Make `validate_emits_vocabulary` read only the five kinds of method, so `@emits` on any other method has no effect at build, with a test, per spec Edge Cases, plan R8 and quickstart break 15 (contradicts)
+- [X] T050 Add to `examples/step_11_object_events/`, script and notebook, every refusal not yet run: wrong suffix, reserved field name, an author setting a system field, a class, a dictionary and a bare `BaseEvent` in the event's place, invalid `@emits`, a second `@emits`, invalid `events`; and show the output in `docs/tutorials/step-11-object-events.md` and its Russian draft per FR-027 and Constitution VI.4 (partial)
+- [X] T051 Add to the same examples a `@sensitive` property, a subscription filtering an event, and a result from the cache, with their output on the page, per FR-027 and Constitution VI.4 (partial)
