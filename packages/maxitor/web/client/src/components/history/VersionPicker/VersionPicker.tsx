@@ -4,11 +4,15 @@ import Drawer from "@mui/material/Drawer";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
+import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { HistoryVersion } from "@/api/history";
+import { VERSION_PROBLEM_COLOUR } from "@/components/history/VersionButton/VersionButton";
 import { VersionTrack } from "@/components/history/VersionTrack";
-import type { Range } from "@/lib/versionRange";
+import { setSmallPointsShown, useSmallPointsShown } from "@/lib/smallPointsShown";
+import { sameGraph, type Range } from "@/lib/versionRange";
+import { MERGED_LOOK } from "@/components/history/VersionTrack/proposalLook";
 import { TrackLegend } from "./TrackLegend";
 import { pickerSubtitle } from "@/model/historyMode";
 
@@ -27,6 +31,10 @@ export type VersionPickerProps = {
   liveIs?: string | null;
   /** Pull requests still open that change the graph, drawn after Live by their state. */
   proposals?: readonly HistoryVersion[];
+  /** Whether the history names a version file: its numbers come from it, and the points that did not change the graph can be hidden. */
+  versionFile?: boolean;
+  /** Why the history's version cannot be read, in plain words. */
+  versionProblem?: string | null;
   value: string | null;
   onChange: (b: string) => void;
   /** Under the track: the chosen version's message — in Diff, B's, on the right. */
@@ -46,6 +54,40 @@ export type VersionPickerProps = {
   range?: Range | null;
   onRange?: (range: Range) => void;
 };
+
+/** The foot of the picker: what the track is showing when the version cannot be read, and why, in the port's words. */
+function VersionProblem({ problem, graphOnly }: { problem: string; graphOnly: boolean }) {
+  return (
+    <Box data-testid="version-problem" sx={{ display: "flex", alignItems: "baseline", gap: "8px", mt: "10px", pt: "10px", borderTop: "1px solid rgba(15, 23, 42, 0.06)", fontSize: 12, lineHeight: "17px", color: "#64748b" }}>
+      <Box component="span" aria-hidden sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: VERSION_PROBLEM_COLOUR, flexShrink: 0, position: "relative", top: "-1px" }} />
+      <span>
+        {graphOnly ? "The version file cannot be read, so the track shows only the commits that changed the graph, with no version numbers." : "The newest version cannot be read."} {problem}
+      </span>
+    </Box>
+  );
+}
+
+/** Beside the "i": three points on a line, the small one between two large; coloured while the small points are shown. */
+function SmallPointsToggle({ shown }: { shown: boolean }) {
+  const label = shown ? "Hide the versions that did not change the graph" : "Show the versions that did not change the graph";
+  return (
+    <Tooltip title={label}>
+      <ButtonBase
+        aria-label="The versions that did not change the graph"
+        aria-pressed={shown}
+        onClick={() => setSmallPointsShown(!shown)}
+        sx={{ width: 28, height: 28, borderRadius: "8px", color: shown ? MERGED_LOOK.colour : "#64748b", flexShrink: 0, "&:hover": { bgcolor: "rgba(15, 23, 42, 0.06)" } }}
+      >
+        <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ display: "block" }}>
+          <path d="M4 12h16" fill="none" stroke="currentColor" strokeWidth={1.4} strokeOpacity={0.4} />
+          <circle cx={5} cy={12} r={3} fill="currentColor" />
+          <circle cx={12} cy={12} r={1.9} fill="currentColor" />
+          <circle cx={19} cy={12} r={3} fill="currentColor" />
+        </svg>
+      </ButtonBase>
+    </Tooltip>
+  );
+}
 
 /** What the switch picks in this step: one version, or two compared. Side by side comes later. */
 export type PickerMode = "one" | "diff" | "split";
@@ -162,6 +204,8 @@ export function VersionPicker({
   live,
   liveIs = null,
   proposals = [],
+  versionFile = false,
+  versionProblem = null,
   value,
   onChange,
   children,
@@ -193,6 +237,8 @@ export function VersionPicker({
     return () => follow.disconnect();
   }, [anchor, phone]);
 
+  const smallShown = useSmallPointsShown();
+  const hasSmall = versionFile && versions.some((version) => version.graph_changed === false);
   const trackWidth = phone ? Math.max(240, window.innerWidth - 32) : TRACK_WIDTH;
   const content = (
     <>
@@ -204,7 +250,10 @@ export function VersionPicker({
           </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TrackLegend />
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            {hasSmall && <SmallPointsToggle shown={smallShown} />}
+            <TrackLegend />
+          </Box>
           <ModeSwitch value={mode} onChange={onMode} diffOffered={diffOffered} phone={phone} />
         </Box>
       </Box>
@@ -213,6 +262,8 @@ export function VersionPicker({
         live={live}
         liveIs={liveIs}
         proposals={proposals}
+        versionFile={versionFile}
+        hideSmall={versionFile && !smallShown}
         value={value}
         onChange={onChange}
         width={trackWidth}
@@ -220,6 +271,11 @@ export function VersionPicker({
         range={mode !== "one" ? range : null}
         onRange={onRange}
       />
+      {mode !== "one" && range && sameGraph(versions, range) && (
+        <Box data-testid="same-graph" sx={{ fontSize: 12, lineHeight: "16px", color: "#64748b", mb: "8px" }}>
+          Both versions have the same graph.
+        </Box>
+      )}
       {mode !== "one" && older !== undefined ? (
         <>
           {/* No header above either message: A is on the left and B on the right, as their handles stand. */}
@@ -236,6 +292,7 @@ export function VersionPicker({
       ) : (
         children
       )}
+      {versionProblem && <VersionProblem problem={versionProblem} graphOnly={!hasSmall} />}
     </>
   );
 

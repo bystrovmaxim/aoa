@@ -112,9 +112,9 @@ class RepoGraphPortGateway(BaseGateway):
         """Report that a read is not a rollup target."""
         return False
 
-    async def describe(self, route: str, link: str | None, key: str) -> Described | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
+    async def describe(self, route: str, link: str | None, key: str, *, version_link: str | None = None, version_key: str | None = None) -> Described | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
         """Ask the port what the history is."""
-        answer = await self._get(route, link, key, None)
+        answer = await self._get(route, link, key, None, version_link, version_key)
         if isinstance(answer, httpx.Response):
             body = _json_object(answer)
             return Described(body) if body is not None else PortUnreachable("the port's description is not a JSON object")
@@ -122,9 +122,9 @@ class RepoGraphPortGateway(BaseGateway):
             return PortUnreachable("the port answered 304 to a request without a tag")
         return answer
 
-    async def versions(self, route: str, link: str | None, key: str, etag: str | None) -> Listed | PortNotModified | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
+    async def versions(self, route: str, link: str | None, key: str, etag: str | None, *, version_link: str | None = None, version_key: str | None = None) -> Listed | PortNotModified | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
         """Ask the port for the history's versions; ``PortNotModified`` when ``etag`` is still current."""
-        answer = await self._get(f"{route}/versions", link, key, etag)
+        answer = await self._get(f"{route}/versions", link, key, etag, version_link, version_key)
         if not isinstance(answer, httpx.Response):
             return answer
         body = _json_object(answer)
@@ -138,15 +138,16 @@ class RepoGraphPortGateway(BaseGateway):
             [proposal for proposal in proposals if isinstance(proposal, dict)] if isinstance(proposals, list) else [],
         )
 
-    async def _get(self, url: str, link: str | None, key: str, etag: str | None) -> httpx.Response | PortNotModified | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
+    async def _get(self, url: str, link: str | None, key: str, etag: str | None, version_link: str | None, version_key: str | None) -> httpx.Response | PortNotModified | PortNotFound | PortTooManyWrongKeys | PortUnreachable:
         """One GET to a port, turned into a response or a typed outcome."""
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=self._timeout, transport=self._transport)
         headers = {"X-Maxitor-History-Key": key} if key else {}
         if etag:
             headers["If-None-Match"] = etag
+        parameters = {name: value for name, value in (("link", link), ("version_link", version_link), ("version_key", version_key)) if value}
         try:
-            response = await self._client.get(url, params={"link": link} if link else None, headers=headers)
+            response = await self._client.get(url, params=parameters or None, headers=headers)
         except httpx.RequestError as exc:
             return PortUnreachable(type(exc).__name__)
         if response.status_code == 304:

@@ -10,7 +10,7 @@ describe("the track's legend", () => {
   it("names every kind of point, in the order they stand, and the other marks", async () => {
     render(<TrackLegend />);
     fireEvent.mouseOver(screen.getByRole("button", { name: "Reading the track" }));
-    const terms = ["Direct push", "Merged", ...Object.values(PROPOSAL_LOOK).map((look) => look.name), "Live", "Size", "Flag", "The chosen point"];
+    const terms = ["Direct push", "Merged", ...Object.values(PROPOSAL_LOOK).map((look) => look.name), "Live", "Size", "Flag", "Three points", "The chosen point"];
     for (const term of terms) expect(await screen.findByText(term)).toBeTruthy();
   });
 

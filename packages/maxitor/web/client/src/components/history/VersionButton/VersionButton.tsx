@@ -13,6 +13,8 @@ export type VersionButtonProps = {
   onClick: (button: HTMLElement) => void;
   /** In Diff, what the diagram on screen counts (spec 038, FR-025); ``null`` or absent shows no counts. */
   counts?: DiagramCounts | null;
+  /** Why the history's version cannot be read: an amber mark, this text in its tooltip. */
+  problem?: string | null;
   /** On a phone (spec 038, FR-033): the button never grows past its row, its name cut with an ellipsis before the counts are. */
   compact?: boolean;
   /** One step older (−1) or newer (+1) without the picker; absent, no arrows. */
@@ -20,6 +22,9 @@ export type VersionButtonProps = {
   /** Which steps there are: none at the end of the track. */
   canStep?: { older: boolean; newer: boolean };
 };
+
+/** A version that cannot be read: scarlet, a colour no point on the track uses. */
+export const VERSION_PROBLEM_COLOUR = "#e11d48";
 
 /** A key as the hint draws it: a small plate. */
 export function Key({ children }: { children: ReactNode }) {
@@ -136,7 +141,7 @@ export function HistoryIcon() {
  * carries the diagram's counts — ``◷ A 0.8.0 → B 0.9.0  +15 −1 ~3 ▾`` — or "no changes" (spec 038, FR-025, FR-026); on a
  * phone the page gives it the short names (``A #128 → B #129``) and it cuts the name, never the counts (FR-033).
  */
-export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick, counts = null, compact = false, onStep, canStep = { older: true, newer: true } }, ref) {
+export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick, counts = null, problem = null, compact = false, onStep, canStep = { older: true, newer: true } }, ref) {
   const button = (
     <ButtonBase
       ref={ref}
@@ -177,6 +182,11 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
             <span style={{ color: COUNT_COLOUR.changed }}>~{counts.changed}</span>
           </span>
         ))}
+      {problem && (
+        <Tooltip title={problem}>
+          <Box component="span" data-testid="version-problem-mark" aria-label={problem} sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: VERSION_PROBLEM_COLOUR, flexShrink: 0 }} />
+        </Tooltip>
+      )}
       <PillChevron />
     </ButtonBase>
   );

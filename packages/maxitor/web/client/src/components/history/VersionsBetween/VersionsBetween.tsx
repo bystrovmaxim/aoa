@@ -7,6 +7,8 @@ import { trackKeys, type Range } from "@/lib/versionRange";
 import { shortSha, shownNameOf } from "@/lib/versionNames";
 
 export type VersionsBetweenProps = {
+  /** The history names a version file: numbers come from it. */
+  versionFile?: boolean;
   versions: readonly HistoryVersion[];
   live: string | null;
   /** The newest version's sha when Live runs exactly its graph: the two are one point. */
@@ -38,7 +40,7 @@ export function versionsBetween(
  * neighbours; it opens them newest first, each closed row its name and its message's first line, a click on
  * a row opening its whole message.
  */
-export function VersionsBetween({ versions, live, liveIs = null, proposals = [], range, repository }: VersionsBetweenProps) {
+export function VersionsBetween({ versions, versionFile = false, live, liveIs = null, proposals = [], range, repository }: VersionsBetweenProps) {
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<string | null>(null);
   const between = versionsBetween(versions, live, liveIs, proposals, range);
@@ -70,7 +72,7 @@ export function VersionsBetween({ versions, live, liveIs = null, proposals = [],
                   sx={{ display: "flex", gap: 1, width: "100%", border: 0, p: "5px 0", bgcolor: "transparent", cursor: "pointer", textAlign: "left", fontSize: 12, color: "#334155", minWidth: 0 }}
                 >
                   <Box component="span" sx={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap" }}>
-                    {shownNameOf(versions, key, proposals)}
+                    {shownNameOf(versions, key, proposals, versionFile)}
                   </Box>
                   <Box component="span" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {messageOf(version).split("\n")[0]}

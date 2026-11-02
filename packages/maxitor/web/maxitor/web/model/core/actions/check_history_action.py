@@ -35,7 +35,7 @@ from typing import Literal, cast
 
 from maxitor.web.model.core.core_domain import CoreDomain
 from maxitor.web.model.core.history_entry import HistoryEntry
-from maxitor.web.model.core.history_reading import history_line
+from maxitor.web.model.core.history_reading import history_line, text_or_none
 from maxitor.web.model.core.resources.history_store import HISTORY_STORE_CONNECTION_KEY, HistoryStore
 from maxitor.web.model.core.resources.repo_graph_port_gateway import (
     REPO_GRAPH_PORT_CONNECTION_KEY,
@@ -117,7 +117,7 @@ class CheckHistoryAction(BaseAction[CheckHistoryParams, CheckHistoryResult]):
 async def _check(entry: HistoryEntry, gateway: RepoGraphPortGateway, rooms: RoomRegistry, box: ToolsBox) -> HistoryCheckStatus:
     """Ask the port with each remembered key in turn; apply what it says."""
     for key in [""] if entry.public else list(entry.keys):
-        listed = await gateway.versions(entry.route, entry.link, key, entry.etag)
+        listed = await gateway.versions(entry.route, entry.link, key, entry.etag, version_link=entry.version_link, version_key=entry.version_key)
         if isinstance(listed, PortNotFound):
             entry.forget(key)
             await box.warning(Channel.security, "{%var.history} at {%var.port}: the port no longer accepts a key Maxitor held", history=history_line(entry), port=label(entry.route))
@@ -125,15 +125,18 @@ async def _check(entry: HistoryEntry, gateway: RepoGraphPortGateway, rooms: Room
         if not isinstance(listed, Listed | PortNotModified):
             await box.warning(Channel.business, "{%var.history} at {%var.port} not checked: the port cannot be read now", history=history_line(entry), port=label(entry.route))
             return "unreachable"
-        described = await gateway.describe(entry.route, entry.link, key)
+        described = await gateway.describe(entry.route, entry.link, key, version_link=entry.version_link, version_key=entry.version_key)
         live = described.body.get("live") if isinstance(described, Described) and not entry.public else entry.live
         live = live if isinstance(live, str) else None
-        if isinstance(listed, PortNotModified) and live == entry.live:
+        version_file, version_problem = entry.version_file, entry.version_problem
+        if isinstance(described, Described):
+            version_file, version_problem = text_or_none(described.body.get("version_file")), text_or_none(described.body.get("version_problem"))
+        if isinstance(listed, PortNotModified) and (live, version_file, version_problem) == (entry.live, entry.version_file, entry.version_problem):
             await box.info(Channel.business, "{%var.history} unchanged", history=history_line(entry))
             return "unchanged"
         if isinstance(listed, Listed):
             entry.versions, entry.etag, entry.proposals = listed.versions, listed.etag, listed.proposals
-        entry.live = live
+        entry.live, entry.version_file, entry.version_problem = live, version_file, version_problem
         _tell_rooms(entry, rooms)
         await box.info(Channel.business, "{%var.history} changed: {%var.count} versions{%var.live}", history=history_line(entry), count=len(entry.versions), live=" and Live" if entry.live else "")
         return "changed"

@@ -133,7 +133,7 @@ function Marks() {
             </Sample>
           }
         >
-          A larger point starts a version and carries its number below; a smaller one belongs to that version.
+          A larger point changed the graph; a smaller one changed only the version. A number below says the version rose there.
         </Row>
         <Row
           term="Flag"
@@ -145,7 +145,20 @@ function Marks() {
             </Sample>
           }
         >
-          That version was released: a GitHub Release, or a tag named <code>release…</code>.
+          That version was released: a GitHub Release, or a tag named <code>release…</code>. With smaller points hidden, their flags stand on the point before them.
+        </Row>
+        <Row
+          term="Three points"
+          sample={
+            <Sample>
+              <path d="M9 10h22" stroke={MERGED_LOOK.colour} strokeWidth={1.2} strokeOpacity={0.4} />
+              <circle cx={10} cy={10} r={3} fill={MERGED_LOOK.colour} />
+              <circle cx={20} cy={10} r={1.9} fill={MERGED_LOOK.colour} />
+              <circle cx={30} cy={10} r={3} fill={MERGED_LOOK.colour} />
+            </Sample>
+          }
+        >
+          At the top, where a history names a version file: coloured while the smaller points are shown, grey while they are hidden. Only you see it; a chosen point stays.
         </Row>
         <Row
           term="The chosen point"

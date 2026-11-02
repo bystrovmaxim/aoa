@@ -90,6 +90,11 @@ async def refuse(
     raise HistoryNotFoundError()
 
 
+def text_or_none(value: object) -> str | None:
+    """``value`` when the port sent a string, otherwise ``None``."""
+    return value if isinstance(value, str) else None
+
+
 async def open_history(
     box: ToolsBox,
     gateway: RepoGraphPortGateway,
@@ -108,10 +113,12 @@ async def open_history(
     """
     history = history_from_name(name, key)
     route, link = port_route(history, gateway.public_port)
-    described = await gateway.describe(route, link, key)
+    version_link = history.version_link if isinstance(history, PublicHistory) else None
+    version_key = history.version_key if isinstance(history, PublicHistory) else None
+    described = await gateway.describe(route, link, key, version_link=version_link, version_key=version_key)
     if not isinstance(described, Described):
         await refuse(box, described, history, route, client)
-    listed = await gateway.versions(route, link, key, None)
+    listed = await gateway.versions(route, link, key, None, version_link=version_link, version_key=version_key)
     if not isinstance(listed, Listed):
         await refuse(box, listed, history, route, client)
     body = described.body
@@ -126,6 +133,10 @@ async def open_history(
         live=body.get("live") if isinstance(body.get("live"), str) and isinstance(history, PrivateHistory) else None,
         reader=body.get("reader") if isinstance(body.get("reader"), str) else None,
         versions=listed.versions,
+        version_file=text_or_none(body.get("version_file")),
+        version_problem=text_or_none(body.get("version_problem")),
+        version_link=version_link,
+        version_key=version_key,
         proposals=listed.proposals,
         etag=listed.etag,
         last_checked=store.now(),

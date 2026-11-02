@@ -45,6 +45,8 @@ from maxitor.web.model.core.history_errors import HistoryNotFoundError
 _PORT_PATH = re.compile(r"^(?P<base>.*)/api/v1/history/(?P<id>[^/]+)/?$")
 #: A version's source: ``<route>/versions/<sha>`` with ``?link=`` for a public one.
 _VERSION_PATH = re.compile(r"^(?P<route>.*/api/v1/history/[^/]+)/versions/(?P<sha>[0-9a-f]{7,40})$")
+#: What ``quote`` leaves as it is so that a name is the same as the client's ``encodeURIComponent`` writes it.
+_ENCODED_AS_THE_CLIENT = "-_.!~*'()"
 #: A GitHub link to a file: ``/<owner>/<repo>/blob/<branch>/<path>``.
 _GITHUB_PATH = re.compile(r"^/(?P<owner>[^/]+)/(?P<repo>[^/]+)/blob/(?P<branch>[^/]+)/(?P<path>.+[^/])$")
 
@@ -81,19 +83,21 @@ class PrivateHistory:
 class PublicHistory:
     """
     AI-CORE-BEGIN
-    ROLE: A public history: a GitHub link to its graph file, read through Maxitor's own port.
-    CONTRACT: ``name`` is the link itself; ``title`` is ``owner/repo``.
+    ROLE: A public history: a GitHub link to its graph file, read through Maxitor's own port, optionally joined with a version file.
+    CONTRACT: ``name`` is the link with ``version_link`` and ``version_key`` when given, so one graph joined with two files is two histories; ``title`` is ``owner/repo``.
     AI-CORE-END
     """
 
     link: str
     owner: str
     repo: str
+    version_link: str | None = None
+    version_key: str | None = None
 
     @property
     def name(self) -> str:
-        """The link: a public history has no key to leave out."""
-        return self.link
+        """The link and its version file: a public history has no key to leave out."""
+        return public_name(self.link, self.version_link, self.version_key)
 
     @property
     def title(self) -> str:
@@ -129,15 +133,38 @@ def parse_history(address: str) -> PrivateHistory | PublicHistory | None:
     return PrivateHistory(port=port, id=unquote(named.group("id")), key=fragment[len("key=") :].strip())
 
 
+def public_name(link: str, version_link: str | None, version_key: str | None) -> str:
+    """A public history's name: its link, then its version file's parameters, always in this order."""
+    parameters = [(name, value) for name, value in (("version_link", version_link), ("version_key", version_key)) if value]
+    return link + ("?" + "&".join(f"{name}={quote(value, safe=_ENCODED_AS_THE_CLIENT)}" for name, value in parameters) if parameters else "")
+
+
+def _first(given: dict[str, list[str]], name: str) -> str | None:
+    """The first value of ``name`` in a parsed query, or ``None``."""
+    values = given.get(name)
+    return values[0] if values else None
+
+
+def _version_parameters(query: str) -> tuple[str | None, str | None]:
+    """``version_link`` and ``version_key`` of a public address; anything else is refused."""
+    given = parse_qs(query, keep_blank_values=True)
+    if set(given) - {"version_link", "version_key"} or any(len(values) > 1 or not values[0] for values in given.values()):
+        raise HistoryAddressError("A public history's link takes only one 'version_link=' and one 'version_key=' in its query.")
+    if "version_key" in given and "version_link" not in given:
+        raise HistoryAddressError("'version_key=' names a key of the file in 'version_link=', so it needs one.")
+    return _first(given, "version_link"), _first(given, "version_key")
+
+
 def _public(path: str, fragment: str, query: str) -> PublicHistory:
     """A GitHub address: a link to a graph file, or a refusal saying what it is instead."""
-    if fragment or query:
-        raise HistoryAddressError("A public history's link carries no '#' and no query: give the file's GitHub link.")
+    if fragment:
+        raise HistoryAddressError("A public history's link carries no '#': give the file's GitHub link.")
+    version_link, version_key = _version_parameters(query)
     linked = _GITHUB_PATH.match(path)
     if linked is None:
         raise HistoryAddressError("A public history is a GitHub link to a graph file: https://github.com/<owner>/<repo>/blob/<branch>/<path>.")
     link = f"https://github.com{path}"
-    return PublicHistory(link=link, owner=linked.group("owner"), repo=linked.group("repo"))
+    return PublicHistory(link=link, owner=linked.group("owner"), repo=linked.group("repo"), version_link=version_link, version_key=version_key)
 
 
 class PublicHistoriesNotSetUpError(ValueError):
@@ -181,10 +208,13 @@ def port_route(history: PrivateHistory | PublicHistory, public_port: str | None)
     return f"{public_port.rstrip('/')}/api/v1/history/public", history.link
 
 
-def version_source(route: str, link: str | None, sha: str) -> str:
+def version_source(route: str, link: str | None, sha: str, version_link: str | None = None, version_key: str | None = None) -> str:
     """The source a version's graph is held under: the port's version URL, never a key."""
     source = f"{route}/versions/{sha}"
-    return f"{source}?link={quote(link, safe='')}" if link else source
+    if not link:
+        return source
+    joined = "".join(f"&{name}={quote(value, safe='')}" for name, value in (("version_link", version_link), ("version_key", version_key)) if value)
+    return f"{source}?link={quote(link, safe='')}{joined}"
 
 
 def parse_version_source(source: str) -> tuple[str, str] | None:
@@ -200,6 +230,9 @@ def parse_version_source(source: str) -> tuple[str, str] | None:
         return None
     route = f"{parts.scheme}://{parts.netloc}{named.group('route')}"
     if route.endswith("/api/v1/history/public"):
-        links = parse_qs(parts.query).get("link", [])
-        return (links[0], named.group("sha")) if len(links) == 1 else None
+        given = parse_qs(parts.query)
+        links = given.get("link", [])
+        if len(links) != 1:
+            return None
+        return public_name(links[0], _first(given, "version_link"), _first(given, "version_key")), named.group("sha")
     return route, named.group("sha")

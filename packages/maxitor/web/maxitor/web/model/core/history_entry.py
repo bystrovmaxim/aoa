@@ -58,12 +58,23 @@ class HistoryEntry:
     reader: str | None
     versions: list[dict[str, Any]]
     etag: str | None
+    #: The file that holds the history's version, as the port names it; ``None`` when it names none.
+    version_file: str | None = None
+    #: Why the port cannot read that version, in its plain words; ``None`` when nothing is wrong.
+    version_problem: str | None = None
+    #: A public history's version file and key, passed to the port with its link.
+    version_link: str | None = None
+    version_key: str | None = None
     #: Pull requests still open that change the graph, each with its state: looked at, never a default.
     proposals: list[dict[str, Any]] = field(default_factory=list)
     last_read: float = 0.0
     last_checked: float = 0.0
     checking: bool = False
     keys: list[str] = field(default_factory=list, repr=False)
+
+    def _source(self, sha: str) -> str:
+        """The source commit ``sha``'s graph is held under."""
+        return version_source(self.route, self.link, sha, self.version_link, self.version_key)
 
     def remember(self, key: str) -> None:
         """Keep ``key`` as the newest one the port accepted for this history."""
@@ -108,7 +119,7 @@ class HistoryEntry:
         if version == "live":
             return self.live
         found = self.version(version)
-        return version_source(self.route, self.link, str(found["sha"])) if found is not None else None
+        return self._source(str(found["sha"])) if found is not None else None
 
     def older(self, a: str, b: str) -> bool:
         """Whether ``a`` stands before ``b`` on the track — versions oldest first, then open pull requests, then Live (spec 038)."""
@@ -122,11 +133,11 @@ class HistoryEntry:
 
     def versions_with_sources(self) -> list[dict[str, Any]]:
         """The versions as a tab is told them: each with the ``source`` its graph is read under, keyless."""
-        return [{**version, "source": version_source(self.route, self.link, str(version["sha"]))} for version in self.versions]
+        return [{**version, "source": self._source(str(version["sha"]))} for version in self.versions]
 
     def proposals_with_sources(self) -> list[dict[str, Any]]:
         """The open pull requests as a tab is told them: each with the ``source`` its head's graph is read under, keyless."""
-        return [{**proposal, "source": version_source(self.route, self.link, str(proposal["sha"]))} for proposal in self.proposals]
+        return [{**proposal, "source": self._source(str(proposal["sha"]))} for proposal in self.proposals]
 
     @property
     def public(self) -> bool:

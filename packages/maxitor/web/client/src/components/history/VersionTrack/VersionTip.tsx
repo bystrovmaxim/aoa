@@ -127,6 +127,8 @@ export type VersionTipProps = {
   live?: boolean;
   /** A pull request still open: where it stands, instead of "Merged". */
   state?: ProposalState;
+  /** The flags of hidden points drawn on this one. */
+  carried?: readonly string[];
 };
 
 /**
@@ -135,7 +137,7 @@ export type VersionTipProps = {
  * version number as a dark chip where the history has one, who made it, its number and when; its title; who made
  * it and who merged it; its size in lines and files; what it did to the graph; and why it was refused, if it was.
  */
-export function VersionTip({ version, release, live = false, state }: VersionTipProps) {
+export function VersionTip({ version, release, live = false, state, carried = [] }: VersionTipProps) {
   if (!version) {
     return (
       <>
@@ -177,6 +179,11 @@ export function VersionTip({ version, release, live = false, state }: VersionTip
           {whenOf(version.date)}
         </Box>
       </Box>
+      {carried.length > 0 && (
+        <Box data-testid="carried-flags" sx={{ mt: "6px", color: MUTED, fontSize: 12 }}>
+          {`Released among the hidden versions after it: ${carried.join(", ")}`}
+        </Box>
+      )}
       {note && (
         <Box sx={{ mt: "8px", display: "flex", alignItems: "center", gap: "6px", fontSize: 12, color: "#334155", minWidth: 0 }}>
           <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "4px", height: 20, px: "8px", borderRadius: "10px", bgcolor: "#f1f5f9", color: "#334155", fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>

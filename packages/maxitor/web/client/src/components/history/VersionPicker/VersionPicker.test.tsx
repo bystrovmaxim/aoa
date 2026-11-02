@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HistoryVersion } from "@/api/history";
 import { VersionMessage } from "@/components/history/VersionMessage";
+import { setSmallPointsShown } from "@/lib/smallPointsShown";
 import { VersionPicker } from "./VersionPicker";
 
 /** jsdom has no ResizeObserver; the picker only uses it to follow its button. */
@@ -96,5 +97,45 @@ describe("the picker", () => {
     expect(left.textContent).toBe("Older change");
     expect(within(right).getByTestId("live-line").textContent).toContain("checked 3 s ago");
     expect(within(left).queryByTestId("live-line")).toBeNull();
+  });
+});
+
+describe("a version file in the picker (spec 051)", () => {
+  const joined = versions.map((version, at) => ({ ...version, graph_changed: at === 0, version: "1.0.0", version_changed: at === 0 }));
+  const base = { anchor: { current: document.body }, onClose: () => undefined, title: "orders", live: null, value: "1", onChange: () => undefined };
+
+  beforeEach(() => setSmallPointsShown(true));
+
+  it("offers the icon only where a point did not change the graph, and it hides this viewer's small points", () => {
+    const { rerender } = render(<VersionPicker {...base} versions={versions} versionFile />);
+    const icon = () => screen.queryByRole("button", { name: "The versions that did not change the graph" });
+    expect(icon()).toBeNull();
+    rerender(<VersionPicker {...base} versions={joined} />);
+    expect(icon()).toBeNull();
+    rerender(<VersionPicker {...base} versions={joined} versionFile />);
+    expect(icon()?.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(icon()!);
+    expect(icon()?.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByTestId(`point-${joined[1].sha.slice(0, 12)}`)).toBeNull();
+  });
+
+  it("says a version problem in plain words, and says nothing without one", () => {
+    const { rerender } = render(<VersionPicker {...base} versions={joined} versionFile versionProblem="The file holds no version." />);
+    expect(screen.getByTestId("version-problem").textContent).toBe("The newest version cannot be read. The file holds no version.");
+    rerender(<VersionPicker {...base} versions={joined} versionFile />);
+    expect(screen.queryByTestId("version-problem")).toBeNull();
+  });
+
+  it("says the track shows only graph changes when no version could be read", () => {
+    render(<VersionPicker {...base} versions={versions} versionFile versionProblem="The file holds no version." />);
+    expect(screen.getByTestId("version-problem").textContent).toContain("shows only the commits that changed the graph");
+  });
+
+  it("says two compared points have the same graph", () => {
+    const range = { a: versions[0].sha.slice(0, 12), b: versions[1].sha.slice(0, 12) };
+    const { rerender } = render(<VersionPicker {...base} versions={joined} versionFile mode="diff" range={range} />);
+    expect(screen.getByTestId("same-graph").textContent).toBe("Both versions have the same graph.");
+    rerender(<VersionPicker {...base} versions={versions} mode="diff" range={range} />);
+    expect(screen.queryByTestId("same-graph")).toBeNull();
   });
 });

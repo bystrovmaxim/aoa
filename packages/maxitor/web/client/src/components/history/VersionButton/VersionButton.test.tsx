@@ -66,3 +66,12 @@ describe("the counts", () => {
     expect(countsText({ added: 0, removed: 0, changed: 1 })).toBe("+0 −0 ~1");
   });
 });
+
+describe("a version problem", () => {
+  it("marks the button only when there is one", () => {
+    const { rerender } = render(<VersionButton name="#2" open={false} onClick={() => undefined} problem="The file holds no version." />);
+    expect(screen.getByTestId("version-problem-mark").getAttribute("aria-label")).toBe("The file holds no version.");
+    rerender(<VersionButton name="#2" open={false} onClick={() => undefined} />);
+    expect(screen.queryByTestId("version-problem-mark")).toBeNull();
+  });
+});

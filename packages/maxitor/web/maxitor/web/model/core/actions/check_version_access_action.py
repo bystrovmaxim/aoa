@@ -105,7 +105,7 @@ class CheckVersionAccessAction(BaseAction[CheckVersionAccessParams, CheckVersion
         if not entry.public and not access.accepted(entry.name, key):
             history = history_from_name(entry.name, key)
             gateway = cast(RepoGraphPortGateway, connections[REPO_GRAPH_PORT_CONNECTION_KEY])
-            answer = await gateway.versions(entry.route, entry.link, key, entry.etag)
+            answer = await gateway.versions(entry.route, entry.link, key, entry.etag, version_link=entry.version_link, version_key=entry.version_key)
             if not isinstance(answer, Listed | PortNotModified):
                 if isinstance(history, PrivateHistory):
                     entry.forget(key)

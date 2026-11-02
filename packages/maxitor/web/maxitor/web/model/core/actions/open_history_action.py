@@ -67,6 +67,8 @@ class OpenHistoryResult(BaseResult):
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
     proposals: list[dict[str, Any]] = Field(default_factory=list, description="Pull requests still open that change the graph, each with its state and source")
     live_same_as: str | None = Field(default=None, description="The newest version's sha when Live runs exactly its graph: the two are one point")
+    version_file: str | None = Field(default=None, description="The file that holds the history's version, or none")
+    version_problem: str | None = Field(default=None, description="Why the history's version cannot be read, in plain words, or none")
     versions: list[dict[str, Any]] = Field(description="The port's versions, oldest first, each with the source its graph is read under")
     count: int = Field(ge=0, description="How many versions there are")
     room_ticket: str | None = Field(default=None, description="A one-use ticket into a room of this history, for a private one")
@@ -115,6 +117,8 @@ class OpenHistoryAction(BaseAction[OpenHistoryParams, OpenHistoryResult]):
             repository=entry.repository,
             live=entry.live,
             live_same_as=await live_same_as(entry, cast(GraphSourceGateway, connections[GRAPH_SOURCE_CONNECTION_KEY]), key),
+            version_file=entry.version_file,
+            version_problem=entry.version_problem,
             versions=entry.versions_with_sources(),
             proposals=entry.proposals_with_sources(),
             count=len(entry.versions),

@@ -207,6 +207,7 @@ export function LeftSidebar({
   const changedOnly = useShownPanel(ownChangedOnly, setChangedOnly, (panels) => panels.narrow ?? false, (own) => ({ narrow: own }));
   const narrowing = comparing && changedOnly;
   const shownSidebar = useChangedPages(sidebar, narrowing);
+  // Two versions with one graph leave nothing to narrow to: the panel stands empty, with its mark for that.
   const nothingChanged = narrowing && shownSidebar !== null && shownSidebar !== sidebar && shownSidebar.level2_nodes.length === 0;
   const group = useMemo(() => (shownSidebar ? buildSidebarGroupedMaps(shownSidebar) : null), [shownSidebar]);
   /** Root ids (e.g. `domains_root`) and graph node ids (e.g. domain rows) share one expand map — ids do not collide. */
@@ -385,11 +386,19 @@ export function LeftSidebar({
         {!source && <ServiceUrlInput onLoaded={onLoaded} onHistoryOpened={onHistoryOpened} />}
         {/* Level-1: preserve API order (_ROOT_SECTIONS on the server). */}
         {nothingChanged && (
-          <Typography variant="body2" sx={{ px: 1, py: 0.5, fontSize: 12.5, color: "text.secondary" }}>
-            No domain changed.
-          </Typography>
+          <Box data-testid="no-changes" sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", pt: 5, color: "#94a3b8", fontSize: 12.5 }}>
+            <svg viewBox="0 0 24 24" width={28} height={28} aria-hidden style={{ display: "block" }}>
+              <g fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 4 21 19.5H3z" />
+                <path d="M12 10v4.6" />
+              </g>
+              <circle cx={12} cy={17} r={1} fill="currentColor" />
+            </svg>
+            No changes
+          </Box>
         )}
-        {shownSidebar &&
+        {!nothingChanged &&
+          shownSidebar &&
           group &&
           shownSidebar.level1_nodes.map((root) => {
             const open = Boolean(expandedById[root.id]);
