@@ -18,6 +18,8 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 
 **Test command**: `uv run --extra dev pytest <path> -q`
 
+**Checks**: after each phase only its own tests, and its breaks against those tests alone. The wider scripts wait for the closing check run.
+
 **Every new module** starts with its path and a module docstring with `PURPOSE` (Principle III). A public class carries an AI-CORE block (Principle IV), and every class, function and method a one-line docstring (Principle V). No `# type: ignore` and no `# pylint: disable` in production code.
 
 ---
@@ -64,7 +66,7 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 - [X] T023 [US2] In `AM/runtime/tools_box.py`, add the keyword `emission: EmissionRules | None = None` to the constructor and a slot, with no public property; call `check` in the three tools before anything reaches the logger, for lines with and without an event
 - [X] T024 [US2] Pass `emission=emission_rules_for(type(action), method_name)` from `method_box` in `AM/runtime/method_box.py`
 - [X] T025 [US2] Pass the same from `run_aspect`, `run_summary` and `run_compensator` in `AM/testing/bench.py`
-- [X] T026 [US2] Run the new test files, then all of `packages/aoa-action-machine/tests/`. No existing test may be edited
+- [X] T026 [US2] Run the test files of this phase
 - [X] T027 [US2] Adversarial breaks 9, 12, 13, 17, 18 and 22 of `quickstart.md`, one at a time, each restored before the next
 - [X] T028 [US2] Run `bash scripts/check_before_commit.sh` to exit code 0. **Commit point**: `feat(intents): @emits makes a method a typed zone (#333)`
 
@@ -78,16 +80,16 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 
 **Independent Test**: A domain with `events` and one action for each rule of the table of modes.
 
-- [ ] T029 [P] [US3] Create `TESTS/domain/test_domain_events.py`: a list, a non-event, `BaseEvent` itself and a repeated class each raise `EventContractError` when the domain is defined; a child domain inherits `events`, and declaring its own replaces them; one class in two domains is allowed; `events = ()` is accepted
-- [ ] T030 [US3] Add to `TESTS/runtime/test_emission_rules.py` every mode 3 row of the table in `spec.md`, for each kind of method: a line with no event is refused with and without `@emits`; an event outside `events` is refused; a method without `@emits` is refused, compensators and handlers included; `events = ()` refuses everything; a nested action from an untyped domain logs with `kwargs`; an action with no domain answers to `@emits` only; in a domain with no `events`, each kind logs with `kwargs` and with no variables exactly as before
-- [ ] T031 [P] [US3] Create `TESTS/graph/test_emits_vocabulary_validator.py`: `@emits` outside `events` fails the build, one case per kind, naming the method, the event and the domain; an event in `events` that no `@emits` names passes; a domain with no `events` is not looked at; the graph JSON is the same with and without `events` and `@emits`
-- [ ] T032 [US3] In `AM/domain/base_domain.py`, add `_validate_events`, called from `__init_subclass__` for a class with `events` in its own body: a tuple of distinct classes, each a subclass of `EventMarker` and none of them a direct child of it, or `EventContractError`
-- [ ] T033 [US3] Complete `AM/runtime/emission_rules.py`: `vocabulary` from `resolve_domain`, the full table of `check`, and `None` from `emission_rules_for` only when neither switch is on
-- [ ] T034 [US3] Create `AM/graph/validators/emits_vocabulary_validator.py`: for each action node whose domain declares `events`, walk the regular aspects, the summary aspect, the compensators, the error handlers and the access decision, and raise `EventContractError` for an event outside `events`
-- [ ] T035 [US3] Call it from `NodeGraphCoordinator.build` in `AM/graph/core/node_graph_coordinator.py` once the nodes are wired, and add it to the `Raises` section there
-- [ ] T036 [US3] Run the new test files, then all of `packages/aoa-action-machine/tests/`. No existing test may be edited
-- [ ] T037 [US3] Adversarial breaks 10, 11, 14, 15, 19 and 23 of `quickstart.md`, one at a time, each restored before the next
-- [ ] T038 [US3] Run `bash scripts/check_before_commit.sh` to exit code 0. **Commit point**: `feat(domain): events, the vocabulary of a domain (#333)`
+- [X] T029 [P] [US3] Create `TESTS/domain/test_domain_events.py`: a list, a non-event, `BaseEvent` itself and a repeated class each raise `EventContractError` when the domain is defined; a child domain inherits `events`, and declaring its own replaces them; one class in two domains is allowed; `events = ()` is accepted
+- [X] T030 [US3] Add to `TESTS/runtime/test_emission_rules.py` every mode 3 row of the table in `spec.md`, for each kind of method: a line with no event is refused with and without `@emits`; an event outside `events` is refused; a method without `@emits` is refused, compensators and handlers included; `events = ()` refuses everything; a nested action from an untyped domain logs with `kwargs`; an action with no domain answers to `@emits` only; in a domain with no `events`, each kind logs with `kwargs` and with no variables exactly as before
+- [X] T031 [P] [US3] Create `TESTS/graph/test_emits_vocabulary_validator.py`: `@emits` outside `events` fails the build, one case per kind, naming the method, the event and the domain; an event in `events` that no `@emits` names passes; a domain with no `events` is not looked at; the graph JSON is the same with and without `events` and `@emits`
+- [X] T032 [US3] In `AM/domain/base_domain.py`, add `_validate_events`, called from `__init_subclass__` for a class with `events` in its own body: a tuple of distinct classes, each a subclass of `EventMarker` and none of them a direct child of it, or `EventContractError`
+- [X] T033 [US3] Complete `AM/runtime/emission_rules.py`: `vocabulary` from `resolve_domain`, the full table of `check`, and `None` from `emission_rules_for` only when neither switch is on
+- [X] T034 [US3] Create `AM/graph/validators/emits_vocabulary_validator.py`: for each action node whose domain declares `events`, walk the regular aspects, the summary aspect, the compensators, the error handlers and the access decision, and raise `EventContractError` for an event outside `events`
+- [X] T035 [US3] Call it from `NodeGraphCoordinator.build` in `AM/graph/core/node_graph_coordinator.py` once the nodes are wired, and add it to the `Raises` section there
+- [X] T036 [US3] Run the test files of this phase
+- [X] T037 [US3] Adversarial breaks 10, 11, 14, 15, 19 and 23 of `quickstart.md`, one at a time, each restored before the next
+- [ ] T038 [US3] **Commit point**: `feat(domain): events, the vocabulary of a domain (#333)`
 
 **Checkpoint**: Mode 3 works, and the build holds `@emits` to the vocabulary.
 
@@ -104,7 +106,7 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 - [ ] T041 [US4] Convert the calls in `DEMO/actions/get_order.py` and `DEMO/actions/create_order.py`, each with `@emits`. The templates stay as they are
 - [ ] T042 [US4] Declare `events = (OrderRequestedEvent, OrderValidatedEvent)` in `DEMO/orders_domain.py`
 - [ ] T043 [US4] Run `packages/aoa-demo/tests/` and `uv run --extra dev graph-builder check`: `packages/aoa-demo/graph.json` has not changed
-- [ ] T044 [US4] Run `bash scripts/check_before_commit.sh` to exit code 0. **Commit point**: `feat(demo): the orders domain speaks in typed events (#333)`
+- [ ] T044 [US4] **Commit point**: `feat(demo): the orders domain speaks in typed events (#333)`
 
 **Checkpoint**: The whole cascade runs on a real product.
 
@@ -122,7 +124,7 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 
 **Independent Test**: Run every example, script and notebook, and compare what it prints with the page.
 
-- [ ] T046 [US5] Write the documentation, every example executed as it is written (FR-026 to FR-028, Principle VI). (1) `docs/explanation/architectural-constitution.md`: the seven places #333 lists. (2) The new section in `docs/explanation/architectural-constitution.ru_draft.md`, and "nine" becomes "ten" in `docs/explanation/verification-must-be-independent.md` and in `docs/explanation/verification-must-be-independent_draft.md`. (3) `examples/step_11_object_events/`, a script and a notebook for each: `01_event_line` (a line with an event, what a logger receives, a `kwargs` line beside it); `02_emits` (mode 2: delivered, each refusal); `03_domain_events` (mode 3: each row of the table, the build failure, `events = ()`); `04_refusal_by_kind` (what a refusal does in each kind of method); `05_rollback` (the two rollback rules, with a later step failing after the reserving step succeeded). Run each, script and notebook. (4) `docs/tutorials/step-11-object-events.md`: the one foundation of two switches; each case above with its real output; the two rollback rules; the warning on mode 3; the note that compensators and error handlers need tests of their own; that a result from the cache delivers no events. Its navigation leads back to chapter 10 and on to `step-11-machine.md`. (5) `docs/tutorials/step-11-object-events.ru_draft.md`, the Russian version of the chapter. (6) `docs/tutorials/step-10-logs.md`, in three small ways only: its navigation points to chapter 11, the end of its summary leads into chapter 11, one line links to it. (7) `docs/reference/intents-and-invariants.md`, `docs/reference/glossary.md` and their Russian drafts state the new rules. (8) `docs/how-to/authoring-logger.md` says what `var` is in each of the two forms. (9) `docs/index.md` and `README.md` list the new chapter. Then run `uv run --extra dev pytest tests/examples -q` and `bash scripts/check_before_commit.sh` to exit code 0. **Commit point**: `docs: BaseEvent, the tenth primitive, and object events (#333)`
+- [ ] T046 [US5] Write the documentation, every example executed as it is written (FR-026 to FR-028, Principle VI). (1) `docs/explanation/architectural-constitution.md`: the seven places #333 lists. (2) The new section in `docs/explanation/architectural-constitution.ru_draft.md`, and "nine" becomes "ten" in `docs/explanation/verification-must-be-independent.md` and in `docs/explanation/verification-must-be-independent_draft.md`. (3) `examples/step_11_object_events/`, a script and a notebook for each: `01_event_line` (a line with an event, what a logger receives, a `kwargs` line beside it); `02_emits` (mode 2: delivered, each refusal); `03_domain_events` (mode 3: each row of the table, the build failure, `events = ()`); `04_refusal_by_kind` (what a refusal does in each kind of method); `05_rollback` (the two rollback rules, with a later step failing after the reserving step succeeded). Run each, script and notebook. (4) `docs/tutorials/step-11-object-events.md`: the one foundation of two switches; each case above with its real output; the two rollback rules; the warning on mode 3; the note that compensators and error handlers need tests of their own; that a result from the cache delivers no events. Its navigation leads back to chapter 10 and on to `step-11-machine.md`. (5) `docs/tutorials/step-11-object-events.ru_draft.md`, the Russian version of the chapter. (6) `docs/tutorials/step-10-logs.md`, in three small ways only: its navigation points to chapter 11, the end of its summary leads into chapter 11, one line links to it. (7) `docs/reference/intents-and-invariants.md`, `docs/reference/glossary.md` and their Russian drafts state the new rules. (8) `docs/how-to/authoring-logger.md` says what `var` is in each of the two forms. (9) `docs/index.md` and `README.md` list the new chapter. Then run `uv run --extra dev pytest tests/examples -q`. **Commit point**: `docs: BaseEvent, the tenth primitive, and object events (#333)`
 
 ---
 

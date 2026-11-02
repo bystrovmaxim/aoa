@@ -40,7 +40,7 @@
 | IV. AI-CORE blocks | `BaseEvent`, `EmissionRules`, `EventContractError` and `emits` carry a block; methods do not. | Pass |
 | V. Short docstrings | Every new class, function and method carries one. | Pass |
 | VI. The last three steps | Three reserved tasks: check run, documentation, changelog. Every case appears as a script and as a notebook, executed while written. | Pass |
-| Final check run | `check_before_commit.sh` before every commit; `check_before_pr.sh` before the pull request. | Pass |
+| Final check run | Each phase runs its own tests; `check_before_commit.sh` at the closing check run; `check_before_pr.sh` before the pull request. | Pass |
 
 No violations. Re-checked after design: unchanged.
 

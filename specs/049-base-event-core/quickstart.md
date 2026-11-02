@@ -40,7 +40,7 @@ The tests pass and `graph.json` of the demo has not changed.
 
 ## Adversarial breaks
 
-Each break must fail its own test and no other. Restore after each.
+Each break runs against the test files of its phase and must fail its own test and no other. Restore after each.
 
 | # | Break | The test that must fail |
 |---|---|---|
