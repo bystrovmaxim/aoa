@@ -60,7 +60,7 @@
 
 ## Phase 5: Closing check run
 
-- [ ] T029 Take every check this machine can run to zero, `graph-builder check` included; CI's closing run and `scripts/check_before_pr.sh` follow on the pushed commit, on instruction
+- [X] T029 Take every check this machine can run to zero, `graph-builder check` included; CI's closing run and `scripts/check_before_pr.sh` follow on the pushed commit, on instruction
 
 ## Phase 6: Documentation
 
@@ -73,9 +73,13 @@
 - [ ] T033 Write one article in `docs/CHANGELOG.md` about what this work created, in plain words
 - [ ] T034 Raise the version of every changed level: `packages/open-gnomon-protocol/version.toml` to `1.3.0`, and `version.toml` of `aoa-action-machine`, `aoa-demo`, `maxitor`, `maxitor/web`, `maxitor/tools/graph_builder`, plus any other level `version-gate` names
 
+## Phase 8: The stand
+
+- [ ] T035 Start the demo stand and open the full graph of the local history in diff mode (`view=full-graph`), with two versions of which the newer holds this work; events (`OrderRequestedEvent`, `OrderValidatedEvent`) and their edges must be visible. A screenshot goes into the report; no commit
+
 ## Dependencies & Execution Order
 
-- Phases run in order 1 → 7. Phase 2 needs the schema of phase 1; phase 3 needs documents of phase 2; phase 4 needs phase 3, since `graph-builder check` must know `1.3`.
+- Phases run in order 1 → 8. Phase 2 needs the schema of phase 1; phase 3 needs documents of phase 2; phase 4 needs phase 3, since `graph-builder check` must know `1.3`.
 - US3 comes first in the issue's order, although all P1 stories are equal, because no document is valid without it.
 - Tests of phase 2 run on built graphs, not through Maxitor, so phase 2 stands alone until phase 3 lands.
 
