@@ -60,6 +60,8 @@ const VIEW_SLUG_BY_KIND: Record<DiagramSelection["kind"], string> = {
   erd: "domain-erd",
   use_case: "use-case",
   use_case_all: "use-case-all",
+  events: "events",
+  events_all: "events-all",
   lifecycle_fsm: "lifecycle-fsm",
 };
 
@@ -104,6 +106,8 @@ export function deepLinkToSelection(link: UrlDeepLink): DiagramSelection | null 
   if (link.view === "domain-erd") return { kind: "erd", qualifier: link.domain };
   if (link.view === "use-case" && link.domain) return { kind: "use_case", domain_qualifier: link.domain };
   if (link.view === "use-case-all") return { kind: "use_case_all" };
+  if (link.view === "events" && link.domain) return { kind: "events", domain_qualifier: link.domain };
+  if (link.view === "events-all") return { kind: "events_all" };
   if (link.view === "lifecycle-fsm" && link.node && link.host) {
     return { kind: "lifecycle_fsm", lifecycle_graph_node_id: link.node, host_entity_interchange_id: link.host };
   }
@@ -120,7 +124,7 @@ export function deepLinkNeedsSidebarDefault(link: UrlDeepLink): "use_case" | "li
 export function selectionToParams(sel: DiagramSelection): Record<string, string> {
   const view = VIEW_SLUG_BY_KIND[sel.kind];
   if (sel.kind === "erd") return sel.qualifier ? { view, domain: sel.qualifier } : { view };
-  if (sel.kind === "use_case") return { view, domain: sel.domain_qualifier };
+  if (sel.kind === "use_case" || sel.kind === "events") return { view, domain: sel.domain_qualifier };
   if (sel.kind === "lifecycle_fsm") return { view, node: sel.lifecycle_graph_node_id, host: sel.host_entity_interchange_id };
   return { view };
 }

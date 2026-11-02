@@ -219,6 +219,8 @@ async function listTargets(front: string, source: string): Promise<Target[]> {
       targets.push({ label: `ERD ${row.parent_id}`, query: { view: "domain-erd", domain: row.parent_id } });
     else if (row.type === "use_case_domain" && row.parent_id)
       targets.push({ label: `use case ${row.parent_id}`, query: { view: "use-case", domain: row.parent_id } });
+    else if (row.type === "events_domain" && row.parent_id)
+      targets.push({ label: `events ${row.parent_id}`, query: { view: "events", domain: row.parent_id } });
     else if (row.type === "lifecycle_state_diagram" && row.parent_id)
       targets.push({
         label: `lifecycle ${row.id}`,

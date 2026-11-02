@@ -61,6 +61,10 @@ def page_keys(sidebar: Any) -> set[str]:
             keys.add(page_key("use-case", domain=str(parent)))
         elif kind == "use_case_all":
             keys.add(page_key("use-case-all"))
+        elif kind == "events_domain" and parent:
+            keys.add(page_key("events", domain=str(parent)))
+        elif kind == "events_all":
+            keys.add(page_key("events-all"))
         elif kind == "lifecycle_state_diagram" and getattr(row, "host_id", None):
             keys.add(page_key("lifecycle-fsm", node=str(getattr(row, "id", "")), host=str(row.host_id)))
     return keys
@@ -128,6 +132,8 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     },
     "use-case": _USE_CASE_SETTINGS,
     "use-case-all": _USE_CASE_SETTINGS,
+    "events": _USE_CASE_SETTINGS,
+    "events-all": _USE_CASE_SETTINGS,
     "lifecycle-fsm": {
         "rankdir": _one_of("LR", "TB"),
         "rankdir_a": _one_of("LR", "TB"),

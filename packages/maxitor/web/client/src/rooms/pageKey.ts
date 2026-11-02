@@ -44,6 +44,10 @@ export function pageLabel(key: string | null, sidebar: SidebarPayload | null): s
       return `Use case · ${labelOf(sidebar, selection.domain_qualifier)}`;
     case "use_case_all":
       return "Use case · all domains";
+    case "events":
+      return `Events · ${labelOf(sidebar, selection.domain_qualifier)}`;
+    case "events_all":
+      return "Events · all domains";
     case "lifecycle_fsm":
       return `Lifecycle · ${labelOf(sidebar, selection.lifecycle_graph_node_id)}`;
   }

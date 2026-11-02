@@ -1,0 +1,251 @@
+# packages/maxitor/web/maxitor/web/model/diagrams/actions/domain_events_diagram_action.py
+"""
+GetDomainEventsDiagramAction, GetAllEventsDiagramAction — which method emits what (spec 053).
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+A domain's answer to "which facts come out of here": its actions, those of their methods
+that emit, and the events, standing in bands by the domain's vocabulary. An event also
+carries what its card shows: fields, every method producing it, and its domains.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    GET /api/v1/domain-events-diagram ──► DuckDB ──► events_diagram(duck, domain_row)
+    GET /api/v1/events-diagram        ──► DuckDB ──► events_diagram(duck, None)
+"""
+
+from __future__ import annotations
+
+from typing import Any, cast
+
+from maxitor.web.model.diagrams.actions.domain_events_diagram_action_schema import DomainEventsDiagramJson
+from maxitor.web.model.diagrams.actions.domain_use_case_diagram_action import (
+    ALL_DOMAINS,
+    _accent_by_domain,
+    _action_domain_map,
+    _short_qualname,
+)
+from maxitor.web.model.diagrams.diagrams_domain import DiagramsDomain
+from maxitor.web.model.diagrams.resources.duckdb_graph_resource import (
+    DUCKDB_GRAPH_CONNECTION_KEY,
+    DuckDBGraphResource,
+)
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, ParamsStub
+from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
+#: The five kinds of method: the node's type, its table, and the table of the edges from its action.
+_METHOD_KINDS = (
+    ("RegularAspect", "regular_aspect", "regular_aspect_edges", "@regular_aspect"),
+    ("SummaryAspect", "summary_aspect", "summary_aspect_edges", "@summary_aspect"),
+    ("Compensator", "compensator", "compensate_edges", "@compensate"),
+    ("ErrorHandler", "error_handler", "on_error_edges", "@on_error"),
+    ("AccessDecide", "access_decide", "access_decide_edges", "@access_decide"),
+)
+
+
+def _methods(duck: DuckDBGraphResource) -> dict[str, dict[str, str]]:
+    """Every method of every kind by id, with its action and the type of the edge from it."""
+    out: dict[str, dict[str, str]] = {}
+    for kind, table, edges, edge_type in _METHOD_KINDS:
+        rows = duck.execute_fetch_dicts(f"SELECT m.id, m.label, e.source_id AS action_id FROM {table} m JOIN {edges} e ON e.target_id = m.id")
+        for row in rows:
+            out[str(row["id"])] = {"id": str(row["id"]), "label": str(row["label"]), "kind": kind, "action_id": str(row["action_id"]), "edge_type": edge_type}
+    return out
+
+
+def _event_fields(duck: DuckDBGraphResource) -> dict[str, list[dict[str, str]]]:
+    """Each event's fields, sorted by name; the type is the JSON schema's, when the document gives one."""
+    rows = duck.execute_fetch_dicts(
+        """
+        SELECT e.source_id, f.label, f.description, f.json_schema_name
+        FROM field_edges e JOIN field f ON f.id = e.target_id JOIN event v ON v.id = e.source_id
+        ORDER BY e.source_id, f.label
+        """,
+    )
+    out: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        out.setdefault(str(row["source_id"]), []).append({"name": str(row["label"]), "type": str(row["json_schema_name"] or ""), "description": str(row["description"])})
+    return out
+
+
+def _band(typed: bool | None, in_vocabulary: bool, emitted: bool) -> str:
+    """The band of an event on this diagram (spec 053, Clarifications)."""
+    if not emitted:
+        return "not_emitted"
+    return "in_vocabulary" if typed and in_vocabulary else "emitted"
+
+
+def events_diagram(duck: DuckDBGraphResource, domain_row: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    AI-CORE-BEGIN
+    ROLE: Build the events diagram of one domain, or of every domain when ``domain_row`` is ``None``.
+    CONTRACT: Actions with an emitting method, those methods, the events of the scope in bands, and the links, each with its protocol id.
+    INVARIANTS: Read-only; an event stands once; the lists are sorted, so one graph gives one diagram.
+    AI-CORE-END
+    """
+    accents = _accent_by_domain(duck)
+    domain_of_action = _action_domain_map(duck)
+    methods = _methods(duck)
+    action_labels = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM action")}
+    domain_labels = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM domain")}
+    events = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM event")}
+    emits = sorted((str(r["source_id"]), str(r["target_id"])) for r in duck.execute_fetch_dicts("SELECT source_id, target_id FROM emits_edges"))
+    emits = [(method, event) for method, event in emits if method in methods]
+    vocabulary = {(str(r["source_id"]), str(r["target_id"])) for r in duck.execute_fetch_dicts("SELECT source_id, target_id FROM domain_event_edges")}
+    fields = _event_fields(duck)
+
+    if domain_row is None:
+        domain_id = None
+        domain_json: dict[str, Any] = {**ALL_DOMAINS, "typed_events": None}
+        typed: bool | None = None
+    else:
+        domain_id = str(domain_row["id"])
+        typed = bool(domain_row["typed_events"])
+        domain_json = {
+            "id": domain_id,
+            "label": str(domain_row.get("label") or domain_id),
+            "short_label": str(domain_row.get("name") or "").strip() or _short_qualname(domain_id),
+            "accent_color": accents.get(domain_id, "#64748b"),
+            "typed_events": typed,
+        }
+
+    in_scope = [(m, e) for m, e in emits if domain_id is None or domain_of_action.get(methods[m]["action_id"]) == domain_id]
+    emitted = {event for _, event in in_scope}
+    held = {event for owner, event in vocabulary if owner == domain_id} if domain_id else set(events)
+    method_ids = sorted({method for method, _ in in_scope})
+    action_ids = sorted({methods[method]["action_id"] for method in method_ids})
+
+    actions_json = []
+    for aid in action_ids:
+        dom = domain_of_action.get(aid, domain_id or "")
+        actions_json.append(
+            {
+                "id": aid,
+                "label": action_labels.get(aid, _short_qualname(aid)),
+                "short_label": _short_qualname(action_labels.get(aid, aid)),
+                "domain_id": dom,
+                "domain_short_label": _short_qualname(dom) if dom else "No domain",
+                "accent_color": accents.get(dom, "#94a3b8"),
+            },
+        )
+
+    events_json = []
+    for eid in sorted(emitted | held):
+        producers = sorted({m for m, e in emits if e == eid})
+        holding = {owner for owner, event in vocabulary if event == eid}
+        emitting = {domain_of_action.get(methods[m]["action_id"], "") for m in producers} - {""}
+        events_json.append(
+            {
+                "id": eid,
+                "label": events.get(eid, _short_qualname(eid)),
+                "band": _band(typed, eid in held, eid in emitted),
+                "fields": fields.get(eid, []),
+                "methods": [
+                    {
+                        "id": m,
+                        "label": methods[m]["label"],
+                        "kind": methods[m]["kind"],
+                        "action_id": methods[m]["action_id"],
+                        "action_label": action_labels.get(methods[m]["action_id"], methods[m]["action_id"]),
+                    }
+                    for m in producers
+                ],
+                "domains": [
+                    {"id": d, "label": domain_labels.get(d, _short_qualname(d)), "in_vocabulary": d in holding}
+                    for d in sorted(holding | emitting, key=lambda each: (each not in holding, each))
+                ],
+            },
+        )
+
+    edges: list[dict[str, Any]] = []
+    for method in method_ids:
+        row = methods[method]
+        edges.append({"id": f"{row['action_id']}|{row['edge_type']}|{method}", "edge_kind": "method", "source_id": row["action_id"], "target_id": method})
+    for method, event in in_scope:
+        edges.append({"id": f"{method}|@emits|{event}", "edge_kind": "emits", "source_id": method, "target_id": event})
+
+    return {
+        "domain": domain_json,
+        "actions": actions_json,
+        "methods": [{key: methods[m][key] for key in ("id", "label", "kind", "action_id")} for m in method_ids],
+        "events": events_json,
+        "edges": edges,
+    }
+
+
+class EventsDiagramResult(BaseResult):
+    """An events diagram."""
+
+    domain_events_diagram: DomainEventsDiagramJson = Field(description="Actions, emitting methods, events in bands and their links.")
+
+
+@meta(description="Return the events diagram of one domain", domain=DiagramsDomain)
+@check_roles(GuestRole)
+@connection(DuckDBGraphResource, key=DUCKDB_GRAPH_CONNECTION_KEY, description="Coordinator graph in DuckDB")
+class GetDomainEventsDiagramAction(BaseAction["GetDomainEventsDiagramAction.Params", EventsDiagramResult]):
+    """
+    AI-CORE-BEGIN
+    ROLE: Materialize one domain's events diagram for the SPA.
+    CONTRACT: ``domain_id`` is the interchange domain vertex id; a domain with no events gives empty lists.
+    AI-CORE-END
+    """
+
+    class Params(BaseParams):
+        domain_id: str = Field(min_length=1, description="Interchange Domain vertex id (full type qualname)")
+
+    @summary_aspect("Build a domain's events diagram")
+    async def build_events_summary(
+        self,
+        params: GetDomainEventsDiagramAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> EventsDiagramResult:
+        """Read the domain and build its diagram."""
+        _ = (state, box)
+        duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        domain_id = params.domain_id.strip()
+        rows = duck.execute_fetch_dicts("SELECT id, label, name, typed_events FROM domain WHERE id = ? LIMIT 1", [domain_id])
+        if not rows:
+            msg = f"Unknown domain id {domain_id!r}"
+            raise ValueError(msg)
+        return EventsDiagramResult(domain_events_diagram=events_diagram(duck, dict(rows[0])))
+
+
+@meta(description="Return the events diagram of every domain together", domain=DiagramsDomain)
+@check_roles(GuestRole)
+@connection(DuckDBGraphResource, key=DUCKDB_GRAPH_CONNECTION_KEY, description="Coordinator graph in DuckDB")
+class GetAllEventsDiagramAction(BaseAction[ParamsStub, EventsDiagramResult]):
+    """
+    AI-CORE-BEGIN
+    ROLE: Materialize the whole application's events diagram for the SPA.
+    CONTRACT: The shape of one domain's diagram; ``typed_events`` is ``None``, as no one vocabulary applies.
+    AI-CORE-END
+    """
+
+    @summary_aspect("Build the events diagram of every domain")
+    async def all_events_summary(
+        self,
+        params: ParamsStub,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> EventsDiagramResult:
+        """Build the diagram with no domain to narrow it."""
+        _ = (params, state, box)
+        duck = cast(DuckDBGraphResource, connections[DUCKDB_GRAPH_CONNECTION_KEY])
+        return EventsDiagramResult(domain_events_diagram=events_diagram(duck, None))

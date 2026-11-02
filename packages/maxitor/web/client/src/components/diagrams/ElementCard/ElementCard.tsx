@@ -29,6 +29,9 @@ export type CardField = {
   lifecycleId?: string | null;
 };
 
+/** One row that leads on to another page. */
+export type CardLink = { group: string; label: string; onOpen: () => void };
+
 /** What a card is about and what the diagram already knows of it. */
 export type CardSubject = {
   key: string;
@@ -45,6 +48,8 @@ export type CardSubject = {
   /** The lifecycles it is or holds, each drawn small. */
   lifecycleIds?: readonly string[];
   fields?: readonly CardField[];
+  /** Rows that lead on to another page, under their group's title, in order. */
+  links?: readonly CardLink[];
   /** A name to copy; a phone has no click on it. */
   copy?: string;
   at: { x: number; y: number };
@@ -157,6 +162,27 @@ function FieldList({ fields, open, pointed, onOpen, onPoint }: { fields: readonl
         </Box>
       )}
     </Box>
+  );
+}
+
+/** The rows that lead on, under their groups. */
+function LinkList({ links }: { links: readonly CardLink[] }) {
+  const groups = [...new Set(links.map((link) => link.group))];
+  return (
+    <>
+      {groups.map((group) => (
+        <Box key={group} data-testid="card-links" sx={{ mt: "6px", borderTop: "1px solid rgba(15, 23, 42, 0.06)", pt: "4px" }}>
+          <Box sx={{ fontWeight: 600, color: "#475569" }}>{group}</Box>
+          {links
+            .filter((link) => link.group === group)
+            .map((link) => (
+              <ButtonBase key={link.label} data-testid="card-link" onClick={link.onOpen} sx={{ display: "block", width: "100%", textAlign: "left", fontSize: 12, lineHeight: 1.45, color: POINTED_COLOUR, overflowWrap: "anywhere" }}>
+                {link.label}
+              </ButtonBase>
+            ))}
+        </Box>
+      ))}
+    </>
   );
 }
 
@@ -291,6 +317,11 @@ export function ElementCard({ subject, newer, onEnter, onLeave, onClose }: Eleme
           {subject.description ?? read?.description}
         </Box>
       )}
+      {typeof read?.vocabulary === "boolean" && (
+        <Box data-testid="card-vocabulary" sx={{ mt: "4px", color: "#64748b" }}>
+          {read.vocabulary ? "Vocabulary" : "No vocabulary"}
+        </Box>
+      )}
       {failed && (
         <Box data-testid="card-unread" sx={{ mt: "4px", color: "#64748b" }}>
           The rest could not be read.
@@ -318,6 +349,7 @@ export function ElementCard({ subject, newer, onEnter, onLeave, onClose }: Eleme
           onPoint={(row) => setOwnInside((now) => ({ ...now, field: row }))}
         />
       )}
+      {subject.links && <LinkList links={subject.links} />}
       {copy && onTouchScreen() && <CopyName name={copy} />}
     </Paper>
   );

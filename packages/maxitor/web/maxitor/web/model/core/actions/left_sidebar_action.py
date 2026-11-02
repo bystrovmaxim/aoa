@@ -130,6 +130,12 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
                     label=self._diagram_view_label("Use case all domains"),
                     type="use_case_all",
                 ),
+                NodeCoreEntity(
+                    id="application_all_events",
+                    parent_id="applications_root",
+                    label=self._diagram_view_label("Events all domains"),
+                    type="events_all",
+                ),
             ],
             key=lambda n: (n.label.lower(), n.id),
         )
@@ -191,6 +197,7 @@ class GetLeftMenuSidebarDataAction(BaseAction[ParamsStub, "GetLeftMenuSidebarDat
                 rows.append(NodeCoreEntity(id=f"erd_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Entity domain — {dlabel}"), type="erd_domain", ordinal=0))
             if did in with_actions:
                 rows.append(NodeCoreEntity(id=f"use_case_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Use case — {dlabel}"), type="use_case_domain", ordinal=1))
+                rows.append(NodeCoreEntity(id=f"events_domain:{did}", parent_id=did, label=self._diagram_view_label(f"Events — {dlabel}"), type="events_domain", ordinal=2))
 
         # One row per lifecycle, under the domain of the entity that holds it.
         lifecycles = duck.execute_fetch_dicts("""

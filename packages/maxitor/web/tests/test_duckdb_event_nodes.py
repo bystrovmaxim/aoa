@@ -87,7 +87,11 @@ def test_the_tables_of_the_other_diagrams_do_not_change() -> None:
     with_events = DuckDBGraphResource.build_from_json(_graph("1.3", events=True)).service
 
     for table in _DIAGRAM_TABLES:
-        assert _rows(plain, table) == _rows(with_events, table), table
+        if table != "domain":
+            assert _rows(plain, table) == _rows(with_events, table), table
+    # A domain differs by its vocabulary alone, the column the events diagram reads.
+    columns = "SELECT id, label, name, description FROM domain ORDER BY id"
+    assert plain.execute(columns).fetchall() == with_events.execute(columns).fetchall()
 
 
 def test_a_1_2_graph_still_loads() -> None:

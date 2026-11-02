@@ -126,11 +126,13 @@ function selectionKey(sel: DiagramSelection): string {
   if (sel.kind === "lifecycle_fsm") return `lifecycle_fsm:${sel.lifecycle_graph_node_id}`;
   if (sel.kind === "use_case") return `use_case:${sel.domain_qualifier}`;
   if (sel.kind === "use_case_all") return "use_case_all";
+  if (sel.kind === "events") return `events:${sel.domain_qualifier}`;
+  if (sel.kind === "events_all") return "events_all";
   return `erd:${sel.qualifier ?? "all"}`;
 }
 
 function prefetchDiagramModule(sel: DiagramSelection | null): void {
-  if (sel?.kind === "erd" || sel?.kind === "use_case" || sel?.kind === "use_case_all") prefetchErdGraphviz();
+  if (sel?.kind === "erd" || sel?.kind === "use_case" || sel?.kind === "use_case_all" || sel?.kind === "events" || sel?.kind === "events_all") prefetchErdGraphviz();
   if (sel?.kind === "interchange_graph") prefetchMapEngine();
 }
 
@@ -224,7 +226,7 @@ export function LeftSidebar({
     if (!diagram) return;
     setExpandedById((prev) => {
       const next = { ...prev };
-      if (diagram.kind === "interchange_graph" || diagram.kind === "use_case_all" || (diagram.kind === "erd" && !diagram.qualifier)) {
+      if (diagram.kind === "interchange_graph" || diagram.kind === "use_case_all" || diagram.kind === "events_all" || (diagram.kind === "erd" && !diagram.qualifier)) {
         next.applications_root = true;
       }
       if (diagram.kind === "erd" && diagram.qualifier) {
@@ -549,7 +551,9 @@ export function LeftSidebar({
                                   {erdRows.map((e) => {
                                     const sel = diagramSelectionForRow(e);
                                     const primary =
-                                      e.type === "use_case_domain"
+                                      e.type === "events_domain"
+                                        ? "Events view"
+                                        : e.type === "use_case_domain"
                                         ? useCaseRowLabelForDomainGroup(cnode.label, e.label)
                                         : erdRowLabelForDomainGroup(cnode.label, e.label);
                                     return (

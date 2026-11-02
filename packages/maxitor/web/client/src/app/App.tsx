@@ -600,7 +600,7 @@ export function App() {
       ) : (
         <PageSettingsProvider page={page} room={sharedSettings}>
           <OpenDiagramContext.Provider value={handleSelectDiagram}>
-            <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} halves={halves} />
+            <DiagramWorkspacePage key={`workspace-${workspaceKey}`} diagram={diagram} onOpenErd={() => handleSelectDiagram({ kind: "erd", qualifier: null })} onOpenDiagram={handleSelectDiagram} halves={halves} />
           </OpenDiagramContext.Provider>
         </PageSettingsProvider>
       )}

@@ -2146,6 +2146,138 @@
       "type": "field"
     },
     {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult|field|maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult:domain_events_diagram",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult:domain_events_diagram",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|@connection|maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "is_dag": true,
+      "properties": {
+        "description": "Coordinator graph in DuckDB",
+        "key": "DuckDBGraph"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|@summary_aspect|maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction:all_events_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction:all_events_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|domain|maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction|generic:result|maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "type": "generic:result"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params|field|maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params:domain_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params:domain_id",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|@connection|maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "is_dag": true,
+      "properties": {
+        "description": "Coordinator graph in DuckDB",
+        "key": "DuckDBGraph"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|@summary_aspect|maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction:build_events_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction:build_events_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|domain|maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|generic:params|maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction|generic:result|maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "target_id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "type": "generic:result"
+    },
+    {
       "id": "maxitor.web.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params|field|maxitor.web.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction.Params:domain_id",
       "is_dag": false,
       "properties": {},
@@ -2395,6 +2527,15 @@
       "relationship": "Composition",
       "source_id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult",
       "target_id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult:type",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult|field|maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult:vocabulary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult",
+      "target_id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult:vocabulary",
       "type": "field"
     },
     {
@@ -6292,6 +6433,318 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult",
+      "label": "EventsDiagramResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.EventsDiagramResult:domain_events_diagram",
+      "label": "domain_events_diagram",
+      "properties": {
+        "description": "Actions, emitting methods, events in bands and their links.",
+        "entity_schema": false,
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "actions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "accent_color": {
+                    "type": "string"
+                  },
+                  "domain_id": {
+                    "type": "string"
+                  },
+                  "domain_short_label": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "short_label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "short_label",
+                  "domain_id",
+                  "domain_short_label",
+                  "accent_color"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "domain": {
+              "additionalProperties": false,
+              "properties": {
+                "accent_color": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "short_label": {
+                  "type": "string"
+                },
+                "typed_events": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "short_label",
+                "accent_color",
+                "typed_events"
+              ],
+              "type": "object"
+            },
+            "edges": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "edge_kind": {
+                    "enum": [
+                      "method",
+                      "emits"
+                    ],
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "source_id": {
+                    "type": "string"
+                  },
+                  "target_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "edge_kind",
+                  "source_id",
+                  "target_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "events": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "band": {
+                    "enum": [
+                      "in_vocabulary",
+                      "not_emitted",
+                      "emitted"
+                    ],
+                    "type": "string"
+                  },
+                  "domains": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "in_vocabulary": {
+                          "type": "boolean"
+                        },
+                        "label": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "in_vocabulary"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "fields": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "description"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "methods": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "action_id": {
+                          "type": "string"
+                        },
+                        "action_label": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "kind",
+                        "action_id",
+                        "action_label"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "band",
+                  "fields",
+                  "methods",
+                  "domains"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "methods": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "action_id": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "kind",
+                  "action_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "domain",
+            "actions",
+            "methods",
+            "events",
+            "edges"
+          ],
+          "type": "object"
+        },
+        "json_schema_name": "DomainEventsDiagramJson",
+        "json_schema_value": true,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction",
+      "label": "GetAllEventsDiagramAction",
+      "properties": {
+        "description": "Return the events diagram of every domain together"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetAllEventsDiagramAction:all_events_summary",
+      "label": "all_events_summary",
+      "properties": {
+        "description": "Build the events diagram of every domain"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction",
+      "label": "GetDomainEventsDiagramAction",
+      "properties": {
+        "description": "Return the events diagram of one domain"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction.Params:domain_id",
+      "label": "domain_id",
+      "properties": {
+        "description": "Interchange Domain vertex id (full type qualname)",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.domain_events_diagram_action.GetDomainEventsDiagramAction:build_events_summary",
+      "label": "build_events_summary",
+      "properties": {
+        "description": "Build a domain's events diagram"
+      },
+      "type": "SummaryAspect"
+    },
+    {
       "id": "maxitor.web.model.diagrams.actions.domain_use_case_diagram_action.GetDomainUseCaseDiagramAction",
       "label": "GetDomainUseCaseDiagramAction",
       "properties": {
@@ -6608,6 +7061,17 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.get_element_card_action.GetElementCardResult:vocabulary",
+      "label": "vocabulary",
+      "properties": {
+        "description": "On a domain: whether it has a vocabulary of events, else nothing",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },

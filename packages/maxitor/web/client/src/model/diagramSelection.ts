@@ -5,4 +5,6 @@ export type DiagramSelection =
   | { kind: "erd"; qualifier: string | null }
   | { kind: "lifecycle_fsm"; lifecycle_graph_node_id: string; host_entity_interchange_id: string }
   | { kind: "use_case"; domain_qualifier: string }
-  | { kind: "use_case_all" };
+  | { kind: "use_case_all" }
+  | { kind: "events"; domain_qualifier: string }
+  | { kind: "events_all" };
