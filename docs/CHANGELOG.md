@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-02] — One wizard for versions and graphs
+
+The setup wizard now sets up two separate things: a check that version numbers grow, and saved model graphs. You can take either, both or neither, and you can run it again whenever you like, because it looks at the project and proposes only what differs.
+
+Release tags are no longer required. The version lives in your files, and tags only mark releases. The wizard never raises a number for you, and it changes nothing until you approve the plan. If a service or a map has outlived its purpose, it can retire it and shows what stays covered. See [the guide](how-to/graph-setup.md).
+
 ## [2026-11-02] — The version track shows where the graph changed
 
 A history that names its version file now reads differently in Maxitor. A large point on the track means the graph changed. A small point means only the version did. A number stands under a point where the version rose, and it comes from the file, not from tags.

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed — breaking
 
+- **The setup skill sets up versions and graphs**, either or both, and audits the project on every run; release tags are no longer required.
 - **The setup skill is `aoa-graph-builder-setup`** (was `graph-builder-setup`): after its survey it asks one question at a time, with options — where each graph goes, how CI checks every graph, which check run writes them — then shows one table of what is and what will change and goes on only with the user's consent; it proposes a workflow when the project has no CI, and pins a commit until a release exists.
 - **The web part is `front`**: extra `front` (was `viewer`), command `maxitor` (was `maxitor-api`), import `maxitor.front` (was `maxitor.viewer`).
 
