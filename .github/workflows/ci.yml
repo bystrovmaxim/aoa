@@ -8,17 +8,16 @@ on:
       - main
       - "feature/**"
 
-# Five jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
+# Four jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
 # same commands from one table (`scripts/check_run.py`):
 #   checks     — the deterministic gate (static checks, client build and unit tests,
 #                ERD scripts, Python tests minus benchmarks, graph files check);
 #   checks-314 — the same gate on Python 3.14, the newest version the project supports;
 #   packaging  — the wheel/sdist build and the install smoke;
-#   local-run  — the proof that the full local run passed on this commit.
 #   versions   — version-gate, on pull requests into main only: a task's sub-issues raise a version once.
 # The three-engine layout check is not here: these machines have no graphics card, so Firefox
-# has no WebGL and the map cannot be drawn. It runs in the full local run, and `local-run` fails a
-# pull request whose commit does not carry that run's proof.
+# has no WebGL and the map cannot be drawn. It runs locally with `scripts/check_before_pr.sh`, whose
+# commit status `Local check run` the merge rule of main requires.
 jobs:
   versions:
     name: Versions
@@ -127,26 +126,6 @@ jobs:
       - name: Show the check log on failure
         if: failure()
         run: cat archive/logs/check-all.txt || true
-
-  local-run:
-    name: Proof of the local run
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      statuses: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # The head of the pull request, not `github.sha`: that is GitHub's own merge commit, and
-      # nobody ran it. No uv here: the runner is the standard library alone.
-      - name: The commit carries the proof of the full local run
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMIT: ${{ github.event.pull_request.head.sha }}
-        run: python3 scripts/check_run.py --await-sign-off "$COMMIT"
 
   packaging:
     name: Packaging
