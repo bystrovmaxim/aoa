@@ -4,6 +4,8 @@
 
 Some commit hooks could fail on correct code, and commits to `aoa-action-machine` had to skip two of them. Those two are gone, and so is the third that repeated Ruff's work. Types and package boundaries are still checked by `scripts/check_before_commit.sh`, and the Ruff hook now uses the same version as the repository.
 
+The repository now names its Python version, 3.12, in `.python-version`. GitHub's newer machines came with Python 3.14, which the checks do not pass yet, so without this line a pull request could fail with no change of its own.
+
 ## [2026-11-02] — The two tools that sort imports no longer undo each other
 
 Ruff and isort disagreed about 204 files, so one undid what the other had just done, and a commit touching such a file could not pass both hooks. They now follow the same rules.
