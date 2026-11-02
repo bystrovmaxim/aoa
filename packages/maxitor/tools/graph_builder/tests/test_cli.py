@@ -111,8 +111,9 @@ def test_skill_prints_the_setup_skill(capsys: pytest.CaptureFixture[str]) -> Non
     assert main(["skill"]) == 0
     text = capsys.readouterr().out
     assert text.startswith("---\nname: aoa-graph-builder-setup\ndescription: ")
-    assert "## Setup" in text and "## If you read this from a link" in text
-    assert "uvx --from maxitor graph-builder" in text and "maxitor-gnomon" not in text
+    assert "## 1/4 Discover" in text and "## 4/4 Review" in text
+    assert "version-gate check --base" in text and "graph-builder write" in text
+    assert "maxitor-gnomon" not in text
 
 
 def test_write_and_check_preserve_setup_decisions(
