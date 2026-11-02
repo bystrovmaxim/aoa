@@ -16,6 +16,8 @@
 - [events: the whole domain](#events-the-whole-domain)
 - [What a refusal does](#what-a-refusal-does)
 - [When to emit, and how to take a fact back](#when-to-emit-and-how-to-take-a-fact-back)
+- [Everything that is refused](#everything-that-is-refused)
+- [Masking, subscriptions and the cache](#masking-subscriptions-and-the-cache)
 - [Summary](#summary)
 
 ---
@@ -208,6 +210,43 @@ the card is declined:
 ```
 
 `OrderCompletedEvent` appears only when every step succeeded. In the second run the reservation was published, so it is not taken back: `OrderCancelledEvent` follows it. A compensator also runs for the aspect that failed, so here the failing step is a later one, after the reservation succeeded.
+
+## Everything that is refused
+
+Most mistakes never reach a run. [`06_refused_declarations.py`](../../examples/step_11_object_events/06_refused_declarations.py) makes each one ([notebook](../../examples/step_11_object_events/06_refused_declarations.ipynb)):
+
+```text
+a name without the suffix: NamingSuffixError
+a field named level: EventContractError
+a field named items: EventContractError
+an author setting level: ValidationError
+@emits with nothing: DecoratorArgumentValueError
+@emits with a non-event: DecoratorArgumentTypeError
+@emits with BaseEvent: DecoratorArgumentTypeError
+@emits with a repeated event: DecoratorArgumentValueError
+@emits written twice: DuplicateDeclarationError
+events as a list: EventContractError
+events holding a non-event: EventContractError
+events holding BaseEvent: EventContractError
+events repeating a class: EventContractError
+a class in the event's place: EventContractError
+a dictionary in the event's place: EventContractError
+a bare BaseEvent in the event's place: EventContractError
+```
+
+## Masking, subscriptions and the cache
+
+An event is filtered and masked like any line, and it goes out only from a method that ran. [`07_masking_filters_cache.py`](../../examples/step_11_object_events/07_masking_filters_cache.py) shows the three together ([notebook](../../examples/step_11_object_events/07_masking_filters_cache.ipynb)):
+
+```text
+the first call:
+  subscribed to business: 'masked 41*****, plain 4111222233334444'
+  answered by: method
+the second call:
+  answered by: cache
+```
+
+The logger subscribed to `debug` receives nothing. The property is masked and the plain field is not, so keep a secret behind `@sensitive` or out of the event. The second call is answered by the cache, so no line appears.
 
 ## Summary
 
