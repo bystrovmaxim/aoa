@@ -64,9 +64,9 @@
 
 ## Phase 6: Documentation
 
-- [ ] T030 Add the page on events in the graph (each mode, empty and inherited vocabulary, build refusal, comparison) to `docs/tutorials/step-11-object-events.md`, or its own page if it outgrows the chapter, and update `docs/how-to/read-the-full-graph-map.md`
-- [ ] T031 Add each case as a script and a notebook in `examples/step_11_object_events/`, running each and pasting what it printed; run `examples/step_26_maxitor/21_element_card.py`, `22_version_file.py` and `23_version_track.py` with their notebooks, and raise their `1.2` where the text describes the current version
-- [ ] T032 Write the Russian version beside each new page as `<page>.ru_draft.md`
+- [X] T030 Add the page on events in the graph (each mode, empty and inherited vocabulary, build refusal, comparison) to `docs/tutorials/step-11-object-events.md`, or its own page if it outgrows the chapter, and update `docs/how-to/read-the-full-graph-map.md`
+- [X] T031 Add each case as a script and a notebook in `examples/step_11_object_events/`, running each and pasting what it printed; run `examples/step_26_maxitor/21_element_card.py`, `22_version_file.py` and `23_version_track.py` with their notebooks, and raise their `1.2` where the text describes the current version
+- [X] T032 Write the Russian version beside each new page as `<page>.ru_draft.md`
 
 ## Phase 7: Changelog
 

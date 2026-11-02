@@ -27,6 +27,8 @@ On a phone, drag and pinch; a tap reads a node.
 
 What belongs to no domain stands in its own area, *Outside domains*.
 
+Events stand with the other close-up details: an event of a domain's vocabulary in that domain, and an event named only by `@emits` in *Outside domains*. See [Object events](../tutorials/step-11-object-events.md#events-in-the-graph).
+
 ## Filter
 
 The filter panel has **Domains**, **Node types** and, in Diff, **Changes**. A filter takes things off the picture and moves nothing else: the outline closes around what is left, the name stands with it, and the area reads how much is left, such as `45 of 394 left`. This works at every distance.
