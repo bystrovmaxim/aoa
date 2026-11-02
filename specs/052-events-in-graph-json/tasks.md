@@ -75,7 +75,7 @@
 
 ## Phase 8: The stand
 
-- [ ] T035 Start the demo stand and open the full graph of the local history in diff mode (`view=full-graph`), with two versions of which the newer holds this work; events (`OrderRequestedEvent`, `OrderValidatedEvent`) and their edges must be visible. A screenshot goes into the report; no commit
+- [X] T035 Start the demo stand and open the full graph of the local history in diff mode (`view=full-graph`), with two versions of which the newer holds this work; events (`OrderRequestedEvent`, `OrderValidatedEvent`) and their edges must be visible. A screenshot goes into the report; no commit
 
 ## Dependencies & Execution Order
 
