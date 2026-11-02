@@ -29,9 +29,13 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.level import Level
+
+# What a logger reads a line from: a dictionary, or the event of a line that carries one.
+type LogVar = Any
 
 
 @dataclass(frozen=True, slots=True)

@@ -47,6 +47,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.exceptions.log_template_error import LogTemplateError
 from aoa.action_machine.logging.expression_evaluator import ExpressionEvaluator, debug_value
 from aoa.action_machine.logging.log_scope import LogScope
+from aoa.action_machine.logging.log_var_payloads import LogVar
 from aoa.action_machine.logging.masking import mask_value
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
@@ -192,7 +193,7 @@ class VariableSubstitutor:
     def _resolve_ns_var(
         self,
         path: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -204,7 +205,7 @@ class VariableSubstitutor:
     def _resolve_ns_state(
         self,
         path: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -216,7 +217,7 @@ class VariableSubstitutor:
     def _resolve_ns_scope(
         self,
         path: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -228,7 +229,7 @@ class VariableSubstitutor:
     def _resolve_ns_context(
         self,
         path: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -240,7 +241,7 @@ class VariableSubstitutor:
     def _resolve_ns_params(
         self,
         path: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -277,7 +278,7 @@ class VariableSubstitutor:
         self,
         namespace: str,
         path: str | None,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -303,7 +304,7 @@ class VariableSubstitutor:
         self,
         namespace: str,
         path: str | None,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -344,7 +345,7 @@ class VariableSubstitutor:
         self,
         namespace: str,
         path: str | None,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -385,7 +386,7 @@ class VariableSubstitutor:
     def _substitute_simple(
         self,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -416,7 +417,7 @@ class VariableSubstitutor:
     def _format_variable_for_template(
         self,
         match: re.Match[str],
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -451,7 +452,7 @@ class VariableSubstitutor:
     def _substitute_with_iif_detection(
         self,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -474,7 +475,7 @@ class VariableSubstitutor:
     def _substitute_variables(
         self,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,
@@ -549,7 +550,7 @@ class VariableSubstitutor:
     def substitute(
         self,
         message: str,
-        var: dict[str, Any],
+        var: LogVar,
         scope: LogScope,
         ctx: Context,
         state: BaseState,

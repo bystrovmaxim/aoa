@@ -8,7 +8,8 @@ PURPOSE
 
 - Resolve dependencies: ``resolve(cls, *args, **kwargs)``.
 - Run child actions: ``run(action_class, params, connections)``.
-- Log: ``info`` / ``warning`` / ``critical`` with mandatory ``Channel`` first.
+- Log: ``info`` / ``warning`` / ``critical`` with mandatory ``Channel`` and text first, then
+  a ``BaseEvent`` or ``kwargs`` as the variables of the line.
 
 Callers pass a ``ScopedLogger`` and a ``DependencyFactory`` (for example built from the
 wired ``action_node`` interchange ``@depends`` edges via ``resolved_dependency_infos()``).
@@ -75,9 +76,12 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar, cast
 
+from aoa.action_machine.exceptions.event_contract_error import EventContractError
 from aoa.action_machine.logging.channel import Channel
+from aoa.action_machine.logging.level import Level
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.model.base_event import BaseEvent
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.resources import Connections
@@ -85,6 +89,17 @@ from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 
 P = TypeVar("P", bound=BaseParams)
 R = TypeVar("R", bound=BaseResult)
+
+
+def _accepted_event(event: Any, kwargs: dict[str, Any]) -> BaseEvent | None:
+    """Return the call's event, or refuse a call that has one and something else beside it."""
+    if event is None:
+        return None
+    if not isinstance(event, BaseEvent) or event.__class__ is BaseEvent:
+        raise EventContractError(f"An event must be an instance of a BaseEvent subclass, got {event!r}.")
+    if kwargs:
+        raise EventContractError(f"An event already holds its data; remove the variables {sorted(kwargs)}.")
+    return event
 
 
 class ToolsBox:
@@ -217,22 +232,43 @@ class ToolsBox:
         self,
         channels: Channel,
         message: str,
+        event: BaseEvent | None = None,
+        /,
         **kwargs: Any,
     ) -> None:
-        await self.__log.info(channels, message, **kwargs)
+        """Write one line; its variables are ``event`` or ``kwargs``."""
+        accepted = _accepted_event(event, kwargs)
+        if accepted is None:
+            await self.__log.info(channels, message, **kwargs)
+        else:
+            await self.__log.emit_event(Level.info, channels, message, accepted)
 
     async def warning(
         self,
         channels: Channel,
         message: str,
+        event: BaseEvent | None = None,
+        /,
         **kwargs: Any,
     ) -> None:
-        await self.__log.warning(channels, message, **kwargs)
+        """Write one line; its variables are ``event`` or ``kwargs``."""
+        accepted = _accepted_event(event, kwargs)
+        if accepted is None:
+            await self.__log.warning(channels, message, **kwargs)
+        else:
+            await self.__log.emit_event(Level.warning, channels, message, accepted)
 
     async def critical(
         self,
         channels: Channel,
         message: str,
+        event: BaseEvent | None = None,
+        /,
         **kwargs: Any,
     ) -> None:
-        await self.__log.critical(channels, message, **kwargs)
+        """Write one line; its variables are ``event`` or ``kwargs``."""
+        accepted = _accepted_event(event, kwargs)
+        if accepted is None:
+            await self.__log.critical(channels, message, **kwargs)
+        else:
+            await self.__log.emit_event(Level.critical, channels, message, accepted)

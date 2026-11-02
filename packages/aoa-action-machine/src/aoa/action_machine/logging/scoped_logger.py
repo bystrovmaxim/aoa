@@ -34,6 +34,8 @@ ARCHITECTURE / DATA FLOW
          │  no reserved keys in kwargs
          │  var = kwargs + LogLevelPayload + LogChannelPayload + domain + domain_name
          ▼
+    (a line with an event goes through ``emit_event``: ``var`` is the event, filled in a copy)
+         ▼
     LogCoordinator.emit(...)  — validates var, substitutes, fans out
 
 Aspect scope: ``action``, ``aspect``, ``nest_level``.
@@ -46,7 +48,9 @@ Prefer ``{%var.domain_name}`` for domain text; ``{%var.domain}`` is the type obj
 
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -58,6 +62,9 @@ from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.logging.log_var_payloads import LogChannelPayload, LogLevelPayload
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+
+if TYPE_CHECKING:
+    from aoa.action_machine.model.base_event import BaseEvent
 
 _RESERVED_KEYS = frozenset({"level", "channels", "domain", "domain_name"})
 
@@ -136,6 +143,34 @@ class ScopedLogger:
         await self._coordinator.emit(
             message=message,
             var=var,
+            scope=self._scope,
+            ctx=self._context,
+            state=self._state,
+            params=self._params,
+            indent=self._nest_level,
+        )
+
+    async def emit_event(
+        self,
+        log_level: Level,
+        channels: Channel,
+        message: str,
+        event: BaseEvent,
+    ) -> None:
+        """Send one line whose ``var`` is ``event`` with its system fields filled."""
+        validate_channels(channels)
+        validate_level(log_level)
+
+        await self._coordinator.emit(
+            message=message,
+            var=event.model_copy(
+                update={
+                    "level": LogLevelPayload(mask=log_level, name=level_label(log_level)),
+                    "channels": LogChannelPayload(mask=channels, names=channel_mask_label(channels)),
+                    "domain": self._domain,
+                    "domain_name": self._domain_name,
+                }
+            ),
             scope=self._scope,
             ctx=self._context,
             state=self._state,
