@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-02] — The version track shows where the graph changed
+
+A history that names its version file now reads differently in Maxitor. A large point on the track means the graph changed. A small point means only the version did. A number stands under a point where the version rose, and it comes from the file, not from tags.
+
+This changes what a large point means. It used to mean a release, and a release is still marked by its flag. A history with no version file keeps its numbers and flags, and now every point on it is large, because every point there changed the graph.
+
+Long histories gain many small points, so an icon of three points beside the "i" hides them. It is your own setting and never reaches a room or a link. What you chose stays chosen: a chosen small point stays on the track, and the flags of hidden points move to the point before them.
+
+If the version file cannot be read, the graph still opens. A dot on the version button and a line at the foot of the picker say why, and the track shows only the commits that changed the graph. Two compared versions with one graph now say so, and the left panel, narrowed to what changed, shows `No changes`.
+
+A public link can name its version file too, with `version_link=` and `version_key=`. The same graph joined with another file is another history, so a link you shared keeps meaning what it meant.
+
 ## [2026-11-02] — A graph's history can now follow its version
 
 A graph's history used to know only the commits that changed the graph. Now a history can also name the file that holds its version, and the port puts the two together: each point says whether the graph changed, which version is there, and whether that version changed. So a release that touched only the code shows up too.
