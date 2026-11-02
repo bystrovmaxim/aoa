@@ -91,7 +91,7 @@ class ToolsBox:
     """
     Frozen toolbox: dependencies, child ``run``, and channel-scoped logging.
 
-    One instance per nesting level. Does **not** expose ``Context`` on the box.
+    One instance per method call, carrying that method's name. Does **not** expose ``Context`` on the box.
     """
 
     __slots__ = (

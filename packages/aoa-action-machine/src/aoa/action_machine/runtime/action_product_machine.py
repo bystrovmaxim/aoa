@@ -174,6 +174,7 @@ from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.error_handler_executor import ErrorHandlerExecutor
 from aoa.action_machine.runtime.include_contract_checker import IncludeContractChecker
+from aoa.action_machine.runtime.method_box import method_box
 from aoa.action_machine.runtime.saga_coordinator import SagaCoordinator
 from aoa.action_machine.runtime.saga_frame import SagaFrame
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -636,7 +637,9 @@ class ActionProductMachine(BaseActionMachine):
             params=params,
             nest_level=0,
         )
-        answer = await self._decide(context, action_instance, params, box, conns, gates=GATES_AT_OBJECT)
+        answer = await self._decide(
+            context, action_instance, params, box, conns, gates=GATES_AT_OBJECT, check_name=check_name
+        )
         await self._announce_object_check_finished(
             plugin_ctx,
             action=action_instance,
@@ -687,9 +690,25 @@ class ActionProductMachine(BaseActionMachine):
         conns: Connections,
         *,
         gates: tuple[Gate, ...],
+        check_name: str | None = None,
     ) -> Verdict:
-        """Ask the cascade for one phase of the decision: before a run exists, or inside it."""
-        return await decide(context, action, params, box, conns, gates=gates)
+        """Ask the cascade for one phase of the decision: before a run exists, or inside it.
+
+        Only the object step calls a method of the action, so only it has a name to give
+        the box: ``check_name``, with an empty state because a check has none.
+        """
+        step_box = box
+        if check_name is not None:
+            step_box = method_box(
+                box,
+                coordinator=self._log_coordinator,
+                action=action,
+                method_name=check_name,
+                context=context,
+                state=BaseState(),
+                params=params,
+            )
+        return await decide(context, action, params, step_box, conns, gates=gates)
 
     async def _announce_run(
         self,
@@ -901,7 +920,9 @@ class ActionProductMachine(BaseActionMachine):
                 params=params,
                 nest_level=current_nest,
             )
-            verdict = await self._decide(context, action, params, box, conns, gates=GATES_AT_OBJECT)
+            verdict = await self._decide(
+                context, action, params, box, conns, gates=GATES_AT_OBJECT, check_name=check_name
+            )
             await self._announce_object_check_finished(
                 plugin_ctx,
                 action=action,

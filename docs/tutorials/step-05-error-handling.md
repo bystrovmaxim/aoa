@@ -58,6 +58,8 @@ async def validation_error_on_error(self, params: BaseParams, state: BaseState, 
 
 The handler catches not only errors from the aspect's own code but also those that arrived from resources: if a payment gateway or a database threw an exception, it rises as an aspect error and is caught by `@on_error` by type — on a par with any other. If the handler needs context fields, it declares its own `@context_requires` (independently of the failed aspect) and receives a seventh parameter `ctx`.
 
+A handler's `box` is its own, like every method's: its log lines carry the handler's name, and `{%state.reserved}` reads the same `state` the handler received. So a handler can report how far the operation got. A field no step wrote is still an error, and the handler then fails with `OnErrorHandlerError`. The rule for every kind of method is in [Intents and invariants](../reference/intents-and-invariants.md#every-method-gets-its-own-box).
+
 ## Returning a Result closes the error
 
 The main thing about `@on_error` is that it **returns a `Result`**. This result becomes the operation's output, and the error is considered handled: what comes out is not an exception but a meaningful answer. The machine meanwhile checks that exactly the declared `Result` type was returned.
