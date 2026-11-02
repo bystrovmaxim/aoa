@@ -3,14 +3,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
 import pytest
 from maxitor.repo_graph_port.git_error import GitError
+from maxitor.repo_graph_port.history import History
+from maxitor.repo_graph_port.history_reading import facts_of, graph_of
 from maxitor.repo_graph_port.history_versions import graph_change, graph_facts, place_tags, pull_request_in_message
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
+from maxitor.repo_graph_port.resources.github_host import GitHubHost
+from maxitor.repo_graph_port.resources.version_cache import VersionCache
 
 from tests.repo_builder import GRAPH_FILE, BuiltRepository, add_version, build_repository, graph
 
@@ -164,3 +171,46 @@ def test_a_versions_change_counts_nodes_by_kind_nodes_changed_and_links() -> Non
     assert graph_change(before, after) == {"added": {"Action": 1}, "removed": {"Field": 1}, "changed": 1, "links": {"added": 2, "removed": 1}}
     assert graph_change(None, after)["added"] == {"Action": 1, "Entity": 1, "Field": 1}
     assert graph_change(b"not json", after)["links"] == {"added": 3, "removed": 0}
+
+
+def _two_graphs(path: Path) -> tuple[str, str, str]:
+    """A repository whose one commit holds two graph files, and that commit."""
+    path.mkdir(parents=True)
+
+    def git(*arguments: str) -> str:
+        """Run git in the repository."""
+        return subprocess.run(["git", "-C", str(path), "-c", "user.name=T", "-c", "user.email=t@e", *arguments], check=True, capture_output=True, text=True).stdout.strip()
+
+    git("init", "-q", "-b", "main")
+    (path / "a.json").write_text(graph(edges=1), encoding="utf-8")
+    (path / "b.json").write_text(graph(edges=2), encoding="utf-8")
+    git("add", ".")
+    git("commit", "-q", "-m", "both")
+    return "a.json", "b.json", git("rev-parse", "HEAD")
+
+
+@pytest.mark.parametrize("order", [("a.json", "b.json"), ("b.json", "a.json")])
+def test_two_graphs_at_one_commit_stay_apart_cold_and_warm(tmp_path: Path, order: tuple[str, str]) -> None:
+    """Each history gets its own bytes and facts, whichever is read first, and again from the cache."""
+    repository = tmp_path / "service"
+    first, second, sha = _two_graphs(repository)
+    mirror = GitMirror(tmp_path / "cache")
+    mirror.open(str(repository))
+    cache = VersionCache(tmp_path / "cache")
+    histories = {name: History(id=name, host="local", repository=str(repository), branch="main", graph_file=name) for name in (first, second)}
+    host = cast(GitHubHost, None)
+    for _ in ("cold", "warm"):
+        for name in order:
+            read = asyncio.run(graph_of(mirror, cache, host, histories[name], sha))
+            assert read == (repository / name).read_bytes()
+            assert asyncio.run(facts_of(mirror, cache, host, histories[name], sha)).edges == len(json.loads(read)["edges"])
+
+
+def test_a_cache_of_the_old_layout_is_removed_and_never_served(tmp_path: Path) -> None:
+    """Files of the layout keyed by commit alone go when the cache opens."""
+    old = tmp_path / "versions" / "0123456789abcdef"
+    old.mkdir(parents=True)
+    (old / "abc.graph").write_bytes(b"old")
+    cache = VersionCache(tmp_path)
+    assert not (tmp_path / "versions").exists()
+    assert cache.graph("o/r", "graph.json", "abc") is None

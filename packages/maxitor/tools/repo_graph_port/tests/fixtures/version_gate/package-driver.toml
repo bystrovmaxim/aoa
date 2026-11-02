@@ -1,0 +1,3 @@
+kind = "package"
+driver = "python"
+changelog = "CHANGELOG.md"

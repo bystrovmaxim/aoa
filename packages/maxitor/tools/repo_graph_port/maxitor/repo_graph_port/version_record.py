@@ -29,7 +29,7 @@ class VersionRecord(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    sha: str = Field(description="The commit, by first parent, that changed the graph file")
+    sha: str = Field(description="The commit, by first parent, that changed the graph or the version")
     date: str = Field(description="The commit's date, UTC, ISO 8601")
     pr: dict[str, str | int] | None = Field(default=None, description="The pull request: number, title, body, url")
     message: str | None = Field(default=None, description="The commit's message, when there is no pull request")
@@ -38,4 +38,7 @@ class VersionRecord(BaseModel):
     edges: int | None = Field(default=None, description="Edges of its graph")
     refused: str | None = Field(default=None, description="Why its file is not a graph")
     contribution: Contribution | None = Field(default=None, description="Who made it and how large it was, from git")
+    graph_changed: bool = Field(default=True, description="The graph document differs from the previous point's")
+    version: str | None = Field(default=None, description="The number in the version file at this commit; none when it is missing or cannot be read")
+    version_changed: bool = Field(default=False, description="The number differs from the last readable one before it")
     change: dict[str, object] | None = Field(default=None, description="What it did to the previous version's graph: nodes added and removed by kind, nodes changed, links added and removed")

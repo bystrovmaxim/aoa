@@ -35,6 +35,20 @@ branch = "main"
 graph_file = "services/orders/graph.json"
 ```
 
+To show the version a graph belongs to, name the file that holds it. For a component the number is in its `version.toml`; for a package, name the key:
+
+```toml
+version_file = "packages/aoa-demo/pyproject.toml"
+version_key = "project.version"
+```
+
+When a folder moves, list the old paths, newest first, or the history before the move is lost. The config lives on the server, so a pull request that moves a folder does not update it; the history then says so in `version_problem` and keeps working:
+
+```toml
+graph_file_before = ["old/graph.json"]
+version_file_before = ["old/version.toml"]
+```
+
 A repository with several graph files gets one history per file. A public repository needs no entry: it is read by a link to its graph file.
 
 ## 3. Put the secrets in the environment

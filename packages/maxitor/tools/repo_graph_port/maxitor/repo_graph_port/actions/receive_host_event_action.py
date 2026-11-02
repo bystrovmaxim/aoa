@@ -104,12 +104,12 @@ class ReceiveHostEventAction(BaseAction[ReceiveHostEventParams, ReceiveHostEvent
         changed: list[str] = []
         for history in histories:
             if params.kind == "push":
-                moved = await asyncio.to_thread(mirror.changed, history.repository, params.before, params.after, history.graph_file)
+                moved = any([await asyncio.to_thread(mirror.changed, history.repository, params.before, params.after, path) for path in history.watched_paths])
             elif params.kind == "tag":
                 cache.forget_releases(history.repository)
                 moved = True
             else:
-                versions = await asyncio.to_thread(mirror.versions, history.repository, history.branch, history.graph_file)
+                versions = await asyncio.to_thread(mirror.versions, history.repository, history.branch, *history.watched_paths)
                 moved = params.merge_commit_sha in {commit.sha for commit in versions}
                 if moved:
                     cache.forget_pull_request(history.repository, params.merge_commit_sha)

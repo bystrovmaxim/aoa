@@ -21,12 +21,15 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    <folder>/versions/<repository key>/<sha>.graph  — the file's bytes
-    <folder>/versions/<repository key>/<sha>.json   — {"nodes", "edges", "refused"}
-    <folder>/versions/<repository key>/<sha>.detail.json — who made it, its size, what it did to the graph
+    <folder>/graphs/<repository key>/<graph key>/<sha>.graph  — the file's bytes
+    <folder>/graphs/<repository key>/<graph key>/<sha>.json   — {"nodes", "edges", "refused"}
+    <folder>/graphs/<repository key>/<graph key>/<sha>.detail.json — who made it, its size, what it did to the graph
+    <folder>/numbers/<repository key>/<file and key>/<sha>.json — what a version file gave at that commit
 
-The repository key is the first 16 hex of the SHA-256 of the repository's name, so
-any name — ``owner/name`` or a local path — is one safe folder. A file is written
+The keys are the first 16 hex of the SHA-256 of the repository's name and of the
+graph file's path, so any name — ``owner/name`` or a local path — is one safe folder,
+and two graphs of one repository at one commit stay apart. The ``versions`` folder of
+the layout before them is removed on opening. A file is written
 to a temporary name and renamed, so a reader never sees half of one. The fetch
 times, pull requests and releases live in memory: after a restart every repository
 is fetched, and every pull request and release read, on its first read.
@@ -37,11 +40,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
 from maxitor.repo_graph_port.graph_facts import GraphFacts
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
+from maxitor.repo_graph_port.version_source import NumberRead
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
@@ -52,13 +57,14 @@ class VersionCache(BaseStorage):
     """
     AI-CORE-BEGIN
     ROLE: Keep what never changes for a commit, and when each repository was last fetched.
-    CONTRACT: ``keep`` stores a version's bytes and facts by ``(repository, sha)``; ``graph`` and ``facts`` return them, or ``None`` before ``keep``; ``fetched_at`` returns the time ``mark_fetched`` was given, or ``None``; pull requests and releases are kept with their read time until forgotten.
+    CONTRACT: ``keep`` stores a version's bytes and facts by ``(repository, graph_file, sha)``; ``graph`` and ``facts`` return them, or ``None`` before ``keep``; ``fetched_at`` returns the time ``mark_fetched`` was given, or ``None``; pull requests and releases are kept with their read time until forgotten.
     INVARIANTS: Kept entries are never changed or removed; a reader never sees a half-written file.
     AI-CORE-END
     """
 
     def __init__(self, folder: Path) -> None:
         self._folder = folder
+        shutil.rmtree(folder / "versions", ignore_errors=True)
         self._fetched: dict[str, float] = {}
         self._pulls: dict[tuple[str, str], tuple[dict[str, str | int] | None, float]] = {}
         self._releases: dict[tuple[str, str], tuple[dict[str, str] | None, float]] = {}
@@ -72,40 +78,54 @@ class VersionCache(BaseStorage):
         """Report that the cache is not a rollup target."""
         return False
 
-    def keep(self, repository: str, sha: str, content: bytes, facts: GraphFacts) -> None:
+    def keep(self, repository: str, graph_file: str, sha: str, content: bytes, facts: GraphFacts) -> None:
         """Store a version's file and its facts for good."""
-        place = self._place(repository)
+        place = self._place(repository, graph_file)
         place.mkdir(parents=True, exist_ok=True)
         _write(place / f"{sha}.graph", content)
         _write(place / f"{sha}.json", json.dumps({"nodes": facts.nodes, "edges": facts.edges, "refused": facts.refused}).encode())
 
-    def graph(self, repository: str, sha: str) -> bytes | None:
+    def graph(self, repository: str, graph_file: str, sha: str) -> bytes | None:
         """A kept version's file, or ``None``."""
         try:
-            return (self._place(repository) / f"{sha}.graph").read_bytes()
+            return (self._place(repository, graph_file) / f"{sha}.graph").read_bytes()
         except FileNotFoundError:
             return None
 
-    def facts(self, repository: str, sha: str) -> GraphFacts | None:
+    def facts(self, repository: str, graph_file: str, sha: str) -> GraphFacts | None:
         """A kept version's facts, or ``None``."""
         try:
-            kept = json.loads((self._place(repository) / f"{sha}.json").read_bytes())
+            kept = json.loads((self._place(repository, graph_file) / f"{sha}.json").read_bytes())
         except FileNotFoundError:
             return None
         return GraphFacts(nodes=kept["nodes"], edges=kept["edges"], refused=kept["refused"])
 
-    def detail(self, repository: str, sha: str) -> dict[str, object] | None:
+    def detail(self, repository: str, graph_file: str, sha: str) -> dict[str, object] | None:
         """A kept version's detail — its contribution and graph change — or ``None``."""
         try:
-            return dict(json.loads((self._place(repository) / f"{sha}.detail.json").read_bytes()))
+            return dict(json.loads((self._place(repository, graph_file) / f"{sha}.detail.json").read_bytes()))
         except FileNotFoundError:
             return None
 
-    def keep_detail(self, repository: str, sha: str, detail: dict[str, object]) -> None:
+    def keep_detail(self, repository: str, graph_file: str, sha: str, detail: dict[str, object]) -> None:
         """Store a version's detail for good: it belongs to the commit and to the version before it on the chain."""
-        place = self._place(repository)
+        place = self._place(repository, graph_file)
         place.mkdir(parents=True, exist_ok=True)
         _write(place / f"{sha}.detail.json", json.dumps(detail).encode())
+
+    def number(self, repository: str, file: str, key: str, sha: str) -> NumberRead | None:
+        """What a version file gave for ``key`` at ``sha``, or ``None`` before any read."""
+        try:
+            kept = json.loads((self._numbers(repository, file, key) / f"{sha}.json").read_bytes())
+        except FileNotFoundError:
+            return None
+        return NumberRead(number=kept["number"], reason=kept["reason"])
+
+    def keep_number(self, repository: str, file: str, key: str, sha: str, read: NumberRead) -> None:
+        """Store what a version file gave at ``sha`` for good: it belongs to the commit."""
+        place = self._numbers(repository, file, key)
+        place.mkdir(parents=True, exist_ok=True)
+        _write(place / f"{sha}.json", json.dumps({"number": read.number, "reason": read.reason}).encode())
 
     def pull_request(self, repository: str, sha: str) -> tuple[dict[str, str | int] | None, float] | None:
         """A version's pull request as last read (``None`` when it had none) and when it was read; ``None`` before any read."""
@@ -148,9 +168,18 @@ class VersionCache(BaseStorage):
         """Remember that ``repository`` was fetched at ``at``."""
         self._fetched[repository] = at
 
-    def _place(self, repository: str) -> Path:
-        """The folder of one repository's versions."""
-        return self._folder / "versions" / hashlib.sha256(repository.encode()).hexdigest()[:16]
+    def _numbers(self, repository: str, file: str, key: str) -> Path:
+        """The folder of one version file's numbers under one key."""
+        return self._folder / "numbers" / _key(repository) / _key(f"{file}\0{key}")
+
+    def _place(self, repository: str, graph_file: str) -> Path:
+        """The folder of one graph file's versions."""
+        return self._folder / "graphs" / _key(repository) / _key(graph_file)
+
+
+def _key(name: str) -> str:
+    """A safe folder name for ``name``."""
+    return hashlib.sha256(name.encode()).hexdigest()[:16]
 
 
 def _write(target: Path, content: bytes) -> None:

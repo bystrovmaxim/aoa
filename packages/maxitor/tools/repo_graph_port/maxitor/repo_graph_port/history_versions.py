@@ -28,6 +28,7 @@ Pure functions, no I/O: the mirror reads, these decide.
     a version's file bytes                   ──► graph_facts ──► GraphFacts
     a version's commit message               ──► pull_request_in_message ──► number, title, body, url | None
     the graph before + the graph after       ──► graph_change ──► nodes added and removed by kind, changed; links added and removed
+    the graph before + the graph after       ──► graph_differs ──► whether the document changed
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ import json
 import re
 from bisect import bisect_right
 from collections.abc import Iterable, Sequence
+from typing import cast
 
 from maxitor.graph_builder.schemas import GraphRefused, check_graph
 from maxitor.repo_graph_port.graph_facts import GraphFacts
@@ -126,6 +128,26 @@ def graph_change(before: bytes | None, after: bytes) -> dict[str, object]:
     old_links, new_links = _edges(before), _edges(after)
     links = {"added": len(new_links - old_links), "removed": len(old_links - new_links)}
     return {"added": dict(sorted(added.items())), "removed": dict(sorted(removed.items())), "changed": changed, "links": links}
+
+
+def graph_differs(before: bytes | None, after: bytes, change: dict[str, object]) -> bool:
+    """
+    AI-CORE-BEGIN
+    ROLE: Say whether a commit changed a graph document.
+    CONTRACT: ``change`` is ``graph_change(before, after)``. Two graphs differ by their nodes, edges or ``schema_version``; formatting and top-level order do not count. A file that is not a JSON object on either side is compared by its bytes. ``before`` is ``None`` for the first version, which always differs.
+    AI-CORE-END
+    """
+    if before is None:
+        return True
+    try:
+        old, new = json.loads(before), json.loads(after)
+    except ValueError:
+        return before != after
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return before != after
+    links = cast(dict[str, int], change["links"])
+    moved = change["added"] or change["removed"] or change["changed"] or links["added"] or links["removed"]
+    return bool(moved) or old.get("schema_version") != new.get("schema_version")
 
 
 def _edges(content: bytes | None) -> set[str]:

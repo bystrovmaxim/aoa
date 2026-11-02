@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-02] — A graph's history can now follow its version
+
+A graph's history used to know only the commits that changed the graph. Now a history can also name the file that holds its version, and the port puts the two together: each point says whether the graph changed, which version is there, and whether that version changed. So a release that touched only the code shows up too.
+
+The file can be a component's `version.toml` or a package's own file with a key, as `aoa-demo` needs. Files in other formats and computed versions are not read. A commit that changed nothing real, such as a comment or a dependency, is no point at all. A history that names no file looks as it always did.
+
+A wrong path or a broken file no longer has a chance to cost you the graph: the history says what is wrong in plain words and stays open. If a folder moves, list its old paths in the config, or the history before the move is lost. The config lives on the server, so it does not move with a pull request.
+
+We also fixed a fault that was already there: two graphs in one repository could overwrite each other in the port's cache. The old cache is removed on the first start, so the first read after updating is slower.
+
+Maxitor does not draw any of this yet: the timeline changes in the next step.
+
 ## [2026-11-02] — Every check now runs once
 
 A change used to be checked twice: on your machine before the pull request, and again in CI. Now CI gives the closing verdict. On your machine you run the tests of the phase you are working on, and the browser checks, which CI cannot run.

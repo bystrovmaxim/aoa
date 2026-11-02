@@ -162,7 +162,29 @@ def _history(path: Path, index: int, entry: dict[str, Any], seen: dict[str, Hist
     live = entry.get("live")
     if live is not None and not _is_http_url(live):
         raise ValueError(f"{path}: history {entry['id']!r} has live {live!r}; an http(s) URL is needed")
-    return History(id=entry["id"], host=entry["host"], repository=entry["repository"], branch=entry["branch"], graph_file=entry["graph_file"], live=live)
+    for name in ("version_file", "version_key"):
+        if name in entry and (not isinstance(entry[name], str) or not entry[name]):
+            raise ValueError(f"{path}: history {entry['id']!r} has {name} {entry[name]!r}; a path or key is needed")
+    return History(
+        id=entry["id"],
+        host=entry["host"],
+        repository=entry["repository"],
+        branch=entry["branch"],
+        graph_file=entry["graph_file"],
+        live=live,
+        version_file=entry.get("version_file"),
+        version_key=entry.get("version_key", "version"),
+        graph_file_before=_paths(path, entry, "graph_file_before"),
+        version_file_before=_paths(path, entry, "version_file_before"),
+    )
+
+
+def _paths(path: Path, entry: dict[str, Any], name: str) -> tuple[str, ...]:
+    """A history's list of old paths, checked."""
+    value = entry.get(name, [])
+    if not isinstance(value, list) or not all(isinstance(each, str) and each for each in value):
+        raise ValueError(f"{path}: history {entry['id']!r} has {name} {value!r}; a list of paths is needed")
+    return tuple(value)
 
 
 def _is_http_url(value: object) -> bool:
