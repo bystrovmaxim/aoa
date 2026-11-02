@@ -46,6 +46,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.application_graph_edge import ApplicationGraphEdge
+from aoa.action_machine.graph.edges.domain_event_graph_edge import DomainEventGraphEdge
 from aoa.action_machine.graph.edges.parent_domain_graph_edge import ParentDomainGraphEdge, build_parent_domain_edges
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -57,13 +58,14 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a bounded-context domain marker.
-    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description``. :attr:`application` aggregates to :class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``application`` then ``parent_domain`` edges when present.
+    CONTRACT: Built from ``type[TDomain]``; :attr:`NODE_TYPE` for ``node_type``; dotted ``id``, ``__name__`` label; ``properties`` carry ``name`` / ``description`` / ``typed_events`` (the domain has ``events``). :attr:`application` aggregates to :class:`~aoa.action_machine.graph.nodes.application_graph_node.ApplicationGraphNode`; :meth:`get_all_edges` returns ``application``, then ``parent_domain`` edges, then one ``domain_event`` edge per event of the vocabulary.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Domain"
     application: ApplicationGraphEdge = field(init=False, repr=False, compare=False)
     parent_domains: list[ParentDomainGraphEdge]
+    domain_events: list[DomainEventGraphEdge]
 
     def __init__(self, domain_cls: type[TDomain]) -> None:
         super().__init__(
@@ -73,6 +75,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             properties={
                 "name": domain_cls.name,
                 "description": domain_cls.description,
+                "typed_events": hasattr(domain_cls, "events"),
             },
             node_obj=domain_cls,
         )
@@ -80,6 +83,7 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
         object.__setattr__(
             self, "parent_domains", cast(list[ParentDomainGraphEdge], build_parent_domain_edges(domain_cls))
         )
+        object.__setattr__(self, "domain_events", DomainEventGraphEdge.get_domain_event_edges(domain_cls))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -89,9 +93,10 @@ class DomainGraphNode(BaseGraphNode[type[TDomain]]):
             "properties": {
                 "name": str(self.properties["name"]),
                 "description": str(self.properties["description"]),
+                "typed_events": bool(self.properties["typed_events"]),
             },
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the application edge, then ``parent_domain`` generalization edges (plan §I.6)."""
-        return [self.application, *self.parent_domains]
+        """Return the application edge, the ``parent_domain`` edges (plan §I.6), then the vocabulary."""
+        return [self.application, *self.parent_domains, *self.domain_events]

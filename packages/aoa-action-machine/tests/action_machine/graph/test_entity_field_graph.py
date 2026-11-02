@@ -85,7 +85,7 @@ def test_an_entity_row_without_a_kind_is_rejected() -> None:
     assert row["properties"]["entity_kind"] == "core"
 
     broken = {**row, "properties": {"description": row["properties"]["description"]}}
-    payload = {"schema_version": "1.2", "nodes": [broken], "edges": []}
+    payload = {"schema_version": "1.3", "nodes": [broken], "edges": []}
     with pytest.raises(jsonschema.ValidationError):
         Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
 
@@ -162,7 +162,7 @@ def test_a_reference_field_row_validates_against_the_schema() -> None:
     row = _field_nodes(ReferenceTagCoreEntity)["currency"].to_dict()
     assert row["properties"]["reference_qualname"] == TypeIntrospection.full_qualname(ReferenceCurrencyEnumEntity)
 
-    document = {"schema_version": "1.2", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
+    document = {"schema_version": "1.3", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
     Draft202012Validator(GRAPH_JSON_SCHEMA).validate(document)
 
 

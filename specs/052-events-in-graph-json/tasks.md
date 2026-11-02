@@ -24,19 +24,19 @@
 
 **Independent test**: One graph with domains in all three modes matches FR-006.
 
-- [ ] T006 [US1] Export the system field names as a public constant in `AM/model/base_event.py`
-- [ ] T007 [P] [US1] Create `AM/graph/edges/emits_graph_edge.py`: `@emits`, Association, `is_dag` false, empty properties, with a static builder reading `EMITS_ATTR` from a method
-- [ ] T008 [P] [US1] Create `AM/graph/edges/domain_event_graph_edge.py`: `domain_event`, Aggregation, `is_dag` false, empty properties, with a static builder reading `getattr(domain_cls, "events", ())`
-- [ ] T009 [US1] Create `AM/graph/nodes/event_graph_node.py`: `NODE_TYPE` `Event`, dotted `id`, class name `label`, empty properties, `field` and `property` edges and companions as in `params_graph_node.py`, dropping the system fields
-- [ ] T010 [US1] Create `AM/graph/inspectors/event_graph_node_inspector.py` on the `BaseEvent` axis: `_get_node` returns a node only for an event named in the `events` or `@emits` of a class in the graph, skipping `exclude_graph_model` classes; register it in `AM/graph/node_graph_coordinator_factory.py`
-- [ ] T011 [US1] Add `typed_events` (`hasattr(domain_cls, "events")`) and `domain_event` edges in `AM/graph/nodes/domain_graph_node.py`, in `properties`, `to_dict` and `get_all_edges`
-- [ ] T012 [US1] Add `@emits` edges in `AM/graph/nodes/regular_aspect_graph_node.py`, `summary_aspect_graph_node.py`, `compensator_graph_node.py`, `error_handler_graph_node.py`, `access_decide_graph_node.py`
-- [ ] T013 [US1] Write `"schema_version": "1.3"` in `AM/graph/core/node_graph_coordinator.py`, and update the version in its module docstring
-- [ ] T014 [US3] Copy `packages/open-gnomon-protocol/graph/1.3.json` over `AM/graph/graph_json_schema.json`, byte for byte, and change the path and the version in the docstring of `AM/graph/graph_json_schema.py`; `tests/scripts/test_schema_copies.py` holds the two equal
-- [ ] T015 [US1] Update every test pinned to `1.2` under `AMT/action_machine/graph/` and `AMT/action_machine/graph_host/`, found with a search for `schema_version` and `"1.2"`; the changed files are tests of this phase
-- [ ] T016 [US1] Add `AMT/action_machine/graph/test_events_in_graph.py`: all three modes against FR-006; one event from several methods and domains is one node; five kinds of method; `events = ()`; inherited and replaced vocabulary; listed but not emitted; subclass is its own event; parent action's methods give no edges; event with no fields; no system fields; field description and `""`; `PropertyField`; two builds give identical JSON
-- [ ] T017 [US2] Extend `AMT/action_machine/graph/test_emits_vocabulary_validator.py`, which already covers the five kinds: the message names action, method, event and domain; a subclass of a listed event fails; mode 2 passes. Change `AM/graph/validators/emits_vocabulary_validator.py` only if a test shows a gap
-- [ ] T018 Run the phase tests; break the code for each test (drop the filter of T010, the system-field drop, one kind of method, `typed_events` as truthiness, one marker of the validator), confirm only the matching test fails, restore
+- [X] T006 [US1] Export the system field names as a public constant in `AM/model/base_event.py`
+- [X] T007 [P] [US1] Create `AM/graph/edges/emits_graph_edge.py`: `@emits`, Association, `is_dag` false, empty properties, with a static builder reading `EMITS_ATTR` from a method
+- [X] T008 [P] [US1] Create `AM/graph/edges/domain_event_graph_edge.py`: `domain_event`, Aggregation, `is_dag` false, empty properties, with a static builder reading `getattr(domain_cls, "events", ())`
+- [X] T009 [US1] Create `AM/graph/nodes/event_graph_node.py`: `NODE_TYPE` `Event`, dotted `id`, class name `label`, empty properties, `field` and `property` edges and companions as in `params_graph_node.py`, dropping the system fields
+- [X] T010 [US1] Create `AM/graph/inspectors/event_graph_node_inspector.py` on the `BaseEvent` axis: `_get_node` returns a node only for an event named in the `events` or `@emits` of a class in the graph, skipping `exclude_graph_model` classes; register it in `AM/graph/node_graph_coordinator_factory.py`
+- [X] T011 [US1] Add `typed_events` (`hasattr(domain_cls, "events")`) and `domain_event` edges in `AM/graph/nodes/domain_graph_node.py`, in `properties`, `to_dict` and `get_all_edges`
+- [X] T012 [US1] Add `@emits` edges in `AM/graph/nodes/regular_aspect_graph_node.py`, `summary_aspect_graph_node.py`, `compensator_graph_node.py`, `error_handler_graph_node.py`, `access_decide_graph_node.py`
+- [X] T013 [US1] Write `"schema_version": "1.3"` in `AM/graph/core/node_graph_coordinator.py`, and update the version in its module docstring
+- [X] T014 [US3] Copy `packages/open-gnomon-protocol/graph/1.3.json` over `AM/graph/graph_json_schema.json`, byte for byte, and change the path and the version in the docstring of `AM/graph/graph_json_schema.py`; `tests/scripts/test_schema_copies.py` holds the two equal
+- [X] T015 [US1] Update every test pinned to `1.2` under `AMT/action_machine/graph/` and `AMT/action_machine/graph_host/`, found with a search for `schema_version` and `"1.2"`; the changed files are tests of this phase
+- [X] T016 [US1] Add `AMT/action_machine/graph/test_events_in_graph.py`: all three modes against FR-006; one event from several methods and domains is one node; five kinds of method; `events = ()`; inherited and replaced vocabulary; listed but not emitted; subclass is its own event; parent action's methods give no edges; event with no fields; no system fields; field description and `""`; `PropertyField`; two builds give identical JSON
+- [X] T017 [US2] Extend `AMT/action_machine/graph/test_emits_vocabulary_validator.py`, which already covers the five kinds: the message names action, method, event and domain; a subclass of a listed event fails; mode 2 passes. Change `AM/graph/validators/emits_vocabulary_validator.py` only if a test shows a gap
+- [X] T018 Run the phase tests; break the code for each test (drop the filter of T010, the system-field drop, one kind of method, `typed_events` as truthiness, one marker of the validator), confirm only the matching test fails, restore
 
 ## Phase 3: The readers (US4)
 

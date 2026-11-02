@@ -13,7 +13,7 @@ no node and no edge change.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from aoa.action_machine.exceptions.event_contract_error import EventContractError
@@ -25,15 +25,20 @@ from aoa.action_machine.model.base_action import BaseAction
 _EMITTING_METHOD_MARKERS = ("_new_aspect_meta", "_compensate_meta", "_on_error_meta", "_access_decide_meta")
 
 
+def declared_emits(action_cls: type[Any]) -> Iterator[tuple[str, tuple[type[Any], ...]]]:
+    """Yield each emitting method of this action's own class with its ``@emits`` list."""
+    for method_name, member in vars(action_cls).items():
+        if any(hasattr(member, marker) for marker in _EMITTING_METHOD_MARKERS):
+            yield method_name, getattr(member, EMITS_ATTR, ())
+
+
 def _check_action(action_cls: type[Any]) -> None:
     """Refuse an event in this action's ``@emits`` that its domain does not allow."""
     domain = resolve_domain(action_cls)
     if domain is None or not hasattr(domain, "events"):
         return
-    for method_name, member in vars(action_cls).items():
-        if not any(hasattr(member, marker) for marker in _EMITTING_METHOD_MARKERS):
-            continue
-        for event in getattr(member, EMITS_ATTR, ()):
+    for method_name, events in declared_emits(action_cls):
+        for event in events:
             if event not in domain.events:
                 raise EventContractError(
                     f"{action_cls.__name__}.{method_name} declares {event.__name__}, "

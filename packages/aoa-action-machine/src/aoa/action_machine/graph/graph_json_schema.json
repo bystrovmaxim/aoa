@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.2.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.3.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.2"
+      "const": "1.3"
     },
     "nodes": {
       "type": "array",
@@ -87,6 +87,9 @@
         },
         {
           "$ref": "#/$defs/result"
+        },
+        {
+          "$ref": "#/$defs/event"
         },
         {
           "$ref": "#/$defs/field"
@@ -227,7 +230,8 @@
               "additionalProperties": false,
               "required": [
                 "name",
-                "description"
+                "description",
+                "typed_events"
               ],
               "properties": {
                 "name": {
@@ -235,6 +239,9 @@
                 },
                 "description": {
                   "type": "string"
+                },
+                "typed_events": {
+                  "type": "boolean"
                 }
               }
             }
@@ -431,6 +438,25 @@
           "properties": {
             "type": {
               "const": "Result"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "event": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Event"
             },
             "properties": {
               "type": "object",
@@ -928,6 +954,12 @@
         },
         {
           "$ref": "#/$defs/sensitive_or_state"
+        },
+        {
+          "$ref": "#/$defs/emits"
+        },
+        {
+          "$ref": "#/$defs/domain_event"
         }
       ]
     },
@@ -1509,6 +1541,56 @@
             },
             "properties": {
               "$ref": "#/$defs/base_properties"
+            }
+          }
+        }
+      ]
+    },
+    "emits": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "@emits"
+            },
+            "relationship": {
+              "const": "Association"
+            },
+            "is_dag": {
+              "const": false
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "domain_event": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "domain_event"
+            },
+            "relationship": {
+              "const": "Aggregation"
+            },
+            "is_dag": {
+              "const": false
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
             }
           }
         }

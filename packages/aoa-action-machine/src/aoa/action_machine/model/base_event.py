@@ -49,7 +49,7 @@ from aoa.action_machine.model.base_schema import BaseSchema
 
 _REQUIRED_SUFFIX = "Event"
 
-_SYSTEM_FIELDS = frozenset({"level", "channels", "domain", "domain_name"})
+SYSTEM_FIELDS = frozenset({"level", "channels", "domain", "domain_name"})
 
 # A logger reads an event through these methods, so a field must not take their place.
 _READ_METHODS = frozenset({"get", "keys", "values", "items", "resolve"})
@@ -80,7 +80,7 @@ class BaseEvent(EventMarker, BaseSchema):
                 f"Class '{cls.__name__}' inherits from BaseEvent but its name must end with "
                 f"'{_REQUIRED_SUFFIX}'. Rename it to '{cls.__name__}{_REQUIRED_SUFFIX}'."
             )
-        reserved = (_SYSTEM_FIELDS | _READ_METHODS) & inspect.get_annotations(cls).keys()
+        reserved = (SYSTEM_FIELDS | _READ_METHODS) & inspect.get_annotations(cls).keys()
         if reserved:
             raise EventContractError(
                 f"Event '{cls.__name__}' declares reserved field names {sorted(reserved)}. Rename them."
@@ -91,7 +91,7 @@ class BaseEvent(EventMarker, BaseSchema):
     def _refuse_system_fields(cls, data: Any) -> Any:
         """Refuse a system field set by the author."""
         if isinstance(data, dict):
-            named = _SYSTEM_FIELDS & data.keys()
+            named = SYSTEM_FIELDS & data.keys()
             if named:
                 raise ValueError(f"System fields belong to box and cannot be set: {sorted(named)}.")
         return data

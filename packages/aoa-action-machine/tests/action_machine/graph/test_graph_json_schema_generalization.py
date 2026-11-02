@@ -15,7 +15,7 @@ _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 
 def _base_doc(*, edges: list[dict]) -> dict:
     return {
-        "schema_version": "1.2",
+        "schema_version": "1.3",
         "nodes": [
             {
                 "id": "fixture.actions.ChildAction",
@@ -45,13 +45,13 @@ def _base_doc(*, edges: list[dict]) -> dict:
                 "id": "fixture.domains.ChildDomain",
                 "type": "Domain",
                 "label": "ChildDomain",
-                "properties": {"name": "child", "description": "c"},
+                "properties": {"name": "child", "description": "c", "typed_events": False},
             },
             {
                 "id": "fixture.domains.ParentDomain",
                 "type": "Domain",
                 "label": "ParentDomain",
-                "properties": {"name": "parent", "description": "p"},
+                "properties": {"name": "parent", "description": "p", "typed_events": False},
             },
         ],
         "edges": [{**edge, "id": edge_id(edge)} for edge in edges],
