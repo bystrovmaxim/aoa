@@ -8,17 +8,35 @@ on:
       - main
       - "feature/**"
 
-# Four jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
+# Five jobs, run in parallel. Each one calls the same runner, so the local run and CI run the
 # same commands from one table (`scripts/check_run.py`):
 #   checks     — the deterministic gate (static checks, client build and unit tests,
 #                ERD scripts, Python tests minus benchmarks, graph files check);
 #   checks-314 — the same gate on Python 3.14, the newest version the project supports;
 #   packaging  — the wheel/sdist build and the install smoke;
 #   local-run  — the proof that the full local run passed on this commit.
+#   versions   — version-gate, on pull requests into main only: a task's sub-issues raise a version once.
 # The three-engine layout check is not here: these machines have no graphics card, so Firefox
 # has no WebGL and the map cannot be drawn. It runs in the full local run, and `local-run` fails a
 # pull request whose commit does not carry that run's proof.
 jobs:
+  versions:
+    name: Versions
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Pinned by commit, so the action cannot name its release itself.
+      - name: Every changed level raised its version
+        uses: bystrovmaxim/version-gate@e0052e7ddbc429c726389ef945225cb22c5857a0 # v0.1.1
+        with:
+          version: v0.1.1
+
   checks:
     name: Checks
     runs-on: ubuntu-latest
