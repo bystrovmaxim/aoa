@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-02] — A change now has to raise the version of what it touches
+
+A pull request into `main` now fails when it changes a package and leaves its version where it was. Nothing checked this before, so a package could change for months under one number. The check is a separate tool, `version-gate`, which also works for projects in other languages.
+
+Each of our packages is covered, and so is the protocol. Three parts of Maxitor now have versions of their own, because each is used on its own: the web part, `repo-graph-port` and `graph-builder`. A change to one of them raises its number and Maxitor's.
+
+Changelogs, tests, examples and most READMEs do not count, so a correction to the documentation asks for nothing. The version of the repository as a whole does not have to grow, or every two open pull requests would collide on one line. A large task raises its versions once, when it reaches `main`.
+
 ## [2026-11-02] — A log line can now carry a typed fact
 
 A business fact used to be a string and loose variables. Now it can be a class of its own, `BaseEvent`, the tenth primitive: `OrderCompletedEvent` with typed fields. You pass it to `box.info`, `warning` or `critical` in place of `kwargs`, after the text. The text stays yours, with its variables and colours, and a logger receives the fact with its type.
