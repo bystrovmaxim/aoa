@@ -70,8 +70,8 @@
 
 ## Phase 7: Changelog
 
-- [ ] T033 Write one article in `docs/CHANGELOG.md` about what this work created, in plain words
-- [ ] T034 Raise the version of every changed level: `packages/open-gnomon-protocol/version.toml` to `1.3.0`, and `version.toml` of `aoa-action-machine`, `aoa-demo`, `maxitor`, `maxitor/web`, `maxitor/tools/graph_builder`, plus any other level `version-gate` names
+- [X] T033 Write one article in `docs/CHANGELOG.md` about what this work created, in plain words
+- [X] T034 Raise the version of every changed level: `packages/open-gnomon-protocol/version.toml` to `1.3.0`, and `version.toml` of `aoa-action-machine`, `aoa-demo`, `maxitor`, `maxitor/web`, `maxitor/tools/graph_builder`, plus any other level `version-gate` names
 
 ## Phase 8: The stand
 

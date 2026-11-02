@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-02] — Events in the graph
+
+Events were visible only to the code that ran them. Now they are in the graph and its JSON file, so any tool can read which facts a service publishes, in any language and without running the service. Each event appears once, with its fields and their descriptions. The file shows which methods may emit it and which domains list it in their vocabulary, and each domain says whether it has a vocabulary at all, so an empty one no longer looks like none.
+
+An event enters the graph only when something names it, in `@emits` or in a domain's `events`. A class nobody names stays out, and a service that uses none of this gets no event nodes. A method's `@emits` that names an event outside its domain's vocabulary stops the build, before the first request. Comparing two versions of a graph shows events added and removed like anything else.
+
+The graph file now uses version 1.3 of the Open Gnomon Protocol, and a 1.2 file does not become a 1.3 one by changing its number. AOA writes 1.3; `graph-builder`, the comparison and Maxitor read every version from 1.0 to 1.3. A tool of your own that refuses versions it does not know needs the same step. Your graph files change the next time you run `graph-builder write`.
+
+Maxitor loads the new files and draws events on the full graph with no icon of their own, which a later change adds. An event in a domain with no vocabulary stands in *Outside domains*. The demo's graph now includes its orders service, so it holds two events. The chapter [Object events](tutorials/step-11-object-events.md#events-in-the-graph) shows every case.
+
 ## [2026-11-02] — One wizard for versions and graphs
 
 The setup wizard now sets up two separate things: a check that version numbers grow, and saved model graphs. You can take either, both or neither, and you can run it again whenever you like, because it looks at the project and proposes only what differs.
