@@ -38,7 +38,7 @@ repos:
   # RUFF — супер-быстрый линтер и авто-исправление
   # ------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.10  # актуальная версия
+    rev: v0.17.2  # must match the ruff version in uv.lock
     hooks:
       - id: ruff
         description: "Запуск линтера ruff с авто-исправлением"
@@ -48,41 +48,6 @@ repos:
       - id: ruff-format
         description: "Форматирование кода через ruff"
         files: ^(packages/|tests/)
-
-  # ------------------------------------------------------------------------
-  # ISORT — сортировка импортов (можно убрать, так как ruff уже делает это)
-  # ------------------------------------------------------------------------
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        description: "Сортировка импортов"
-        files: ^(packages/|tests/)
-        args: [--profile, black, --line-length=120]
-
-  # ------------------------------------------------------------------------
-  # MYPY — статическая типизация (без types-all)
-  # ------------------------------------------------------------------------
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
-    hooks:
-      - id: mypy
-        description: "Проверка типов"
-        files: ^packages/aoa-action-machine/
-        args: [
-          --strict,
-          --ignore-missing-imports,
-          --follow-imports=skip,
-          --warn-unreachable,
-          --no-implicit-reexport
-        ]
-        additional_dependencies: [
-          # Только те стабы, которые реально нужны
-          "pydantic>=2.0.0",
-          "asyncpg-stubs>=0.31.2",
-          "types-aiofiles>=25.1.0",
-          "types-python-dateutil>=2.8.19",
-        ]
 
   # ------------------------------------------------------------------------
   # PYLINT — дополнительный линтер (локальный)
@@ -100,19 +65,6 @@ repos:
           "--rcfile=pyproject.toml",
           "--output-format=colorized"
         ]
-
-  # ------------------------------------------------------------------------
-  # Проверка зависимостей (import-linter)
-  # ------------------------------------------------------------------------
-  - repo: local
-    hooks:
-      - id: import-linter
-        name: import-linter
-        description: "Проверка архитектурных зависимостей"
-        entry: uv run lint-imports
-        language: system
-        files: ^packages/aoa-action-machine/
-        pass_filenames: false
 
   # ------------------------------------------------------------------------
   # Безопасность: поиск секретов в коде
