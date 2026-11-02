@@ -5718,7 +5718,7 @@
       "label": "host_id",
       "properties": {
         "description": "On a lifecycle's row: the entity that holds it",
-        "field_annotation": "UnionType[str, NoneType]",
+        "field_annotation": "Union[str, NoneType]",
         "field_type": "str | None",
         "primary_key_hint": false
       },
@@ -5751,7 +5751,7 @@
       "label": "ordinal",
       "properties": {
         "description": "Optional sort rank among siblings (lower first); used for level-3 diagram order",
-        "field_annotation": "UnionType[int, NoneType]",
+        "field_annotation": "Union[int, NoneType]",
         "field_type": "int | None",
         "primary_key_hint": false
       },
@@ -5762,7 +5762,7 @@
       "label": "parent_id",
       "properties": {
         "description": "Parent node id when nested under another row",
-        "field_annotation": "UnionType[str, NoneType]",
+        "field_annotation": "Union[str, NoneType]",
         "field_type": "str | None",
         "primary_key_hint": false
       },

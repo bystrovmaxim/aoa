@@ -1,12 +1,38 @@
 # Changelog
 
-## [2026-11-01] — Maxitor's web part is now called web
+## [2026-11-02] — Maxitor's web part is now called web
 
 If you install Maxitor's web part, ask for `maxitor[web]` from now on. `maxitor[front]` no longer exists. The name changed because this part holds the server as well as the web client, so "front" described only half of it. The command is still `maxitor` and the package is still called `maxitor`.
 
 Code that imports the part now imports `maxitor.web` instead of `maxitor.front`, and with no alias for the old name. If you compare Maxitor's own graph across this change, the whole part shows as removed and created again. That happens once and is expected.
 
 The schema of `graph-builder.toml` has moved, so its old address on GitHub stops working. The installed package carries its own copy, and `graph-builder` reads that one.
+
+## [2026-11-02] — The project now passes on Python 3.14
+
+Every pull request is now checked on Python 3.14 as well as on 3.12, so a new machine or a new interpreter no longer comes as a surprise. Your own machine stays on 3.12.
+
+A graph file now reads the same on either version: a field written `str | None` shows `Union[str, NoneType]` in its full type, where it used to show `UnionType[str, NoneType]`. The short type on a diagram has not changed.
+
+A class refused at declaration can no longer break a graph build with an error about something else. Pylint moved to version 4, because the old one could not read Python 3.14.
+
+## [2026-11-02] — A commit no longer needs its hooks switched off
+
+Some commit hooks could fail on correct code, and commits to `aoa-action-machine` had to skip two of them. Those two are gone, and so is the third that repeated Ruff's work. Types and package boundaries are still checked by `scripts/check_before_commit.sh`, and the Ruff hook now uses the same version as the repository.
+
+The repository now names its Python version, 3.12, in `.python-version`. GitHub's newer machines came with Python 3.14, which the checks do not pass yet, so without this line a pull request could fail with no change of its own.
+
+## [2026-11-02] — The two tools that sort imports no longer undo each other
+
+Ruff and isort disagreed about 204 files, so one undid what the other had just done, and a commit touching such a file could not pass both hooks. They now follow the same rules.
+
+## [2026-11-01] — Code that grows too complex now stops the checks
+
+The two complexity checks used to print a list that nobody acted on, and they could never fail. Now they can. A function that grows too branched, or a module that grows too hard to maintain, stops the run and is named with its file and grade, so the problem is met on the day it is made.
+
+The code that was already over the limit has been simplified, so the checks start from a clean tree. When something truly cannot be simplified, it can be excused by name, with the reason written beside it. An excuse stops working as soon as the code no longer needs it, so old excuses do not pile up.
+
+Ruff now appears once in the run instead of twice. It works as before: on your machine it fixes what it can and stops on the rest, and on a pull request it only reports, because GitHub must not change your code.
 
 ## [2026-11-01] — Before a pull request, only the browsers run on your machine
 

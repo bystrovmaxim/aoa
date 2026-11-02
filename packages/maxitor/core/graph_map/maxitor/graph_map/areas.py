@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -125,7 +125,12 @@ def _contained(document: Mapping[str, Any], types: Mapping[str, str]) -> dict[st
     for edge in document.get("edges", []):
         source, target = _text(edge.get("source_id")), _text(edge.get("target_id"))
         linked_to_domain = edge.get("type") == DOMAIN_LINK and types.get(target) == DOMAIN
-        if not linked_to_domain and edge.get("relationship") in CONTAINMENT and source in types and types.get(target, DOMAIN) not in (DOMAIN, APPLICATION):
+        if (
+            not linked_to_domain
+            and edge.get("relationship") in CONTAINMENT
+            and source in types
+            and types.get(target, DOMAIN) not in (DOMAIN, APPLICATION)
+        ):
             children.setdefault(source, []).append(target)
     return children
 
@@ -160,7 +165,9 @@ def _above(below: Mapping[str, list[str]], types: Mapping[str, str]) -> dict[str
     return above
 
 
-def _members(document: Mapping[str, Any], types: Mapping[str, str], domains: list[str], children: Mapping[str, list[str]]) -> dict[str, set[str]]:
+def _members(
+    document: Mapping[str, Any], types: Mapping[str, str], domains: list[str], children: Mapping[str, list[str]]
+) -> dict[str, set[str]]:
     """Each domain's members: what is linked to it and, through containment, what those hold."""
     members = {domain: {domain} for domain in domains}
     for edge in document.get("edges", []):
@@ -183,6 +190,42 @@ def _hash(nodes: list[MapNode], inner: list[MapEdge]) -> str:
     return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
 
 
+def _standing(
+    nodes: Mapping[str, Any], types: Mapping[str, str], above: Mapping[str, tuple[str, ...]], home: Mapping[str, str]
+) -> dict[str, list[MapNode]]:
+    """The nodes of each area, in id order."""
+    standing: dict[str, list[MapNode]] = {}
+    for node_id in sorted(nodes):
+        node = MapNode(
+            node_id,
+            _text(nodes[node_id].get("label")) or node_id,
+            types[node_id],
+            2 if types[node_id] in LEVEL_TWO else 3,
+            above.get(node_id, ()),
+        )
+        standing.setdefault(home.get(node_id, OUTSIDE), []).append(node)
+    return standing
+
+
+def _cut_edges(
+    edges: Iterable[MapEdge], types: Mapping[str, str], above: Mapping[str, tuple[str, ...]], home: Mapping[str, str]
+) -> tuple[dict[str, list[MapEdge]], dict[str, list[MapEdge]], dict[tuple[str, str], dict[str, int]]]:
+    """The edges inside each area, those leaving it, and the links between areas counted by the types of their ends."""
+    inner: dict[str, list[MapEdge]] = {}
+    across: dict[str, list[MapEdge]] = {}
+    links: dict[tuple[str, str], dict[str, int]] = {}
+    for edge in sorted(edges, key=lambda each: each.id):
+        start, end = home.get(edge.source, OUTSIDE), home.get(edge.target, OUTSIDE)
+        if start == end:
+            inner.setdefault(start, []).append(edge)
+            continue
+        across.setdefault(start, []).append(edge)
+        ends = "|".join(">".join((types[each], *above.get(each, ()))) for each in (edge.source, edge.target))
+        pair = links.setdefault((min(start, end), max(start, end)), {})
+        pair[ends] = pair.get(ends, 0) + 1
+    return inner, across, links
+
+
 def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = None) -> GraphAreas:
     """
     AI-CORE-BEGIN
@@ -202,22 +245,8 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
         for node_id in members[domain]:
             memberships.setdefault(node_id, []).append(domain)
     home = {node_id: held[0] for node_id, held in memberships.items()} | dict(homes or {})
-    standing: dict[str, list[MapNode]] = {}
-    for node_id in sorted(nodes):
-        node = MapNode(node_id, _text(nodes[node_id].get("label")) or node_id, types[node_id], 2 if types[node_id] in LEVEL_TWO else 3, above.get(node_id, ()))
-        standing.setdefault(home.get(node_id, OUTSIDE), []).append(node)
-    inner: dict[str, list[MapEdge]] = {}
-    across: dict[str, list[MapEdge]] = {}
-    links: dict[tuple[str, str], dict[str, int]] = {}
-    for edge in sorted(_drawn_edges(document, nodes), key=lambda each: each.id):
-        start, end = home.get(edge.source, OUTSIDE), home.get(edge.target, OUTSIDE)
-        if start == end:
-            inner.setdefault(start, []).append(edge)
-            continue
-        across.setdefault(start, []).append(edge)
-        ends = "|".join(">".join((types[each], *above.get(each, ()))) for each in (edge.source, edge.target))
-        pair = links.setdefault((min(start, end), max(start, end)), {})
-        pair[ends] = pair.get(ends, 0) + 1
+    standing = _standing(nodes, types, above, home)
+    inner, across, links = _cut_edges(_drawn_edges(document, nodes), types, above, home)
     areas = tuple(
         Area(
             area_id,
@@ -234,4 +263,10 @@ def split_areas(document: Mapping[str, Any], homes: Mapping[str, str] | None = N
     for parent, below in held.items():
         for child in below:
             containers.setdefault(child, []).append(parent)
-    return GraphAreas(areas, links, shared, tuple(sorted(set(types.values()))), {node_id: tuple(sorted(parents)) for node_id, parents in containers.items()})
+    return GraphAreas(
+        areas,
+        links,
+        shared,
+        tuple(sorted(set(types.values()))),
+        {node_id: tuple(sorted(parents)) for node_id, parents in containers.items()},
+    )

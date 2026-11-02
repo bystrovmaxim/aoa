@@ -100,6 +100,36 @@ def test_fast_drops_the_speed_tests_and_the_full_run_keeps_them() -> None:
     assert not any("not benchmark" in step.command for step in full)
 
 
+def _ruff_rows(rows: tuple) -> list:
+    """The rows of a selection that run Ruff."""
+    return [step for step in rows if "ruff" in step.command or "task lint" in step.command]
+
+
+def test_one_ruff_row_in_every_selection() -> None:
+    """Fixing and linting are one step locally, under ``--fast`` and in CI."""
+    runner = _runner()
+    for where, fast in (("local", False), ("local", True), ("ci", False)):
+        assert [step.name for step in _ruff_rows(runner._select(runner.STEPS, where, fast, False, None, None))] == [
+            "Ruff auto-fix"
+        ]
+
+
+def test_ruff_fixes_locally_and_under_fast() -> None:
+    """The before-commit run takes the CI command of its other rows, but keeps fixing."""
+    runner = _runner()
+    for fast in (False, True):
+        assert "--fix" in _ruff_rows(runner._select(runner.STEPS, "local", fast, False, None, None))[0].command
+
+
+def test_ruff_in_ci_reports_and_never_changes_the_tree() -> None:
+    """CI must not rewrite files, and this is the only Ruff check a pull request gets."""
+    runner = _runner()
+    command = _ruff_rows(runner._select(runner.STEPS, "ci", False, False, None, None))[0].command
+    assert "ruff check" in command
+    assert "--fix" not in command
+    assert "packages/ tests/ scripts/" in command
+
+
 def test_the_browsers_run_only_locally() -> None:
     """A CI machine has no graphics card, so no CI selection holds a browser row; the local run holds it, with no system libraries asked for."""
     runner = _runner()
@@ -166,7 +196,7 @@ def test_the_graph_check_has_no_write_to_wait_for_in_ci() -> None:
     """CI selects no write, so the check does not wait for one."""
     runner = _runner()
     rows = runner._select(runner.STEPS, "ci", False, False, None, "packaging")
-    assert next(step for step in rows if step.name == "Graph files (graph-builder check)").after == ()
+    assert next(step for step in rows if step.name == "Graph files (graph-builder check)").after == (runner.AUTO_FIX,)
 
 
 def test_maxitors_build_waits_out_the_client_build() -> None:

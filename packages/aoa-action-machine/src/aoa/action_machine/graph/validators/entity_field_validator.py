@@ -124,9 +124,9 @@ def _strip_optional(annotation: Any) -> tuple[Any, bool]:
     origin = get_origin(annotation)
     if origin is not types.UnionType and origin is not typing.Union:
         return annotation, False
-    args = [arg for arg in get_args(annotation) if arg is not type(None)]
+    args = [arg for arg in get_args(annotation) if arg is not types.NoneType]
     if len(args) != 1:
-        return annotation, any(arg is type(None) for arg in get_args(annotation))
+        return annotation, any(arg is types.NoneType for arg in get_args(annotation))
     return args[0], True
 
 
@@ -146,7 +146,7 @@ def _entity_inside(annotation: Any) -> Any | None:
     if origin is None:
         return None
     for arg in get_args(annotation):
-        if arg is type(None) or arg is Ellipsis:
+        if arg is types.NoneType or arg is Ellipsis:
             continue
         found = _entity_inside(arg)
         if found is not None:
@@ -168,7 +168,7 @@ def _collect_entities(annotation: Any, found: list[Any]) -> None:
         for arg in metadata.get("args") or ():
             _collect_entities(arg, found)
     for arg in get_args(annotation):
-        if arg is type(None) or arg is Ellipsis:
+        if arg is types.NoneType or arg is Ellipsis:
             continue
         _collect_entities(arg, found)
 

@@ -9,6 +9,8 @@ of the model graph.
 
 from __future__ import annotations
 
+import gc
+
 import pytest
 from pydantic import ConfigDict, Field, ValidationError
 from pydantic.errors import PydanticUserError
@@ -86,6 +88,7 @@ class TestStateEntity:
     def test_never_a_model_entity(self):
         assert excluded_from_graph_model(BaseStateEntity)
         assert excluded_from_graph_model(SampleStateEntity)
+        gc.collect()  # the inspector alone, unlike a graph build, walks whatever is still uncollected
         nodes = EntityGraphNodeInspector().get_graph_nodes()
         assert all(node.node_obj is not SampleStateEntity for node in nodes)
 

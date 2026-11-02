@@ -51,7 +51,7 @@ dev = [
     "ruff>=0.4,<1.0",
     "black>=24.0,<25.0",
     "isort>=5.13,<6.0",
-    "pylint>=3.0,<4.0",
+    "pylint>=4.0,<5.0",
     "vulture>=2.11,<3.0",
     "radon>=6.0,<7.0",
     "detect-secrets>=1.5,<2.0",
@@ -259,6 +259,8 @@ load-plugins = [
     "pylint.extensions.docparams",
 ]
 jobs = 0
+# Each package root, so a module's name starts at its package and not at the repository.
+source-roots = ["packages/*/src", "packages/maxitor/*/src", "packages/maxitor/tools/*/src"]
 # Per-package test suites (packages/<pkg>/tests/) are linted by ruff, not pylint —
 # pylint's production rules (e.g. import-outside-toplevel) don't apply to test code.
 # The bulk of tests historically lived in the root tests/ tree, outside `pylint packages/`.
@@ -381,7 +383,9 @@ external = ["V107"]
 known-first-party = ["aoa"]
 # ``maxitor`` sits outside the ``aoa`` namespace; pylint's import-order check places it with the
 # third-party imports, so ruff sorts it there too and the two tools agree.
-known-third-party = ["langgraph", "maxitor"]
+# ``fastapi`` and ``mcp`` are named because ruff takes them for this repository's own from the folders
+# ``aoa/fastapi`` and ``aoa/mcp``; ``[tool.isort]`` must keep the same list, or the two tools undo each other.
+known-third-party = ["fastapi", "langgraph", "maxitor", "mcp"]
 
 # ============================================================================
 # BLACK
@@ -397,7 +401,8 @@ target-version = ["py312"]
 profile = "black"
 line_length = 120
 known_first_party = ["aoa"]
-known_third_party = ["langgraph"]
+known_third_party = ["fastapi", "langgraph", "maxitor", "mcp"]
+split_on_trailing_comma = true
 # Единый корень `packages/`: исходники `aoa.*`, тесты.
 src_paths = ["packages", "tests"]
 
@@ -446,8 +451,8 @@ check = "task lint && task types && task package-boundaries && task package-meta
 dead = "vulture"
 typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/web/maxitor packages/maxitor/tools/repo_graph_port/maxitor packages/maxitor/tools/graph_builder/maxitor packages/maxitor/core/graph_compare/maxitor packages/maxitor/core/graph_map/maxitor packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
-cc = "radon cc packages/ -a -nb"
-mi = "radon mi packages/ -nb"
+cc = "python scripts/check_radon.py cc"
+mi = "python scripts/check_radon.py mi"
 
 [dependency-groups]
 dev = [

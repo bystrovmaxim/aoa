@@ -138,85 +138,74 @@ def _short_label(raw: str) -> str:
     return value.rsplit(".", 1)[-1] if "." in value else value
 
 
+def _payload_node(row: dict[str, Any]) -> dict[str, Any]:
+    """One ``nodes`` row as a G6 node."""
+    nid = str(row["pk"])
+    duck_s = str(row.get("type") or "")
+    lbl = str(row.get("label") or nid)
+    return {
+        "id": nid,
+        "data": {
+            "label": _short_label(lbl),
+            "title": lbl,
+            "node_type": interchange_node_type_from_duck(duck_s),
+            "fill": fill_color_for_node_type(duck_s),
+        },
+    }
+
+
+def _payload_edges(edge_rows: list[dict[str, Any]], node_ids: set[str]) -> list[dict[str, Any]]:
+    """The ``edges`` rows as G6 edges, without those whose ends are not among ``node_ids``."""
+    edges: list[dict[str, Any]] = []
+    for row in edge_rows:
+        src = str(row["source_id"]) if row.get("source_id") is not None else ""
+        tgt = str(row["target_id"]) if row.get("target_id") is not None else ""
+        if not src or not tgt or src not in node_ids or tgt not in node_ids:
+            continue
+        edges.append(
+            {
+                "id": f"e-{row.get('idx')}",
+                "source": src,
+                "target": tgt,
+                "data": {
+                    "label": str(row.get("relationship")),
+                    "edge_type": str(row.get("type")),
+                },
+            }
+        )
+    return edges
+
+
+def _legend_items(node_types: list[str]) -> list[dict[str, str]]:
+    """One legend row per known node type, or a single ``unknown`` row."""
+    seen_types: dict[str, str] = {}
+    for duck_type in node_types:
+        nt = interchange_node_type_from_duck(duck_type)
+        if nt and nt != "unknown" and nt not in seen_types:
+            seen_types[nt] = fill_color_for_node_type(duck_type)
+    return [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())] or [
+        {"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}
+    ]
+
+
 def _build_payload_from_duckdb(
     duck: DuckDBGraphResource,
     palette: tuple[str, ...],
 ) -> dict[str, Any]:
     """Run unified SQL once, split rows by ``result_type``, build G6 payload."""
     rows = duck.execute_fetch_dicts(_FULL_GRAPH_SQL)
-    node_rows: list[dict[str, Any]] = []
-    edge_rows: list[dict[str, Any]] = []
-    domain_rows: list[dict[str, Any]] = []
-    for row in rows:
-        rt = row.get("result_type")
-        if rt == "nodes":
-            node_rows.append(row)
-        elif rt == "edges":
-            edge_rows.append(row)
-        elif rt == "domain":
-            domain_rows.append(row)
+    node_rows = [row for row in rows if row.get("result_type") == "nodes"]
+    edge_rows = [row for row in rows if row.get("result_type") == "edges"]
+    domain_rows = [row for row in rows if row.get("result_type") == "domain"]
 
-    nodes: list[dict[str, Any]] = []
-    node_id_set: set[str] = set()
-    node_type_map: dict[str, str] = {}
-    node_types: list[str] = []
-
-    for row in node_rows:
-        nid = str(row["pk"])
-        label = row.get("label")
-        duck_type = row.get("type")
-        node_types.append(str(duck_type or ""))
-        duck_s = str(duck_type or "")
-        node_type = interchange_node_type_from_duck(duck_s)
-        fill = fill_color_for_node_type(duck_s)
-        lbl = str(label or nid)
-        nodes.append(
-            {
-                "id": nid,
-                "data": {
-                    "label": _short_label(lbl),
-                    "title": lbl,
-                    "node_type": node_type,
-                    "fill": fill,
-                },
-            }
-        )
-        node_id_set.add(nid)
-        node_type_map[nid] = node_type
-
-    edges: list[dict[str, Any]] = []
-    for row in edge_rows:
-        idx = row.get("idx")
-        src = str(row["source_id"]) if row.get("source_id") is not None else ""
-        tgt = str(row["target_id"]) if row.get("target_id") is not None else ""
-        rel = row.get("relationship")
-        etype = row.get("type")
-        if not src or not tgt or src not in node_id_set or tgt not in node_id_set:
-            continue
-        edges.append(
-            {
-                "id": f"e-{idx}",
-                "source": src,
-                "target": tgt,
-                "data": {
-                    "label": str(rel),
-                    "edge_type": str(etype),
-                },
-            }
-        )
+    nodes = [_payload_node(row) for row in node_rows]
+    node_type_map = {node["id"]: node["data"]["node_type"] for node in nodes}
+    edges = _payload_edges(edge_rows, set(node_type_map))
 
     qualnames = [str(r["pk"]) for r in domain_rows]
     domain_color_map = {q: palette[i % len(palette)] for i, q in enumerate(qualnames)}
 
-    seen_types: dict[str, str] = {}
-    for duck_type in node_types:
-        nt = interchange_node_type_from_duck(str(duck_type))
-        if nt and nt != "unknown" and nt not in seen_types:
-            seen_types[nt] = fill_color_for_node_type(str(duck_type))
-
-    legend_items = [{"type": nt, "color": col} for nt, col in sorted(seen_types.items())] or [
-        {"type": "unknown", "color": DEFAULT_NODE_TYPE_COLOR}
-    ]
+    legend_items = _legend_items([str(row.get("type") or "") for row in node_rows])
 
     return {
         "title": "Full graph view",

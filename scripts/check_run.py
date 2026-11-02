@@ -28,7 +28,8 @@ first and two steps' output never mix.
 
 Steps run side by side where nothing forbids it. The two shell guards and
 ``ruff check --fix`` run first, in order and alone, because the auto-fix rewrites
-files every later Python step reads; then every step starts as soon as the steps
+files every later Python step reads (CI runs the same step without ``--fix``, since
+it must not change the tree); then every step starts as soon as the steps
 it waits for (``after``) have ended and none it must not overlap (``not_during``)
 is running, as long as fewer than the limit are running. The limit is
 ``AOA_CHECK_JOBS`` (default: the number of cores); ``AOA_CHECK_JOBS=1`` runs one
@@ -139,7 +140,7 @@ class Step:
     AI-CORE-BEGIN
     ROLE: One step of the check run: what it is called, what it runs, and what it must wait for.
     CONTRACT: ``command`` runs through ``bash -c`` from the repository root; ``shown`` is the command line the log prints, ``command`` when empty.
-    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``fast`` marks the cheap rows; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``, and under ``--fast`` for the rows the fast mode keeps.
+    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``fast`` marks the cheap rows; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``, and under ``--fast`` for the rows the fast mode keeps unless ``fast_keeps_command`` is set.
     AI-CORE-END
     """
 
@@ -155,6 +156,7 @@ class Step:
     fast: bool = False
     browser: bool = False
     ci_command: str = ""
+    fast_keeps_command: bool = False
 
     @property
     def log_command(self) -> str:
@@ -230,8 +232,9 @@ STEPS: tuple[Step, ...] = (
     _client("Maxitor client: group label composed once", "node scripts/check-erd-group-label.ts"),
     _client("Maxitor client: ERD kinds, tables and lines", "node scripts/check-erd-kinds-and-lines.ts"),
     _client("Maxitor client: ERD table style", "node scripts/check-erd-table-style.ts"),
-    # The auto-fix step takes the same scope as the lint target below (`task lint`), so that the two
-    # agree on what this repository lints. `examples/` and its notebooks are tutorial material and sit
+    # The only Ruff step: it fixes here and under --fast, and in CI, which must not change the tree, it
+    # only reports. It takes the same scope as `task lint`, so the two agree on what this repository
+    # lints. `examples/` and its notebooks are tutorial material and sit
     # outside that scope; while the step scanned everything (`.`) it reported 207 findings inside
     # `examples/` — 162 fixable (import order, unused imports) and 45 `module-import-not-at-top` — none
     # of them introduced by the change that found this and all of them predating it. Widening the scope
@@ -241,10 +244,10 @@ STEPS: tuple[Step, ...] = (
         "uv run --extra dev ruff check --fix packages/ tests/ scripts/",
         "first",
         after=(README_GUARD,),
-        home=LOCAL,
         fast=True,
+        ci_command="uv run --extra dev ruff check packages/ tests/ scripts/",
+        fast_keeps_command=True,
     ),
-    _after_fix("Ruff lint", "uv run --extra dev task lint", "static"),
     _after_fix("Mypy typecheck", "uv run --extra dev task typecheck", "static"),
     _after_fix("Pylint", "uv run --extra dev task pylint", "static"),
     _after_fix(
@@ -486,6 +489,11 @@ def _as_in_ci(step: Step) -> Step:
     return replace(step, command=step.ci_command) if step.ci_command else step
 
 
+def _as_in_fast(step: Step) -> Step:
+    """The step as the fast mode runs it."""
+    return step if step.fast_keeps_command else _as_in_ci(step)
+
+
 def _select(
     steps: tuple[Step, ...],
     where: str,
@@ -505,7 +513,7 @@ def _select(
             rows = [step for step in rows if step.home in (where, BOTH)]
         if fast:
             # Deterministic steps only, so the Python suites drop the speed tests here as in CI.
-            rows = [_as_in_ci(step) for step in rows if step.fast]
+            rows = [_as_in_fast(step) for step in rows if step.fast]
     if skip_group is not None:
         rows = [step for step in rows if step.group != skip_group]
     if where == CI:
