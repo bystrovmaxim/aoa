@@ -140,6 +140,14 @@ def _events_errors(document: dict[str, Any]) -> list[Any]:
     return list(Draft202012Validator(schema).iter_errors(document))
 
 
+def test_the_fixture_of_1_3_shows_every_new_word() -> None:
+    """The ``1.3`` sample holds an event, both edges and a domain with a vocabulary."""
+    document = _sample("1.3")
+    check_graph(document)
+    assert {"Event"} <= {node["type"] for node in document["nodes"]}
+    assert {"@emits", "domain_event"} <= {edge["type"] for edge in document["edges"]}
+
+
 def test_the_words_of_1_3_pass() -> None:
     """A document with an event, its two edges and ``typed_events`` is a 1.3 graph."""
     assert _events_errors(_events_document()) == []

@@ -106,6 +106,22 @@ def test_two_equal_graphs_are_all_unchanged() -> None:
     assert result.node_counts == result.edge_counts == Counts()
 
 
+def test_events_are_added_and_removed_like_any_element() -> None:
+    aspect, event = _node("a.Place:finish"), _node("a.PlacedEvent")
+    emits = _with_id(_edge("a.Place:finish", "@emits", "a.PlacedEvent"), "a.Place:finish|@emits|a.PlacedEvent")
+    older = _graph([aspect], [], "1.2")
+    newer = _graph([aspect, event], [emits], "1.3")
+
+    added = compare(older, newer)
+    removed = compare(newer, older)
+
+    assert {key: item.status for key, item in added.nodes.items()} == {"a.Place:finish": Status.UNCHANGED, "a.PlacedEvent": Status.ADDED}
+    assert {key: item.status for key, item in added.edges.items()} == {emits["id"]: Status.ADDED}
+    assert (added.node_counts, added.edge_counts) == (Counts(added=1), Counts(added=1))
+    assert {key: item.status for key, item in removed.edges.items()} == {emits["id"]: Status.REMOVED}
+    assert (removed.node_counts, removed.edge_counts) == (Counts(removed=1), Counts(removed=1))
+
+
 def test_a_1_0_graph_compares_with_a_1_1_graph() -> None:
     """A 1.0 graph's edges get the ids 1.1 writes, special rules included, so the same model is unchanged."""
     transition = _edge("a.Life", "lifecycle_transition", "a.Done", from_state="open")

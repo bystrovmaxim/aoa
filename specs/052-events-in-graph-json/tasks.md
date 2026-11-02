@@ -44,14 +44,14 @@
 
 **Independent test**: A `1.3` and a `1.2` document open in each consumer; two graphs differing by one event and one edge compare exactly.
 
-- [ ] T019 [US4] Copy `1.3.json` to `packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/`, add it to `SCHEMA_VERSIONS` in `schemas/__init__.py`, and add the fixture `packages/maxitor/tools/graph_builder/tests/fixtures/graph-1.3.json`
-- [ ] T020 [US4] Add `1.3` to `KNOWN_VERSIONS` in `packages/maxitor/core/graph_compare/maxitor/graph_compare/compare.py`
-- [ ] T021 [US4] In `packages/maxitor/web/maxitor/web/model/diagrams/resources/duckdb_graph_resource.py` add an `event` table, its filling, `Event` and both edge types to `_assert_no_unknown_graph_types`, and read `typed_events` tolerantly, since older documents lack it
-- [ ] T022 [US4] Add the `event` slug to `_DUCK_SLUG_TO_INTERCHANGE` in `packages/maxitor/web/maxitor/web/model/diagrams/actions/list_node_types_action.py`; no colour, no icon, no filter
-- [ ] T023 [P] [US4] Extend `packages/maxitor/tools/graph_builder/tests/test_schemas.py`: `1.3` fixture accepted, `9.9` refused
-- [ ] T024 [P] [US4] Extend `packages/maxitor/core/graph_compare/tests/test_graph_compare.py`: an added and a removed event and `@emits` edge are reported as exactly those elements; `1.2` against `1.3` compares; `9.9` refused
-- [ ] T025 [P] [US4] Add `packages/maxitor/web/tests/test_duckdb_event_nodes.py`: a `1.3` document loads, events and edges are on the full graph, ERD, lifecycle and use-case results equal those of the same document without events, a `1.2` document loads
-- [ ] T026 [US4] Run the phase tests; break each list and the table, confirm the matching test fails, restore
+- [X] T019 [US4] Copy `1.3.json` to `packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/`, add it to `SCHEMA_VERSIONS` in `schemas/__init__.py`, and add the fixture `packages/maxitor/tools/graph_builder/tests/fixtures/graph-1.3.json`
+- [X] T020 [US4] Add `1.3` to `KNOWN_VERSIONS` in `packages/maxitor/core/graph_compare/maxitor/graph_compare/compare.py`
+- [X] T021 [US4] In `packages/maxitor/web/maxitor/web/model/diagrams/resources/duckdb_graph_resource.py` add an `event` table, its filling, `Event` and both edge types to `_assert_no_unknown_graph_types`, and read `typed_events` tolerantly, since older documents lack it
+- [X] T022 [US4] Add the `event` slug to `_DUCK_SLUG_TO_INTERCHANGE` in `packages/maxitor/web/maxitor/web/model/diagrams/actions/list_node_types_action.py`; no colour, no icon, no filter
+- [X] T023 [P] [US4] Extend `packages/maxitor/tools/graph_builder/tests/test_schemas.py`: `1.3` fixture accepted, `9.9` refused
+- [X] T024 [P] [US4] Extend `packages/maxitor/core/graph_compare/tests/test_graph_compare.py`: an added and a removed event and `@emits` edge are reported as exactly those elements; `1.2` against `1.3` compares; `9.9` refused
+- [X] T025 [P] [US4] Add `packages/maxitor/web/tests/test_duckdb_event_nodes.py`: a `1.3` document loads, events and edges are on the full graph, ERD, lifecycle and use-case results equal those of the same document without events, a `1.2` document loads
+- [X] T026 [US4] Run the phase tests; break each list and the table, confirm the matching test fails, restore
 
 ## Phase 4: The graph files
 

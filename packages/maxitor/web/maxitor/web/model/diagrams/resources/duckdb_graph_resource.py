@@ -165,6 +165,10 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL
     );""",
+            """CREATE TABLE event (
+      id VARCHAR NOT NULL,
+      label VARCHAR NOT NULL
+    );""",
             """CREATE TABLE field (
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
@@ -282,6 +286,18 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL
     );""",
             """CREATE TABLE generic_result_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE domain_event_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE emits_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -539,6 +555,7 @@ _NODE_TABLE_NAMES: tuple[str, ...] = (
     "resource",
     "params",
     "result",
+    "event",
     "field",
     "property_field",
     "regular_aspect",
@@ -563,6 +580,8 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "parent_role_edges",
     "generic_params_edges",
     "generic_result_edges",
+    "domain_event_edges",
+    "emits_edges",
     "check_roles_edges",
     "regular_aspect_edges",
     "summary_aspect_edges",
@@ -615,6 +634,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
         f"SELECT id, label, CAST('result' AS VARCHAR) AS type, {_nj()} AS payload FROM result",
+        f"SELECT id, label, CAST('event' AS VARCHAR) AS type, {_nj()} AS payload FROM event",
         "SELECT id, label, CAST('field' AS VARCHAR) AS type, json_object('prop_required', prop_required, 'description', description, 'json_schema_value', json_schema_value, 'entity_schema', entity_schema, 'json_schema_name', json_schema_name, 'json_schema', json_schema) AS payload FROM field",
         "SELECT id, label, CAST('property_field' AS VARCHAR) AS type, json_object('prop_required', prop_required, 'entity_schema', entity_schema) AS payload FROM property_field",
         "SELECT id, label, CAST('regular_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM regular_aspect",
@@ -636,6 +656,8 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_domain_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_domain_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_role_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_role_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_params_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_params_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('domain_event_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM domain_event_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('emits_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM emits_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_result_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_result_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('check_roles_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM check_roles_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('regular_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM regular_aspect_edges",
@@ -1206,6 +1228,8 @@ def _fill_simple_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict
         "parent_role": "parent_role_edges",
         "generic:params": "generic_params_edges",
         "generic:result": "generic_result_edges",
+        "domain_event": "domain_event_edges",
+        "@emits": "emits_edges",
         "@check_roles": "check_roles_edges",
         "@regular_aspect": "regular_aspect_edges",
         "@summary_aspect": "summary_aspect_edges",
@@ -1282,6 +1306,9 @@ def _fill_schema_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict
     )
     _executemany(
         con, "INSERT INTO result VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Result", [])]
+    )
+    _executemany(
+        con, "INSERT INTO event VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Event", [])]
     )
     _executemany(
         con,
@@ -1437,6 +1464,7 @@ def _assert_no_unknown_graph_types(
         "Resource",
         "Params",
         "Result",
+        "Event",
         "Field",
         "PropertyField",
         "RegularAspect",
@@ -1461,6 +1489,8 @@ def _assert_no_unknown_graph_types(
         "parent_role",
         "generic:params",
         "generic:result",
+        "domain_event",
+        "@emits",
         "@check_roles",
         "@regular_aspect",
         "@summary_aspect",
