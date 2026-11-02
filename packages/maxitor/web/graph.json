@@ -903,6 +903,24 @@
       "type": "field"
     },
     {
+      "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_file",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_file",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_problem",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult",
+      "target_id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_problem",
+      "type": "field"
+    },
+    {
       "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult|field|maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
       "is_dag": false,
       "properties": {},
@@ -1600,6 +1618,24 @@
       "relationship": "Composition",
       "source_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult",
       "target_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:title",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_file",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_file",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_problem",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_problem",
       "type": "field"
     },
     {
@@ -5028,6 +5064,28 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_file",
+      "label": "version_file",
+      "properties": {
+        "description": "The file that holds the history's version, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:version_problem",
+      "label": "version_problem",
+      "properties": {
+        "description": "Why the history's version cannot be read, in plain words, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.web.model.core.actions.history_versions_action.HistoryVersionsResult:versions",
       "label": "versions",
       "properties": {
@@ -5680,6 +5738,28 @@
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_file",
+      "label": "version_file",
+      "properties": {
+        "description": "The file that holds the history's version, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:version_problem",
+      "label": "version_problem",
+      "properties": {
+        "description": "Why the history's version cannot be read, in plain words, or none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
       },
       "type": "Field"
     },
