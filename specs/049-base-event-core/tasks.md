@@ -89,7 +89,7 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 - [X] T035 [US3] Call it from `NodeGraphCoordinator.build` in `AM/graph/core/node_graph_coordinator.py` once the nodes are wired, and add it to the `Raises` section there
 - [X] T036 [US3] Run the test files of this phase
 - [X] T037 [US3] Adversarial breaks 10, 11, 14, 15, 19 and 23 of `quickstart.md`, one at a time, each restored before the next
-- [ ] T038 [US3] **Commit point**: `feat(domain): events, the vocabulary of a domain (#333)`
+- [X] T038 [US3] **Commit point**: `feat(domain): events, the vocabulary of a domain (#333)`
 
 **Checkpoint**: Mode 3 works, and the build holds `@emits` to the vocabulary.
 
@@ -101,12 +101,12 @@ description: "Tasks — typed events, @emits and the domain vocabulary"
 
 **Independent Test**: The demo's tests pass, and a logger receives typed events with the same text.
 
-- [ ] T039 [US4] Create `packages/aoa-demo/tests/fastapi_mcp_services/test_order_events.py`: `GetOrderAction` and `CreateOrderAction` deliver their events, with the text and the answers they had; a build with an event removed from `OrdersDomain.events` fails; a call with `kwargs` fails at runtime
-- [ ] T040 [US4] Create `DEMO/events.py` with `OrderRequestedEvent(order_id: str)` and `OrderValidatedEvent(user_id: str, amount: float)`
-- [ ] T041 [US4] Convert the calls in `DEMO/actions/get_order.py` and `DEMO/actions/create_order.py`, each with `@emits`. The templates stay as they are
-- [ ] T042 [US4] Declare `events = (OrderRequestedEvent, OrderValidatedEvent)` in `DEMO/orders_domain.py`
-- [ ] T043 [US4] Run `packages/aoa-demo/tests/` and `uv run --extra dev graph-builder check`: `packages/aoa-demo/graph.json` has not changed
-- [ ] T044 [US4] **Commit point**: `feat(demo): the orders domain speaks in typed events (#333)`
+- [X] T039 [US4] Create `packages/aoa-demo/tests/fastapi_mcp_services/test_order_events.py`: `GetOrderAction` and `CreateOrderAction` deliver their events, with the text and the answers they had; a build with an event removed from `OrdersDomain.events` fails; a call with `kwargs` fails at runtime
+- [X] T040 [US4] Create `DEMO/events.py` with `OrderRequestedEvent(order_id: str)` and `OrderValidatedEvent(user_id: str, amount: float)`
+- [X] T041 [US4] Convert the calls in `DEMO/actions/get_order.py` and `DEMO/actions/create_order.py`, each with `@emits`. The templates stay as they are
+- [X] T042 [US4] Declare `events = (OrderRequestedEvent, OrderValidatedEvent)` in `DEMO/orders_domain.py`
+- [X] T043 [US4] Run `packages/aoa-demo/tests/` and `uv run --extra dev graph-builder check`: `packages/aoa-demo/graph.json` has not changed
+- [X] T044 [US4] **Commit point**: `feat(demo): the orders domain speaks in typed events (#333)`
 
 **Checkpoint**: The whole cascade runs on a real product.
 

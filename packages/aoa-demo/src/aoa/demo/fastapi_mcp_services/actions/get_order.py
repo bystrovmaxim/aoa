@@ -32,12 +32,14 @@ from pydantic import Field
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.emits import emits
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
+from ..events import OrderRequestedEvent
 from ..orders_domain import OrdersDomain
 
 
@@ -76,6 +78,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         )
 
     @summary_aspect("Load and return order data")
+    @emits(OrderRequestedEvent)
     async def get_order_summary(
         self,
         params: "GetOrderAction.Params",
@@ -87,7 +90,7 @@ class GetOrderAction(BaseAction["GetOrderAction.Params", "GetOrderAction.Result"
         await box.info(
             Channel.business,
             "Order request: {%var.order_id}",
-            order_id=params.order_id,
+            OrderRequestedEvent(order_id=params.order_id),
         )
 
         return GetOrderAction.Result(

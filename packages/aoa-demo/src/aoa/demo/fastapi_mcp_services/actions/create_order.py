@@ -35,12 +35,14 @@ from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_string
+from aoa.action_machine.intents.emits import emits
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
+from ..events import OrderValidatedEvent
 from ..orders_domain import OrdersDomain
 
 
@@ -88,6 +90,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         )
 
     @regular_aspect("Validate order data")
+    @emits(OrderValidatedEvent)
     @result_string("validated_user", required=True)
     async def validate_aspect(
         self,
@@ -102,8 +105,7 @@ class CreateOrderAction(BaseAction["CreateOrderAction.Params", "CreateOrderActio
         await box.info(
             Channel.business,
             "Order validation: user={%var.user_id}, amount={%var.amount}",
-            user_id=params.user_id,
-            amount=params.amount,
+            OrderValidatedEvent(user_id=params.user_id, amount=params.amount),
         )
         return {"validated_user": params.user_id}
 
