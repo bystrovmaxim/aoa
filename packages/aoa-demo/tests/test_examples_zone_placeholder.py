@@ -1,5 +1,5 @@
 # tests/examples/test_examples_zone_placeholder.py
-"""Minimal smoke: ``aoa.demo`` imports without ``maxitor.front``."""
+"""Minimal smoke: ``aoa.demo`` imports without ``maxitor.web``."""
 
 
 def test_import_examples_namespace() -> None:

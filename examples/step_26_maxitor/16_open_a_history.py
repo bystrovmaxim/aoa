@@ -107,7 +107,7 @@ from typing import Any
 
 import uvicorn
 from fastapi.testclient import TestClient
-from maxitor.front.api.app import create_app as create_maxitor
+from maxitor.web.api.app import create_app as create_maxitor
 from maxitor.repo_graph_port.cli import main as history_command
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.server import create_app as create_port
@@ -116,7 +116,7 @@ from maxitor.repo_graph_port.server import create_app as create_port
 REPO_ROOT = next(
     path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "graph-builder.toml").is_file()
 )
-FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/front/graph.json").read_text(encoding="utf-8"))
+FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/web/graph.json").read_text(encoding="utf-8"))
 WORK = Path(tempfile.mkdtemp(prefix="open-a-history-"))
 
 

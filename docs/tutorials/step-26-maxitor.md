@@ -148,7 +148,7 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
 
 ## The graph saved with every change
 
-Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/front/graph.json`, listed in `graph-builder.toml` at the root:
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/web/graph.json`, listed in `graph-builder.toml` at the root:
 
 ```toml
 graph_builder = "1.0"
@@ -170,7 +170,7 @@ ok maxitor
 run: graph-builder write --config graph-builder.toml, and commit the graph files
 ```
 
-Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[front]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.front`.
+Maxitor is one package whose parts an install chooses: `pip install maxitor` is `graph-builder` alone — nothing of AOA, no server, all a CI job needs — and `maxitor[web]` adds the app; any JSON Schema validator, in any language, checks a graph against the protocol. [13_maxitor_parts.py](../../examples/step_26_maxitor/13_maxitor_parts.py) ([notebook](../../examples/step_26_maxitor/13_maxitor_parts.ipynb)) shows each case: a clean install with no extra, the app naming its missing extra, a plain validator accepting the demo's graph and refusing it without an edge's `id`, and the import `maxitor.web`.
 
 Merged, the pull request carries the graph as it now is; `git log -p packages/aoa-demo/graph.json` is the demo's graph history. [12_graph_file.py](../../examples/step_26_maxitor/12_graph_file.py) ([notebook](../../examples/step_26_maxitor/12_graph_file.ipynb)) shows every case:
 
@@ -237,7 +237,7 @@ Two versions can be compared: switch the picker to **Diff** and the ERD paints w
 ```text
 4. 0.2.0 → 0.3.0
    nodes +1 −0 ~1 · links +0 −0 ~0
-   changed: maxitor.front.model.core.entities.node_entity.NodeCoreEntity
+   changed: maxitor.web.model.core.entities.node_entity.NodeCoreEntity
      properties.description: 'Hierarchical UI node row (id, optional parent, label, coarse type)' → 'Orders a customer places, now billed.'
    added: example.billing
 6. 0.3.0 → Live
@@ -525,7 +525,7 @@ Maxitor's own answers are conditional too: every successful `GET` of a `FastApiA
 uv run task maxitor
 
 # frontend (Vite SPA, :5173; proxies /api to :8000)
-cd packages/maxitor/front/client && npm install && npm run dev
+cd packages/maxitor/web/client && npm install && npm run dev
 ```
 
 Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](../../packages/maxitor/README.md).
@@ -692,5 +692,4 @@ The page opens fast, and a second visit barely downloads anything.
 
 **The full graph is a map.** It is no longer laid out in the browser. Each version is laid out once on the server, by Graphviz, domain by domain, and the browser reads an overview first and the detail of what it looks at, so a graph of about a hundred thousand nodes opens in under a second. Sigma.js draws it with WebGL. Reading it — the levels, the filters, comparing two versions — is [the how-to page](../how-to/read-the-full-graph-map.md), and [18_the_full_graph_as_a_map.py](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.py) with its [notebook](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.ipynb) runs the reads.
 
-**How it is measured.** `packages/maxitor/front/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.
-
+**How it is measured.** `packages/maxitor/web/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.

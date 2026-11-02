@@ -1,4 +1,4 @@
-# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package from front/, tools/ and skills/, parts chosen by extras.
+# packages/maxitor/pyproject.toml — publishable distribution ``maxitor``: one package from web/, tools/ and skills/, parts chosen by extras.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name = "maxitor"
 version = "3.0.0"
-description = "Maxitor: its front and its tools, one package with extras."
+description = "Maxitor: its web part and its tools, one package with extras."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md"]
@@ -29,8 +29,8 @@ repo-graph-port = [
     "PyJWT[crypto]>=2.8,<3",
     "httpx>=0.28,<1.0",
 ]
-# The front: Maxitor's server and its built web client.
-front = [
+# The web part: Maxitor's server and its built web client.
+web = [
     "aoa-action-machine>=1.0.1a0",
     "aoa-fastapi-adapter>=1.3.0",
     "duckdb>=1.5,<2",
@@ -38,7 +38,7 @@ front = [
     "uvicorn>=0.30",
     "websockets>=15",
 ]
-all = ["maxitor[front]", "maxitor[repo-graph-port]"]
+all = ["maxitor[web]", "maxitor[repo-graph-port]"]
 
 [tool.uv.sources]
 aoa-action-machine = { workspace = true }
@@ -51,34 +51,34 @@ Repository = "https://github.com/action-machine/action-machine"
 
 [project.scripts]
 graph-builder = "maxitor.graph_builder.cli:main"
-maxitor = "maxitor.front.launch:main"
+maxitor = "maxitor.web.launch:main"
 repo-graph-port = "maxitor.repo_graph_port.launch:main"
 
-# One package from several folders: the web part (front/), the tools and services (tools/<name>/), the
-# code they share (core/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its own ``src``.
+# One package from several folders: the web part (web/), the tools and services (tools/<name>/), the
+# code they share (core/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its code in ``<part>/maxitor/<name>/``.
 [tool.hatch.build.targets.wheel]
-only-include = ["front/src/maxitor", "tools/repo_graph_port/src/maxitor", "tools/graph_builder/src/maxitor", "core/graph_compare/src/maxitor", "core/graph_map/src/maxitor"]
-artifacts = ["front/src/maxitor/front/static/**/*"]
-dev-mode-dirs = ["front/src", "tools/repo_graph_port/src", "tools/graph_builder/src", "core/graph_compare/src", "core/graph_map/src"]
+only-include = ["web/maxitor", "tools/repo_graph_port/maxitor", "tools/graph_builder/maxitor", "core/graph_compare/maxitor", "core/graph_map/maxitor"]
+artifacts = ["web/maxitor/web/static/**/*"]
+dev-mode-dirs = ["web", "tools/repo_graph_port", "tools/graph_builder", "core/graph_compare", "core/graph_map"]
 
 [tool.hatch.build.targets.wheel.sources]
-"front/src" = ""
-"tools/repo_graph_port/src" = ""
-"tools/graph_builder/src" = ""
-"core/graph_compare/src" = ""
-"core/graph_map/src" = ""
+"web" = ""
+"tools/repo_graph_port" = ""
+"tools/graph_builder" = ""
+"core/graph_compare" = ""
+"core/graph_map" = ""
 
 [tool.hatch.build.targets.wheel.force-include]
 "skills" = "maxitor/skills"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-  "front/client/node_modules",
-  "front/client/node_modules/**",
-  "front/client/.vite",
-  "front/client/.vite/**",
+  "web/client/node_modules",
+  "web/client/node_modules/**",
+  "web/client/.vite",
+  "web/client/.vite/**",
   # A service's saved graph is the repository's history, not the package's (graph-builder.toml).
-  "front/graph.json",
+  "web/graph.json",
 ]
 
 [dependency-groups]

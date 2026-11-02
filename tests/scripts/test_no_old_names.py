@@ -28,7 +28,7 @@ def _kept_as_history(path: str) -> bool:
 
 
 def test_no_tracked_file_names_the_old_packages() -> None:
-    """Every file outside history speaks of ``maxitor``, ``maxitor.front`` and ``maxitor.graph_builder`` only."""
+    """Every file outside history speaks of ``maxitor``, ``maxitor.web`` and ``maxitor.graph_builder`` only."""
     listed = subprocess.run(["git", "ls-files", "-z"], check=True, capture_output=True, cwd=REPO_ROOT).stdout
     found: list[str] = []
     for path in filter(None, listed.decode().split("\0")):

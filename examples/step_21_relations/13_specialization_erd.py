@@ -101,8 +101,8 @@ def main() -> None:
     import json
     from pathlib import Path
 
-    from maxitor.front.model.diagrams.actions.list_entities_action import ListEntitiesAction
-    from maxitor.front.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
+    from maxitor.web.model.diagrams.actions.list_entities_action import ListEntitiesAction
+    from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 
     machine = ActionProductMachine(loggers=[])
     graph = json.loads(machine.graph_coordinator.to_json())

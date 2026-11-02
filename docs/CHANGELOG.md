@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-02] — Maxitor's web part is now called web
+
+If you install Maxitor's web part, ask for `maxitor[web]` from now on. `maxitor[front]` no longer exists. The name changed because this part holds the server as well as the web client, so "front" described only half of it. The command is still `maxitor` and the package is still called `maxitor`.
+
+Code that imports the part now imports `maxitor.web` instead of `maxitor.front`, and with no alias for the old name. If you compare Maxitor's own graph across this change, the whole part shows as removed and created again. That happens once and is expected.
+
+The schema of `graph-builder.toml` has moved, so its old address on GitHub stops working. The installed package carries its own copy, and `graph-builder` reads that one.
+
 ## [2026-11-02] — The project now passes on Python 3.14
 
 Every pull request is now checked on Python 3.14 as well as on 3.12, so a new machine or a new interpreter no longer comes as a surprise. Your own machine stays on 3.12.

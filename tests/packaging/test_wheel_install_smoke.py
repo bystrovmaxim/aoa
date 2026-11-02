@@ -152,7 +152,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
 
 
 def test_clean_install_maxitor_front_names_its_extra(tmp_path: Path) -> None:
-    """Without the ``front`` extra, ``maxitor`` names the extra instead of failing on an import."""
+    """Without the ``web`` extra, ``maxitor`` names the extra instead of failing on an import."""
     venv = tmp_path / "venv"
     subprocess.run([_which_uv(), "venv", str(venv)], check=True, cwd=str(REPO_ROOT))
     vpy = _venv_python(venv)
@@ -162,7 +162,7 @@ def test_clean_install_maxitor_front_names_its_extra(tmp_path: Path) -> None:
         [str(venv / "bin" / "maxitor")], check=False, capture_output=True, text=True, cwd=str(tmp_path)
     )
     assert started.returncode == 2
-    assert started.stderr == 'maxitor needs its front: pip install "maxitor[front]"\n'
+    assert started.stderr == 'maxitor needs its web part: pip install "maxitor[web]"\n'
 
 
 def test_clean_install_repo_graph_port_names_its_extra(tmp_path: Path) -> None:

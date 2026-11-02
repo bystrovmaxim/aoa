@@ -50,7 +50,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from maxitor.front.model.diagrams.resources.map_store import MapStore
+from maxitor.web.model.diagrams.resources.map_store import MapStore
 from maxitor.graph_map import split_areas
 
 STATUSES = ("unchanged", "added", "removed", "changed")
