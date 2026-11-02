@@ -24,3 +24,4 @@ from __future__ import annotations
 from aoa.otel.plugin import OpenTelemetryPlugin
 
 __all__ = ["OpenTelemetryPlugin"]
+# Probe for the required Versions check; never merged.
