@@ -165,6 +165,10 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL
     );""",
+            """CREATE TABLE event (
+      id VARCHAR NOT NULL,
+      label VARCHAR NOT NULL
+    );""",
             """CREATE TABLE field (
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
@@ -282,6 +286,18 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL
     );""",
             """CREATE TABLE generic_result_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE domain_event_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE emits_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -539,6 +555,7 @@ _NODE_TABLE_NAMES: tuple[str, ...] = (
     "resource",
     "params",
     "result",
+    "event",
     "field",
     "property_field",
     "regular_aspect",
@@ -563,6 +580,8 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "parent_role_edges",
     "generic_params_edges",
     "generic_result_edges",
+    "domain_event_edges",
+    "emits_edges",
     "check_roles_edges",
     "regular_aspect_edges",
     "summary_aspect_edges",
@@ -615,6 +634,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('resource' AS VARCHAR) AS type, json_object('description', description) AS payload FROM resource",
         f"SELECT id, label, CAST('params' AS VARCHAR) AS type, {_nj()} AS payload FROM params",
         f"SELECT id, label, CAST('result' AS VARCHAR) AS type, {_nj()} AS payload FROM result",
+        f"SELECT id, label, CAST('event' AS VARCHAR) AS type, {_nj()} AS payload FROM event",
         "SELECT id, label, CAST('field' AS VARCHAR) AS type, json_object('prop_required', prop_required, 'description', description, 'json_schema_value', json_schema_value, 'entity_schema', entity_schema, 'json_schema_name', json_schema_name, 'json_schema', json_schema) AS payload FROM field",
         "SELECT id, label, CAST('property_field' AS VARCHAR) AS type, json_object('prop_required', prop_required, 'entity_schema', entity_schema) AS payload FROM property_field",
         "SELECT id, label, CAST('regular_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM regular_aspect",
@@ -636,6 +656,8 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_domain_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_domain_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('parent_role_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM parent_role_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_params_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_params_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('domain_event_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM domain_event_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('emits_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM emits_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('generic_result_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM generic_result_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('check_roles_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM check_roles_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('regular_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM regular_aspect_edges",
@@ -683,33 +705,6 @@ def _type_count_view_ddls() -> list[str]:
     ]
 
 
-def _fill_table_action(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO action VALUES (?, ?, ?)",
-            [node["id"], node["label"], p["description"]],
-        )
-
-
-def _fill_table_application(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO application VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["name"], p["description"]],
-        )
-
-
-def _fill_table_domain(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO domain VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["name"], p["description"]],
-        )
-
-
 _UNKNOWN_ENTITY_KIND = "unknown"
 """The kind stored for an ``Entity`` row whose producer states none: visible and filterable, never guessed."""
 
@@ -753,250 +748,6 @@ def _fill_table_entity_field_edges(con: duckdb.DuckDBPyConnection, rows: list[di
             for edge in rows
         ],
     )
-
-
-def _fill_table_resource(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute("INSERT INTO resource VALUES (?, ?, ?)", [node["id"], node["label"], p["description"]])
-
-
-def _fill_table_params(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        con.execute("INSERT INTO params VALUES (?, ?)", [node["id"], node["label"]])
-
-
-def _fill_table_result(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        con.execute("INSERT INTO result VALUES (?, ?)", [node["id"], node["label"]])
-
-
-def _fill_table_field(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO field VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-                node["id"],
-                node["label"],
-                p["required"],
-                p["description"],
-                p["json_schema_value"],
-                p["entity_schema"],
-                p.get("json_schema_name"),
-                _pack_json_or_none(p.get("json_schema")),
-            ],
-        )
-
-
-def _fill_table_property_field(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO property_field VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["required"], p["entity_schema"]],
-        )
-
-
-def _fill_table_regular_aspect(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO regular_aspect VALUES (?, ?, ?)",
-            [node["id"], node["label"], p["description"]],
-        )
-
-
-def _fill_table_summary_aspect(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO summary_aspect VALUES (?, ?, ?)",
-            [node["id"], node["label"], p["description"]],
-        )
-
-
-def _fill_table_compensator(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO compensator VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p.get("description"), p.get("target_aspect_name")],
-        )
-
-
-def _fill_table_error_handler(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO error_handler VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p.get("description"), _pack_json_or_none(p.get("exception_types"))],
-        )
-
-
-def _fill_table_checker(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO checker VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["TypeChecker"], p["required"]],
-        )
-
-
-def _fill_table_required_context(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO required_context VALUES (?, ?, ?)",
-            [node["id"], node["label"], p["key"]],
-        )
-
-
-def _fill_table_lifecycle(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO lifecycle VALUES (?, ?, ?, ?)",
-            [node["id"], node["label"], p["field_name"], p.get("description")],
-        )
-
-
-def _fill_table_state(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        t = node["type"]
-        con.execute(
-            "INSERT INTO state VALUES (?, ?, ?, ?, ?, ?)",
-            [
-                node["id"],
-                node["label"],
-                t,
-                p["lifecycle_class_id"],
-                p["state_key"],
-                _pack_json_or_none(p.get("attributes", {})),
-            ],
-        )
-
-
-def _fill_table_sensitive(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO sensitive VALUES (?, ?, ?)",
-            [node["id"], node["label"], _pack_json_or_none(p)],
-        )
-
-
-def _fill_table_role(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for node in rows:
-        p = _get_properties(node)
-        con.execute(
-            "INSERT INTO role VALUES (?, ?, ?, ?)", [node["id"], node["label"], p["role_mode"], p.get("description")]
-        )
-
-
-def _fill_table_application_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO application_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_domain_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO domain_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_generic_params_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO generic_params_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_generic_result_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO generic_result_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_check_roles_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO check_roles_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_regular_aspect_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO regular_aspect_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_summary_aspect_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO summary_aspect_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_compensate_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO compensate_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_on_error_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO on_error_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_result_checker_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO result_checker_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_entity_schema_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO entity_schema_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_field_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO field_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
-
-
-def _fill_table_property_edges(con: duckdb.DuckDBPyConnection, rows: list[dict[str, Any]]) -> None:
-    for edge in rows:
-        con.execute(
-            "INSERT INTO property_edges (source_id, target_id, relationship, is_dag) VALUES (?, ?, ?, ?)",
-            [edge["source_id"], edge["target_id"], edge["relationship"], edge["is_dag"]],
-        )
 
 
 def _depends_edge_description_and_mode(edge: dict[str, Any]) -> tuple[str, str | None]:
@@ -1206,6 +957,8 @@ def _fill_simple_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict
         "parent_role": "parent_role_edges",
         "generic:params": "generic_params_edges",
         "generic:result": "generic_result_edges",
+        "domain_event": "domain_event_edges",
+        "@emits": "emits_edges",
         "@check_roles": "check_roles_edges",
         "@regular_aspect": "regular_aspect_edges",
         "@summary_aspect": "summary_aspect_edges",
@@ -1282,6 +1035,9 @@ def _fill_schema_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict
     )
     _executemany(
         con, "INSERT INTO result VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Result", [])]
+    )
+    _executemany(
+        con, "INSERT INTO event VALUES (?, ?)", [[n["id"], n["label"]] for n in nodes_by_type.get("Event", [])]
     )
     _executemany(
         con,
@@ -1437,6 +1193,7 @@ def _assert_no_unknown_graph_types(
         "Resource",
         "Params",
         "Result",
+        "Event",
         "Field",
         "PropertyField",
         "RegularAspect",
@@ -1461,6 +1218,8 @@ def _assert_no_unknown_graph_types(
         "parent_role",
         "generic:params",
         "generic:result",
+        "domain_event",
+        "@emits",
         "@check_roles",
         "@regular_aspect",
         "@summary_aspect",

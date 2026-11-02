@@ -4626,7 +4626,8 @@
       "label": "TransportDomain",
       "properties": {
         "description": "Resources the FastAPI adapter creates for one connection",
-        "name": "transport"
+        "name": "transport",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -5779,7 +5780,8 @@
       "label": "CoreDomain",
       "properties": {
         "description": "Core domain: user management, authentication, authorization, and other core functionalities",
-        "name": "core"
+        "name": "core",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -7804,7 +7806,8 @@
       "label": "DiagramsDomain",
       "properties": {
         "description": "Diagrams surface: sidebar menu, interchange graph, ERD rows, and related composition",
-        "name": "diagrams"
+        "name": "diagrams",
+        "typed_events": false
       },
       "type": "Domain"
     },
@@ -8522,10 +8525,11 @@
       "label": "RoomsDomain",
       "properties": {
         "description": "Rooms: people looking at one service together, with shared settings, pointers and following",
-        "name": "rooms"
+        "name": "rooms",
+        "typed_events": false
       },
       "type": "Domain"
     }
   ],
-  "schema_version": "1.2"
+  "schema_version": "1.3"
 }

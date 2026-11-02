@@ -20,10 +20,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_types
 from aoa.action_machine.intents.on_error.on_error_intent_resolver import OnErrorIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+
+from ..edges.emits_graph_edge import EmitsGraphEdge
 
 
 @dataclass(init=False, frozen=True)
@@ -31,11 +34,12 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for an ``@on_error`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``error_handler``; ``properties`` include ``description`` and ``exception_types`` when resolver methods return them; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``error_handler``; ``properties`` include ``description`` and ``exception_types`` when resolver methods return them; ``edges`` are the ``@emits`` of the method.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "ErrorHandler"
+    emits: list[EmitsGraphEdge]
 
     def __init__(self, handler_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         validate_types(ASPECT_CONTRACTS["on_error"], _action_cls, handler_func)
@@ -55,6 +59,11 @@ class ErrorHandlerGraphNode(BaseGraphNode[Callable[..., Any]]):
             properties=properties,
             node_obj=handler_func,
         )
+        object.__setattr__(self, "emits", EmitsGraphEdge.get_emits_edges(handler_func))
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return the ``@emits`` edges."""
+        return [*self.emits]
 
     def to_dict(self) -> dict[str, Any]:
         return {

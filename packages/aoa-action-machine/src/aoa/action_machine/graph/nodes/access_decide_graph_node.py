@@ -44,6 +44,7 @@ from typing import Any, ClassVar
 
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
+from aoa.action_machine.graph.edges.emits_graph_edge import EmitsGraphEdge
 from aoa.action_machine.graph.edges.required_context_graph_edge import RequiredContextGraphEdge
 from aoa.action_machine.intents.access_decide.access_decide_intent_resolver import (
     AccessDecideIntentResolver,
@@ -65,6 +66,7 @@ class AccessDecideGraphNode(BaseGraphNode[Callable[..., Any]]):
 
     NODE_TYPE: ClassVar[str] = "AccessDecide"
     required_context: list[RequiredContextGraphEdge]
+    emits: list[EmitsGraphEdge]
 
     def __init__(self, check_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         validate_types(_action_cls, check_func)
@@ -82,6 +84,7 @@ class AccessDecideGraphNode(BaseGraphNode[Callable[..., Any]]):
             "required_context",
             RequiredContextGraphEdge.get_required_context_edges(check_func, _action_cls, self),
         )
+        object.__setattr__(self, "emits", EmitsGraphEdge.get_emits_edges(check_func))
 
     def get_required_context_keys(self) -> frozenset[str]:
         """Return the dot-path keys the declaration asked for (``properties['key']`` per edge)."""
@@ -93,8 +96,8 @@ class AccessDecideGraphNode(BaseGraphNode[Callable[..., Any]]):
         return frozenset(out)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the required-context composition edges materialized on this node."""
-        return [*self.required_context]
+        """Return the required-context composition edges, then the ``@emits`` edges."""
+        return [*self.required_context, *self.emits]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return the required-context companion nodes this declaration pulled in."""

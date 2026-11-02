@@ -86,4 +86,5 @@ _MODULES: Final[tuple[str, ...]] = (
     "aoa.demo.model.generalization_shapes.generalization_shapes_domain",
     "aoa.demo.model.generalization_shapes.actions",
     "aoa.demo.model.generalization_shapes.entities",
+    "aoa.demo.fastapi_mcp_services.actions",
 )

@@ -28,6 +28,7 @@ from aoa.action_machine.intents.aspects.regular_aspect_intent_resolver import Re
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 from ..edges.checker_graph_edge import CheckerGraphEdge
+from ..edges.emits_graph_edge import EmitsGraphEdge
 from ..edges.required_context_graph_edge import RequiredContextGraphEdge
 from .checker_graph_node import CheckerGraphNode
 
@@ -44,6 +45,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
     NODE_TYPE: ClassVar[str] = "RegularAspect"
     checkers: list[CheckerGraphEdge]
     required_context: list[RequiredContextGraphEdge]
+    emits: list[EmitsGraphEdge]
 
     def __init__(self, aspect_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         validate_types(ASPECT_CONTRACTS["regular_aspect"], _action_cls, aspect_func)
@@ -63,6 +65,7 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             "required_context",
             RequiredContextGraphEdge.get_required_context_edges(aspect_func, _action_cls, self),
         )
+        object.__setattr__(self, "emits", EmitsGraphEdge.get_emits_edges(aspect_func))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -75,8 +78,8 @@ class RegularAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return checker and required-context composition edges materialized on this node."""
-        return [*self.checkers, *self.required_context]
+        """Return checker and required-context composition edges, then the ``@emits`` edges."""
+        return [*self.checkers, *self.required_context, *self.emits]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return checker and required-context companion nodes referenced by composition edges."""

@@ -54,6 +54,7 @@ _DUCK_SLUG_TO_INTERCHANGE: dict[str, str] = {
     "resource": "Resource",
     "params": "Params",
     "result": "Result",
+    "event": "Event",
     "field": "Field",
     "property_field": "PropertyField",
     "regular_aspect": "RegularAspect",

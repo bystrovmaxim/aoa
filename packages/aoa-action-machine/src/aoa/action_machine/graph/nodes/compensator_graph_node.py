@@ -20,10 +20,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
+from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS, validate_types
 from aoa.action_machine.intents.compensate.compensate_intent_resolver import CompensateIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
+
+from ..edges.emits_graph_edge import EmitsGraphEdge
 
 
 @dataclass(init=False, frozen=True)
@@ -31,12 +34,13 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a ``@compensate`` callable on a ``BaseAction`` host class.
-    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``Compensator``; ``properties`` include ``description`` when present; :attr:`target_aspect` is the callable reference to the target regular-aspect method; ``edges`` empty.
+    CONTRACT: ``node_id`` = ``TypeIntrospection.full_qualname(_action_cls) + ':' + method_name``; :attr:`NODE_TYPE` is ``Compensator``; ``properties`` include ``description`` when present; :attr:`target_aspect` is the callable reference to the target regular-aspect method; ``edges`` are the ``@emits`` of the method.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Compensator"
     target_aspect: Callable[..., Any] | None
+    emits: list[EmitsGraphEdge]
 
     def __init__(self, compensator_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         validate_types(ASPECT_CONTRACTS["compensate"], _action_cls, compensator_func)
@@ -55,6 +59,11 @@ class CompensatorGraphNode(BaseGraphNode[Callable[..., Any]]):
             node_obj=compensator_func,
         )
         object.__setattr__(self, "target_aspect", target_aspect)
+        object.__setattr__(self, "emits", EmitsGraphEdge.get_emits_edges(compensator_func))
+
+    def get_all_edges(self) -> list[BaseGraphEdge]:
+        """Return the ``@emits`` edges."""
+        return [*self.emits]
 
     def to_dict(self) -> dict[str, Any]:
         return {

@@ -18,6 +18,7 @@
 - [When to emit, and how to take a fact back](#when-to-emit-and-how-to-take-a-fact-back)
 - [Everything that is refused](#everything-that-is-refused)
 - [Masking, subscriptions and the cache](#masking-subscriptions-and-the-cache)
+- [Events in the graph](#events-in-the-graph)
 - [Summary](#summary)
 
 ---
@@ -248,6 +249,56 @@ the second call:
 
 The logger subscribed to `debug` receives nothing. The property is masked and the plain field is not, so keep a secret behind `@sensitive` or out of the event. The second call is answered by the cache, so no line appears.
 
+## Events in the graph
+
+Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.3` of the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md).
+
+[08_events_in_graph.py](../../examples/step_11_object_events/08_events_in_graph.py) ([notebook](../../examples/step_11_object_events/08_events_in_graph.ipynb)) holds every case and prints this:
+
+```text
+schema_version: 1.3
+Event nodes: ['CouponUsedEvent', 'OrderCompletedEvent', 'RefundIssuedEvent', 'StockCheckedEvent']
+PlainDomain: False []
+ZoneDomain: False []
+StoreDomain: True ['CouponUsedEvent', 'OrderCompletedEvent']
+SilentDomain: True []
+OutletDomain: True ['CouponUsedEvent', 'OrderCompletedEvent']
+ReturnsDomain: True ['RefundIssuedEvent']
+CompleteOrderAction:answer_on_error -> OrderCompletedEvent (ErrorHandler)
+CompleteOrderAction:decide_access_decide -> OrderCompletedEvent (AccessDecide)
+CompleteOrderAction:finish_summary -> OrderCompletedEvent (SummaryAspect)
+CompleteOrderAction:release_compensate -> OrderCompletedEvent (Compensator)
+CompleteOrderAction:reserve_aspect -> OrderCompletedEvent (RegularAspect)
+ZoneAction:finish_summary -> StockCheckedEvent (SummaryAspect)
+domains: ['BillingDomain', 'OutletDomain', 'StoreDomain']
+order_id: 'The completed order'
+total: ''
+EventContractError: WrongAction.finish_summary declares StockCheckedEvent, which is not in the events of domain 'store'.
+added nodes: ['CouponUsedEvent']
+added edges: ['OutletDomain|domain_event|CouponUsedEvent', 'StoreDomain|domain_event|CouponUsedEvent']
+```
+
+An event becomes one `Event` node, however many methods and domains name it. A class nobody names stays out, which is why `UnusedEvent` is not in the list. Each case below is what a reader of the file sees:
+
+| Case | `Event` nodes | `@emits` edges | `domain_event` edges | `typed_events` |
+|---|---|---|---|---|
+| no switch (`PlainDomain`) | none | none | none | `false` |
+| `@emits` only (`ZoneDomain`) | those named | yes | none | `false` |
+| `events` (`StoreDomain`) | those in `events` and in `@emits` | yes | one per event | `true` |
+| `events = ()` (`SilentDomain`) | none of its own | none | none | `true` |
+| inherited (`OutletDomain`) | as the parent | its own methods' | one per inherited event | `true` |
+| replaced (`ReturnsDomain`) | its own list | its own methods' | one per own event | `true` |
+
+- **`typed_events` tells "no vocabulary" from "an empty one".** Without it both would look the same: a domain with no edges.
+- **All five kinds of method give an `@emits` edge:** aspects, summaries, compensators, error handlers and access decisions. The edge says what a method may emit, not what it did.
+- **Fields are `Field` nodes, as on params and results,** with the description from `Field(description=...)`. A description is not required: `total` above has an empty one. The system fields of a line never appear.
+- **A listed event nobody emits** has a node and a `domain_event` edge and no `@emits` edge, as `CouponUsedEvent` shows.
+- **One event in two vocabularies** is one node with two `domain_event` edges.
+- **`@emits` outside the vocabulary stops the build,** before the first request. In a domain with no vocabulary there is nothing to break, so the build passes.
+- **Two versions of a graph compare as usual.** An event and its edges have stable ids, so they show as added or removed like any other element.
+
+Until the viewer learns about events, Maxitor draws them on the full graph with no icon of their own. An event of a domain without a vocabulary stands in *Outside domains*, because no domain holds it.
+
 ## Summary
 
 - An event takes the place of `kwargs`; the text stays yours, and a logger receives the fact with its type.
@@ -255,6 +306,7 @@ The logger subscribed to `debug` receives nothing. The property is masked and th
 - `@emits` makes one method a typed zone; `events` makes a whole domain one. Convert methods first, and declare `events` last.
 - A refusal reaches no logger and takes the ordinary path of the method that made it.
 - Emit after the steps that can fail, and cancel a published fact with a new one.
+- The graph and its JSON carry every event, what each method may emit and each domain's vocabulary, and `@emits` outside a vocabulary stops the build.
 
 ---
 

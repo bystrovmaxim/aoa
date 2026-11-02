@@ -36,6 +36,10 @@ class AllowedEvent(BaseEvent):
     """In the vocabulary."""
 
 
+class ChildOfAllowedEvent(AllowedEvent):
+    """A subclass of a listed event is not that event."""
+
+
 class SparedEvent(BaseEvent):
     """In the vocabulary, and nobody declares it."""
 
@@ -124,14 +128,19 @@ def test_an_event_outside_the_vocabulary_fails_the_build(kind: str) -> None:
     with pytest.raises(EventContractError) as refused:
         validate_emits_vocabulary([SimpleNamespace(node_obj=action)])
 
+    assert "OneMethodAction.declared" in str(refused.value)
     assert "OutsideEvent" in str(refused.value)
-    assert "declared" in str(refused.value)
-    assert "shop" in str(refused.value)
+    assert "'shop'" in str(refused.value)
 
 
 @pytest.mark.parametrize("kind", ["regular", "summary", "compensate", "handler", "access"])
 def test_an_event_from_the_vocabulary_passes(kind: str) -> None:
     validate_emits_vocabulary([SimpleNamespace(node_obj=_action(kind, AllowedEvent, ShopDomain))])
+
+
+def test_a_subclass_of_a_listed_event_fails_the_build() -> None:
+    with pytest.raises(EventContractError, match="ChildOfAllowedEvent"):
+        validate_emits_vocabulary([SimpleNamespace(node_obj=_action("regular", ChildOfAllowedEvent, ShopDomain))])
 
 
 def test_a_domain_with_no_events_is_not_looked_at() -> None:

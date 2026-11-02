@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/bystrovmaxim/aoa/main/docs/assets/aoa-logo.png" alt="AOA" width="540"><br><br>
-  <img src="https://img.shields.io/badge/version-1.2-informational" alt="Version 1.2">
+  <img src="https://img.shields.io/badge/version-1.3-informational" alt="Version 1.3">
   <img src="https://img.shields.io/badge/status-stable-brightgreen" alt="Stable">
   <a href="https://json-schema.org/draft/2020-12"><img src="https://img.shields.io/badge/JSON_Schema-2020--12-blue" alt="JSON Schema 2020-12"></a>
   <a href="https://github.com/bystrovmaxim/aoa/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
@@ -27,7 +27,7 @@ The Open Gnomon Protocol makes the model a first-class artifact:
 
 ```json
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "nodes": [
     {"id": "shop.PlaceOrder", "type": "Action", "label": "Place order",
      "properties": {"description": "Place a customer order."}},
@@ -43,7 +43,7 @@ The Open Gnomon Protocol makes the model a first-class artifact:
 }
 ```
 
-A real service is the same document at scale: the AOA demo describes itself in 3 213 nodes and 4 841 edges. When its model changes, the difference between two revisions is precise and readable:
+A real service is the same document at scale: the AOA demo describes itself in 3 245 nodes and 4 878 edges. When its model changes, the difference between two revisions is precise and readable:
 
 ```text
 nodes[id=aoa.demo.model.store.store_domain.StoreDomain].label: Shop → StoreDomain
@@ -54,7 +54,7 @@ edges[id=aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPi
 
 | | |
 |---|---|
-| **Version** | `1.2` — [graph/1.2.json](graph/1.2.json) |
+| **Version** | `1.3` — [graph/1.3.json](graph/1.3.json) |
 | **Status** | Stable. A published version never changes. |
 | **Normative schema** | JSON Schema 2020-12, one file per version in [graph/](graph/) |
 
@@ -81,13 +81,15 @@ One JSON object with exactly three members:
 
 A document is a graph of version *V* if and only if it declares `"schema_version": "V"` and is valid against [graph/*V*.json](graph/).
 
-### 2. Vocabulary of version 1.2
+### 2. Vocabulary of version 1.3
 
 | | Kinds |
 |---|---|
-| **Node types** (23) | Structure: `Application` `Domain` `Resource` `Role` · Behaviour: `Action` `Params` `Result` `Field` `PropertyField` `RegularAspect` `SummaryAspect` `Compensator` `AccessDecide` `ErrorHandler` `Checker` `RequiredContext` · Data: `Entity` `EntityField` `Sensitive` · Lifecycle: `Lifecycle` `StateInitial` `StateIntermediate` `StateFinal` |
-| **Edge types** (31) | Containment: `application` `domain` `field` `property` `entity_field` `entity_schema` `generic:params` `generic:result` `state` `sensitive` · Behaviour: `@regular_aspect` `@summary_aspect` `@compensate` `@access_decide` `@on_error` `@result_checker` `@check_roles` `@required_context` · Dependencies: `@depends` `@connection` · Data: `entity_relation` `entity_reference` `entity_specialization` `entity_view` · Generalization: `parent_action` `parent_role` `parent_domain` `parent_entity` · Lifecycle: `lifecycle` `lifecycle_contains_state` `lifecycle_transition` |
+| **Node types** (24) | Structure: `Application` `Domain` `Resource` `Role` · Behaviour: `Action` `Params` `Result` `Event` `Field` `PropertyField` `RegularAspect` `SummaryAspect` `Compensator` `AccessDecide` `ErrorHandler` `Checker` `RequiredContext` · Data: `Entity` `EntityField` `Sensitive` · Lifecycle: `Lifecycle` `StateInitial` `StateIntermediate` `StateFinal` |
+| **Edge types** (33) | Containment: `application` `domain` `domain_event` `field` `property` `entity_field` `entity_schema` `generic:params` `generic:result` `state` `sensitive` · Behaviour: `@regular_aspect` `@summary_aspect` `@compensate` `@access_decide` `@on_error` `@result_checker` `@check_roles` `@required_context` `@emits` · Dependencies: `@depends` `@connection` · Data: `entity_relation` `entity_reference` `entity_specialization` `entity_view` · Generalization: `parent_action` `parent_role` `parent_domain` `parent_entity` · Lifecycle: `lifecycle` `lifecycle_contains_state` `lifecycle_transition` |
 | **Relationships** (11) | `Access` `Aggregation` `Assignment` `Association` `Composition` `Flow` `Generalization` `Realization` `Serving` `Specialization` `Triggering` |
+
+An `Event` is a fact a service can publish; its fields are `Field` nodes, as for `Params` and `Result`. `@emits` goes from a method to an event it may publish. `domain_event` goes from a domain to an event of its vocabulary. A `Domain` says in `typed_events` whether it has a vocabulary at all, so a reader tells "no vocabulary" from "an empty vocabulary".
 
 The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model, the protocol's first producer. A producer built on another framework conforms by mapping its elements onto these kinds; a model that needs new kinds is a new version.
 
@@ -98,6 +100,7 @@ The 1.x vocabulary comes from [AOA](https://github.com/bystrovmaxim/aoa)'s model
 | [`1.0`](graph/1.0.json) | The first shape: nodes have an `id`; edges do not. |
 | [`1.1`](graph/1.1.json) | Every edge has an `id`, so two revisions compare edge by edge. |
 | [`1.2`](graph/1.2.json) | An entity field, a lifecycle, a role and a `@connection` link may carry their `description`. |
+| [`1.3`](graph/1.3.json) | Events: the node type `Event`, the edge types `@emits` and `domain_event`, and `typed_events` on `Domain`. |
 
 A release of the protocol is the git tag `open-gnomon-protocol-v<version>`; its history is [CHANGELOG.md](CHANGELOG.md).
 

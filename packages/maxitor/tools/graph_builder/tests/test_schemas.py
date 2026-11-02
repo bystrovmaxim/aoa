@@ -9,9 +9,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from jsonschema import Draft202012Validator
 from maxitor.graph_builder.schemas import SCHEMA_VERSIONS, GraphRefused, check_graph, graph_schema
 
 FIXTURES = Path(__file__).parent / "fixtures"
+PROTOCOL_1_3 = Path(__file__).parents[4] / "open-gnomon-protocol" / "graph" / "1.3.json"
 
 
 def _sample(version: str) -> dict[str, Any]:
@@ -114,3 +116,77 @@ def test_a_repeated_node_is_refused_without_its_whole_value() -> None:
     with pytest.raises(GraphRefused) as refused:
         check_graph(document)
     assert (refused.value.path, refused.value.reason) == ("nodes", "holds the same element twice")
+
+
+def _events_document() -> dict[str, Any]:
+    """A minimal 1.3 document: a domain, an aspect, an event and both new edges."""
+    return {
+        "schema_version": "1.3",
+        "nodes": [
+            {"id": "shop.Domain", "type": "Domain", "label": "Domain", "properties": {"name": "shop", "description": "Shop", "typed_events": True}},
+            {"id": "shop.Place:finish", "type": "RegularAspect", "label": "finish", "properties": {"description": "Finish"}},
+            {"id": "shop.PlacedEvent", "type": "Event", "label": "PlacedEvent", "properties": {}},
+        ],
+        "edges": [
+            {"id": "e1", "source_id": "shop.Domain", "target_id": "shop.PlacedEvent", "type": "domain_event", "relationship": "Aggregation", "is_dag": False, "properties": {}},
+            {"id": "e2", "source_id": "shop.Place:finish", "target_id": "shop.PlacedEvent", "type": "@emits", "relationship": "Association", "is_dag": False, "properties": {}},
+        ],
+    }
+
+
+def _events_errors(document: dict[str, Any]) -> list[Any]:
+    """Check ``document`` against the protocol's own 1.3 file."""
+    schema = json.loads(PROTOCOL_1_3.read_text(encoding="utf-8"))
+    return list(Draft202012Validator(schema).iter_errors(document))
+
+
+def test_the_fixture_of_1_3_shows_every_new_word() -> None:
+    """The ``1.3`` sample holds an event, both edges and a domain with a vocabulary."""
+    document = _sample("1.3")
+    check_graph(document)
+    assert {"Event"} <= {node["type"] for node in document["nodes"]}
+    assert {"@emits", "domain_event"} <= {edge["type"] for edge in document["edges"]}
+
+
+def test_the_words_of_1_3_pass() -> None:
+    """A document with an event, its two edges and ``typed_events`` is a 1.3 graph."""
+    assert _events_errors(_events_document()) == []
+
+
+def test_an_event_carries_no_properties() -> None:
+    """An ``Event`` node's facts are its fields; its own properties stay empty."""
+    document = _events_document()
+    document["nodes"][2]["properties"] = {"description": "Placed"}
+    assert _events_errors(document)
+
+
+def test_a_domain_must_say_typed_events() -> None:
+    """A reader never guesses whether a domain has a vocabulary."""
+    document = _events_document()
+    del document["nodes"][0]["properties"]["typed_events"]
+    assert _events_errors(document)
+
+
+def test_typed_events_is_a_boolean() -> None:
+    """``typed_events`` answers yes or no."""
+    document = _events_document()
+    document["nodes"][0]["properties"]["typed_events"] = "yes"
+    assert _events_errors(document)
+
+
+@pytest.mark.parametrize(
+    ("index", "member", "value"),
+    [
+        (0, "relationship", "Association"),
+        (1, "relationship", "Aggregation"),
+        (0, "is_dag", True),
+        (1, "is_dag", True),
+        (0, "properties", {"a": 1}),
+        (1, "properties", {"a": 1}),
+    ],
+)
+def test_the_new_edges_have_a_fixed_shape(index: int, member: str, value: Any) -> None:
+    """``domain_event`` is an Aggregation, ``@emits`` an Association; neither is in the acyclic slice or has properties."""
+    document = _events_document()
+    document["edges"][index][member] = value
+    assert _events_errors(document)

@@ -27,6 +27,7 @@ from aoa.action_machine.intents.aspects.aspect_signature import ASPECT_CONTRACTS
 from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
+from ..edges.emits_graph_edge import EmitsGraphEdge
 from ..edges.required_context_graph_edge import RequiredContextGraphEdge
 
 
@@ -41,6 +42,7 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
 
     NODE_TYPE: ClassVar[str] = "SummaryAspect"
     required_context: list[RequiredContextGraphEdge]
+    emits: list[EmitsGraphEdge]
 
     def __init__(self, summary_func: Callable[..., Any], _action_cls: type[Any]) -> None:
         validate_types(ASPECT_CONTRACTS["summary_aspect"], _action_cls, summary_func)
@@ -58,6 +60,7 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
             "required_context",
             RequiredContextGraphEdge.get_required_context_edges(summary_func, _action_cls, self),
         )
+        object.__setattr__(self, "emits", EmitsGraphEdge.get_emits_edges(summary_func))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -79,8 +82,8 @@ class SummaryAspectGraphNode(BaseGraphNode[Callable[..., Any]]):
         return frozenset(out)
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return required-context composition edges materialized on this node."""
-        return [*self.required_context]
+        """Return required-context composition edges, then the ``@emits`` edges."""
+        return [*self.required_context, *self.emits]
 
     def get_companion_nodes(self) -> list[BaseGraphNode[Any]]:
         """Return required-context companion nodes referenced by composition edges."""
