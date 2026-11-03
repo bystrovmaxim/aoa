@@ -49,9 +49,13 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 - [x] T031 [US5] Add tests: a pair from `explorer_graph()` / `explorer_graph_b()` showing the event and the link added from the first layer (SC-005), port change counts, the room whitelist accepting and refusing values, an address read back giving the same nodes, ports, filters and paint (SC-006)
 - [x] T032 Break adversarially (a change behind a port not counted, a setting refused by the room), restore; run only this phase's tests; run quickstart.md on a stand serving both versions of the test graph; commit
 
+## Converge
+
+- [x] T036 [US2] Bring what a port opened into view by moving the picture only as far as it takes, and zoom out only when it does not fit, in `client/src/components/diagrams/EventsExplorer/EventsExplorer.tsx` (FR-022): centring it moved the clicked node 338 px on the stand
+
 ## Phase 5: Closing check run (one commit if it changes anything)
 
-- [ ] T033 Run the closing check run to zero (`bash scripts/run_checks_with_log.sh` on this machine, sandbox off), the browsers through `bash scripts/check_before_pr.sh` before the pull request
+- [ ] T033 The closing check run is CI's, on the pull request; the browsers are `bash scripts/check_before_pr.sh` on the pushed commit. Before that, here: every client test related to the changed files (30 files, 368 tests) and the server tests of rooms, routes and the explorer (150), all passing
 
 ## Phase 6: Documentation (one commit)
 

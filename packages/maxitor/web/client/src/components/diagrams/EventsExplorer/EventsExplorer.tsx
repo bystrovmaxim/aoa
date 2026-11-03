@@ -276,9 +276,19 @@ function ExplorerCanvas({ payload: merged, domainId, onOpen, diffing }: { payloa
     const client = (x: number, y: number) => ({ x: anchor.client.x + (x - at.x) * k, y: anchor.client.y + (y - at.y) * k });
     const inside = (p: { x: number; y: number }) => p.x >= stage.left + INSET.left && p.y >= stage.top + INSET.top && p.x <= stage.right - INSET.right && p.y <= stage.bottom - INSET.bottom;
     if (inside(client(x0, y0)) && inside(client(x1, y1))) return;
-    const room = { w: stage.width - INSET.left - INSET.right, h: stage.height - INSET.top - INSET.bottom };
-    setScale(Math.min(k, room.w / (x1 - x0), room.h / (y1 - y0)));
-    placeAt(stage.left + INSET.left + room.w / 2, stage.top + INSET.top + room.h / 2, (x0 + x1) / 2, (y0 + y1) / 2);
+    const room = { left: stage.left + INSET.left, top: stage.top + INSET.top, right: stage.right - INSET.right, bottom: stage.bottom - INSET.bottom };
+    const [w, h] = [(x1 - x0) * k, (y1 - y0) * k];
+    if (w <= room.right - room.left && h <= room.bottom - room.top) {
+      // It fits at this zoom: move the picture only as far as it takes to bring what was opened into view.
+      const [left, top] = [client(x0, y0).x, client(x0, y0).y];
+      const dx = left < room.left ? room.left - left : left + w > room.right ? room.right - (left + w) : 0;
+      const dy = top < room.top ? room.top - top : top + h > room.bottom ? room.bottom - (top + h) : 0;
+      placeAt(anchor.client.x + dx, anchor.client.y + dy, at.x, at.y);
+      return;
+    }
+    // It does not fit: zoom out to it, centred.
+    setScale(Math.min(k, (room.right - room.left) / (x1 - x0), (room.bottom - room.top) / (y1 - y0)));
+    placeAt((room.left + room.right) / 2, (room.top + room.bottom) / 2, (x0 + x1) / 2, (y0 + y1) / 2);
   }, [placed, fitToContainer, getScale, setScale, placeAt, viewportRef]);
 
   const holdStill = (node: string) => {
