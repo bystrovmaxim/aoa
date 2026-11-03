@@ -18,23 +18,19 @@ class AuditLogEntryStateEntity(BaseStateEntity):
     sort_order: int = Field(default=0, description="Presentation order")
 
     WRITTEN = value(code="written", display_name="Written", sort_order=1)
-    INDEXED = value(code="indexed", display_name="Indexed", sort_order=2)
-    RETAINED = value(code="retained", display_name="Retained", sort_order=3)
+    RETAINED = value(code="retained", display_name="Retained", sort_order=2)
 
 
 
 class AuditLogEntryLifecycle(Lifecycle[AuditLogEntryStateEntity]):
-    """Three states: written → indexed → retained."""
+    """Two states: written → retained."""
 
 
     _template = (
         Lifecycle()
         .state(AuditLogEntryStateEntity.WRITTEN)
-        .to(AuditLogEntryStateEntity.INDEXED)
-        .initial()
-        .state(AuditLogEntryStateEntity.INDEXED)
         .to(AuditLogEntryStateEntity.RETAINED)
-        .intermediate()
+        .initial()
         .state(AuditLogEntryStateEntity.RETAINED)
         .final()
     )

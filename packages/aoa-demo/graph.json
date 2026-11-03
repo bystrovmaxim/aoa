@@ -19273,12 +19273,12 @@
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_availability_projection.AvailabilityProjectionCoreEntity|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "id": "aoa.demo.model.catalog.entities.catalog_availability_projection.AvailabilityProjectionCoreEntity|domain|aoa.demo.model.inventory.domain.InventoryDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_availability_projection.AvailabilityProjectionCoreEntity",
-      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
+      "target_id": "aoa.demo.model.inventory.domain.InventoryDomain",
       "type": "domain"
     },
     {
@@ -37743,39 +37743,16 @@
       "type": "generic:result"
     },
     {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained|indexed",
-      "is_dag": false,
-      "properties": {
-        "from_state": "indexed",
-        "to_state": "retained"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
-      "target_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:written|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed|written",
+      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:written|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained|written",
       "is_dag": false,
       "properties": {
         "from_state": "written",
-        "to_state": "indexed"
+        "to_state": "retained"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:written",
-      "target_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
+      "target_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained",
       "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
-      "is_dag": false,
-      "properties": {
-        "state_key": "indexed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
-      "type": "lifecycle_contains_state"
     },
     {
       "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained",
@@ -37800,22 +37777,10 @@
       "type": "lifecycle_contains_state"
     },
     {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed|written",
+      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained|written",
       "is_dag": false,
       "properties": {
         "from_state": "written",
-        "to_state": "indexed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained|indexed",
-      "is_dag": false,
-      "properties": {
-        "from_state": "indexed",
         "to_state": "retained"
       },
       "relationship": "Composition",
@@ -83741,27 +83706,13 @@
       "type": "Lifecycle"
     },
     {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed",
-      "label": "Indexed",
-      "properties": {
-        "attributes": {
-          "code": "indexed",
-          "display_name": "Indexed",
-          "sort_order": 2
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.audit_log_entry_lifecycle.AuditLogEntryLifecycle",
-        "state_key": "indexed"
-      },
-      "type": "StateIntermediate"
-    },
-    {
       "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained",
       "label": "Retained",
       "properties": {
         "attributes": {
           "code": "retained",
           "display_name": "Retained",
-          "sort_order": 3
+          "sort_order": 2
         },
         "lifecycle_class_id": "aoa.demo.model.store.entities.audit_log_entry_lifecycle.AuditLogEntryLifecycle",
         "state_key": "retained"
