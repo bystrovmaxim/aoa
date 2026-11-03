@@ -39,7 +39,10 @@ export type ProposalState = "open" | "approved" | "changes_requested";
 /** An opened history, as the server answers it. */
 export type OpenedHistory = {
   name: string;
+  /** The folder of the graph file (the repository at the root), or a private history's id. */
   title: string;
+  /** What tells the history from another of the same title: ``owner/repo/<folder>``, or a private one's address. */
+  path: string;
   host: string;
   repository: string;
   live: string | null;

@@ -23,7 +23,7 @@ function versions(count: number): HistoryVersion[] {
 
 function picker(count: number, live: string | null, value: string | null) {
   render(
-    <VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions(count)} live={live} value={value} onChange={() => undefined} phone>
+    <VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions(count)} live={live} value={value} onChange={() => undefined} phone>
       <div data-testid="message-slot">message</div>
     </VersionPicker>,
   );
@@ -57,7 +57,7 @@ describe.each([
 
 describe("the picker on a desktop", () => {
   it("is a card under the button, not a sheet, and lets clicks outside it through", () => {
-    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions(3)} live={null} value={null} onChange={() => undefined} />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions(3)} live={null} value={null} onChange={() => undefined} />);
     const dialog = screen.getByRole("dialog");
     expect(dialog.closest(".MuiPopper-root")).not.toBeNull();
     expect(dialog.closest(".MuiDrawer-root")).toBeNull();
@@ -73,7 +73,7 @@ describe("Diff on a phone (spec 038, FR-033)", () => {
       <VersionPicker
         anchor={{ current: document.body }}
         onClose={() => undefined}
-        title="orders"
+        title="orders" path="owner/service/orders"
         versions={list}
         live={null}
         value={b}

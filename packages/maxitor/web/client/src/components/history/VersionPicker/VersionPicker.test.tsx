@@ -24,7 +24,7 @@ const versions: HistoryVersion[] = [1, 2].map((n) => ({ sha: `${n}`.padEnd(40, "
 
 describe("the picker", () => {
   it("names the service, counts its versions and Live, and greys out the modes that come later", () => {
-    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions} live="https://live" value="live" onChange={() => undefined} />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions} live="https://live" value="live" onChange={() => undefined} />);
     expect(screen.getByText("orders")).toBeTruthy();
     expect(screen.getByText("2 versions and Live")).toBeTruthy();
     expect(screen.getByRole("radio", { name: "One" }).getAttribute("aria-checked")).toBe("true");
@@ -32,13 +32,13 @@ describe("the picker", () => {
   });
 
   it("stays closed without a button to open under", () => {
-    render(<VersionPicker anchor={null} onClose={() => undefined} title="orders" versions={versions} live={null} value={null} onChange={() => undefined} />);
+    render(<VersionPicker anchor={null} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions} live={null} value={null} onChange={() => undefined} />);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("offers Diff from two points, and switches to it (spec 038, FR-015)", () => {
     const onMode = vi.fn();
-    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions} live={null} value={versions[1].sha.slice(0, 12)} onChange={() => undefined} mode="one" onMode={onMode} diffOffered />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions} live={null} value={versions[1].sha.slice(0, 12)} onChange={() => undefined} mode="one" onMode={onMode} diffOffered />);
     const diff = screen.getByRole("radio", { name: "Diff" });
     expect(diff.getAttribute("aria-disabled")).toBeNull();
     fireEvent.click(diff);
@@ -51,7 +51,7 @@ describe("the picker", () => {
 
   it("greys Diff out with \"needs two versions\" where there is one point (M3, M6)", () => {
     const onMode = vi.fn();
-    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions.slice(0, 1)} live={null} value={versions[0].sha.slice(0, 12)} onChange={() => undefined} mode="one" onMode={onMode} diffOffered={false} />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions.slice(0, 1)} live={null} value={versions[0].sha.slice(0, 12)} onChange={() => undefined} mode="one" onMode={onMode} diffOffered={false} />);
     const diff = screen.getByRole("radio", { name: "Diff" });
     expect(diff.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(diff);
@@ -64,7 +64,7 @@ describe("the picker", () => {
   it("in Diff holds a range on its track and goes back to One", () => {
     const onMode = vi.fn();
     const [a, b] = versions.map((each) => each.sha.slice(0, 12));
-    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" versions={versions} live={null} value={b} onChange={() => undefined} mode="diff" onMode={onMode} diffOffered range={{ a, b }} onRange={() => undefined} />);
+    render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="orders" path="owner/service/orders" versions={versions} live={null} value={b} onChange={() => undefined} mode="diff" onMode={onMode} diffOffered range={{ a, b }} onRange={() => undefined} />);
     expect(screen.getByTestId("handle-a")).toBeTruthy();
     expect(screen.getByTestId("handle-b")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "One" }));
@@ -77,7 +77,7 @@ describe("the picker", () => {
       <VersionPicker
         anchor={{ current: document.body }}
         onClose={() => undefined}
-        title="orders"
+        title="orders" path="owner/service/orders"
         versions={versions}
         live="https://live"
         value="live"
@@ -102,7 +102,7 @@ describe("the picker", () => {
 
 describe("a version file in the picker (spec 051)", () => {
   const joined = versions.map((version, at) => ({ ...version, graph_changed: at === 0, version: "1.0.0", version_changed: at === 0 }));
-  const base = { anchor: { current: document.body }, onClose: () => undefined, title: "orders", live: null, value: "1", onChange: () => undefined };
+  const base = { anchor: { current: document.body }, onClose: () => undefined, title: "orders", path: "owner/service/orders", live: null, value: "1", onChange: () => undefined };
 
   beforeEach(() => setSmallPointsShown(true));
 
@@ -137,5 +137,61 @@ describe("a version file in the picker (spec 051)", () => {
     expect(screen.getByTestId("same-graph").textContent).toBe("Both versions have the same graph.");
     rerender(<VersionPicker {...base} versions={versions} mode="diff" range={range} />);
     expect(screen.queryByTestId("same-graph")).toBeNull();
+  });
+});
+
+describe("the history's name", () => {
+  // The tests below put their own copy command on the document; the next test starts without it.
+  afterEach(() => void Reflect.deleteProperty(document, "execCommand"));
+
+  const picker = () => render(<VersionPicker anchor={{ current: document.body }} onClose={() => undefined} title="web" path="bystrovmaxim/aoa/packages/maxitor/web" versions={versions} live={null} value={null} onChange={() => undefined} />);
+
+  it("is the only line of the head about the history: its path is not written under it", () => {
+    picker();
+    expect(screen.getByRole("button", { name: "web" })).toBeTruthy();
+    expect(screen.queryByText("bystrovmaxim/aoa/packages/maxitor/web")).toBeNull();
+  });
+
+  it("shows its full path on hover", async () => {
+    picker();
+    fireEvent.mouseOver(screen.getByRole("button", { name: "web" }));
+    expect(await screen.findByText("bystrovmaxim/aoa/packages/maxitor/web")).toBeTruthy();
+  });
+
+  it("copies its full path on a click and says so", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    picker();
+    const name = screen.getByRole("button", { name: "web" });
+    fireEvent.mouseOver(name);
+    fireEvent.click(name);
+    expect(writeText).toHaveBeenCalledWith("bystrovmaxim/aoa/packages/maxitor/web");
+    expect(await screen.findByText("Copied")).toBeTruthy();
+  });
+
+  it("copies through a selected text where the page may not write to the clipboard", async () => {
+    vi.stubGlobal("navigator", { clipboard: { writeText: () => Promise.reject(new Error("denied")) } });
+    const copied: string[] = [];
+    document.execCommand = vi.fn(() => {
+      copied.push(document.querySelector("textarea")?.value ?? "");
+      return true;
+    });
+    picker();
+    const name = screen.getByRole("button", { name: "web" });
+    fireEvent.mouseOver(name);
+    fireEvent.click(name);
+    expect(await screen.findByText("Copied")).toBeTruthy();
+    expect(copied).toEqual(["bystrovmaxim/aoa/packages/maxitor/web"]);
+    expect(document.querySelector("textarea")).toBeNull();
+  });
+
+  it("says it could not copy when neither way copies", async () => {
+    vi.stubGlobal("navigator", { clipboard: { writeText: () => Promise.reject(new Error("denied")) } });
+    document.execCommand = vi.fn(() => false);
+    picker();
+    const name = screen.getByRole("button", { name: "web" });
+    fireEvent.mouseOver(name);
+    fireEvent.click(name);
+    expect(await screen.findByText("Not copied")).toBeTruthy();
   });
 });

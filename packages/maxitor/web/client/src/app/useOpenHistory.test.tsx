@@ -12,7 +12,7 @@ const id = (n: number) => `${n}`.padEnd(12, "d");
 const LIVE = "https://live.example/graph-json";
 
 function opened(versions: HistoryVersion[], live: string | null): OpenedHistory {
-  return { name: "https://port/api/v1/history/h", title: "h", host: "github", repository: "o/r", live, versions, count: versions.length, room_ticket: "t" };
+  return { name: "https://port/api/v1/history/h", title: "h", path: "https://port/api/v1/history/h", host: "github", repository: "o/r", live, versions, count: versions.length, room_ticket: "t" };
 }
 
 beforeEach(() => window.history.replaceState(null, "", "/"));

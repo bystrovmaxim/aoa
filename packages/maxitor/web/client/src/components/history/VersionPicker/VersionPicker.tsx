@@ -6,7 +6,7 @@ import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { HistoryVersion } from "@/api/history";
 import { VERSION_PROBLEM_COLOUR } from "@/components/history/VersionButton/VersionButton";
 import { VersionTrack } from "@/components/history/VersionTrack";
@@ -19,12 +19,16 @@ import { pickerSubtitle } from "@/model/historyMode";
 /** Width of the picker card and of its track — the mockup's 760 and 718. */
 const WIDTH = 760;
 const TRACK_WIDTH = 718;
+/** How long the name says it copied the path, or could not. */
+const COPY_FEEDBACK_MS = 1500;
 
 export type VersionPickerProps = {
   /** The button the picker opens under, as a ref: it is asked where it stands each time, so a button drawn anew still holds the picker; ``null`` keeps it closed. */
   anchor: RefObject<HTMLElement | null> | null;
   onClose: () => void;
   title: string;
+  /** What tells the history from another of the same title — ``owner/repo/<folder>``: shown on hover of the name, copied on a click. */
+  path: string;
   versions: readonly HistoryVersion[];
   live: string | null;
   /** The newest version's sha when Live runs exactly its graph: the track draws them as one point. */
@@ -64,6 +68,52 @@ function VersionProblem({ problem, graphOnly }: { problem: string; graphOnly: bo
         {graphOnly ? "The version file cannot be read, so the track shows only the commits that changed the graph, with no version numbers." : "The newest version cannot be read."} {problem}
       </span>
     </Box>
+  );
+}
+
+/** Writes ``text`` to the clipboard; where the page may not write to it (an embedded browser), copies a selected text instead. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const field = document.createElement("textarea");
+    field.value = text;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+    try {
+      return document.execCommand("copy");
+    } finally {
+      field.remove();
+      focused?.focus();
+    }
+  }
+}
+
+/** The history's name: hovering shows its full path, a click or Enter copies it and says so for a moment. */
+function HistoryName({ title, path }: { title: string; path: string }) {
+  const [hovered, setHovered] = useState(false);
+  const [said, setSaid] = useState<"Copied" | "Not copied" | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+  const copy = async () => {
+    setSaid((await copyText(path)) ? "Copied" : "Not copied");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setSaid(null), COPY_FEEDBACK_MS);
+  };
+  return (
+    // It stays open while it says what the click did, though the copy moved the focus away and back.
+    <Tooltip title={said ?? path} placement="bottom-start" describeChild open={hovered || said !== null} onOpen={() => setHovered(true)} onClose={() => setHovered(false)}>
+      <ButtonBase onClick={() => void copy()} sx={{ display: "block", maxWidth: "100%", fontSize: 13, fontWeight: 600, color: "#0f172a", textAlign: "left", borderRadius: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {title}
+      </ButtonBase>
+    </Tooltip>
   );
 }
 
@@ -200,6 +250,7 @@ export function VersionPicker({
   anchor,
   onClose,
   title,
+  path,
   versions,
   live,
   liveIs = null,
@@ -244,7 +295,7 @@ export function VersionPicker({
     <>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: "12px" }}>
         <Box sx={{ minWidth: 0 }}>
-          <Box sx={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{title}</Box>
+          <HistoryName title={title} path={path} />
           <Box sx={{ display: "flex", alignItems: "center", gap: "5px", fontSize: 11.5, lineHeight: "16px", color: "#64748b", mt: "1px" }}>
             <span>{pickerSubtitle(versions.length, Boolean(live), proposals.length)}</span>
           </Box>

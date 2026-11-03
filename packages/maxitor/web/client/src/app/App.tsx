@@ -620,6 +620,7 @@ export function App() {
           anchor={pickerOpen ? versionButton : null}
           onClose={() => setPickerOpen(false)}
           title={shown.title}
+          path={shown.path}
           versions={shown.versions}
           live={shown.live}
           liveIs={shown.liveSameAs}
