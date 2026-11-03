@@ -5,6 +5,7 @@
  */
 import type { MapChange } from "@/api/map";
 import type { DiagramCounts } from "@/lib/erdDiff";
+import { drawnOn, type Side } from "@/lib/half";
 
 /** How many changes a list holds, by status: nodes and links alike, so the counts add up to the steps. */
 export function countChanges(changes: readonly Pick<MapChange, "status">[]): DiagramCounts {
@@ -32,4 +33,14 @@ export function nextChange(position: number | null, by: -1 | 1, total: number): 
 /** The first change of an area, in the stepping order. */
 export function firstChangeOf(changes: readonly MapChange[], area: string): number {
   return changes.findIndex((change) => change.area === area);
+}
+
+/**
+ * The areas ``node`` stands in in the version of ``side``, by the changed links to its domain that version has: an area is
+ * its domain. The pair's drawing gives every end the newer version's area, so a table that moved to another domain is
+ * found in the older one only this way.
+ */
+export function domainAreasOf(changes: readonly MapChange[], node: string, side: Side): string[] {
+  const links = changes.filter((change) => change.type === "domain" && change.ends[0]?.[0] === node && drawnOn(side, change.status));
+  return [...new Set(links.map((change) => change.ends[1]?.[0]).filter((id): id is string => Boolean(id)))];
 }

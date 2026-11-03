@@ -18,7 +18,7 @@ import { cardBeside } from "@/lib/cardPlace";
 import type { DiagramCounts } from "@/lib/erdDiff";
 import { MARK_LOOK, type CardTarget } from "@/lib/erdDiffCard";
 import { svgDataUriForGraphNodeGlyphOnly } from "@/lib/icons";
-import { changesByArea, firstChangeOf } from "@/lib/mapDiff";
+import { changesByArea, domainAreasOf, firstChangeOf } from "@/lib/mapDiff";
 import type { PaintSection } from "@/lib/erdPaint";
 import { LEVEL_SCREEN_PX, LEVEL_THREE_BAND, LEVEL_TWO_BAND, levelAt, openingRatio, revealOf, widthAtRatio } from "@/lib/mapLevels";
 import { WHEEL_CHUNK_PX, WHEEL_ZOOM_SENSITIVITY, isZoomWheel, wheelPan } from "@/lib/wheelGesture";
@@ -676,6 +676,12 @@ export class MapEngine {
     if (node === null) return "in_view";
     const area = pickedArea();
     if (!this.graph.hasNode(node) && area && this.areaIndex.has(area)) await this.ensure(area, 3);
+    // A node may stand in another area in this version than in the other: a table that moved to another domain.
+    // The changes give its link to the domain it has in this version; read that area before saying it is not here.
+    for (const home of this.half ? domainAreasOf(this.changes, node, this.half.side) : []) {
+      if (this.graph.hasNode(node) || this.killed) break;
+      if (home !== area && this.areaIndex.has(home)) await this.ensure(home, 3);
+    }
     if (this.killed) return "in_view";
     const mark = this.marks.get(node);
     if (!this.graph.hasNode(node) || (this.half && mark && !drawnOn(this.half.side, mark))) {
