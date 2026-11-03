@@ -312,58 +312,71 @@ async def proposals_of(
     CONTRACT: On GitHub, the host's open pull requests offered for review, drafts left out, with their state — changes_requested, approved or open — kept while younger than ``interval_seconds``; in a local repository, every ``refs/pull/<n>/head`` not yet in the branch, state ``open``, its title the head commit's first line. Only those whose graph differs from ``newest``'s, or, in a history with a version file, whose readable number differs from ``newest_number``, the newest point's, are listed — the second kind with ``graph_changed`` false —, oldest number first, each with its facts, its authors and size against where it left the branch, and its change against ``newest``. Never raises for a host that does not answer: it lists what it last knew.
     AI-CORE-END
     """
-    if history.host == "github":
-        kept = cache.open_pull_requests(history.repository, history.branch)
-        now = time.time()
-        if kept is not None and now - kept[1] < interval_seconds:
-            pulls = kept[0]
-        else:
-            try:
-                pulls = await host.open_pull_requests(history.repository, history.branch, await _token(host, history))
-                cache.keep_open_pull_requests(history.repository, history.branch, pulls, now)
-            except httpx.HTTPError:
-                pulls = kept[0] if kept is not None else []
-    else:
-        heads = await asyncio.to_thread(mirror.pull_heads, history.repository)
-        pulls = []
-        for number, head in sorted(heads.items()):
-            if await asyncio.to_thread(mirror.merged, history.repository, head, history.branch):
-                continue
-            message = (await asyncio.to_thread(mirror.commit, history.repository, head)).message
-            title, _, body = message.partition("\n")
-            pulls.append({"number": number, "title": title.strip(), "body": body.strip("\n"), "url": "", "author": "", "avatar": "", "head": head, "state": "open"})
+    pulls = await _open_pulls(mirror, cache, host, history, interval_seconds)
     before = await graph_of(mirror, cache, host, history, newest) if newest is not None else None
     auth = await credentials(host, history)
     found: list[VersionRecord] = []
     for pull in sorted(pulls, key=lambda each: int(each["number"])):
-        head = str(pull["head"])
         try:
-            facts = await facts_of(mirror, cache, host, history, head)
-            graph = await graph_of(mirror, cache, host, history, head)
-            change = graph_change(before, graph)
-            links = cast(dict[str, int], change["links"])
-            graph_changed = bool(change["added"] or change["removed"] or change["changed"] or links["added"] or links["removed"])
-            read = await number_at(mirror, cache, host, history, history.version_file, head) if history.version_file is not None else None
-            version_changed = read is not None and read.number is not None and read.number != newest_number
-            if not graph_changed and not version_changed:
-                continue
-            commit = await asyncio.to_thread(mirror.commit, history.repository, head)
-            contribution = await asyncio.to_thread(mirror.proposal, history.repository, history.branch, head, auth)
+            record = await _proposal(mirror, cache, host, history, pull, before, newest_number, auth)
         except GitError:
             # GitHub listed a head the mirror does not have yet: the next fetch brings it.
             continue
-        found.append(VersionRecord(
-            sha=head,
-            date=commit.date,
-            pr={key: value for key, value in pull.items() if key != "head"},
-            tags=[],
-            nodes=facts.nodes,
-            edges=facts.edges,
-            refused=facts.refused,
-            contribution=contribution,
-            graph_changed=graph_changed,
-            version=read.number if read is not None else None,
-            version_changed=version_changed,
-            change=change,
-        ))
+        if record is not None:
+            found.append(record)
     return found
+
+
+async def _open_pulls(mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, interval_seconds: int) -> list[dict[str, str | int]]:
+    """The pull requests open into the history's branch: the host's, kept a while, or a local repository's pull heads."""
+    if history.host == "github":
+        kept = cache.open_pull_requests(history.repository, history.branch)
+        now = time.time()
+        if kept is not None and now - kept[1] < interval_seconds:
+            return kept[0]
+        try:
+            pulls = await host.open_pull_requests(history.repository, history.branch, await _token(host, history))
+        except httpx.HTTPError:
+            return kept[0] if kept is not None else []
+        cache.keep_open_pull_requests(history.repository, history.branch, pulls, now)
+        return pulls
+    heads = await asyncio.to_thread(mirror.pull_heads, history.repository)
+    local: list[dict[str, str | int]] = []
+    for number, head in sorted(heads.items()):
+        if await asyncio.to_thread(mirror.merged, history.repository, head, history.branch):
+            continue
+        message = (await asyncio.to_thread(mirror.commit, history.repository, head)).message
+        title, _, body = message.partition("\n")
+        local.append({"number": number, "title": title.strip(), "body": body.strip("\n"), "url": "", "author": "", "avatar": "", "head": head, "state": "open"})
+    return local
+
+
+async def _proposal(
+    mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, pull: dict[str, str | int], before: bytes | None, newest_number: str | None, auth: dict[str, str]
+) -> VersionRecord | None:
+    """One open pull request as a version to look at, or ``None`` when it changes neither the graph nor the version."""
+    head = str(pull["head"])
+    facts = await facts_of(mirror, cache, host, history, head)
+    change = graph_change(before, await graph_of(mirror, cache, host, history, head))
+    links = cast(dict[str, int], change["links"])
+    graph_changed = bool(change["added"] or change["removed"] or change["changed"] or links["added"] or links["removed"])
+    read = await number_at(mirror, cache, host, history, history.version_file, head) if history.version_file is not None else None
+    version_changed = read is not None and read.number is not None and read.number != newest_number
+    if not graph_changed and not version_changed:
+        return None
+    commit = await asyncio.to_thread(mirror.commit, history.repository, head)
+    contribution = await asyncio.to_thread(mirror.proposal, history.repository, history.branch, head, auth)
+    return VersionRecord(
+        sha=head,
+        date=commit.date,
+        pr={key: value for key, value in pull.items() if key != "head"},
+        tags=[],
+        nodes=facts.nodes,
+        edges=facts.edges,
+        refused=facts.refused,
+        contribution=contribution,
+        graph_changed=graph_changed,
+        version=read.number if read is not None else None,
+        version_changed=version_changed,
+        change=change,
+    )
