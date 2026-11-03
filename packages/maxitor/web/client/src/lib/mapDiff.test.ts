@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { MapChange } from "@/api/map";
 import { changeLines, type ChangeEntry } from "./changeStepping";
-import { changesByArea, countChanges, firstChangeOf, nextChange } from "./mapDiff";
+import { changesByArea, countChanges, domainAreasOf, firstChangeOf, nextChange } from "./mapDiff";
 
 const CHANGES = [
   { area: "a", status: "added" },
@@ -53,5 +53,22 @@ describe("the list of changes", () => {
   it("names each group above its changes", () => {
     const entries = [{ key: "a", group: "Sales" }, { key: "b", group: "Sales" }, { key: "c", group: "Store" }] as ChangeEntry[];
     expect(changeLines(entries).map((line) => ("group" in line ? line.group : line.position))).toEqual(["Sales", 0, 1, "Store", 2]);
+  });
+});
+
+describe("the area a node stands in on each half", () => {
+  const link = (target: string, status: MapChange["status"]): MapChange => ({
+    id: `t|domain|${target}`, label: "", area: "inventory", type: "domain", status, x: 0, y: 0, level: 2,
+    ends: [["t", "inventory", "Entity", 8, "changed"], [target, target, "Domain", 7, "changed"]],
+  });
+  const moved = [link("inventory", "added"), link("catalog", "removed")];
+
+  it("is the domain its link has in that version: the old one on A, the new one on B", () => {
+    expect(domainAreasOf(moved, "t", "a")).toEqual(["catalog"]);
+    expect(domainAreasOf(moved, "t", "b")).toEqual(["inventory"]);
+  });
+
+  it("is none for a node whose domain did not change", () => {
+    expect(domainAreasOf(moved, "other", "a")).toEqual([]);
   });
 });
