@@ -2,7 +2,9 @@
 kind = "repository"
 driver = "python"
 require_bump = false
-untracked = ["packages/maxitor/web/client"]
+# The client has a package.json but is part of maxitor-web, not a level; #395 moves it from web/ to maxitor-web/,
+# and version-gate reads this list from main, so both paths are listed until that move is merged.
+untracked = ["packages/maxitor/web/client", "packages/maxitor/maxitor-web/client"]
 
 [changes]
 ignore = [
