@@ -51078,6 +51078,18 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_field|aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:recipient_note",
+      "is_dag": false,
+      "properties": {
+        "field_name": "recipient_note",
+        "ordinal": 8
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:recipient_note",
+      "type": "entity_field"
+    },
+    {
       "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_field|aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:shipment_carrier_hint",
       "is_dag": false,
       "properties": {
@@ -89805,6 +89817,17 @@
       "label": "lineage_batch_token",
       "properties": {
         "description": "Correlation handle shared across mesh bridges",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:recipient_note",
+      "label": "recipient_note",
+      "properties": {
+        "description": "Short message printed on the gift card for the recipient",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": false

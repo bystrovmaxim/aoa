@@ -23,6 +23,7 @@ class GiftWrapAddonCoreEntity(BaseCoreEntity):
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
+    recipient_note: str = Field(description="Short message printed on the gift card for the recipient")
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
