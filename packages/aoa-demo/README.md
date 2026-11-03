@@ -3,8 +3,8 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://github.com/bystrovmaxim/aoa"><img src="https://img.shields.io/badge/license-Apache_2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml"><img src="https://github.com/bystrovmaxim/aoa/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-79-brightgreen" alt="79 tests">
-  <img src="https://img.shields.io/badge/version-3.0.0-informational" alt="3.0.0">
+  <img src="https://img.shields.io/badge/tests-87-brightgreen" alt="87 tests">
+  <img src="https://img.shields.io/badge/version-3.5.1-informational" alt="3.5.1">
 </p>
 
 # aoa-demo: Reference Services for AOA
@@ -51,3 +51,13 @@ wait for a free connection is bounded on the resource
 
 What each mode is for, and what the resource does with its connection, is in
 [`src/aoa/demo/model/identity/README.md`](src/aoa/demo/model/identity/README.md).
+
+## Its graph history
+
+The demo keeps its graph in [`graph.json`](graph.json), rebuilt by `graph-builder write` with every change of its model, so the file's git history is the graph's history. Paste this link into Maxitor's **AOA Service URL** field to walk through it, compare any two versions, and see the open pull requests after the newest one:
+
+```text
+https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-demo/graph.json?version_link=https%3A%2F%2Fgithub.com%2Fbystrovmaxim%2Faoa%2Fblob%2Fmain%2Fpackages%2Faoa-demo%2Fpyproject.toml&version_key=project.version
+```
+
+The version under each point comes from this package's `pyproject.toml`. How to read the track is in [Open a service's graph history](../../docs/how-to/open-a-graph-history.md).
