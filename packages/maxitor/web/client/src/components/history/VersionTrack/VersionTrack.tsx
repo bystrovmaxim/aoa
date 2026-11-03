@@ -167,13 +167,16 @@ function chipHalf(text: string): number {
   return (text.length * 6.3 + 16) / 2;
 }
 
-/** The chosen version's chip: dark, its name in white, centred on ``x``, under the track unless ``y`` says where. */
-function Chip({ x, text, colour = INK, y = LABEL_Y }: { x: number; text: string; colour?: string; y?: number }) {
+/**
+ * The chosen version's chip: filled with ``colour``, its name in white, centred on ``x``, under the track unless ``y`` says
+ * where. ``hollow`` draws it white with a ``colour`` outline and name: A's in a comparison, so it never reads as B's.
+ */
+function Chip({ x, text, colour = INK, y = LABEL_Y, hollow = false }: { x: number; text: string; colour?: string; y?: number; hollow?: boolean }) {
   const half = chipHalf(text);
   return (
-    <g data-testid="chip">
-      <rect x={x - half} y={y - 9} width={half * 2} height={18} rx={9} fill={colour} />
-      <text x={x} y={y + 3.8} fontSize={10.5} fontWeight={600} fill="#fff" textAnchor="middle">
+    <g data-testid="chip" data-hollow={hollow || undefined}>
+      <rect x={x - half} y={y - 9} width={half * 2} height={18} rx={9} fill={hollow ? "#fff" : colour} stroke={hollow ? colour : undefined} strokeWidth={hollow ? 1.4 : undefined} />
+      <text x={x} y={y + 3.8} fontSize={10.5} fontWeight={600} fill={hollow ? colour : "#fff"} textAnchor="middle">
         {text}
       </text>
     </g>
@@ -675,7 +678,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
               >
                 <circle cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
                 <Knob x={point.x} point={point} />
-                <Chip x={x} text={text} colour={INK} y={side === "a" ? A_CHIP_Y : LABEL_Y} />
+                <Chip x={x} text={text} colour={INK} y={side === "a" ? A_CHIP_Y : LABEL_Y} hollow={side === "a"} />
               </g>
             ) : null,
           )}
@@ -772,13 +775,13 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
               <>
                 <path d={`M10 ${AXIS_Y}l5-4.5v9z`} fill="#334155" />
                 <Knob x={26} point={point} shadow={false} />
-                <Chip x={8 + chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} />
+                <Chip x={8 + chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} hollow={range !== null && point === older} />
               </>
             ) : (
               <>
                 <path d={`M${widthOfPin - 10} ${AXIS_Y}l-5-4.5v9z`} fill="#334155" />
                 <Knob x={widthOfPin - 26} point={point} shadow={false} />
-                <Chip x={widthOfPin - 8 - chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} />
+                <Chip x={widthOfPin - 8 - chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} hollow={range !== null && point === older} />
               </>
             )}
           </svg>

@@ -6,7 +6,7 @@ With a [graph history open](open-a-graph-history.md), Maxitor shows what changed
 
 ## Pick two versions
 
-Open the version picker and switch **One** to **Diff**. The track now holds two handles: **A**, the older version, and **B**, the newer one, with the stretch between them dark. Switching keeps your version as B and puts A on the one before it. A's name stands in a chip above the track and B's under it, so two neighbours never cover each other.
+Open the version picker and switch **One** to **Diff**. The track now holds two handles: **A**, the older version, and **B**, the newer one, with the stretch between them dark. Switching keeps your version as B and puts A on the one before it. A's name stands in a white chip with a dark outline above the track and B's in a dark chip under it, so two neighbours never cover each other.
 
 | To | Do |
 |---|---|
