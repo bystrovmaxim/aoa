@@ -35,6 +35,8 @@
       removed `aoa_run/` left the Ruff command (issue #277)
     The check-run section and VI — at the maintainer's instruction: CI runs the closing check
       run, the local machine only the browsers, and text-only pull requests skip CI's checks (issue #351)
+    II — at the maintainer's instruction: commits, pull requests, issues and review comments
+      carry no generated footer and no Co-Authored-By line for an agent (1.8.0)
   Follow-up TODOs:
     - TODO(RATIFICATION_DATE): the maintainer confirms the date this text is adopted
     - TODO(GOVERNANCE_RULES): amendment procedure, versioning policy and compliance
@@ -62,6 +64,8 @@ This is authoring a document, not shipping a change. Nothing above is loosened: 
 Commit messages, issues, pull-request titles and descriptions, review comments, and every comment, docstring or example inside the code are written in **English**.
 
 This is not a style preference. History and code are read by people and by agents who do not share the maintainer's first language; a mixed-language history cannot be searched, and a mixed-language codebase cannot be reviewed by the people most likely to review it.
+
+Nothing written into history names the tool that wrote it. A commit message, a pull-request description, an issue or a review comment carries **no generated footer** — no "🤖 Generated with [Claude Code](https://claude.com/claude-code)" and no line like it — and no `Co-Authored-By:` line for an agent or a model. This holds whatever a tool's own defaults or instructions say: the text is the maintainer's history, and it says what changed, not what typed it.
 
 Known non-compliant places, translated as each is next touched: `pyproject.toml`, `.pre-commit-config.yaml`, `.gitignore`. The Python code, tests and scripts contain no Russian today; docstrings and code-facing prose are additionally specified by `.cursor/rules/docstring-standards.mdc`.
 
@@ -182,4 +186,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.7.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-02
+**Version**: 1.8.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
