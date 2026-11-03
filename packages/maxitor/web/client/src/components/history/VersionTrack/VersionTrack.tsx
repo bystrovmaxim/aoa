@@ -245,6 +245,8 @@ function Knob({ x, point, shadow = true }: { x: number; point: Point; shadow?: b
 export function VersionTrack({ versions, live, value, onChange, width, touch = false, liveIs = null, proposals = EMPTY, versionFile = false, hideSmall = false, range = null, onRange }: VersionTrackProps) {
   // While a handle is dragged, the range it would leave is drawn; it is picked when the handle is let go.
   const [preview, setPreview] = useState<Range | null>(null);
+  // In One the same: the point the dragged handle would leave is drawn, and chosen when it is let go.
+  const [onePreview, setOnePreview] = useState<string | null>(null);
   // A follower draws the range the person they follow is dragging, and scrolls the track as they do (spec 038).
   const mirrored = useMirroredFocus();
   const followedTrack = mirrored?.panels.track ?? null;
@@ -262,13 +264,15 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const hitRadius = (touch ? TOUCH_STEP : MIN_STEP) / 2;
   const maxOffset = Math.max(0, length - width);
   const pointOf = (b: string | null) => points.find((point) => point.b === b) ?? null;
-  const index = points.findIndex((point) => point.b === (shownRange ? shownRange.b : value));
+  const index = points.findIndex((point) => point.b === (shownRange ? shownRange.b : (onePreview ?? value)));
   const chosen = index >= 0 ? points[index] : null;
   const older = shownRange ? pointOf(shownRange.a) : null;
   const scroller = useRef<HTMLDivElement | null>(null);
   const [offset, setOffset] = useState(() => openingOffset(chosen, older, width, maxOffset));
   const drag = useRef<{ x: number; left: number; moved: boolean; pointer: number } | null>(null);
   const handleDrag = useRef<{ side: Side; start: Range; lastX: number; direction: number; moved: Moved | null } | null>(null);
+  /** The handle of One being dragged: the point it would be let go on. */
+  const oneDrag = useRef<{ target: string | null } | null>(null);
   /** The whole range being dragged by its stretch: where it started, the point under the pointer then, where it is now. */
   const stretchDrag = useRef<{ start: Range; from: number; moved: Range | null } | null>(null);
   const handles = useRef<Record<Side, SVGGElement | null>>({ a: null, b: null });
@@ -477,6 +481,36 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
     }
   }
 
+  /** The handle of One, dragged as each of Diff's is: it follows the pointer from point to point, and is chosen where it is let go. */
+  function onOneDown(event: PointerEvent<SVGGElement>) {
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    oneDrag.current = { target: null };
+    setTip(null);
+  }
+
+  function onOneMove(event: PointerEvent<SVGGElement>) {
+    const current = oneDrag.current;
+    if (!current) return;
+    current.target = points[nearestAt(event.clientX)]?.b ?? null;
+    setOnePreview(current.target);
+    // Dragged to an edge of a long track, it scrolls the track along, as a handle of Diff does.
+    const element = scroller.current;
+    if (element) {
+      const box = element.getBoundingClientRect();
+      if (event.clientX < box.left + PAD) element.scrollLeft -= MIN_STEP / 2;
+      else if (event.clientX > box.left + width - PAD) element.scrollLeft += MIN_STEP / 2;
+    }
+  }
+
+  function onOneUp() {
+    const current = oneDrag.current;
+    oneDrag.current = null;
+    if (!current) return;
+    setOnePreview(null);
+    if (current.target && current.target !== value) onChange(current.target);
+  }
+
   function onHandleUp() {
     const current = handleDrag.current;
     handleDrag.current = null;
@@ -646,7 +680,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
           </g>
         ))}
         {!shownRange && chosen && !pinned && (
-          <g data-testid="handle" style={{ pointerEvents: "none" }}>
+          <g data-testid="handle" onPointerDown={onOneDown} onPointerMove={onOneMove} onPointerUp={onOneUp} onPointerCancel={onOneUp} style={{ cursor: oneDrag.current ? "grabbing" : "grab" }}>
+            <circle cx={chosen.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
             <Knob x={chosen.x} point={chosen} />
             <Chip x={chipX} text={chipText} colour={lookOf(chosen).colour} />
           </g>

@@ -55,6 +55,8 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 - [x] T037 [US1] Keep a workspace notice below the mode pill, as far from it as the pill is from the top (FR-002): the pill reserves the top centre in `client/src/lib/topCentre.ts`, `client/src/rooms/RoomBar/RoomBanner.tsx` stands below it, with `client/src/lib/topCentre.test.tsx`
 
+- [x] T038 Drag the version handle of One from point to point and choose where it is let go, as each handle of Diff, in `client/src/components/history/VersionTrack/VersionTrack.tsx`, with `oneDrag.test.tsx` and its README (asked for by the maintainer on this branch)
+
 ## Phase 5: Closing check run (one commit if it changes anything)
 
 - [ ] T033 The closing check run is CI's, on the pull request; the browsers are `bash scripts/check_before_pr.sh` on the pushed commit. Before that, here: every client test related to the changed files (30 files, 368 tests) and the server tests of rooms, routes and the explorer (150), all passing
