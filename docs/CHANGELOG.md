@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-03] — The stand on its own domains
+
+The demo service, Maxitor and the history port each live on one domain: `demo.aoa.run`, `maxitor.aoa.run` and `repo-graph-port.aoa.run`. They run the newest versions there, and nothing else serves them: `dev.demo.aoa.run` and `dev.maxitor.aoa.run` only send you on to the domains above.
+
+A deploy keeps it that way. It puts the services on those domains and uses the certificate they already have, so it no longer asks for a new one; a stand set up elsewhere still gets its own.
+
 ## [2026-11-03] — Exploring events step by step
 
 The Events pages used to draw every action, every method that emits and every event at once. With a few domains that read well; with twenty it became a wall of boxes, and the question people ask — *what happens after this, and where does it lead?* — could not be answered by looking. Now the page is an explorer: it starts small and you open it one link at a time.
