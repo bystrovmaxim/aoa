@@ -31,6 +31,21 @@ describe("two handles on one track", () => {
     expect(screen.getByTestId("track").getAttribute("role")).toBe("group");
   });
 
+  it("stand A's chip above the axis and B's under it, so neighbours never overlap", () => {
+    const { a, b } = track({ a: id(3), b: id(4) }, null);
+    const chipY = (handle: HTMLElement) => Number(handle.querySelector('[data-testid="chip"] rect')?.getAttribute("y"));
+    const axis = Number(screen.getByTestId("range-stretch").getAttribute("y1"));
+    expect(chipY(a()) + 18).toBeLessThan(axis);
+    expect(chipY(b())).toBeGreaterThan(axis);
+  });
+
+  it("keep the name under A's point, which its chip above no longer covers", () => {
+    const numbered = FOUR.map((v, at) => ({ ...v, graph_changed: true, version: `1.${at}.0`, version_changed: true }));
+    render(<VersionTrack versions={numbered} live={null} value={id(4)} onChange={vi.fn()} range={{ a: id(2), b: id(4) }} onRange={vi.fn()} width={500} versionFile />);
+    expect(screen.getByTestId(`label-${id(2)}`).textContent).toBe("1.1.0");
+    expect(screen.queryByTestId(`label-${id(4)}`)).toBeNull();
+  });
+
   it("swap roles when one is dragged past the other", () => {
     const { a, x, onRange } = track({ a: id(1), b: id(2) });
     fireEvent.pointerDown(a(), { clientX: x(id(1)), pointerId: 1 });
