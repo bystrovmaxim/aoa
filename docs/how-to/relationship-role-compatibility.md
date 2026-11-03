@@ -68,7 +68,7 @@ For required versus nullable values, defaults, source placement and cross-module
 
 An association on each endpoint permits One/One, One/Many and Many/Many. Cardinality is read from the declaring field: a team with `AssociationMany[Member]` holds member identifiers; each member's `AssociationOne[Team]` holds a team identifier. This does not fetch or reconcile stored rows.
 
-[Script](../../examples/step_21_relations/68_role_plain_associations.py) · [Executed notebook](../../examples/step_21_relations/68_role_plain_associations.ipynb)
+[Script](../../examples/step_24_relations/68_role_plain_associations.py) · [Executed notebook](../../examples/step_24_relations/68_role_plain_associations.ipynb)
 
 ```text
 AssociationOne / AssociationOne: accepted
@@ -82,7 +82,7 @@ team.members.ids: ('m1', 'm2')
 
 AggregateOne/AssociationMany and AggregateMany/AssociationOne are permitted, as are their reversed endpoint orders. Aggregate/Aggregate is refused. The scenario keeps the aggregate endpoint and changes the reverse field to AssociationOne; the corrected pair passes. The caught exception below occurs during public entity graph projection, after its declaration and inverse checks.
 
-[Script](../../examples/step_21_relations/69_role_aggregation.py) · [Executed notebook](../../examples/step_21_relations/69_role_aggregation.ipynb)
+[Script](../../examples/step_24_relations/69_role_aggregation.py) · [Executed notebook](../../examples/step_24_relations/69_role_aggregation.ipynb)
 
 ```text
 RoleCompatibilityError: Role pair 'AggregateOne' ↔ 'AggregateOne' is not permitted between 'b' on AggregateACoreEntity and 'a' on AggregateBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.
@@ -95,7 +95,7 @@ AggregateOne / AssociationOne: accepted
 
 CompositeMany/AssociationOne and CompositeOne/AssociationMany are permitted. Composite/Composite and Aggregate/Composite are refused. Pick which endpoint expresses ownership and declare the other as an association. The scenario shows both refusals and a corrected pair; changing the roles is an explicit domain-model migration.
 
-[Script](../../examples/step_21_relations/70_role_composition.py) · [Executed notebook](../../examples/step_21_relations/70_role_composition.ipynb)
+[Script](../../examples/step_24_relations/70_role_composition.py) · [Executed notebook](../../examples/step_24_relations/70_role_composition.ipynb)
 
 ```text
 RoleCompatibilityError: Role pair 'CompositeOne' ↔ 'CompositeMany' is not permitted between 'b' on CompositeACoreEntity and 'a' on CompositeBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.
@@ -109,7 +109,7 @@ CompositeOne / AssociationOne: accepted
 
 A valid classified axis needs Specialization on its head, Generalization on each alternative, reciprocal `Inverse` markers and the existing `Classifier(variant=...)` mapping. Same-role specialized pairs and specialized/ordinary pairs are prohibited. The scenario demonstrates both refusal families, a valid loaded alternative, and the earlier `EntityFieldDeclarationError` for NoInverse on either specialized role.
 
-[Script](../../examples/step_21_relations/71_role_specialization.py) · [Executed notebook](../../examples/step_21_relations/71_role_specialization.ipynb)
+[Script](../../examples/step_24_relations/71_role_specialization.py) · [Executed notebook](../../examples/step_24_relations/71_role_specialization.ipynb)
 
 ```text
 RoleCompatibilityError: Role pair 'Specialization' ↔ 'AssociationOne' is not permitted between 'pressing' on SpecOrdinaryHeadCoreEntity and 'record' on OrdinaryReverseCoreEntity: Specialization and Generalization pair exclusively with each other; declare the reverse endpoint as the matching Specialization or Generalization role.
@@ -119,7 +119,7 @@ EntityFieldDeclarationError: Field 'record' on entity 'UnpairedAlternativeSpecEn
 Specialization / Generalization: accepted
 ```
 
-The role check supplements classifier membership and coverage checks. It does not turn an arbitrary association into a classified axis. See [the complete specialization tutorial](../tutorials/step-21-relations.md#generalization-and-specialization).
+The role check supplements classifier membership and coverage checks. It does not turn an arbitrary association into a classified axis. See [the complete specialization tutorial](../tutorials/step-24-relations.md#generalization-and-specialization).
 
 ## NoInverse means an independent relationship
 
@@ -133,7 +133,7 @@ The role check supplements classifier membership and coverage checks. It does no
 
 NoInverse is permitted on all six ordinary containers. The matrix does not compare the roles of two unrelated one-way fields. Merely targeting each other's types, using similar names or having matching ids does not pair them. The independent composition and aggregation below are two links, not a permitted composition/aggregation reciprocal pair.
 
-[Script](../../examples/step_21_relations/73_role_directions.py) · [Executed notebook](../../examples/step_21_relations/73_role_directions.ipynb)
+[Script](../../examples/step_24_relations/73_role_directions.py) · [Executed notebook](../../examples/step_24_relations/73_role_directions.ipynb)
 
 ```text
 Single NoInverse: accepted
@@ -152,7 +152,7 @@ A build or projection that raises has failed: do not use a partial result. Keep 
 
 ## Dictionary targets
 
-All six ordinary containers can target a dictionary. Choose One/Many and ownership meaning in the same way as for another target, then validate actual selected codes and canonical members. The [dictionary guide](dictionary-references.md) covers wrappers, arrays of id objects, export, schema limits and graph roles. The [dictionary scenario](../../examples/step_21_relations/72_role_dictionary.py) and [notebook](../../examples/step_21_relations/72_role_dictionary.ipynb) exercise all six forms.
+All six ordinary containers can target a dictionary. Choose One/Many and ownership meaning in the same way as for another target, then validate actual selected codes and canonical members. The [dictionary guide](dictionary-references.md) covers wrappers, arrays of id objects, export, schema limits and graph roles. The [dictionary scenario](../../examples/step_24_relations/72_role_dictionary.py) and [notebook](../../examples/step_24_relations/72_role_dictionary.ipynb) exercise all six forms.
 
 A dictionary target has no special NoInverse-only rule. A paired declaration still needs an actual reverse endpoint. Current catalogue property validation prevents declaring that reverse relationship on an Enum; see the [verified implementation gap](../reports/endpoint-role-verification.md#dictionary-reverse-endpoints). This is not a new role-pair restriction.
 

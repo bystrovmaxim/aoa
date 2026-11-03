@@ -59,7 +59,7 @@ if _MODE == "member":
     _CONTAINER._dictionary_member_of = _unchecked_member
 
 _ROOT = Path(__file__).resolve().parents[3]
-_EXAMPLES = _ROOT / "examples/step_21_relations"
+_EXAMPLES = _ROOT / "examples/step_24_relations"
 _PLAIN = runpy.run_path(str(_EXAMPLES / "68_role_plain_associations.py"))
 _AGGREGATION = runpy.run_path(str(_EXAMPLES / "69_role_aggregation.py"))
 _COMPOSITION = runpy.run_path(str(_EXAMPLES / "70_role_composition.py"))

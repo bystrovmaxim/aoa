@@ -21,7 +21,7 @@ USAGE
         registration: str = Field(description="Registration number")
 
     This field excerpt omits the paired Specialization/Generalization declaration;
-    see examples/step_20_entity/06_specialization.py for the complete model.
+    see examples/step_22_entity/06_specialization.py for the complete model.
 """
 
 from __future__ import annotations

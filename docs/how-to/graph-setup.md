@@ -36,10 +36,10 @@ deferred = ["local-update"]
 
 `skill` is the revision of the wizard, not a release. Only `local-update` and `ci-graph-check` may be deferred, and a deferred item is also decided. An older file that lists `version-tags` keeps working; the wizard proposes removing it.
 
-The [script](../../examples/step_26_maxitor/15_setup_decisions.py) and [notebook](../../examples/step_26_maxitor/15_setup_decisions.ipynb) show which records are accepted:
+The [script](../../examples/step_29_maxitor/15_setup_decisions.py) and [notebook](../../examples/step_29_maxitor/15_setup_decisions.ipynb) show which records are accepted:
 
 ```bash
-uv run --extra dev python examples/step_26_maxitor/15_setup_decisions.py
+uv run --extra dev python examples/step_29_maxitor/15_setup_decisions.py
 ```
 
 ```text

@@ -16,7 +16,7 @@ from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DUCKDB_GR
 def main() -> None:
     """Project all six dictionary roles through the graph and public summary."""
     root = Path(__file__).resolve().parents[3]
-    runpy.run_path(str(root / "examples/step_21_relations/72_role_dictionary.py"))
+    runpy.run_path(str(root / "examples/step_24_relations/72_role_dictionary.py"))
     machine = ActionProductMachine(loggers=[])
     domain = next(
         node.node_id for node in machine.graph_coordinator.get_all_nodes() if node.label == "DictionaryDomain"

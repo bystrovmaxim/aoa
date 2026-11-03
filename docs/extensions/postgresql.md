@@ -1,6 +1,6 @@
 # PostgreSQL — one connection for one unit of work
 
-[Contents](../index.md) · [Connection ownership](../tutorials/step-17-connections.md)
+[Contents](../index.md) · [Connection ownership](../tutorials/step-19-connections.md)
 
 `PostgresResource` is the PostgreSQL implementation of AOA's SQL resource contract.
 One resource holds at most one connection. Create a resource for each call that
@@ -8,7 +8,7 @@ needs its own database session; keep the pool at application scope. The resource
 does not create a pool or make a shared instance safe for concurrent requests.
 
 If **pool**, **connection**, **unit of work** and **transaction** are new terms, read
-[their definitions](../tutorials/step-17-connections.md#four-terms-before-the-first-example)
+[their definitions](../tutorials/step-19-connections.md#four-terms-before-the-first-example)
 first. This page builds on that distinction: connection lifetime and transaction
 lifetime require separate decisions.
 
@@ -189,7 +189,7 @@ async def lifespan(app):
 ```
 
 Here `holder` is the application-owned holder defined in the
-[complete service example](../../examples/step_17_connections/16_pool_lifespan.ipynb).
+[complete service example](../../examples/step_19_connections/16_pool_lifespan.ipynb).
 Register `PerCallConnection(lambda: NotesResource(pool=holder.require()),
 lambda resource: resource.close())` on the route, then pass the hook to
 `adapter.build(lifespan=lifespan)`.
@@ -749,7 +749,7 @@ with. These are ownership restrictions: a child must not return a connection whi
 parent still needs it. A resource that *does* want a child to run one of its own
 methods returns its own wrapper class from `get_wrapper_class()`; that wrapper
 delegates those methods and keeps every refusal.
-See the [separate wrapper examples](../tutorials/step-19-resource.md#a-wrapper-for-nested-operations).
+See the [separate wrapper examples](../tutorials/step-21-resource.md#a-wrapper-for-nested-operations).
 
 ## Migrating an existing declaration
 

@@ -23,7 +23,7 @@ that caller may perform the requested operation.
 
 The machine publishes the authentication word `AUTH_COORDINATOR`, but its own
 authentication step passes. Credential validation belongs to the calling boundary.
-See [authentication](step-12-authentication.md) and the
+See [authentication](step-13-authentication.md) and the
 [authentication scenario](../../examples/step_03_authorization_and_roles/12_authentication.ipynb).
 
 ## Preparation: the objects involved in a call

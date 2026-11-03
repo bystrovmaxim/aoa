@@ -21,7 +21,7 @@ No additional source defect was reproduced within these checks. This is limited 
 
 ## Actual graph output
 
-Command: `.venv/bin/python examples/step_20_dictionaries/08_graph.py`
+Command: `.venv/bin/python examples/step_23_dictionaries/08_graph.py`
 
 ```text
 Kind: enum

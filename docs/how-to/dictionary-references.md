@@ -94,7 +94,7 @@ A to-one input is exactly `{"id":"eur"}`. A to-many input is an array such as `[
 
 Export uses each canonical member's `to_reference()` representation: code, display_name and properties. Dictionary property serializers still run. Exported references are not accepted unchanged as selection input: convert code to id explicitly. Python-mode `model_dump()` retains the relationship wrappers.
 
-[Script](../../examples/step_21_relations/72_role_dictionary.py) · [Executed notebook](../../examples/step_21_relations/72_role_dictionary.ipynb)
+[Script](../../examples/step_24_relations/72_role_dictionary.py) · [Executed notebook](../../examples/step_24_relations/72_role_dictionary.ipynb)
 
 ```text
 All six container classes retained
@@ -130,7 +130,7 @@ A graph-visible dictionary field emits one ordinary `entity_relation` edge with 
 
 The graph retains an EntityField row and its `reference_qualname` identifying the dictionary. Catalogue values stay in the dictionary node's values. Newly generated relationships emit no special entity_reference edge. Older imported graphs may retain that historical edge type.
 
-The [graph scenario above](../../examples/step_21_relations/72_role_dictionary.py) asserts all six role/cardinality combinations and their field hints. Maxitor preserves the three relation families, but its query currently emits both a retained field row and synthesized FK row for the same dictionary field. This is a [confirmed consumer defect](../reports/endpoint-role-verification.md#dictionary-field-rows-in-the-erd), not two domain fields or two relationship arrows.
+The [graph scenario above](../../examples/step_24_relations/72_role_dictionary.py) asserts all six role/cardinality combinations and their field hints. Maxitor preserves the three relation families, but its query currently emits both a retained field row and synthesized FK row for the same dictionary field. This is a [confirmed consumer defect](../reports/endpoint-role-verification.md#dictionary-field-rows-in-the-erd), not two domain fields or two relationship arrows.
 
 ## Schema modes and current limits
 
@@ -138,4 +138,4 @@ Validation schemas describe id objects or arrays of id objects. Serialization sc
 
 The emitted relationship schema currently describes nested properties only as an object. It does not retain the standalone dictionary's typed custom-property definitions. The exported values and serializers work, but malformed custom-property types can pass that schema. See the [schema reproduction](../reports/endpoint-role-verification.md#typed-custom-property-schemas). Standalone dictionary/ordinary DTO schemas retain their separate typed export contract.
 
-See [complete entity fields](explicit-entity-fields.md), [dictionary property validation](dictionary-validation-and-export.md), the [dictionary tutorial](../tutorials/step-20-dictionaries.md) and the [verification report](../reports/endpoint-role-verification.md).
+See [complete entity fields](explicit-entity-fields.md), [dictionary property validation](dictionary-validation-and-export.md), the [dictionary tutorial](../tutorials/step-23-dictionaries.md) and the [verification report](../reports/endpoint-role-verification.md).

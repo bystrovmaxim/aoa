@@ -68,7 +68,7 @@ class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.R
 
 ### `BaseEntity` — a domain object
 
-What the system **models**. `BaseEntity` supplies the shared domain-object mechanics without ties to storage. Application classes choose one of its six kind bases: Core, Assoc, Detail, Spec, Enum or State. These refine the Entity primitive; they are not additional primitives. [The entity tutorial](../tutorials/step-20-entity.md) explains their different identities and roles.
+What the system **models**. `BaseEntity` supplies the shared domain-object mechanics without ties to storage. Application classes choose one of its six kind bases: Core, Assoc, Detail, Spec, Enum or State. These refine the Entity primitive; they are not additional primitives. [The entity tutorial](../tutorials/step-22-entity.md) explains their different identities and roles.
 
 ```python
 class OrderCoreEntity(BaseCoreEntity):
@@ -219,7 +219,7 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
 
 The description and the runtime value have different jobs. `OrderStateEntity.by_code("confirmed")` returns the status description; `OrderLifecycle("confirmed")` creates a value for one order that refers to the declared status. `current_status` returns that object, and `current_state` returns its code without storing a second current code. `transition("shipped")` checks the template and returns a new value. The application applies and persists that value. Status fields do not perform the transition, and status classes are automatically excluded from the graph's entity list.
 
-See [Lifecycle](../tutorials/step-22-lifecycle.md) for the declaration, runtime calls and graph output as separate runnable examples.
+See [Lifecycle](../tutorials/step-25-lifecycle.md) for the declaration, runtime calls and graph output as separate runnable examples.
 
 ---
 

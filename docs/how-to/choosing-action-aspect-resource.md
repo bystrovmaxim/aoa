@@ -22,14 +22,14 @@ external access it provides.
 Then choose its owner. A per-call database resource is created inside
 `PerCallConnection(factory, finalize)` and released after the call. A shared pool
 belongs to service startup and shutdown. These lifetimes are separate from the
-business decision. [Step 17](../tutorials/step-17-connections.md) demonstrates them.
+business decision. [Step 19](../tutorials/step-19-connections.md) demonstrates them.
 
 ## Keep the decision in the action
 
-In [the inventory example](../../examples/step_19_resource/01_resource.ipynb), the
+In [the inventory example](../../examples/step_21_resource/01_resource.ipynb), the
 resource exposes get_stock and take. ReserveStockAction compares the available
 quantity with the request. With stock 10, reserving 3 returns
-`{'reserved': True, 'remaining': 7}`. In the [refusal case](../../examples/step_19_resource/02_refusal.ipynb),
+`{'reserved': True, 'remaining': 7}`. In the [refusal case](../../examples/step_21_resource/02_refusal.ipynb),
 reserving 11 returns `{'reserved': False, 'remaining': 10}` without changing storage.
 The two cases run independently so each explains one outcome.
 
@@ -51,7 +51,7 @@ wrapper: it may call only what the resource's own wrapper delegates, and it cann
 commit, roll back or close the parent's connection. The standard SQL wrapper has no
 `execute()` method; the resource's own wrapper exposes the methods a child needs. This is ownership,
 not a different kind of business logic.
-See [the actual nested-call example](../../examples/step_19_resource/07_nested_action.ipynb).
+See [the actual nested-call example](../../examples/step_21_resource/07_nested_action.ipynb).
 
 Before adding a class, state its job in a sentence. “Read from the database” points
 to a resource; “reserve the requested stock” points to an action; “check the available

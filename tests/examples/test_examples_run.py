@@ -38,12 +38,12 @@ _TIMEOUT_SECONDS = 60
 # fixes issue #83 is forced to also delete the matching entry here.
 _XFAIL_REASONS: dict[str, str] = {
     "extensions/02_langgraph.py": "aoa.langgraph no longer exports LangGraphAdapter (issue #83 rework, in progress)",
-    "step_14_langgraph/01_external_connection.py": (
+    "step_16_langgraph/01_external_connection.py": (
         "graph references aoa.langgraph.controller.LangGraphController, which no longer "
         "exists (issue #83 rework, in progress)"
     ),
-    "step_14_langgraph/01_langgraph.py": "aoa.langgraph no longer exports LangGraphAdapter (issue #83 rework, in progress)",
-    "step_14_langgraph/05_testing.py": "RouteKeyError: route key 'UNSET' not found (issue #83 rework, in progress)",
+    "step_16_langgraph/01_langgraph.py": "aoa.langgraph no longer exports LangGraphAdapter (issue #83 rework, in progress)",
+    "step_16_langgraph/05_testing.py": "RouteKeyError: route key 'UNSET' not found (issue #83 rework, in progress)",
 }
 
 

@@ -392,7 +392,7 @@ So, two independent layers of protection. The `_` block guards against accidenta
 
 ## Entity kinds
 
-Every application entity chooses one kind base. Core describes an independent domain object; Assoc a technical connection without business data; Detail an identifiable part of an owner; Spec variant-specific data sharing the head's identity; Enum a shared reference value; State a lifecycle state description. These meanings are explained with separate runnable examples in [Step 20](../tutorials/step-20-entity.md).
+Every application entity chooses one kind base. Core describes an independent domain object; Assoc a technical connection without business data; Detail an identifiable part of an owner; Spec variant-specific data sharing the head's identity; Enum a shared reference value; State a lifecycle state description. These meanings are explained with separate runnable examples in [Step 22](../tutorials/step-22-entity.md).
 
 The hierarchy performs structural checks when Python creates a class, before decorators run. `BaseEntity` owns the common hierarchy checks; each kind base owns its suffix check. The framework recognises a kind base by direct inheritance from `BaseEntity` and its own `__init_subclass__` hook. The six supplied bases define AOA's domain kinds, and an application normally selects one of them; a base the model declares by the same rule is a kind of its own. Every kind base names its kind for readers in its own body as `KIND_LABEL`. `@entity` supplies model metadata rather than performing these hierarchy checks.
 
@@ -454,7 +454,7 @@ Twelve unordered combinations are permitted and twenty-four are refused; the dir
 
 A refused pair raises `RoleCompatibilityError` naming both owner classes and fields, both resolved roles, the violated rule and the permitted correction. When an earlier declaration check fires first (a missing marker, an unresolved type, an absent reverse endpoint), that check reports its own boundary.
 
-`NoInverse` is permitted on each of the six ordinary containers and refused on `Specialization` and `Generalization`. Two opposite-direction `NoInverse` fields are two independent relationships, never a reciprocal pair; an `Inverse` may not target a `NoInverse` field. See [Step 21](../tutorials/step-21-relations.md) for the runnable scenarios and executed notebooks.
+`NoInverse` is permitted on each of the six ordinary containers and refused on `Specialization` and `Generalization`. Two opposite-direction `NoInverse` fields are two independent relationships, never a reciprocal pair; an `Inverse` may not target a `NoInverse` field. See [Step 24](../tutorials/step-24-relations.md) for the runnable scenarios and executed notebooks.
 
 #### The twelve permitted unordered role pairs
 
@@ -536,7 +536,7 @@ after custom validators run: a result outside the declared types, outside a `Lit
 choices, or null where the union excludes it is refused. Standalone dictionary serialization schemas retain the
 definitions used by Enum properties. Relationship wrapper schemas currently expose only a broad nested properties object. A state's property types remain unrestricted by the
 dictionary rule, and frozen models do not recursively freeze mutable state properties. The
-[dictionary guide](../tutorials/step-20-dictionaries.md) demonstrates the supported paths
+[dictionary guide](../tutorials/step-23-dictionaries.md) demonstrates the supported paths
 and documents these limits.
 
 ### Entity specialization: the build rules
@@ -544,7 +544,7 @@ and documents these limits.
 A **head** contains common information. Its **alternatives** contain variant-specific
 information about the same object. An **axis** consists of one specialization field,
 its dictionary and its alternatives. The
-[relations tutorial](../tutorials/step-21-relations.md#generalization-and-specialization)
+[relations tutorial](../tutorials/step-24-relations.md#generalization-and-specialization)
 provides a complete model before introducing the individual operations.
 
 #### Declaration and checking time
@@ -590,9 +590,9 @@ One dictionary may classify several axes, each with complete coverage. An altern
 class belongs to one head class. Specialization chains must not form cycles. The current
 closure check compares reverse links by head class: every axis must include every class
 that generalizes to that head. Thus the
-[two-axis example](../../examples/step_21_relations/11_specialization_two_axes.py) shares
+[two-axis example](../../examples/step_24_relations/11_specialization_two_axes.py) shares
 alternatives, while the
-[subset example](../../examples/step_21_relations/38_error_axis_subset.py) is refused.
+[subset example](../../examples/step_24_relations/38_error_axis_subset.py) is refused.
 Independent disjoint alternative sets on one head are not supported by this check.
 
 Use the paired `Inverse` declarations shown in the tutorial. Specialization and Generalization now require reciprocal Inverse markers; NoInverse on either field is refused during declaration validation. Role compatibility supplements the existing classifier/coverage checks. It does not establish a database relationship or perform storage validation. A bare `Generalization` to a head without an axis
@@ -630,7 +630,7 @@ Python inheritance or stored-object links.
 reverse edges. Maxitor uses the forward edges to group multiple alternatives and label
 the group by its dictionary. A single alternative has no group; its reverse generalization
 can still appear as a relation. Dictionary cards show value codes, labels and descriptive
-properties. See [Step 26](../tutorials/step-26-maxitor.md#specialization-the-variants-in-one-frame).
+properties. See [Step 29](../tutorials/step-29-maxitor.md#specialization-the-variants-in-one-frame).
 
 
 ## Lifecycle FSM
@@ -683,7 +683,7 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
 
 A malformed status raises Pydantic `ValidationError` when created. Vocabulary errors happen at class definition: duplicate codes or a new template without members raise `ValueError`; mixed types, a non-Lifecycle base, or a foreign status raise `TypeError`. Passing strings to the template builder raises `TypeError` at that call. At runtime an unknown current code raises `InvalidStateError`, and a forbidden move raises `InvalidTransitionError`.
 
-For the rationale and independent runnable cases, see [Step 22](../tutorials/step-22-lifecycle.md).
+For the rationale and independent runnable cases, see [Step 25](../tutorials/step-25-lifecycle.md).
 
 Every lifecycle template declared on an entity passes eight structural rules at `coordinator.build()`. A violation of any is a `LifecycleValidationError` with the entity name, the field name, and a description of the violation.
 

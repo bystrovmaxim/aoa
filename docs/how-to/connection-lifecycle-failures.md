@@ -1,6 +1,6 @@
 # Diagnose connection lifecycle failures
 
-Start with [Step 17](../tutorials/step-17-connections.md) if the terms factory,
+Start with [Step 19](../tutorials/step-19-connections.md) if the terms factory,
 finalizer and resource scope are new. This guide separates declaration mistakes,
 acquisition failures, execution failures and cleanup failures. Each link provides
 an independent script and notebook; nothing depends on running an earlier example.
@@ -18,7 +18,7 @@ body; the linked script contains its complete setup.
 
 Omitting finalize fails when the declaration is constructed, before any call is served.
 
-[Python](../../examples/step_17_connections/12_required_finalizer.py) · [Notebook](../../examples/step_17_connections/12_required_finalizer.ipynb)
+[Python](../../examples/step_19_connections/12_required_finalizer.py) · [Notebook](../../examples/step_19_connections/12_required_finalizer.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -44,7 +44,7 @@ Supply finalize=lambda resource: resource.close() when the resource owns a handl
 
 A present value is not enough: the adapter must be able to call finalize.
 
-[Python](../../examples/step_17_connections/13_callable_finalizer.py) · [Notebook](../../examples/step_17_connections/13_callable_finalizer.ipynb)
+[Python](../../examples/step_19_connections/13_callable_finalizer.py) · [Notebook](../../examples/step_19_connections/13_callable_finalizer.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -70,7 +70,7 @@ The route-record validation uses this check. It checks callability without runni
 
 A resource may hold only Python data. Its per-call declaration still has to specify what happens when the call ends.
 
-[Python](../../examples/step_17_connections/03_without_open.py) · [Notebook](../../examples/step_17_connections/03_without_open.ipynb)
+[Python](../../examples/step_19_connections/03_without_open.py) · [Notebook](../../examples/step_19_connections/03_without_open.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -102,7 +102,7 @@ No open method was called. The synchronous finalizer still ran after the body. B
 
 The body of the scope fails after acquisition. Watch the event order, then inspect the error outside the scope.
 
-[Python](../../examples/step_17_connections/04_failed_call.py) · [Notebook](../../examples/step_17_connections/04_failed_call.ipynb)
+[Python](../../examples/step_19_connections/04_failed_call.py) · [Notebook](../../examples/step_19_connections/04_failed_call.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -132,7 +132,7 @@ The finalizer ran before ValueError reached the caller. Releasing a resource doe
 
 Cancellation asks an asynchronous task to stop. It is a separate exit path from a normal result or an ordinary exception.
 
-[Python](../../examples/step_17_connections/05_cancelled_call.py) · [Notebook](../../examples/step_17_connections/05_cancelled_call.ipynb)
+[Python](../../examples/step_19_connections/05_cancelled_call.py) · [Notebook](../../examples/step_19_connections/05_cancelled_call.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -169,7 +169,7 @@ The caller still receives CancelledError, but only after the finalizer has run. 
 
 Two resources are declared. The first opens successfully; construction of the second fails before the operation starts.
 
-[Python](../../examples/step_17_connections/06_factory_failure.py) · [Notebook](../../examples/step_17_connections/06_factory_failure.ipynb)
+[Python](../../examples/step_19_connections/06_factory_failure.py) · [Notebook](../../examples/step_19_connections/06_factory_failure.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -203,7 +203,7 @@ The first resource is not leaked. The second factory returned nothing, so there 
 
 Construction and acquisition are separate steps. A resource can exist even when opening it fails.
 
-[Python](../../examples/step_17_connections/07_open_failure.py) · [Notebook](../../examples/step_17_connections/07_open_failure.ipynb)
+[Python](../../examples/step_19_connections/07_open_failure.py) · [Notebook](../../examples/step_19_connections/07_open_failure.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -240,7 +240,7 @@ The finalizer must tolerate a partially opened resource. It is registered as soo
 
 The body succeeds, but its finalizer fails. A successful body does not make the entire call successful.
 
-[Python](../../examples/step_17_connections/08_close_failure.py) · [Notebook](../../examples/step_17_connections/08_close_failure.ipynb)
+[Python](../../examples/step_19_connections/08_close_failure.py) · [Notebook](../../examples/step_19_connections/08_close_failure.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -268,7 +268,7 @@ With no earlier error to preserve, the closing error propagates out of the scope
 
 Both the body and cleanup fail. The scope preserves the work error and attaches the operational closing error as a Python exception note.
 
-[Python](../../examples/step_17_connections/09_two_failures.py) · [Notebook](../../examples/step_17_connections/09_two_failures.ipynb)
+[Python](../../examples/step_19_connections/09_two_failures.py) · [Notebook](../../examples/step_19_connections/09_two_failures.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -297,7 +297,7 @@ Inspect __notes__ when diagnosing this path. A resource contract violation follo
 
 Cleanup tries every created resource even when the first finalizer raises.
 
-[Python](../../examples/step_17_connections/10_remaining_finalizers.py) · [Notebook](../../examples/step_17_connections/10_remaining_finalizers.ipynb)
+[Python](../../examples/step_19_connections/10_remaining_finalizers.py) · [Notebook](../../examples/step_19_connections/10_remaining_finalizers.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -327,7 +327,7 @@ The last close belongs to the second resource. Cleanup does not stop at the firs
 
 PerCallConnection calls the factory every time. It cannot guarantee that the factory creates a new resource.
 
-[Python](../../examples/step_17_connections/11_shared_factory.py) · [Notebook](../../examples/step_17_connections/11_shared_factory.ipynb)
+[Python](../../examples/step_19_connections/11_shared_factory.py) · [Notebook](../../examples/step_19_connections/11_shared_factory.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 

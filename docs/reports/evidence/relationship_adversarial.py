@@ -57,8 +57,8 @@ if mode == "graph":
         None if field.targets and issubclass(field.targets[0], BaseEnumEntity) else old(field)
     )
 
-pair = runpy.run_path(str(root / "examples/step_21_relations/65_reciprocal_directions.py"))
-selection = runpy.run_path(str(root / "examples/step_20_dictionaries/56_selection_transport.py"))
+pair = runpy.run_path(str(root / "examples/step_24_relations/65_reciprocal_directions.py"))
+selection = runpy.run_path(str(root / "examples/step_23_dictionaries/56_selection_transport.py"))
 
 
 def test_valid_neighbor():
@@ -71,14 +71,14 @@ def test_valid_neighbor():
 
 def test_bare_refused():
     """Verify test bare refused behavior."""
-    model = runpy.run_path(str(root / "examples/step_21_relations/55_bare_entity_refused.py"))
+    model = runpy.run_path(str(root / "examples/step_24_relations/55_bare_entity_refused.py"))
     with pytest.raises(EntityFieldDeclarationError):
         validate_entity_fields([model["HostCoreEntity"]])
 
 
 def test_embedded_refused():
     """Verify test embedded refused behavior."""
-    model = runpy.run_path(str(root / "examples/step_21_relations/54_embedded_entity.py"))
+    model = runpy.run_path(str(root / "examples/step_24_relations/54_embedded_entity.py"))
     with pytest.raises(EntityFieldDeclarationError):
         validate_entity_fields([model["HostCoreEntity"]])
 

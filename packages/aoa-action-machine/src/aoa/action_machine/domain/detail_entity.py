@@ -21,7 +21,7 @@ USAGE
         number: int = Field(description="Line number within the order")
 
     These fields identify the part; the complete example also declares ownership
-    with relation containers in examples/step_20_entity/05_detail.py.
+    with relation containers in examples/step_22_entity/05_detail.py.
 """
 
 from __future__ import annotations

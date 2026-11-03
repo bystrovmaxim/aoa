@@ -29,7 +29,7 @@ async def test_no_auth_coordinator_satisfies_protocol() -> None:
 async def test_duck_typed_coordinator_with_no_inheritance_satisfies_protocol() -> None:
     """The whole point of Protocol: a matching process() is enough, no base class needed.
 
-    Mirrors examples/step_13_fastapi/02_auth_override.py's DenyAllCoordinator --
+    Mirrors examples/step_14_fastapi/02_auth_override.py's DenyAllCoordinator --
     a real, already-shipped example of exactly this pattern.
     """
 

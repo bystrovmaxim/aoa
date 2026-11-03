@@ -6,11 +6,11 @@ Keep custom validators consistent with the declared property type. A mismatched 
 
 ## A dictionary checks the completed value after user validation.
 
-[Script](../../examples/step_20_dictionaries/39_validator_result.py) · [Notebook](../../examples/step_20_dictionaries/39_validator_result.ipynb)
+[Script](../../examples/step_23_dictionaries/39_validator_result.py) · [Notebook](../../examples/step_23_dictionaries/39_validator_result.ipynb)
 
 ```python
 """A dictionary checks the completed value after user validation.
-Run: .venv/bin/python examples/step_20_dictionaries/39_validator_result.py
+Run: .venv/bin/python examples/step_23_dictionaries/39_validator_result.py
 """
 
 from pydantic import field_validator
@@ -49,11 +49,11 @@ ValueError: LabelsEnumEntity: the property 'labels' of member 'ITEM' holds list 
 
 ## An exported dictionary reference validates against its serialization schema.
 
-[Script](../../examples/step_20_dictionaries/40_export_schema.py) · [Notebook](../../examples/step_20_dictionaries/40_export_schema.ipynb)
+[Script](../../examples/step_23_dictionaries/40_export_schema.py) · [Notebook](../../examples/step_23_dictionaries/40_export_schema.ipynb)
 
 ```python
 """An exported dictionary reference validates against its serialization schema.
-Run: .venv/bin/python examples/step_20_dictionaries/40_export_schema.py
+Run: .venv/bin/python examples/step_23_dictionaries/40_export_schema.py
 """
 
 import json
@@ -111,11 +111,11 @@ Export matches serialization schema
 
 ## A dictionary refuses a mutable item nested inside a tuple.
 
-[Script](../../examples/step_20_dictionaries/42_validator_nested_list.py) · [Notebook](../../examples/step_20_dictionaries/42_validator_nested_list.ipynb)
+[Script](../../examples/step_23_dictionaries/42_validator_nested_list.py) · [Notebook](../../examples/step_23_dictionaries/42_validator_nested_list.ipynb)
 
 ```python
 """A dictionary refuses a mutable item nested inside a tuple.
-Run: .venv/bin/python examples/step_20_dictionaries/42_validator_nested_list.py
+Run: .venv/bin/python examples/step_23_dictionaries/42_validator_nested_list.py
 """
 
 from pydantic import field_validator
@@ -154,11 +154,11 @@ ValueError: LabelsEnumEntity: the property 'labels[1]' of member 'ITEM' holds li
 
 ## A dictionary refuses an enum whose underlying value is mutable.
 
-[Script](../../examples/step_20_dictionaries/43_mutable_enum_value.py) · [Notebook](../../examples/step_20_dictionaries/43_mutable_enum_value.ipynb)
+[Script](../../examples/step_23_dictionaries/43_mutable_enum_value.py) · [Notebook](../../examples/step_23_dictionaries/43_mutable_enum_value.ipynb)
 
 ```python
 """A dictionary refuses an enum whose underlying value is mutable.
-Run: .venv/bin/python examples/step_20_dictionaries/43_mutable_enum_value.py
+Run: .venv/bin/python examples/step_23_dictionaries/43_mutable_enum_value.py
 """
 from enum import Enum
 from aoa.action_machine.domain import BaseEnumEntity, value
@@ -192,11 +192,11 @@ ValueError: FlagsEnumEntity: the property 'flags' of member 'ITEM' holds Flags, 
 
 ## A dictionary refuses a validator returning the wrong immutable type.
 
-[Script](../../examples/step_20_dictionaries/41_validator_wrong_type.py) · [Notebook](../../examples/step_20_dictionaries/41_validator_wrong_type.ipynb)
+[Script](../../examples/step_23_dictionaries/41_validator_wrong_type.py) · [Notebook](../../examples/step_23_dictionaries/41_validator_wrong_type.ipynb)
 
 ```python
 """A dictionary refuses a validator returning the wrong immutable type.
-Run: .venv/bin/python examples/step_20_dictionaries/41_validator_wrong_type.py
+Run: .venv/bin/python examples/step_23_dictionaries/41_validator_wrong_type.py
 """
 
 from pydantic import field_validator
@@ -257,13 +257,13 @@ A nullable annotation permits null; it does not by itself make a containing mode
 
 Use a literal when the property has a fixed set of choices. The validator may choose another listed value, but equality alone does not make a value legal: boolean and integer choices keep their own types.
 
-[Script](../../examples/step_20_dictionaries/44_literal_choices.py) · [Notebook](../../examples/step_20_dictionaries/44_literal_choices.ipynb)
+[Script](../../examples/step_23_dictionaries/44_literal_choices.py) · [Notebook](../../examples/step_23_dictionaries/44_literal_choices.ipynb)
 
 Run the complete script in a fresh process, or run the notebook cases in order.
 
 ```python
 """Literal choices match both type and value.
-Run: .venv/bin/python examples/step_20_dictionaries/44_literal_choices.py
+Run: .venv/bin/python examples/step_23_dictionaries/44_literal_choices.py
 """
 
 from typing import Literal
@@ -390,13 +390,13 @@ ValueError: ChoiceEnumEntity: the property 'choice' of member 'ITEM' holds int (
 
 A union allows any of its declared member types. Returning a different member type is valid. Returning null is valid only when the union explicitly includes it.
 
-[Script](../../examples/step_20_dictionaries/45_union_nullability.py) · [Notebook](../../examples/step_20_dictionaries/45_union_nullability.ipynb)
+[Script](../../examples/step_23_dictionaries/45_union_nullability.py) · [Notebook](../../examples/step_23_dictionaries/45_union_nullability.ipynb)
 
 Run the complete script in a fresh process, or run the notebook cases in order.
 
 ```python
 """Unions accept declared member types and explicitly permitted null.
-Run: .venv/bin/python examples/step_20_dictionaries/45_union_nullability.py
+Run: .venv/bin/python examples/step_23_dictionaries/45_union_nullability.py
 """
 
 from pydantic import field_validator
@@ -489,13 +489,13 @@ Completed value: None
 
 A tuple applies the property rule to each item. These cases compare invalid literal and null items with a permitted nullable item, so the error path shows exactly where the rejected value occurred.
 
-[Script](../../examples/step_20_dictionaries/46_tuple_item_validation.py) · [Notebook](../../examples/step_20_dictionaries/46_tuple_item_validation.ipynb)
+[Script](../../examples/step_23_dictionaries/46_tuple_item_validation.py) · [Notebook](../../examples/step_23_dictionaries/46_tuple_item_validation.ipynb)
 
 Run the complete script in a fresh process, or run the notebook cases in order.
 
 ```python
 """Tuple items follow their annotations and refusals name the item index.
-Run: .venv/bin/python examples/step_20_dictionaries/46_tuple_item_validation.py
+Run: .venv/bin/python examples/step_23_dictionaries/46_tuple_item_validation.py
 """
 
 from typing import Literal
@@ -598,13 +598,13 @@ Completed value: ('a', None)
 
 Choose an annotation that describes a useful property. A property consisting only of null is refused; a literal can include null alongside another choice. Integer properties keep integers rather than accepting boolean results, and a leaf keeps its exact type: an `int` is not a `float`, and a `datetime` is not a `date`.
 
-[Script](../../examples/step_20_dictionaries/47_property_declarations.py) · [Notebook](../../examples/step_20_dictionaries/47_property_declarations.ipynb)
+[Script](../../examples/step_23_dictionaries/47_property_declarations.py) · [Notebook](../../examples/step_23_dictionaries/47_property_declarations.ipynb)
 
 Run the complete script in a fresh process, or run the notebook cases in order.
 
 ```python
 """Property declarations distinguish nullability and exact leaf types.
-Run: .venv/bin/python examples/step_20_dictionaries/47_property_declarations.py
+Run: .venv/bin/python examples/step_23_dictionaries/47_property_declarations.py
 """
 
 from datetime import date, datetime
@@ -768,10 +768,10 @@ Every property emitted by serialization is required in the nested output object,
 
 Literal choices match by both type and value. A union accepts null only if one of its members is `None`; a literal may also list `None` explicitly. An annotation consisting only of `None` is not a supported dictionary property. A leaf compares the exact type, so a subclass is refused: `True` is not an `int`, `1` is not a `float`, and a `datetime` is not a `date`. These checks run while the dictionary class is created and also reach tuple items. The dictionary rule does not restrict lifecycle-status property types.
 
-Input and output schemas retain their existing responsibilities. The completed-value fix does not change the reference payload. See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [invariant reference](../reference/intents-and-invariants.md), and [explicit entity fields](explicit-entity-fields.md).
+Input and output schemas retain their existing responsibilities. The completed-value fix does not change the reference payload. See the [dictionary tutorial](../tutorials/step-23-dictionaries.md), [invariant reference](../reference/intents-and-invariants.md), and [explicit entity fields](explicit-entity-fields.md).
 
 ## Dictionary reference declarations
 
 An entity field selecting a catalogue uses a complete ordinary relationship declaration: Association, Aggregate or Composite, with One or Many. Use one direction marker and an assignment-side Field description. Bare dictionary fields are refused at model build. The plain `Holder(BaseModel)` used in the export examples above is a DTO, not an `@entity` host, so its direct dictionary validation remains supported. Do not copy that DTO field declaration onto an entity.
 
-For entity selections, Python input is an explicit wrapper. JSON input is one id-only object for One or an array of id objects for Many. Export still uses the canonical dictionary reference, but the relationship's serialization schema currently lacks typed custom-property definitions. The standalone export schema demonstrated above retains them. See [supported forms, migration and exact refusals](dictionary-references.md), the [transport script](../../examples/step_20_dictionaries/56_selection_transport.py), its [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb), and the [schema limitation](../reports/complete-relationship-verification.md#association-serialization-schema).
+For entity selections, Python input is an explicit wrapper. JSON input is one id-only object for One or an array of id objects for Many. Export still uses the canonical dictionary reference, but the relationship's serialization schema currently lacks typed custom-property definitions. The standalone export schema demonstrated above retains them. See [supported forms, migration and exact refusals](dictionary-references.md), the [transport script](../../examples/step_23_dictionaries/56_selection_transport.py), its [executed notebook](../../examples/step_23_dictionaries/56_selection_transport.ipynb), and the [schema limitation](../reports/complete-relationship-verification.md#association-serialization-schema).

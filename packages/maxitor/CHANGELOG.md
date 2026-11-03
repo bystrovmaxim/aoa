@@ -71,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dictionary references connect entity cards.** Graph imports carry catalogue values and field hints beside the relation to a dictionary card. Newly rebuilt complete selections use ordinary association edges; earlier exports may contain special reference edges. The current query duplicates the retained dictionary field row and synthesized FK row for the ordinary-association form; row merging has not been delivered. See the [reproduction](../../docs/reports/complete-relationship-verification.md#dictionary-fields-in-maxitor) before relying on one row per field. ([#256](https://github.com/bystrovmaxim/aoa/issues/256))
 
-- **Dictionary cards emphasize human labels** — Value rows print labels and descriptive properties, while codes remain in tooltips. The inherited code and display-name fields are omitted from ordinary dictionary field rows; other entity fields are preserved. Existing reference payloads retain their codes. See the [diagram guide](../../docs/tutorials/step-26-maxitor.md). *The value row described here was removed by the entry above; the field-row rule stands.*
+- **Dictionary cards emphasize human labels** — Value rows print labels and descriptive properties, while codes remain in tooltips. The inherited code and display-name fields are omitted from ordinary dictionary field rows; other entity fields are preserved. Existing reference payloads retain their codes. See the [diagram guide](../../docs/tutorials/step-29-maxitor.md). *The value row described here was removed by the entry above; the field-row rule stands.*
 
 ### Changed
 

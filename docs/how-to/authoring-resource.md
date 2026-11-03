@@ -1,6 +1,6 @@
 # Write a resource with a clear owner
 
-[Contents](../index.md) · [Resource concepts](../tutorials/step-19-resource.md)
+[Contents](../index.md) · [Resource concepts](../tutorials/step-21-resource.md)
 
 Write a resource when an action needs access to a database, an API, a file or another
 external system. Put the business decision in the action and the access mechanism
@@ -104,7 +104,7 @@ An action declares `@connection(NotesResource, key="notes")` and reads
 `connections["notes"]`. On a service route, supply the same declaration used in the
 example: a factory that constructs NotesResource and a finalizer that calls close.
 FastAPI and MCP apply the scope around machine.run. A manual caller must apply it
-explicitly, as the example does. [Step 17](../tutorials/step-17-connections.md) shows
+explicitly, as the example does. [Step 19](../tutorials/step-19-connections.md) shows
 both the action and route together.
 
 ## Decide what child actions may do
@@ -120,7 +120,7 @@ and context-manager use. It still delegates rollup inspection, but has no
 `execute()` or other query method. A custom interface needs its own
 wrapper, returned from `get_wrapper_class()`, which delegates the domain's own
 methods and keeps every refusal. The
-[wrapper cases](../tutorials/step-19-resource.md#a-wrapper-for-nested-operations)
+[wrapper cases](../tutorials/step-21-resource.md#a-wrapper-for-nested-operations)
 show both direct calls and automatic wrapping by box.run.
 
 ## If the implementation uses PostgreSQL

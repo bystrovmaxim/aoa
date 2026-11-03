@@ -24,4 +24,4 @@ All 12 complete Python blocks in the dictionary tutorial and how-to were run fro
 
 [#254](https://github.com/bystrovmaxim/aoa/issues/254) settled the leaf comparison that this pass left as `isinstance`. A completed value must be the declared type, so a `datetime` returned for a `date` property is now refused along with any other subclass; an integer for a `float` was already refused and is now the stated rule. The migration table in the guide lists each refused pair with its accepted neighbour.
 
-See the [dictionary tutorial](../tutorials/step-20-dictionaries.md), [migration and refusals](../how-to/dictionary-validation-and-export.md), and [invariant reference](../reference/intents-and-invariants.md).
+See the [dictionary tutorial](../tutorials/step-23-dictionaries.md), [migration and refusals](../how-to/dictionary-validation-and-export.md), and [invariant reference](../reference/intents-and-invariants.md).

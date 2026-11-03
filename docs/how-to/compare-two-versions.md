@@ -2,7 +2,7 @@
 
 With a [graph history open](open-a-graph-history.md), Maxitor shows what changed between any two versions on the ERD: what was added, removed and changed, table by table and field by field, with the two pull request messages side by side.
 
-[17_compare_two_versions.py](../../examples/step_26_maxitor/17_compare_two_versions.py) ([notebook](../../examples/step_26_maxitor/17_compare_two_versions.ipynb)) runs the comparison below against a real port and prints what Maxitor answers.
+[17_compare_two_versions.py](../../examples/step_29_maxitor/17_compare_two_versions.py) ([notebook](../../examples/step_29_maxitor/17_compare_two_versions.ipynb)) runs the comparison below against a real port and prints what Maxitor answers.
 
 ## Pick two versions
 
@@ -93,7 +93,7 @@ The version button counts everything marked: actions, roles and links. The stepp
 
 Hovering an action, a role or a link keeps it, its links and what they reach lit and dims the rest. Links are easy to hit at any zoom.
 
-[19_changed_inside.py](../../examples/step_26_maxitor/19_changed_inside.py) ([notebook](../../examples/step_26_maxitor/19_changed_inside.ipynb)) runs every case of "changed inside" and prints what Maxitor answers.
+[19_changed_inside.py](../../examples/step_29_maxitor/19_changed_inside.py) ([notebook](../../examples/step_29_maxitor/19_changed_inside.ipynb)) runs every case of "changed inside" and prints what Maxitor answers.
 
 ## Read lifecycles
 
@@ -107,7 +107,7 @@ Open a row and both versions are drawn at once. Added states and transitions are
 - **The filter panel** has Elements, by kind of state, and Changes. The gear shift starts on Changes; on Elements a state keeps its kind's fill, its outline says its status. 1-hop is on at first, so to see one kind alone switch 1-hop off.
 - **A lifecycle absent from the shown version** says so, and the left panel leads elsewhere.
 
-[20_lifecycle_diff.py](../../examples/step_26_maxitor/20_lifecycle_diff.py) ([notebook](../../examples/step_26_maxitor/20_lifecycle_diff.ipynb)) runs these cases and prints what the diagram reads.
+[20_lifecycle_diff.py](../../examples/step_29_maxitor/20_lifecycle_diff.py) ([notebook](../../examples/step_29_maxitor/20_lifecycle_diff.ipynb)) runs these cases and prints what the diagram reads.
 
 ## Read the full graph
 

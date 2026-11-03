@@ -140,7 +140,7 @@ resource or the scope is driven directly, and not through the transport. That is
 
 ### Documentation
 
-- **The connections chapter shows the whole pattern.** [Step 17](../../docs/tutorials/step-17-connections.md) states the pair, retires the claim that a per-call declaration guarantees a fresh instance — the factory may return a shared object, and what the pair guarantees is closing — and adds a section on a long-lived pool behind a per-call resource: the startup hook, the holder, the three cases of who opens and who closes, and the exercises.
+- **The connections chapter shows the whole pattern.** [Step 17](../../docs/tutorials/step-19-connections.md) states the pair, retires the claim that a per-call declaration guarantees a fresh instance — the factory may return a shared object, and what the pair guarantees is closing — and adds a section on a long-lived pool behind a per-call resource: the startup hook, the holder, the three cases of who opens and who closes, and the exercises.
 - **The PostgreSQL page covers the pool.** [PostgreSQL](../../docs/extensions/postgresql.md) now describes both ways to build a resource, who opens and closes it, the transaction on the held connection, the driver's real pool API, and where each bound is stated.
 
 ## [1.0.1a2] – 2026-07-11
