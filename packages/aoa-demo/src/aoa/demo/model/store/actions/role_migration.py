@@ -1,8 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/store/actions/role_migration.py
 from __future__ import annotations
 
-import warnings
-
 from pydantic import Field
 
 from aoa.action_machine.intents.aspects import summary_aspect
@@ -11,27 +9,25 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.demo.model.roles import DeprecatedRole, EditorRole
+from aoa.demo.model.roles import EditorRole
 from aoa.demo.model.store.store_domain import StoreDomain
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", DeprecationWarning)
 
-    @meta(description="Demo action using deprecated + editor roles", domain=StoreDomain)
-    @check_roles([DeprecatedRole, EditorRole])
-    class RoleMigrationAction(BaseAction["RoleMigrationAction.Params", "RoleMigrationAction.Result"]):
-        class Params(BaseParams):
-            item_id: str = Field(description="Legacy item id")
+@meta(description="Demo action that records a migrated legacy item", domain=StoreDomain)
+@check_roles(EditorRole)
+class RoleMigrationAction(BaseAction["RoleMigrationAction.Params", "RoleMigrationAction.Result"]):
+    class Params(BaseParams):
+        item_id: str = Field(description="Legacy item id")
 
-        class Result(BaseResult):
-            migrated: bool = Field(description="Whether migration was recorded")
+    class Result(BaseResult):
+        migrated: bool = Field(description="Whether migration was recorded")
 
-        @summary_aspect("Migrate")
-        async def migrate_summary(
-            self,
-            params: RoleMigrationAction.Params,
-            state: BaseState,
-            box: ToolsBox,
-            connections: Connections,
-        ) -> RoleMigrationAction.Result:
-            return RoleMigrationAction.Result(migrated=True)
+    @summary_aspect("Migrate")
+    async def migrate_summary(
+        self,
+        params: RoleMigrationAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> RoleMigrationAction.Result:
+        return RoleMigrationAction.Result(migrated=True)

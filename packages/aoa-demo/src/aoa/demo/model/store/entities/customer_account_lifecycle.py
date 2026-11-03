@@ -24,13 +24,13 @@ class CustomerAccountStateEntity(BaseStateEntity):
 
 
 class CustomerAccountLifecycle(Lifecycle[CustomerAccountStateEntity]):
-    """Three states: provisioned → active → closed; an account never activated may be closed."""
+    """Three states: provisioned → active → closed."""
 
 
     _template = (
         Lifecycle()
         .state(CustomerAccountStateEntity.PROVISIONED)
-        .to(CustomerAccountStateEntity.ACTIVE, CustomerAccountStateEntity.CLOSED)
+        .to(CustomerAccountStateEntity.ACTIVE)
         .initial()
         .state(CustomerAccountStateEntity.ACTIVE)
         .to(CustomerAccountStateEntity.CLOSED)
