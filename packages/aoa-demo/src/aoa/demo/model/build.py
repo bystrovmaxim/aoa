@@ -64,6 +64,10 @@ _MODULES: Final[tuple[str, ...]] = (
     "aoa.demo.model.support.support_domain",
     "aoa.demo.model.support.entities",
     "aoa.demo.model.support.actions",
+    # gift cards: a domain of its own, with tables linked to store orders
+    "aoa.demo.model.gift_cards.gift_cards_domain",
+    "aoa.demo.model.gift_cards.entities",
+    "aoa.demo.model.gift_cards.actions",
     # operational slices mirroring heavyweight use-case cardinality (diagram harnesses)
     "aoa.demo.model.catalog_custody.catalog_custody_domain",
     "aoa.demo.model.catalog_custody.entities",

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-demo"
-version = "3.6.0"
+version = "3.7.0"
 description = "Example FastAPI and MCP services demonstrating ActionMachine."
 readme = "README.md"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-action-machine>=1.0.0a5,<2.0.0",
+    "aoa-action-machine>=1.0.1a9,<2.0.0",
     "aoa-ocel>=1.0.0a0",
     "pydantic>=2.0,<3.0",
 ]

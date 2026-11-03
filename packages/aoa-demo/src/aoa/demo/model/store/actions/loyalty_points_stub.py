@@ -3,18 +3,18 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.demo.model.roles import ViewerRole
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @meta(description="Fetch loyalty points balance (store sample stub)", domain=StoreDomain)
-@check_roles(GuestRole)
+@check_roles(ViewerRole)
 class LoyaltyPointsStubAction(BaseAction["LoyaltyPointsStubAction.Params", "LoyaltyPointsStubAction.Result"]):
     class Params(BaseParams):
         customer_id: str = Field(description="Customer id")
