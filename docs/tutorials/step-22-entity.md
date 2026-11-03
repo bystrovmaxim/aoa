@@ -103,7 +103,7 @@ These answers describe different layers. The domain treats the line as an owner-
 
 A detail can contain business data and have a lifecycle of its own: a line may have a price, quantity and fulfilment state. It can also own further details. Such content does not turn it into a technical association or an independent object. Its defining property is ownership. If the object must continue independently after its owner ceases to exist, reconsider the classification.
 
-The example declares that ownership with `CompositeMany` on the order and a reverse reference on the line. [The next chapter](step-24-relations.md) explains these containers. They describe the relationship; the marker does not execute database deletions or persistence operations.
+The example declares that ownership with `CompositeMany` on the order and a reverse reference on the line. [Relations](step-24-relations.md) explains these containers. They describe the relationship; the marker does not execute database deletions or persistence operations.
 
 ### A specialization describes what kind of object the head is
 
@@ -313,4 +313,8 @@ NamingSuffixError: Class 'OrderEntity' must end with 'CoreEntity'. Rename it to 
 
 The suggested name mechanically appends the suffix. `OrderCoreEntity` is a clearer valid rename. Changing the decorator or waiting until graph construction cannot repair the bad declaration: Python has already refused to create the class. An undecorated class is checked in the same way. A kind base's construction error, by contrast, occurs when the example attempts to instantiate it.
 
-For the complete validation reference, see [Intents and invariants](../reference/intents-and-invariants.md#entity-kinds). The next chapter explains how these distinct objects are connected through [relations](step-24-relations.md).
+For the complete validation reference, see [Intents and invariants](../reference/intents-and-invariants.md#entity-kinds). [Closed dictionaries](step-23-dictionaries.md) come next, and then [relations](step-24-relations.md), which connect these distinct objects.
+
+---
+
+[← Resource](step-21-resource.md) · [Contents](../index.md) · [Closed dictionaries →](step-23-dictionaries.md)

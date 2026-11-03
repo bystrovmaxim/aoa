@@ -1,5 +1,7 @@
 # Step 23 — Closed dictionaries: declare values and use references
 
+[← Entity](step-22-entity.md) · [Contents](../index.md) · [Relations →](step-24-relations.md)
+
 A dictionary declares the allowed reference values in its class body. Use the imported `value(...)` factory for each member. A typed reference resolves a code to a declared member. Export includes the code, human label and serialized properties.
 
 ## Migrate an existing declaration
@@ -347,3 +349,7 @@ Output keys: ['code', 'display_name', 'properties']
 The graph retains the declared relationship family and One/Many cardinality, the field row and dictionary hint. Nullability does not change graph cardinality. Raw collections need a complete Many container, rather than a separate link model solely to choose several values. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_23_dictionaries/08_graph.py) and [notebook](../../examples/step_23_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.
 
 For multiple values and ownership containers, run [all six dictionary roles](../../examples/step_24_relations/72_role_dictionary.py) and its [executed notebook](../../examples/step_24_relations/72_role_dictionary.ipynb). They show canonical identity, input order, repeated codes, empty/absent values, actual refusals, serializers, schema modes and graph metadata. See [current selection forms and limits](../how-to/dictionary-references.md).
+
+---
+
+[← Entity](step-22-entity.md) · [Contents](../index.md) · [Relations →](step-24-relations.md)

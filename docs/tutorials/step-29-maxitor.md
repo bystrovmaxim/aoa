@@ -597,14 +597,6 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 
 > **Exercise.** In [01_graph.py](../../examples/step_29_maxitor/01_graph.py) add a second `Action` with a compensator (`@compensate`) and a handler (`@on_error`) and print the node-type breakdown again — find `Compensator` and `ErrorHandler` among them. Then add a new relation to the entities and confirm the number of `entity_relation` edges grew.
 
----
-
-<table width="100%"><tr>
-  <td align="left"><a href="step-28-context.md">← Step 28 — Context</a></td>
-  <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
-</tr></table>
-
 ## Entity kinds in the graph and store
 
 Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base, and `properties.entity_kind_label`, the name that base declares as `KIND_LABEL` ([Step 22](step-22-entity.md#name-a-kind-for-readers-of-the-graph)). AOA's graphs state `core`, `assoc`, `detail`, `spec` and `enum`; state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads both values into its `entity` table and preserves them in the reconstructed node payload.
@@ -707,3 +699,11 @@ The page opens fast, and a second visit barely downloads anything.
 **The full graph is a map.** It is no longer laid out in the browser. Each version is laid out once on the server, by Graphviz, domain by domain, and the browser reads an overview first and the detail of what it looks at, so a graph of about a hundred thousand nodes opens in under a second. Sigma.js draws it with WebGL. Reading it — the levels, the filters, comparing two versions — is [the how-to page](../how-to/read-the-full-graph-map.md), and [18_the_full_graph_as_a_map.py](../../examples/step_29_maxitor/18_the_full_graph_as_a_map.py) with its [notebook](../../examples/step_29_maxitor/18_the_full_graph_as_a_map.ipynb) runs the reads.
 
 **How it is measured.** `packages/maxitor/web/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.
+
+---
+
+<table width="100%"><tr>
+  <td align="left"><a href="step-28-context.md">← Step 28 — Context</a></td>
+  <td align="center"><a href="../index.md">Contents</a></td>
+  <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
+</tr></table>
