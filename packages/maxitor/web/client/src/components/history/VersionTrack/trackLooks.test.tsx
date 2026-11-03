@@ -76,6 +76,14 @@ describe("open pull requests and Live (FR-036, FR-037)", () => {
     expect(x(id(proposal(2, "approved")))).toBeGreaterThan(x(id(proposal(1, "open"))));
   });
 
+  it("draws an open pull request that raises only the version as a small point", () => {
+    const versionOnly = { ...proposal(1, "open"), graph_changed: false, version: "2.0.1", version_changed: true };
+    render(<VersionTrack versions={history} live={null} proposals={[versionOnly, proposal(2, "open")]} value={null} onChange={() => undefined} width={700} />);
+    const size = (v: HistoryVersion) => screen.getByTestId(`point-${id(v)}`).querySelector("[data-state]")?.getAttribute("data-size");
+    expect(size(versionOnly)).toBe("small");
+    expect(size(proposal(2, "open"))).toBe("large");
+  });
+
   it("draws Live and the newest version as one point when Live runs exactly its graph", () => {
     render(<VersionTrack versions={history} live={LIVE} liveIs={history[3].sha} value="live" onChange={() => undefined} width={700} />);
     expect(screen.queryByTestId(`point-${id(history[3])}`)).toBeNull();

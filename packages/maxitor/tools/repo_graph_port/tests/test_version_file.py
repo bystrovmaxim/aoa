@@ -226,3 +226,24 @@ def test_a_moved_folder_keeps_its_history(tmp_path: Path, capsys: pytest.Capture
     config.write_text(bare, encoding="utf-8")
     fresh = TestClient(create_app(config, tmp_path / "cache-bare"))
     assert fresh.get(f"{BASE}/svc/versions", headers=headers).json()["versions"][0]["version"] == "1.1.0"
+
+
+def _propose(service: _Service, number: int, name: str, files: dict[str, str]) -> str:
+    """An open pull request: a branch off ``main`` with one commit, kept as ``refs/pull/<number>/head``."""
+    builder = service.builder
+    builder.git("checkout", "-q", "-b", f"proposal-{number}", "main")
+    head = builder.commit(name, files)
+    builder.git("checkout", "-q", "main")
+    builder.git("update-ref", f"refs/pull/{number}/head", head)
+    return head
+
+
+def test_an_open_pull_request_that_raises_only_the_version_is_listed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A proposal that raises the number is listed as a small point; one that changes neither file is not."""
+    service = _Service(tmp_path, capsys)
+    service.commit("both", {"svc/graph.json": graph(edges=21), "svc/version.toml": TOML.format("1.1.0")})
+    raised = _propose(service, 7, "version only", {"svc/version.toml": TOML.format("1.1.1"), "svc/code.txt": "y"})
+    _propose(service, 8, "code only", {"svc/code.txt": "z"})
+    _, listed = service.read()
+    assert [(p["sha"], p["pr"]["number"]) for p in listed["proposals"]] == [(raised, 7)]
+    assert _row(listed["proposals"][0]) == (False, "1.1.1", True)

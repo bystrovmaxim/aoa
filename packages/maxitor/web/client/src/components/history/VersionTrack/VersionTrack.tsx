@@ -128,7 +128,8 @@ export function layOut(
       b: shortSha(proposal),
       x: start + at * step,
       name: `#${proposal.pr?.number ?? at + 1}`,
-      large: false,
+      // One that raises only the version, not the graph, is small, as a merged one would be.
+      large: proposal.graph_changed !== false,
       named: false,
       refused: Boolean(proposal.refused),
       flags: [],
@@ -620,9 +621,10 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             ) : point.state && !point.refused ? (
               <circle
                 data-state={point.state}
+                data-size={point.large ? "large" : "small"}
                 cx={point.x}
                 cy={AXIS_Y}
-                r={3.6}
+                r={point.large ? 3.6 : 2.4}
                 fill={PROPOSAL_LOOK[point.state].colour}
                 stroke={PROPOSAL_LOOK[point.state].colour}
                 strokeWidth={1.4}

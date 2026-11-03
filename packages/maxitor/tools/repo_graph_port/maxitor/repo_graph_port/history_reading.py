@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     facts_of / graph_of(..., sha)               ──► the cache, or git once and then the cache
     detail_of(..., sha, before)                 ──► who made it, its size, its graph change: the cache, or git once
     pull_request_of / release_of(..., s)        ──► the cache while younger than s seconds, or the host
-    proposals_of(..., newest, s)                ──► the open pull requests that change the graph, as versions to look at
+    proposals_of(..., newest, s, number)        ──► the open pull requests that change the graph or the version, as versions to look at
 
 git is blocking, so every mirror call runs in a worker thread. A local history has
 no host: no pull requests, no releases. When GitHub does not answer, a version shows
@@ -304,12 +304,12 @@ async def version_problem_of(mirror: GitMirror, host: GitHubHost, history: Histo
 
 
 async def proposals_of(
-    mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, newest: str | None, interval_seconds: int
+    mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, newest: str | None, interval_seconds: int, newest_number: str | None = None
 ) -> list[VersionRecord]:
     """
     AI-CORE-BEGIN
-    ROLE: List the pull requests still open into the history's branch that change its graph, for a reader to look at before they are merged.
-    CONTRACT: On GitHub, the host's open pull requests offered for review, drafts left out, with their state — changes_requested, approved or open — kept while younger than ``interval_seconds``; in a local repository, every ``refs/pull/<n>/head`` not yet in the branch, state ``open``, its title the head commit's first line. Only those whose graph differs from ``newest``'s are listed, oldest number first, each with its facts, its authors and size against where it left the branch, and its change against ``newest``. Never raises for a host that does not answer: it lists what it last knew.
+    ROLE: List the pull requests still open into the history's branch that change its graph or its version, for a reader to look at before they are merged.
+    CONTRACT: On GitHub, the host's open pull requests offered for review, drafts left out, with their state — changes_requested, approved or open — kept while younger than ``interval_seconds``; in a local repository, every ``refs/pull/<n>/head`` not yet in the branch, state ``open``, its title the head commit's first line. Only those whose graph differs from ``newest``'s, or, in a history with a version file, whose readable number differs from ``newest_number``, the newest point's, are listed — the second kind with ``graph_changed`` false —, oldest number first, each with its facts, its authors and size against where it left the branch, and its change against ``newest``. Never raises for a host that does not answer: it lists what it last knew.
     AI-CORE-END
     """
     if history.host == "github":
@@ -342,7 +342,10 @@ async def proposals_of(
             graph = await graph_of(mirror, cache, host, history, head)
             change = graph_change(before, graph)
             links = cast(dict[str, int], change["links"])
-            if not change["added"] and not change["removed"] and not change["changed"] and not links["added"] and not links["removed"]:
+            graph_changed = bool(change["added"] or change["removed"] or change["changed"] or links["added"] or links["removed"])
+            read = await number_at(mirror, cache, host, history, history.version_file, head) if history.version_file is not None else None
+            version_changed = read is not None and read.number is not None and read.number != newest_number
+            if not graph_changed and not version_changed:
                 continue
             commit = await asyncio.to_thread(mirror.commit, history.repository, head)
             contribution = await asyncio.to_thread(mirror.proposal, history.repository, history.branch, head, auth)
@@ -358,6 +361,9 @@ async def proposals_of(
             edges=facts.edges,
             refused=facts.refused,
             contribution=contribution,
+            graph_changed=graph_changed,
+            version=read.number if read is not None else None,
+            version_changed=version_changed,
             change=change,
         ))
     return found
