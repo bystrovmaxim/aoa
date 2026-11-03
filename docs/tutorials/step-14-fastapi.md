@@ -1,14 +1,14 @@
-<!-- translated-from: step-13-fastapi_draft.md @ 2026-07-11T15:02:03Z (filesystem mtime; draft is gitignored, no git history) · sha256:e9c82664b0dc -->
+<!-- translated-from: step-14-fastapi_draft.md @ 2026-07-11T15:02:03Z (filesystem mtime; draft is gitignored, no git history) · sha256:e9c82664b0dc -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 13 — FastAPI adapter
+# Step 14 — FastAPI adapter
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-12-authentication.md">← Step 12 — Authentication</a></td>
+  <td align="left"><a href="step-13-authentication.md">← Step 13 — Authentication</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-14-mcp.md">Step 14 — MCP →</a></td>
+  <td align="right"><a href="step-15-mcp.md">Step 15 — MCP →</a></td>
 </tr></table>
 
 - [A minimal service](#a-minimal-service)
@@ -24,9 +24,9 @@
 
 ---
 
-The [machine](step-11-machine.md) gives a single entry into an operation, but on its own it lives inside the process. To make the operation available from the outside over HTTP, it must be released into a transport — and here the temptation arises to mix business logic with the web layer: parse the request body, check the token, assemble the response — all right in the handler. AOA separates this: the transport lives in an **adapter**, and the `Action` stays clean.
+The [machine](step-12-machine.md) gives a single entry into an operation, but on its own it lives inside the process. To make the operation available from the outside over HTTP, it must be released into a transport — and here the temptation arises to mix business logic with the web layer: parse the request body, check the token, assemble the response — all right in the handler. AOA separates this: the transport lives in an **adapter**, and the `Action` stays clean.
 
-`FastApiAdapter` publishes an operation as an HTTP endpoint — **without changing its code**. The adapter takes on the whole transport: it validates the request, builds [`Context`](step-12-authentication.md) through the authentication coordinator, runs the operation on the [machine](step-11-machine.md), and turns the `Result` back into JSON. The same `Action` thus reaches both HTTP and (through [MCP](step-14-mcp.md)) an AI agent.
+`FastApiAdapter` publishes an operation as an HTTP endpoint — **without changing its code**. The adapter takes on the whole transport: it validates the request, builds [`Context`](step-13-authentication.md) through the authentication coordinator, runs the operation on the [machine](step-12-machine.md), and turns the `Result` back into JSON. The same `Action` thus reaches both HTTP and (through [MCP](step-15-mcp.md)) an AI agent.
 
 Install: `pip install aoa-fastapi-adapter`.
 
@@ -63,7 +63,7 @@ On each request the endpoint takes the same path:
 1. **Request validation.** FastAPI parses the body/query string into a Pydantic model (by default — the operation's `Params`).
 2. **`Context`.** `auth_coordinator.process(request)` is called — the call context is built.
 3. **Connections.** The declared `@connection` slots are resolved, if any.
-4. **Run.** `machine.run(context, action, params, connections)` — the operation goes along the [pipeline](step-11-machine.md) (access, cache, aspects, sagas, errors).
+4. **Run.** `machine.run(context, action, params, connections)` — the operation goes along the [pipeline](step-12-machine.md) (access, cache, aspects, sagas, errors).
 5. **Response.** The `Result` is serialized into JSON.
 
 Plus, `build()` adds a service `GET /health` → `{"status": "ok"}` and a wrapper guaranteeing HTTP 500 on any uncaught error.
@@ -80,7 +80,7 @@ Each route has `tags`, `summary`, `operation_id`, `deprecated` for OpenAPI.
 
 ## Authentication is mandatory
 
-`auth_coordinator` is a required argument: `None` fails immediately with `TypeError`, so that authentication cannot be forgotten by oversight. For an open API it is declared explicitly — `NoAuthCoordinator(context=Context())`. The coordinator builds `Context` at the transport boundary; the machine receives it ready (in detail — in the [Authentication](step-12-authentication.md) chapter).
+`auth_coordinator` is a required argument: `None` fails immediately with `TypeError`, so that authentication cannot be forgotten by oversight. For an open API it is declared explicitly — `NoAuthCoordinator(context=Context())`. The coordinator builds `Context` at the transport boundary; the machine receives it ready (in detail — in the [Authentication](step-13-authentication.md) chapter).
 
 A specific route can override this default with its own coordinator — `auth_coordinator=` in `.post/.get/.put/.delete/.patch(...)`:
 
@@ -119,7 +119,7 @@ The external schema does not always match the operation's contract: a new API ve
 )
 ```
 
-So v1 and v2 live side by side, and `GreetAction` does not change — all the difference between versions lies at the adapter boundary, exactly where it belongs. (A mapper and its corresponding `*_model` are set as a pair: a `response_mapper` without a `response_model` will return a result that does not match the response contract.) Returning the result itself by schema is a separate topic of the [next chapters](step-15-schema-results.md).
+So v1 and v2 live side by side, and `GreetAction` does not change — all the difference between versions lies at the adapter boundary, exactly where it belongs. (A mapper and its corresponding `*_model` are set as a pair: a `response_mapper` without a `response_model` will return a result that does not match the response contract.) Returning the result itself by schema is a separate topic of the [next chapters](step-17-schema-results.md).
 
 ### A refusal leaves as a refusal
 
@@ -180,7 +180,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `FastApiAdapter` releases an operation over HTTP without mixing transport into the business logic: a fluent builder registers routes, derives OpenAPI from `Params`/`Result`/`@meta`, builds `Context` through the mandatory `auth_coordinator`, and translates machine errors into HTTP codes. When the external schema diverges from the contract, the translation is placed at the adapter boundary via `*_model` + `*_mapper`, while the `Action` itself stays unchanged. The same `Action` also reaches an AI agent — about which the next chapter.
 
-Next — **[MCP](step-14-mcp.md)**: how to publish the same operation as a tool for a language model.
+Next — **[MCP](step-15-mcp.md)**: how to publish the same operation as a tool for a language model.
 
 ---
 
@@ -200,7 +200,7 @@ Next — **[MCP](step-14-mcp.md)**: how to publish the same operation as a tool 
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-12-authentication.md">← Step 12 — Authentication</a></td>
+  <td align="left"><a href="step-13-authentication.md">← Step 13 — Authentication</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-14-mcp.md">Step 14 — MCP →</a></td>
+  <td align="right"><a href="step-15-mcp.md">Step 15 — MCP →</a></td>
 </tr></table>

@@ -2,11 +2,11 @@
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 20 — Entity: choose what the object represents
+# Step 22 — Entity: choose what the object represents
 
-[← Resource](step-19-resource.md) · [Contents](../index.md) · [Relations →](step-21-relations.md)
+[← Resource](step-21-resource.md) · [Contents](../index.md) · [Closed dictionaries →](step-23-dictionaries.md)
 
-An action works with an order, a customer, or a payment. The database may return these as rows, and an external service may return them as JSON. The action should not have to understand either storage format. An **entity** declares the information the domain needs; a [resource](step-19-resource.md) retrieves that information and constructs the entity.
+An action works with an order, a customer, or a payment. The database may return these as rows, and an external service may return them as JSON. The action should not have to understand either storage format. An **entity** declares the information the domain needs; a [resource](step-21-resource.md) retrieves that information and constructs the entity.
 
 Before declaring fields, decide what one instance represents. An order, an order line, and an order's current state are all useful domain information, but they have different identities and behaviour. An order line belongs to a particular order. A state describes a position in a process and can be shared by many orders. Treating all three as interchangeable objects would hide those differences from both the reader and the model's consumers.
 
@@ -103,7 +103,7 @@ These answers describe different layers. The domain treats the line as an owner-
 
 A detail can contain business data and have a lifecycle of its own: a line may have a price, quantity and fulfilment state. It can also own further details. Such content does not turn it into a technical association or an independent object. Its defining property is ownership. If the object must continue independently after its owner ceases to exist, reconsider the classification.
 
-The example declares that ownership with `CompositeMany` on the order and a reverse reference on the line. [The next chapter](step-21-relations.md) explains these containers. They describe the relationship; the marker does not execute database deletions or persistence operations.
+The example declares that ownership with `CompositeMany` on the order and a reverse reference on the line. [The next chapter](step-24-relations.md) explains these containers. They describe the relationship; the marker does not execute database deletions or persistence operations.
 
 ### A specialization describes what kind of object the head is
 
@@ -159,7 +159,7 @@ intermediate may have no values; a dictionary registered with `@entity` must hav
 one. A table whose entries users maintain in data has a different purpose: model it as a
 core entity with a suitable unique code rather than pretending its set is closed in code.
 
-[Closed dictionaries in practice](step-20-dictionaries.md) develops these rules through
+[Closed dictionaries in practice](step-23-dictionaries.md) develops these rules through
 separate runnable cases: a typed field, a stale reference payload, storage mapping,
 serialization, optional absence, inheritance, graph export and each invalid input.
 
@@ -182,7 +182,7 @@ shared declared object: True
 excluded from entity graph: True
 ```
 
-`current_state` returns the code used for storage or exchange. `current_status` returns the declared object, including its additional fields. State classes do not need `@entity`; the state type declares its statuses and carries their catalogue, and `Lifecycle[StateType]` names it. They are excluded from ordinary Entity nodes, while the lifecycle exports its own State nodes. [Step 22](step-22-lifecycle.md) develops this distinction and the transition rules.
+`current_state` returns the code used for storage or exchange. `current_status` returns the declared object, including its additional fields. State classes do not need `@entity`; the state type declares its statuses and carries their catalogue, and `Lifecycle[StateType]` names it. They are excluded from ordinary Entity nodes, while the lifecycle exports its own State nodes. [Step 25](step-25-lifecycle.md) develops this distinction and the transition rules.
 
 ### Choose one role for each class
 
@@ -213,7 +213,7 @@ print(order.id, order.total)
 ord-2 99.5
 ```
 
-`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-15-schema-results.md) is a separate concern: it describes which fields leave the application through an external result.
+`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-17-schema-results.md) is a separate concern: it describes which fields leave the application through an external result.
 
 ## Distinguish unloaded data from a loaded value
 
@@ -253,7 +253,7 @@ Maxitor store: core
 
 The kind is a required graph property, not an optional hint. [The missing-property case](../../examples/step_20_entity/26_graph_requires_kind.py) ([notebook](../../examples/step_20_entity/26_graph_requires_kind.ipynb)) removes it and prints `Entity row without entity_kind: rejected`. Rebuild graph exports produced before this property was required. Concrete class renames also change graph labels and identifiers containing qualified class names; check consumers that store those identifiers.
 
-Maxitor preserves the kind, but this branch does not make its renderer automatically collapse associative entities. See [Step 26](step-26-maxitor.md) for graph and diagram usage.
+Maxitor preserves the kind, but this branch does not make its renderer automatically collapse associative entities. See [Step 29](step-29-maxitor.md) for graph and diagram usage.
 
 ## Name a kind for readers of the graph
 
@@ -285,7 +285,7 @@ class BaseAggregateEntity(BaseEntity, ABC):
 graph row: {'entity_kind': 'aggregate', 'entity_kind_label': 'Aggregate'}
 ```
 
-The name must be written in the kind base itself, as a non-empty string; inheriting it from another base does not count. A kind base without one is refused when the class is created, with `DeclarationStructureError` (see the table below). Concrete entities never declare `KIND_LABEL`: they take the name of their kind. Maxitor's ERD shows this name in its Kinds filter and on each table's kind icon ([Step 26](step-26-maxitor.md)).
+The name must be written in the kind base itself, as a non-empty string; inheriting it from another base does not count. A kind base without one is refused when the class is created, with `DeclarationStructureError` (see the table below). Concrete entities never declare `KIND_LABEL`: they take the name of their kind. Maxitor's ERD shows this name in its Kinds filter and on each table's kind icon ([Step 29](step-29-maxitor.md)).
 
 ## Understand declaration failures
 
@@ -313,4 +313,4 @@ NamingSuffixError: Class 'OrderEntity' must end with 'CoreEntity'. Rename it to 
 
 The suggested name mechanically appends the suffix. `OrderCoreEntity` is a clearer valid rename. Changing the decorator or waiting until graph construction cannot repair the bad declaration: Python has already refused to create the class. An undecorated class is checked in the same way. A kind base's construction error, by contrast, occurs when the example attempts to instantiate it.
 
-For the complete validation reference, see [Intents and invariants](../reference/intents-and-invariants.md#entity-kinds). The next chapter explains how these distinct objects are connected through [relations](step-21-relations.md).
+For the complete validation reference, see [Intents and invariants](../reference/intents-and-invariants.md#entity-kinds). The next chapter explains how these distinct objects are connected through [relations](step-24-relations.md).

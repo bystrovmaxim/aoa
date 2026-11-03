@@ -1,14 +1,14 @@
-<!-- translated-from: step-16-complex-input_draft.md @ 2026-06-17T17:53:37Z · sha256:a18a84e5a3d5 -->
+<!-- translated-from: step-18-complex-input_draft.md @ 2026-06-17T17:53:37Z · sha256:a18a84e5a3d5 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 16 — Accepting complex data from a request
+# Step 18 — Accepting complex data from a request
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-15-schema-results.md">← Step 15 — Result by schema</a></td>
+  <td align="left"><a href="step-17-schema-results.md">← Step 17 — Result by schema</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-17-connections.md">Step 17 — Connections at the boundary →</a></td>
+  <td align="right"><a href="step-19-connections.md">Step 19 — Connections at the boundary →</a></td>
 </tr></table>
 
 - [Nested objects and collections](#nested-objects-and-collections)
@@ -21,7 +21,7 @@
 
 ---
 
-The previous chapter was about how an operation **returns** complex data. This one is the mirror: how it **accepts** it. A request rarely carries a couple of scalars — usually it is nested objects, collections, sometimes arbitrary JSON. The good news is that no separate mechanism is needed for this: `Params` is a Pydantic model, so **any** Pydantic shape works as a field, and the [adapters](step-13-fastapi.md) themselves derive both the request body and the schema from it. Complex input in AOA is accepted exactly the same way as simple input.
+The previous chapter was about how an operation **returns** complex data. This one is the mirror: how it **accepts** it. A request rarely carries a couple of scalars — usually it is nested objects, collections, sometimes arbitrary JSON. The good news is that no separate mechanism is needed for this: `Params` is a Pydantic model, so **any** Pydantic shape works as a field, and the [adapters](step-14-fastapi.md) themselves derive both the request body and the schema from it. Complex input in AOA is accepted exactly the same way as simple input.
 
 [▶ Try in Colab](https://drive.google.com/file/d/1YukUsvY7G0z-XzgU6rrGcyCGWZRL4T3x/view?usp=drive_link) · [Open in project](../../examples/step_16_complex_input/01_complex_input.py)
 
@@ -51,7 +51,7 @@ The machine and the adapters parse this automatically: the incoming JSON is vali
 
 ## Arbitrary JSON by schema
 
-When part of a request is arbitrary JSON whose shape is set externally (not by your classes), the same [`JsonSchemaValue`](step-15-schema-results.md) works on input as on output: a `Params` field holds JSON validated by a strict schema at construction.
+When part of a request is arbitrary JSON whose shape is set externally (not by your classes), the same [`JsonSchemaValue`](step-17-schema-results.md) works on input as on output: a `Params` field holds JSON validated by a strict schema at construction.
 
 ```python
 OrderMeta = JsonSchemaValue.define(name="OrderMeta", schema={
@@ -70,14 +70,14 @@ Invalid `metadata` (without the required `source`, with an extra key) is rejecte
 
 ## A partial entity on input
 
-Symmetrically to output projections, [`BaseEntity.schema(...)`](step-15-schema-results.md#a-partial-entity-projection) works on input too: a `Params` field accepts a partial "slice" of an entity — a schema-validated `dict` semantically bound to the entity class. This is convenient when the client sends not the whole entity but exactly the declared subset of its fields.
+Symmetrically to output projections, [`BaseEntity.schema(...)`](step-17-schema-results.md#a-partial-entity-projection) works on input too: a `Params` field accepts a partial "slice" of an entity — a schema-validated `dict` semantically bound to the entity class. This is convenient when the client sends not the whole entity but exactly the declared subset of its fields.
 
 ## How the transports see it
 
 The shape of `Params` is one, but delivery depends on the transport:
 
-- **[FastAPI](step-13-fastapi.md).** For `POST/PUT/PATCH` all complex input arrives in the JSON body — nested objects and collections are parsed naturally. For `GET/DELETE` parameters are taken from the query and the path, so scalars go there (and, if needed, repeated keys for lists), while structural requests are shaped as `POST` with a body.
-- **[MCP](step-14-mcp.md).** A tool's `inputSchema` is the full `model_json_schema()` of `Params`: nested models become `$ref`/`$defs`, lists become `array`. The agent gets the exact structural contract and fills it in without guessing the shape.
+- **[FastAPI](step-14-fastapi.md).** For `POST/PUT/PATCH` all complex input arrives in the JSON body — nested objects and collections are parsed naturally. For `GET/DELETE` parameters are taken from the query and the path, so scalars go there (and, if needed, repeated keys for lists), while structural requests are shaped as `POST` with a body.
+- **[MCP](step-15-mcp.md).** A tool's `inputSchema` is the full `model_json_schema()` of `Params`: nested models become `$ref`/`$defs`, lists become `array`. The agent gets the exact structural contract and fills it in without guessing the shape.
 
 In both cases not a line of code for parsing complex input needs to be written — it is derived from the contract.
 
@@ -124,7 +124,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 Complex input in AOA requires nothing beyond ordinary Pydantic: nested objects and collections are `Params` fields, arbitrary JSON is accepted by a strict schema via `JsonSchemaValue`, and a partial entity via `BaseEntity.schema`. The input contract is strict (`extra="forbid"`), and the adapters derive both the body parsing (FastAPI) and the tool schema (MCP) from it — without parsing code. Together with the previous chapter this closes both boundaries of an operation: how it accepts data and how it returns it.
 
-Next — **[Connections at the request boundary](step-17-connections.md)**: how the adapter supplies open resources to an operation on each incoming request.
+Next — **[Connections at the request boundary](step-19-connections.md)**: how the adapter supplies open resources to an operation on each incoming request.
 
 ---
 
@@ -142,7 +142,7 @@ Next — **[Connections at the request boundary](step-17-connections.md)**: how 
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-15-schema-results.md">← Step 15 — Result by schema</a></td>
+  <td align="left"><a href="step-17-schema-results.md">← Step 17 — Result by schema</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-17-connections.md">Step 17 — Connections at the boundary →</a></td>
+  <td align="right"><a href="step-19-connections.md">Step 19 — Connections at the boundary →</a></td>
 </tr></table>

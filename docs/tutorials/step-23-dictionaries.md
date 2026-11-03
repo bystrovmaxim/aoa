@@ -1,4 +1,4 @@
-# Closed dictionaries: declare values and use references
+# Step 23 — Closed dictionaries: declare values and use references
 
 A dictionary declares the allowed reference values in its class body. Use the imported `value(...)` factory for each member. A typed reference resolves a code to a declared member. Export includes the code, human label and serialized properties.
 
@@ -224,7 +224,7 @@ An input schema checks the shape of a reference; runtime validation resolves its
 
 The completed-value check reads the whole annotation. A value outside its `Literal` choices and `None` for a union that excludes it are refused, as is `bool` where `int` is declared. A leaf keeps its exact type, so an `int` is not a `float` and a `datetime` is not a `date`; input given to the declaration is still coerced first, so `ratio: float` with `1` holds `1.0`. For accepted neighbors, use a declared literal choice, a member of the union, an explicitly nullable union or literal, or a value of the declared type. A property annotated only `None` is refused; tuple diagnostics identify the failing item. See [the complete migration and exact outputs](../how-to/dictionary-validation-and-export.md#migrate-completed-values).
 
-See [validation and export](../how-to/dictionary-validation-and-export.md), [relations and specializations](step-21-relations.md#generalization-and-specialization), and [entity invariants](../reference/intents-and-invariants.md).
+See [validation and export](../how-to/dictionary-validation-and-export.md), [relations and specializations](step-24-relations.md#generalization-and-specialization), and [entity invariants](../reference/intents-and-invariants.md).
 
 ## Follow a dictionary reference
 

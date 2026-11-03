@@ -1,14 +1,14 @@
-<!-- translated-from: step-18-converters_draft.md @ 2026-06-17T17:53:37Z · sha256:f27bcf43b95f -->
+<!-- translated-from: step-20-converters_draft.md @ 2026-06-17T17:53:37Z · sha256:f27bcf43b95f -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 18 — Schema converters
+# Step 20 — Schema converters
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-17-connections.md">← Step 17 — Connections at the boundary</a></td>
+  <td align="left"><a href="step-19-connections.md">← Step 19 — Connections at the boundary</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-19-resource.md">Step 19 — Resource →</a></td>
+  <td align="right"><a href="step-21-resource.md">Step 21 — Resource →</a></td>
 </tr></table>
 
 - [Translation at the boundary](#translation-at-the-boundary)
@@ -21,7 +21,7 @@
 
 ---
 
-The external schema does not always match the operation's contract: a new API version ships, the frontend renames a field, a partner asks for amounts in cents rather than a float. Changing the `Action` for this is unnecessary and harmful — it is one for all versions. The translation is placed at the **adapter boundary**: an incoming request is brought to `Params`, and a `Result` to the needed external shape. We [touched on](step-13-fastapi.md#when-the-external-schema-diverges-from-the-contract) this in the FastAPI chapter; here it is in full, on the example of API versioning.
+The external schema does not always match the operation's contract: a new API version ships, the frontend renames a field, a partner asks for amounts in cents rather than a float. Changing the `Action` for this is unnecessary and harmful — it is one for all versions. The translation is placed at the **adapter boundary**: an incoming request is brought to `Params`, and a `Result` to the needed external shape. We [touched on](step-14-fastapi.md#when-the-external-schema-diverges-from-the-contract) this in the FastAPI chapter; here it is in full, on the example of API versioning.
 
 This is done by a pair of arguments on each route/tool:
 
@@ -100,7 +100,7 @@ To not confuse the directions:
 
 A model and its mapper are set as a **pair**: a `response_model` without a `response_mapper` (when the shape differs) will not pass registration, and a `response_mapper` without a `response_model` will return a value that does not match the declared response contract.
 
-Converters are worth distinguishing from [result by schema](step-15-schema-results.md) and [accepting complex input](step-16-complex-input.md): those describe data **inside** the operation's contract, while converters translate **between** a version's external contract and the operation's contract.
+Converters are worth distinguishing from [result by schema](step-17-schema-results.md) and [accepting complex input](step-18-complex-input.md): those describe data **inside** the operation's contract, while converters translate **between** a version's external contract and the operation's contract.
 
 ## The same in MCP
 
@@ -120,7 +120,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 When the external schema diverges from the operation's contract, the translation is placed at the adapter boundary: `request_model`/`params_mapper` bring the request to `Params`, and `response_model`/`response_mapper` bring the `Result` to the needed response. So several API versions live side by side, while the `Action` stays one and unchanged; the version's "effective" schema is meanwhile honestly reflected in OpenAPI and the `inputSchema`. The model and the mapper are linked: the machine will not let you declare an external shape and not provide the translation.
 
-With this the **Service** part is fully assembled: the machine, authentication, two transports, result and input by schema, connections, and version converters. Next — the **Data model** part, and its first hero is **[Resource](step-19-resource.md)**: an operation's boundary with the external world, pure transport separated from logic.
+With this the **Service** part is fully assembled: the machine, authentication, two transports, result and input by schema, connections, and version converters. Next — the **Data model** part, and its first hero is **[Resource](step-21-resource.md)**: an operation's boundary with the external world, pure transport separated from logic.
 
 ---
 
@@ -138,7 +138,7 @@ With this the **Service** part is fully assembled: the machine, authentication, 
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-17-connections.md">← Step 17 — Connections at the boundary</a></td>
+  <td align="left"><a href="step-19-connections.md">← Step 19 — Connections at the boundary</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-19-resource.md">Step 19 — Resource →</a></td>
+  <td align="right"><a href="step-21-resource.md">Step 21 — Resource →</a></td>
 </tr></table>

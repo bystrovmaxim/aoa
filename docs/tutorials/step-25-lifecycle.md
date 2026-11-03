@@ -1,6 +1,6 @@
-# Step 22 — Lifecycle: states and allowed transitions
+# Step 25 — Lifecycle: states and allowed transitions
 
-[← Step 21 — Relations](step-21-relations.md) · [Contents](../index.md) · [Step 23 — TestBench →](step-23-testbench.md)
+[← Step 24 — Relations](step-24-relations.md) · [Contents](../index.md) · [Step 26 — TestBench →](step-26-testbench.md)
 
 An order may be a draft, paid, or cancelled. A string field can store these words, but it does not say which changes are allowed. A `Lifecycle` describes both the possible states and the transitions between them. For example, a draft may become paid, while a paid order may not return to draft.
 
@@ -15,7 +15,7 @@ uv run python examples/step_22_lifecycle/01_lifecycle.py
 The Maxitor example additionally needs the workspace's `maxitor` package and DuckDB. It starts no HTTP server and uses no external database.
 
 
-An order and a state of that order play different roles. The order is a `BaseCoreEntity`; its state description is a `BaseStateEntity`. The state class keeps the `StateEntity` suffix, does not need `@entity`, and is excluded from ordinary Entity nodes. A lifecycle still represents its statuses as State nodes. Choosing a kind does not change the transition API described below. See [the six entity kinds](step-20-entity.md#understand-the-six-kinds).
+An order and a state of that order play different roles. The order is a `BaseCoreEntity`; its state description is a `BaseStateEntity`. The state class keeps the `StateEntity` suffix, does not need `@entity`, and is excluded from ordinary Entity nodes. A lifecycle still represents its statuses as State nodes. Choosing a kind does not change the transition API described below. See [the six entity kinds](step-22-entity.md#understand-the-six-kinds).
 
 ## The status description, template and current value
 
@@ -388,4 +388,4 @@ save anything to a database.
 
 Extend example 01 with `SHIPPED`. Give `PAID` a transition to it and change its classification from `.final()` to `.intermediate()`; declare `SHIPPED` as final. Run `draft → paid → shipped` and check that the original order remains a draft. Adding an outgoing transition while leaving `.final()` in place must fail: classification is explicit, not inferred.
 
-[← Step 21 — Relations](step-21-relations.md) · [Contents](../index.md) · [Step 23 — TestBench →](step-23-testbench.md)
+[← Step 24 — Relations](step-24-relations.md) · [Contents](../index.md) · [Step 26 — TestBench →](step-26-testbench.md)

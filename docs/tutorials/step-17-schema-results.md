@@ -1,14 +1,14 @@
-<!-- translated-from: step-15-schema-results_draft.md @ 2026-06-17T17:53:37Z · sha256:28668b131c3d -->
+<!-- translated-from: step-17-schema-results_draft.md @ 2026-06-17T17:53:37Z · sha256:28668b131c3d -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 15 — Result by JSON schema
+# Step 17 — Result by JSON schema
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-14-mcp.md">← Step 14 — MCP</a></td>
+  <td align="left"><a href="step-16-langgraph.md">← Step 16 — LangGraph</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-16-complex-input.md">Step 16 — Complex input →</a></td>
+  <td align="right"><a href="step-18-complex-input.md">Step 18 — Complex input →</a></td>
 </tr></table>
 
 - [A complex object as one field](#a-complex-object-as-one-field)
@@ -60,7 +60,7 @@ class ChangeAuditResult(BaseResult):
 
 The schema is **strict** by construction, and this is checked at the moment of `define`: every object must list `properties` and close itself with `"additionalProperties": false`, every array must declare `items`. `define` rejects a vague schema immediately (`ValueError`), not on production data. You define such a type at **module level** — so the type's identity is stable.
 
-The `audit` field stays an ordinary field next to the typed `entity_id`: `model_dump()` returns raw JSON, and `model_json_schema()` shows that very schema — which is why [FastAPI](step-13-fastapi.md) and [MCP](step-14-mcp.md) see it and surface it in OpenAPI and in the tool description.
+The `audit` field stays an ordinary field next to the typed `entity_id`: `model_dump()` returns raw JSON, and `model_json_schema()` shows that very schema — which is why [FastAPI](step-14-fastapi.md) and [MCP](step-15-mcp.md) see it and surface it in OpenAPI and in the tool description.
 
 ## Why it suits services
 
@@ -135,7 +135,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 When the result's shape is awkward as a tree of nested models, AOA lets you describe it at the field level: `JsonSchemaValue.define` holds arbitrary JSON validated by a strict schema, and `BaseEntity.schema` returns a partial entity projection — both stay plain Pydantic types, so they work in a service result and in internal code alike, and their schema is visible in OpenAPI and in the MCP tool description. This removes the need to build a heavy `Result` model for a value that goes outward as JSON anyway.
 
-Next — **[Accepting complex data from a request](step-16-complex-input.md)**: the mirror topic — how an operation accepts collections, nested objects, and JSON by schema.
+Next — **[Accepting complex data from a request](step-18-complex-input.md)**: the mirror topic — how an operation accepts collections, nested objects, and JSON by schema.
 
 ---
 
@@ -154,7 +154,7 @@ Next — **[Accepting complex data from a request](step-16-complex-input.md)**: 
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-14-mcp.md">← Step 14 — MCP</a></td>
+  <td align="left"><a href="step-16-langgraph.md">← Step 16 — LangGraph</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-16-complex-input.md">Step 16 — Complex input →</a></td>
+  <td align="right"><a href="step-18-complex-input.md">Step 18 — Complex input →</a></td>
 </tr></table>

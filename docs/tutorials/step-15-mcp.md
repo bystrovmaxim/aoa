@@ -1,14 +1,14 @@
-<!-- translated-from: step-14-mcp_draft.md @ 2026-07-11T15:01:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:2c1da3e2be76 -->
+<!-- translated-from: step-15-mcp_draft.md @ 2026-07-11T15:01:41Z (filesystem mtime; draft is gitignored, no git history) · sha256:2c1da3e2be76 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 14 — MCP adapter
+# Step 15 — MCP adapter
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-13-fastapi.md">← Step 13 — FastAPI</a></td>
+  <td align="left"><a href="step-14-fastapi.md">← Step 14 — FastAPI</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-15-schema-results.md">Step 15 — Result by schema →</a></td>
+  <td align="right"><a href="step-16-langgraph.md">Step 16 — LangGraph →</a></td>
 </tr></table>
 
 - [A minimal server](#a-minimal-server)
@@ -24,9 +24,9 @@
 
 ---
 
-In AOA an AI agent is an equal consumer of the system, on a par with a human behind HTTP. An operation already available over [HTTP](step-13-fastapi.md) becomes a tool for a language model by adding one adapter — `McpAdapter`. The logic is not duplicated or rewritten for another protocol: the same `Action` knows nothing about MCP exactly as it knows nothing about HTTP.
+In AOA an AI agent is an equal consumer of the system, on a par with a human behind HTTP. An operation already available over [HTTP](step-14-fastapi.md) becomes a tool for a language model by adding one adapter — `McpAdapter`. The logic is not duplicated or rewritten for another protocol: the same `Action` knows nothing about MCP exactly as it knows nothing about HTTP.
 
-[MCP](https://modelcontextprotocol.io) (Model Context Protocol) is the transport by which an agent calls external tools. The adapter derives the tool schema from `Params`, the description from `@meta`, and builds a handler that delegates to the [machine](step-11-machine.md).
+[MCP](https://modelcontextprotocol.io) (Model Context Protocol) is the transport by which an agent calls external tools. The adapter derives the tool schema from `Params`, the description from `@meta`, and builds a handler that delegates to the [machine](step-12-machine.md).
 
 Install: `pip install aoa-mcp-adapter`.
 
@@ -36,7 +36,7 @@ Install: `pip install aoa-mcp-adapter`.
 
 ## A minimal server
 
-The adapter is assembled the same fluent way as [FastAPI](step-13-fastapi.md): `.tool(...)` per tool, `.build()` returns a ready MCP server (`FastMCP`).
+The adapter is assembled the same fluent way as [FastAPI](step-14-fastapi.md): `.tool(...)` per tool, `.build()` returns a ready MCP server (`FastMCP`).
 
 ```python
 from aoa.mcp import McpAdapter
@@ -92,12 +92,12 @@ server = McpAdapter(machine, NoAuthCoordinator(context=Context())).register_all(
 
 ## What happens per call
 
-On each tool call the handler takes the same path as an [HTTP endpoint](step-13-fastapi.md#what-the-adapter-does-per-request):
+On each tool call the handler takes the same path as an [HTTP endpoint](step-14-fastapi.md#what-the-adapter-does-per-request):
 
 1. **Argument validation.** The MCP layer checks the call arguments against `inputSchema` — **before** the handler. A mismatch with the schema (a missing required field, a wrong type) is rejected right here as a protocol error (`ToolError`), the operation is not run.
 2. **`Context`** through `auth_coordinator`.
 3. **Connections** — the declared `@connection` slots are resolved.
-4. **Run** — `machine.run(context, action, params, connections)` along the [pipeline](step-11-machine.md).
+4. **Run** — `machine.run(context, action, params, connections)` along the [pipeline](step-12-machine.md).
 5. **Response** — the `Result` is serialized and wrapped in an envelope.
 
 ### A refusal leaves as a refusal
@@ -133,11 +133,11 @@ A security-important detail: on `INTERNAL_ERROR` the message is fixed — `"Unex
 
 ## Authentication
 
-`auth_coordinator` is mandatory — as with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator(context=Context())` (anonymous `Context`), and then only operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
+`auth_coordinator` is mandatory — as with [FastAPI](step-14-fastapi.md#authentication-is-mandatory), `None` fails immediately. For an open server it is declared explicitly — `NoAuthCoordinator(context=Context())` (anonymous `Context`), and then only operations with [`@check_roles(GuestRole)`](step-03-authorization-and-roles.md) work; a protected operation answers the agent `PERMISSION_DENIED`, like `admin_ping` in the example.
 
-Extracting the agent's credentials from the MCP call itself (an api-key or token from the request metadata) is on the roadmap, together with the [four ready methods](step-12-authentication.md#four-ready-methods) of authentication. The mechanism is the same: only the extractor is protocol-dependent, while `@check_roles` checks roles identically for HTTP and MCP — the agent will not get access to what it is not allowed. For the ready-made [Bearer/JWT coordinator](../extensions/jwt.md#mcp--it-doesnt-work-and-heres-why) specifically, this is no longer an abstract roadmap item but a confirmed limitation with the reasons spelled out — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113).
+Extracting the agent's credentials from the MCP call itself (an api-key or token from the request metadata) is on the roadmap, together with the [four ready methods](step-13-authentication.md#four-ready-methods) of authentication. The mechanism is the same: only the extractor is protocol-dependent, while `@check_roles` checks roles identically for HTTP and MCP — the agent will not get access to what it is not allowed. For the ready-made [Bearer/JWT coordinator](../extensions/jwt.md#mcp--it-doesnt-work-and-heres-why) specifically, this is no longer an abstract roadmap item but a confirmed limitation with the reasons spelled out — [issue #113](https://github.com/bystrovmaxim/aoa/issues/113).
 
-As with [FastAPI](step-13-fastapi.md#authentication-is-mandatory), a specific tool can override the adapter default with its own coordinator — `auth_coordinator=` in `.tool(...)`:
+As with [FastAPI](step-14-fastapi.md#authentication-is-mandatory), a specific tool can override the adapter default with its own coordinator — `auth_coordinator=` in `.tool(...)`:
 
 ```python
 server = (
@@ -150,7 +150,7 @@ server = (
 
 ## When the external schema diverges from the contract
 
-Schema reconciliation is arranged identically to [FastAPI](step-13-fastapi.md#when-the-external-schema-diverges-from-the-contract): `request_model`/`response_model` set the external shape, while `params_mapper`/`response_mapper` translate it into the operation's `Params`/`Result` and back — at the adapter boundary, without touching the `Action` itself.
+Schema reconciliation is arranged identically to [FastAPI](step-14-fastapi.md#when-the-external-schema-diverges-from-the-contract): `request_model`/`response_model` set the external shape, while `params_mapper`/`response_mapper` translate it into the operation's `Params`/`Result` and back — at the adapter boundary, without touching the `Action` itself.
 
 ```python
 .tool(
@@ -163,7 +163,7 @@ Schema reconciliation is arranged identically to [FastAPI](step-13-fastapi.md#wh
 )
 ```
 
-The result itself can also be returned by schema — as a complex object or a partial entity projection; the [next topic](step-15-schema-results.md) is devoted to this.
+The result itself can also be returned by schema — as a complex object or a partial entity projection; the [next topic](step-17-schema-results.md) is devoted to this.
 
 ## Testing
 
@@ -185,7 +185,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `McpAdapter` publishes an operation as a tool for an AI agent: the tool schema is derived from `Params`, the description from `@meta`, and the handler delegates to the machine. Unlike HTTP, MCP has no status codes — each call returns a JSON envelope with `isError` and a stable code, and internal errors do not leak to the agent. Authentication and schema reconciliation are arranged the same as in FastAPI; per-request extraction of the agent's credentials is on the roadmap. The same `Action` thus reaches both HTTP and MCP at once.
 
-Next — **[Result by JSON schema](step-15-schema-results.md)**: how to return a complex object or a partial entity projection with schema validation.
+Next — **[Result by JSON schema](step-17-schema-results.md)**: how to return a complex object or a partial entity projection with schema validation.
 
 ---
 
@@ -205,7 +205,7 @@ Next — **[Result by JSON schema](step-15-schema-results.md)**: how to return a
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-13-fastapi.md">← Step 13 — FastAPI</a></td>
+  <td align="left"><a href="step-14-fastapi.md">← Step 14 — FastAPI</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-15-schema-results.md">Step 15 — Result by schema →</a></td>
+  <td align="right"><a href="step-16-langgraph.md">Step 16 — LangGraph →</a></td>
 </tr></table>

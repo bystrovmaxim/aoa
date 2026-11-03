@@ -1,14 +1,14 @@
-<!-- translated-from: step-14-langgraph_draft.md @ 2026-06-26T22:34:45Z (filesystem mtime; draft is gitignored, no git history) · sha256:a5cf7160bfc2 -->
+<!-- translated-from: step-16-langgraph_draft.md @ 2026-06-26T22:34:45Z (filesystem mtime; draft is gitignored, no git history) · sha256:a5cf7160bfc2 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 14b — LangGraph
+# Step 16 — LangGraph
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-14-mcp.md">← Step 14 — MCP</a></td>
+  <td align="left"><a href="step-15-mcp.md">← Step 15 — MCP</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-15-schema-results.md">Step 15 — Schema Results →</a></td>
+  <td align="right"><a href="step-17-schema-results.md">Step 17 — Result by schema →</a></td>
 </tr></table>
 
 - [A minimal graph](#a-minimal-graph)
@@ -371,7 +371,7 @@ async def run_summary(self, params, state, box, connections):
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-14-mcp.md">← Step 14 — MCP</a></td>
+  <td align="left"><a href="step-15-mcp.md">← Step 15 — MCP</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-15-schema-results.md">Step 15 — Schema Results →</a></td>
+  <td align="right"><a href="step-17-schema-results.md">Step 17 — Result by schema →</a></td>
 </tr></table>

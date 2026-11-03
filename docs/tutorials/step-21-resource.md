@@ -1,6 +1,6 @@
-# Step 19 — Resource: access to the outside world
+# Step 21 — Resource: access to the outside world
 
-[← Schema converters](step-18-converters.md) · [Contents](../index.md) · [Entity →](step-20-entity.md)
+[← Schema converters](step-20-converters.md) · [Contents](../index.md) · [Entity →](step-22-entity.md)
 
 An action describes what the application is trying to do. A resource supplies the
 means to read or change an external system: a database, an API, a queue or a file.
@@ -11,7 +11,7 @@ current quantity and performs the storage operation.
 This distinction is about responsibility, not duration. A resource may exist for
 one request and own one connection. A different resource may wrap a shared client
 for the life of the service. Calling every resource “long-lived” would hide the
-per-call ownership introduced in [Step 17](step-17-connections.md).
+per-call ownership introduced in [Step 19](step-19-connections.md).
 
 ## The BaseResource contract
 

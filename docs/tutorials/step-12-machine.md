@@ -1,14 +1,14 @@
-<!-- translated-from: step-11-machine_draft.md @ 2026-06-17T17:02:35Z · sha256:9de20cdc660a -->
+<!-- translated-from: step-12-machine_draft.md @ 2026-06-17T17:02:35Z · sha256:9de20cdc660a -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 11 — ActionProductMachine
+# Step 12 — ActionProductMachine
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-10-logs.md">← Step 10 — Logs as business events</a></td>
+  <td align="left"><a href="step-11-object-events.md">← Step 11 — Object events</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-12-authentication.md">Step 12 — Authentication →</a></td>
+  <td align="right"><a href="step-13-authentication.md">Step 13 — Authentication →</a></td>
 </tr></table>
 
 - [A single entry point](#a-single-entry-point)
@@ -105,7 +105,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `ActionProductMachine` is the single executor and the heart of the service layer: one entrance, a fixed path (access, cache, pipeline, sagas, errors, events), without a single line of business logic. Its tools — the graph, roles, cache, plugins, loggers — are wired and replaced per environment, while authentication stays at the transport and arrives as a ready `Context`. The operation describes the intent; the machine executes it the same way, predictably.
 
-Next — **[Authentication](step-12-authentication.md)**: who builds `Context` at the transport boundary, and how, before the operation begins its work.
+Next — **[Authentication](step-13-authentication.md)**: who builds `Context` at the transport boundary, and how, before the operation begins its work.
 
 ---
 
@@ -124,7 +124,7 @@ Next — **[Authentication](step-12-authentication.md)**: who builds `Context` a
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-10-logs.md">← Step 10 — Logs as business events</a></td>
+  <td align="left"><a href="step-11-object-events.md">← Step 11 — Object events</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-12-authentication.md">Step 12 — Authentication →</a></td>
+  <td align="right"><a href="step-13-authentication.md">Step 13 — Authentication →</a></td>
 </tr></table>

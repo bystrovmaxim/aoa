@@ -1,14 +1,14 @@
-<!-- translated-from: step-25-context_draft.md @ 2026-06-23T04:43:16Z · sha256:4ed7af49b901 -->
+<!-- translated-from: step-28-context_draft.md @ 2026-06-23T04:43:16Z · sha256:4ed7af49b901 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 25 — Context in tests
+# Step 28 — Context in tests
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-24-substitution.md">← Step 24 — Substituting the environment</a></td>
+  <td align="left"><a href="step-27-substitution.md">← Step 27 — Substituting the environment</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-26-maxitor.md">Step 26 — Maxitor →</a></td>
+  <td align="right"><a href="step-29-maxitor.md">Step 29 — Maxitor →</a></td>
 </tr></table>
 
 - [Assembling the context](#assembling-the-context)
@@ -20,7 +20,7 @@
 
 ---
 
-Every call has an environment: who made it, where the request came from, in what runtime the operation works. It reaches the operation through [`Context`](step-12-authentication.md), and the operation reads from it not everything but only the fields it declared with [`@context_requires`](step-07-context.md). In a test you assemble such a `Context` with `TestBench` — no need for a global state or to warm an object up to the right shape: just set the values.
+Every call has an environment: who made it, where the request came from, in what runtime the operation works. It reaches the operation through [`Context`](step-13-authentication.md), and the operation reads from it not everything but only the fields it declared with [`@context_requires`](step-07-context.md). In a test you assemble such a `Context` with `TestBench` — no need for a global state or to warm an object up to the right shape: just set the values.
 
 - `with_user(user_id=, roles=(...))` → `UserInfo` (roles are checked by `@check_roles`);
 - `with_request(trace_id=, request_path=, …)` → `RequestInfo`;
@@ -118,7 +118,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 A `Context` in a test is assembled with the same `TestBench`: `with_user` sets the user and roles (which `@check_roles` then checks), `with_request` and `with_runtime` set the request and runtime fields. The operation sees exactly the declared `@context_requires` slice of this, and an undeclared field is refused — authorization and the context boundary cannot be bypassed in a test, because it is the same machine.
 
-With this the **Testing** part is assembled: the run depth ([TestBench](step-23-testbench.md)), substituting the environment ([mocks, connections, Rollup](step-24-substitution.md)), and assembling the context. `@env` providers are substituted via `.with_env` — no separate `TestAppContext` is needed. Next — the **[Maxitor](step-26-maxitor.md)** part: how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
+With this the **Testing** part is assembled: the run depth ([TestBench](step-26-testbench.md)), substituting the environment ([mocks, connections, Rollup](step-27-substitution.md)), and assembling the context. `@env` providers are substituted via `.with_env` — no separate `TestAppContext` is needed. Next — the **[Maxitor](step-29-maxitor.md)** part: how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
 
 ---
 
@@ -139,7 +139,7 @@ With this the **Testing** part is assembled: the run depth ([TestBench](step-23-
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-24-substitution.md">← Step 24 — Substituting the environment</a></td>
+  <td align="left"><a href="step-27-substitution.md">← Step 27 — Substituting the environment</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-26-maxitor.md">Step 26 — Maxitor →</a></td>
+  <td align="right"><a href="step-29-maxitor.md">Step 29 — Maxitor →</a></td>
 </tr></table>

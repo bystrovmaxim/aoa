@@ -1,14 +1,14 @@
-<!-- translated-from: step-12-authentication_draft.md @ 2026-07-11T15:01:20Z (filesystem mtime; draft is gitignored, no git history) · sha256:d6d5fe3fafbf -->
+<!-- translated-from: step-13-authentication_draft.md @ 2026-07-11T15:01:20Z (filesystem mtime; draft is gitignored, no git history) · sha256:d6d5fe3fafbf -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 12 — Authentication
+# Step 13 — Authentication
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-11-machine.md">← Step 11 — ActionProductMachine</a></td>
+  <td align="left"><a href="step-12-machine.md">← Step 12 — ActionProductMachine</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-13-fastapi.md">Step 13 — FastAPI →</a></td>
+  <td align="right"><a href="step-14-fastapi.md">Step 14 — FastAPI →</a></td>
 </tr></table>
 
 - [Authentication is not authorization](#authentication-is-not-authorization)
@@ -24,7 +24,7 @@
 
 ---
 
-In the [machine chapter](step-11-machine.md) we left one question open: `machine.run(context, ...)` receives `Context` already built — but who builds it? The answer: authentication, and it happens **before** the machine, at the transport boundary. This is a separate layer that turns a raw request (HTTP, MCP, CLI) into a verified `Context` — and only then does the operation begin its work.
+In the [machine chapter](step-12-machine.md) we left one question open: `machine.run(context, ...)` receives `Context` already built — but who builds it? The answer: authentication, and it happens **before** the machine, at the transport boundary. This is a separate layer that turns a raw request (HTTP, MCP, CLI) into a verified `Context` — and only then does the operation begin its work.
 
 So the operation stays clean: it knows nothing about tokens, headers, or the means of entry. All of that is sorted out before its launch.
 
@@ -124,7 +124,7 @@ The coordinator lives on the transport **adapter**, not on the machine. The adap
 app = FastApiAdapter(machine=machine, auth_coordinator=auth_coordinator, title="Orders API")
 ```
 
-How the adapters themselves are built is in the [FastAPI](step-13-fastapi.md) and [MCP](step-14-mcp.md) chapters. Your own authentication scheme is shaped as a [custom authentication coordinator](../index.md#how-to-write-your-own-extension).
+How the adapters themselves are built is in the [FastAPI](step-14-fastapi.md) and [MCP](step-15-mcp.md) chapters. Your own authentication scheme is shaped as a [custom authentication coordinator](../index.md#how-to-write-your-own-extension).
 
 ## Route-level override
 
@@ -157,7 +157,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 Authentication is a separate layer at the transport boundary: `AuthCoordinator` extracts credentials, verifies them, and assembles `Context`, which the machine receives ready. The concrete entry method lives in `Authenticator`; only the extractor is protocol-dependent, so one logic serves any transport. Out of the box there are `NoAuthCoordinator` (anonymous access) and `JwtAuthCoordinator` (Bearer/JWT); Basic, API key and OAuth2 are planned. Authentication establishes who is calling; what they are allowed is checked by [`@check_roles`](step-03-authorization-and-roles.md).
 
-Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP, now that `Context` can be built at the transport boundary.
+Next — **[FastAPI](step-14-fastapi.md)**: how to expose an operation over HTTP, now that `Context` can be built at the transport boundary.
 
 ---
 
@@ -177,7 +177,7 @@ Next — **[FastAPI](step-13-fastapi.md)**: how to expose an operation over HTTP
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-11-machine.md">← Step 11 — ActionProductMachine</a></td>
+  <td align="left"><a href="step-12-machine.md">← Step 12 — ActionProductMachine</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-13-fastapi.md">Step 13 — FastAPI →</a></td>
+  <td align="right"><a href="step-14-fastapi.md">Step 14 — FastAPI →</a></td>
 </tr></table>

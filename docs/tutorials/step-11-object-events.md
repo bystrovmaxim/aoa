@@ -7,7 +7,7 @@
 <table width="100%"><tr>
   <td align="left"><a href="step-10-logs.md">← Step 10 — Logs as business events</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-11-machine.md">Step 11 — ActionProductMachine →</a></td>
+  <td align="right"><a href="step-12-machine.md">Step 12 — ActionProductMachine →</a></td>
 </tr></table>
 
 - [A fact instead of kwargs](#a-fact-instead-of-kwargs)
@@ -313,5 +313,5 @@ Until the viewer learns about events, Maxitor draws them on the full graph with 
 <table width="100%"><tr>
   <td align="left"><a href="step-10-logs.md">← Step 10 — Logs as business events</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-11-machine.md">Step 11 — ActionProductMachine →</a></td>
+  <td align="right"><a href="step-12-machine.md">Step 12 — ActionProductMachine →</a></td>
 </tr></table>

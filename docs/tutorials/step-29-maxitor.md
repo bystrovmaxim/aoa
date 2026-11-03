@@ -1,12 +1,12 @@
-<!-- translated-from: step-26-maxitor_draft.md @ 2026-06-17T17:53:37Z · sha256:07a023a2b3e7 -->
+<!-- translated-from: step-29-maxitor_draft.md @ 2026-06-17T17:53:37Z · sha256:07a023a2b3e7 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 26 — Maxitor: a system you can see
+# Step 29 — Maxitor: a system you can see
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-25-context.md">← Step 25 — Context</a></td>
+  <td align="left"><a href="step-28-context.md">← Step 28 — Context</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
   <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
 </tr></table>
@@ -57,14 +57,14 @@ The effect is simple: a new developer understands the system's structure in five
 
 ## ERD, use case, and lifecycle
 
-- **ERD** (entity–relationship diagram) is built from [`BaseEntity`](step-20-entity.md) classes and [relations](step-21-relations.md): which entities are in a domain, their fields and types, how they connect (`AssociationOne/Many`, `Aggregate…`, `Composite…`), direction and cardinality. No YAML — you write code, you get the schema.
+- **ERD** (entity–relationship diagram) is built from [`BaseEntity`](step-22-entity.md) classes and [relations](step-24-relations.md): which entities are in a domain, their fields and types, how they connect (`AssociationOne/Many`, `Aggregate…`, `Composite…`), direction and cardinality. No YAML — you write code, you get the schema.
 - **Use case** is read straight from the [`@check_roles`](step-03-authorization-and-roles.md) annotations: who can call which operations. This is a ready access audit — an answer to "can a manager do this?" without opening the code.
-- **Lifecycle** for each entity with a [`Lifecycle`](step-22-lifecycle.md) field draws a finite-state machine: states, transitions, initial and final vertices. Especially useful when there are a dozen statuses.
+- **Lifecycle** for each entity with a [`Lifecycle`](step-25-lifecycle.md) field draws a finite-state machine: states, transitions, initial and final vertices. Especially useful when there are a dozen statuses.
 - **Events** shows which facts come out of a domain: actions, those of their methods that emit, and the events. A label says whether the domain has a vocabulary. With one, its events stand in two bands, those emitted here and those nothing here emits; without one, a single band. Rest on an event to see its fields, every method producing it and its domains; a comparison of two versions marks events and links added or removed.
 
 ## It's the same graph the machine builds
 
-Maxitor invents nothing: it displays the graph the [machine](step-11-machine.md) assembles from code via `NodeGraphCoordinator` — the very one that checks [relations](step-21-relations.md) and [automata](step-22-lifecycle.md) at startup and feeds the access matrix. The graph is available from code right now, without a browser:
+Maxitor invents nothing: it displays the graph the [machine](step-12-machine.md) assembles from code via `NodeGraphCoordinator` — the very one that checks [relations](step-24-relations.md) and [automata](step-25-lifecycle.md) at startup and feeds the access matrix. The graph is available from code right now, without a browser:
 
 **Run:**
 
@@ -336,7 +336,7 @@ survives the query and appears in the card.
 
 ### Read the entity diagram before interpreting its arrows
 
-The [record model](step-21-relations.md#generalization-and-specialization) has a head,
+The [record model](step-24-relations.md#generalization-and-specialization) has a head,
 `VinylRecordCoreEntity`, with common record information. Its first-pressing, re-pressing and
 test-pressing classes contain the alternative sets of specific data. The `pressing` field
 and `VinylRecordKindEnumEntity` dictionary form one **axis**: one declared choice among
@@ -453,12 +453,12 @@ forward `entity_specialization` associations and filters edges whose relationshi
 
 These are different presentations of the same model. Neither view loads business rows,
 selects a variant or validates stored data. The
-[container examples](step-21-relations.md#generalization-and-specialization) explain those
+[container examples](step-24-relations.md#generalization-and-specialization) explain those
 separate runtime operations.
 
 ## Maxitor as an AOA application
 
-A nice detail: Maxitor itself is written in AOA. Its backend is operations exposed through [`FastApiAdapter`](step-13-fastapi.md), and it keeps the graph as a snapshot in DuckDB:
+A nice detail: Maxitor itself is written in AOA. Its backend is operations exposed through [`FastApiAdapter`](step-14-fastapi.md), and it keeps the graph as a snapshot in DuckDB:
 
 ```text
 AOA code (domains, Actions, entities)
@@ -600,14 +600,14 @@ With this the tutorial walks the whole path: an operation and its pipeline → t
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-25-context.md">← Step 25 — Context</a></td>
+  <td align="left"><a href="step-28-context.md">← Step 28 — Context</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
   <td align="right"><a href="../index.md#ready-extensions">Ready extensions →</a></td>
 </tr></table>
 
 ## Entity kinds in the graph and store
 
-Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base, and `properties.entity_kind_label`, the name that base declares as `KIND_LABEL` ([Step 20](step-20-entity.md#name-a-kind-for-readers-of-the-graph)). AOA's graphs state `core`, `assoc`, `detail`, `spec` and `enum`; state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads both values into its `entity` table and preserves them in the reconstructed node payload.
+Each Entity node carries `properties.entity_kind`, identifying the role declared by its kind base, and `properties.entity_kind_label`, the name that base declares as `KIND_LABEL` ([Step 22](step-22-entity.md#name-a-kind-for-readers-of-the-graph)). AOA's graphs state `core`, `assoc`, `detail`, `spec` and `enum`; state classes are excluded from ordinary Entity nodes and are represented through their lifecycle instead. Maxitor loads both values into its `entity` table and preserves them in the reconstructed node payload.
 
 The [graph-to-store example](../../examples/step_20_entity/11_graph_kind.py) ([notebook](../../examples/step_20_entity/11_graph_kind.ipynb)) prints `graph: core` and `Maxitor store: core` for the same order. A graph produced before the kind was required must be regenerated. Class renames also change labels and identifiers containing qualified Python names.
 

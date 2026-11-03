@@ -1,14 +1,14 @@
-<!-- translated-from: step-23-testbench_draft.md @ 2026-06-17T17:53:37Z · sha256:6be65b97f4a6 -->
+<!-- translated-from: step-26-testbench_draft.md @ 2026-06-17T17:53:37Z · sha256:6be65b97f4a6 -->
 <p align="center">
   <img src="../assets/aoa-logo.png" alt="AOA" width="200">
 </p>
 
-# Step 23 — TestBench: the same Action, a different reality
+# Step 26 — TestBench: the same Action, a different reality
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-22-lifecycle.md">← Step 22 — Lifecycle</a></td>
+  <td align="left"><a href="step-25-lifecycle.md">← Step 25 — Lifecycle</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-24-substitution.md">Step 24 — Substituting the environment →</a></td>
+  <td align="right"><a href="step-27-substitution.md">Step 27 — Substituting the environment →</a></td>
 </tr></table>
 
 - [Why the same Action](#why-the-same-action)
@@ -137,7 +137,7 @@ The full list is in [Intents and invariants](../reference/intents-and-invariants
 
 `TestBench` checks the same operation through the same machine, changing only the environment — this works because the operation carries no state between calls. You can run it at the needed depth: the whole operation (`run`), a single regular aspect (`run_aspect`), result assembly (`run_summary`), a compensator as a unit (`run_compensator`), and the `@on_error` branch with a full run that provokes the error. Tests thus scale by risk while staying production-like.
 
-Next — **[Substituting the environment](step-24-substitution.md)**: how `with_mocks` substitutes dependencies and resources, how `@connection` is supplied, and how Rollup works.
+Next — **[Substituting the environment](step-27-substitution.md)**: how `with_mocks` substitutes dependencies and resources, how `@connection` is supplied, and how Rollup works.
 
 ---
 
@@ -155,7 +155,7 @@ Next — **[Substituting the environment](step-24-substitution.md)**: how `with_
 ---
 
 <table width="100%"><tr>
-  <td align="left"><a href="step-22-lifecycle.md">← Step 22 — Lifecycle</a></td>
+  <td align="left"><a href="step-25-lifecycle.md">← Step 25 — Lifecycle</a></td>
   <td align="center"><a href="../index.md">Contents</a></td>
-  <td align="right"><a href="step-24-substitution.md">Step 24 — Substituting the environment →</a></td>
+  <td align="right"><a href="step-27-substitution.md">Step 27 — Substituting the environment →</a></td>
 </tr></table>

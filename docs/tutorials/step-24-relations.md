@@ -1,4 +1,4 @@
-# Relations between entities
+# Step 24 — Relations between entities
 
 A relationship field gives a link its cardinality, ownership meaning, direction and description. Core, Assoc, Detail and Spec hosts use the complete form. Dictionary targets use any of the six ordinary containers and either direction marker. State keeps its lifecycle contract.
 

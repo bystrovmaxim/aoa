@@ -1,6 +1,6 @@
-# Step 17 — Who opens a resource, and who closes it?
+# Step 19 — Who opens a resource, and who closes it?
 
-[← Complex input](step-16-complex-input.md) · [Contents](../index.md) · [Schema converters →](step-18-converters.md)
+[← Complex input](step-18-complex-input.md) · [Contents](../index.md) · [Schema converters →](step-20-converters.md)
 
 An action can declare that it needs a resource with `@connection(..., key="db")`.
 Inside the action, `connections["db"]` is the supplied resource. The declaration
