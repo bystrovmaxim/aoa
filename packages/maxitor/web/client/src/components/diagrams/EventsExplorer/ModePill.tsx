@@ -2,6 +2,7 @@
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { Mode } from "@/lib/eventsExplorer";
+import { useReserveTopCentre } from "@/lib/topCentre";
 import { KIND_ICON } from "./explorerLook";
 
 const MODES: { value: Mode; label: string; kind: "domain" | "event" | "action" }[] = [
@@ -10,10 +11,15 @@ const MODES: { value: Mode; label: string; kind: "domain" | "event" | "action" }
   { value: "actions", label: "Actions", kind: "action" },
 ];
 
+/** Where the pill stands and how tall it is: a banner keeps below it the same gap the pill keeps from the top. */
+const PILL_TOP = 14;
+const PILL_HEIGHT = 32;
+
 /** The light pill at the top of the canvas: what the screen starts from, each mode with its count (FR-002). */
 export function ModePill({ mode, counts, onMode }: { mode: Mode; counts: Record<Mode, number>; onMode: (mode: Mode) => void }) {
+  useReserveTopCentre(PILL_TOP + PILL_HEIGHT + PILL_TOP - 12);
   return (
-    <Box role="radiogroup" aria-label="Start from" sx={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", zIndex: 45, display: "flex", p: "2px", gap: "1px", bgcolor: "rgba(241,245,249,0.88)", backdropFilter: "blur(8px)", borderRadius: 999, border: "1px solid rgba(15,23,42,0.07)" }}>
+    <Box role="radiogroup" aria-label="Start from" sx={{ position: "absolute", top: PILL_TOP, left: "50%", transform: "translateX(-50%)", zIndex: 45, display: "flex", p: "2px", gap: "1px", bgcolor: "rgba(241,245,249,0.88)", backdropFilter: "blur(8px)", borderRadius: 999, border: "1px solid rgba(15,23,42,0.07)" }}>
       {MODES.map(({ value, label, kind }) => {
         const on = value === mode;
         return (

@@ -6,6 +6,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { useTopCentreReserved } from "@/lib/topCentre";
 import type { RoomBanner as RoomBannerState } from "@/rooms/useRoomSession";
 
 export type RoomBannerProps = {
@@ -26,6 +27,8 @@ const LOOK = {
  * 19) — or what is wrong with its picture: Maxitor reloading, pointers off (screens 15, 17).
  */
 export function RoomBanner({ banner, onOpenRoom, onDismiss }: RoomBannerProps) {
+  // Below what a page keeps at the top centre, by the same 12 px it would keep from the top.
+  const below = useTopCentreReserved();
   if (!banner) return null;
   const Icon = banner.kind === "info" ? InfoOutlinedIcon : banner.kind === "warn" ? WarningAmberIcon : BlockIcon;
   return (
@@ -33,7 +36,7 @@ export function RoomBanner({ banner, onOpenRoom, onDismiss }: RoomBannerProps) {
       role="alert"
       sx={{
         position: "absolute",
-        top: 12,
+        top: 12 + below,
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 59,

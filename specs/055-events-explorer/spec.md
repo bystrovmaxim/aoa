@@ -136,7 +136,7 @@ A reader comparing two versions sees what changed among the events, even inside 
 **Modes**
 
 - **FR-001**: The explorer MUST replace the page "Events all domains view"; the Events row of a domain in the sidebar MUST open the explorer in Domains mode with that domain's events already open.
-- **FR-002**: A pill in the middle of the top of the canvas MUST switch the mode between Domains, Events and Actions, each with its count; Domains MUST be the default. Changing the mode MUST close every port and fit the new first layer.
+- **FR-002**: A pill in the middle of the top of the canvas MUST switch the mode between Domains, Events and Actions, each with its count; Domains MUST be the default. Changing the mode MUST close every port and fit the new first layer. A notice of the workspace (a merged pull request, a room's message) MUST stand below the pill, as far from it as the pill is from the top, never over it.
 - **FR-003**: The first layer MUST be every domain in Domains mode (domains with events first, then the others, each group by name), every event in Events mode, and every action that emits in Actions mode (actions without events are reached only through a domain's actions port).
 
 **Nodes**

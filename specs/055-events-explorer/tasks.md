@@ -53,6 +53,8 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 - [x] T036 [US2] Bring what a port opened into view by moving the picture only as far as it takes, and zoom out only when it does not fit, in `client/src/components/diagrams/EventsExplorer/EventsExplorer.tsx` (FR-022): centring it moved the clicked node 338 px on the stand
 
+- [x] T037 [US1] Keep a workspace notice below the mode pill, as far from it as the pill is from the top (FR-002): the pill reserves the top centre in `client/src/lib/topCentre.ts`, `client/src/rooms/RoomBar/RoomBanner.tsx` stands below it, with `client/src/lib/topCentre.test.tsx`
+
 ## Phase 5: Closing check run (one commit if it changes anything)
 
 - [ ] T033 The closing check run is CI's, on the pull request; the browsers are `bash scripts/check_before_pr.sh` on the pushed commit. Before that, here: every client test related to the changed files (30 files, 368 tests) and the server tests of rooms, routes and the explorer (150), all passing
