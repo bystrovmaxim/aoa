@@ -21,10 +21,11 @@ class ReturnRequestStateEntity(BaseStateEntity):
     APPROVED = value(code="approved", display_name="Approved", sort_order=2)
     REJECTED = value(code="rejected", display_name="Rejected", sort_order=3)
     REFUNDED = value(code="refunded", display_name="Refunded", sort_order=4)
+    EXCHANGED = value(code="exchanged", display_name="Exchanged", sort_order=5)
 
 
 class ReturnRequestLifecycle(Lifecycle[ReturnRequestStateEntity]):
-    """A return is requested, then approved and refunded, or rejected."""
+    """A return is requested, then approved and refunded or exchanged, or rejected."""
 
     _template = (
         Lifecycle()
@@ -32,10 +33,12 @@ class ReturnRequestLifecycle(Lifecycle[ReturnRequestStateEntity]):
         .to(ReturnRequestStateEntity.APPROVED, ReturnRequestStateEntity.REJECTED)
         .initial()
         .state(ReturnRequestStateEntity.APPROVED)
-        .to(ReturnRequestStateEntity.REFUNDED)
+        .to(ReturnRequestStateEntity.REFUNDED, ReturnRequestStateEntity.EXCHANGED)
         .intermediate()
         .state(ReturnRequestStateEntity.REJECTED)
         .final()
         .state(ReturnRequestStateEntity.REFUNDED)
+        .final()
+        .state(ReturnRequestStateEntity.EXCHANGED)
         .final()
     )
