@@ -44,7 +44,8 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | ✅ V8 (#381) | medium | roles are simplified | The legacy role (`DeprecatedRole`) is removed; its action `RoleMigration` moves to the editor role. The action `CartAbandonStub` is removed. The customer lifecycle loses the transition Provisioned → Closed | large point | 3.10.0 · #377 |
 | ✅ V9 (#382) | large | the gift card pilot is closed | The domain `gift_cards` is removed whole: both tables, their lifecycle, roles and actions. The audit log (`AuditLogEntry`) loses its lifecycle | large point | 3.11.0 · #378 |
 | ✅ V10 (#383) | small | the demo's first release | The gift wrap gets a new description and a new field `wrap_color`. After the merge, the demo's release 3.12.0 | large point, release flag | 3.12.0 · #379 🚩 |
-| V11 | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
+| ✅ V11 (#384) | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
+| M5 | small | A's chip reads apart from B's | **Maxitor only**: in Diff and Side by side the chip of A is white with a dark outline and dark text, B's stays dark, on the track and pinned to its edge | not shown | — |
 | V12 | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. After the merge, the demo's release | large point, release flag | 3.14.0 🚩 |
 | V13 | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. The pull request stays open | after Live, open | 3.15.0 |
 
