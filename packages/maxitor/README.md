@@ -137,7 +137,7 @@ file  = "my_service/graph.json"
 - uses: actions/checkout@v4
 - uses: actions/setup-node@v4          # or setup-java, or setup-uv + uv sync — whatever the builds need
 - run: npm ci
-- uses: bystrovmaxim/aoa/packages/maxitor/tools/graph_builder@maxitor-v3.0.0
+- uses: bystrovmaxim/aoa/packages/maxitor/tools/graph-builder@maxitor-v3.0.0
 ```
 
 The step runs `graph-builder check`: every build again, every graph checked against the protocol's schema, every file compared with what its build prints.
@@ -155,9 +155,9 @@ Open `http://127.0.0.1:8000` and point it at an AOA service's graph.
 
 ## Learn more
 
-- **[The `graph-builder` command](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/tools/graph_builder/README.md)** — commands, configuration, how graphs are kept in a repository, the CI check, use from Python
-- **[The web part](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/web/README.md)** — the diagrams, the API, running it, its architecture
-- **[`repo-graph-port`](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/tools/repo_graph_port/README.md)** — a graph's history from its repository: versions, keys, public links, webhooks
+- **[The `graph-builder` command](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/tools/graph-builder/README.md)** — commands, configuration, how graphs are kept in a repository, the CI check, use from Python
+- **[The web part](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/maxitor-web/README.md)** — the diagrams, the API, running it, its architecture
+- **[`repo-graph-port`](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/tools/repo-graph-port/README.md)** — a graph's history from its repository: versions, keys, public links, webhooks
 - **[aoa-graph-builder-setup](https://github.com/bystrovmaxim/aoa/blob/main/packages/maxitor/skills/aoa-graph-builder-setup/SKILL.md)** — the skill an agent follows
 - **[Open Gnomon Protocol](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/open-gnomon-protocol/README.md)** — the graph's language, which any language can follow
 - [Changelog](https://github.com/bystrovmaxim/aoa/blob/maxitor-v3.0.0/packages/maxitor/CHANGELOG.md) · [Source](https://github.com/bystrovmaxim/aoa/tree/maxitor-v3.0.0/packages/maxitor) · [Issues](https://github.com/bystrovmaxim/aoa/issues)

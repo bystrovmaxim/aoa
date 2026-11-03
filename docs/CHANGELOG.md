@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-04] — Maxitor's parts under the names people use
+
+Three folders of Maxitor were named for code: its web part was `web`, and its two tools were `repo_graph_port` and `graph_builder`, with underscores, while everything else — the packages of this repository, the stand's `repo-graph-port.aoa.run`, the `graph-builder` command — uses hyphens. Since a history is now named after its folder, those names showed. The folders are now `packages/maxitor/maxitor-web`, `packages/maxitor/tools/repo-graph-port` and `packages/maxitor/tools/graph-builder`. What you install, import and run is the same.
+
+A history survives such a move. The history port follows a graph file and its version file through it by itself, asking git where they were before, so the history of `maxitor-web` still shows every version it had as `web`. This holds for any repository, a public link included; only a file rewritten beyond recognition in the same commit still needs its old path in the port's config.
+
+If your workflow uses the GitHub Action, its path is now `bystrovmaxim/aoa/packages/maxitor/tools/graph-builder@<ref>`. A workflow pinned to a commit at the old path keeps working; change the path when you next update the pin.
+
 ## [2026-11-04] — A history called by what you opened
 
 Maxitor used to name every public history after its repository, so the three graphs of `bystrovmaxim/aoa` all read `bystrovmaxim/aoa`, and two of them open side by side could not be told apart. Now a history is called by the folder that holds its graph file: `aoa-demo`, `web`, `repo_graph_port`. A graph at the root of a repository is called by the repository, and a private history keeps its id.

@@ -77,7 +77,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/maxitor/web/client/package-lock.json
+          cache-dependency-path: packages/maxitor/maxitor-web/client/package-lock.json
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
@@ -97,7 +97,7 @@ jobs:
       # Maxitor's own action, the one other projects use, here running this checkout's graph-builder:
       # this is the only place it runs before someone else depends on it.
       - name: Graph files are current (graph-builder action)
-        uses: ./packages/maxitor/tools/graph_builder
+        uses: ./packages/maxitor/tools/graph-builder
         with:
           graph-builder: uv run --extra dev graph-builder
 
@@ -142,7 +142,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: packages/maxitor/web/client/package-lock.json
+          cache-dependency-path: packages/maxitor/maxitor-web/client/package-lock.json
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5

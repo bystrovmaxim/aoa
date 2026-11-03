@@ -82,7 +82,7 @@ from maxitor.repo_graph_port.server import create_app as create_port
 REPO_ROOT = next(
     path for path in (Path.cwd(), *Path(__file__).resolve().parents) if (path / "graph-builder.toml").is_file()
 )
-FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/web/graph.json").read_text(encoding="utf-8"))
+FRONT_GRAPH = json.loads((REPO_ROOT / "packages/maxitor/maxitor-web/graph.json").read_text(encoding="utf-8"))
 WORK = Path(tempfile.mkdtemp(prefix="compare-two-versions-"))
 ENTITY = next(node for node in FRONT_GRAPH["nodes"] if node["type"] == "Entity")
 

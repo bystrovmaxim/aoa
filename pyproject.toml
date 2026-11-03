@@ -118,9 +118,9 @@ asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
     "packages/aoa-action-machine/src",
-    "packages/maxitor/web",
-    "packages/maxitor/tools/repo_graph_port",
-    "packages/maxitor/tools/graph_builder",
+    "packages/maxitor/maxitor-web",
+    "packages/maxitor/tools/repo-graph-port",
+    "packages/maxitor/tools/graph-builder",
     "packages/maxitor/core/graph_compare",
     "packages/maxitor/core/graph_map",
     "packages/aoa-demo/src",
@@ -169,7 +169,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/maxitor/web:packages/maxitor/tools/repo_graph_port:packages/maxitor/tools/graph_builder:packages/maxitor/core/graph_compare:packages/maxitor/core/graph_map:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/maxitor/maxitor-web:packages/maxitor/tools/repo-graph-port:packages/maxitor/tools/graph-builder:packages/maxitor/core/graph_compare:packages/maxitor/core/graph_map:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -370,7 +370,7 @@ external = ["V107"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
 # ``maxitor.graph_builder`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
 # above: the caller learns "this is not a graph", not that something broke, so the verdict's word is the name.
-"packages/maxitor/tools/graph_builder/maxitor/graph_builder/**" = ["N818"]
+"packages/maxitor/tools/graph-builder/maxitor/graph_builder/**" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
@@ -417,9 +417,9 @@ paths = [
     "packages/aoa-fastapi-adapter/src/aoa/fastapi",
     "packages/aoa-mcp-adapter/src/aoa/mcp",
     "packages/aoa-langgraph/src/aoa/langgraph",
-    "packages/maxitor/web/maxitor",
-    "packages/maxitor/tools/repo_graph_port/maxitor",
-    "packages/maxitor/tools/graph_builder/maxitor",
+    "packages/maxitor/maxitor-web/maxitor",
+    "packages/maxitor/tools/repo-graph-port/maxitor",
+    "packages/maxitor/tools/graph-builder/maxitor",
     "packages/maxitor/core/graph_compare/maxitor",
     "packages/maxitor/core/graph_map/maxitor",
     "packages/aoa-demo/src/aoa/demo",
@@ -449,7 +449,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/web/maxitor packages/maxitor/tools/repo_graph_port/maxitor packages/maxitor/tools/graph_builder/maxitor packages/maxitor/core/graph_compare/maxitor packages/maxitor/core/graph_map/maxitor packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/maxitor-web/maxitor packages/maxitor/tools/repo-graph-port/maxitor packages/maxitor/tools/graph-builder/maxitor packages/maxitor/core/graph_compare/maxitor packages/maxitor/core/graph_map/maxitor packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "python scripts/check_radon.py cc"
 mi = "python scripts/check_radon.py mi"

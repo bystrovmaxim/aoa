@@ -135,7 +135,7 @@ def test_clean_install_maxitor_brings_no_aoa(tmp_path: Path) -> None:
     ).stdout.split()
     brought = [d for d in installed if d.startswith("aoa") or d in {"fastapi", "uvicorn", "duckdb", "httpx", "websockets"}]
     assert brought == [], f"the base install brought {brought}"
-    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph_builder" / "tests" / "fixtures" / "graph-1.2.json"
+    fixture = REPO_ROOT / "packages" / "maxitor" / "tools" / "graph-builder" / "tests" / "fixtures" / "graph-1.2.json"
     (tmp_path / "graph-builder.toml").write_text(
         f'graph_builder = "1.0"\n\n[[graph]]\nname = "sample"\nbuild = "cat {fixture}"\nfile = "graph.json"\n', encoding="utf-8"
     )

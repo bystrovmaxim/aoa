@@ -10,9 +10,9 @@ file = "packages/aoa-demo/graph.json"
 [[graph]]
 name = "maxitor"
 build = "uv run --extra dev python -m maxitor.web.build_graph"
-file = "packages/maxitor/web/graph.json"
+file = "packages/maxitor/maxitor-web/graph.json"
 
 [[graph]]
 name = "repo-graph-port"
 build = "uv run --extra dev python -m maxitor.repo_graph_port.build_graph"
-file = "packages/maxitor/tools/repo_graph_port/graph.json"
+file = "packages/maxitor/tools/repo-graph-port/graph.json"

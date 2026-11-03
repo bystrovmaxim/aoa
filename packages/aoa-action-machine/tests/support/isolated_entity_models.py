@@ -62,7 +62,7 @@ _PRELUDE = textwrap.dedent(
 
     import sys
     sys.path.insert(0, "packages/aoa-action-machine/src")
-    sys.path.insert(0, "packages/maxitor/web")
+    sys.path.insert(0, "packages/maxitor/maxitor-web")
     """
 )
 

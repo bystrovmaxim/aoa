@@ -1,6 +1,6 @@
 # Run the repo-graph-port on a server
 
-`repo-graph-port` reads services' graph histories from their repositories and serves them ([its README](../../packages/maxitor/tools/repo_graph_port/README.md)). This page sets it up on a server so that it reads your private repositories live and hears every push at once. You need: a server with Docker (or Python 3.12 and `git`), an HTTPS address for it, and the repositories, each with its graph file committed on its branch by [`graph-builder`](../../packages/maxitor/tools/graph_builder/README.md).
+`repo-graph-port` reads services' graph histories from their repositories and serves them ([its README](../../packages/maxitor/tools/repo-graph-port/README.md)). This page sets it up on a server so that it reads your private repositories live and hears every push at once. You need: a server with Docker (or Python 3.12 and `git`), an HTTPS address for it, and the repositories, each with its graph file committed on its branch by [`graph-builder`](../../packages/maxitor/tools/graph-builder/README.md).
 
 ## 1. Create the GitHub App
 
@@ -42,7 +42,7 @@ version_file = "packages/aoa-demo/pyproject.toml"
 version_key = "project.version"
 ```
 
-When a folder moves, list the old paths, newest first, or the history before the move is lost. The config lives on the server, so a pull request that moves a folder does not update it; the history then says so in `version_problem` and keeps working:
+When a folder moves, the port follows its graph file and its version file through the move by itself: git tells it the paths they had, and each older version is read at its own path, so the history keeps everything before the move. This holds for a public link too, which has no config. Only a move git cannot see — a file rewritten beyond recognition in the same commit — needs its old paths listed, newest first; the port joins them to the ones it finds:
 
 ```toml
 graph_file_before = ["old/graph.json"]
@@ -66,7 +66,7 @@ chmod 600 secrets.env
 With Docker, from a checkout of this repository:
 
 ```bash
-docker build -f packages/maxitor/tools/repo_graph_port/Dockerfile -t repo-graph-port .
+docker build -f packages/maxitor/tools/repo-graph-port/Dockerfile -t repo-graph-port .
 ```
 ```bash
 docker run -d --name repo-graph-port -p 127.0.0.1:8103:8102 --env-file secrets.env -e MAXITOR_HISTORIES=/config/histories.toml -v "$PWD/config:/config" -v repo-graph-port-cache:/var/cache/repo-graph-port repo-graph-port
