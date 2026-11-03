@@ -372,3 +372,7 @@ refusal now says `CHECK_ROLES` before the amount rule can answer.
 
 Continue to [Saga and compensations](step-04-saga-and-compensations.md) for failures
 after business work has already begun.
+
+---
+
+[← State](step-02-state-as-x-ray.md) · [Contents](../index.md) · [Saga and compensations →](step-04-saga-and-compensations.md)

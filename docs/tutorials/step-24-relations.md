@@ -1,5 +1,7 @@
 # Step 24 — Relations between entities
 
+[← Closed dictionaries](step-23-dictionaries.md) · [Contents](../index.md) · [Lifecycle →](step-25-lifecycle.md)
+
 A relationship field gives a link its cardinality, ownership meaning, direction and description. Core, Assoc, Detail and Spec hosts use the complete form. Dictionary targets use any of the six ordinary containers and either direction marker. State keeps its lifecycle contract.
 
 Previously bare dictionary fields, explicit embedded entity values and one-sided inverse pairs were accepted. Migrate each field and both sides of a reciprocal pair; see [complete declarations and exact refusals](../how-to/explicit-entity-fields.md). `NoRelation` no longer declares an embedded entity.
@@ -532,3 +534,7 @@ Previously a complete ownership/ownership pair could pass; change the reverse fi
 Each scenario contains explicit declarations, value assertions and the real error text. The [compatibility how-to](../how-to/relationship-role-compatibility.md) explains each outcome and migration.
 
 Two opposite-direction NoInverse fields are independent links, so no paired role comparison is inferred. An Inverse cannot name a NoInverse field as its reverse. The new dictionary scenario uses Association, Aggregate and Composite with One/Many and shows the different JSON input and export shapes; it does not promise that the catalogue reverse-field or output-schema gaps have been fixed. See the [current verification report](../reports/endpoint-role-verification.md).
+
+---
+
+[← Closed dictionaries](step-23-dictionaries.md) · [Contents](../index.md) · [Lifecycle →](step-25-lifecycle.md)
