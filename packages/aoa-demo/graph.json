@@ -40689,6 +40689,18 @@
       "type": "lifecycle_transition"
     },
     {
+      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:provisioned|lifecycle_transition|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed|provisioned",
+      "is_dag": false,
+      "properties": {
+        "from_state": "provisioned",
+        "to_state": "closed"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:provisioned",
+      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed",
+      "type": "lifecycle_transition"
+    },
+    {
       "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:active",
       "is_dag": false,
       "properties": {
@@ -40738,6 +40750,18 @@
       "is_dag": false,
       "properties": {
         "from_state": "active",
+        "to_state": "closed"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed|provisioned",
+      "is_dag": false,
+      "properties": {
+        "from_state": "provisioned",
         "to_state": "closed"
       },
       "relationship": "Composition",
@@ -83033,9 +83057,9 @@
       "id": "aoa.demo.model.store.entities.discount_application.DiscountApplicationCoreEntity:discount_amount",
       "label": "discount_amount",
       "properties": {
-        "description": "Discount amount",
-        "field_annotation": "float",
-        "field_type": "float",
+        "description": "Money taken off the order, exact to the cent",
+        "field_annotation": "Decimal",
+        "field_type": "Decimal",
         "primary_key_hint": false
       },
       "type": "EntityField"
