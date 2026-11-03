@@ -8,6 +8,7 @@ from aoa.demo.model.store.actions.ping import OpsPingAction
 from aoa.demo.model.store.actions.role_migration import RoleMigrationAction
 from aoa.demo.model.store.actions.store_read import StoreReadAction
 from aoa.demo.model.store.actions.store_read_use_case_demo import StoreReadUseCaseDemoAction
+from aoa.demo.model.store.actions.subscription_start import SubscriptionStartAction
 
 CartAbandonStubParams = CartAbandonStubAction.Params
 CartAbandonStubResult = CartAbandonStubAction.Result
@@ -27,6 +28,8 @@ RoleMigrationParams = RoleMigrationAction.Params
 RoleMigrationResult = RoleMigrationAction.Result
 StoreReadUseCaseDemoParams = StoreReadUseCaseDemoAction.Params
 StoreReadUseCaseDemoResult = StoreReadUseCaseDemoAction.Result
+SubscriptionStartParams = SubscriptionStartAction.Params
+SubscriptionStartResult = SubscriptionStartAction.Result
 
 __all__ = [
     "CartAbandonStubAction",
@@ -56,4 +59,7 @@ __all__ = [
     "StoreReadUseCaseDemoAction",
     "StoreReadUseCaseDemoParams",
     "StoreReadUseCaseDemoResult",
+    "SubscriptionStartAction",
+    "SubscriptionStartParams",
+    "SubscriptionStartResult",
 ]
