@@ -59,7 +59,7 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 ## Phase 5: Closing check run (one commit if it changes anything)
 
-- [ ] T033 The closing check run is CI's, on the pull request; the browsers are `bash scripts/check_before_pr.sh` on the pushed commit. Before that, here: every client test related to the changed files (30 files, 368 tests) and the server tests of rooms, routes and the explorer (150), all passing
+- [x] T033 Take every check this machine can run to zero before the pull request (constitution VI.1): `bash scripts/run_checks_with_log.sh` passed, its one remark (Pylint on the demo's untracked builder) fixed there; then CI's closing check run on the pull request, and the browsers through `bash scripts/check_before_pr.sh` on the pushed commit
 
 ## Phase 6: Documentation (one commit)
 
