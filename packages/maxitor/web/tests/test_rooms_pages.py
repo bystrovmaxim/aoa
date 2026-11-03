@@ -27,6 +27,12 @@ from maxitor.web.model.rooms.pages import page_key, setting_error
         (page_key("use-case-all"), "domains", ["players"]),
         (page_key("use-case-all"), "paint", "domains"),
         (page_key("lifecycle-fsm", node="n", host="h"), "rankdir", "TB"),
+        (page_key("events-all"), "mode", "actions"),
+        (page_key("events-all"), "layout", "dot_tb"),
+        (page_key("events", domain="players"), "opened", ["domain:players>events"]),
+        (page_key("events-all"), "off", ["methods:Compensator", "coverage:without"]),
+        (page_key("events-all"), "paint", "methods"),
+        (page_key("events-all"), "paint_diff", "changes"),
     ],
 )
 def test_every_setting_a_viewer_sends_is_accepted(page: str, name: str, value: object) -> None:
@@ -41,6 +47,9 @@ def test_every_setting_a_viewer_sends_is_accepted(page: str, name: str, value: o
         (page_key("use-case", domain="players"), "rankdir", "TB"),
         (page_key("domain-erd"), "one_hop", "yes"),
         (page_key("full-graph"), "layout", "gv-neato"),
+        (page_key("events-all"), "layout", "neato"),
+        (page_key("events-all"), "mode", "methods"),
+        (page_key("events-all"), "boundary", True),
     ],
 )
 def test_names_and_values_the_viewers_do_not_send_are_refused(page: str, name: str, value: object) -> None:

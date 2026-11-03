@@ -23,7 +23,7 @@ The Events diagrams give way to an explorer: one AOA action returns the whole ev
 - I. Nothing committed, pushed or opened without instruction: the maintainer asked for every phase up to the pull request; each phase is a local commit, nothing is pushed.
 - II. English in code and history, no tool attribution: held.
 - III–V. Module headers, AI-CORE blocks on the new action and its builder, one-line docstrings on new code: planned.
-- VI. The tail is the closing check run, the documentation, the changelog: phases 6, 7, 8. The pull request opens whole.
+- VI. The tail is the closing check run, the documentation, the changelog: phases 5, 6, 7. The pull request opens whole.
 - House rules: versions of the levels changed raised (`packages/maxitor/web/version.toml`, `maxitor` in `pyproject.toml`); `packages/maxitor/web/graph.json` rebuilt with `graph-builder`; adversarial verification per phase, only the phase's tests run after it.
 
 Gates pass, before and after design.
@@ -55,10 +55,9 @@ packages/maxitor/CHANGELOG.md
 Each phase is one commit.
 
 1. **The data**: `GetEventsExplorerAction`, schema, route, test graph and tests; the old actions and routes removed; `graph.json` rebuilt.
-2. **The explorer**: viewer replacing the Events diagrams on both page keys, mode pill, first layers, nodes with counts, cards, layouts, ERD's pan and zoom with `placeAt`.
-3. **Ports and lines**: layers, ports by layer, empty ports, joining ports, lines between neighbouring layers, kinds of line, method names on hover, lighting on hover, holding the clicked node still.
-4. **Filters and paint**: the panel taking a list of sections, the sections of each mode, the gear shift painting nodes and lines.
-5. **Comparison and state**: Diff and Side by side marks, change counts on closed ports, the page settings in the address and the room whitelist, layout determinism pages.
-6. **Closing check run** taken to zero.
-7. **Documentation**: the Maxitor chapter.
-8. **Changelog** and raised versions.
+2. **The explorer with its ports and lines**: viewer replacing the Events diagrams on both page keys (the old view, actions and routes removed), mode pill, first layers, nodes with counts, cards, layouts, ERD's pan and zoom with `placeAt`, layers, ports by layer, empty and joining ports, lines between neighbouring layers, method names and lighting on hover, holding the clicked node still, the settings in the room whitelist. A first layer that opens nothing is no commit of its own, so ports come in the same phase.
+3. **Filters and paint**: the panel taking a list of sections, the sections of each mode, the gear shift painting nodes and lines.
+4. **Comparison and state**: Diff and Side by side marks, change counts on closed ports, the page settings in the address, layout determinism pages.
+5. **Closing check run** taken to zero.
+6. **Documentation**: the Maxitor chapter.
+7. **Changelog** and raised versions.

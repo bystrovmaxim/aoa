@@ -113,6 +113,20 @@ _USE_CASE_SETTINGS: dict[str, Callable[[Any], bool]] = {
     "paint_diff": _one_of("domains", "changes"),
 }
 
+#: The events explorer's settings (spec 055): what it starts from, the open ports, the rows off and what paints.
+_EXPLORER_PAINTS = ("domains", "coverage", "events", "methods", "actions", "changes")
+_EXPLORER_SETTINGS: dict[str, Callable[[Any], bool]] = {
+    "mode": _one_of("domains", "events", "actions"),
+    "layout": _one_of("dot_lr", "dot_tb"),
+    "selected": _element,
+    "domains": _strings,
+    "opened": _strings,
+    "off": _strings,
+    "disabled_changes": _strings,
+    "paint": _one_of(*_EXPLORER_PAINTS),
+    "paint_diff": _one_of(*_EXPLORER_PAINTS),
+}
+
 #: The settings of each kind of page and the check of each one's value (data-model.md "PageSettings").
 SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     "domain-erd": {
@@ -132,8 +146,8 @@ SETTINGS: dict[str, dict[str, Callable[[Any], bool]]] = {
     },
     "use-case": _USE_CASE_SETTINGS,
     "use-case-all": _USE_CASE_SETTINGS,
-    "events": _USE_CASE_SETTINGS,
-    "events-all": _USE_CASE_SETTINGS,
+    "events": _EXPLORER_SETTINGS,
+    "events-all": _EXPLORER_SETTINGS,
     "lifecycle-fsm": {
         "rankdir": _one_of("LR", "TB"),
         "rankdir_a": _one_of("LR", "TB"),
