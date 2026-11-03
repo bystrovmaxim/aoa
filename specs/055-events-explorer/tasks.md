@@ -65,7 +65,7 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 ## Phase 7: Changelog (one commit)
 
-- [x] T035 Raise `packages/maxitor/web/version.toml` (minor, 1.7.0) and `maxitor` in `packages/maxitor/pyproject.toml` (minor, 3.10.0), refresh `uv.lock`; write one article in `packages/maxitor/CHANGELOG.md` under Unreleased: the explorer replaces the Events diagrams
+- [x] T035 Raise `packages/maxitor/web/version.toml` (minor, 1.8.0) and `maxitor` in `packages/maxitor/pyproject.toml` (minor, 3.11.0), above what `main` reached meanwhile, refresh `uv.lock`; write one article in `packages/maxitor/CHANGELOG.md` under Unreleased: the explorer replaces the Events diagrams
 
 ## Dependencies
 
