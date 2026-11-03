@@ -16,8 +16,8 @@ Maxitor shows the history of a service's graph: any past version, or two version
 
 1. One version is one pull request into `main`, merged, with a title and a body that say in plain words what changed.
 2. It runs `graph-builder write` and commits the rebuilt `packages/aoa-demo/graph.json` with its code.
-3. It raises the demo's version, because `version-gate` requires it for any change of `packages/aoa-demo` outside README and tests.
-4. A release is a real one: the tag `aoa-demo-v<version>` on the version's merge commit, a GitHub Release with a title, and the package published to PyPI by `publish.yml`, which that tag starts.
+3. It raises the demo's version, because `version-gate` requires it for any change of `packages/aoa-demo` outside README and tests: the middle digit when the graph changes (`V`), the right digit when only the code does (`C`). So every point on the track has its own version, and the chip `<version> · #<pull request>` changes both parts at once. The pull request numbers in the plan are expected, not promised: any issue or pull request opened meanwhile takes a number.
+4. A release is a real one: the tag `aoa-demo-v<version>` on the version's merge commit, a GitHub Release with a title, and the package published to PyPI by `publish.yml`, which that tag starts. Before the demo's first release, `aoa-action-machine`, which the demo depends on and which changed since its last release, is released the same way, and the demo's lower bound on it is raised to that version. Maxitor is not released.
 5. Kinds of change are mixed: most versions touch several diagrams at once. Sizes are mixed too.
 6. Maxitor flags a point only for a real release, a tag published as a GitHub Release. A tag is never a release by its name alone.
 
@@ -25,24 +25,24 @@ Maxitor shows the history of a service's graph: any past version, or two version
 
 `V` changes the graph (a large point on the track). `C` changes the demo's code and version but not its graph (a small point). `N` changes nothing the history counts (not on the track).
 
-| # | Size | Story | What changes | Track |
-|---|---|---|---|---|
-| V1 | small | a gift wrap gets a note for the recipient | ERD: field `recipient_note` added on the gift wrap. One change only | large point |
-| V2 | medium | subscriptions appear | ERD: table `Subscription` added, relations to customer and first order · Lifecycle: subscription lifecycle added (trial → active → cancelled) · Use case: action `SubscriptionStart` added | large point |
-| V3 | small | prices and statuses are made precise | ERD: field type changed, description rewritten · Lifecycle: transition added | large point |
-| C1 | small | a started subscription gets a readable id | the body of an aspect is rewritten; the graph stays | small point |
-| M1 | small | Maxitor flags only real releases | Maxitor only: a tag named `release…` with no GitHub Release is no longer a flag; the demo's graph stays | not shown |
-| N1 | small | the demo's README and tests are tidied | README and tests only, no version raised | not shown |
-| V4 | small | checkout gets a new check | Use case: an action changes only inside (params, result, aspects); nothing on any diagram moves | large point |
-| V5 | large | gift cards start, as their own domain | Full graph: domain added · Use case: roles and actions added, a role link changed · ERD: field removed in another domain · changes across several domains | large point, release flag |
-| V6 | medium | subscriptions are linked differently | ERD: a relation points at another table, another relation removed · Lifecycle: state added · Use case: an action changes inside | large point |
-| V7 | small | the warehouse takes a table from the catalogue | ERD: table moved to another domain · Lifecycle: state removed | large point |
-| C2 | small | the loyalty stub counts points per currency unit | the body of an aspect is rewritten; the graph stays | small point |
-| V8 | medium | roles are simplified | Use case: role removed, action removed · Lifecycle: transition removed | large point |
-| V9 | large | the gift card pilot is closed | Full graph: domain removed with its tables, actions and roles · Lifecycle: a lifecycle in another domain removed | large point |
-| V10 | small | the demo's first release | ERD: a description and one field | large point, release flag |
-| V11 | medium | work after the release | ERD: table and relation added · Use case: action and role added · Lifecycle: state added | large point |
-| V12 | medium | returns | a mixed change; the pull request stays open | after Live, open |
+| # | Size | Story | What changes | Track | Chip |
+|---|---|---|---|---|---|
+| V1 | small | a gift wrap gets a note for the recipient | ERD: field `recipient_note` added on the gift wrap. One change only | large point | 3.3.0 · #366 |
+| V2 | medium | subscriptions appear | ERD: table `Subscription` added, relations to customer and first order · Lifecycle: subscription lifecycle added (trial → active → cancelled) · Use case: action `SubscriptionStart` added | large point | 3.4.0 · #367 |
+| V3 | small | prices and statuses are made precise | ERD: field type changed, description rewritten · Lifecycle: transition added | large point | 3.5.0 · #368 |
+| C1 | small | a started subscription gets a readable id | the body of an aspect is rewritten; the graph stays | small point | 3.5.1 · #369 |
+| M1 | small | Maxitor flags only real releases | Maxitor only: a tag named `release…` with no GitHub Release is no longer a flag; the demo's graph stays | not shown | — |
+| N1 | small | the demo's README and tests are tidied | README and tests only, no version raised | not shown | — |
+| V4 | small | checkout gets a new check | Use case: an action changes only inside (params, result, aspects); nothing on any diagram moves | large point | 3.6.0 · #372 |
+| V5 | large | gift cards start, as their own domain | Full graph: domain added · Use case: roles and actions added, a role link changed · ERD: field removed in another domain · changes across several domains | large point, release flag | 3.7.0 · #373 🚩 |
+| V6 | medium | subscriptions are linked differently | ERD: a relation points at another table, another relation removed · Lifecycle: state added · Use case: an action changes inside | large point | 3.8.0 · #374 |
+| V7 | small | the warehouse takes a table from the catalogue | ERD: table moved to another domain · Lifecycle: state removed | large point | 3.9.0 · #375 |
+| C2 | small | the loyalty stub counts points per currency unit | the body of an aspect is rewritten; the graph stays | small point | 3.9.1 · #376 |
+| V8 | medium | roles are simplified | Use case: role removed, action removed · Lifecycle: transition removed | large point | 3.10.0 · #377 |
+| V9 | large | the gift card pilot is closed | Full graph: domain removed with its tables, actions and roles · Lifecycle: a lifecycle in another domain removed | large point | 3.11.0 · #378 |
+| V10 | small | the demo's first release | ERD: a description and one field | large point, release flag | 3.12.0 · #379 🚩 |
+| V11 | medium | work after the release | ERD: table and relation added · Use case: action and role added · Lifecycle: state added | large point | 3.13.0 · #380 |
+| V12 | medium | returns | a mixed change; the pull request stays open | after Live, open | 3.14.0 · #381 |
 
 ## Where each kind of change is found
 
