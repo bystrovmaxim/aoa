@@ -65,14 +65,15 @@ The guide moves from a practical entry point to the complete project architectur
 
 > **The big problem:** how to release the same operation into different transports (HTTP, MCP) without smearing the logic across the delivery layer.
 
-- **[ActionProductMachine](tutorials/step-11-machine.md)** — the heart of the service layer: a single entry, access, cache, pipeline, sagas, events
-- **[Authentication](tutorials/step-12-authentication.md)** — auth_coordinator builds Context from a request of any transport, before the adapter
-- **[FastAPI](tutorials/step-13-fastapi.md)** — REST and OpenAPI from one Action without mixing transport into the business logic
-- **[MCP](tutorials/step-14-mcp.md)** — the same Action as a tool for an AI agent without duplicating logic
-- **[Result by JSON schema](tutorials/step-15-schema-results.md)** — `JsonSchemaValue` and entity projections: complex objects and partial slices with schema validation
-- **[Accepting complex data from a request](tutorials/step-16-complex-input.md)** — collections, nested objects, and JSON by schema in the input `Params`
-- **[Connections at the request boundary](tutorials/step-17-connections.md)** — ready resources and per-call factory/finalizer pairs; application pools, acquisition and release
-- **[Schema converters](tutorials/step-18-converters.md)** — `params_mapper`/`response_mapper` and API versions: the external schema changes, the `Action` stays one
+- **[ActionProductMachine](tutorials/step-12-machine.md)** — the heart of the service layer: a single entry, access, cache, pipeline, sagas, events
+- **[Authentication](tutorials/step-13-authentication.md)** — auth_coordinator builds Context from a request of any transport, before the adapter
+- **[FastAPI](tutorials/step-14-fastapi.md)** — REST and OpenAPI from one Action without mixing transport into the business logic
+- **[MCP](tutorials/step-15-mcp.md)** — the same Action as a tool for an AI agent without duplicating logic
+- **[LangGraph](tutorials/step-16-langgraph.md)** — Actions as the nodes of an agent graph: the topology and the data contract are checked before the first run
+- **[Result by JSON schema](tutorials/step-17-schema-results.md)** — `JsonSchemaValue` and entity projections: complex objects and partial slices with schema validation
+- **[Accepting complex data from a request](tutorials/step-18-complex-input.md)** — collections, nested objects, and JSON by schema in the input `Params`
+- **[Connections at the request boundary](tutorials/step-19-connections.md)** — ready resources and per-call factory/finalizer pairs; application pools, acquisition and release
+- **[Schema converters](tutorials/step-20-converters.md)** — `params_mapper`/`response_mapper` and API versions: the external schema changes, the `Action` stays one
 
 ---
 
@@ -80,11 +81,11 @@ The guide moves from a practical entry point to the complete project architectur
 
 > **The big problem:** how to describe the domain — entities, relations, lifecycle — without binding to tables and an ORM.
 
-- **[Resource](tutorials/step-19-resource.md)** — the boundary with the external world: PostgreSQL, APIs, queues, test fixtures; pure transport separated from logic
-- **[Entity](tutorials/step-20-entity.md)** — a domain object without ties to storage: one class, any data source
-  - [Closed dictionaries: declarations, references and validation](tutorials/step-20-dictionaries.md)
-- **[Relations](tutorials/step-21-relations.md)** — ownership, explicit reverse links, partial loading, and a step-by-step introduction to common record information with variant-specific details
-- **[Lifecycle](tutorials/step-22-lifecycle.md)** — a state graph with transition validation: an inconsistent graph does not let the system start
+- **[Resource](tutorials/step-21-resource.md)** — the boundary with the external world: PostgreSQL, APIs, queues, test fixtures; pure transport separated from logic
+- **[Entity](tutorials/step-22-entity.md)** — a domain object without ties to storage: one class, any data source
+- **[Closed dictionaries](tutorials/step-23-dictionaries.md)** — declarations, references and validation: allowed values declared in the class body
+- **[Relations](tutorials/step-24-relations.md)** — ownership, explicit reverse links, partial loading, and a step-by-step introduction to common record information with variant-specific details
+- **[Lifecycle](tutorials/step-25-lifecycle.md)** — a state graph with transition validation: an inconsistent graph does not let the system start
 
 ---
 
@@ -92,9 +93,9 @@ The guide moves from a practical entry point to the complete project architectur
 
 > **The big problem:** how to test scenarios whole, substituting the world around an operation rather than its internals — so the tests do not break on every refactoring.
 
-- **[TestBench: the same Action, a different reality](tutorials/step-23-testbench.md)** — run depth: the whole operation, an aspect, summary, compensator, `@on_error`
-- **[Substituting the environment](tutorials/step-24-substitution.md)** — `with_mocks` for dependencies and resources, `@connection` in a test, Rollup on the production schema
-- **[Context](tutorials/step-25-context.md)** — `with_user`/`with_request`/`with_runtime`: assembling `Context` for `@check_roles` and `@context_requires`
+- **[TestBench: the same Action, a different reality](tutorials/step-26-testbench.md)** — run depth: the whole operation, an aspect, summary, compensator, `@on_error`
+- **[Substituting the environment](tutorials/step-27-substitution.md)** — `with_mocks` for dependencies and resources, `@connection` in a test, Rollup on the production schema
+- **[Context](tutorials/step-28-context.md)** — `with_user`/`with_request`/`with_runtime`: assembling `Context` for `@check_roles` and `@context_requires`
 
 ---
 
@@ -102,8 +103,8 @@ The guide moves from a practical entry point to the complete project architectur
 
 > **The big problem:** how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
 
-- **[Maxitor: a system you can see](tutorials/step-26-maxitor.md)** — graph of operations, ERD, use case, and lifecycle: four projections from one code, without manual documentation
-- **[The graph saved with every change](tutorials/step-26-maxitor.md#the-graph-saved-with-every-change)** — each service keeps its current graph in one file that every pull request carries, by the [Open Gnomon Protocol](../packages/open-gnomon-protocol/README.md), kept by `graph-builder` of [maxitor](../packages/maxitor/README.md)
+- **[Maxitor: a system you can see](tutorials/step-29-maxitor.md)** — graph of operations, ERD, use case, and lifecycle: four projections from one code, without manual documentation
+- **[The graph saved with every change](tutorials/step-29-maxitor.md#the-graph-saved-with-every-change)** — each service keeps its current graph in one file that every pull request carries, by the [Open Gnomon Protocol](../packages/open-gnomon-protocol/README.md), kept by `graph-builder` of [maxitor](../packages/maxitor/README.md)
 
 ---
 
