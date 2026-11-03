@@ -29,6 +29,16 @@ Maxitor tells a history from a service by the answer, never by the host name. Re
 
 The version button sits at the left of the row above the diagram; a click opens the picker under it, another click closes it. The picker is not modal: the sidebar keeps working, and a click on the diagram or Escape closes it.
 
+**The history's name.** A public history is named after the folder that holds its graph file, the repository at the root; a private one, after its id. The same name heads the picker, titles the tab and stands in Recent:
+
+| Link to | Name | Full path |
+|---|---|---|
+| `…/aoa/blob/main/packages/aoa-demo/graph.json` | `aoa-demo` | `bystrovmaxim/aoa/packages/aoa-demo` |
+| `…/aoa/blob/main/packages/maxitor/web/graph.json` | `web` | `bystrovmaxim/aoa/packages/maxitor/web` |
+| `…/gameoffer/blob/main/graph.json` | `gameoffer` | `bystrovmaxim/gameoffer` |
+
+Rest on the name in the picker to read its full path, which tells apart two folders of one name; click it, or press Enter on it, to copy that path.
+
 ## Read the track
 
 The **i** in the picker's head shows this legend on the screen.

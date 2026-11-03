@@ -22,6 +22,8 @@ export const HISTORY_POLL_MS = 30_000;
 export type OpenHistory = {
   name: string;
   title: string;
+  /** What tells the history from another of the same title: ``owner/repo/<folder>``, or a private one's address. */
+  path: string;
   host: string;
   repository: string;
   key: string;
@@ -118,7 +120,7 @@ export function useOpenHistory(polling: boolean) {
     }
     setNotice(null);
     setFresh(false);
-    setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, versionFile: opened.version_file ?? null, versionProblem: opened.version_problem ?? null, etag: null, b, a, split: wantedSplit && a !== null });
+    setHistory({ name: opened.name, title: opened.title, path: opened.path, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, versionFile: opened.version_file ?? null, versionProblem: opened.version_problem ?? null, etag: null, b, a, split: wantedSplit && a !== null });
   }, []);
 
   /** Show one version: in a room or not, a pick in One leaves Diff. */

@@ -27,7 +27,7 @@ def test_each_private_mode_opens_as_its_port_says(maxitor: TestClient, port: Sta
     assert body["count"] == count and len(body["versions"]) == count
     assert [v["sha"] for v in body["versions"]] == [v["sha"] for v in port.histories[history].versions]
     assert (body["live"] is not None) == has_live
-    assert body["title"] == history and body["host"] == "github" and body["room_ticket"]
+    assert body["title"] == history and body["path"] == port.name(history) and body["host"] == "github" and body["room_ticket"]
     assert body["name"] == port.name(history) and port.histories[history].key not in answer.text
     assert [v["source"] for v in body["versions"]] == [version_source(port.name(history), None, v["sha"]) for v in body["versions"]]
 
@@ -36,7 +36,7 @@ def test_a_public_link_opens_through_maxitors_own_port(maxitor: TestClient) -> N
     """A bare GitHub link: no key, no Live, no room ticket, its versions from Maxitor's own port."""
     body = maxitor.get("/api/history/open", params={"history": PUBLIC_LINK}).json()
     assert body["count"] == 3 and body["live"] is None and body["room_ticket"] is None
-    assert body["title"] == "owner/service" and body["name"] == PUBLIC_LINK
+    assert body["title"] == "service" and body["path"] == "owner/service" and body["name"] == PUBLIC_LINK
 
 
 def test_a_public_link_is_refused_when_maxitor_has_no_port(monkeypatch: pytest.MonkeyPatch) -> None:

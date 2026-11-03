@@ -7,7 +7,7 @@ import { ServiceUrlInput } from "./ServiceUrlInput";
 
 const NAME = "https://repo-graph-port.aoa.run/api/v1/history/orders";
 const KEY = "a-key-of-forty-three-characters-0123456789";
-const OPENED = { name: NAME, title: "orders", host: "github", repository: "owner/service", live: "https://orders.example", versions: [], count: 12, room_ticket: "t" };
+const OPENED = { name: NAME, title: "orders", path: "owner/service/orders", host: "github", repository: "owner/service", live: "https://orders.example", versions: [], count: 12, room_ticket: "t" };
 
 let sent: { url: string; headers: Record<string, string> }[] = [];
 
