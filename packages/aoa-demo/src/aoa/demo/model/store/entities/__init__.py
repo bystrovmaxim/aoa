@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from aoa.demo.model.store.entities.audit_log_entry import AuditLogEntryDetailEntity
-from aoa.demo.model.store.entities.audit_log_entry_lifecycle import AuditLogEntryLifecycle
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.discount_application import DiscountApplicationCoreEntity
 from aoa.demo.model.store.entities.fulfillment_task import FulfillmentTaskCoreEntity
@@ -60,7 +59,6 @@ from aoa.demo.model.store.entities.tax_line import TaxLineDetailEntity
 __all__ = [
     "AddressVerificationTrailCoreEntity",
     "AuditLogEntryDetailEntity",
-    "AuditLogEntryLifecycle",
     "BackorderEtaFacetCoreEntity",
     "CartMergeTraceCoreEntity",
     "ComplianceReviewQueueCoreEntity",
