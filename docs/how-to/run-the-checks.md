@@ -172,7 +172,7 @@ bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # both C
 bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Packaging job
 ```
 
-`Checks` also runs `graph_builder`'s own action, the one other projects use.
+`Checks` also runs `graph-builder`'s own action, the one other projects use.
 
 ## Versions
 
@@ -183,9 +183,9 @@ bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Pa
 | Repository | the root | root `pyproject.toml`; `require_bump = false`, so it need not grow |
 | Package | the seven `aoa-*` packages and `maxitor` | their `pyproject.toml` |
 | Package | `open-gnomon-protocol` | its `version.toml` |
-| Component | `maxitor`'s `web`, `tools/repo-graph-port`, `tools/graph-builder` | their `version.toml` |
+| Component | `maxitor`'s `maxitor-web`, `tools/repo-graph-port`, `tools/graph-builder` | their `version.toml` |
 
-A change raises the version of every level it lies in, apart from the repository. Here is a change in `repo_graph_port` with nothing raised:
+A change raises the version of every level it lies in, apart from the repository. Here is a change in `repo-graph-port` with nothing raised:
 
 ```text
 version-gate: package packages/maxitor (packages/maxitor/pyproject.toml): version 3.0.0 did not grow; main has 3.0.0, raise it above that

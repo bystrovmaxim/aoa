@@ -42,7 +42,7 @@ version_file = "packages/aoa-demo/pyproject.toml"
 version_key = "project.version"
 ```
 
-When a folder moves, list the old paths, newest first, or the history before the move is lost. The config lives on the server, so a pull request that moves a folder does not update it; the history then says so in `version_problem` and keeps working:
+When a folder moves, the port follows its graph file and its version file through the move by itself: git tells it the paths they had, and each older version is read at its own path, so the history keeps everything before the move. This holds for a public link too, which has no config. Only a move git cannot see — a file rewritten beyond recognition in the same commit — needs its old paths listed, newest first; the port joins them to the ones it finds:
 
 ```toml
 graph_file_before = ["old/graph.json"]
