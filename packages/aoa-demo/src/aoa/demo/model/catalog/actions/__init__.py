@@ -4,6 +4,7 @@ from aoa.demo.model.catalog.actions.category_list import CategoryListAction
 from aoa.demo.model.catalog.actions.import_sku_stub import ImportSkuStubAction
 from aoa.demo.model.catalog.actions.price_snapshot import PriceSnapshotAction
 from aoa.demo.model.catalog.actions.product_enrichment import ProductEnrichmentAction
+from aoa.demo.model.catalog.actions.review_submit import ReviewSubmitAction
 
 BrowseCatalogParams = BrowseCatalogAction.Params
 BrowseCatalogResult = BrowseCatalogAction.Result
@@ -15,6 +16,8 @@ PriceSnapshotParams = PriceSnapshotAction.Params
 PriceSnapshotResult = PriceSnapshotAction.Result
 ProductEnrichmentParams = ProductEnrichmentAction.Params
 ProductEnrichmentResult = ProductEnrichmentAction.Result
+ReviewSubmitParams = ReviewSubmitAction.Params
+ReviewSubmitResult = ReviewSubmitAction.Result
 
 __all__ = [
     "BrowseCatalogAction",
@@ -32,4 +35,7 @@ __all__ = [
     "ProductEnrichmentAction",
     "ProductEnrichmentParams",
     "ProductEnrichmentResult",
+    "ReviewSubmitAction",
+    "ReviewSubmitParams",
+    "ReviewSubmitResult",
 ]
