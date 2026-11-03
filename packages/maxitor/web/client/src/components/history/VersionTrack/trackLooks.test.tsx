@@ -32,7 +32,7 @@ const dot = (b: string) => screen.getByTestId(`point-${b}`).querySelectorAll("ci
 /** The stretch of line that leads to point ``b``. */
 const line = (container: HTMLElement, x: string) => container.querySelector(`line[x2="${x}"]`);
 
-const history = [version(1, false, [{ name: "v0.1.0", release: null }]), version(2, false), version(3, true, [{ name: "v0.2.0", release: null }, { name: "release-0.2", release: null }]), version(4, true, [{ name: "prod", release: null }])];
+const history = [version(1, false, [{ name: "v0.1.0", release: null }]), version(2, false), version(3, true, [{ name: "v0.2.0", release: { title: "Spring", url: "https://r" } }, { name: "release-0.2", release: null }]), version(4, true, [{ name: "prod", release: null }])];
 
 describe("one colour per kind of point (FR-037)", () => {
   it("draws a direct push grey, a merged pull request purple, Live hollow grey", () => {
@@ -99,7 +99,7 @@ describe("names and flags (FR-017, FR-033)", () => {
     expect(screen.queryAllByTestId(/^label-/).map((label) => label.textContent)).toEqual(["Live"]);
   });
 
-  it("flags only a release", () => {
+  it("flags only a GitHub Release, never a tag named release… alone", () => {
     render(<VersionTrack versions={history} live={null} value={null} onChange={() => undefined} width={700} />);
     expect(screen.queryAllByTestId(/^flag-/).map((flag) => flag.getAttribute("data-testid"))).toEqual([`flag-${id(history[2])}`]);
   });

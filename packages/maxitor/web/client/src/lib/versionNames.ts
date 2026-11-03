@@ -6,8 +6,7 @@
  * request, its place in the history, the oldest being 1 (``#57``) — never its commit's hash. Its version
  * number is the last version-number tag at or before it (``v0.11.0`` → ``0.11.0``), where there is one; the
  * version button and the chosen point's chip write it before the name (``0.11.0 · #147``). A flag marks a
- * release: a tag published as a GitHub Release, or a tag named ``release…``; any other tag is only in the
- * point's card. A history that names a version file (spec 051) takes each point's number from that file instead of
+ * release: a tag published as a GitHub Release; any other tag, whatever its name, is only in the point's card. A history that names a version file (spec 051) takes each point's number from that file instead of
  * from tags. In the address and in a room a version is the first 12 hex characters of its commit.
  */
 
@@ -29,14 +28,11 @@ export function releaseName(tag: string): string {
 /** A tag that is a version number: ``v0.8.0``, ``0.8.0``, ``v2.1``. */
 const VERSION_TAG = /^v?\d+\.\d+(\.\d+)?([-+.][\w.]+)?$/;
 
-/** A tag that marks a release by its name, in a repository with no host to publish releases: ``release``, ``release-1.4``, ``release/2026-10-30``. */
-const RELEASE_TAG = /^release($|[-_/.])/i;
-
 type Tag = HistoryVersion["tags"][number];
 
-/** Whether ``tag`` marks a release: published as a release on its host (a GitHub Release), or named ``release…``. */
+/** Whether ``tag`` marks a release: published as a release on its host (a GitHub Release). A name alone never does. */
 function marksRelease(tag: Tag): boolean {
-  return tag.release !== null || RELEASE_TAG.test(tag.name);
+  return tag.release !== null;
 }
 
 /** The version-number tag ``version`` carries (``v0.8.0``), or ``null``: it names the point under the track. */
@@ -49,11 +45,10 @@ export function flagsOf(version: HistoryVersion): string[] {
   return version.tags.filter(marksRelease).map((tag) => tag.name);
 }
 
-/** The release ``version`` became, for its card: the GitHub Release's title and link, or a ``release…`` tag's name; ``null`` when it is none. */
+/** The release ``version`` became, for its card: the GitHub Release's title and link; ``null`` when it is none. */
 export function releaseNoteOf(version: HistoryVersion): { title: string; url: string } | null {
   const tag = version.tags.find(marksRelease);
-  if (!tag) return null;
-  return tag.release ? { title: tag.release.title || tag.name, url: tag.release.url } : { title: tag.name, url: "" };
+  return tag?.release ? { title: tag.release.title || tag.name, url: tag.release.url } : null;
 }
 
 /**

@@ -12,7 +12,7 @@ function version(n: number, small: boolean, number: string | null, changed: bool
 }
 
 const id = (v: HistoryVersion) => v.sha.slice(0, 12);
-const RELEASED = [{ name: "release-1", release: null }];
+const RELEASED = [{ name: "release-1", release: { title: "Release 1", url: "https://r" } }];
 const ALL = [version(1, false, "1.0.0", true), version(2, true, "1.1.0", true, RELEASED), version(3, false, "1.1.0", false), version(4, true, "1.2.0", true)];
 const LOOK = { versionFile: true, hideSmall: true };
 

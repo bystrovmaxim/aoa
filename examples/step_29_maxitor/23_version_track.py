@@ -37,9 +37,10 @@ Output:
        model only                     large  —
        version_file: None, so no point is small and no icon is offered
     3. What hiding leaves
+       tag release-1.1.1: in its card, no flag, since a local repository publishes no release
        nothing chosen:
        first, model and number, model only
-       flags on the points that stay: {'model and number': ['release-1.1.1']}
+       flags on the points that stay: {}
        "code and number" chosen, it stays while it is chosen:
        first, model and number, code and number, model only
        flags on the points that stay: {}
@@ -108,7 +109,7 @@ def commit(message: str, files: dict[str, str]) -> None:
 
 
 def build_repository() -> None:
-    """Five commits: model and number, code and number with a release, model only, code and number."""
+    """Five commits: model and number, code and number with a tag, model only, code and number."""
     (FOLDER / "repo").mkdir()
     git("init", "-q", "-b", "main")
     commit("first", {"graph.json": graph(2), "version.toml": component("1.0.0")})
@@ -164,8 +165,8 @@ def show(history: dict[str, Any]) -> None:
 
 
 def flags_of(point: dict[str, Any]) -> list[str]:
-    """The tags that are flags on the track."""
-    return [tag["name"] for tag in point["tags"] if tag["release"] or tag["name"].startswith("release")]
+    """The tags that are flags on the track: only a tag published as a release on its host, never a name alone."""
+    return [tag["name"] for tag in point["tags"] if tag["release"]]
 
 
 def hidden_view(versions: list[dict[str, Any]], chosen: str | None) -> None:
@@ -202,6 +203,7 @@ def main() -> None:
 
         print("3. What hiding leaves")
         versions = joined["versions"]
+        print(f'   tag {versions[2]["tags"][0]["name"]}: in its card, no flag, since a local repository publishes no release')
         print("   nothing chosen:")
         hidden_view(versions, None)
         print('   "code and number" chosen, it stays while it is chosen:')

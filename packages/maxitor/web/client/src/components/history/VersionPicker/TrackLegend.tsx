@@ -145,7 +145,7 @@ function Marks() {
             </Sample>
           }
         >
-          That version was released: a GitHub Release, or a tag named <code>release…</code>. With smaller points hidden, their flags stand on the point before them.
+          That version was released: its tag is published as a GitHub Release. With smaller points hidden, their flags stand on the point before them.
         </Row>
         <Row
           term="Three points"
