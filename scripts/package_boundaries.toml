@@ -21,15 +21,15 @@ import_prefixes = ["aoa.otel"]
 may_import = ["action_machine"]
 
 [packages.maxitor]
-current_roots = ["packages/maxitor/web/maxitor/web"]
-future_roots = ["packages/maxitor/web/maxitor/web"]
+current_roots = ["packages/maxitor/maxitor-web/maxitor/web"]
+future_roots = ["packages/maxitor/maxitor-web/maxitor/web"]
 import_prefixes = ["maxitor.web"]
 may_import = ["action_machine", "graph_builder", "graph_compare", "graph_map"]
 
 # The repo-graph-port service: it never imports the front, and the front reads it over HTTP, never imports it.
 [packages.repo_graph_port]
-current_roots = ["packages/maxitor/tools/repo_graph_port/maxitor/repo_graph_port"]
-future_roots = ["packages/maxitor/tools/repo_graph_port/maxitor/repo_graph_port"]
+current_roots = ["packages/maxitor/tools/repo-graph-port/maxitor/repo_graph_port"]
+future_roots = ["packages/maxitor/tools/repo-graph-port/maxitor/repo_graph_port"]
 import_prefixes = ["maxitor.repo_graph_port"]
 may_import = ["action_machine", "graph_builder", "graph_compare"]
 
@@ -46,7 +46,7 @@ allow = []
 # ``maxitor.graph_builder`` is Maxitor's graph-file command, installed by ``pip install maxitor`` with no extra:
 # it imports nothing from ``aoa`` and nothing of the front, whose dependencies come only with ``[front]``.
 [standalone.graph_builder]
-roots = ["packages/maxitor/tools/graph_builder/maxitor/graph_builder"]
+roots = ["packages/maxitor/tools/graph-builder/maxitor/graph_builder"]
 import_prefixes = ["maxitor.graph_builder"]
 forbid = ["maxitor.web", "maxitor.repo_graph_port"]
 

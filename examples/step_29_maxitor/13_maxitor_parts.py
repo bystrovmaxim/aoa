@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory() as folder:
     subprocess.run(["uv", "pip", "install", "-q", f"--python={python}", *map(str, (tmp / "dist").glob("maxitor-*.whl"))], check=True)
     graph_builder = str(tmp / "venv" / "bin" / "graph-builder")
     print("  ", subprocess.run([graph_builder, "--version"], capture_output=True, text=True, check=True).stdout.strip())
-    print("  ", subprocess.run([graph_builder, "validate", "packages/maxitor/web/graph.json"], capture_output=True, text=True, check=True).stdout.strip())
+    print("  ", subprocess.run([graph_builder, "validate", "packages/maxitor/maxitor-web/graph.json"], capture_output=True, text=True, check=True).stdout.strip())
     listing = "import importlib.metadata as m; print(' '.join(sorted(d.metadata['Name'].lower() for d in m.distributions())))"
     installed = subprocess.run([str(python), "-c", listing], capture_output=True, text=True, check=True).stdout.split()
     print("   installed:", ", ".join(installed))

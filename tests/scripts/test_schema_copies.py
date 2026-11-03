@@ -16,10 +16,10 @@ RAW = "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gno
 # Each copy a Python package keeps beside its code, and the protocol file it copies.
 COPIES = {
     "packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json": "graph/1.3.json",
-    "packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/1.0.json": "graph/1.0.json",
-    "packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/1.1.json": "graph/1.1.json",
-    "packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/1.2.json": "graph/1.2.json",
-    "packages/maxitor/tools/graph_builder/maxitor/graph_builder/schemas/1.3.json": "graph/1.3.json",
+    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.0.json": "graph/1.0.json",
+    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.1.json": "graph/1.1.json",
+    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.2.json": "graph/1.2.json",
+    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.3.json": "graph/1.3.json",
 }
 
 # SHA-256 of each published schema without its ``$id``, as ``json.dumps(..., sort_keys=True)``.

@@ -34,7 +34,7 @@ The version button sits at the left of the row above the diagram; a click opens 
 | Link to | Name | Full path |
 |---|---|---|
 | `…/aoa/blob/main/packages/aoa-demo/graph.json` | `aoa-demo` | `bystrovmaxim/aoa/packages/aoa-demo` |
-| `…/aoa/blob/main/packages/maxitor/web/graph.json` | `web` | `bystrovmaxim/aoa/packages/maxitor/web` |
+| `…/aoa/blob/main/packages/maxitor/maxitor-web/graph.json` | `web` | `bystrovmaxim/aoa/packages/maxitor/maxitor-web` |
 | `…/gameoffer/blob/main/graph.json` | `gameoffer` | `bystrovmaxim/gameoffer` |
 
 Rest on the name in the picker to read its full path, which tells apart two folders of one name; click it, or press Enter on it, to copy that path.

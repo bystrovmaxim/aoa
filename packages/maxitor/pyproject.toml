@@ -54,17 +54,17 @@ graph-builder = "maxitor.graph_builder.cli:main"
 maxitor = "maxitor.web.launch:main"
 repo-graph-port = "maxitor.repo_graph_port.launch:main"
 
-# One package from several folders: the web part (web/), the tools and services (tools/<name>/), the
+# One package from several folders: the web part (maxitor-web/), the tools and services (tools/<name>/), the
 # code they share (core/<name>/) and the skills (skills/). ``maxitor`` is a namespace package; each part keeps its code in ``<part>/maxitor/<name>/``.
 [tool.hatch.build.targets.wheel]
-only-include = ["web/maxitor", "tools/repo_graph_port/maxitor", "tools/graph_builder/maxitor", "core/graph_compare/maxitor", "core/graph_map/maxitor"]
-artifacts = ["web/maxitor/web/static/**/*"]
-dev-mode-dirs = ["web", "tools/repo_graph_port", "tools/graph_builder", "core/graph_compare", "core/graph_map"]
+only-include = ["maxitor-web/maxitor", "tools/repo-graph-port/maxitor", "tools/graph-builder/maxitor", "core/graph_compare/maxitor", "core/graph_map/maxitor"]
+artifacts = ["maxitor-web/maxitor/web/static/**/*"]
+dev-mode-dirs = ["maxitor-web", "tools/repo-graph-port", "tools/graph-builder", "core/graph_compare", "core/graph_map"]
 
 [tool.hatch.build.targets.wheel.sources]
-"web" = ""
-"tools/repo_graph_port" = ""
-"tools/graph_builder" = ""
+"maxitor-web" = ""
+"tools/repo-graph-port" = ""
+"tools/graph-builder" = ""
 "core/graph_compare" = ""
 "core/graph_map" = ""
 
@@ -73,12 +73,12 @@ dev-mode-dirs = ["web", "tools/repo_graph_port", "tools/graph_builder", "core/gr
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-  "web/client/node_modules",
-  "web/client/node_modules/**",
-  "web/client/.vite",
-  "web/client/.vite/**",
+  "maxitor-web/client/node_modules",
+  "maxitor-web/client/node_modules/**",
+  "maxitor-web/client/.vite",
+  "maxitor-web/client/.vite/**",
   # A service's saved graph is the repository's history, not the package's (graph-builder.toml).
-  "web/graph.json",
+  "maxitor-web/graph.json",
 ]
 
 [dependency-groups]

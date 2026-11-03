@@ -45,7 +45,7 @@ OK Ruff auto-fix (exit 0, 0.1 s)
 > Mypy typecheck
 …
 OK Pytest aoa-action-machine (exit 0, 52.7 s)
-OK Pytest maxitor/web (exit 0, 70.3 s)
+OK Pytest maxitor/maxitor-web (exit 0, 70.3 s)
 OK Maxitor client: npm ci and Vite build (exit 0, 208.2 s)
 OK Maxitor client: the same layout in three engines (exit 0, 280.1 s)
 > Graph files (graph-builder write)
@@ -99,11 +99,11 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
-| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/web` and `maxitor/tools/graph_builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
-| Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph_builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
+| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph-builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
 
-The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/web/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
+The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/maxitor-web/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
 
 ```text
 OK Graph files (graph-builder write) (exit 0, 3.8 s)
@@ -183,13 +183,13 @@ bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Pa
 | Repository | the root | root `pyproject.toml`; `require_bump = false`, so it need not grow |
 | Package | the seven `aoa-*` packages and `maxitor` | their `pyproject.toml` |
 | Package | `open-gnomon-protocol` | its `version.toml` |
-| Component | `maxitor`'s `web`, `tools/repo_graph_port`, `tools/graph_builder` | their `version.toml` |
+| Component | `maxitor`'s `web`, `tools/repo-graph-port`, `tools/graph-builder` | their `version.toml` |
 
 A change raises the version of every level it lies in, apart from the repository. Here is a change in `repo_graph_port` with nothing raised:
 
 ```text
 version-gate: package packages/maxitor (packages/maxitor/pyproject.toml): version 3.0.0 did not grow; main has 3.0.0, raise it above that
-version-gate: component packages/maxitor/tools/repo_graph_port (packages/maxitor/tools/repo_graph_port/version.toml): version 1.0.0 did not grow; main has 1.0.0, raise it above that
+version-gate: component packages/maxitor/tools/repo-graph-port (packages/maxitor/tools/repo-graph-port/version.toml): version 1.0.0 did not grow; main has 1.0.0, raise it above that
 ```
 
 Raise both, commit, and the job passes. A sub-issue merging into a feature branch is not checked, so a large task raises its versions once, on its way into `main`.

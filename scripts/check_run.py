@@ -104,7 +104,7 @@ GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 NC = "\033[0m"
 
-CLIENT = "cd packages/maxitor/web/client"
+CLIENT = "cd packages/maxitor/maxitor-web/client"
 AUTO_FIX = "Ruff auto-fix"
 LAZY_GUARD = "Ban __getattr__ in package __init__.py"
 README_GUARD = "Maxitor client: README beside components/*/ index.ts"
@@ -269,9 +269,9 @@ STEPS: tuple[Step, ...] = (
             ci_command=f'uv run --extra dev pytest packages/{package}/tests/ -v -m "not benchmark"',
         )
         for package in (
-            "maxitor/web",
-            "maxitor/tools/repo_graph_port",
-            "maxitor/tools/graph_builder",
+            "maxitor/maxitor-web",
+            "maxitor/tools/repo-graph-port",
+            "maxitor/tools/graph-builder",
             "maxitor/core/graph_compare",
             "maxitor/core/graph_map",
             "aoa-demo",

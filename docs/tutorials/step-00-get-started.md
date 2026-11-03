@@ -110,7 +110,7 @@ aoa/
 ├── packages/        ← the packages; the first three are the heart of AOA
 │   ├── aoa-action-machine/   ← CORE: the Action model, execution core, contracts, observability
 │   ├── aoa-demo/         ← LIBRARY of ready-made domains — the framework "at scale"
-│   ├── maxitor/          ← MAXITOR: app/ (graph, ERD and diagrams straight from code), tools/graph_builder/ (keeps the saved graphs), skills/
+│   ├── maxitor/          ← MAXITOR: app/ (graph, ERD and diagrams straight from code), tools/graph-builder/ (keeps the saved graphs), skills/
 │   ├── open-gnomon-protocol/ ← GRAPH FORMAT: the protocol's schemas and specification, no code
 │   └── aoa-fastapi-adapter/, aoa-mcp-adapter/, aoa-langgraph/, aoa-ocel/, aoa-otel/   ← adapters and plugins
 │

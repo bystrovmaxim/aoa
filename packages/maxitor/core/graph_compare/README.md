@@ -20,7 +20,7 @@ for edge_id, item in result.edges.items():
 
 ## What it gives
 
-Two documents — A the older, B the newer — wherever they come from: a [`repo-graph-port`](../../tools/repo_graph_port/README.md), a file, `git show`. The protocol says revisions are compared by `id`, never by position; `compare(a, b)` is that comparison:
+Two documents — A the older, B the newer — wherever they come from: a [`repo-graph-port`](../../tools/repo-graph-port/README.md), a file, `git show`. The protocol says revisions are compared by `id`, never by position; `compare(a, b)` is that comparison:
 
 - **every node and every edge gets exactly one status**: `added` (in B only), `removed` (in A only), `changed` (in both, something differs), `unchanged`. A rename is a removal plus an addition: identity is the `id`.
 - **a changed element lists every difference by its property path**, from the element's top down to the leaf that differs — `("label",)`, `("target_id",)`, `("properties", "json_schema", "properties", "erid", "type")` — each `added`, `removed` or `changed`, with the value in A and in B. Every field but `id` is compared; a list is one value.

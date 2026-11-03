@@ -131,7 +131,7 @@ jobs:
         with:
           node-version: '20'
       - name: Build frontend
-        working-directory: packages/maxitor/web/client
+        working-directory: packages/maxitor/maxitor-web/client
         run: |
           npm ci
           npx vite build \
