@@ -361,3 +361,7 @@ When writing a resource, answer three questions: what access does it provide, wh
 owns its lifetime, and what may a child do through its wrapper? The answers need
 not change the business action. The [authoring guide](../how-to/authoring-resource.md)
 turns those decisions into an implementation.
+
+---
+
+[← Schema converters](step-20-converters.md) · [Contents](../index.md) · [Entity →](step-22-entity.md)

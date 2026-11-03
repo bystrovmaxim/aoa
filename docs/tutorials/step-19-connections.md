@@ -358,3 +358,7 @@ counter. Predict both responses and the lifecycle log, then run the
 [counterexample](../../examples/step_19_connections/11_shared_factory.py).
 For actual PostgreSQL construction and transactions, continue with the
 [PostgreSQL extension](../extensions/postgresql.md).
+
+---
+
+[← Complex input](step-18-complex-input.md) · [Contents](../index.md) · [Schema converters →](step-20-converters.md)
