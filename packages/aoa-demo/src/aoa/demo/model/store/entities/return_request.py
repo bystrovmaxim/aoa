@@ -19,6 +19,7 @@ class ReturnRequestCoreEntity(BaseCoreEntity):
     lifecycle: ReturnRequestLifecycle = Field(description="Return lifecycle")
     reason: str = Field(description="Return reason")
     reason_code: str = Field(default="other", description="Why the customer returns it, as a code: damaged, wrong_item, changed_mind, other")
+    exchange_sku: str | None = Field(default=None, description="Product the customer takes instead of a refund; none for a refund")
     status: str = Field(description="Return status")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
