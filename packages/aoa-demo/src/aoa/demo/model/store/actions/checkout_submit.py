@@ -47,6 +47,7 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     class Params(BaseParams):
         customer_id: str = Field(description="Customer reference id")
         amount: float = Field(description="Monetary amount to charge", gt=0)
+        promo_code: str = Field(default="", description="Promo code the customer typed; empty when there is none")
 
         @property
         @sensitive(True, max_chars=3, char="*", max_percent=50)
@@ -70,6 +71,17 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         ctx: ContextView,
     ) -> dict[str, Any]:
         return {"validated_customer": params.customer_id}
+
+    @regular_aspect("Check promo code")
+    @result_string("promo_status", required=True, not_empty=True)
+    async def promo_aspect(
+        self,
+        params: CheckoutSubmitAction.Params,
+        state: BaseState,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> dict[str, Any]:
+        return {"promo_status": "applied" if params.promo_code else "none"}
 
     @regular_aspect("Charge payment")
     @result_string("txn_id", required=True, not_empty=True)

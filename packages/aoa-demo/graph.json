@@ -36468,6 +36468,15 @@
       "type": "field"
     },
     {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params|field|aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:promo_code",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params",
+      "target_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:promo_code",
+      "type": "field"
+    },
+    {
       "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params|property|aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:api_token_hint",
       "is_dag": false,
       "properties": {},
@@ -36519,6 +36528,15 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:charge_aspect",
       "target_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:charge_aspect:txn_id",
+      "type": "@result_checker"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect|@result_checker|aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect:promo_status",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect",
+      "target_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect:promo_status",
       "type": "@result_checker"
     },
     {
@@ -36630,6 +36648,15 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
       "target_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:charge_aspect",
+      "type": "@regular_aspect"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@regular_aspect|aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
+      "target_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect",
       "type": "@regular_aspect"
     },
     {
@@ -82215,6 +82242,17 @@
       "type": "Field"
     },
     {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:promo_code",
+      "label": "promo_code",
+      "properties": {
+        "description": "Promo code the customer typed; empty when there is none",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:sensitive:api_token_hint",
       "label": "api_token_hint",
       "properties": {
@@ -82313,6 +82351,27 @@
         "target_aspect_name": "charge_aspect"
       },
       "type": "Compensator"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect",
+      "label": "promo_aspect",
+      "properties": {
+        "description": "Check promo code"
+      },
+      "type": "RegularAspect"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:promo_aspect:promo_status",
+      "label": "promo_status",
+      "properties": {
+        "TypeChecker": "String",
+        "max_length": null,
+        "min_length": null,
+        "not_empty": true,
+        "opaque": false,
+        "required": true
+      },
+      "type": "Checker"
     },
     {
       "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction:unexpected_error_on_error",
