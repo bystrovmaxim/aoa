@@ -39,6 +39,14 @@ describe("two handles on one track", () => {
     expect(chipY(b())).toBeGreaterThan(axis);
   });
 
+  it("draw A's chip white with a dark outline and B's dark, so the two never read alike", () => {
+    const { a, b } = track({ a: id(3), b: id(4) }, null);
+    const fill = (handle: HTMLElement) => handle.querySelector('[data-testid="chip"] rect')?.getAttribute("fill");
+    expect(fill(a())).toBe("#fff");
+    expect(a().querySelector('[data-testid="chip"] rect')?.getAttribute("stroke")).toBe("#0f172a");
+    expect(fill(b())).toBe("#0f172a");
+  });
+
   it("keep the name under A's point, which its chip above no longer covers", () => {
     const numbered = FOUR.map((v, at) => ({ ...v, graph_changed: true, version: `1.${at}.0`, version_changed: true }));
     render(<VersionTrack versions={numbered} live={null} value={id(4)} onChange={vi.fn()} range={{ a: id(2), b: id(4) }} onRange={vi.fn()} width={500} versionFile />);
