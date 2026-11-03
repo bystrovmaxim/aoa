@@ -1,6 +1,7 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/discount_application.py
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Annotated
 
 from pydantic import Field
@@ -18,7 +19,7 @@ class DiscountApplicationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Discount application id")
     lifecycle: SalesOrderLifecycle = Field(description="Discount lifecycle")
     coupon_code: str = Field(description="Coupon code")
-    discount_amount: float = Field(description="Discount amount", ge=0)
+    discount_amount: Decimal = Field(description="Money taken off the order, exact to the cent", ge=0)
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
