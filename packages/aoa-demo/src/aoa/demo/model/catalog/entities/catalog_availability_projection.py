@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
+from aoa.demo.model.inventory.domain import InventoryDomain
 
 
-@entity(description="Availability projection subgraph root independent of SKU FK", domain=CatalogDomain)
+@entity(description="Availability projection subgraph root independent of SKU FK", domain=InventoryDomain)
 class AvailabilityProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Projection id")
     lifecycle: CatalogDenseLifecycle = Field(description="Availability projection lifecycle")
