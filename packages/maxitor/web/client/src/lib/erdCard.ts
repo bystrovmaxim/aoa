@@ -2,7 +2,7 @@
 /** What a card says of a table or a row of the ERD, from what the diagram holds (spec 043, FR-004 – FR-006). */
 import type { CardField, CardSubject } from "@/components/diagrams/ElementCard";
 import type { ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
-import { FIELDS_CHANGED, MOVED_DOMAIN, rowElements, type CardTarget } from "@/lib/erdDiffCard";
+import { FIELDS_CHANGED, rowCard, tableInside, type CardTarget } from "@/lib/erdDiffCard";
 import { tooltipOf } from "@/rooms/graphvizFocus";
 import type { ElementRef } from "@/rooms/focusStore";
 
@@ -21,8 +21,8 @@ function marked<T>(status: T): status is Exclude<T, "unchanged" | undefined> {
 function tableChange(entity: ErdEntity, title: string): CardTarget | null {
   const status = marked(entity.diff) ? entity.diff : (entity.fields ?? []).some((field) => marked(field.diff)) ? "changed" : null;
   if (!status) return null;
-  const note = entity.movedDomain ? MOVED_DOMAIN : marked(entity.diff) ? undefined : FIELDS_CHANGED;
-  return { title, status, elements: [{ kind: "node", id: entity.id }], ...(note ? { note } : {}) };
+  const inside = marked(entity.diff) ? tableInside(entity) : { note: FIELDS_CHANGED };
+  return { title, status, elements: [{ kind: "node", id: entity.id }], ...inside };
 }
 
 /** How low a row may stand on screen and still be read or aimed at, in CSS px; a finger needs more than a pointer. */
@@ -128,7 +128,7 @@ export function erdSubject(ref: ElementRef, entities: readonly ErdEntity[], root
     // All of it is already here: a row needs no read, and a relation's row has no node to read.
     description: field.description,
     nodeId: null,
-    change: marked(field.diff) ? { title: field.name, status: field.diff, elements: rowElements(entity.id, field.name) } : null,
+    change: marked(field.diff) ? rowCard(entity.id, field, field.diff) : null,
     lifecycleIds: field.lifecycle_id ? [field.lifecycle_id] : [],
     copy: field.name,
   };

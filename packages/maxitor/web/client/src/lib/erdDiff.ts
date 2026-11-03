@@ -7,7 +7,7 @@
  * edge ``<entity>|entity_relation|<field>`` (#285) — so no ERD knowledge reaches the server.
  */
 
-import type { CompareResult, DiffStatus } from "@/api/compare";
+import type { ChangedPart, CompareResult, DiffStatus } from "@/api/compare";
 import { drawnOn, type Side } from "@/lib/half";
 import type { Portable } from "@/lib/halfPicking";
 import type { ElementRef } from "@/rooms/focusStore";
@@ -103,6 +103,23 @@ function lifecycleChanged(field: ErdField, changedIds: readonly string[]): boole
   return Boolean(id) && changedIds.some((changed) => changed === id || changed.startsWith(`${id}:`));
 }
 
+/**
+ * The states and transitions of a lifecycle that changed, by the ids the comparison gives: a state is ``<lifecycle>:<state>``,
+ * a transition ``<lifecycle>|lifecycle_transition|<lifecycle>:<to>|<from>``. The ERD draws neither, so its row's card lists them.
+ */
+export function lifecycleParts(id: string, compared: CompareResult): ChangedPart[] {
+  const states = Object.entries(compared.nodes)
+    .filter(([node]) => node.startsWith(`${id}:`))
+    .map(([node, status]): ChangedPart => ({ kind: "node", id: node, label: node.slice(id.length + 1), type: "State", group: "States", status, differences: [] }));
+  const transitions = Object.entries(compared.edges)
+    .filter(([edge]) => edge.startsWith(`${id}|lifecycle_transition|${id}:`))
+    .map(([edge, status]): ChangedPart => {
+      const [, , to, from] = edge.split("|");
+      return { kind: "edge", id: edge, label: `${from} → ${to.slice(id.length + 1)}`, type: "Transition", group: "Transitions", status, differences: [] };
+    });
+  return [...states, ...transitions];
+}
+
 /** Every table, row and line of a merged slice marked with its status. */
 export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
   const moved = movedTables(compared);
@@ -116,6 +133,7 @@ export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
         compared.edges[`${entity.id}|entity_relation|${field.name}`],
         lifecycleChanged(field, changedIds) ? "changed" : undefined,
       ),
+      ...(field.lifecycle_id && lifecycleChanged(field, changedIds) ? { lifecycle_parts: lifecycleParts(field.lifecycle_id, compared) } : {}),
     }));
     // A lifecycle is part of its table: a change inside it changes the table (spec 044).
     const composed = fields.some((field) => field.lifecycle_id && field.diff === "changed");
@@ -225,7 +243,7 @@ export function erdPortable(drawn: () => ErdDrawing): Portable {
 export function unmarked<T extends { entities: ErdEntity[]; relations: ErdRelation[] }>(data: T): T {
   return {
     ...data,
-    entities: data.entities.map(({ diff: _diff, ...entity }) => ({ ...entity, fields: (entity.fields ?? []).map(({ diff: _field, previous_type: _type, ...field }) => field) })),
+    entities: data.entities.map(({ diff: _diff, ...entity }) => ({ ...entity, fields: (entity.fields ?? []).map(({ diff: _field, previous_type: _type, lifecycle_parts: _parts, ...field }) => field) })),
     relations: data.relations.map(({ diff: _diff, previous_target: _target, ...relation }) => relation),
   };
 }

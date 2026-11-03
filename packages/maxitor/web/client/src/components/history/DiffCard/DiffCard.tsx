@@ -94,7 +94,7 @@ export function DiffBody({ target, newer }: Pick<DiffCardProps, "target" | "newe
       {target.note && <Box data-testid="diff-note">{target.note}</Box>}
       {target.status === "changed" && !inside && !target.note && differences?.length === 0 && <Box sx={{ color: "#64748b" }}>No property differs.</Box>}
       {differences?.map((difference) => <DifferenceRow key={difference.path.join(".")} difference={difference} />)}
-      {inside && differences?.length === 0 && <Box data-testid="diff-inside">The action is the same; its parts changed.</Box>}
+      {inside && !target.note && differences?.length === 0 && <Box data-testid="diff-inside">The action is the same; its parts changed.</Box>}
       {groups.map(([group, parts]) => (
         <Box key={group} data-testid="diff-part-group" sx={{ mt: "6px" }}>
           <Box sx={{ fontWeight: 600, color: "#475569" }}>{group}</Box>
