@@ -45,7 +45,7 @@ from maxitor.repo_graph_port.history_reading import (
     release_of,
     version_problem_of,
 )
-from maxitor.repo_graph_port.history_versions import place_tags, pull_request_in_message
+from maxitor.repo_graph_port.history_versions import names_version, place_tags, pull_request_in_message
 from maxitor.repo_graph_port.placed_tag import PlacedTag
 from maxitor.repo_graph_port.repo_graph_domain import RepoGraphDomain
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
@@ -134,7 +134,9 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
             # The host tells a version's pull request; where it does not (a local repository, or GitHub without
             # an answer), the merge or squash commit's message names it.
             pull = await pull_request_of(cache, host, history, commit.sha, interval) or pull_request_in_message(commit.message, pull_url)
-            placed = [PlacedTag(name=name, release=await release_of(cache, host, history, name, interval)) for name in tags.get(commit.sha, [])]
+            # In a repository of several packages a history with a version file takes only the tags of its own versions.
+            names = [name for name in tags.get(commit.sha, []) if history.version_file is None or names_version(name, point.version or "")]
+            placed = [PlacedTag(name=name, release=await release_of(cache, host, history, name, interval)) for name in names]
             records.append(VersionRecord(
                 sha=commit.sha,
                 date=commit.date,
