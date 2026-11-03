@@ -117,12 +117,12 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         if parsed.scheme not in ("http", "https"):
             raise ValueError(
                 f"service_url must be an HTTP or HTTPS URL, got: {label(params.service_url)}. "
-                "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
+                "Examples: http://127.0.0.1:8001, demo:8100, demo.aoa.run"
             )
         if not parsed.netloc:
             raise ValueError(
                 f"service_url has no host: {label(params.service_url)}. "
-                "Examples: http://127.0.0.1:8001, demo:8100, dev.demo.aoa.run"
+                "Examples: http://127.0.0.1:8001, demo:8100, demo.aoa.run"
             )
         return {"service_graph_json_url": url}
 

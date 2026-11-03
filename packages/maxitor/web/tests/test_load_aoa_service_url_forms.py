@@ -38,7 +38,7 @@ async def test_scheme_with_port_kept() -> None:
 
 @pytest.mark.asyncio
 async def test_scheme_without_port_kept() -> None:
-    assert await _normalized("https://dev.demo.aoa.run") == "https://dev.demo.aoa.run/examples/model/graph-json"
+    assert await _normalized("https://demo.aoa.run") == "https://demo.aoa.run/examples/model/graph-json"
 
 
 @pytest.mark.asyncio
@@ -49,13 +49,13 @@ async def test_bare_host_with_port_defaults_to_http() -> None:
 
 @pytest.mark.asyncio
 async def test_bare_host_without_port_defaults_to_https() -> None:
-    assert await _normalized("dev.demo.aoa.run") == "https://dev.demo.aoa.run/examples/model/graph-json"
+    assert await _normalized("demo.aoa.run") == "https://demo.aoa.run/examples/model/graph-json"
 
 
 @pytest.mark.asyncio
 async def test_explicit_path_is_used_as_is() -> None:
     assert await _normalized("demo:8100/examples/model/graph-json") == "http://demo:8100/examples/model/graph-json"
     assert (
-        await _normalized("https://dev.demo.aoa.run/examples/model/graph-json")
-        == "https://dev.demo.aoa.run/examples/model/graph-json"
+        await _normalized("https://demo.aoa.run/examples/model/graph-json")
+        == "https://demo.aoa.run/examples/model/graph-json"
     )

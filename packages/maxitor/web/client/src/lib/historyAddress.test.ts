@@ -35,7 +35,7 @@ describe("a history's address", () => {
   });
 
   it("leaves a service or graph-json address alone", () => {
-    for (const address of ["http://127.0.0.1:8001", "https://dev.demo.aoa.run/examples/model/graph-json", "demo:8100"]) {
+    for (const address of ["http://127.0.0.1:8001", "https://demo.aoa.run/examples/model/graph-json", "demo:8100"]) {
       expect(parseHistory(address)).toBeNull();
     }
   });

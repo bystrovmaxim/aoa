@@ -4,10 +4,12 @@ Three containers on one host, each behind the host's TLS front end:
 
 | Service | Domain | On the host | What it is |
 |---|---|---|---|
-| `demo` | `dev.demo.aoa.run` | `127.0.0.1:8100` | the reference AOA service |
-| `maxitor` | `dev.maxitor.aoa.run` | `127.0.0.1:${MAXITOR_PORT}` | Maxitor's front |
+| `demo` | `demo.aoa.run` | `127.0.0.1:8100` | the reference AOA service |
+| `maxitor` | `maxitor.aoa.run` | `127.0.0.1:${MAXITOR_PORT}` | Maxitor's front |
 | `repo-graph-port` | `repo-graph-port.aoa.run` | `127.0.0.1:8103` | reads services' graph histories from their repositories; the only container that talks to GitHub |
 | `maxitor-public-port` | — (not published) | — | Maxitor's own port: the `repo-graph-port` image with an empty config, through which Maxitor reads public GitHub links (`MAXITOR_PUBLIC_PORT`); no history, no key, no App; only Maxitor reaches it, on the stand's network |
+
+Each service has one domain, and nothing else serves it. The demo and Maxitor are served with the front end's `aoa.run` certificate (`STAND_CERT_NAME`); the port has its own.
 
 One command deploys all three: `scripts/deploy_demonstrator_stand.sh`. It checks DNS and the TLS front end, builds the images, starts the containers, waits until each is healthy, adds the virtual hosts and certificates it lacks, checks every domain over HTTPS, and rolls back to the images that ran before on any failure. `--local` does the same on a laptop, on loopback, with no domains.
 
