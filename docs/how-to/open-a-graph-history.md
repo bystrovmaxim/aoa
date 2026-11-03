@@ -76,6 +76,28 @@ https://github.com/owner/repo/blob/main/graph.json?version_link=https%3A%2F%2Fgi
 
 The file must be in the same repository and on the same branch. Any other query is refused, and so is `version_key=` with no `version_link=`. The same graph joined with another file is another history.
 
+## Try it on the demo
+
+The demo of this repository has a real history, made of ordinary pull requests, each telling what it changed. Paste this link into **AOA Service URL**:
+
+```text
+https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-demo/graph.json?version_link=https%3A%2F%2Fgithub.com%2Fbystrovmaxim%2Faoa%2Fblob%2Fmain%2Fpackages%2Faoa-demo%2Fpyproject.toml&version_key=project.version
+```
+
+| Compare | What you see |
+|---|---|
+| 3.2.0 → 3.3.0 | one field added, and nothing else |
+| 3.3.0 → 3.4.0 | a table, its relations, a lifecycle and an action added together |
+| 3.4.0 → 3.5.0 | a field's type and description changed, a transition added |
+| 3.5.0 → 3.6.0 | an action changed only inside: its card lists the new parts |
+| 3.6.0 → 3.7.0 | a new domain, a role link changed, a field removed elsewhere; 3.7.0 carries a release flag |
+| 3.7.0 → 3.8.0 | a relation pointing at another table, a relation removed, a state added |
+| 3.8.0 → 3.9.0 | a table moved to another domain, a state removed |
+| 3.9.0 → 3.9.1 | a small point: the version rose, the graph did not |
+| 3.9.1 → 3.10.0 | a role and an action removed, a transition removed |
+| 3.10.0 → 3.11.0 | a domain removed whole, a lifecycle removed |
+| 3.11.0 → 3.14.0 | two more releases, a new table, role and action, states added; after them, one pull request still open |
+
 ## Share what you see
 
 The browser's address bar is the link: it holds the history, the chosen version (`b=`) and, for a private history, the key after `#key=`. Copy it as it is to open the same history at the same version elsewhere. What follows `#` never reaches a server, so the key is in no server's log; it is visible in the address bar and in the browser's history.
