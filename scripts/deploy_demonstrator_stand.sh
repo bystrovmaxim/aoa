@@ -53,8 +53,11 @@ if [[ -f /etc/aoa-stand.env ]]; then
     set +a
 fi
 
-DEMO_DOMAIN="${DEMO_DOMAIN:-dev.demo.aoa.run}"
-MAXITOR_DOMAIN="${MAXITOR_DOMAIN:-dev.maxitor.aoa.run}"
+DEMO_DOMAIN="${DEMO_DOMAIN:-demo.aoa.run}"
+MAXITOR_DOMAIN="${MAXITOR_DOMAIN:-maxitor.aoa.run}"
+# The certificate the demo and Maxitor are served with, by its name: on the host the canonical domains share
+# the front end's aoa.run certificate; a stand of its own gets one named after its demo domain.
+STAND_CERT_NAME="${STAND_CERT_NAME:-$DEMO_DOMAIN}"
 DEMO_PORT="${DEMO_PORT:-8100}"
 MAXITOR_PORT="${MAXITOR_PORT:-8101}"
 REPO_GRAPH_PORT_DOMAIN="${REPO_GRAPH_PORT_DOMAIN:-repo-graph-port.aoa.run}"
@@ -202,7 +205,7 @@ install_vhosts() {
             local front_conf="${STAND_FRONT_CONF:-/root/nginx/default.conf}"
             local ssl_dir="${STAND_SSL_DIR:-/root/up2u_back/ssl}"
             local webroot="${STAND_WEBROOT:-/root/up2u_front/dist}"
-            local cert_name="$DEMO_DOMAIN"
+            local cert_name="$STAND_CERT_NAME"
             [[ -f "$front_conf" ]] || fail "vhost step: the front-end config ${front_conf} was not found."
 
             # Phase A — the certificate-free :80 blocks with the acme-challenge location.
@@ -234,8 +237,11 @@ EOF
             done
             [[ $need_reload -eq 1 ]] && reload_nginx
 
-            # Phase B — the certificates (the :80 blocks must be live for the webroot challenge).
-            if certbot certificates 2>/dev/null | grep -q "$cert_name"; then
+            # Phase B — the certificates (the :80 blocks must be live for the webroot challenge). A certificate
+            # whose files are already in the front end's folder is the host's own: nothing is asked of certbot.
+            if [[ -f "${ssl_dir}/${cert_name}.fullchain.pem" && -f "${ssl_dir}/${cert_name}.privkey.pem" ]]; then
+                say "certificate step: ${cert_name} is already in ${ssl_dir}."
+            elif certbot certificates --cert-name "$cert_name" 2>/dev/null | grep -q "Certificate Name: ${cert_name}$"; then
                 say "certificate step: ${cert_name} already issued — renewed by the host's certbot timer."
             else
                 certbot certonly --webroot -w "$webroot" -d "$DEMO_DOMAIN" -d "$MAXITOR_DOMAIN" \
@@ -246,20 +252,20 @@ EOF
                 cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
                 cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
                 mkdir -p /etc/letsencrypt/renewal-hooks/deploy
-                cat > /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh <<'HOOK'
+                cat > /etc/letsencrypt/renewal-hooks/deploy/aoa-stand.sh <<HOOK
 #!/bin/sh
-# Copy the renewed dev-stand certificate into the front end's ssl mount and reload nginx-proxy.
+# Copy the renewed stand certificate into the front end's ssl mount and reload nginx-proxy.
 set -e
-if [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/dev.demo.aoa.run" ]; then
-    cp "/etc/letsencrypt/live/dev.demo.aoa.run/fullchain.pem" "/root/up2u_back/ssl/dev.demo.aoa.run.fullchain.pem"
-    cp "/etc/letsencrypt/live/dev.demo.aoa.run/privkey.pem" "/root/up2u_back/ssl/dev.demo.aoa.run.privkey.pem"
+if [ "\$RENEWED_LINEAGE" = "/etc/letsencrypt/live/${cert_name}" ]; then
+    cp "/etc/letsencrypt/live/${cert_name}/fullchain.pem" "${ssl_dir}/${cert_name}.fullchain.pem"
+    cp "/etc/letsencrypt/live/${cert_name}/privkey.pem" "${ssl_dir}/${cert_name}.privkey.pem"
     docker exec nginx-proxy nginx -s reload
 fi
 HOOK
-                chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-dev-stand.sh
+                chmod +x /etc/letsencrypt/renewal-hooks/deploy/aoa-stand.sh
             fi
-            # The port has a certificate of its own: its domain is not a dev.* name of the stand.
-            if certbot certificates 2>/dev/null | grep -q "$REPO_GRAPH_PORT_DOMAIN"; then
+            # The port has a certificate of its own.
+            if certbot certificates --cert-name "$REPO_GRAPH_PORT_DOMAIN" 2>/dev/null | grep -q "Certificate Name: ${REPO_GRAPH_PORT_DOMAIN}$"; then
                 say "certificate step: ${REPO_GRAPH_PORT_DOMAIN} already issued — renewed by the host's certbot timer."
             else
                 certbot certonly --webroot -w "$webroot" -d "$REPO_GRAPH_PORT_DOMAIN" \
