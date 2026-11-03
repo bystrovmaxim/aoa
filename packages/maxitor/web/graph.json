@@ -1585,6 +1585,15 @@
       "type": "field"
     },
     {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:path",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult",
+      "target_id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:path",
+      "type": "field"
+    },
+    {
       "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult|field|maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:proposals",
       "is_dag": false,
       "properties": {},
@@ -5774,6 +5783,17 @@
       "type": "Field"
     },
     {
+      "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:path",
+      "label": "path",
+      "properties": {
+        "description": "What tells the history apart from another of the same title: owner/repo/<folder>, or a private one's address",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
       "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:proposals",
       "label": "proposals",
       "properties": {
@@ -5810,7 +5830,7 @@
       "id": "maxitor.web.model.core.actions.open_history_action.OpenHistoryResult:title",
       "label": "title",
       "properties": {
-        "description": "The history's id, or owner/repo for a public one",
+        "description": "The history's id, or for a public one the folder of its graph file (the repository at the root)",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
