@@ -89,6 +89,65 @@ def _band(typed: bool | None, in_vocabulary: bool, emitted: bool) -> str:
     return "in_vocabulary" if typed and in_vocabulary else "emitted"
 
 
+def _domain_json(domain_row: dict[str, Any] | None, accents: dict[str, str]) -> dict[str, Any]:
+    """The diagram's domain; every domain together has no one vocabulary, so ``typed_events`` is ``None``."""
+    if domain_row is None:
+        return {**ALL_DOMAINS, "typed_events": None}
+    domain_id = str(domain_row["id"])
+    return {
+        "id": domain_id,
+        "label": str(domain_row.get("label") or domain_id),
+        "short_label": str(domain_row.get("name") or "").strip() or _short_qualname(domain_id),
+        "accent_color": accents.get(domain_id, "#64748b"),
+        "typed_events": bool(domain_row["typed_events"]),
+    }
+
+
+def _action_json(aid: str, label: str | None, dom: str, accents: dict[str, str]) -> dict[str, Any]:
+    """One action box, coloured by its domain."""
+    return {
+        "id": aid,
+        "label": label or _short_qualname(aid),
+        "short_label": _short_qualname(label or aid),
+        "domain_id": dom,
+        "domain_short_label": _short_qualname(dom) if dom else "No domain",
+        "accent_color": accents.get(dom, "#94a3b8"),
+    }
+
+
+def _producer_json(method: dict[str, str], action_labels: dict[str, str]) -> dict[str, str]:
+    """One method that produces an event, as its card lists it."""
+    action_id = method["action_id"]
+    return {"id": method["id"], "label": method["label"], "kind": method["kind"], "action_id": action_id, "action_label": action_labels.get(action_id, action_id)}
+
+
+def _event_domains(holding: set[str], emitting: set[str], domain_labels: dict[str, str]) -> list[dict[str, Any]]:
+    """An event's domains: those whose vocabulary holds it first, then those that only emit it."""
+    ordered = sorted(holding | emitting, key=lambda each: (each not in holding, each))
+    return [{"id": d, "label": domain_labels.get(d, _short_qualname(d)), "in_vocabulary": d in holding} for d in ordered]
+
+
+def _labels(duck: DuckDBGraphResource, table: str) -> dict[str, str]:
+    """Each row's label by id."""
+    return {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts(f"SELECT id, label FROM {table}")}
+
+
+def _pairs(duck: DuckDBGraphResource, table: str) -> list[tuple[str, str]]:
+    """An edge table's (source, target) pairs, sorted."""
+    return sorted((str(r["source_id"]), str(r["target_id"])) for r in duck.execute_fetch_dicts(f"SELECT source_id, target_id FROM {table}"))
+
+
+def _edges(methods: dict[str, dict[str, str]], method_ids: list[str], in_scope: list[tuple[str, str]]) -> list[dict[str, Any]]:
+    """The links: each action to its methods, then each method to the events it emits."""
+    edges: list[dict[str, Any]] = []
+    for method in method_ids:
+        row = methods[method]
+        edges.append({"id": f"{row['action_id']}|{row['edge_type']}|{method}", "edge_kind": "method", "source_id": row["action_id"], "target_id": method})
+    for method, event in in_scope:
+        edges.append({"id": f"{method}|@emits|{event}", "edge_kind": "emits", "source_id": method, "target_id": event})
+    return edges
+
+
 def events_diagram(duck: DuckDBGraphResource, domain_row: dict[str, Any] | None) -> dict[str, Any]:
     """
     AI-CORE-BEGIN
@@ -100,90 +159,46 @@ def events_diagram(duck: DuckDBGraphResource, domain_row: dict[str, Any] | None)
     accents = _accent_by_domain(duck)
     domain_of_action = _action_domain_map(duck)
     methods = _methods(duck)
-    action_labels = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM action")}
-    domain_labels = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM domain")}
-    events = {str(r["id"]): str(r["label"]) for r in duck.execute_fetch_dicts("SELECT id, label FROM event")}
-    emits = sorted((str(r["source_id"]), str(r["target_id"])) for r in duck.execute_fetch_dicts("SELECT source_id, target_id FROM emits_edges"))
-    emits = [(method, event) for method, event in emits if method in methods]
-    vocabulary = {(str(r["source_id"]), str(r["target_id"])) for r in duck.execute_fetch_dicts("SELECT source_id, target_id FROM domain_event_edges")}
+    action_labels = _labels(duck, "action")
+    domain_labels = _labels(duck, "domain")
+    events = _labels(duck, "event")
+    emits = [(method, event) for method, event in _pairs(duck, "emits_edges") if method in methods]
+    vocabulary = set(_pairs(duck, "domain_event_edges"))
     fields = _event_fields(duck)
+    domain_json = _domain_json(domain_row, accents)
+    domain_id = None if domain_row is None else domain_json["id"]
+    typed: bool | None = domain_json["typed_events"]
 
-    if domain_row is None:
-        domain_id = None
-        domain_json: dict[str, Any] = {**ALL_DOMAINS, "typed_events": None}
-        typed: bool | None = None
-    else:
-        domain_id = str(domain_row["id"])
-        typed = bool(domain_row["typed_events"])
-        domain_json = {
-            "id": domain_id,
-            "label": str(domain_row.get("label") or domain_id),
-            "short_label": str(domain_row.get("name") or "").strip() or _short_qualname(domain_id),
-            "accent_color": accents.get(domain_id, "#64748b"),
-            "typed_events": typed,
-        }
+    def domain_of_method(method: str) -> str:
+        return domain_of_action.get(methods[method]["action_id"], "")
 
-    in_scope = [(m, e) for m, e in emits if domain_id is None or domain_of_action.get(methods[m]["action_id"]) == domain_id]
+    in_scope = [(m, e) for m, e in emits if domain_id is None or domain_of_method(m) == domain_id]
     emitted = {event for _, event in in_scope}
     held = {event for owner, event in vocabulary if owner == domain_id} if domain_id else set(events)
     method_ids = sorted({method for method, _ in in_scope})
     action_ids = sorted({methods[method]["action_id"] for method in method_ids})
 
-    actions_json = []
-    for aid in action_ids:
-        dom = domain_of_action.get(aid, domain_id or "")
-        actions_json.append(
-            {
-                "id": aid,
-                "label": action_labels.get(aid, _short_qualname(aid)),
-                "short_label": _short_qualname(action_labels.get(aid, aid)),
-                "domain_id": dom,
-                "domain_short_label": _short_qualname(dom) if dom else "No domain",
-                "accent_color": accents.get(dom, "#94a3b8"),
-            },
-        )
-
-    events_json = []
-    for eid in sorted(emitted | held):
+    def event_json(eid: str) -> dict[str, Any]:
         producers = sorted({m for m, e in emits if e == eid})
         holding = {owner for owner, event in vocabulary if event == eid}
-        emitting = {domain_of_action.get(methods[m]["action_id"], "") for m in producers} - {""}
-        events_json.append(
-            {
-                "id": eid,
-                "label": events.get(eid, _short_qualname(eid)),
-                "band": _band(typed, eid in held, eid in emitted),
-                "fields": fields.get(eid, []),
-                "methods": [
-                    {
-                        "id": m,
-                        "label": methods[m]["label"],
-                        "kind": methods[m]["kind"],
-                        "action_id": methods[m]["action_id"],
-                        "action_label": action_labels.get(methods[m]["action_id"], methods[m]["action_id"]),
-                    }
-                    for m in producers
-                ],
-                "domains": [
-                    {"id": d, "label": domain_labels.get(d, _short_qualname(d)), "in_vocabulary": d in holding}
-                    for d in sorted(holding | emitting, key=lambda each: (each not in holding, each))
-                ],
-            },
-        )
+        emitting = {domain_of_method(m) for m in producers} - {""}
+        return {
+            "id": eid,
+            "label": events.get(eid, _short_qualname(eid)),
+            "band": _band(typed, eid in held, eid in emitted),
+            "fields": fields.get(eid, []),
+            "methods": [_producer_json(methods[m], action_labels) for m in producers],
+            "domains": _event_domains(holding, emitting, domain_labels),
+        }
 
-    edges: list[dict[str, Any]] = []
-    for method in method_ids:
-        row = methods[method]
-        edges.append({"id": f"{row['action_id']}|{row['edge_type']}|{method}", "edge_kind": "method", "source_id": row["action_id"], "target_id": method})
-    for method, event in in_scope:
-        edges.append({"id": f"{method}|@emits|{event}", "edge_kind": "emits", "source_id": method, "target_id": event})
+    events_json = [event_json(eid) for eid in sorted(emitted | held)]
 
     return {
         "domain": domain_json,
-        "actions": actions_json,
+        "actions": [_action_json(aid, action_labels.get(aid), domain_of_action.get(aid, domain_id or ""), accents) for aid in action_ids],
         "methods": [{key: methods[m][key] for key in ("id", "label", "kind", "action_id")} for m in method_ids],
         "events": events_json,
-        "edges": edges,
+        "edges": _edges(methods, method_ids, in_scope),
     }
 
 
