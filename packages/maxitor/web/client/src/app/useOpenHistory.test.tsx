@@ -79,6 +79,24 @@ describe("the history a tab shows", () => {
     expect(result.current.fresh).toBe(false);
   });
 
+  it("follows an open pull request by its number: merged, updated, closed, saying which", () => {
+    const pull = (n: number, sha: number): HistoryVersion => version(sha, { pr: { number: n, title: "", body: "", url: "", state: "open" } });
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show({ ...opened([version(1), version(2)], null), proposals: [pull(7, 5)] }, "k", id(5), id(2)));
+    expect(result.current.history?.b).toBe(id(5));
+    act(() => result.current.takeList([version(1), version(2)], null, "e1", { proposals: [pull(7, 6)] }));
+    expect(result.current.history?.b).toBe(id(6));
+    expect(result.current.history?.a).toBe(id(2));
+    expect(result.current.notice).toBe("#7 was updated");
+    act(() => result.current.takeList([version(1), version(2), pull(7, 8)], null, "e2"));
+    expect(result.current.history?.b).toBe(id(8));
+    expect(result.current.notice).toBe("#7 was merged");
+    act(() => result.current.show({ ...opened([version(1), version(2)], null), proposals: [pull(9, 4)] }, "k", id(4)));
+    act(() => result.current.takeList([version(1), version(2)], null, "e3"));
+    expect(result.current.history?.b).toBe(id(2));
+    expect(result.current.notice).toContain("#9 was closed or became a draft");
+  });
+
   it("moves off Live when Live goes, and off a version that disappears, saying why", () => {
     const { result } = renderHook(() => useOpenHistory(false));
     act(() => result.current.show(opened([version(1), version(2)], LIVE), "k", null));

@@ -53,7 +53,7 @@ Switch the picker to **Side by side**. A, the older version, stands on the left 
 
 Rest the pointer on an element and both halves light it, its links and its neighbours. **Track**, in the head of B, is on by default: after a moment the other half's camera goes to that element if it is out of view, keeping its zoom; on the full graph, which draws by its zoom, it takes the zoom of the half under the pointer. An element in view moves nothing.
 
-A click selects the element in both halves and copies its name, as everywhere. The other half brings it into view and says so. An element with no pair there — a removed one in A, an added one in B — puts the other half out, and it says `Not in 0.9.0`. A filter that hides it there reads `Hidden by the filters`. A step of the stepper does the same as a click. Escape or a click on empty space clears the selection.
+A click selects the element in both halves and copies its name, as everywhere. The other half brings it into view and says so, even when it stands in another domain there: a table that moved is found where its version had it. An element with no pair there — a removed one in A, an added one in B — puts the other half out, and it says `Not in 0.9.0`. A filter that hides it there reads `Hidden by the filters`. A step of the stepper does the same as a click. Escape or a click on empty space clears the selection.
 
 On a phone there is no room for two: **A / B** flips one diagram between the versions, each in its own layout, with the selected element in the centre. The address keeps `mode=split`, `a`, `b` and each half's layout mode.
 
