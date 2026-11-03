@@ -508,8 +508,15 @@ export function App() {
     setReloading(true);
     setReloadError(null);
     try {
+      // In a history the list is asked for now too: Reload is how a reader looks for a new version.
+      if (shown) {
+        const answer = await historyVersions(shown.name, shown.key);
+        if (answer) opened.takeList(answer.versions, answer.live, answer.etag, { liveSameAs: answer.live_same_as, proposals: answer.proposals, versionFile: answer.version_file, versionProblem: answer.version_problem });
+      }
       await loadGraph(serviceUrl);
       await reload();
+      // The graph is read again, the view on screen stays: zoom and centre come back on the new drawing.
+      model.keep();
       setWorkspaceKey((count) => count + 1);
     } catch (e) {
       setReloadError(e instanceof Error ? e.message : String(e));
@@ -529,8 +536,12 @@ export function App() {
               compact={phone}
               counts={shown.a ? diffCounts : null}
               problem={shown.versionProblem}
+              fresh={opened.fresh}
               open={pickerOpen}
-              onClick={() => setPickerOpen((open) => !open)}
+              onClick={() => {
+                if (!pickerOpen) opened.seen();
+                setPickerOpen((open) => !open);
+              }}
               onStep={step}
               canStep={{ older: shown.b ? stepShown(trackPoints, shown.a, shown.b, -1) !== null : false, newer: shown.b ? stepShown(trackPoints, shown.a, shown.b, 1) !== null : false }}
             />

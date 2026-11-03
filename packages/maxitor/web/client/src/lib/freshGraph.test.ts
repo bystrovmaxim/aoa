@@ -76,6 +76,21 @@ describe("refreshing the page in place", () => {
     hook.rerender({ s: refitted });
     expect(refitted.restore).toHaveBeenCalledWith({ x: 10, y: 20, zoom: 1.75 });
   });
+
+  it("keeps the zoom and centre for a redraw the page makes itself, with no notice and no second read", () => {
+    const rereadSidebar = vi.fn();
+    const redraw = vi.fn();
+    const before = surface({ x: 3, y: 4, zoom: 0.23 });
+    const hook = renderHook(({ s }) => useModelRefresh({ surface: s, rereadSidebar, redraw }), { initialProps: { s: before as DiagramSurface | null } });
+    act(() => hook.result.current.keep());
+    expect(rereadSidebar).not.toHaveBeenCalled();
+    expect(redraw).not.toHaveBeenCalled();
+    expect(hook.result.current.updated).toBe(false);
+    hook.rerender({ s: null });
+    const after = surface(null);
+    hook.rerender({ s: after });
+    expect(after.restore).toHaveBeenCalledWith({ x: 3, y: 4, zoom: 0.23 });
+  });
 });
 
 describe("a filter after the model changed", () => {

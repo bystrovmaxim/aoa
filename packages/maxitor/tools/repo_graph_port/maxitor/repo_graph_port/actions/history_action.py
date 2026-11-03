@@ -150,6 +150,6 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
                 version_changed=point.version_changed,
                 change=change,
             ))
-        proposals = await proposals_of(mirror, cache, host, history, points[-1].graph_at if points else None, interval)
+        proposals = await proposals_of(mirror, cache, host, history, points[-1].graph_at if points else None, interval, points[-1].version if points else None)
         await box.info(Channel.business, "History {%var.history} listed for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
         return HistoryResult(versions=records, proposals=proposals, version_problem=await version_problem_of(mirror, host, history))

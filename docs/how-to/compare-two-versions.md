@@ -6,7 +6,7 @@ With a [graph history open](open-a-graph-history.md), Maxitor shows what changed
 
 ## Pick two versions
 
-Open the version picker and switch **One** to **Diff**. The track now holds two handles: **A**, the older version, and **B**, the newer one, with the stretch between them dark. Switching keeps your version as B and puts A on the one before it.
+Open the version picker and switch **One** to **Diff**. The track now holds two handles: **A**, the older version, and **B**, the newer one, with the stretch between them dark. Switching keeps your version as B and puts A on the one before it. A's name stands in a chip above the track and B's under it, so two neighbours never cover each other.
 
 | To | Do |
 |---|---|
@@ -33,7 +33,7 @@ The version button carries this diagram's counts — `◷ A 0.8.0 → B 0.9.0  +
 
 Fields carry the same marks. A field whose type changed reads `~~str~~ → str | None` when it fits. A field that now points at another table keeps one amber link, solid to where it points in B and thin and dashed to where it pointed in A.
 
-Click a marked table or field: its card lists every property that changed, before and after.
+Click a marked table or field: its card lists every property that changed, before and after. A lifecycle's field, and a table changed only through its lifecycle, say `Its lifecycle changed.` and list the states and transitions added, removed or changed.
 
 Beside the version button a stepper walks through what changed: the arrows or Shift + ↑ ↓ go to the next and the previous, and a click on its middle opens the list, where any change can be picked directly. A step goes to the table, field or line, marks it and opens its card. The [full graph](read-the-full-graph-map.md) steps the same way.
 

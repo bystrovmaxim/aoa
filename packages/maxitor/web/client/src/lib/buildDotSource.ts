@@ -4,6 +4,8 @@
  * (Graphviz renderer only; other engines omitted).
  */
 
+import type { ChangedPart } from "../api/compare";
+
 /** What happened to a table, a row or a line between two versions (spec 038); absent while one version is drawn. */
 /** A table in the drawing: the rows a collapse hides, and whether it is collapsed. */
 export type ErdFold = { hidden: ReadonlySet<number>; collapsed: boolean };
@@ -30,6 +32,8 @@ export type ErdField = {
   diff?: ErdDiff;
   /** In Diff: the row's type in A, when it differs from B's — written struck through before it. */
   previous_type?: string;
+  /** In Diff, on a lifecycle's row: the states and transitions of that lifecycle that changed, for its card. */
+  lifecycle_parts?: readonly ChangedPart[];
 };
 
 export type ErdEntity = {

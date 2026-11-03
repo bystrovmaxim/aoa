@@ -4,7 +4,8 @@
  * is read from. The mode follows the list (FR-009a); a history opens on its default version (FR-021);
  * a ``b`` the history does not offer falls back to that default; outside a room the list is polled
  * every 30 seconds with its ``ETag`` (FR-006a), and a version that disappears, or Live that goes,
- * moves the tab to the default with a notice. In Diff (spec 038) the tab holds two versions, A before B on
+ * moves the tab to the default with a notice. A list that brings a version or an open pull request the tab has not
+ * seen changes nothing on screen: it only marks the history fresh until the picker is opened. In Diff (spec 038) the tab holds two versions, A before B on
  * the track; an end that leaves the list moves toward the other, and when the two would meet one is left.
  */
 
@@ -79,6 +80,8 @@ function fullKey(keys: readonly string[], b: string): string {
 export function useOpenHistory(polling: boolean) {
   const [history, setHistory] = useState<OpenHistory | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** Whether a version or an open pull request reached the list since the picker was last opened. */
+  const [fresh, setFresh] = useState(false);
   const historyRef = useRef(history);
   historyRef.current = history;
 
@@ -97,6 +100,7 @@ export function useOpenHistory(polling: boolean) {
       if (range) ({ a, b } = range);
     }
     setNotice(null);
+    setFresh(false);
     setHistory({ name: opened.name, title: opened.title, host: opened.host, repository: opened.repository, key, versions: opened.versions, live: opened.live, liveSameAs, proposals, versionFile: opened.version_file ?? null, versionProblem: opened.version_problem ?? null, etag: null, b, a, split: wantedSplit && a !== null });
   }, []);
 
@@ -123,13 +127,19 @@ export function useOpenHistory(polling: boolean) {
   const close = useCallback(() => {
     setHistory(null);
     setNotice(null);
+    setFresh(false);
   }, []);
+
+  /** The reader looked at the track: the mark of a new version goes. */
+  const seen = useCallback(() => setFresh(false), []);
 
   /** Take a new list: keep the version when it is still offered, else move to the default and say why. */
   const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null, more: { liveSameAs?: string | null; proposals?: HistoryVersion[]; versionFile?: string | null; versionProblem?: string | null } = {}) => {
     const current = historyRef.current;
     if (!current) return;
     const liveSameAs = more.liveSameAs ?? null;
+    const known = new Set([...current.versions, ...current.proposals].map((version) => version.sha));
+    if ([...versions, ...(more.proposals ?? [])].some((version) => !known.has(version.sha))) setFresh(true);
     const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], versionFile: more.versionFile === undefined ? current.versionFile : more.versionFile, versionProblem: more.versionProblem === undefined ? current.versionProblem : more.versionProblem, etag, b: asLive(current.b, liveSameAs), a: current.a ? asLive(current.a, liveSameAs) : null };
     if (current.a && current.b) {
       // In Diff an end that left moves toward the other; when they would meet, one version is left.
@@ -165,5 +175,5 @@ export function useOpenHistory(polling: boolean) {
   }, [polling, history?.name, takeList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mode: HistoryMode = modeOf(history);
-  return { history, mode, notice, setNotice, show, pick, pickRange, pickSplit, close, takeList };
+  return { history, mode, notice, setNotice, fresh, seen, show, pick, pickRange, pickSplit, close, takeList };
 }

@@ -15,6 +15,8 @@ export type VersionButtonProps = {
   counts?: DiagramCounts | null;
   /** Why the history's version cannot be read: an amber mark, this text in its tooltip. */
   problem?: string | null;
+  /** A version reached the history since the picker was last opened: a mark, never a count. */
+  fresh?: boolean;
   /** On a phone (spec 038, FR-033): the button never grows past its row, its name cut with an ellipsis before the counts are. */
   compact?: boolean;
   /** One step older (−1) or newer (+1) without the picker; absent, no arrows. */
@@ -25,6 +27,12 @@ export type VersionButtonProps = {
 
 /** A version that cannot be read: scarlet, a colour no point on the track uses. */
 export const VERSION_PROBLEM_COLOUR = "#e11d48";
+
+/** A new version in the history: blue, so it never reads as a problem. */
+export const VERSION_FRESH_COLOUR = "#2563eb";
+
+/** What the mark of a new version says. */
+export const VERSION_FRESH_TEXT = "A new version is in the history";
 
 /** A key as the hint draws it: a small plate. */
 export function Key({ children }: { children: ReactNode }) {
@@ -141,7 +149,7 @@ export function HistoryIcon() {
  * carries the diagram's counts — ``◷ A 0.8.0 → B 0.9.0  +15 −1 ~3 ▾`` — or "no changes" (spec 038, FR-025, FR-026); on a
  * phone the page gives it the short names (``A #128 → B #129``) and it cuts the name, never the counts (FR-033).
  */
-export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick, counts = null, problem = null, compact = false, onStep, canStep = { older: true, newer: true } }, ref) {
+export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(function VersionButton({ name, open, onClick, counts = null, problem = null, fresh = false, compact = false, onStep, canStep = { older: true, newer: true } }, ref) {
   const button = (
     <ButtonBase
       ref={ref}
@@ -182,6 +190,11 @@ export const VersionButton = forwardRef<HTMLButtonElement, VersionButtonProps>(f
             <span style={{ color: COUNT_COLOUR.changed }}>~{counts.changed}</span>
           </span>
         ))}
+      {fresh && (
+        <Tooltip title={VERSION_FRESH_TEXT}>
+          <Box component="span" data-testid="version-fresh-mark" aria-label={VERSION_FRESH_TEXT} sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: VERSION_FRESH_COLOUR, flexShrink: 0 }} />
+        </Tooltip>
+      )}
       {problem && (
         <Tooltip title={problem}>
           <Box component="span" data-testid="version-problem-mark" aria-label={problem} sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: VERSION_PROBLEM_COLOUR, flexShrink: 0 }} />

@@ -61,6 +61,24 @@ describe("the history a tab shows", () => {
     expect(result.current.notice).toBeNull();
   });
 
+  it("marks a new version or open pull request as fresh, changes nothing chosen, and forgets the mark once seen", () => {
+    const { result } = renderHook(() => useOpenHistory(false));
+    act(() => result.current.show(opened([version(1), version(2)], null), "k", id(1)));
+    expect(result.current.fresh).toBe(false);
+    act(() => result.current.takeList([version(1), version(2)], null, "e1"));
+    expect(result.current.fresh).toBe(false);
+    act(() => result.current.takeList([version(1), version(2), version(3)], null, "e2"));
+    expect(result.current.fresh).toBe(true);
+    expect(result.current.history?.b).toBe(id(1));
+    expect(result.current.notice).toBeNull();
+    act(() => result.current.seen());
+    expect(result.current.fresh).toBe(false);
+    act(() => result.current.takeList([version(1), version(2), version(3)], null, "e3", { proposals: [version(4)] }));
+    expect(result.current.fresh).toBe(true);
+    act(() => result.current.show(opened([version(1)], null), "k", null));
+    expect(result.current.fresh).toBe(false);
+  });
+
   it("moves off Live when Live goes, and off a version that disappears, saying why", () => {
     const { result } = renderHook(() => useOpenHistory(false));
     act(() => result.current.show(opened([version(1), version(2)], LIVE), "k", null));

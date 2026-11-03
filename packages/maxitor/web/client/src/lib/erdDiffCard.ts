@@ -5,7 +5,7 @@
  * its ``entity_relation`` edge. The card asks the server for each and shows what changed in those it has.
  */
 import type { ChangedPart } from "@/api/compare";
-import type { ErdDiff, ErdEntity, ErdRelation } from "@/lib/buildDotSource";
+import type { ErdDiff, ErdEntity, ErdField, ErdRelation } from "@/lib/buildDotSource";
 import type { GraphvizChange } from "@/lib/useGraphvizChangeStepping";
 import { relationKey } from "@/lib/erdDiff";
 
@@ -28,6 +28,9 @@ export type CardTarget = {
 
 /** What a table that changed domain says: its properties are the same. */
 export const MOVED_DOMAIN = "Moved to another domain.";
+
+/** What a lifecycle's row says when its states or transitions changed: they are listed under it. */
+export const LIFECYCLE_CHANGED = "Its lifecycle changed.";
 
 /** What a table says when only its rows changed. */
 export const FIELDS_CHANGED = "Its fields changed.";
@@ -54,15 +57,28 @@ export function erdChanges(entities: readonly ErdEntity[], relations: readonly E
   const changes: ErdChange[] = [];
   entities.forEach((entity, table) => {
     const title = entity.label || entity.id;
-    if (marked(entity.diff)) changes.push({ key: entity.id, title, detail: "Table", status: entity.diff, group: title, cell: `a_hd${table}`, card: { title, status: entity.diff, elements: [{ kind: "node", id: entity.id }], ...(entity.movedDomain ? { note: MOVED_DOMAIN } : {}) } });
+    if (marked(entity.diff)) changes.push({ key: entity.id, title, detail: "Table", status: entity.diff, group: title, cell: `a_hd${table}`, card: { title, status: entity.diff, elements: [{ kind: "node", id: entity.id }], ...tableInside(entity) } });
     (entity.fields ?? []).forEach((field, row) => {
-      if (marked(field.diff)) changes.push({ key: `${entity.id}:${field.name}`, title: field.name, detail: field.type ?? "", status: field.diff, group: title, cell: `a_fn${table}_${row}`, card: { title: field.name, status: field.diff, elements: rowElements(entity.id, field.name) } });
+      if (marked(field.diff)) changes.push({ key: `${entity.id}:${field.name}`, title: field.name, detail: field.type ?? "", status: field.diff, group: title, cell: `a_fn${table}_${row}`, card: rowCard(entity.id, field, field.diff) });
     });
   });
   relations.forEach((relation, line) => {
     if (!relation.source_field && marked(relation.diff)) changes.push({ key: relationKey(relation), title: `${shortName(relation.source)} → ${shortName(relation.target)}`, detail: relation.relationship_kind ?? "", status: relation.diff, group: "Lines", cell: `re${line}`, card: null });
   });
   return changes;
+}
+
+/** What a table's card adds to its own properties: that it moved, or the lifecycle changes that changed it. */
+export function tableInside(entity: ErdEntity): Pick<CardTarget, "note" | "parts"> {
+  if (entity.movedDomain) return { note: MOVED_DOMAIN };
+  const parts = (entity.fields ?? []).flatMap((field) => field.lifecycle_parts ?? []);
+  return parts.length ? { note: LIFECYCLE_CHANGED, parts } : {};
+}
+
+/** A marked row's card: its elements, and for a lifecycle's row the states and transitions that changed. */
+export function rowCard(entityId: string, field: ErdField, status: Marked): CardTarget {
+  const inside = field.lifecycle_parts?.length ? { note: LIFECYCLE_CHANGED, parts: field.lifecycle_parts } : {};
+  return { title: field.name, status, elements: rowElements(entityId, field.name), ...inside };
 }
 
 /** The elements a row of ``entity`` stands for. */

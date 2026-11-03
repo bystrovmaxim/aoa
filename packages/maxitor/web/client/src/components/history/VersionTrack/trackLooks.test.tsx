@@ -32,7 +32,7 @@ const dot = (b: string) => screen.getByTestId(`point-${b}`).querySelectorAll("ci
 /** The stretch of line that leads to point ``b``. */
 const line = (container: HTMLElement, x: string) => container.querySelector(`line[x2="${x}"]`);
 
-const history = [version(1, false, [{ name: "v0.1.0", release: null }]), version(2, false), version(3, true, [{ name: "v0.2.0", release: null }, { name: "release-0.2", release: null }]), version(4, true, [{ name: "prod", release: null }])];
+const history = [version(1, false, [{ name: "v0.1.0", release: null }]), version(2, false), version(3, true, [{ name: "v0.2.0", release: { title: "Spring", url: "https://r" } }, { name: "release-0.2", release: null }]), version(4, true, [{ name: "prod", release: null }])];
 
 describe("one colour per kind of point (FR-037)", () => {
   it("draws a direct push grey, a merged pull request purple, Live hollow grey", () => {
@@ -76,6 +76,14 @@ describe("open pull requests and Live (FR-036, FR-037)", () => {
     expect(x(id(proposal(2, "approved")))).toBeGreaterThan(x(id(proposal(1, "open"))));
   });
 
+  it("draws an open pull request that raises only the version as a small point", () => {
+    const versionOnly = { ...proposal(1, "open"), graph_changed: false, version: "2.0.1", version_changed: true };
+    render(<VersionTrack versions={history} live={null} proposals={[versionOnly, proposal(2, "open")]} value={null} onChange={() => undefined} width={700} />);
+    const size = (v: HistoryVersion) => screen.getByTestId(`point-${id(v)}`).querySelector("[data-state]")?.getAttribute("data-size");
+    expect(size(versionOnly)).toBe("small");
+    expect(size(proposal(2, "open"))).toBe("large");
+  });
+
   it("draws Live and the newest version as one point when Live runs exactly its graph", () => {
     render(<VersionTrack versions={history} live={LIVE} liveIs={history[3].sha} value="live" onChange={() => undefined} width={700} />);
     expect(screen.queryByTestId(`point-${id(history[3])}`)).toBeNull();
@@ -99,7 +107,7 @@ describe("names and flags (FR-017, FR-033)", () => {
     expect(screen.queryAllByTestId(/^label-/).map((label) => label.textContent)).toEqual(["Live"]);
   });
 
-  it("flags only a release", () => {
+  it("flags only a GitHub Release, never a tag named release… alone", () => {
     render(<VersionTrack versions={history} live={null} value={null} onChange={() => undefined} width={700} />);
     expect(screen.queryAllByTestId(/^flag-/).map((flag) => flag.getAttribute("data-testid"))).toEqual([`flag-${id(history[2])}`]);
   });

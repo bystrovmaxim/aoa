@@ -15,6 +15,10 @@ import { thinLabels } from "./thinLabels";
 const AXIS_Y = 26;
 const LABEL_Y = 52;
 const HEIGHT = 64;
+/** In Diff A's chip stands above the axis as far as B's stands under it, so the two never meet. */
+const A_CHIP_Y = 2 * AXIS_Y - LABEL_Y;
+/** The room the track grows by above its top for A's chip. */
+const RANGE_TOP = 10;
 /** Room at each end of the axis. */
 const PAD = 16;
 /** The dashed gap before Live, in steps of the track (the mockup's 1.4). */
@@ -124,7 +128,8 @@ export function layOut(
       b: shortSha(proposal),
       x: start + at * step,
       name: `#${proposal.pr?.number ?? at + 1}`,
-      large: false,
+      // One that raises only the version, not the graph, is small, as a merged one would be.
+      large: proposal.graph_changed !== false,
       named: false,
       refused: Boolean(proposal.refused),
       flags: [],
@@ -162,13 +167,13 @@ function chipHalf(text: string): number {
   return (text.length * 6.3 + 16) / 2;
 }
 
-/** The chosen version's chip under the track: dark, its name in white, centred on ``x``. */
-function Chip({ x, text, colour = INK }: { x: number; text: string; colour?: string }) {
+/** The chosen version's chip: dark, its name in white, centred on ``x``, under the track unless ``y`` says where. */
+function Chip({ x, text, colour = INK, y = LABEL_Y }: { x: number; text: string; colour?: string; y?: number }) {
   const half = chipHalf(text);
   return (
     <g data-testid="chip">
-      <rect x={x - half} y={LABEL_Y - 9} width={half * 2} height={18} rx={9} fill={colour} />
-      <text x={x} y={LABEL_Y + 3.8} fontSize={10.5} fontWeight={600} fill="#fff" textAnchor="middle">
+      <rect x={x - half} y={y - 9} width={half * 2} height={18} rx={9} fill={colour} />
+      <text x={x} y={y + 3.8} fontSize={10.5} fontWeight={600} fill="#fff" textAnchor="middle">
         {text}
       </text>
     </g>
@@ -242,6 +247,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const followedTrack = mirrored?.panels.track ?? null;
   const followedPreview = followedTrack?.a && followedTrack.b ? { a: followedTrack.a, b: followedTrack.b } : null;
   const shownRange = range ? ((mirrored ? followedPreview : preview) ?? range) : null;
+  // In Diff the track grows by the room above its axis where A's chip stands.
+  const top = shownRange ? RANGE_TOP : 0;
   // What is chosen stays on the track while it is chosen, hidden or not (spec 051, FR-010).
   const chosenKeys = [value, range?.a, range?.b, shownRange?.a, shownRange?.b].filter((key) => key !== null && key !== undefined).join(" ");
   const { points, length } = useMemo(
@@ -365,7 +372,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   /** Where point ``point``'s target stands on the screen. */
   function rectOfPoint(point: Point, element: HTMLElement): DOMRect {
     const box = element.getBoundingClientRect();
-    return new DOMRect(box.left + point.x - element.scrollLeft - hitRadius, box.top + AXIS_Y - hitRadius, hitRadius * 2, hitRadius * 2);
+    return new DOMRect(box.left + point.x - element.scrollLeft - hitRadius, box.top + top + AXIS_Y - hitRadius, hitRadius * 2, hitRadius * 2);
   }
 
   /** Scroll smoothly by the few pixels between point ``b`` and the pointer; nothing when they already meet. */
@@ -533,19 +540,21 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
   const chipText = chosen ? `${shownRange ? "B " : ""}${nameOnChip(chosen)}` : "";
   const olderText = older ? `A ${nameOnChip(older)}` : "";
   const pinWidth = chosen ? chipHalf(chipText) * 2 + 16 : 0;
-  // The two chips never cover each other: when they would, each moves aside by half of what they share.
-  const [olderChipX, chipX] = older && chosen ? apart(older.x, chipHalf(olderText), chosen.x, chipHalf(chipText), length) : [0, chosen ? clamp(chosen.x, chipHalf(chipText) + 1, length - chipHalf(chipText) - 1) : 0];
+  // Each chip stands over its own point, kept on the track; in Diff A's is above the axis and B's under it.
+  const onTrack = (x: number, text: string) => clamp(x, chipHalf(text) + 1, length - chipHalf(text) - 1);
+  const chipX = chosen ? onTrack(chosen.x, chipText) : 0;
+  const olderChipX = older ? onTrack(older.x, olderText) : 0;
 
   // The points are drawn once per choice, hover or pin — not once per scrolled pixel.
   const body = useMemo(() => {
     // No name stands where a chosen version's chip does.
-    const underChip = (x: number) =>
-      (chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20) || (older !== null && !olderPinned && Math.abs(x - older.x) < chipHalf(olderText) + 20);
+    const underChip = (x: number) => chosen !== null && !pinned && Math.abs(x - chosen.x) < chipHalf(chipText) + 20;
     // Names under the track: a version's own point by its number (``0.8.0``), as the mockup names it, and Live;
     // no dates. Names thin out where they would collide, never under the chip.
-    const shown = trackLabels(points, (point) => point.b !== chosen?.b && point.b !== older?.b && !underChip(point.x));
+    // A's chip stands above the axis, so the name under A's point stays; B's chip covers its own point's name.
+    const shown = trackLabels(points, (point) => point.b !== chosen?.b && !underChip(point.x));
     return (
-      <svg width={length} height={HEIGHT} viewBox={`0 0 ${length} ${HEIGHT}`} fontFamily="ui-sans-serif, system-ui, sans-serif" style={{ display: "block" }}>
+      <svg width={length} height={HEIGHT + top} viewBox={`0 ${-top} ${length} ${HEIGHT + top}`} fontFamily="ui-sans-serif, system-ui, sans-serif" style={{ display: "block" }}>
         <defs>
           <filter id="track-shadow" x="-60%" y="-60%" width="220%" height="220%">
             <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor={INK} floodOpacity=".22" />
@@ -612,9 +621,10 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             ) : point.state && !point.refused ? (
               <circle
                 data-state={point.state}
+                data-size={point.large ? "large" : "small"}
                 cx={point.x}
                 cy={AXIS_Y}
-                r={3.6}
+                r={point.large ? 3.6 : 2.4}
                 fill={PROPOSAL_LOOK[point.state].colour}
                 stroke={PROPOSAL_LOOK[point.state].colour}
                 strokeWidth={1.4}
@@ -665,14 +675,14 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
               >
                 <circle cx={point.x} cy={AXIS_Y} r={hitRadius} fill="transparent" />
                 <Knob x={point.x} point={point} />
-                <Chip x={x} text={text} colour={INK} />
+                <Chip x={x} text={text} colour={INK} y={side === "a" ? A_CHIP_Y : LABEL_Y} />
               </g>
             ) : null,
           )}
       </svg>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, length, value, chosen, older, pinned, olderPinned, hovered, hitRadius, live, onChange, shownRange, chipX, olderChipX]);
+  }, [points, length, value, chosen, older, pinned, olderPinned, hovered, hitRadius, live, onChange, shownRange, chipX, olderChipX, top]);
 
   const tipPoint = hovered ? (points.find((point) => point.b === hovered) ?? null) : null;
   // Your own tooltip stays where it opened while the track scrolls under it; a followed one stands at its point.
@@ -696,7 +706,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
       onKeyDown={onKeyDown}
       data-testid="track"
       data-offset={shownOffset}
-      sx={{ position: "relative", width, height: HEIGHT, outline: "none", userSelect: "none", "&:focus-visible": { outline: "2px solid rgba(15, 23, 42, 0.2)", borderRadius: "6px" } }}
+      sx={{ position: "relative", width, height: HEIGHT + top, outline: "none", userSelect: "none", "&:focus-visible": { outline: "2px solid rgba(15, 23, 42, 0.2)", borderRadius: "6px" } }}
     >
       <Box
         ref={scroller}
@@ -714,7 +724,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
         }}
         sx={{
           width,
-          height: HEIGHT,
+          height: HEIGHT + top,
           overflowX: "auto",
           overflowY: "hidden",
           // No scrollbar, and a swipe past either end never takes the browser back a page.
@@ -739,7 +749,7 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
         </Popper>
       )}
       {newer > 0 && !pins.some((pin) => pin.edge === "right") && (
-        <Box data-testid="newer" sx={{ position: "absolute", right: 0, top: LABEL_Y - 7, pl: "8px", bgcolor: "#fff", fontSize: 10.5, color: "#64748b", lineHeight: "16px", pointerEvents: "none" }}>
+        <Box data-testid="newer" sx={{ position: "absolute", right: 0, top: top + LABEL_Y - 7, pl: "8px", bgcolor: "#fff", fontSize: 10.5, color: "#64748b", lineHeight: "16px", pointerEvents: "none" }}>
           {`${newer} newer ›`}
         </Box>
       )}
@@ -752,7 +762,8 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
             role="button"
             aria-label={`Scroll back to ${text}`}
             width={range ? widthOfPin : pinWidth}
-            height={HEIGHT}
+            height={HEIGHT + top}
+            viewBox={`0 ${-top} ${range ? widthOfPin : pinWidth} ${HEIGHT + top}`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => scrollTo(point.x)}
             style={{ position: "absolute", top: 0, [edge]: 0, cursor: "pointer", background: "#fff" }}
@@ -761,13 +772,13 @@ export function VersionTrack({ versions, live, value, onChange, width, touch = f
               <>
                 <path d={`M10 ${AXIS_Y}l5-4.5v9z`} fill="#334155" />
                 <Knob x={26} point={point} shadow={false} />
-                <Chip x={8 + chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} />
+                <Chip x={8 + chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} />
               </>
             ) : (
               <>
                 <path d={`M${widthOfPin - 10} ${AXIS_Y}l-5-4.5v9z`} fill="#334155" />
                 <Knob x={widthOfPin - 26} point={point} shadow={false} />
-                <Chip x={widthOfPin - 8 - chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} />
+                <Chip x={widthOfPin - 8 - chipHalf(text)} text={text} colour={range ? INK : lookOf(point).colour} y={range && point === older ? A_CHIP_Y : LABEL_Y} />
               </>
             )}
           </svg>
@@ -787,13 +798,6 @@ function openingOffset(chosen: Point | null, older: Point | null, width: number,
   if (!chosen) return maxOffset;
   const centre = older && chosen.x - older.x <= width - 2 * PAD ? (older.x + chosen.x) / 2 : chosen.x;
   return clamp(centre - width / 2, 0, maxOffset);
-}
-
-/** Two chips' centres moved apart by half of what they would share, each kept on the track. */
-function apart(left: number, leftHalf: number, right: number, rightHalf: number, length: number): [number, number] {
-  const overlap = leftHalf + rightHalf + 4 - (right - left);
-  const shift = overlap > 0 ? overlap / 2 : 0;
-  return [clamp(left - shift, leftHalf + 1, length - leftHalf - 1), clamp(right + shift, rightHalf + 1, length - rightHalf - 1)];
 }
 
 /**

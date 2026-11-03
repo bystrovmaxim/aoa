@@ -47,13 +47,13 @@ describe("names on the track (R10, FR-018)", () => {
     expect(releaseOf(version(1, { tags: [{ name: "release-4", release: null }] }))).toBeNull();
   });
 
-  it("flags a release: a GitHub Release, or a tag named release…; any other tag is no flag", () => {
+  it("flags only a GitHub Release; a tag is no release by its name alone", () => {
     const published = version(1, { tags: [{ name: "v1.0.0", release: { title: "Spring", url: "https://r" } }, { name: "prod", release: null }] });
     expect(flagsOf(published)).toEqual(["v1.0.0"]);
     expect(releaseNoteOf(published)).toEqual({ title: "Spring", url: "https://r" });
     const tagged = version(2, { tags: [{ name: "release/2026-10-30", release: null }] });
-    expect(flagsOf(tagged)).toEqual(["release/2026-10-30"]);
-    expect(releaseNoteOf(tagged)).toEqual({ title: "release/2026-10-30", url: "" });
+    expect(flagsOf(tagged)).toEqual([]);
+    expect(releaseNoteOf(tagged)).toBeNull();
     expect(flagsOf(versions[4])).toEqual([]);
     expect(flagsOf(versions[2])).toEqual([]);
     expect(releaseNoteOf(versions[4])).toBeNull();
