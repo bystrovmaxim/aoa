@@ -4,7 +4,8 @@
  * is read from. The mode follows the list (FR-009a); a history opens on its default version (FR-021);
  * a ``b`` the history does not offer falls back to that default; outside a room the list is polled
  * every 30 seconds with its ``ETag`` (FR-006a), and a version that disappears, or Live that goes,
- * moves the tab to the default with a notice. A list that brings a version or an open pull request the tab has not
+ * moves the tab to the default with a notice. An open pull request is followed by its number, not its commit: merged, the
+ * tab moves to its merge; given new commits, to its new head; each with a notice, as when it closes and is gone. A list that brings a version or an open pull request the tab has not
  * seen changes nothing on screen: it only marks the history fresh until the picker is opened. In Diff (spec 038) the tab holds two versions, A before B on
  * the track; an end that leaves the list moves toward the other, and when the two would meet one is left.
  */
@@ -12,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { historyVersions, type HistoryVersion, type OpenedHistory } from "@/api/history";
 import { modeOf, type HistoryMode } from "@/model/historyMode";
-import { defaultVersion, nameOf } from "@/lib/versionNames";
+import { defaultVersion, nameOf, shortSha } from "@/lib/versionNames";
 import { afterListChange, normalise, trackKeys, type Range } from "@/lib/versionRange";
 
 /** How often a tab outside a room asks whether its history's list changed. */
@@ -77,6 +78,22 @@ function fullKey(keys: readonly string[], b: string): string {
   return keys.find((key) => key === b || (b !== "live" && key !== "live" && (key.startsWith(b) || b.startsWith(key)))) ?? b;
 }
 
+/**
+ * Where ``key`` — an end of the tab — stands in ``next`` when it was an open pull request of ``current`` whose head left
+ * the list, and what to say: merged, it is the version that pull request made; given new commits, its new head; closed or
+ * made a draft, it is gone (``key`` unchanged, the caller moves it). ``note`` is ``null`` when nothing happened to it.
+ */
+function followPull(current: OpenHistory, next: OpenHistory, key: string): { key: string; note: string | null } {
+  if (key === "live" || offers(next, key)) return { key, note: null };
+  const number = current.proposals.find((proposal) => proposal.sha.startsWith(key))?.pr?.number;
+  if (number === undefined) return { key, note: null };
+  const head = next.proposals.find((proposal) => proposal.pr?.number === number);
+  if (head) return { key: shortSha(head), note: `#${number} was updated` };
+  const merged = next.versions.find((version) => version.pr?.number === number);
+  if (merged) return { key: shortSha(merged), note: `#${number} was merged` };
+  return { key, note: `#${number} was closed or became a draft` };
+}
+
 export function useOpenHistory(polling: boolean) {
   const [history, setHistory] = useState<OpenHistory | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -133,7 +150,7 @@ export function useOpenHistory(polling: boolean) {
   /** The reader looked at the track: the mark of a new version goes. */
   const seen = useCallback(() => setFresh(false), []);
 
-  /** Take a new list: keep the version when it is still offered, else move to the default and say why. */
+  /** Take a new list: keep the version when it is still offered, follow an open pull request by its number, else move to the default and say why. */
   const takeList = useCallback((versions: HistoryVersion[], live: string | null, etag: string | null, more: { liveSameAs?: string | null; proposals?: HistoryVersion[]; versionFile?: string | null; versionProblem?: string | null } = {}) => {
     const current = historyRef.current;
     if (!current) return;
@@ -141,10 +158,22 @@ export function useOpenHistory(polling: boolean) {
     const known = new Set([...current.versions, ...current.proposals].map((version) => version.sha));
     if ([...versions, ...(more.proposals ?? [])].some((version) => !known.has(version.sha))) setFresh(true);
     const next = { ...current, versions, live, liveSameAs, proposals: more.proposals ?? [], versionFile: more.versionFile === undefined ? current.versionFile : more.versionFile, versionProblem: more.versionProblem === undefined ? current.versionProblem : more.versionProblem, etag, b: asLive(current.b, liveSameAs), a: current.a ? asLive(current.a, liveSameAs) : null };
+    // An open pull request whose head left the list is the same pull request: follow it to its merge or its new head.
+    const a = current.a ? followPull(current, next, next.a ?? current.a) : null;
+    const b = current.b ? followPull(current, next, next.b ?? current.b) : null;
+    const said = [a?.note, b?.note].filter((note): note is string => Boolean(note));
+    if (said.length) {
+      const range = normalise(keysOf(next), a?.key ?? null, b?.key ?? null);
+      if (range && (!current.a || range.a)) {
+        setNotice(said.join(" · "));
+        setHistory({ ...next, a: range.a, b: range.b, split: next.split && range.a !== null });
+        return;
+      }
+    }
     if (current.a && current.b) {
       // In Diff an end that left moves toward the other; when they would meet, one version is left.
       const range = afterListChange(keysOf(current), keysOf(next), { a: current.a, b: current.b });
-      if (range && (range.a !== current.a || range.b !== current.b)) setNotice("A version of the comparison is no longer in the history");
+      if (range && (range.a !== current.a || range.b !== current.b)) setNotice(said.join(" · ") || "A version of the comparison is no longer in the history");
       if (range) {
         setHistory({ ...next, a: range.a, b: range.b });
         return;
@@ -155,7 +184,7 @@ export function useOpenHistory(polling: boolean) {
     if (!offers(next, current.b)) {
       const gone = current.b === "live" ? "Live is no longer part of this history" : `${nameOf(current.versions, current.b) ?? current.b} is no longer in the history`;
       next.b = defaultVersion(versions, live);
-      if (current.b) setNotice(gone);
+      if (current.b) setNotice(said.join(" · ") || gone);
     }
     setHistory(next);
   }, []);
