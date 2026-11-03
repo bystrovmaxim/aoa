@@ -47,7 +47,7 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | ✅ V11 (#384) | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
 | ✅ M5 (#385) | small | A's chip reads apart from B's | **Maxitor only**: in Diff and Side by side the chip of A is white with a dark outline and dark text, B's stays dark, on the track and pinned to its edge | not shown | — |
 | ✅ V12 (#386) | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. After the merge, the demo's release | large point, release flag | 3.14.0 🚩 |
-| ⏸ V13 (#387, open) | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. The pull request stays open | after Live, open | 3.15.0 |
+| ✅ V13 (#387) | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. The pull request stays open | after Live, open | 3.15.0 |
 
 ## Where each kind of change is found
 

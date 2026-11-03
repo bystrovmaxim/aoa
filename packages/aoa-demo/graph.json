@@ -40242,6 +40242,18 @@
       "type": "lifecycle"
     },
     {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged|approved",
+      "is_dag": false,
+      "properties": {
+        "from_state": "approved",
+        "to_state": "exchanged"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged",
+      "type": "lifecycle_transition"
+    },
+    {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded|approved",
       "is_dag": false,
       "properties": {
@@ -40286,6 +40298,17 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
       "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
+      "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged",
+      "is_dag": false,
+      "properties": {
+        "state_key": "exchanged"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged",
       "type": "lifecycle_contains_state"
     },
     {
@@ -40334,6 +40357,18 @@
       "type": "lifecycle_transition"
     },
     {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged|approved",
+      "is_dag": false,
+      "properties": {
+        "from_state": "approved",
+        "to_state": "exchanged"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged",
+      "type": "lifecycle_transition"
+    },
+    {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded|approved",
       "is_dag": false,
       "properties": {
@@ -40371,7 +40406,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "compliance_rating",
-        "ordinal": 6
+        "ordinal": 7
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40379,11 +40414,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_field|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:exchange_sku",
+      "is_dag": false,
+      "properties": {
+        "field_name": "exchange_sku",
+        "ordinal": 4
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:exchange_sku",
+      "type": "entity_field"
+    },
+    {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_field|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:fulfillment_priority",
       "is_dag": false,
       "properties": {
         "field_name": "fulfillment_priority",
-        "ordinal": 7
+        "ordinal": 8
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40443,7 +40490,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "status",
-        "ordinal": 4
+        "ordinal": 5
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40455,7 +40502,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "storefront_channel",
-        "ordinal": 5
+        "ordinal": 6
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40467,7 +40514,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "tax_jurisdiction_stub",
-        "ordinal": 8
+        "ordinal": 9
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -84361,6 +84408,17 @@
       "type": "EntityField"
     },
     {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:exchange_sku",
+      "label": "exchange_sku",
+      "properties": {
+        "description": "Product the customer takes instead of a refund; none for a refund",
+        "field_annotation": "Union[str, NoneType]",
+        "field_type": "str | None",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:fulfillment_priority",
       "label": "fulfillment_priority",
       "properties": {
@@ -84415,6 +84473,20 @@
         "state_key": "approved"
       },
       "type": "StateIntermediate"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:exchanged",
+      "label": "Exchanged",
+      "properties": {
+        "attributes": {
+          "code": "exchanged",
+          "display_name": "Exchanged",
+          "sort_order": 5
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.return_request_lifecycle.ReturnRequestLifecycle",
+        "state_key": "exchanged"
+      },
+      "type": "StateFinal"
     },
     {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
