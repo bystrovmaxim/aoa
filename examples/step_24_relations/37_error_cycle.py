@@ -1,0 +1,96 @@
+"""Specialization cannot form a cycle.
+Run: .venv/bin/python examples/step_24_relations/37_error_cycle.py
+
+
+Make two classes specialize one another.
+"""
+
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import Field
+
+from aoa.action_machine.domain import (
+    BaseEnumEntity,
+    BaseSpecEntity,
+    Classifier,
+    Generalization,
+    Inverse,
+    Specialization,
+    value,
+)
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entity import entity
+
+
+class MusicDomain(BaseDomain):
+    """Group the cycle experiment."""
+
+    name = "music"
+    description = "Cycle experiment"
+
+
+@entity(description="Kind of ASpecEntity", domain=MusicDomain)
+class ASpecEntityKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    B = value(code="b", display_name="B")
+
+
+@entity(description="First level", domain=MusicDomain)
+class ASpecEntity(BaseSpecEntity):
+    """Declare the first level of detail."""
+
+    id: str = Field(description="Identifier")
+    detail: Annotated[Specialization[BSpecEntity, ASpecEntityKindEnumEntity], Inverse(field_name="back")] = Field(
+        description="Next level"
+    )
+    back: Annotated[
+        Generalization[BSpecEntity],
+        Classifier(variant=BSpecEntityKindEnumEntity.A),
+        Inverse(field_name="detail"),
+    ] = Field(description="Return to B")
+
+
+@entity(description="Kind of BSpecEntity", domain=MusicDomain)
+class BSpecEntityKindEnumEntity(BaseEnumEntity):
+    """Declare the codes the axis borrows."""
+
+    A = value(code="a", display_name="A")
+
+
+@entity(description="Second level", domain=MusicDomain)
+class BSpecEntity(BaseSpecEntity):
+    """Declare the second level of detail."""
+
+    id: str = Field(description="Identifier")
+    back: Annotated[
+        Generalization[ASpecEntity],
+        Classifier(variant=ASpecEntityKindEnumEntity.B),
+        Inverse(ASpecEntity, "detail"),
+    ] = Field(description="Return to A")
+    detail: Annotated[Specialization[ASpecEntity, BSpecEntityKindEnumEntity], Inverse(field_name="back")] = Field(
+        description="Next level"
+    )
+
+
+ASpecEntity.model_rebuild()
+BSpecEntity.model_rebuild()
+
+
+def main() -> None:
+    """Run this one learning experiment."""
+    from aoa.action_machine.domain.exceptions import SpecializationDeclarationError
+    from aoa.action_machine.graph.validators.entity_specialization_validator import validate_entity_specializations
+
+    try:
+        validate_entity_specializations()
+    except SpecializationDeclarationError as error:
+        print(type(error).__name__ + ": " + str(error))
+    else:
+        raise AssertionError("The broken declaration was accepted")
+
+
+if __name__ == "__main__":
+    main()
