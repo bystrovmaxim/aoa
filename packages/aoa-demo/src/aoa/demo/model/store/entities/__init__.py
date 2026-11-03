@@ -10,6 +10,7 @@ from aoa.demo.model.store.entities.payment_authorization import PaymentAuthoriza
 from aoa.demo.model.store.entities.payment_capture import PaymentCaptureCoreEntity
 from aoa.demo.model.store.entities.refund_request import RefundRequestCoreEntity
 from aoa.demo.model.store.entities.return_request import ReturnRequestCoreEntity
+from aoa.demo.model.store.entities.return_request_lifecycle import ReturnRequestLifecycle
 from aoa.demo.model.store.entities.sales_core import (
     CustomerAccountCoreEntity,
     SalesOrderCoreEntity,
@@ -85,6 +86,7 @@ __all__ = [
     "PickVarianceRecordCoreEntity",
     "RefundRequestCoreEntity",
     "ReturnRequestCoreEntity",
+    "ReturnRequestLifecycle",
     "RevenueDeferralScheduleCoreEntity",
     "SalesOrderCoreEntity",
     "SalesOrderLifecycle",

@@ -4,6 +4,7 @@ from aoa.demo.model.store.actions.inventory_hold_stub import InventoryHoldStubAc
 from aoa.demo.model.store.actions.loyalty_points_stub import LoyaltyPointsStubAction
 from aoa.demo.model.store.actions.order_lookup import OrderLookupAction
 from aoa.demo.model.store.actions.ping import OpsPingAction
+from aoa.demo.model.store.actions.return_approve import ReturnApproveAction
 from aoa.demo.model.store.actions.role_migration import RoleMigrationAction
 from aoa.demo.model.store.actions.store_read import StoreReadAction
 from aoa.demo.model.store.actions.store_read_use_case_demo import StoreReadUseCaseDemoAction
@@ -21,6 +22,8 @@ OrderLookupParams = StoreReadAction.Params
 OrderLookupResult = StoreReadAction.Result
 StoreReadParams = StoreReadAction.Params
 StoreReadResult = StoreReadAction.Result
+ReturnApproveParams = ReturnApproveAction.Params
+ReturnApproveResult = ReturnApproveAction.Result
 RoleMigrationParams = RoleMigrationAction.Params
 RoleMigrationResult = RoleMigrationAction.Result
 StoreReadUseCaseDemoParams = StoreReadUseCaseDemoAction.Params
@@ -44,6 +47,9 @@ __all__ = [
     "OrderLookupAction",
     "OrderLookupParams",
     "OrderLookupResult",
+    "ReturnApproveAction",
+    "ReturnApproveParams",
+    "ReturnApproveResult",
     "RoleMigrationAction",
     "RoleMigrationParams",
     "RoleMigrationResult",
