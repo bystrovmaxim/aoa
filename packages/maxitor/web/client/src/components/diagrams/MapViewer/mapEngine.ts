@@ -12,7 +12,7 @@ import { extremityArrow, layerFill, layerPlain, pathLine, sdfCircle } from "sigm
 
 import { drawnOn, type Half, type Side } from "@/lib/half";
 import { halfTracking, hoverAcross, pickedArea, pickedRatio, reportHalfHover, setPickedArea, setPickedRatio, subscribeHalfHover, TRACK_REST_MS, type Located } from "@/lib/halfPicking";
-import { mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
+import { comparesTwo, mapArea, type MapArea, type MapChange, type MapDetail, type MapLink, type MapMark, type MapNode, type MapOverview, type MapSketchCell } from "@/api/map";
 import type { CardProjection, CardSubject } from "@/components/diagrams/ElementCard";
 import { cardBeside } from "@/lib/cardPlace";
 import type { DiagramCounts } from "@/lib/erdDiff";
@@ -220,7 +220,7 @@ export class MapEngine {
     this.marks = new Map(half ? changes.map((change) => [change.id, change.status]) : []);
     this.areaIndex = new Map(overview.areas.map((area, index) => [area.id, index]));
     this.facts = mapFacts(overview);
-    this.paint = overview.links_changed === undefined ? "domains" : "changes";
+    this.paint = comparesTwo(overview) ? "changes" : "domains";
     this.views = overview.areas.map((area) => ({ path: circleOf(area), whole: null, left: 1, total: 1, x: area.x, y: area.y, radius: area.radius }));
     overview.areas.forEach((area, index) => this.graph.addNode(`@${index}`, { x: area.x, y: area.y, size: 0.1, area: index, centre: true, label: "" }));
     for (const bundle of overview.bundles) {

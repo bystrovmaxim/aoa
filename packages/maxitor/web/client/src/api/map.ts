@@ -46,9 +46,14 @@ export type MapOverview = {
   /** Both areas' ids, how many links join them, those links by their ends (``Type>Above|Type``) and, in a comparison, the changed ones by status. */
   bundles: MapBundle[];
   shared: { id: string; domains: string[] }[];
-  /** In a comparison, how many drawn links changed; absent for one version. */
-  links_changed?: number;
+  /** In a comparison, how many drawn links changed; absent or ``null`` for one version. */
+  links_changed?: number | null;
 };
+
+/** Whether ``overview`` is a comparison's: one version's answer carries no count of changed links, absent or ``null``. */
+export function comparesTwo(overview: MapOverview): boolean {
+  return overview.links_changed !== undefined && overview.links_changed !== null;
+}
 
 /** One node of an area, at its place on the map. */
 export type MapNode = { id: string; label: string; type: string; level: number; x: number; y: number; chain?: number; diff?: MapMark; glance?: MapMark };
