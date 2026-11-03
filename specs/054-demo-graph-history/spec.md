@@ -27,22 +27,22 @@ Maxitor shows the history of a service's graph: any past version, or two version
 
 | # | Size | Story | What changes | Track | Chip |
 |---|---|---|---|---|---|
-| V1 | small | a gift wrap gets a note for the recipient | ERD: field `recipient_note` added on the gift wrap. One change only | large point | 3.3.0 · #366 |
-| V2 | medium | subscriptions appear | ERD: table `Subscription` added, relations to customer and first order · Lifecycle: subscription lifecycle added (trial → active → cancelled) · Use case: action `SubscriptionStart` added | large point | 3.4.0 · #367 |
-| V3 | small | prices and statuses are made precise | ERD: field type changed, description rewritten · Lifecycle: transition added | large point | 3.5.0 · #368 |
-| C1 | small | a started subscription gets a readable id | the body of an aspect is rewritten; the graph stays | small point | 3.5.1 · #369 |
-| M1 | small | Maxitor flags only real releases | Maxitor only: a tag named `release…` with no GitHub Release is no longer a flag; the demo's graph stays | not shown | — |
-| N1 | small | the demo's README and tests are tidied | README and tests only, no version raised | not shown | — |
-| V4 | small | checkout gets a new check | Use case: an action changes only inside (params, result, aspects); nothing on any diagram moves | large point | 3.6.0 · #372 |
-| V5 | large | gift cards start, as their own domain | Full graph: domain added · Use case: roles and actions added, a role link changed · ERD: field removed in another domain · changes across several domains | large point, release flag | 3.7.0 · #373 🚩 |
-| V6 | medium | subscriptions are linked differently | ERD: a relation points at another table, another relation removed · Lifecycle: state added · Use case: an action changes inside | large point | 3.8.0 · #374 |
-| V7 | small | the warehouse takes a table from the catalogue | ERD: table moved to another domain · Lifecycle: state removed | large point | 3.9.0 · #375 |
-| C2 | small | the loyalty stub counts points per currency unit | the body of an aspect is rewritten; the graph stays | small point | 3.9.1 · #376 |
-| V8 | medium | roles are simplified | Use case: role removed, action removed · Lifecycle: transition removed | large point | 3.10.0 · #377 |
-| V9 | large | the gift card pilot is closed | Full graph: domain removed with its tables, actions and roles · Lifecycle: a lifecycle in another domain removed | large point | 3.11.0 · #378 |
-| V10 | small | the demo's first release | ERD: a description and one field | large point, release flag | 3.12.0 · #379 🚩 |
-| V11 | medium | work after the release | ERD: table and relation added · Use case: action and role added · Lifecycle: state added | large point | 3.13.0 · #380 |
-| V12 | medium | returns | a mixed change; the pull request stays open | after Live, open | 3.14.0 · #381 |
+| ✅ V1 (#366) | small | a gift wrap gets a note for the recipient | In the store domain, the gift wrap table (`GiftWrapAddon`) gains the field `recipient_note`, a note for the recipient. Nothing else | large point | 3.3.0 · #366 |
+| ✅ V2 (#367) | medium | subscriptions appear | In the store domain, a new table `Subscription` with the fields `plan_code` and `renewal_day` and two relations: to the customer (`CustomerAccount`) and to the first order (`SalesOrder`). The subscription has its own lifecycle: Trial → Active → Cancelled, and Trial straight to Cancelled. A new action `SubscriptionStart` for the editor role | large point | 3.4.0 · #367 |
+| ✅ V3 (#368) | small | prices and statuses are made precise | The discount (`DiscountApplication`) field `discount_amount` changes its type from `float` to `Decimal` and gets a new description. The customer lifecycle (`CustomerAccount`) gains the transition Provisioned → Closed | large point | 3.5.0 · #368 |
+| C1 | small | a started subscription gets a readable id | `SubscriptionStart` builds the subscription id differently: only the code inside changes, the graph stays | small point | 3.5.1 · #369 |
+| M1 | small | Maxitor flags only real releases | A change to Maxitor itself: a release flag only for a tag with a GitHub Release, not for a tag named `release…`. The demo is untouched | not shown | — |
+| N1 | small | the demo's README and tests are tidied | The demo's README and a test are tidied. The demo's version does not rise | not shown | — |
+| V4 | small | checkout gets a new check | The action `CheckoutSubmit` gains the parameter `promo_code` and a new step, "check the promo code". Nothing moves on any diagram: it shows only in the action's card | large point | 3.6.0 · #372 |
+| V5 | large | gift cards start, as their own domain | A new domain `gift_cards`: the tables `GiftCard` (lifecycle Issued → Active → Spent) and `GiftCardRedemption` (linked to the order); the roles gift card issuer and cashier; the actions issue a card and redeem a card. In store, `LoyaltyPointsStub` moves from the guest role to the viewer role, and the gift wrap loses the field `lineage_batch_token`. aoa is released before the merge, the demo's 3.7.0 after it | large point, release flag | 3.7.0 · #373 🚩 |
+| V6 | medium | subscriptions are linked differently | The subscription loses the relation `first_order`. The parcel's (`ShipmentParcel`) origin now points at the cross-dock (`CrossdockStaging`) instead of the warehouse (`FacilityWarehouse`). The subscription lifecycle gains the state Paused (Active ⇄ Paused). `SubscriptionStart` gains the parameter `renewal_day` (in its card) | large point | 3.8.0 · #374 |
+| V7 | small | the warehouse takes a table from the catalogue | The table `AvailabilityProjection` moves from the catalog domain to the inventory domain. The audit log lifecycle (`AuditLogEntry`) loses the state Indexed: now Written → Retained | large point | 3.9.0 · #375 |
+| C2 | small | the loyalty stub counts points per currency unit | The loyalty points stub counts points differently: only the code inside changes, the graph stays | small point | 3.9.1 · #376 |
+| V8 | medium | roles are simplified | The legacy role (`DeprecatedRole`) is removed; its action `RoleMigration` moves to the editor role. The action `CartAbandonStub` is removed. The customer lifecycle loses the transition Provisioned → Closed | large point | 3.10.0 · #377 |
+| V9 | large | the gift card pilot is closed | The domain `gift_cards` is removed whole: both tables, their lifecycle, roles and actions. The audit log (`AuditLogEntry`) loses its lifecycle | large point | 3.11.0 · #378 |
+| V10 | small | the demo's first release | The gift wrap gets a new description and a new field `wrap_color`. After the merge, the demo's release 3.12.0 | large point, release flag | 3.12.0 · #379 🚩 |
+| V11 | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
+| V12 | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. The pull request stays open | after Live, open | 3.14.0 · #381 |
 
 ## Where each kind of change is found
 
