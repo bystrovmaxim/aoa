@@ -31,4 +31,4 @@ class SubscriptionStartAction(BaseAction["SubscriptionStartAction.Params", "Subs
         box: ToolsBox,
         connections: Connections,
     ) -> SubscriptionStartAction.Result:
-        return SubscriptionStartAction.Result(subscription_id=f"{params.customer_id}:{params.plan_code}")
+        return SubscriptionStartAction.Result(subscription_id=f"sub-{params.plan_code.lower()}-{params.customer_id}")
