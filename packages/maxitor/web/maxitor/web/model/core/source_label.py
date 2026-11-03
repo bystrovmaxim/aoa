@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    "https://dev.demo.aoa.run/examples/model/graph-json" ──label()──► "https://dev.demo.aoa.run#3f9a1c2b"
+    "https://demo.aoa.run/examples/model/graph-json" ──label()──► "https://demo.aoa.run#3f9a1c2b"
 """
 
 from __future__ import annotations
