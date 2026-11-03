@@ -75,3 +75,13 @@ describe("a version problem", () => {
     expect(screen.queryByTestId("version-problem-mark")).toBeNull();
   });
 });
+
+describe("a new version", () => {
+  it("marks the button while one is unseen, with no count", () => {
+    const { rerender } = render(<VersionButton name="#2" open={false} onClick={() => undefined} fresh />);
+    expect(screen.getByTestId("version-fresh-mark").getAttribute("aria-label")).toBe("A new version is in the history");
+    expect(screen.getByTestId("version-fresh-mark").textContent).toBe("");
+    rerender(<VersionButton name="#2" open={false} onClick={() => undefined} />);
+    expect(screen.queryByTestId("version-fresh-mark")).toBeNull();
+  });
+});

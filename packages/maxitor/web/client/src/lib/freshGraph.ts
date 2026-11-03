@@ -77,7 +77,7 @@ export type ModelRefreshOptions = {
 
 /**
  * ``refresh`` re-reads the left panel and redraws the diagram, and puts the zoom and centre back on
- * the diagram drawn from the new graph; ``updated`` is true while *The model was updated* shows.
+ * the diagram drawn from the new graph; ``keep`` does the last part alone, for a redraw the caller makes; ``updated`` is true while *The model was updated* shows.
  * Page, settings and layout mode survive by themselves: they live outside the viewer.
  */
 export function useModelRefresh({ surface, rereadSidebar, redraw }: ModelRefreshOptions) {
@@ -86,13 +86,18 @@ export function useModelRefresh({ surface, rereadSidebar, redraw }: ModelRefresh
   const kept = useRef<{ view: SavedView; until: number } | null>(null);
   const [updated, setUpdated] = useState(false);
 
-  const refresh = useCallback(() => {
+  /** Hold the zoom and centre on screen for the diagram drawn next, in place of its fit. */
+  const keep = useCallback(() => {
     const view = surfaceRef.current?.view() ?? null;
     kept.current = view ? { view, until: Date.now() + KEEP_VIEW_MS } : null;
+  }, []);
+
+  const refresh = useCallback(() => {
+    keep();
     rereadSidebar();
     redraw();
     setUpdated(true);
-  }, [rereadSidebar, redraw]);
+  }, [keep, rereadSidebar, redraw]);
 
   // Each surface of the new diagram registers once it is fitted; the kept view then replaces the fit.
   useEffect(() => {
@@ -111,7 +116,7 @@ export function useModelRefresh({ surface, rereadSidebar, redraw }: ModelRefresh
     return () => clearTimeout(timer);
   }, [updated]);
 
-  return { refresh, updated, dismiss: () => setUpdated(false) };
+  return { refresh, keep, updated, dismiss: () => setUpdated(false) };
 }
 
 /**
