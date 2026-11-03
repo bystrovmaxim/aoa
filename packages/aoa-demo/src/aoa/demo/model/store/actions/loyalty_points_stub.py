@@ -30,4 +30,5 @@ class LoyaltyPointsStubAction(BaseAction["LoyaltyPointsStubAction.Params", "Loya
         box: ToolsBox,
         connections: Connections,
     ) -> LoyaltyPointsStubAction.Result:
-        return LoyaltyPointsStubAction.Result(points=len(params.customer_id) * 7)
+        # One point for every full currency unit spent; the stub takes the id's characters as the units.
+        return LoyaltyPointsStubAction.Result(points=sum(ord(char) for char in params.customer_id) // 100)
