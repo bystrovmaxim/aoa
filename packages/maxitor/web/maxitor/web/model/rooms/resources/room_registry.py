@@ -85,10 +85,10 @@ _FOCUS_KINDS = frozenset({"node", "row", "edge", "table", "version"})
 #: A pointer frame's name: ``screen`` or a panel's own frame, short and lowercase (spec 038).
 _FRAME_NAME = re.compile(r"[a-z][a-z0-9-]{0,31}")
 _FOCUS_TEXT_MAX = 512
-#: The most open left-panel branches a ``focus`` may list, and the filter-panel states it may name
-#: besides ``null`` (closed): open with no section, or open on a section.
+#: The most open left-panel branches a ``focus`` may list, and the filter-panel state it may name besides
+#: ``null`` (closed): ``open`` with no section, or the open section's id — a page names its own sections (spec 055).
 _FOCUS_SIDEBAR_MAX = 200
-_FOCUS_FILTER_SECTIONS = frozenset({"open", "domains", "kinds", "changes"})
+_FOCUS_FILTER_SECTION = re.compile(r"[a-z][a-z_]{0,23}")
 
 
 @dataclass
@@ -222,7 +222,7 @@ def _panels_fit(value: Any) -> bool:
         isinstance(sidebar, list)
         and len(sidebar) <= _FOCUS_SIDEBAR_MAX
         and all(_short_text(branch) for branch in sidebar)
-        and (section is None or section in _FOCUS_FILTER_SECTIONS)
+        and (section is None or (isinstance(section, str) and _FOCUS_FILTER_SECTION.fullmatch(section) is not None))
         and isinstance(value.get("legend"), bool)
         # Whether the version picker is open (spec 038); a client without it says nothing, and it is closed.
         and isinstance(value.get("versions", False), bool)

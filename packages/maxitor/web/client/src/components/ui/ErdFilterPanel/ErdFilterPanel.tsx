@@ -10,7 +10,6 @@ import { useTheme } from "@mui/material/styles";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { floatingLegendPanelSx, floatingLegendTitleSx, legendDiskImgSx, legendRowLabelSx, legendRowSx } from "@/lib/ui";
 import { useMirroredFocus, useShownPanel, type Panels } from "@/rooms/focusStore";
-import type { PaintSection } from "@/lib/erdPaint";
 import { HiddenMark, type RowHidden } from "./HiddenMark";
 
 /** One toggle row: a domain or an entity kind. */
@@ -40,10 +39,20 @@ export type ErdFilterPanelProps = {
   changeRows?: ErdFilterRow[];
   onToggleChange?: (key: string) => void;
   /** which section paints the diagram, chosen by the gear shift at the panel's foot; absent, none. */
-  paint?: { source: PaintSection; onPaint: (source: PaintSection) => void } | null;
+  paint?: { source: string; onPaint(source: string): void } | null;
+  /**
+   * The sections themselves, for a page whose sections come and go with its screen (spec 055); given, they replace
+   * Domains, Kinds and Changes above, and ``onToggleRow`` switches their rows.
+   */
+  sections?: readonly FilterSection[];
+  onToggleRow?: (section: string, row: string) => void;
 };
 
-type SectionId = "domains" | "kinds" | "changes";
+/** One section of the panel: its rows, and whether it can paint the diagram. */
+export type FilterSection = { id: string; title: string; rows: ErdFilterRow[]; paints: boolean };
+
+/** A section's id: ``domains``, ``kinds``, ``changes``, or one a page names (spec 055). */
+type SectionId = string;
 
 
 /**
@@ -51,24 +60,23 @@ type SectionId = "domains" | "kinds" | "changes";
  * words; left to right in the order the sections stand top to bottom. The painting section's point is the
  * stronger one; a click on another shifts the colours to its section.
  */
-export function GearShift({ sections, source, onPaint, kindsTitle = "Kinds" }: { sections: readonly PaintSection[]; source: PaintSection; onPaint: (source: PaintSection) => void; kindsTitle?: string }) {
-  const titles: Record<PaintSection, string> = { domains: "Domains", kinds: kindsTitle, changes: "Changes" };
+export function GearShift({ sections, source, onPaint }: { sections: readonly { id: string; title: string }[]; source: string; onPaint(source: string): void }) {
   const step = 18;
   const width = step * (sections.length - 1) + 16;
   return (
     <Box role="radiogroup" aria-label="Paint the diagram by" sx={{ display: "inline-flex", position: "relative", width, height: 20 }}>
       <Box component="span" aria-hidden sx={{ position: "absolute", left: 8, right: 8, top: 9.5, height: "1px", bgcolor: "#cbd5e1" }} />
       {sections.map((section, index) => {
-        const on = section === source;
+        const on = section.id === source;
         return (
-          <Tooltip key={section} title={titles[section]} placement="bottom" disableInteractive>
+          <Tooltip key={section.id} title={section.title} placement="bottom" disableInteractive>
             <Box
               component="button"
               type="button"
               role="radio"
               aria-checked={on}
-              aria-label={`Paint by ${titles[section]}`}
-              onClick={() => onPaint(section)}
+              aria-label={`Paint by ${section.title}`}
+              onClick={() => onPaint(section.id)}
               sx={{
                 position: "absolute",
                 left: index * step,
@@ -239,11 +247,11 @@ function SectionHeader({
  * panel stops above the zoom toolbar and scrolls inside itself. On a narrow screen it starts as a
  * "Filter" pill; opened, it shows the sections straight away, without the word "Filter".
  */
-export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", kindsPaint = true, withDomains = true, changeRows = [], onToggleChange, paint = null }: ErdFilterPanelProps) {
+export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleKind, kindsTitle = "Kinds", kindsPaint = true, withDomains = true, changeRows = [], onToggleChange, paint = null, sections, onToggleRow }: ErdFilterPanelProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   // The section that paints is the one open first; without a gear shift, Domains (spec 040, FR-032).
-  const [ownOpen, setOpen] = useState<SectionId | null>(paint?.source ?? "domains");
+  const [ownOpen, setOpen] = useState<SectionId | null>(paint?.source ?? sections?.[0]?.id ?? "domains");
   const [ownCollapsed, setCollapsed] = useState(true);
   // While following, the panel shows as the followed person has it (spec 029, FR-010).
   const shown = useShownPanel<Panels["filter"]>(
@@ -271,7 +279,7 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
     if (!following) setOwnWhy(key);
   };
   // Moving the gear shift opens the section it paints by; the accordion folds the others (spec 040, FR-031).
-  const shiftPaint = (source: PaintSection) => {
+  const shiftPaint = (source: string) => {
     setOpen(source);
     paint?.onPaint(source);
   };
@@ -326,8 +334,15 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
       <CloseIcon sx={{ fontSize: 14 }} />
     </IconButton>
   ) : null;
-  const showKinds = kindRows.length > 1;
-  const paintSections: PaintSection[] = [...(withDomains ? (["domains"] as const) : []), ...(showKinds && kindsPaint ? (["kinds"] as const) : []), ...(changeRows.length > 0 && onToggleChange ? (["changes"] as const) : [])];
+  // The sections in order: those the page names, or Domains, Kinds (when there is more than one) and Changes (in Diff).
+  const toggles: Record<string, (key: string) => void> = { domains: onToggleDomain, kinds: onToggleKind, changes: (key) => onToggleChange?.(key) };
+  const list: readonly FilterSection[] = sections ?? [
+    ...(withDomains ? [{ id: "domains", title: "Domains", rows: domainRows, paints: true }] : []),
+    ...(kindRows.length > 1 ? [{ id: "kinds", title: kindsTitle, rows: kindRows, paints: kindsPaint }] : []),
+    ...(changeRows.length > 0 && onToggleChange ? [{ id: "changes", title: "Changes", rows: changeRows, paints: true }] : []),
+  ];
+  const toggleOf = (id: string) => (key: string) => (sections ? onToggleRow?.(id, key) : toggles[id]?.(key));
+  const paintSections = list.filter((section) => section.paints);
 
   return (
     <Box
@@ -348,42 +363,22 @@ export function ErdFilterPanel({ domainRows, kindRows, onToggleDomain, onToggleK
         boxSizing: "border-box",
       }}
     >
-      {withDomains && <SectionHeader title="Domains" open={open === "domains"} onClick={() => toggleSection("domains")} trailing={closeButton} />}
-      {withDomains && open === "domains" && (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
-          {domainRows.map((row) => (
-            <FilterRow key={row.key} row={row} onToggle={onToggleDomain} why={why} onWhy={onWhy} />
-          ))}
-        </Box>
-      )}
-      {showKinds && (
-        <Box>
-          <SectionHeader title={kindsTitle} open={open === "kinds"} onClick={() => toggleSection("kinds")} trailing={withDomains ? undefined : closeButton} />
-          {open === "kinds" && (
+      {list.map((section, index) => (
+        <Box key={section.id}>
+          <SectionHeader title={section.title} open={open === section.id} onClick={() => toggleSection(section.id)} trailing={index === 0 ? closeButton : undefined} />
+          {open === section.id && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
-              {kindRows.map((row) => (
-                <FilterRow key={row.key} row={row} onToggle={onToggleKind} why={why} onWhy={onWhy} />
+              {section.rows.map((row) => (
+                <FilterRow key={row.key} row={row} onToggle={toggleOf(section.id)} why={why} onWhy={onWhy} />
               ))}
             </Box>
           )}
         </Box>
-      )}
-      {changeRows.length > 0 && onToggleChange && (
-        <Box>
-          <SectionHeader title="Changes" open={open === "changes"} onClick={() => toggleSection("changes")} />
-          {open === "changes" && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, pb: 1 }}>
-              {changeRows.map((row) => (
-                <FilterRow key={row.key} row={row} onToggle={onToggleChange} why={why} onWhy={onWhy} />
-              ))}
-            </Box>
-          )}
-        </Box>
-      )}
+      ))}
       {paint && paintSections.length > 1 && (
         // the gear shift, the panel's last block, centred: one point per section above, in their order.
         <Box sx={{ borderTop: "1px solid rgba(0,0,0,0.07)", display: "flex", justifyContent: "center", pt: 0.75, pb: 0.25 }}>
-          <GearShift sections={paintSections} source={paint.source} onPaint={shiftPaint} kindsTitle={kindsTitle} />
+          <GearShift sections={paintSections} source={paint.source} onPaint={shiftPaint} />
         </Box>
       )}
     </Box>

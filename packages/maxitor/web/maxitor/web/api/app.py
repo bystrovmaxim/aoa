@@ -101,11 +101,8 @@ from maxitor.web.model.diagrams.actions.all_use_cases_diagram_action import GetA
 from maxitor.web.model.diagrams.actions.changed_inside_action import ChangedInsideAction
 from maxitor.web.model.diagrams.actions.compare_element_action import CompareElementAction, ElementNotComparedError
 from maxitor.web.model.diagrams.actions.compare_versions_action import CompareVersionsAction
-from maxitor.web.model.diagrams.actions.domain_events_diagram_action import (
-    GetAllEventsDiagramAction,
-    GetDomainEventsDiagramAction,
-)
 from maxitor.web.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
+from maxitor.web.model.diagrams.actions.events_explorer_action import GetEventsExplorerAction
 from maxitor.web.model.diagrams.actions.full_graph_action import FullGraphAction
 from maxitor.web.model.diagrams.actions.get_element_card_action import ElementNotInGraphError, GetElementCardAction
 from maxitor.web.model.diagrams.actions.get_lifecycle_finite_automaton_action import (
@@ -330,13 +327,8 @@ def create_app() -> FastAPI:
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(
-            "/domain-events-diagram",
-            GetDomainEventsDiagramAction,
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
-        )
-        .get(
-            "/events-diagram",
-            GetAllEventsDiagramAction,
+            "/events-explorer",
+            GetEventsExplorerAction,
             connections={DUCKDB_GRAPH_CONNECTION_KEY: duckdb_graph},
         )
         .get(

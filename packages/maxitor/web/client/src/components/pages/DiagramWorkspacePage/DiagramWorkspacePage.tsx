@@ -6,7 +6,7 @@ import { SideBySide } from "@/components/diagrams/SideBySide";
 import type { Half } from "@/lib/half";
 import { MapViewer } from "@/components/diagrams/MapViewer";
 import { LifecycleFsmViewer } from "@/components/diagrams/LifecycleFsmViewer";
-import { EventsDiagramViewer } from "@/components/diagrams/EventsDiagramViewer";
+import { EventsExplorer } from "@/components/diagrams/EventsExplorer";
 import { UseCaseDiagramViewer } from "@/components/diagrams/UseCaseDiagramViewer";
 
 /** Same dot grid as ``ErdGraphvizCanvas`` — empty workspace before any diagram is chosen. */
@@ -36,8 +36,8 @@ function DiagramOf({ diagram, onOpenErd, onOpenDiagram }: Pick<DiagramWorkspaceP
   if (diagram?.kind === "lifecycle_fsm") return <LifecycleFsmViewer key={diagram.lifecycle_graph_node_id} lifecycleGraphNodeId={diagram.lifecycle_graph_node_id} />;
   if (diagram?.kind === "use_case") return <UseCaseDiagramViewer key={diagram.domain_qualifier} domainId={diagram.domain_qualifier} />;
   if (diagram?.kind === "use_case_all") return <UseCaseDiagramViewer key="all" domainId={null} />;
-  if (diagram?.kind === "events") return <EventsDiagramViewer key={diagram.domain_qualifier} domainId={diagram.domain_qualifier} onOpen={onOpenDiagram} />;
-  if (diagram?.kind === "events_all") return <EventsDiagramViewer key="all" domainId={null} onOpen={onOpenDiagram} />;
+  if (diagram?.kind === "events") return <EventsExplorer key={diagram.domain_qualifier} domainId={diagram.domain_qualifier} onOpen={onOpenDiagram} />;
+  if (diagram?.kind === "events_all") return <EventsExplorer key="all" domainId={null} onOpen={onOpenDiagram} />;
   return <Box sx={EMPTY_WORKSPACE_SX} aria-label="Diagram workspace" />;
 }
 

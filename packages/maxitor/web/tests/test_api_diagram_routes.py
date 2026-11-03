@@ -12,6 +12,7 @@ from maxitor.web.api.app import create_app
 from maxitor.web.api.graph_source_middleware import MISSING_SOURCE_DETAIL
 from maxitor.web.api.graph_store import GraphEntry, GraphStore
 from maxitor.web.model.diagrams.actions.domain_use_case_diagram_action import GetDomainUseCaseDiagramAction
+from maxitor.web.model.diagrams.actions.events_explorer_action import GetEventsExplorerAction
 from maxitor.web.model.diagrams.actions.full_graph_action import FullGraphAction
 from maxitor.web.model.diagrams.actions.get_lifecycle_finite_automaton_action import (
     GetLifecycleFiniteAutomatonAction,
@@ -98,7 +99,7 @@ def _graph(domain_id: str = _DEFAULT_DOMAIN_ID) -> DuckDBGraphResource:
 
 
 def _route_cases(domain_id: str) -> tuple[tuple[str, dict[str, str], Any, Any], ...]:
-    """Return ``(path, query, action class, params)`` for the six diagram routes against ``domain_id``."""
+    """Return ``(path, query, action class, params)`` for the seven diagram routes against ``domain_id``."""
     return (
         ("/api/v1/list-domains", {}, ListDomainsAction, ParamsStub()),
         ("/api/v1/list-entities", {}, ListEntitiesAction, ListEntitiesAction.Params()),
@@ -116,6 +117,7 @@ def _route_cases(domain_id: str) -> tuple[tuple[str, dict[str, str], Any, Any], 
             GetDomainUseCaseDiagramAction,
             GetDomainUseCaseDiagramAction.Params(domain_id=domain_id),
         ),
+        ("/api/v1/events-explorer", {}, GetEventsExplorerAction, ParamsStub()),
     )
 
 

@@ -30,6 +30,15 @@ describe("the view in the address (spec 038)", () => {
     expect(paramsToView(new URLSearchParams(params))).toEqual({ settings });
   });
 
+  it("carries the events explorer's mode, open ports, rows switched off and paint", () => {
+    const settings = { mode: "events", opened: ["event:a.events.OrderPlaced>domains", "domain:a.Orders>actions"], off: ["methods:Compensator", "coverage:without"], paint: "methods", layout: "dot_tb" };
+    const params = viewToParams(settings);
+    expect(params).toEqual({ start: "events", open: "event:a.events.OrderPlaced>domains,domain:a.Orders>actions", off: "methods:Compensator,coverage:without", paint: "methods", layout: "dot_tb" });
+    expect(paramsToView(new URLSearchParams(params))).toEqual({ settings });
+    // The page's own ``mode`` — One, Diff or Side by side — is not the explorer's.
+    expect(paramsToView(new URLSearchParams("mode=diff")).settings).toEqual({});
+  });
+
   it("ignores a parameter out of shape rather than guess", () => {
     expect(paramsToView(new URLSearchParams("one_hop=yes&layout=")).settings).toEqual({});
   });

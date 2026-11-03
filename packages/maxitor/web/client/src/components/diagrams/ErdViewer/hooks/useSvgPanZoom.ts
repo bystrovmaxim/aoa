@@ -227,6 +227,19 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     [applyTransform],
   );
 
+  /** Pan so the content point ``(x, y)``, in the drawing's own units, sits under the client point ``(clientX, clientY)``; the zoom stays. */
+  const placeAt = useCallback(
+    (clientX: number, clientY: number, x: number, y: number) => {
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const rect = vp.getBoundingClientRect();
+      panRef.current.tx = clientX - rect.left - x * panRef.current.scale;
+      panRef.current.ty = clientY - rect.top - y * panRef.current.scale;
+      applyTransform();
+    },
+    [applyTransform],
+  );
+
   /** The current zoom factor. */
   const getScale = useCallback(() => panRef.current.scale, []);
 
@@ -568,6 +581,7 @@ export function useSvgPanZoom(options?: UseSvgPanZoomOptions) {
     needsFit,
     onTransform,
     centreOnClient,
+    placeAt,
     getScale,
     setScale,
     fitted,

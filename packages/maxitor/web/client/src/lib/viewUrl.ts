@@ -30,6 +30,11 @@ const SETTINGS: Readonly<Record<string, { param: string; kind: Kind }>> = {
   rankdir_b: { param: "rankdir_b", kind: "choice" },
   paint: { param: "paint", kind: "choice" },
   paint_diff: { param: "paint_diff", kind: "choice" },
+  // The events explorer (spec 055): what it starts from (``start``: ``mode`` is the page's One, Diff or Side by side),
+  // its open ports as ``<node>><port>``, its rows switched off.
+  mode: { param: "start", kind: "choice" },
+  opened: { param: "open", kind: "list" },
+  off: { param: "off", kind: "list" },
 };
 
 /**

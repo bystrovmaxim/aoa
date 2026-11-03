@@ -8,7 +8,7 @@
   <a href="../../../../README.md"><img src="https://img.shields.io/badge/docs-Maxitor%20client-blue" alt="Maxitor client"></a>
 </p>
 
-**Role:** One time axis of a history, as the mockup draws it: a point per version in the colour of how it came (direct push, merged, an open pull request's review state, Live hollow), the line coloured by the point it leads to; a version's own point larger and named by its number, flags for releases; open pull requests before Live, which is last and one point with the newest version when they match; a card per point; scrolls as the browser scrolls; a slider (← → Home End). (spec 037) In Diff it holds a range: two handles, A and B, the stretch between them dark, each a slider of its own — dragged, clicked toward, stepped, past the other one too, the roles following position; Shift + ← → moves both; the rules are `@/lib/versionRange`'s. (spec 038)
+**Role:** One time axis of a history, as the mockup draws it: a point per version in the colour of how it came (direct push, merged, an open pull request's review state, Live hollow), the line coloured by the point it leads to; a version's own point larger and named by its number, flags for releases; open pull requests before Live, which is last and one point with the newest version when they match; a card per point; scrolls as the browser scrolls; a slider (← → Home End) whose handle is dragged from point to point and chosen where it is let go, as each handle of Diff is. (spec 037) In Diff it holds a range: two handles, A and B, the stretch between them dark, each a slider of its own — dragged, clicked toward, stepped, past the other one too, the roles following position; Shift + ← → moves both; the rules are `@/lib/versionRange`'s. (spec 038)
 
 ## Files
 

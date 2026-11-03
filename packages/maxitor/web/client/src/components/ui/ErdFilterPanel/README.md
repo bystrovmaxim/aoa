@@ -12,6 +12,7 @@
 
 - **Width:** fixed at 148 px (`ERD_FILTER_PANEL_WIDTH`, the width the production Domains legend had); the panel never widens. A label that does not fit is cut with an ellipsis and shows its full text in a tooltip — only when it was actually cut.
 - **Height:** the panel ends above the zoom toolbar and scrolls inside itself; wheel events stop at the panel, so scrolling it never zooms or pans the canvas.
+- **A page's own sections:** given `sections` (`{ id, title, rows, paints }`) and `onToggleRow(section, row)`, the panel shows those instead of Domains, Kinds and Changes, in their order, and the gear shift has a point for each one that paints. The events explorer uses this: its sections come and go with what is on its screen (spec 055).
 - **Kinds:** the section is rendered only when the graph has more than one kind. Rows come from `GET /api/v1/list-entity-kinds`, labelled with the kind's display name.
 - **Narrow screens:** the panel starts as a "Filter" pill; opened, it shows the sections straight away — the word "Filter" does not appear inside — with the close button at the end of the Domains header.
 
@@ -29,4 +30,4 @@
 | File | Responsibility |
 |------|----------------|
 | `ErdFilterPanel.tsx` | The panel, its accordion sections, the rows and the cut-only tooltip. |
-| `ErdFilterPanel.test.tsx` | Width, accordion, tooltip, Kinds visibility, the mobile pill and wheel isolation. |
+| `ErdFilterPanel.test.tsx` | Width, accordion, tooltip, Kinds visibility, the mobile pill, wheel isolation, the gear shift's points and a page's own sections. |
