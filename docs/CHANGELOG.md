@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-03] — The demo's graph history
+
+The demo now has a real history to look at in Maxitor. Thirteen ordinary pull requests changed it one after another, each saying what it did: tables added, moved and removed, fields whose type changed, lifecycles growing and losing states, roles and actions coming and going, a whole domain added and later closed. Three of them are releases, published to PyPI. One is still open. Paste the link from [the guide](how-to/open-a-graph-history.md#try-it-on-the-demo) and compare any two.
+
+Watching it grow changed Maxitor where it read badly. A flag above a point now means a real release: a tag published as a GitHub Release. A tag that is only named `release…` is no flag any more, so a repository that publishes no releases shows no flags at all. In a repository of several packages, a history with a version file takes only the tags of its own versions, so another package's release no longer stands on it.
+
+A new version arriving while you look changes nothing on the screen: the version, the diagram, the filters, the zoom and the position stay, and a blue dot on the version button says one is there until you open the picker. Reload keeps the zoom and position too. An open pull request is followed by its number: when it is merged, given new commits, closed or made a draft, a comparison standing on it moves and says which. One that only raises the version is a small open point.
+
+Comparisons read more evenly. A table has a step of its own only when the table itself changed, and every change of one table comes together. A lifecycle's row says what changed in the lifecycle instead of saying no property differs. A's chip is white with a dark outline, above the track, and B's stays dark, under it. A table that moved to another domain is found on both halves of Side by side. One version of the full graph offers no Changes filter.
+
+The history port keeps what it read from GitHub on disk, so a restart reads nothing from scratch, and it asks again only for what can still change. A port with no GitHub App can read public repositories with `MAXITOR_GITHUB_TOKEN` instead of GitHub's anonymous limit of 60 requests an hour.
+
 ## [2026-11-02] — Events in the graph
 
 Events were visible only to the code that ran them. Now they are in the graph and its JSON file, so any tool can read which facts a service publishes, in any language and without running the service. Each event appears once, with its fields and their descriptions. The file shows which methods may emit it and which domains list it in their vocabulary, and each domain says whether it has a vocabulary at all, so an empty one no longer looks like none.
