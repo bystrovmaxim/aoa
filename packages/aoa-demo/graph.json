@@ -37248,6 +37248,78 @@
       "type": "generic:result"
     },
     {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params|field|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:customer_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:customer_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params|field|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:plan_code",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:plan_code",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result|field|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result:subscription_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result:subscription_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction|@check_roles|aoa.demo.model.roles.editor.EditorRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "target_id": "aoa.demo.model.roles.editor.EditorRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction|@summary_aspect|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction:start_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction:start_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction|generic:params|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction|generic:result|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result",
+      "type": "generic:result"
+    },
+    {
       "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:indexed|lifecycle_transition|aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity:lifecycle:lifecycle:retained|indexed",
       "is_dag": false,
       "properties": {
@@ -53983,6 +54055,213 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.store_order_tax_jurisdiction.OrderTaxJurisdictionSnapshotCoreEntity",
       "target_id": "aoa.demo.model.store.entities.store_order_tax_jurisdiction.OrderTaxJurisdictionSnapshotCoreEntity:lifecycle:lifecycle",
+      "type": "lifecycle"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "cancelled"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|trial",
+      "is_dag": false,
+      "properties": {
+        "from_state": "trial",
+        "to_state": "active"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled|trial",
+      "is_dag": false,
+      "properties": {
+        "from_state": "trial",
+        "to_state": "cancelled"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "is_dag": false,
+      "properties": {
+        "state_key": "active"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "is_dag": false,
+      "properties": {
+        "state_key": "cancelled"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
+      "is_dag": false,
+      "properties": {
+        "state_key": "trial"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
+      "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|trial",
+      "is_dag": false,
+      "properties": {
+        "from_state": "trial",
+        "to_state": "active"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "cancelled"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled|trial",
+      "is_dag": false,
+      "properties": {
+        "from_state": "trial",
+        "to_state": "cancelled"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_field|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:id",
+      "is_dag": false,
+      "properties": {
+        "field_name": "id",
+        "ordinal": 0
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:id",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_field|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle",
+      "is_dag": false,
+      "properties": {
+        "field_name": "lifecycle",
+        "ordinal": 1
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_field|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:plan_code",
+      "is_dag": false,
+      "properties": {
+        "field_name": "plan_code",
+        "ordinal": 2
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:plan_code",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_field|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:renewal_day",
+      "is_dag": false,
+      "properties": {
+        "field_name": "renewal_day",
+        "ordinal": 3
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:renewal_day",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_relation|customer",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "Customer who subscribed",
+        "field_name": "customer",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_relation|first_order",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "Order that started the subscription",
+        "field_name": "first_order",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|lifecycle|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "is_dag": false,
+      "properties": {
+        "field_name": "lifecycle"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
       "type": "lifecycle"
     },
     {
@@ -82509,6 +82788,67 @@
       "type": "SummaryAspect"
     },
     {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction",
+      "label": "SubscriptionStartAction",
+      "properties": {
+        "description": "Start a subscription on a plan (store sample stub)"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:customer_id",
+      "label": "customer_id",
+      "properties": {
+        "description": "Customer id",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:plan_code",
+      "label": "plan_code",
+      "properties": {
+        "description": "Code of the plan to subscribe to",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result:subscription_id",
+      "label": "subscription_id",
+      "properties": {
+        "description": "Id of the new subscription",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction:start_summary",
+      "label": "start_summary",
+      "properties": {
+        "description": "Start subscription"
+      },
+      "type": "SummaryAspect"
+    },
+    {
       "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity",
       "label": "AuditLogEntryDetailEntity",
       "properties": {
@@ -91261,6 +91601,111 @@
         "description": "Derived routing hint for taxation engines",
         "field_annotation": "str",
         "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
+      "label": "SubscriptionCoreEntity",
+      "properties": {
+        "description": "A customer's subscription to a box delivered every month",
+        "entity_kind": "core",
+        "entity_kind_label": "Core"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:id",
+      "label": "id",
+      "properties": {
+        "description": "Subscription id",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": true
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle",
+      "label": "lifecycle",
+      "properties": {
+        "description": "Subscription lifecycle",
+        "field_annotation": "SubscriptionLifecycle",
+        "field_type": "SubscriptionLifecycle",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "label": "lifecycle",
+      "properties": {
+        "description": "Subscription lifecycle",
+        "field_name": "lifecycle"
+      },
+      "type": "Lifecycle"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "label": "Active",
+      "properties": {
+        "attributes": {
+          "code": "active",
+          "display_name": "Active",
+          "sort_order": 2
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
+        "state_key": "active"
+      },
+      "type": "StateIntermediate"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "label": "Cancelled",
+      "properties": {
+        "attributes": {
+          "code": "cancelled",
+          "display_name": "Cancelled",
+          "sort_order": 3
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
+        "state_key": "cancelled"
+      },
+      "type": "StateFinal"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
+      "label": "Trial",
+      "properties": {
+        "attributes": {
+          "code": "trial",
+          "display_name": "Trial",
+          "sort_order": 1
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
+        "state_key": "trial"
+      },
+      "type": "StateInitial"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:plan_code",
+      "label": "plan_code",
+      "properties": {
+        "description": "Code of the plan the customer chose",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:renewal_day",
+      "label": "renewal_day",
+      "properties": {
+        "description": "Day of the month the subscription renews",
+        "field_annotation": "int",
+        "field_type": "int",
         "primary_key_hint": false
       },
       "type": "EntityField"

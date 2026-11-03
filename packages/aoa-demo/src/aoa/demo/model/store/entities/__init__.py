@@ -53,6 +53,8 @@ from aoa.demo.model.store.entities.store_order_risk_score import OrderRiskScoreC
 from aoa.demo.model.store.entities.store_order_shipment_estimate import ShipmentEstimateCoreEntity
 from aoa.demo.model.store.entities.store_order_split_bill import SplitBillAllocationCoreEntity
 from aoa.demo.model.store.entities.store_order_tax_jurisdiction import OrderTaxJurisdictionSnapshotCoreEntity
+from aoa.demo.model.store.entities.subscription import SubscriptionCoreEntity
+from aoa.demo.model.store.entities.subscription_lifecycle import SubscriptionLifecycle
 from aoa.demo.model.store.entities.tax_line import TaxLineDetailEntity
 
 __all__ = [
@@ -102,6 +104,8 @@ __all__ = [
     "StoreLineParcelPickCoreEntity",
     "StoreOrderInvoiceBridgeCoreEntity",
     "StoreOrderParcelHandoffCoreEntity",
+    "SubscriptionCoreEntity",
+    "SubscriptionLifecycle",
     "SubstitutionHistoryCoreEntity",
     "TaxLineDetailEntity",
     "WarrantyOfferFacetCoreEntity",
