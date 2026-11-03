@@ -44,7 +44,7 @@ The **i** in the picker's head shows this legend on the screen.
 | Changes requested | red | a pull request still open, a reviewer asked to fix it |
 | Live | hollow grey, always last | what the service runs now |
 
-The open pull requests stand after the history and before Live, past a dashed line; drafts are not shown. Each stretch of the line takes the colour of the point it leads to.
+The open pull requests stand after the history and before Live, past a dashed line; drafts are not shown. One that raises only the version, not the graph, is a small point, as it will be once merged. Each stretch of the line takes the colour of the point it leads to.
 
 **Versions and releases.** A history with a version file takes its numbers from that file: a number stands under a point where the version rose. With no version file, numbers come from tags: a point with its own version tag (`v0.8.0`) has its number under it, and the points after it, up to the next version, belong to it and stay unnamed. Nothing else is named under the track — no dates. A flag above a point marks a release: its tag is published as a GitHub Release. A tag is never a release by its name alone, so a tag such as `release-1.4` with no GitHub Release stays only in the point's card. A history with no version tags shows its points and nothing under them.
 
@@ -53,6 +53,8 @@ The open pull requests stand after the history and before Live, past a dashed li
 **Two versions with one graph.** Compared, they say `Both versions have the same graph.` in the picker and `no changes` on the button. The left panel, narrowed to what changed, stands empty with `No changes`.
 
 **A version that cannot be read.** A wrong path or a broken file does not cost you the graph. A dot on the version button and a line at the foot of the picker say what the track shows and why. When no version could be read, the track shows only the commits that changed the graph, with no numbers.
+
+**A new version while you look.** A version or an open pull request that reaches the history changes nothing on screen: the version, the diagram, the filters, the zoom and the position stay. A blue dot on the version button says it is there, with no count, until you open the picker. Reload asks for the list at once and keeps the zoom and position too.
 
 **The chosen point** keeps its colour and carries its name in a chip: `0.11.0 · #147` — its version and pull request — or `#147` without a version, or `#57`, its place in the history, when it had no pull request.
 
