@@ -184,3 +184,13 @@ describe("drawnWidth", () => {
     expect(drawnWidth(null)).toBe(0);
   });
 });
+
+describe("links on a card", () => {
+  it("shows each group and leads on", () => {
+    const open = vi.fn();
+    render(<ElementCard subject={{ ...subject, nodeId: null, links: [{ group: "Emitted by", label: "Pay · finish", onOpen: open }, { group: "Domains", label: "Shop", onOpen: () => undefined }] }} newer="B" onEnter={() => undefined} onLeave={() => undefined} onClose={() => undefined} />);
+    expect(screen.getAllByTestId("card-links")).toHaveLength(2);
+    fireEvent.click(screen.getByText("Pay · finish"));
+    expect(open).toHaveBeenCalledOnce();
+  });
+});

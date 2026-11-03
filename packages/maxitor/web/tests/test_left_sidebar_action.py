@@ -93,7 +93,7 @@ async def test_level1_order_and_types() -> None:
 async def test_level2_diagrams_count() -> None:
     r1 = await _ACTION.build_level1_aspect(None, BaseState(), None, {})  # type: ignore[arg-type]
     r2 = await _ACTION.build_level2_diagrams_aspect(None, BaseState(**r1), None, {})  # type: ignore[arg-type]
-    assert len(r2["level2_diagrams"]) == 3
+    assert len(r2["level2_diagrams"]) == 4
 
 
 async def test_level2_diagrams_ids() -> None:
@@ -103,6 +103,7 @@ async def test_level2_diagrams_ids() -> None:
         ("application_interchange_graph", "applications_root", "Full graph view", "graph"),
         ("application_all_erd", "applications_root", "ERD all domains view", "erd_all"),
         ("application_all_use_cases", "applications_root", "Use case all domains view", "use_case_all"),
+        ("application_all_events", "applications_root", "Events all domains view", "events_all"),
     }
 
 
@@ -221,7 +222,7 @@ async def test_level3_a_domain_with_actions_has_a_use_case_and_no_erd_row() -> N
         "edges": [{"source_id": "act.pay", "target_id": "dom.billing", "type": "domain", "relationship": "Aggregation", "is_dag": False, "properties": {}}],
     }
     r = await _run_to_level3(coordinator)
-    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"use_case_domain"}
+    assert {n.type for n in r["level3_diagrams"] if n.parent_id == "dom.billing"} == {"use_case_domain", "events_domain"}
 
 
 async def test_level3_holds_no_entity_rows() -> None:
@@ -242,7 +243,7 @@ async def test_full_pipeline_result_layers() -> None:
 
     assert isinstance(result, GetLeftMenuSidebarDataAction.Result)
     assert len(result.level1_nodes) == len(_ROOT_SECTIONS)
-    assert len(result.level2_diagrams) == 3
+    assert len(result.level2_diagrams) == 4
     assert len(result.level2_nodes) == 2  # the 2 domains
 
 

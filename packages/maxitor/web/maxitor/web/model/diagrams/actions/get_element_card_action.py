@@ -67,6 +67,7 @@ class GetElementCardResult(BaseResult):
     label: str = Field(description="Its name")
     description: str | None = Field(description="Its description, when the graph has one")
     lifecycle_id: str | None = Field(description="Its own id when it is a lifecycle, else nothing")
+    vocabulary: bool | None = Field(default=None, description="On a domain: whether it has a vocabulary of events, else nothing")
 
 
 @meta(description="Read what a card says about one node of a version", domain=DiagramsDomain)
@@ -96,10 +97,12 @@ class GetElementCardAction(BaseAction[GetElementCardParams, GetElementCardResult
         if not rows:
             raise ElementNotInGraphError("not found")
         row = rows[0]
+        typed = duck.execute_fetch_dicts("SELECT typed_events FROM domain WHERE id = ?", [params.id])
         return GetElementCardResult(
             id=str(row["id"]),
             type=str(row["type"]),
             label=str(row["label"]),
             description=str(row["description"]) if row["description"] else None,
             lifecycle_id=str(row["id"]) if row["type"] == "lifecycle" else None,
+            vocabulary=bool(typed[0]["typed_events"]) if typed else None,
         )

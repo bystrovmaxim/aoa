@@ -132,7 +132,8 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
       name VARCHAR NOT NULL,
-      description VARCHAR NOT NULL
+      description VARCHAR NOT NULL,
+      typed_events BOOLEAN NOT NULL
     );""",
             """CREATE TABLE entity (
       id VARCHAR NOT NULL,
@@ -988,15 +989,23 @@ def _fill_model_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict[
         "INSERT INTO action VALUES (?, ?, ?)",
         [[n["id"], n["label"], _get_properties(n)["description"]] for n in nodes_by_type.get("Action", [])],
     )
-    for table, node_type in (("application", "Application"), ("domain", "Domain")):
-        _executemany(
-            con,
-            f"INSERT INTO {table} VALUES (?, ?, ?, ?)",
-            [
-                [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
-                for n in nodes_by_type.get(node_type, [])
-            ],
-        )
+    _executemany(
+        con,
+        "INSERT INTO application VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"]]
+            for n in nodes_by_type.get("Application", [])
+        ],
+    )
+    # A document older than protocol 1.3 has no ``typed_events``.
+    _executemany(
+        con,
+        "INSERT INTO domain VALUES (?, ?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["name"], _get_properties(n)["description"], bool(_get_properties(n).get("typed_events", False))]
+            for n in nodes_by_type.get("Domain", [])
+        ],
+    )
     _executemany(
         con,
         "INSERT INTO entity VALUES (?, ?, ?, ?, ?, ?, ?)",

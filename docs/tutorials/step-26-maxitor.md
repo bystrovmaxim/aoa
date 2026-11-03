@@ -60,6 +60,7 @@ The effect is simple: a new developer understands the system's structure in five
 - **ERD** (entity–relationship diagram) is built from [`BaseEntity`](step-20-entity.md) classes and [relations](step-21-relations.md): which entities are in a domain, their fields and types, how they connect (`AssociationOne/Many`, `Aggregate…`, `Composite…`), direction and cardinality. No YAML — you write code, you get the schema.
 - **Use case** is read straight from the [`@check_roles`](step-03-authorization-and-roles.md) annotations: who can call which operations. This is a ready access audit — an answer to "can a manager do this?" without opening the code.
 - **Lifecycle** for each entity with a [`Lifecycle`](step-22-lifecycle.md) field draws a finite-state machine: states, transitions, initial and final vertices. Especially useful when there are a dozen statuses.
+- **Events** shows which facts come out of a domain: actions, those of their methods that emit, and the events. A label says whether the domain has a vocabulary. With one, its events stand in two bands, those emitted here and those nothing here emits; without one, a single band. Rest on an event to see its fields, every method producing it and its domains; a comparison of two versions marks events and links added or removed.
 
 ## It's the same graph the machine builds
 

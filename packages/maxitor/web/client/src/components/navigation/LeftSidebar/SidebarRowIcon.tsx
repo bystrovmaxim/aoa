@@ -1,4 +1,5 @@
 // src/components/navigation/LeftSidebar/SidebarRowIcon.tsx
+import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
 import DeviceHubOutlinedIcon from "@mui/icons-material/DeviceHubOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -21,6 +22,9 @@ export function SidebarRowIcon({ row }: { row: NodeRow }): ReactElement {
   if (row.type === "use_case_domain" || row.type === "use_case_all") {
     /** MUI Outlined — same stroke weight as ``TableChartOutlined``; hub = actors / use cases + links. */
     return <DeviceHubOutlinedIcon sx={ICON_SX} />;
+  }
+  if (row.type === "events_domain" || row.type === "events_all") {
+    return <BoltOutlinedIcon sx={ICON_SX} />;
   }
   if (row.type === "lifecycle_state_diagram") {
     return <SchemaOutlinedIcon sx={ICON_SX} />;

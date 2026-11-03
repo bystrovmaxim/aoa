@@ -71,7 +71,7 @@ export function narrowToChanges(sidebar: SidebarPayload, changed: ChangedDomains
   const keeps = (row: NodeRow) => {
     if (row.only || row.changed) return true;
     if (row.type === "erd_domain") return changed.erd.has(row.parent_id ?? row.id);
-    if (row.type === "use_case_domain") return changed.useCase.has(row.parent_id ?? row.id);
+    if (row.type === "use_case_domain" || row.type === "events_domain") return changed.useCase.has(row.parent_id ?? row.id);
     return false;
   };
   const level3 = sidebar.level3_diagrams.filter(keeps);

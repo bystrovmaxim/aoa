@@ -2,7 +2,7 @@
 import { getActiveBase, getActiveSource, graphFetch, type GraphRead } from "@/api/client";
 
 /** What the server says of one node (spec 043, FR-013). */
-export type ElementCardRead = { id: string; type: string; label: string; description: string | null; lifecycle_id: string | null };
+export type ElementCardRead = { id: string; type: string; label: string; description: string | null; lifecycle_id: string | null; vocabulary?: boolean | null };
 
 const kept = new Map<string, Promise<ElementCardRead | null>>();
 
