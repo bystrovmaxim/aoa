@@ -1,7 +1,7 @@
 // src/lib/eventsExplorer.test.ts
 import { describe, expect, it } from "vitest";
 import type { EventsExplorerPayload } from "@/model/eventsExplorer";
-import { EventsGraph, ROOT_KIND, explore, links, portKey, roots, type Filters, type Mode } from "./eventsExplorer";
+import { EventsGraph, ROOT_KIND, appliedFilters, explore, links, methodsOff, offeredSections, paintOf, portKey, roots, type Filters, type Mode } from "./eventsExplorer";
 
 const KINDS = ["RegularAspect", "SummaryAspect", "Compensator", "ErrorHandler", "AccessDecide"];
 
@@ -139,5 +139,43 @@ describe("lines", () => {
     const opened = [portKey("domain:d.Orders", "events"), portKey("event:e.Placed", "actions")];
     const shown = screen("domains", opened);
     expect([...shown.depth.keys()].filter((node) => node.startsWith("action:"))).toEqual(["action:a.Checkout", "action:a.Ticket"]);
+  });
+});
+
+describe("filter sections and paint", () => {
+  const offered = (mode: Mode, opened: string[] = []) => offeredSections(mode, screen(mode, opened), graph).ids;
+
+  it("offer Domains and Coverage at first in Domains mode, and grow with the screen", () => {
+    expect(offered("domains")).toEqual(["domains", "coverage"]);
+    expect(offered("domains", [portKey("domain:d.Orders", "events")])).toEqual(["domains", "coverage", "events"]);
+    expect(offered("domains", [portKey("domain:d.Orders", "events"), portKey("event:e.Placed", "actions")])).toEqual(["domains", "coverage", "events", "methods"]);
+    expect(offered("domains", [portKey("domain:d.Quiet", "actions")])).toEqual(["domains", "coverage", "actions"]);
+  });
+
+  it("offer no Coverage outside Domains mode, where its rows do not apply", () => {
+    expect(offered("events")).toEqual(["domains", "events"]);
+    expect(offered("actions")).toEqual(["domains", "methods"]);
+    const off: Filters = { domains: all.domains, off: new Set(["coverage:with"]) };
+    expect(roots("events", appliedFilters("events", off), graph)).toHaveLength(3);
+    expect(roots("domains", appliedFilters("domains", off), graph)).toEqual(["domain:d.Quiet"]);
+  });
+
+  it("keep a section whose rows hide everything it sorts, read from the screen with every row on", () => {
+    const off: Filters = { domains: all.domains, off: new Set(["events:emitted_held", "events:emitted_free", "events:not_emitted"]) };
+    expect(roots("events", off, graph)).toEqual([]);
+    expect(offeredSections("events", screen("events"), graph).ids).toContain("events");
+  });
+
+  it("drop what a kind of method switched off emits, an event only it emits included", () => {
+    const off: Filters = { domains: all.domains, off: new Set(["methods:SummaryAspect"]) };
+    const g = graph.only(methodsOff(off));
+    expect(g.emitsOf.has("action:a.Ticket".slice(7))).toBe(false);
+    expect(g.eventStatus("e.Ticket")).toBe("not_emitted");
+    expect(roots("actions", off, graph, g)).toEqual(["action:a.Checkout"]);
+  });
+
+  it("paint by the section chosen while it is on the panel, else by the domains", () => {
+    expect(paintOf("methods", ["domains", "methods"])).toBe("methods");
+    expect(paintOf("methods", ["domains", "coverage"])).toBe("domains");
   });
 });

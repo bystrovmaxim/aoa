@@ -34,11 +34,11 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 ## Phase 3: Filters and paint (one commit)
 
-- [ ] T022 [US4] Generalize `client/src/components/ui/ErdFilterPanel/ErdFilterPanel.tsx` to take `sections: { id, title, rows, paints }[]`, keeping its present props as a wrapper so ERD, Use case and the map are unchanged; titles on one line; the gear shift takes one point per painting section and opens the section moved to; update its README and tests
-- [ ] T023 [US4] In `client/src/lib/eventsExplorer.ts`: the sections of FR-016 by mode and by the screen as it would be with every row on; `off` keys `<section>:<row>`; Coverage only in Domains mode; a method kind off removes its `emits`; rows dimmed when nothing of them is on the screen (FR-017)
-- [ ] T024 [US4] Paint in the viewer per FR-018: Domains, Coverage, Events, Methods (strip of kinds, a single kind's colour on frame and icon), Actions; everything else grey; the domains paint when the painting section leaves
-- [ ] T025 [US4] Add tests: sections offered at each step of quickstart.md, a section kept when its rows hide all, filters applied to ports' numbers, every paint differing from every other in each mode (SC-004), ERD's panel unchanged in `client/src/components/ui/ErdFilterPanel/ErdFilterPanel.test.tsx`
-- [ ] T026 Break adversarially (a section offered from the filtered screen, a paint leaving nodes uncoloured, Coverage applied in Events mode), restore; run only this phase's tests; commit
+- [x] T022 [US4] Generalize `client/src/components/ui/ErdFilterPanel/ErdFilterPanel.tsx` to take `sections: { id, title, rows, paints }[]`, keeping its present props as a wrapper so ERD, Use case and the map are unchanged; titles on one line; the gear shift takes one point per painting section and opens the section moved to; update its README and tests
+- [x] T023 [US4] In `client/src/lib/eventsExplorer.ts`: the sections of FR-016 by mode and by the screen as it would be with every row on; `off` keys `<section>:<row>`; Coverage only in Domains mode; a method kind off removes its `emits`; rows dimmed when nothing of them is on the screen (FR-017)
+- [x] T024 [US4] Paint in the viewer per FR-018: Domains, Coverage, Events, Methods (strip of kinds, a single kind's colour on frame and icon), Actions; everything else grey; the domains paint when the painting section leaves
+- [x] T025 [US4] Add tests: sections offered at each step of quickstart.md, a section kept when its rows hide all, filters applied to ports' numbers, every paint differing from every other in each mode (SC-004), ERD's panel unchanged in `client/src/components/ui/ErdFilterPanel/ErdFilterPanel.test.tsx`
+- [x] T026 Break adversarially (a section offered from the filtered screen, a paint leaving nodes uncoloured, Coverage applied in Events mode), restore; run only this phase's tests; commit
 
 ## Phase 4: Comparison and state (one commit)
 

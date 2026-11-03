@@ -226,4 +226,23 @@ describe("a row hidden by what stands above it", () => {
     fireEvent.click(screen.getByTestId("erd-filter-hidden-mark"));
     expect(screen.getByText("Show all 2")).toBeTruthy();
   });
+
+  it("gives the gear shift a point only for the sections that paint", () => {
+    render(<ErdFilterPanel domainRows={domains} kindRows={kinds} kindsPaint={false} onToggleDomain={() => undefined} onToggleKind={() => undefined} changeRows={[row("added", "Added")]} onToggleChange={() => undefined} paint={{ source: "domains", onPaint: () => undefined }} />);
+    expect(screen.getAllByRole("radio").map((point) => point.getAttribute("aria-label"))).toEqual(["Paint by Domains", "Paint by Changes"]);
+  });
+
+  it("takes a page's own sections, switches their rows by section, and paints by any of them", () => {
+    const onToggleRow = vi.fn();
+    const onPaint = vi.fn();
+    const sections = [
+      { id: "domains", title: "Domains", rows: domains, paints: true },
+      { id: "coverage", title: "Coverage", rows: [row("with", "With events")], paints: true },
+    ];
+    render(<ErdFilterPanel domainRows={[]} kindRows={[]} onToggleDomain={() => undefined} onToggleKind={() => undefined} sections={sections} onToggleRow={onToggleRow} paint={{ source: "domains", onPaint }} />);
+    fireEvent.click(screen.getByRole("radio", { name: "Paint by Coverage" }));
+    expect(onPaint).toHaveBeenCalledWith("coverage");
+    fireEvent.click(screen.getByRole("button", { name: "With events" }));
+    expect(onToggleRow).toHaveBeenCalledWith("coverage", "with");
+  });
 });

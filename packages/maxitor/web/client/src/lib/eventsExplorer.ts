@@ -372,3 +372,41 @@ export function methodKindsOf(node: string, g: EventsGraph): string[] {
   const kinds = new Set((emits ?? []).map((emit) => emit.kind));
   return METHOD_KINDS.filter((kind) => kinds.has(kind));
 }
+
+/** A section of the filter panel (FR-016); every one of them can paint the screen. */
+export type SectionId = "domains" | "coverage" | "events" | "methods" | "actions";
+
+/** The filters that apply in ``mode``: Coverage sorts domains, so outside Domains mode its rows are kept, not applied. */
+export function appliedFilters(mode: Mode, filters: Filters): Filters {
+  return mode === "domains" ? filters : { ...filters, off: new Set([...filters.off].filter((key) => !key.startsWith("coverage:"))) };
+}
+
+/** The kinds of method switched off: they emit nothing, so the graph is read without them. */
+export function methodsOff(filters: Filters): Set<string> {
+  return new Set([...filters.off].filter((key) => key.startsWith("methods:")).map((key) => key.slice("methods:".length)));
+}
+
+/**
+ * The sections the panel offers, read from ``loose`` — the screen as it would be with every row on — so a section
+ * whose rows hide all it sorts stays to be switched back; with the standings and kinds that screen holds, for dimming.
+ */
+export function offeredSections(mode: Mode, loose: Shown, graph: EventsGraph): { ids: SectionId[]; statuses: Set<EventStatus>; kinds: Set<string> } {
+  const nodes = [...loose.depth.keys()];
+  const events = nodes.filter((node) => kindOf(node) === "event").map(idOf);
+  const actions = nodes.filter((node) => kindOf(node) === "action").map(idOf);
+  const ids: SectionId[] = ["domains"];
+  if (mode === "domains") ids.push("coverage");
+  if (events.length > 0) ids.push("events");
+  if (actions.some((action) => graph.emitsOf.has(action))) ids.push("methods");
+  if (actions.some((action) => !graph.emitsOf.has(action))) ids.push("actions");
+  return {
+    ids,
+    statuses: new Set(events.map((event) => graph.eventStatus(event))),
+    kinds: new Set(actions.flatMap((action) => (graph.emitsOf.get(action) ?? []).map((emit) => emit.kind))),
+  };
+}
+
+/** The section that paints: the one chosen while it is on the panel; otherwise the domains. */
+export function paintOf(chosen: string, offered: readonly SectionId[]): Paint {
+  return (offered as readonly string[]).includes(chosen) ? (chosen as Paint) : "domains";
+}

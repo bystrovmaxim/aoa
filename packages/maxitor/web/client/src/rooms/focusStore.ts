@@ -35,7 +35,8 @@ export type CardPanel = { ref: ElementRef; fields: boolean; field: number | null
  */
 export type Panels = {
   sidebar: string[];
-  filter: "open" | "domains" | "kinds" | "changes" | null;
+  /** ``open`` with no section open, or the open section's id: ``domains``, ``kinds``, ``changes`` or one a page names (spec 055). */
+  filter: string | null;
   legend: boolean;
   versions: boolean;
   track: TrackState | null;

@@ -11,10 +11,10 @@ import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShe
 import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
-import { ErdFilterPanel, type ErdFilterRow } from "@/components/ui/ErdFilterPanel";
+import { ErdFilterPanel, type FilterSection } from "@/components/ui/ErdFilterPanel";
 import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { enabledKeys } from "@/lib/freshGraph";
-import { svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
+import { svgDataUriForGraphNodeIcon, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { usePageSetting } from "@/lib/pageSettings";
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
 import { useHoverCard } from "@/lib/useHoverCard";
@@ -24,13 +24,19 @@ import {
   BODY_W,
   EventsGraph,
   MAIN_PORT,
+  EVENT_STATUSES,
+  METHOD_KINDS,
   ROOT_KIND,
+  appliedFilters,
   buildDot,
   explore,
   idOf,
   kindOf,
   links,
   methodKindsOf,
+  methodsOff,
+  offeredSections,
+  paintOf,
   portKey,
   readLayout,
   roots,
@@ -41,12 +47,14 @@ import {
   type Paint,
   type Placed,
   type PortKind,
+  type SectionId,
+  type Shown,
 } from "@/lib/eventsExplorer";
 import type { DiagramSelection } from "@/model/diagramSelection";
 import type { EventsExplorerPayload } from "@/model/eventsExplorer";
 import { useSvgDiagramSurface } from "@/rooms/diagramSurface";
 import { ExplorerNode, PortPill } from "./ExplorerNode";
-import { METHOD_COLOUR, NEUTRAL } from "./explorerLook";
+import { ACTION_COLOUR, COVERAGE_COLOUR, METHOD_COLOUR, METHOD_LABEL, NEUTRAL, STATUS_COLOUR, STATUS_LABEL } from "./explorerLook";
 import { ModePill } from "./ModePill";
 
 const GRID_SX = {
@@ -129,15 +137,24 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
   const [layout, setLayout] = usePageSetting<Layout>("layout", "dot_lr");
   const [openedList, setOpenedList] = usePageSetting<string[]>("opened", domainId ? [portKey(`domain:${domainId}`, "events")] : []);
   const [chosenDomains, setChosenDomains] = usePageSetting<string[] | null>("domains", null);
-  const [offList] = usePageSetting<string[]>("off", []);
-  const paint: Paint = "domains";
+  const [offList, setOffList] = usePageSetting<string[]>("off", []);
+  const [paintChoice, setPaintChoice] = usePageSetting<string>("paint", "domains");
   const opened = useMemo(() => new Set(openedList), [openedList]);
   const domainKeys = useMemo(() => [...graph.domains.keys()].sort(), [graph]);
   const filters = useMemo<Filters>(() => ({ domains: new Set(enabledKeys(domainKeys, chosenDomains)), off: new Set(offList) }), [domainKeys, chosenDomains, offList]);
-  const g = graph;
-  const first = useMemo(() => roots(mode, filters, graph, g), [mode, filters, graph, g]);
-  const shown = useMemo(() => explore(first, opened, filters, ROOT_KIND[mode], graph, g), [first, opened, filters, mode, graph, g]);
+  const applied = useMemo(() => appliedFilters(mode, filters), [mode, filters]);
+  // The kinds of method switched off emit nothing: the screen is read from the graph without them.
+  const g = useMemo(() => graph.only(methodsOff(applied)), [graph, applied]);
+  const first = useMemo(() => roots(mode, applied, graph, g), [mode, applied, graph, g]);
+  const shown = useMemo(() => explore(first, opened, applied, ROOT_KIND[mode], graph, g), [first, opened, applied, mode, graph, g]);
   const drawnLinks = useMemo(() => links(shown, opened, g), [shown, opened, g]);
+  // The screen as it would be with every row on: which sections the panel offers (FR-016).
+  const loose: Shown = useMemo(() => {
+    const all: Filters = { domains: filters.domains, off: new Set() };
+    return explore(roots(mode, all, graph), opened, all, ROOT_KIND[mode], graph);
+  }, [mode, filters.domains, opened, graph]);
+  const offered = useMemo(() => offeredSections(mode, loose, graph), [mode, loose, graph]);
+  const paint: Paint = paintOf(paintChoice, offered.ids);
 
   const [placed, setPlaced] = useState<Placed | null>(null);
   /** Graphviz's answer and the DOT it was laid out from: their hashes prove one input gives one picture (layout determinism). */
@@ -246,9 +263,53 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
   );
 
   const toggle = (list: readonly string[], key: string) => (list.includes(key) ? list.filter((each) => each !== key) : [...list, key].sort());
-  const domainRows: ErdFilterRow[] = [...graph.domains.values()]
-    .sort((one, other) => one.label.localeCompare(other.label))
-    .map((domain) => ({ key: domain.id, label: domain.label, iconSrc: svgDataUriForInterchangeDomainLegend(domain.accent_color), on: filters.domains.has(domain.id), absent: mode !== "domains" && !graph.withEvents(domain.id) }));
+  const on = (key: string) => !filters.off.has(key);
+  const rowsOf: Record<SectionId, () => FilterSection> = {
+    domains: () => ({
+      id: "domains",
+      title: "Domains",
+      paints: true,
+      rows: [...graph.domains.values()]
+        .sort((one, other) => one.label.localeCompare(other.label))
+        .map((domain) => ({ key: domain.id, label: domain.label, iconSrc: svgDataUriForInterchangeDomainLegend(domain.accent_color), on: filters.domains.has(domain.id), absent: mode !== "domains" && !graph.withEvents(domain.id) })),
+    }),
+    coverage: () => ({
+      id: "coverage",
+      title: "Coverage",
+      paints: true,
+      rows: [
+        { key: "with", label: "With events", iconSrc: svgDataUriForInterchangeDomainLegend(COVERAGE_COLOUR.with), on: on("coverage:with") },
+        { key: "without", label: "Without events", iconSrc: svgDataUriForInterchangeDomainLegend(COVERAGE_COLOUR.without), on: on("coverage:without") },
+      ],
+    }),
+    events: () => ({
+      id: "events",
+      title: "Events",
+      paints: true,
+      rows: EVENT_STATUSES.map((status) => ({ key: status, label: STATUS_LABEL[status], iconSrc: svgDataUriForGraphNodeIcon(STATUS_COLOUR[status], "Event"), on: on(`events:${status}`), absent: !offered.statuses.has(status) })),
+    }),
+    methods: () => ({
+      id: "methods",
+      title: "Methods",
+      paints: true,
+      rows: METHOD_KINDS.map((kind) => ({ key: kind, label: METHOD_LABEL[kind], iconSrc: svgDataUriForGraphNodeIcon(METHOD_COLOUR[kind], kind), on: on(`methods:${kind}`), absent: !offered.kinds.has(kind) })),
+    }),
+    actions: () => ({
+      id: "actions",
+      title: "Actions",
+      paints: true,
+      rows: [
+        { key: "with", label: "With events", iconSrc: svgDataUriForGraphNodeIcon(ACTION_COLOUR.with, "Action"), on: on("actions:with") },
+        { key: "without", label: "Without events", iconSrc: svgDataUriForGraphNodeIcon(ACTION_COLOUR.without, "Action"), on: on("actions:without") },
+      ],
+    }),
+  };
+  const sections = offered.ids.map((id) => rowsOf[id]());
+  const toggleRow = (section: string, row: string) =>
+    refit(() => {
+      if (section === "domains") setChosenDomains(toggle([...filters.domains], row));
+      else setOffList(toggle(offList, `${section}:${row}`));
+    });
   const counts: Record<Mode, number> = { domains: graph.domains.size, events: graph.events.size, actions: graph.emitsOf.size };
   const vertical = layout === "dot_tb";
 
@@ -264,7 +325,7 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
           })
         }
       />
-      <ErdFilterPanel domainRows={domainRows} kindRows={[]} onToggleDomain={(key) => refit(() => setChosenDomains(toggle([...filters.domains], key)))} onToggleKind={() => undefined} paint={null} />
+      <ErdFilterPanel domainRows={[]} kindRows={[]} onToggleDomain={() => undefined} onToggleKind={() => undefined} sections={sections} onToggleRow={toggleRow} paint={{ source: paint, onPaint: setPaintChoice }} />
       {renderError != null && (
         <Typography color="error" variant="body2" sx={{ position: "absolute", left: 8, top: 8, zIndex: 2 }}>
           {renderError}
