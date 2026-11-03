@@ -60,7 +60,7 @@ class PrivateHistory:
     """
     AI-CORE-BEGIN
     ROLE: A private history: the port that serves it, its id, and the read key that opens it.
-    CONTRACT: ``name`` is the address without the key; ``title`` is the id; ``__repr__`` never shows the key.
+    CONTRACT: ``name`` is the address without the key; ``title`` is the id; ``full_path`` is ``name``; ``__repr__`` never shows the key.
     AI-CORE-END
     """
 
@@ -78,19 +78,26 @@ class PrivateHistory:
         """What a person reads as the history's name."""
         return self.id
 
+    @property
+    def full_path(self) -> str:
+        """What tells the history apart from another of the same name: its address without the key."""
+        return self.name
+
 
 @dataclass(frozen=True)
 class PublicHistory:
     """
     AI-CORE-BEGIN
     ROLE: A public history: a GitHub link to its graph file, read through Maxitor's own port, optionally joined with a version file.
-    CONTRACT: ``name`` is the link with ``version_link`` and ``version_key`` when given, so one graph joined with two files is two histories; ``title`` is ``owner/repo``.
+    CONTRACT: ``name`` is the link with ``version_link`` and ``version_key`` when given, so one graph joined with two files is two histories; ``title`` is the folder of the graph file, or ``repo`` at the root; ``full_path`` is ``owner/repo`` followed by that folder.
     AI-CORE-END
     """
 
     link: str
     owner: str
     repo: str
+    #: The graph file's path inside the repository, as the link gives it.
+    path: str
     version_link: str | None = None
     version_key: str | None = None
 
@@ -101,8 +108,19 @@ class PublicHistory:
 
     @property
     def title(self) -> str:
-        """What a person reads as the history's name."""
-        return f"{self.owner}/{self.repo}"
+        """What a person reads as the history's name: the graph file's folder, or the repository at the root."""
+        folder = self._folder()
+        return folder.rsplit("/", 1)[-1] if folder else self.repo
+
+    @property
+    def full_path(self) -> str:
+        """The repository and the graph file's folder, in one path."""
+        folder = self._folder()
+        return f"{self.owner}/{self.repo}/{folder}" if folder else f"{self.owner}/{self.repo}"
+
+    def _folder(self) -> str:
+        """The folder that holds the graph file, empty at the repository's root."""
+        return self.path.rpartition("/")[0]
 
 
 def parse_history(address: str) -> PrivateHistory | PublicHistory | None:
@@ -164,7 +182,7 @@ def _public(path: str, fragment: str, query: str) -> PublicHistory:
     if linked is None:
         raise HistoryAddressError("A public history is a GitHub link to a graph file: https://github.com/<owner>/<repo>/blob/<branch>/<path>.")
     link = f"https://github.com{path}"
-    return PublicHistory(link=link, owner=linked.group("owner"), repo=linked.group("repo"), version_link=version_link, version_key=version_key)
+    return PublicHistory(link=link, owner=linked.group("owner"), repo=linked.group("repo"), path=unquote(linked.group("path")), version_link=version_link, version_key=version_key)
 
 
 class PublicHistoriesNotSetUpError(ValueError):

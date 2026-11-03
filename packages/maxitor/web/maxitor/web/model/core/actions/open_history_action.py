@@ -19,7 +19,7 @@ ARCHITECTURE / DATA FLOW
 ::
 
     GET /api/history/open?history=<name>   (X-Maxitor-History-Key)
-        └──► open_history() ──► HistoryEntry held ──► tab marked open ──► {name, title, host, repository, live, versions, count, room_ticket}
+        └──► open_history() ──► HistoryEntry held ──► tab marked open ──► {name, title, path, host, repository, live, versions, count, room_ticket}
 """
 
 from __future__ import annotations
@@ -61,7 +61,8 @@ class OpenHistoryResult(BaseResult):
     """What the screen needs to show the history."""
 
     name: str = Field(description="The history's address without its key")
-    title: str = Field(description="The history's id, or owner/repo for a public one")
+    title: str = Field(description="The history's id, or for a public one the folder of its graph file (the repository at the root)")
+    path: str = Field(description="What tells the history apart from another of the same title: owner/repo/<folder>, or a private one's address")
     host: str = Field(description="github or local: whether #123 in a message is a pull request on GitHub")
     repository: str = Field(description="owner/name on the host, or a path on the port's disk")
     live: str | None = Field(default=None, description="The running service whose graph is Live, or none")
@@ -113,6 +114,7 @@ class OpenHistoryAction(BaseAction[OpenHistoryParams, OpenHistoryResult]):
         return OpenHistoryResult(
             name=entry.name,
             title=entry.title,
+            path=entry.path,
             host=entry.host,
             repository=entry.repository,
             live=entry.live,

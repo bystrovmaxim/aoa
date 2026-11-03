@@ -128,6 +128,7 @@ async def open_history(
         route=route,
         link=link,
         title=history.title,
+        path=history.full_path,
         repository=str(body.get("repository") or ""),
         host=_host_of(str(body.get("repository") or ""), history),
         live=body.get("live") if isinstance(body.get("live"), str) and isinstance(history, PrivateHistory) else None,

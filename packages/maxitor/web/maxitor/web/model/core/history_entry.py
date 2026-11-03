@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    OpenHistoryAction ──► HistoryEntry(name, route, link, title, repository, host, live, reader, versions, etag)
+    OpenHistoryAction ──► HistoryEntry(name, route, link, title, path, repository, host, live, reader, versions, etag)
     CheckHistoryAction ──► versions, etag, live replaced; last_checked moved
 """
 
@@ -52,6 +52,8 @@ class HistoryEntry:
     route: str
     link: str | None
     title: str
+    #: What tells the history apart from another of the same title: ``owner/repo/<folder>``, or a private one's address.
+    path: str
     repository: str
     host: str
     live: str | None
