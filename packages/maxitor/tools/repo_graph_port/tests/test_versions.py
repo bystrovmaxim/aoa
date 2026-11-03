@@ -13,8 +13,14 @@ from typing import cast
 import pytest
 from maxitor.repo_graph_port.git_error import GitError
 from maxitor.repo_graph_port.history import History
-from maxitor.repo_graph_port.history_reading import facts_of, graph_of
-from maxitor.repo_graph_port.history_versions import graph_change, graph_facts, place_tags, pull_request_in_message
+from maxitor.repo_graph_port.history_reading import facts_of, graph_of, pull_request_of, release_of
+from maxitor.repo_graph_port.history_versions import (
+    graph_change,
+    graph_facts,
+    names_version,
+    place_tags,
+    pull_request_in_message,
+)
 from maxitor.repo_graph_port.resources.git_mirror import GitMirror
 from maxitor.repo_graph_port.resources.github_host import GitHubHost
 from maxitor.repo_graph_port.resources.version_cache import VersionCache
@@ -214,3 +220,66 @@ def test_a_cache_of_the_old_layout_is_removed_and_never_served(tmp_path: Path) -
     cache = VersionCache(tmp_path)
     assert not (tmp_path / "versions").exists()
     assert cache.graph("o/r", "graph.json", "abc") is None
+
+
+def test_what_the_host_said_survives_a_restart(tmp_path: Path) -> None:
+    """Fetch times, pull requests, releases and the open pull requests come back from disk in a new cache."""
+    first = VersionCache(tmp_path)
+    first.mark_fetched("o/r", 100.0)
+    first.keep_pull_request("o/r", "abc", {"number": 7, "title": "Seven"}, 101.0)
+    first.keep_release("o/r", "v1.0.0", {"title": "One", "url": "https://r"}, 102.0)
+    first.keep_release("o/r", "v1.1.0", None, 103.0)
+    first.keep_open_pull_requests("o/r", "main", [{"number": 8, "head": "def"}], 104.0)
+    second = VersionCache(tmp_path)
+    assert second.fetched_at("o/r") == 100.0
+    assert second.pull_request("o/r", "abc") == ({"number": 7, "title": "Seven"}, 101.0)
+    assert second.release("o/r", "v1.0.0") == ({"title": "One", "url": "https://r"}, 102.0)
+    assert second.release("o/r", "v1.1.0") == (None, 103.0)
+    assert second.open_pull_requests("o/r", "main") == ([{"number": 8, "head": "def"}], 104.0)
+    second.forget_releases("o/r")
+    assert VersionCache(tmp_path).release("o/r", "v1.0.0") is None
+
+
+def test_a_found_pull_request_and_release_are_kept_and_a_missing_one_asked_again(tmp_path: Path) -> None:
+    """Whatever the interval, a found answer is not asked for again; an answer of none is, once the interval passed."""
+    class Host:
+        def __init__(self) -> None:
+            self.asked: list[str] = []
+
+        async def public_token(self) -> None:
+            return None
+
+        async def pull_request_of(self, repository: str, sha: str, token: str | None) -> dict[str, str | int] | None:
+            self.asked.append(f"pull {sha}")
+            return {"number": 1} if sha == "found" else None
+
+        async def release_of(self, repository: str, tag: str, token: str | None) -> dict[str, str] | None:
+            self.asked.append(f"release {tag}")
+            return {"title": "T", "url": "u"} if tag == "found" else None
+
+    cache, host = VersionCache(tmp_path), Host()
+    history = History(id="h", host="github", repository="o/r", branch="main", graph_file="g.json", public=True)
+    for _ in range(2):
+        for name in ("found", "none"):
+            asyncio.run(pull_request_of(cache, cast(GitHubHost, host), history, name, 0))
+            asyncio.run(release_of(cache, cast(GitHubHost, host), history, name, 0))
+    assert host.asked == ["pull found", "release found", "pull none", "release none", "pull none", "release none"]
+
+
+@pytest.mark.parametrize(
+    ("tag", "version", "named"),
+    [("v3.7.0", "3.7.0", True), ("aoa-demo-v3.7.0", "3.7.0", True), ("release-3.7.0", "3.7.0", True), ("3.7.0", "3.7.0", True),
+     ("13.7.0", "3.7.0", False), ("v1.3.7.0", "3.7.0", False), ("aoa-action-machine-v1.0.1a9", "3.6.0", False), ("release-1", "1.1.0", False), ("v1.0.0", "", False)],
+)
+def test_a_tag_names_a_version_by_its_end(tag: str, version: str, named: bool) -> None:
+    """A tag is a version's when it ends with that number and no other number runs into it."""
+    assert names_version(tag, version) is named
+
+
+def test_a_port_with_no_app_reads_public_repositories_with_its_read_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``MAXITOR_GITHUB_TOKEN`` is the public token of a port with no App; with neither, reads are anonymous."""
+    monkeypatch.setenv("MAXITOR_GITHUB_TOKEN", "read-me")
+    assert asyncio.run(GitHubHost.from_settings(None).public_token()) == "read-me"
+    assert "read-me" not in repr(GitHubHost.from_settings(None))
+    monkeypatch.delenv("MAXITOR_GITHUB_TOKEN")
+    assert asyncio.run(GitHubHost.from_settings(None).public_token()) is None

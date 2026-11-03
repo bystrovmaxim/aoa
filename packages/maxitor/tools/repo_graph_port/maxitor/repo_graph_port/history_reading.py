@@ -166,12 +166,12 @@ async def detail_of(
 
 
 async def pull_request_of(cache: VersionCache, host: GitHubHost, history: History, sha: str, interval_seconds: int) -> dict[str, str | int] | None:
-    """A version's pull request: kept while younger than ``interval_seconds`` and not forgotten, or asked of the host."""
+    """A version's pull request: one found is kept until a webhook forgets it; none found is asked again after ``interval_seconds``."""
     if history.host != "github":
         return None
     kept = cache.pull_request(history.repository, sha)
     now = time.time()
-    if kept is not None and now - kept[1] < interval_seconds:
+    if kept is not None and (kept[0] is not None or now - kept[1] < interval_seconds):
         return kept[0]
     try:
         pull = await host.pull_request_of(history.repository, sha, await _token(host, history))
@@ -183,12 +183,12 @@ async def pull_request_of(cache: VersionCache, host: GitHubHost, history: Histor
 
 
 async def release_of(cache: VersionCache, host: GitHubHost, history: History, tag: str, interval_seconds: int) -> dict[str, str] | None:
-    """A tag's release: kept while younger than ``interval_seconds`` and not forgotten, or asked of the host."""
+    """A tag's release: one found is kept until a webhook forgets it; none found is asked again after ``interval_seconds``."""
     if history.host != "github":
         return None
     kept = cache.release(history.repository, tag)
     now = time.time()
-    if kept is not None and now - kept[1] < interval_seconds:
+    if kept is not None and (kept[0] is not None or now - kept[1] < interval_seconds):
         return kept[0]
     try:
         release = await host.release_of(history.repository, tag, await _token(host, history))

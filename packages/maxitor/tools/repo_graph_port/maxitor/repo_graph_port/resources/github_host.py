@@ -55,7 +55,7 @@ class GitHubHost(BaseGateway):
     """
     AI-CORE-BEGIN
     ROLE: Read from GitHub what git does not hold, and authenticate the port to it.
-    CONTRACT: ``token_for`` gives an installation token for a repository the App is installed on, ``public_token`` one of any installation for reading public repositories (both ``None`` without an App); ``git_auth`` turns it into git configuration for one call; ``pull_request_of`` and ``release_of`` answer ``None`` when there is none; ``verify_webhook`` is false without a secret.
+    CONTRACT: ``token_for`` gives an installation token for a repository the App is installed on, ``public_token`` one of any installation for reading public repositories, or with no App the read token ``MAXITOR_GITHUB_TOKEN`` gives (``None`` with neither); ``git_auth`` turns it into git configuration for one call; ``pull_request_of`` and ``release_of`` answer ``None`` when there is none; ``verify_webhook`` is false without a secret.
     INVARIANTS: The private key, the webhook secret and every token stay in memory; ``repr`` shows none of them.
     AI-CORE-END
     """
@@ -66,11 +66,13 @@ class GitHubHost(BaseGateway):
         private_key: str | None = None,
         webhook_secret: str | None = None,
         *,
+        read_token: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._app_id = app_id
         self._private_key = private_key
         self._webhook_secret = webhook_secret
+        self._read_token = read_token
         self._transport = transport
         self._tokens: dict[str, tuple[str, float]] = {}
         self._client: httpx.AsyncClient | None = None
@@ -80,16 +82,18 @@ class GitHubHost(BaseGateway):
         """
         The host as the config's ``[github]`` names it: the App's id, and its private key and webhook secret read
         from the environment variables the config names. A key kept on one line has its newlines written ``\\n``.
+        A port with no App may read public repositories with ``MAXITOR_GITHUB_TOKEN``, a token that can read them.
         """
+        read_token = os.environ.get("MAXITOR_GITHUB_TOKEN") or None
         if settings is None:
-            return cls()
+            return cls(read_token=read_token)
         app_id, key_variable, secret_variable = settings
         private_key = os.environ.get(key_variable, "").replace("\\n", "\n") or None
-        return cls(app_id, private_key, os.environ.get(secret_variable) or None)
+        return cls(app_id, private_key, os.environ.get(secret_variable) or None, read_token=read_token)
 
     def __repr__(self) -> str:
         """Say whether an App is set, never its secrets."""
-        return f"GitHubHost(app_id={self._app_id!r}, private_key={'set' if self._private_key else 'none'})"
+        return f"GitHubHost(app_id={self._app_id!r}, private_key={'set' if self._private_key else 'none'}, read_token={'set' if self._read_token else 'none'})"
 
     def get_wrapper_class(self) -> type[BaseGateway] | None:
         """Return ``None``: nested actions use this same host."""
@@ -108,8 +112,11 @@ class GitHubHost(BaseGateway):
         A token of any installation of the App, for the REST API's reads of public repositories.
 
         Anonymous calls get 60 an hour per address; an installation's token reads any public
-        repository with that installation's far larger limit. ``None`` when no App is set.
+        repository with that installation's far larger limit. With no App, the read token, which has a limit of its own;
+        ``None`` when there is neither.
         """
+        if self._app_id is None or not self._private_key:
+            return self._read_token
         return await self._installation_token("", "/app/installations")
 
     async def _installation_token(self, kept_as: str, find: str) -> str | None:

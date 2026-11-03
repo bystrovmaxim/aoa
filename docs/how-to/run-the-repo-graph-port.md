@@ -121,3 +121,18 @@ Merge a pull request that changes the graph file: GitHub's webhook reaches the p
 The answer also lists `proposals`: the pull requests still open into the branch that change the graph, each with its review state — `open`, `approved` or `changes_requested`; drafts are left out. The port fetches GitHub's `refs/pull/<n>/head` with the branches, so it reads an open pull request's graph before it is merged; the App's *Pull requests: read-only* is all it needs. Open pull requests are read again on the same schedule as the history, not on a webhook. To open the history in Maxitor, give its users the history's address with the key after `#key=` ([how-to](open-a-graph-history.md)).
 
 If *Recent Deliveries* shows only timeouts and no request reaches your HTTPS front end, GitHub cannot connect to your host — check that its addresses (`https://api.github.com/meta`, `hooks`) are let in. The port still serves fresh histories without webhooks: a read fetches the repository again when its last fetch is older than `MAXITOR_HISTORY_REFRESH_SECONDS` (600), so a merge shows within ten minutes.
+
+## 7. What it keeps
+
+The port reads GitHub once and keeps what it read in its cache folder (`MAXITOR_HISTORY_CACHE`), so a restart reads nothing again from scratch:
+
+| What | Read again |
+|---|---|
+| a version's graph file, its counts, who made it and how large it was, the number in its version file | never: they belong to the commit |
+| a merged version's pull request, a tag's release once found | when a webhook says it changed |
+| a version with no pull request found, a tag with no release yet | after `MAXITOR_HISTORY_REFRESH_SECONDS` |
+| the open pull requests, the repository's fetch | after `MAXITOR_HISTORY_REFRESH_SECONDS` |
+
+A port with no GitHub App reads public repositories anonymously, which GitHub allows 60 times an hour from one address. Give it `MAXITOR_GITHUB_TOKEN`, a token that can read public repositories, and it reads with that token's limit instead. A port with an App reads with the App and needs none.
+
+In a repository of several packages, a history with a version file takes only the tags of its own versions: a tag that ends with a point's version, such as `aoa-demo-v3.7.0` on 3.7.0. Another package's release tag in the same repository stays off its track.
