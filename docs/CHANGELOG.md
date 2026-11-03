@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-03] — Exploring events step by step
+
+The Events pages used to draw every action, every method that emits and every event at once. With a few domains that read well; with twenty it became a wall of boxes, and the question people ask — *what happens after this, and where does it lead?* — could not be answered by looking. Now the page is an explorer: it starts small and you open it one link at a time.
+
+A pill at the top chooses what the screen starts from: the domains, the events, or the actions that emit them. At first the screen holds only that. Each domain says how many events its vocabulary holds, or how many it emits without one, or that it has none; an empty vocabulary counts as a domain with events, since declaring nothing is a decision too.
+
+Every node has ports, one per kind of link, each with the number of things behind it. Click a node or a port to open the next layer, click again to close it. A path passes each kind once: the second layer leads on only to the kind not yet on the path, and the third has a single port that joins it back to what is already on the screen. So from an event you open the domains that hold it, then all actions of one of them, and see which of those actions emit it. Because a domain's actions port opens all its actions, those without events show what events do not cover yet. Lines join neighbouring layers only, name their method when you rest on them, and the node you clicked stays where it was.
+
+The filter panel offers what fits the screen — domains, coverage, the standing of an event, the kind of method, actions with or without events — and any of them can paint the screen. In a comparison of two versions the screen is painted by its changes, and a closed port counts the changes behind it, so none hides behind a port. The address keeps what you opened, so a copied link opens the same screen.
+
+One more thing on the version track: in One its handle is now dragged to a version, as the handles of Diff already were, instead of only scrolling the track.
+
 ## [2026-11-03] — The demo's graph history
 
 The demo now has a real history to look at in Maxitor. Thirteen ordinary pull requests changed it one after another, each saying what it did: tables added, moved and removed, fields whose type changed, lifecycles growing and losing states, roles and actions coming and going, a whole domain added and later closed. Three of them are releases, published to PyPI. Paste the link from [the guide](how-to/open-a-graph-history.md#try-it-on-the-demo) and compare any two.
