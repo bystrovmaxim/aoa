@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-04] — A history called by what you opened
+
+Maxitor used to name every public history after its repository, so the three graphs of `bystrovmaxim/aoa` all read `bystrovmaxim/aoa`, and two of them open side by side could not be told apart. Now a history is called by the folder that holds its graph file: `aoa-demo`, `web`, `repo_graph_port`. A graph at the root of a repository is called by the repository, and a private history keeps its id.
+
+The name is taken from the link alone, so it works for a project in any language and costs nothing to find. It heads the version picker, titles the tab and stands in Recent. Rest on it in the picker to read its full path, `bystrovmaxim/aoa/packages/aoa-demo`, which tells apart two folders of one name; click it to copy that path.
+
 ## [2026-11-03] — The stand on its own domains
 
 The demo service, Maxitor and the history port each live on one domain: `demo.aoa.run`, `maxitor.aoa.run` and `repo-graph-port.aoa.run`. They run the newest versions there, and nothing else serves them: `dev.demo.aoa.run` and `dev.maxitor.aoa.run` only send you on to the domains above.
