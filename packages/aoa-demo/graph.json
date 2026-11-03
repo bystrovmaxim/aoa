@@ -37106,6 +37106,69 @@
       "type": "generic:result"
     },
     {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params|field|aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params:return_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params",
+      "target_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params:return_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result|field|aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result:approved",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result",
+      "target_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result:approved",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction|@check_roles|aoa.demo.model.roles.editor.EditorRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "target_id": "aoa.demo.model.roles.editor.EditorRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction|@summary_aspect|aoa.demo.model.store.actions.return_approve.ReturnApproveAction:approve_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "target_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction:approve_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction|generic:params|aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "target_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction|generic:result|aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "target_id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result",
+      "type": "generic:result"
+    },
+    {
       "id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction.Params|field|aoa.demo.model.store.actions.role_migration.RoleMigrationAction.Params:item_id",
       "is_dag": false,
       "properties": {},
@@ -40179,342 +40242,119 @@
       "type": "lifecycle"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment|confirmed",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded|approved",
       "is_dag": false,
       "properties": {
-        "from_state": "confirmed",
-        "to_state": "pending_fulfillment"
+        "from_state": "approved",
+        "to_state": "refunded"
       },
       "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework|confirmed",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved|requested",
       "is_dag": false,
       "properties": {
-        "from_state": "confirmed",
-        "to_state": "rework"
+        "from_state": "requested",
+        "to_state": "approved"
       },
       "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled|new",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected|requested",
       "is_dag": false,
       "properties": {
-        "from_state": "new",
-        "to_state": "cancelled"
+        "from_state": "requested",
+        "to_state": "rejected"
       },
       "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected",
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending|new",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
       "is_dag": false,
       "properties": {
-        "from_state": "new",
-        "to_state": "payment_pending"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered|out_for_delivery",
-      "is_dag": false,
-      "properties": {
-        "from_state": "out_for_delivery",
-        "to_state": "delivered"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled|payment_pending",
-      "is_dag": false,
-      "properties": {
-        "from_state": "payment_pending",
-        "to_state": "cancelled"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|payment_pending",
-      "is_dag": false,
-      "properties": {
-        "from_state": "payment_pending",
-        "to_state": "confirmed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped|pending_fulfillment",
-      "is_dag": false,
-      "properties": {
-        "from_state": "pending_fulfillment",
-        "to_state": "shipped"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|rework",
-      "is_dag": false,
-      "properties": {
-        "from_state": "rework",
-        "to_state": "confirmed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery|shipped",
-      "is_dag": false,
-      "properties": {
-        "from_state": "shipped",
-        "to_state": "out_for_delivery"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
-      "is_dag": false,
-      "properties": {
-        "state_key": "cancelled"
+        "state_key": "approved"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
       "type": "lifecycle_contains_state"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
       "is_dag": false,
       "properties": {
-        "state_key": "confirmed"
+        "state_key": "refunded"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
       "type": "lifecycle_contains_state"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected",
       "is_dag": false,
       "properties": {
-        "state_key": "delivered"
+        "state_key": "rejected"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected",
       "type": "lifecycle_contains_state"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested",
       "is_dag": false,
       "properties": {
-        "state_key": "new"
+        "state_key": "requested"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested",
       "type": "lifecycle_contains_state"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved|requested",
       "is_dag": false,
       "properties": {
-        "state_key": "out_for_delivery"
+        "from_state": "requested",
+        "to_state": "approved"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
-      "type": "lifecycle_contains_state"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "is_dag": false,
-      "properties": {
-        "state_key": "payment_pending"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "type": "lifecycle_contains_state"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
-      "is_dag": false,
-      "properties": {
-        "state_key": "pending_fulfillment"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
-      "type": "lifecycle_contains_state"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
-      "is_dag": false,
-      "properties": {
-        "state_key": "rework"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
-      "type": "lifecycle_contains_state"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
-      "is_dag": false,
-      "properties": {
-        "state_key": "shipped"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
-      "type": "lifecycle_contains_state"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled|new",
-      "is_dag": false,
-      "properties": {
-        "from_state": "new",
-        "to_state": "cancelled"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled|payment_pending",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded|approved",
       "is_dag": false,
       "properties": {
-        "from_state": "payment_pending",
-        "to_state": "cancelled"
+        "from_state": "approved",
+        "to_state": "refunded"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|payment_pending",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected|requested",
       "is_dag": false,
       "properties": {
-        "from_state": "payment_pending",
-        "to_state": "confirmed"
+        "from_state": "requested",
+        "to_state": "rejected"
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed|rework",
-      "is_dag": false,
-      "properties": {
-        "from_state": "rework",
-        "to_state": "confirmed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered|out_for_delivery",
-      "is_dag": false,
-      "properties": {
-        "from_state": "out_for_delivery",
-        "to_state": "delivered"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery|shipped",
-      "is_dag": false,
-      "properties": {
-        "from_state": "shipped",
-        "to_state": "out_for_delivery"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending|new",
-      "is_dag": false,
-      "properties": {
-        "from_state": "new",
-        "to_state": "payment_pending"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment|confirmed",
-      "is_dag": false,
-      "properties": {
-        "from_state": "confirmed",
-        "to_state": "pending_fulfillment"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework|confirmed",
-      "is_dag": false,
-      "properties": {
-        "from_state": "confirmed",
-        "to_state": "rework"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped|pending_fulfillment",
-      "is_dag": false,
-      "properties": {
-        "from_state": "pending_fulfillment",
-        "to_state": "shipped"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected",
       "type": "lifecycle_transition"
     },
     {
@@ -40531,7 +40371,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "compliance_rating",
-        "ordinal": 5
+        "ordinal": 6
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40543,7 +40383,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "fulfillment_priority",
-        "ordinal": 6
+        "ordinal": 7
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40587,11 +40427,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_field|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:reason_code",
+      "is_dag": false,
+      "properties": {
+        "field_name": "reason_code",
+        "ordinal": 3
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:reason_code",
+      "type": "entity_field"
+    },
+    {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_field|aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:status",
       "is_dag": false,
       "properties": {
         "field_name": "status",
-        "ordinal": 3
+        "ordinal": 4
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40603,7 +40455,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "storefront_channel",
-        "ordinal": 4
+        "ordinal": 5
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -40615,7 +40467,7 @@
       "is_dag": false,
       "properties": {
         "field_name": "tax_jurisdiction_stub",
-        "ordinal": 7
+        "ordinal": 8
       },
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
@@ -82782,6 +82634,56 @@
       "type": "RequiredContext"
     },
     {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction",
+      "label": "ReturnApproveAction",
+      "properties": {
+        "description": "Approve a customer's return so it can be refunded (store sample stub)"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Params:return_id",
+      "label": "return_id",
+      "properties": {
+        "description": "Return request to approve",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction.Result:approved",
+      "label": "approved",
+      "properties": {
+        "description": "Whether the return was approved",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.return_approve.ReturnApproveAction:approve_summary",
+      "label": "approve_summary",
+      "properties": {
+        "description": "Approve return"
+      },
+      "type": "SummaryAspect"
+    },
+    {
       "id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction",
       "label": "RoleMigrationAction",
       "properties": {
@@ -84485,8 +84387,8 @@
       "label": "lifecycle",
       "properties": {
         "description": "Return lifecycle",
-        "field_annotation": "SalesOrderLifecycle",
-        "field_type": "SalesOrderLifecycle",
+        "field_annotation": "ReturnRequestLifecycle",
+        "field_type": "ReturnRequestLifecycle",
         "primary_key_hint": false
       },
       "type": "EntityField"
@@ -84501,136 +84403,77 @@
       "type": "Lifecycle"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:cancelled",
-      "label": "Cancelled",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:approved",
+      "label": "Approved",
       "properties": {
         "attributes": {
-          "code": "cancelled",
-          "display_name": "Cancelled",
-          "sort_order": 9
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "cancelled"
-      },
-      "type": "StateFinal"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:confirmed",
-      "label": "Confirmed",
-      "properties": {
-        "attributes": {
-          "code": "confirmed",
-          "display_name": "Confirmed",
-          "sort_order": 3
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "confirmed"
-      },
-      "type": "StateIntermediate"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:delivered",
-      "label": "Delivered",
-      "properties": {
-        "attributes": {
-          "code": "delivered",
-          "display_name": "Delivered",
-          "sort_order": 8
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "delivered"
-      },
-      "type": "StateFinal"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:new",
-      "label": "New",
-      "properties": {
-        "attributes": {
-          "code": "new",
-          "display_name": "New",
-          "sort_order": 1
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "new"
-      },
-      "type": "StateInitial"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:out_for_delivery",
-      "label": "Out for delivery",
-      "properties": {
-        "attributes": {
-          "code": "out_for_delivery",
-          "display_name": "Out for delivery",
-          "sort_order": 7
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "out_for_delivery"
-      },
-      "type": "StateIntermediate"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:payment_pending",
-      "label": "Payment pending",
-      "properties": {
-        "attributes": {
-          "code": "payment_pending",
-          "display_name": "Payment pending",
+          "code": "approved",
+          "display_name": "Approved",
           "sort_order": 2
         },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "payment_pending"
+        "lifecycle_class_id": "aoa.demo.model.store.entities.return_request_lifecycle.ReturnRequestLifecycle",
+        "state_key": "approved"
       },
       "type": "StateIntermediate"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:pending_fulfillment",
-      "label": "Pending fulfillment",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:refunded",
+      "label": "Refunded",
       "properties": {
         "attributes": {
-          "code": "pending_fulfillment",
-          "display_name": "Pending fulfillment",
-          "sort_order": 5
-        },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "pending_fulfillment"
-      },
-      "type": "StateIntermediate"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rework",
-      "label": "Rework",
-      "properties": {
-        "attributes": {
-          "code": "rework",
-          "display_name": "Rework",
+          "code": "refunded",
+          "display_name": "Refunded",
           "sort_order": 4
         },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "rework"
+        "lifecycle_class_id": "aoa.demo.model.store.entities.return_request_lifecycle.ReturnRequestLifecycle",
+        "state_key": "refunded"
       },
-      "type": "StateIntermediate"
+      "type": "StateFinal"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:shipped",
-      "label": "Shipped",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:rejected",
+      "label": "Rejected",
       "properties": {
         "attributes": {
-          "code": "shipped",
-          "display_name": "Shipped",
-          "sort_order": 6
+          "code": "rejected",
+          "display_name": "Rejected",
+          "sort_order": 3
         },
-        "lifecycle_class_id": "aoa.demo.model.store.entities.sales_order_lifecycle.SalesOrderLifecycle",
-        "state_key": "shipped"
+        "lifecycle_class_id": "aoa.demo.model.store.entities.return_request_lifecycle.ReturnRequestLifecycle",
+        "state_key": "rejected"
       },
-      "type": "StateIntermediate"
+      "type": "StateFinal"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:lifecycle:lifecycle:requested",
+      "label": "Requested",
+      "properties": {
+        "attributes": {
+          "code": "requested",
+          "display_name": "Requested",
+          "sort_order": 1
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.return_request_lifecycle.ReturnRequestLifecycle",
+        "state_key": "requested"
+      },
+      "type": "StateInitial"
     },
     {
       "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:reason",
       "label": "reason",
       "properties": {
         "description": "Return reason",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity:reason_code",
+      "label": "reason_code",
+      "properties": {
+        "description": "Why the customer returns it, as a code: damaged, wrong_item, changed_mind, other",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": false
