@@ -95,7 +95,7 @@ A reviewer sees not only the Python body but the change in intent: roles, depend
 
 ### When do I need specialization rather than another association?
 
-Use it when common information is accompanied by one of several kinds of details. In the record example, a title belongs to every record, but a stamper code belongs to a first pressing and an approval name belongs to a test pressing. The model declares both the possible detail classes and the codes that identify them. An ordinary association describes a reference; writing a union inside it does not add this classifier mapping and its specialization checks. Start with the [complete tutorial](../tutorials/step-21-relations.md#generalization-and-specialization).
+Use it when common information is accompanied by one of several kinds of details. In the record example, a title belongs to every record, but a stamper code belongs to a first pressing and an approval name belongs to a test pressing. The model declares both the possible detail classes and the codes that identify them. An ordinary association describes a reference; writing a union inside it does not add this classifier mapping and its specialization checks. Start with the [complete tutorial](../tutorials/step-24-relations.md#generalization-and-specialization).
 
 ### Why not use an enumeration on an ordinary field?
 
@@ -115,15 +115,15 @@ No. The declaration makes the correspondence available, but the application or r
 
 ### What does entity=None mean?
 
-The container has no loaded object. Its identifier and, on a specialization link, its variant can still be available. This does not prove that the corresponding record is missing from storage. `Specialization` and `Generalization` expose `.entity` directly, unlike ownership containers that proxy attributes and raise `RelationNotLoadedError` for unloaded access. The [unloaded-link experiment](../../examples/step_21_relations/03_specialization_unloaded.py) prints the actual `None`.
+The container has no loaded object. Its identifier and, on a specialization link, its variant can still be available. This does not prove that the corresponding record is missing from storage. `Specialization` and `Generalization` expose `.entity` directly, unlike ownership containers that proxy attributes and raise `RelationNotLoadedError` for unloaded access. The [unloaded-link experiment](../../examples/step_24_relations/03_specialization_unloaded.py) prints the actual `None`.
 
 ### Does a successful build guarantee that codes in my data are correct?
 
-The build checks declarations, not database rows. Normal construction now also checks each incoming reference: unknown codes and bare strings are refused, and a FIRST variant paired with a RepressSpecEntity is refused. The resource must still resolve storage codes, load the right rows and maintain identifier consistency. See the [runtime examples](../tutorials/step-21-relations.md#an-unknown-variant-is-refused).
+The build checks declarations, not database rows. Normal construction now also checks each incoming reference: unknown codes and bare strings are refused, and a FIRST variant paired with a RepressSpecEntity is refused. The resource must still resolve storage codes, load the right rows and maintain identifier consistency. See the [runtime examples](../tutorials/step-24-relations.md#an-unknown-variant-is-refused).
 
 ### Can two choices on the same entity use different alternatives?
 
-The current closure check still requires every axis to include the classes that generalize to its head. The [working two-axis example](../../examples/step_21_relations/11_specialization_two_axes.py) shares both the dictionary and alternatives; the [subset example](../../examples/step_21_relations/38_error_axis_subset.py) shows the refusal. A dictionary can classify several axes, but this does not remove the restriction on alternative sets. There are no separate classifier fields.
+The current closure check still requires every axis to include the classes that generalize to its head. The [working two-axis example](../../examples/step_24_relations/11_specialization_two_axes.py) shares both the dictionary and alternatives; the [subset example](../../examples/step_24_relations/38_error_axis_subset.py) shows the refusal. A dictionary can classify several axes, but this does not remove the restriction on alternative sets. There are no separate classifier fields.
 
 ### Can I omit the reverse declaration?
 
@@ -135,7 +135,7 @@ Graph-edge construction can read the code mapping before the specialization vali
 
 ### Does the frame in Maxitor represent another entity?
 
-No. It groups the possible detail classes in the entity–relationship diagram. The entities inside keep their own fields. The frame is a display object and says nothing about a physical table or stored row. The [Maxitor chapter](../tutorials/step-26-maxitor.md#specialization-the-variants-in-one-frame) includes the actual rendered image and explains the frame, dictionary card and generalization arrows.
+No. It groups the possible detail classes in the entity–relationship diagram. The entities inside keep their own fields. The frame is a display object and says nothing about a physical table or stored row. The [Maxitor chapter](../tutorials/step-29-maxitor.md#specialization-the-variants-in-one-frame) includes the actual rendered image and explains the frame, dictionary card and generalization arrows.
 
 ---
 
@@ -147,7 +147,7 @@ No. It groups the possible detail classes in the entity–relationship diagram. 
 
 ### Does every association need an Assoc entity?
 
-No. An association field is a reference between objects. `BaseAssocEntity` describes a separate record whose entire business meaning is the connection between its participants. Service fields such as an identifier or creation timestamp are allowed. Price, quantity or agreement terms give the relationship business content: model that object as Core. An order line with quantity remains Detail because it is an owned part. The [entity tutorial](../tutorials/step-20-entity.md#understand-the-six-kinds) explains these boundaries with runnable examples.
+No. An association field is a reference between objects. `BaseAssocEntity` describes a separate record whose entire business meaning is the connection between its participants. Service fields such as an identifier or creation timestamp are allowed. Price, quantity or agreement terms give the relationship business content: model that object as Core. An order line with quantity remains Detail because it is an owned part. The [entity tutorial](../tutorials/step-22-entity.md#understand-the-six-kinds) explains these boundaries with runnable examples.
 
 ### Does the kind marker enforce the whole domain contract?
 
@@ -159,13 +159,13 @@ The class does not exist while Python executes its body. `value(...)` explicitly
 arguments for a member; after class creation the framework constructs and validates the
 objects. Import it from `aoa.action_machine.domain`. Member access and catalogue lookups
 still return shared instances. The old constructor-looking class-name alias is removed;
-see the [declaration migration](../tutorials/step-20-dictionaries.md#migrate-an-existing-declaration).
+see the [declaration migration](../tutorials/step-23-dictionaries.md#migrate-an-existing-declaration).
 
 ### Why do dictionary selection input and output use different keys?
 
 An entity selects shared members through a complete relationship declaration in any of the six ordinary containers. Python input uses the declared wrapper with id for One or ids for Many. JSON input is an id-only object for One or an array of id objects for Many. JSON output carries a canonical member reference or an array of references, each with code, display_name and serialized properties. Convert an exported code to an input id explicitly; the output is not accepted unchanged as selection input.
 
-A standalone dictionary or plain Pydantic DTO still supports a code-based reference. That DTO declaration is not an entity relationship shorthand. Request `model_json_schema(mode="validation")` for input and `mode="serialization"` for output. Membership is checked at runtime. The association's output schema currently lacks typed custom-property definitions; the standalone dictionary output schema retains them. See the [selection guide](../how-to/dictionary-references.md), [transport script](../../examples/step_20_dictionaries/56_selection_transport.py) and [executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb).
+A standalone dictionary or plain Pydantic DTO still supports a code-based reference. That DTO declaration is not an entity relationship shorthand. Request `model_json_schema(mode="validation")` for input and `mode="serialization"` for output. Membership is checked at runtime. The association's output schema currently lacks typed custom-property definitions; the standalone dictionary output schema retains them. See the [selection guide](../how-to/dictionary-references.md), [transport script](../../examples/step_23_dictionaries/56_selection_transport.py) and [executed notebook](../../examples/step_23_dictionaries/56_selection_transport.ipynb).
 
 ### Can two ownership roles pair with each other?
 

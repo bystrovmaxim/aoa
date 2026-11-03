@@ -28,7 +28,7 @@ The [previous chapter](step-26-testbench.md) showed at what **depth** to run an 
 
 Plus **Rollup** — a continuation of the resource theme: a run on a live schema with rollback instead of persisting.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1YOZkXCa8BsGbzjqdUG-thKhxDRE531Tp/view?usp=drive_link) · [Open in project](../../examples/step_24_substitution/01_substitution.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1YOZkXCa8BsGbzjqdUG-thKhxDRE531Tp/view?usp=drive_link) · [Open in project](../../examples/step_27_substitution/01_substitution.py)
 
 ---
 
@@ -100,7 +100,7 @@ This is the continuation of the resource theme from the [Resource chapter](step-
 **Run:**
 
 ```bash
-uv run python examples/step_24_substitution/01_substitution.py
+uv run python examples/step_27_substitution/01_substitution.py
 ```
 
 **Output:**
@@ -140,7 +140,7 @@ Next — **[Context](step-28-context.md)**: how `with_user`, `with_request`, and
 5. What does `rollup=True` do for a capable resource, and what for an incapable one?
 6. Who declares rollup support, and by which method?
 
-> **Exercise.** In [01_substitution.py](../../examples/step_24_substitution/01_substitution.py) replace the `StockGateway` mock with a `side_effect` that throws an exception, and trace how this shows up in the `CheckoutAction` result (the error surfaces from the nested operation). Then remove `rollup=True` from the fifth test and confirm that the journal now persists the row — this is exactly the difference between the modes.
+> **Exercise.** In [01_substitution.py](../../examples/step_27_substitution/01_substitution.py) replace the `StockGateway` mock with a `side_effect` that throws an exception, and trace how this shows up in the `CheckoutAction` result (the error surfaces from the nested operation). Then remove `rollup=True` from the fifth test and confirm that the journal now persists the row — this is exactly the difference between the modes.
 
 ---
 

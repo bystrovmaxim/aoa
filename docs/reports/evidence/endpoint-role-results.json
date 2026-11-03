@@ -19,63 +19,63 @@
     "maxitor_full": "154 passed, 1 skipped, 1 xfailed"
   },
   "examples": {
-    "examples/step_21_relations/68_role_plain_associations.py": {
+    "examples/step_24_relations/68_role_plain_associations.py": {
       "exit_code": 0,
       "stdout": "AssociationOne / AssociationOne: accepted\nAssociationOne / AssociationMany: accepted\nAssociationMany / AssociationMany: accepted\ncustomer.account.id: a1\nteam.members.ids: ('m1', 'm2')\n",
       "stderr": "",
       "code_cells": 2,
       "notebook_stdout_matches": true
     },
-    "examples/step_21_relations/69_role_aggregation.py": {
+    "examples/step_24_relations/69_role_aggregation.py": {
       "exit_code": 0,
       "stdout": "RoleCompatibilityError: Role pair 'AggregateOne' ↔ 'AggregateOne' is not permitted between 'b' on AggregateACoreEntity and 'a' on AggregateBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nAggregateOne / AssociationMany: accepted\nAggregateMany / AssociationOne: accepted\nAggregateOne / AssociationOne: accepted\n",
       "stderr": "",
       "code_cells": 4,
       "notebook_stdout_matches": true
     },
-    "examples/step_21_relations/70_role_composition.py": {
+    "examples/step_24_relations/70_role_composition.py": {
       "exit_code": 0,
       "stdout": "RoleCompatibilityError: Role pair 'CompositeOne' ↔ 'CompositeMany' is not permitted between 'b' on CompositeACoreEntity and 'a' on CompositeBCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nRoleCompatibilityError: Role pair 'AggregateOne' ↔ 'CompositeMany' is not permitted between 'b' on CompositeOverAggregateCoreEntity and 'a' on AggregateReverseCoreEntity: both endpoints carry ownership roles; the reverse of an ownership endpoint must be AssociationOne or AssociationMany; change one of these two endpoints to an association role according to which side owns the other in your domain.\nCompositeMany / AssociationOne: accepted\nCompositeOne / AssociationMany: accepted\nCompositeOne / AssociationOne: accepted\n",
       "stderr": "",
       "code_cells": 5,
       "notebook_stdout_matches": true
     },
-    "examples/step_21_relations/71_role_specialization.py": {
+    "examples/step_24_relations/71_role_specialization.py": {
       "exit_code": 0,
       "stdout": "RoleCompatibilityError: Role pair 'Specialization' ↔ 'AssociationOne' is not permitted between 'pressing' on SpecOrdinaryHeadCoreEntity and 'record' on OrdinaryReverseCoreEntity: Specialization and Generalization pair exclusively with each other; declare the reverse endpoint as the matching Specialization or Generalization role.\nRoleCompatibilityError: Role pair 'Generalization' ↔ 'Generalization' is not permitted between 'b' on GeneralizationACoreEntity and 'a' on GeneralizationBCoreEntity: Specialization and Generalization pair exclusively with each other; declare the reverse endpoint as the matching Specialization or Generalization role.\nEntityFieldDeclarationError: Field 'pressing' on entity 'UnpairedHeadCoreEntity' is invalid: a specialization/generalization field requires Inverse, never NoInverse; declare a reciprocal Inverse(field_name=...) on both endpoints.\nEntityFieldDeclarationError: Field 'record' on entity 'UnpairedAlternativeSpecEntity' is invalid: a specialization/generalization field requires Inverse, never NoInverse; declare a reciprocal Inverse(field_name=...) on both endpoints.\nSpecialization / Generalization: accepted\n",
       "stderr": "",
       "code_cells": 7,
       "notebook_stdout_matches": true
     },
-    "examples/step_21_relations/72_role_dictionary.py": {
+    "examples/step_24_relations/72_role_dictionary.py": {
       "exit_code": 0,
       "stdout": "All six container classes retained\nSelection order and repeats: ('usd', 'eur', 'usd')\nCaller loaded: False validated loaded: True\nEmpty selection: () loaded: True\nExported selections: [{'code': 'usd', 'display_name': 'US dollar', 'properties': {'symbol': 'Currency $'}}, {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': 'Currency €'}}]\nEmpty export: [] absent export: None\nInput item keys: ['id']\nOutput item keys: ['code', 'display_name', 'properties']\nValidationError: 1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 1: 'xxx' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=[{'id': 'eur'}, {'id': 'xxx'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nValidationError: 1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 0: the supplied entity is not the declared value for code 'eur'. [type=value_error, input_value=AssociationMany(count=1, ...oaded=yes, n_entities=1), input_type=AssociationMany]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nGraph roles: {'primary': ('association', 'one'), 'quoted': ('aggregation', 'one'), 'snapshot': ('composition', 'one'), 'alternatives': ('association', 'many'), 'available': ('aggregation', 'many'), 'bundled': ('composition', 'many')}\n",
       "stderr": "",
       "code_cells": 5,
       "notebook_stdout_matches": true
     },
-    "examples/step_21_relations/73_role_directions.py": {
+    "examples/step_24_relations/73_role_directions.py": {
       "exit_code": 0,
       "stdout": "Single NoInverse: accepted\nTwo NoInverse fields: two independent links, no reciprocal pair\nTwo reciprocal Inverse fields: accepted\nEntityFieldDeclarationError: Field 'target' on entity 'SourceCoreEntity' is invalid: the reverse field 'source' on UnpairedCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.\n",
       "stderr": "",
       "code_cells": 4,
       "notebook_stdout_matches": true
     },
-    "examples/step_20_dictionaries/23_missing_code.py": {
+    "examples/step_23_dictionaries/23_missing_code.py": {
       "exit_code": 0,
       "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
       "stderr": "",
       "code_cells": 2,
       "notebook_stdout_matches": true
     },
-    "examples/step_20_dictionaries/24_blank_reference.py": {
+    "examples/step_23_dictionaries/24_blank_reference.py": {
       "exit_code": 0,
       "stdout": "ValidationError: 1 validation error for PriceTagCoreEntity\ncurrency\n  Value error, a dictionary relation id must be a non-empty string code, got ' '. [type=value_error, input_value=AssociationOne(id=' ', id_only), input_type=AssociationOne]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
       "stderr": "",
       "code_cells": 2,
       "notebook_stdout_matches": true
     },
-    "examples/step_20_dictionaries/56_selection_transport.py": {
+    "examples/step_23_dictionaries/56_selection_transport.py": {
       "exit_code": 0,
       "stdout": "Python selection: eur €\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Input should be an instance of AssociationOne [type=is_instance_of, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\nJSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}\nValidationError: 1 validation error for PriceCoreEntity\ncurrency\n  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\nInput keys: ['id']\nOutput keys: ['code', 'display_name', 'properties']\n",
       "stderr": "",
@@ -162,43 +162,43 @@
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-20-dictionaries.md",
+      "page": "docs/tutorials/step-23-dictionaries.md",
       "block": 0,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-20-dictionaries.md",
+      "page": "docs/tutorials/step-23-dictionaries.md",
       "block": 1,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-20-dictionaries.md",
+      "page": "docs/tutorials/step-23-dictionaries.md",
       "block": 2,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-20-dictionaries.md",
+      "page": "docs/tutorials/step-23-dictionaries.md",
       "block": 3,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-21-relations.md",
+      "page": "docs/tutorials/step-24-relations.md",
       "block": 0,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-21-relations.md",
+      "page": "docs/tutorials/step-24-relations.md",
       "block": 1,
       "exit_code": 0,
       "matches": true
     },
     {
-      "page": "docs/tutorials/step-21-relations.md",
+      "page": "docs/tutorials/step-24-relations.md",
       "block": 2,
       "exit_code": 0,
       "matches": true

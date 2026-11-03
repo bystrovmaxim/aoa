@@ -9,7 +9,7 @@ A **finite-state machine** (FSM) is a finite set of states with explicit permitt
 This chapter starts with one small order lifecycle. Every linked script is complete and runs independently; each notebook contains the same case, with definitions, a call, actual output and an explanation. Run scripts from the repository environment:
 
 ```bash
-uv run python examples/step_22_lifecycle/01_lifecycle.py
+uv run python examples/step_25_lifecycle/01_lifecycle.py
 ```
 
 The Maxitor example additionally needs the workspace's `maxitor` package and DuckDB. It starts no HTTP server and uses no external database.
@@ -39,7 +39,7 @@ A template is built by chained method calls. `.state(DRAFT)` selects the state b
 
 ## Apply one allowed transition
 
-[Python](../../examples/step_22_lifecycle/01_lifecycle.py) · [Notebook](../../examples/step_22_lifecycle/01_lifecycle.ipynb)
+[Python](../../examples/step_25_lifecycle/01_lifecycle.py) · [Notebook](../../examples/step_25_lifecycle/01_lifecycle.ipynb)
 
 This complete declaration uses only two statuses. Paid is final for this particular example; a real order lifecycle may continue to shipping.
 
@@ -106,7 +106,7 @@ The constructor and `transition()` accept code strings. Each resolves the code t
 
 ## Read the description of the current state
 
-[Python](../../examples/step_22_lifecycle/02_lifecycle_axis.py) · [Notebook](../../examples/step_22_lifecycle/02_lifecycle_axis.ipynb)
+[Python](../../examples/step_25_lifecycle/02_lifecycle_axis.py) · [Notebook](../../examples/step_25_lifecycle/02_lifecycle_axis.ipynb)
 
 A code is suitable for identifying a state, while a screen needs a label and application code may need further information. Add a field to the status class and declare its value on each status:
 
@@ -167,7 +167,7 @@ declared object: True
 
 ## A known code can still be a forbidden destination
 
-[Python](../../examples/step_22_lifecycle/03_forbidden_transition.py) · [Notebook](../../examples/step_22_lifecycle/03_forbidden_transition.ipynb)
+[Python](../../examples/step_25_lifecycle/03_forbidden_transition.py) · [Notebook](../../examples/step_25_lifecycle/03_forbidden_transition.ipynb)
 
 The code `draft` exists, but the example's template provides no route back from `paid`. Checking and attempting that move are different operations:
 
@@ -189,7 +189,7 @@ InvalidTransitionError: Transition 'paid' → 'draft' is not allowed on OrderLif
 
 A valid state code is not automatically an allowed destination. The template declares no outgoing transition from paid, so the runtime rejects the call and keeps the original value.
 
-By contrast, constructing `OrderLifecycle("missing")` fails with `InvalidStateError` because the code itself is absent. That is a separate [script](../../examples/step_22_lifecycle/04_unknown_state.py) and [notebook](../../examples/step_22_lifecycle/04_unknown_state.ipynb):
+By contrast, constructing `OrderLifecycle("missing")` fails with `InvalidStateError` because the code itself is absent. That is a separate [script](../../examples/step_25_lifecycle/04_unknown_state.py) and [notebook](../../examples/step_25_lifecycle/04_unknown_state.ipynb):
 
 ```text
 InvalidStateError: State 'missing' is not defined on OrderLifecycle. Valid states: draft, paid.
@@ -197,7 +197,7 @@ InvalidStateError: State 'missing' is not defined on OrderLifecycle. Valid state
 
 ## What reaches the model graph
 
-[Python](../../examples/step_22_lifecycle/05_graph_attributes.py) · [Notebook](../../examples/step_22_lifecycle/05_graph_attributes.ipynb)
+[Python](../../examples/step_25_lifecycle/05_graph_attributes.py) · [Notebook](../../examples/step_25_lifecycle/05_graph_attributes.ipynb)
 
 The model graph is AOA's exported description of the application: its entities, operations and their declared relationships. In this example `@entity` registers `OrderCoreEntity` in a small domain; constructing `ActionProductMachine` builds and validates that graph. The linked files include the registration and all imports. They export the graph and select its `paid` state row:
 
@@ -231,7 +231,7 @@ Changing the display name changes the label, not the state code. Keep existing c
 
 ## What Maxitor receives
 
-[Python](../../examples/step_22_lifecycle/06_maxitor_states.py) · [Notebook](../../examples/step_22_lifecycle/06_maxitor_states.ipynb)
+[Python](../../examples/step_25_lifecycle/06_maxitor_states.py) · [Notebook](../../examples/step_25_lifecycle/06_maxitor_states.ipynb)
 
 Maxitor reads the exported graph and produces data for the lifecycle diagram. The example adds `sort_order`, `color`, and `fill_color` as fields on `OrderStateEntity`. These are optional presentation fields, not required fields of `BaseStateEntity`. Draft deliberately has `sort_order=99`, paid has `1`, and cancelled has `2`.
 
@@ -256,7 +256,7 @@ Without `sort_order`, the existing order is initial states first, then code. Wit
 
 ## Reuse descriptions without moving the rules into them
 
-[Python](../../examples/step_22_lifecycle/07_inherited_vocabulary.py) · [Notebook](../../examples/step_22_lifecycle/07_inherited_vocabulary.ipynb)
+[Python](../../examples/step_25_lifecycle/07_inherited_vocabulary.py) · [Notebook](../../examples/step_25_lifecycle/07_inherited_vocabulary.ipynb)
 
 A subclass with no new status declarations and no new template reuses the parent vocabulary and transition rules. This example does not add states to the inherited vocabulary.
 
@@ -265,7 +265,7 @@ A subclass with no new status declarations and no new template reuses the parent
 paid
 ```
 
-[Python](../../examples/step_22_lifecycle/08_classification.py) · [Notebook](../../examples/step_22_lifecycle/08_classification.ipynb)
+[Python](../../examples/step_25_lifecycle/08_classification.py) · [Notebook](../../examples/step_25_lifecycle/08_classification.ipynb)
 
 Use the same paid status as final in one lifecycle and intermediate in another. The status object describes what paid means. Each template decides whether work ends there and where it may continue. A status field must not be treated as an automatic initial/final flag.
 
@@ -282,8 +282,8 @@ properties only. A status can still declare a list or, with the appropriate Pyda
 configuration, a custom Python object. Frozen prevents replacing a status attribute; it
 does not recursively freeze those objects.
 
-The [status-property script](../../examples/step_22_lifecycle/21_status_property_scope.py)
-and [notebook](../../examples/step_22_lifecycle/21_status_property_scope.ipynb) isolate
+The [status-property script](../../examples/step_25_lifecycle/21_status_property_scope.py)
+and [notebook](../../examples/step_25_lifecycle/21_status_property_scope.ipynb) isolate
 this distinction:
 
 ```python
@@ -309,8 +309,8 @@ Property type: list
 Treat shared status descriptions as fixed application data. Prefer tuples when a
 collection should not change. Acceptance by the state class does not guarantee that the
 value can be written to the graph: the separate
-[non-JSON property case](../../examples/step_22_lifecycle/19_non_json_field.py)
-([notebook](../../examples/step_22_lifecycle/19_non_json_field.ipynb)) demonstrates an
+[non-JSON property case](../../examples/step_25_lifecycle/19_non_json_field.py)
+([notebook](../../examples/step_25_lifecycle/19_non_json_field.ipynb)) demonstrates an
 export failure. Dictionary reference serialization and status graph attributes are
 different contracts.
 
@@ -322,20 +322,20 @@ Each refusal below has its own small script and notebook. The examples catch the
 
 | Case | Error and moment | Runnable example |
 | --- | --- | --- |
-| Reject a blank code | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/09_blank_code.py) · [Notebook](../../examples/step_22_lifecycle/09_blank_code.ipynb) |
-| Reject a blank display_name | `ValidationError` at object creation | [Python](../../examples/step_22_lifecycle/10_blank_display_name.py) · [Notebook](../../examples/step_22_lifecycle/10_blank_display_name.ipynb) |
-| Reject reassignment of a status field | `ValidationError` at assignment | [Python](../../examples/step_22_lifecycle/11_immutable_status.py) · [Notebook](../../examples/step_22_lifecycle/11_immutable_status.ipynb) |
-| Reject duplicate codes on one state type | `ValueError` at class definition | [Python](../../examples/step_22_lifecycle/12_duplicate_code.py) · [Notebook](../../examples/step_22_lifecycle/12_duplicate_code.ipynb) |
-| Reject a status of another type | `ForeignStateError` at class definition | [Python](../../examples/step_22_lifecycle/15_foreign_status.py) · [Notebook](../../examples/step_22_lifecycle/15_foreign_status.ipynb) |
-| Reject a string in the template | `TypeError` at template call | [Python](../../examples/step_22_lifecycle/17_string_state.py) · [Notebook](../../examples/step_22_lifecycle/17_string_state.ipynb) |
-| Reject a string transition target in the template | `TypeError` at template call | [Python](../../examples/step_22_lifecycle/18_string_target.py) · [Notebook](../../examples/step_22_lifecycle/18_string_target.ipynb) |
-| Reject a status field without a JSON representation | `PydanticSerializationError` at graph export | [Python](../../examples/step_22_lifecycle/19_non_json_field.py) · [Notebook](../../examples/step_22_lifecycle/19_non_json_field.ipynb) |
+| Reject a blank code | `ValidationError` at object creation | [Python](../../examples/step_25_lifecycle/09_blank_code.py) · [Notebook](../../examples/step_25_lifecycle/09_blank_code.ipynb) |
+| Reject a blank display_name | `ValidationError` at object creation | [Python](../../examples/step_25_lifecycle/10_blank_display_name.py) · [Notebook](../../examples/step_25_lifecycle/10_blank_display_name.ipynb) |
+| Reject reassignment of a status field | `ValidationError` at assignment | [Python](../../examples/step_25_lifecycle/11_immutable_status.py) · [Notebook](../../examples/step_25_lifecycle/11_immutable_status.ipynb) |
+| Reject duplicate codes on one state type | `ValueError` at class definition | [Python](../../examples/step_25_lifecycle/12_duplicate_code.py) · [Notebook](../../examples/step_25_lifecycle/12_duplicate_code.ipynb) |
+| Reject a status of another type | `ForeignStateError` at class definition | [Python](../../examples/step_25_lifecycle/15_foreign_status.py) · [Notebook](../../examples/step_25_lifecycle/15_foreign_status.ipynb) |
+| Reject a string in the template | `TypeError` at template call | [Python](../../examples/step_25_lifecycle/17_string_state.py) · [Notebook](../../examples/step_25_lifecycle/17_string_state.ipynb) |
+| Reject a string transition target in the template | `TypeError` at template call | [Python](../../examples/step_25_lifecycle/18_string_target.py) · [Notebook](../../examples/step_25_lifecycle/18_string_target.ipynb) |
+| Reject a status field without a JSON representation | `PydanticSerializationError` at graph export | [Python](../../examples/step_25_lifecycle/19_non_json_field.py) · [Notebook](../../examples/step_25_lifecycle/19_non_json_field.ipynb) |
 
 The graph's existing structural checks still apply: initial and final states must exist, transitions must point to declared states, final states cannot have outgoing transitions, and the reachability rules must hold. A vocabulary lookup succeeding does not prove that the graph is valid. See the [complete invariant list](../reference/intents-and-invariants.md#lifecycle-fsm).
 
 ## A template has no current state
 
-[Python](../../examples/step_22_lifecycle/20_template_current_status.py) · [Notebook](../../examples/step_22_lifecycle/20_template_current_status.ipynb)
+[Python](../../examples/step_25_lifecycle/20_template_current_status.py) · [Notebook](../../examples/step_25_lifecycle/20_template_current_status.ipynb)
 
 `Lifecycle()` builds a template: it describes possibilities without selecting a current status. Reading either `current_state` or `current_status` on that object raises `RuntimeError`. The template remains available for inspection through methods such as `get_states()`; runtime properties require a specialized instance created with a valid code.
 

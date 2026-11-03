@@ -12,13 +12,13 @@ Serialization schemas now retain the definitions needed by enum properties. Rege
 
 Run this complete example in a fresh Python process.
 
-[Script](../../examples/step_20_dictionaries/00_declaration.py) · [Notebook](../../examples/step_20_dictionaries/00_declaration.ipynb)
+[Script](../../examples/step_23_dictionaries/00_declaration.py) · [Notebook](../../examples/step_23_dictionaries/00_declaration.ipynb)
 
 ```python
 """Declare a value explicitly.
 
 The class describes the fields; value() supplies the fields of one catalogue member.
-Run: uv run python examples/step_20_dictionaries/00_declaration.py
+Run: uv run python examples/step_23_dictionaries/00_declaration.py
 """
 
 from aoa.action_machine.domain import BaseEnumEntity, value
@@ -56,11 +56,11 @@ Symbol: €
 
 Run this complete example in a fresh Python process.
 
-[Script](../../examples/step_20_dictionaries/39_validator_result.py) · [Notebook](../../examples/step_20_dictionaries/39_validator_result.ipynb)
+[Script](../../examples/step_23_dictionaries/39_validator_result.py) · [Notebook](../../examples/step_23_dictionaries/39_validator_result.ipynb)
 
 ```python
 """A dictionary checks the completed value after user validation.
-Run: .venv/bin/python examples/step_20_dictionaries/39_validator_result.py
+Run: .venv/bin/python examples/step_23_dictionaries/39_validator_result.py
 """
 
 from pydantic import field_validator
@@ -105,11 +105,11 @@ The following `Holder(BaseModel)` is a plain DTO. Entity hosts use the complete 
 
 Run this complete example in a fresh Python process.
 
-[Script](../../examples/step_20_dictionaries/40_export_schema.py) · [Notebook](../../examples/step_20_dictionaries/40_export_schema.ipynb)
+[Script](../../examples/step_23_dictionaries/40_export_schema.py) · [Notebook](../../examples/step_23_dictionaries/40_export_schema.ipynb)
 
 ```python
 """An exported dictionary reference validates against its serialization schema.
-Run: .venv/bin/python examples/step_20_dictionaries/40_export_schema.py
+Run: .venv/bin/python examples/step_23_dictionaries/40_export_schema.py
 """
 
 import json
@@ -171,50 +171,50 @@ The following cases are separate scripts and notebooks. Each was executed agains
 
 | Case | Runnable script | Executed notebook |
 | --- | --- | --- |
-| reference field | [01_reference_field](../../examples/step_20_dictionaries/01_reference_field.py) | [Notebook](../../examples/step_20_dictionaries/01_reference_field.ipynb) |
-| reference payload | [02_reference_payload](../../examples/step_20_dictionaries/02_reference_payload.py) | [Notebook](../../examples/step_20_dictionaries/02_reference_payload.ipynb) |
-| serialization | [03_serialization](../../examples/step_20_dictionaries/03_serialization.py) | [Notebook](../../examples/step_20_dictionaries/03_serialization.ipynb) |
-| storage mapping | [04_storage_mapping](../../examples/step_20_dictionaries/04_storage_mapping.py) | [Notebook](../../examples/step_20_dictionaries/04_storage_mapping.ipynb) |
-| optional | [05_optional](../../examples/step_20_dictionaries/05_optional.py) | [Notebook](../../examples/step_20_dictionaries/05_optional.ipynb) |
-| inheritance | [06_inheritance](../../examples/step_20_dictionaries/06_inheritance.py) | [Notebook](../../examples/step_20_dictionaries/06_inheritance.ipynb) |
-| frozen | [07_frozen](../../examples/step_20_dictionaries/07_frozen.py) | [Notebook](../../examples/step_20_dictionaries/07_frozen.ipynb) |
-| graph | [08_graph](../../examples/step_20_dictionaries/08_graph.py) | [Notebook](../../examples/step_20_dictionaries/08_graph.ipynb) |
-| erd | [09_erd](../../examples/step_20_dictionaries/09_erd.py) | [Notebook](../../examples/step_20_dictionaries/09_erd.ipynb) |
-| tuple property | [10_tuple_property](../../examples/step_20_dictionaries/10_tuple_property.py) | [Notebook](../../examples/step_20_dictionaries/10_tuple_property.ipynb) |
-| json reference | [11_json_reference](../../examples/step_20_dictionaries/11_json_reference.py) | [Notebook](../../examples/step_20_dictionaries/11_json_reference.ipynb) |
-| field serializer | [12_field_serializer](../../examples/step_20_dictionaries/12_field_serializer.py) | [Notebook](../../examples/step_20_dictionaries/12_field_serializer.ipynb) |
-| input schema | [13_input_schema](../../examples/step_20_dictionaries/13_input_schema.py) | [Notebook](../../examples/step_20_dictionaries/13_input_schema.ipynb) |
-| output schema | [14_output_schema](../../examples/step_20_dictionaries/14_output_schema.py) | [Notebook](../../examples/step_20_dictionaries/14_output_schema.ipynb) |
-| serializer schema | [15_serializer_schema](../../examples/step_20_dictionaries/15_serializer_schema.py) | [Notebook](../../examples/step_20_dictionaries/15_serializer_schema.ipynb) |
-| export isolation | [16_export_isolation](../../examples/step_20_dictionaries/16_export_isolation.py) | [Notebook](../../examples/step_20_dictionaries/16_export_isolation.ipynb) |
-| factory alias | [17_factory_alias](../../examples/step_20_dictionaries/17_factory_alias.py) | [Notebook](../../examples/step_20_dictionaries/17_factory_alias.ipynb) |
-| optional property | [18_optional_property](../../examples/step_20_dictionaries/18_optional_property.py) | [Notebook](../../examples/step_20_dictionaries/18_optional_property.ipynb) |
-| bare code | [20_bare_code](../../examples/step_20_dictionaries/20_bare_code.py) | [Notebook](../../examples/step_20_dictionaries/20_bare_code.ipynb) |
-| unknown code | [21_unknown_code](../../examples/step_20_dictionaries/21_unknown_code.py) | [Notebook](../../examples/step_20_dictionaries/21_unknown_code.ipynb) |
-| copy | [22_copy](../../examples/step_20_dictionaries/22_copy.py) | [Notebook](../../examples/step_20_dictionaries/22_copy.ipynb) |
-| missing code | [23_missing_code](../../examples/step_20_dictionaries/23_missing_code.py) | [Notebook](../../examples/step_20_dictionaries/23_missing_code.ipynb) |
-| blank reference | [24_blank_reference](../../examples/step_20_dictionaries/24_blank_reference.py) | [Notebook](../../examples/step_20_dictionaries/24_blank_reference.ipynb) |
-| flat fields | [25_flat_fields](../../examples/step_20_dictionaries/25_flat_fields.py) | [Notebook](../../examples/step_20_dictionaries/25_flat_fields.ipynb) |
-| duplicate code | [26_duplicate_code](../../examples/step_20_dictionaries/26_duplicate_code.py) | [Notebook](../../examples/step_20_dictionaries/26_duplicate_code.ipynb) |
-| blank code | [27_blank_code](../../examples/step_20_dictionaries/27_blank_code.py) | [Notebook](../../examples/step_20_dictionaries/27_blank_code.ipynb) |
-| blank label | [28_blank_label](../../examples/step_20_dictionaries/28_blank_label.py) | [Notebook](../../examples/step_20_dictionaries/28_blank_label.ipynb) |
-| empty dictionary | [29_empty_dictionary](../../examples/step_20_dictionaries/29_empty_dictionary.py) | [Notebook](../../examples/step_20_dictionaries/29_empty_dictionary.ipynb) |
-| mutable list | [30_mutable_list](../../examples/step_20_dictionaries/30_mutable_list.py) | [Notebook](../../examples/step_20_dictionaries/30_mutable_list.ipynb) |
-| mutable dict | [31_mutable_dict](../../examples/step_20_dictionaries/31_mutable_dict.py) | [Notebook](../../examples/step_20_dictionaries/31_mutable_dict.ipynb) |
-| mutable set | [32_mutable_set](../../examples/step_20_dictionaries/32_mutable_set.py) | [Notebook](../../examples/step_20_dictionaries/32_mutable_set.ipynb) |
-| frozenset | [33_frozenset](../../examples/step_20_dictionaries/33_frozenset.py) | [Notebook](../../examples/step_20_dictionaries/33_frozenset.ipynb) |
-| nested mutable | [34_nested_mutable](../../examples/step_20_dictionaries/34_nested_mutable.py) | [Notebook](../../examples/step_20_dictionaries/34_nested_mutable.ipynb) |
-| any property | [35_any_property](../../examples/step_20_dictionaries/35_any_property.py) | [Notebook](../../examples/step_20_dictionaries/35_any_property.ipynb) |
-| nested model | [36_nested_model](../../examples/step_20_dictionaries/36_nested_model.py) | [Notebook](../../examples/step_20_dictionaries/36_nested_model.ipynb) |
-| optional mutable | [37_optional_mutable](../../examples/step_20_dictionaries/37_optional_mutable.py) | [Notebook](../../examples/step_20_dictionaries/37_optional_mutable.ipynb) |
-| old declaration | [38_old_declaration](../../examples/step_20_dictionaries/38_old_declaration.py) | [Notebook](../../examples/step_20_dictionaries/38_old_declaration.ipynb) |
-| validator wrong type | [41_validator_wrong_type](../../examples/step_20_dictionaries/41_validator_wrong_type.py) | [Notebook](../../examples/step_20_dictionaries/41_validator_wrong_type.ipynb) |
-| validator nested list | [42_validator_nested_list](../../examples/step_20_dictionaries/42_validator_nested_list.py) | [Notebook](../../examples/step_20_dictionaries/42_validator_nested_list.ipynb) |
-| mutable enum value | [43_mutable_enum_value](../../examples/step_20_dictionaries/43_mutable_enum_value.py) | [Notebook](../../examples/step_20_dictionaries/43_mutable_enum_value.ipynb) |
-| literal choices | [44_literal_choices](../../examples/step_20_dictionaries/44_literal_choices.py) | [Notebook](../../examples/step_20_dictionaries/44_literal_choices.ipynb) |
-| union nullability | [45_union_nullability](../../examples/step_20_dictionaries/45_union_nullability.py) | [Notebook](../../examples/step_20_dictionaries/45_union_nullability.ipynb) |
-| tuple item validation | [46_tuple_item_validation](../../examples/step_20_dictionaries/46_tuple_item_validation.py) | [Notebook](../../examples/step_20_dictionaries/46_tuple_item_validation.ipynb) |
-| property declarations | [47_property_declarations](../../examples/step_20_dictionaries/47_property_declarations.py) | [Notebook](../../examples/step_20_dictionaries/47_property_declarations.ipynb) |
+| reference field | [01_reference_field](../../examples/step_23_dictionaries/01_reference_field.py) | [Notebook](../../examples/step_23_dictionaries/01_reference_field.ipynb) |
+| reference payload | [02_reference_payload](../../examples/step_23_dictionaries/02_reference_payload.py) | [Notebook](../../examples/step_23_dictionaries/02_reference_payload.ipynb) |
+| serialization | [03_serialization](../../examples/step_23_dictionaries/03_serialization.py) | [Notebook](../../examples/step_23_dictionaries/03_serialization.ipynb) |
+| storage mapping | [04_storage_mapping](../../examples/step_23_dictionaries/04_storage_mapping.py) | [Notebook](../../examples/step_23_dictionaries/04_storage_mapping.ipynb) |
+| optional | [05_optional](../../examples/step_23_dictionaries/05_optional.py) | [Notebook](../../examples/step_23_dictionaries/05_optional.ipynb) |
+| inheritance | [06_inheritance](../../examples/step_23_dictionaries/06_inheritance.py) | [Notebook](../../examples/step_23_dictionaries/06_inheritance.ipynb) |
+| frozen | [07_frozen](../../examples/step_23_dictionaries/07_frozen.py) | [Notebook](../../examples/step_23_dictionaries/07_frozen.ipynb) |
+| graph | [08_graph](../../examples/step_23_dictionaries/08_graph.py) | [Notebook](../../examples/step_23_dictionaries/08_graph.ipynb) |
+| erd | [09_erd](../../examples/step_23_dictionaries/09_erd.py) | [Notebook](../../examples/step_23_dictionaries/09_erd.ipynb) |
+| tuple property | [10_tuple_property](../../examples/step_23_dictionaries/10_tuple_property.py) | [Notebook](../../examples/step_23_dictionaries/10_tuple_property.ipynb) |
+| json reference | [11_json_reference](../../examples/step_23_dictionaries/11_json_reference.py) | [Notebook](../../examples/step_23_dictionaries/11_json_reference.ipynb) |
+| field serializer | [12_field_serializer](../../examples/step_23_dictionaries/12_field_serializer.py) | [Notebook](../../examples/step_23_dictionaries/12_field_serializer.ipynb) |
+| input schema | [13_input_schema](../../examples/step_23_dictionaries/13_input_schema.py) | [Notebook](../../examples/step_23_dictionaries/13_input_schema.ipynb) |
+| output schema | [14_output_schema](../../examples/step_23_dictionaries/14_output_schema.py) | [Notebook](../../examples/step_23_dictionaries/14_output_schema.ipynb) |
+| serializer schema | [15_serializer_schema](../../examples/step_23_dictionaries/15_serializer_schema.py) | [Notebook](../../examples/step_23_dictionaries/15_serializer_schema.ipynb) |
+| export isolation | [16_export_isolation](../../examples/step_23_dictionaries/16_export_isolation.py) | [Notebook](../../examples/step_23_dictionaries/16_export_isolation.ipynb) |
+| factory alias | [17_factory_alias](../../examples/step_23_dictionaries/17_factory_alias.py) | [Notebook](../../examples/step_23_dictionaries/17_factory_alias.ipynb) |
+| optional property | [18_optional_property](../../examples/step_23_dictionaries/18_optional_property.py) | [Notebook](../../examples/step_23_dictionaries/18_optional_property.ipynb) |
+| bare code | [20_bare_code](../../examples/step_23_dictionaries/20_bare_code.py) | [Notebook](../../examples/step_23_dictionaries/20_bare_code.ipynb) |
+| unknown code | [21_unknown_code](../../examples/step_23_dictionaries/21_unknown_code.py) | [Notebook](../../examples/step_23_dictionaries/21_unknown_code.ipynb) |
+| copy | [22_copy](../../examples/step_23_dictionaries/22_copy.py) | [Notebook](../../examples/step_23_dictionaries/22_copy.ipynb) |
+| missing code | [23_missing_code](../../examples/step_23_dictionaries/23_missing_code.py) | [Notebook](../../examples/step_23_dictionaries/23_missing_code.ipynb) |
+| blank reference | [24_blank_reference](../../examples/step_23_dictionaries/24_blank_reference.py) | [Notebook](../../examples/step_23_dictionaries/24_blank_reference.ipynb) |
+| flat fields | [25_flat_fields](../../examples/step_23_dictionaries/25_flat_fields.py) | [Notebook](../../examples/step_23_dictionaries/25_flat_fields.ipynb) |
+| duplicate code | [26_duplicate_code](../../examples/step_23_dictionaries/26_duplicate_code.py) | [Notebook](../../examples/step_23_dictionaries/26_duplicate_code.ipynb) |
+| blank code | [27_blank_code](../../examples/step_23_dictionaries/27_blank_code.py) | [Notebook](../../examples/step_23_dictionaries/27_blank_code.ipynb) |
+| blank label | [28_blank_label](../../examples/step_23_dictionaries/28_blank_label.py) | [Notebook](../../examples/step_23_dictionaries/28_blank_label.ipynb) |
+| empty dictionary | [29_empty_dictionary](../../examples/step_23_dictionaries/29_empty_dictionary.py) | [Notebook](../../examples/step_23_dictionaries/29_empty_dictionary.ipynb) |
+| mutable list | [30_mutable_list](../../examples/step_23_dictionaries/30_mutable_list.py) | [Notebook](../../examples/step_23_dictionaries/30_mutable_list.ipynb) |
+| mutable dict | [31_mutable_dict](../../examples/step_23_dictionaries/31_mutable_dict.py) | [Notebook](../../examples/step_23_dictionaries/31_mutable_dict.ipynb) |
+| mutable set | [32_mutable_set](../../examples/step_23_dictionaries/32_mutable_set.py) | [Notebook](../../examples/step_23_dictionaries/32_mutable_set.ipynb) |
+| frozenset | [33_frozenset](../../examples/step_23_dictionaries/33_frozenset.py) | [Notebook](../../examples/step_23_dictionaries/33_frozenset.ipynb) |
+| nested mutable | [34_nested_mutable](../../examples/step_23_dictionaries/34_nested_mutable.py) | [Notebook](../../examples/step_23_dictionaries/34_nested_mutable.ipynb) |
+| any property | [35_any_property](../../examples/step_23_dictionaries/35_any_property.py) | [Notebook](../../examples/step_23_dictionaries/35_any_property.ipynb) |
+| nested model | [36_nested_model](../../examples/step_23_dictionaries/36_nested_model.py) | [Notebook](../../examples/step_23_dictionaries/36_nested_model.ipynb) |
+| optional mutable | [37_optional_mutable](../../examples/step_23_dictionaries/37_optional_mutable.py) | [Notebook](../../examples/step_23_dictionaries/37_optional_mutable.ipynb) |
+| old declaration | [38_old_declaration](../../examples/step_23_dictionaries/38_old_declaration.py) | [Notebook](../../examples/step_23_dictionaries/38_old_declaration.ipynb) |
+| validator wrong type | [41_validator_wrong_type](../../examples/step_23_dictionaries/41_validator_wrong_type.py) | [Notebook](../../examples/step_23_dictionaries/41_validator_wrong_type.ipynb) |
+| validator nested list | [42_validator_nested_list](../../examples/step_23_dictionaries/42_validator_nested_list.py) | [Notebook](../../examples/step_23_dictionaries/42_validator_nested_list.ipynb) |
+| mutable enum value | [43_mutable_enum_value](../../examples/step_23_dictionaries/43_mutable_enum_value.py) | [Notebook](../../examples/step_23_dictionaries/43_mutable_enum_value.ipynb) |
+| literal choices | [44_literal_choices](../../examples/step_23_dictionaries/44_literal_choices.py) | [Notebook](../../examples/step_23_dictionaries/44_literal_choices.ipynb) |
+| union nullability | [45_union_nullability](../../examples/step_23_dictionaries/45_union_nullability.py) | [Notebook](../../examples/step_23_dictionaries/45_union_nullability.ipynb) |
+| tuple item validation | [46_tuple_item_validation](../../examples/step_23_dictionaries/46_tuple_item_validation.py) | [Notebook](../../examples/step_23_dictionaries/46_tuple_item_validation.ipynb) |
+| property declarations | [47_property_declarations](../../examples/step_23_dictionaries/47_property_declarations.py) | [Notebook](../../examples/step_23_dictionaries/47_property_declarations.ipynb) |
 
 The four completed-value scenarios group refusals with their accepted neighbors: literal choices, union nullability, tuple items and property declarations. Each notebook keeps the cases as separate steps within the same scenario.
 
@@ -230,11 +230,11 @@ See [validation and export](../how-to/dictionary-validation-and-export.md), [rel
 
 An entity selection is a complete relationship in a supported ordinary container. Use an explicit wrapper in Python, an id-only object for One JSON input, or an array of id objects for Many JSON input. The canonical member is resolved from its code. Export remains a code/display_name/properties reference; the input and output formats differ.
 
-[Script](../../examples/step_20_dictionaries/56_selection_transport.py) · [Executed notebook](../../examples/step_20_dictionaries/56_selection_transport.ipynb)
+[Script](../../examples/step_23_dictionaries/56_selection_transport.py) · [Executed notebook](../../examples/step_23_dictionaries/56_selection_transport.ipynb)
 
 ```python
 """Select canonical dictionary values in Python and JSON, then export references.
-Run: .venv/bin/python examples/step_20_dictionaries/56_selection_transport.py
+Run: .venv/bin/python examples/step_23_dictionaries/56_selection_transport.py
 """
 
 from typing import Annotated
@@ -344,6 +344,6 @@ Input keys: ['id']
 Output keys: ['code', 'display_name', 'properties']
 ```
 
-The graph retains the declared relationship family and One/Many cardinality, the field row and dictionary hint. Nullability does not change graph cardinality. Raw collections need a complete Many container, rather than a separate link model solely to choose several values. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_20_dictionaries/08_graph.py) and [notebook](../../examples/step_20_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.
+The graph retains the declared relationship family and One/Many cardinality, the field row and dictionary hint. Nullability does not change graph cardinality. Raw collections need a complete Many container, rather than a separate link model solely to choose several values. See the [declaration and transport guide](../how-to/dictionary-references.md), [graph script](../../examples/step_23_dictionaries/08_graph.py) and [notebook](../../examples/step_23_dictionaries/08_graph.ipynb). The [verification report](../reports/complete-relationship-verification.md) records the current association-schema and Maxitor limitations.
 
-For multiple values and ownership containers, run [all six dictionary roles](../../examples/step_21_relations/72_role_dictionary.py) and its [executed notebook](../../examples/step_21_relations/72_role_dictionary.ipynb). They show canonical identity, input order, repeated codes, empty/absent values, actual refusals, serializers, schema modes and graph metadata. See [current selection forms and limits](../how-to/dictionary-references.md).
+For multiple values and ownership containers, run [all six dictionary roles](../../examples/step_24_relations/72_role_dictionary.py) and its [executed notebook](../../examples/step_24_relations/72_role_dictionary.ipynb). They show canonical identity, input order, repeated codes, empty/absent values, actual refusals, serializers, schema modes and graph metadata. See [current selection forms and limits](../how-to/dictionary-references.md).

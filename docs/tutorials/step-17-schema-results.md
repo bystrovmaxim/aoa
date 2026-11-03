@@ -25,7 +25,7 @@ An operation's contract is described by `Params` and `Result` — usually as str
 
 AOA gives two **field-level** tools: a single model field can hold arbitrary JSON, validated by an explicit **strict JSON Schema** at object construction, while the other fields stay ordinary typed fields. This is especially convenient for services — to hand out data without building a heavy `Result` model around it — but it works [in code too](#in-code-its-plain-pydantic), because these are plain Pydantic v2 types.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1h1VgrUKEKlaKs_tiGAR0pAqRyFZwKZb3/view?usp=drive_link) · [Open in project](../../examples/step_15_schema_results/01_schema_results.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1h1VgrUKEKlaKs_tiGAR0pAqRyFZwKZb3/view?usp=drive_link) · [Open in project](../../examples/step_17_schema_results/01_schema_results.py)
 
 ---
 
@@ -102,7 +102,7 @@ Important is what this is **not**: the field's value is a plain `dict` validated
 **Run:**
 
 ```bash
-uv run python examples/step_15_schema_results/01_schema_results.py
+uv run python examples/step_17_schema_results/01_schema_results.py
 ```
 
 **Output:**
@@ -149,7 +149,7 @@ Next — **[Accepting complex data from a request](step-18-complex-input.md)**: 
 6. Does a projection on `Result` affect an MCP tool's argument schema? Where does the tool's input come from?
 7. Why does such a field's schema automatically land in OpenAPI and the MCP tool description?
 
-> **Exercise.** In [01_schema_results.py](../../examples/step_15_schema_results/01_schema_results.py) add an optional `reason` field (string, not in `required`) to `AUDIT_SCHEMA` and check that values with and without it pass. Then remove `"additionalProperties": false` from the nested `changes.items` object and confirm that `JsonSchemaValue.define` rejects such a schema at type definition.
+> **Exercise.** In [01_schema_results.py](../../examples/step_17_schema_results/01_schema_results.py) add an optional `reason` field (string, not in `required`) to `AUDIT_SCHEMA` and check that values with and without it pass. Then remove `"additionalProperties": false` from the nested `changes.items` object and confirm that `JsonSchemaValue.define` rejects such a schema at type definition.
 
 ---
 

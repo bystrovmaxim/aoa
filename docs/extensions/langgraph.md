@@ -124,15 +124,15 @@ box.run = AsyncMock(return_value=mock_result)
 result = await ctrl.ainvoke({"ticket_id": "T-1", "note": "crash"}, box)
 ```
 
-Tutorial: [Step 14b — LangGraph](../tutorials/step-14-langgraph.md).
+Tutorial: [Step 16 — LangGraph](../tutorials/step-16-langgraph.md).
 
 Examples:
-- [01_external_connection.py](../../examples/step_14_langgraph/01_external_connection.py) · [Notebook](../../examples/step_14_langgraph/01_external_connection.ipynb)
-- [02_inline_graph.py](../../examples/step_14_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_14_langgraph/02_inline_graph.ipynb)
-- [03_function_node.py](../../examples/step_14_langgraph/03_function_node.py) · [Notebook](../../examples/step_14_langgraph/03_function_node.ipynb)
-- [04_field_mapping.py](../../examples/step_14_langgraph/04_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/04_field_mapping.ipynb)
-- [05_testing.py](../../examples/step_14_langgraph/05_testing.py) · [Notebook](../../examples/step_14_langgraph/05_testing.ipynb)
-- [06_field_mapping.py](../../examples/step_14_langgraph/06_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/06_field_mapping.ipynb)
+- [01_external_connection.py](../../examples/step_16_langgraph/01_external_connection.py) · [Notebook](../../examples/step_16_langgraph/01_external_connection.ipynb)
+- [02_inline_graph.py](../../examples/step_16_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_16_langgraph/02_inline_graph.ipynb)
+- [03_function_node.py](../../examples/step_16_langgraph/03_function_node.py) · [Notebook](../../examples/step_16_langgraph/03_function_node.ipynb)
+- [04_field_mapping.py](../../examples/step_16_langgraph/04_field_mapping.py) · [Notebook](../../examples/step_16_langgraph/04_field_mapping.ipynb)
+- [05_testing.py](../../examples/step_16_langgraph/05_testing.py) · [Notebook](../../examples/step_16_langgraph/05_testing.ipynb)
+- [06_field_mapping.py](../../examples/step_16_langgraph/06_field_mapping.py) · [Notebook](../../examples/step_16_langgraph/06_field_mapping.ipynb)
 
 ---
 

@@ -60,7 +60,7 @@ Paths are relative to `graph-builder.toml`. A wrong config is refused by graph a
 
 The setup wizard may persist its checklist in a root `[setup]` table. It requires a string `skill` revision (for example `"3"`), unique `decided` IDs and unique `deferred` IDs. The closed ID families are `config`, `graph:<name>`, `exporter:<service>`, `local-update`, `ci-graph-check` and `version-tags`. Only `local-update` and `ci-graph-check` may be deferred; each must also be decided. Unknown fields, unknown ID families and mandatory deferrals are refused before a build.
 
-Existing configurations without this optional table remain valid. The graph commands preserve the table and still return the same graphs; they do not certify its recorded decisions. The wizard re-audits the evidence on every run. `version-tags` is still accepted so older files keep working; the wizard removes it on its next run. See [the guide](../../../../docs/how-to/graph-setup.md), [script](../../../../examples/step_26_maxitor/15_setup_decisions.py) and [notebook](../../../../examples/step_26_maxitor/15_setup_decisions.ipynb).
+Existing configurations without this optional table remain valid. The graph commands preserve the table and still return the same graphs; they do not certify its recorded decisions. The wizard re-audits the evidence on every run. `version-tags` is still accepted so older files keep working; the wizard removes it on its next run. See [the guide](../../../../docs/how-to/graph-setup.md), [script](../../../../examples/step_29_maxitor/15_setup_decisions.py) and [notebook](../../../../examples/step_29_maxitor/15_setup_decisions.ipynb).
 
 ## Keeping graphs in a repository
 
@@ -128,4 +128,4 @@ A graph of thousands of elements is checked in a fraction of a second.
 - **[Get started](../../README.md#get-started)** — connect a project: one prompt to a coding agent, or four steps by hand
 - **[Open Gnomon Protocol](../../../open-gnomon-protocol/README.md)** — the language itself: the document, its vocabulary, versions, identity
 - **[aoa-graph-builder-setup](../../skills/aoa-graph-builder-setup/SKILL.md)** — the skill an agent follows
-- **[Every case, runnable](../../../../examples/step_26_maxitor/12_graph_file.py)** — a saved graph, a rebuild, a stale copy, an unknown version
+- **[Every case, runnable](../../../../examples/step_29_maxitor/12_graph_file.py)** — a saved graph, a rebuild, a stale copy, an unknown version

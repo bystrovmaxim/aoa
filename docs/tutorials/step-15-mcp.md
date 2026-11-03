@@ -30,7 +30,7 @@ In AOA an AI agent is an equal consumer of the system, on a par with a human beh
 
 Install: `pip install aoa-mcp-adapter`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1MQBDfiix8uyixiQbbDnS-g_FWz0pdp2R/view?usp=drive_link) · [Open in project](../../examples/step_14_mcp/01_tool.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1MQBDfiix8uyixiQbbDnS-g_FWz0pdp2R/view?usp=drive_link) · [Open in project](../../examples/step_15_mcp/01_tool.py)
 
 ---
 
@@ -58,7 +58,7 @@ server = (
 **Running the example** (calls the server in-process via `server.call_tool`, without an MCP client or LLM):
 
 ```bash
-uv run python examples/step_14_mcp/01_tool.py
+uv run python examples/step_15_mcp/01_tool.py
 ```
 
 **Output:**
@@ -200,7 +200,7 @@ Next — **[Result by JSON schema](step-17-schema-results.md)**: how to return a
 7. What does `register_all()` do, and when is it more convenient than listing `.tool(...)` by hand?
 8. How can one specific tool get its own authentication coordinator, different from the adapter default?
 
-> **Exercise.** In [01_tool.py](../../examples/step_14_mcp/01_tool.py) add a third tool via `.tool(...)` and confirm through `server.list_tools()` that its `inputSchema` is derived from `Params`. Then call the protected operation and compare the `PERMISSION_DENIED` envelope (`isError=true`) with a successful `OK` — this is the response protocol the agent relies on.
+> **Exercise.** In [01_tool.py](../../examples/step_15_mcp/01_tool.py) add a third tool via `.tool(...)` and confirm through `server.list_tools()` that its `inputSchema` is derived from `Params`. Then call the protected operation and compare the `PERMISSION_DENIED` envelope (`isError=true`) with a successful `OK` — this is the response protocol the agent relies on.
 
 ---
 

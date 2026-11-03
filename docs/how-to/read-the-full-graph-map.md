@@ -2,7 +2,7 @@
 
 The full graph is a map: far away it shows named domains and what links them, closer the entities and operations of a domain, closest their fields and states. Zooming only reveals things; nothing ever moves. It holds graphs of about a hundred thousand nodes, because the browser reads an overview first and then only the detail of what it looks at.
 
-[18_the_full_graph_as_a_map.py](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.py) ([notebook](../../examples/step_26_maxitor/18_the_full_graph_as_a_map.ipynb)) runs the reads below against a small service in three versions.
+[18_the_full_graph_as_a_map.py](../../examples/step_29_maxitor/18_the_full_graph_as_a_map.py) ([notebook](../../examples/step_29_maxitor/18_the_full_graph_as_a_map.ipynb)) runs the reads below against a small service in three versions.
 
 ## Move around
 

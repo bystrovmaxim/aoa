@@ -26,7 +26,7 @@ Every call has an environment: who made it, where the request came from, in what
 - `with_request(trace_id=, request_path=, …)` → `RequestInfo`;
 - `with_runtime(service_name=, hostname=, …)` → `RuntimeInfo`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1R3It-sKLhcECkYcgH0bm61UGigxyBxfG/view?usp=drive_link) · [Open in project](../../examples/step_25_context/01_context.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1R3It-sKLhcECkYcgH0bm61UGigxyBxfG/view?usp=drive_link) · [Open in project](../../examples/step_28_context/01_context.py)
 
 ---
 
@@ -74,7 +74,7 @@ This is the same discipline as in the [context chapter](step-07-context.md): a t
 **Run:**
 
 ```bash
-uv run python examples/step_25_context/01_context.py
+uv run python examples/step_28_context/01_context.py
 ```
 
 **Output:**
@@ -132,7 +132,7 @@ With this the **Testing** part is assembled: the run depth ([TestBench](step-26-
 6. What happens if you call `.with_env("region", "v1").with_env("region", "v2")`? Which value does the aspect receive?
 7. How does `.with_env` let you avoid creating a `TestAppContext` in every test?
 
-> **Exercise.** In [01_context.py](../../examples/step_25_context/01_context.py) add `Ctx.Request.client_ip` to `LeakAction`'s `@context_requires` and confirm that the read now passes and `client_ip_refused` became `False`. Then give the test user the `AdminRole` via `with_user` for a second `WhoamiAction` run and watch the `AccessDenied` disappear.
+> **Exercise.** In [01_context.py](../../examples/step_28_context/01_context.py) add `Ctx.Request.client_ip` to `LeakAction`'s `@context_requires` and confirm that the read now passes and `client_ip_refused` became `False`. Then give the test user the `AdminRole` via `with_user` for a second `WhoamiAction` run and watch the `AccessDenied` disappear.
 >
 > **Exercise (@env).** Add an aspect with `@context_requires("env.region")` to the action in the example. Register the provider via `.with_env("region", "test-eu")` and run via `bench.run(...)`. Confirm that `ctx.get("env.region")` returns `"test-eu"`. Then call `.with_env("region", "ap-test")` on the same bench — confirm you get a new bench with `"ap-test"` while the original still gives `"test-eu"`.
 

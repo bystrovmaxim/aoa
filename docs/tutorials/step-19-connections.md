@@ -52,7 +52,7 @@ a database. `CountAction` increments the supplied counter and returns its value.
 
 Start with two HTTP calls to one route. The resource is constructed before the route is registered.
 
-[Python](../../examples/step_17_connections/01_connections.py) · [Notebook](../../examples/step_17_connections/01_connections.ipynb)
+[Python](../../examples/step_19_connections/01_connections.py) · [Notebook](../../examples/step_19_connections/01_connections.ipynb)
 
 ```python
 from aoa.action_machine.model import BaseState
@@ -151,7 +151,7 @@ Both calls received the same counter. The empty lifecycle log proves that the ad
 
 Keep the action unchanged. Replace the ready resource with a factory and a finalizer.
 
-[Python](../../examples/step_17_connections/02_per_call.py) · [Notebook](../../examples/step_17_connections/02_per_call.ipynb)
+[Python](../../examples/step_19_connections/02_per_call.py) · [Notebook](../../examples/step_19_connections/02_per_call.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -192,7 +192,7 @@ in `connections=`. A resource can instead hold a reference to that pool.
 Use a per-call declaration when the resource owns a connection for one caller.
 Put the constructor inside `factory`; returning a pre-existing connection-owning
 object would apply several callers' lifecycles to the same object. A [separate
-counterexample](../../examples/step_17_connections/11_shared_factory.ipynb) demonstrates
+counterexample](../../examples/step_19_connections/11_shared_factory.ipynb) demonstrates
 that the framework does not detect this mistake.
 
 ## A long-lived pool behind a per-call resource
@@ -220,7 +220,7 @@ block performs shutdown. First observe that lifetime on its own:
 
 The lifespan context manager surrounds the whole running service. Here a log makes its order visible without adding a pool yet.
 
-[Python](../../examples/step_17_connections/14_fastapi_lifespan.py) · [Notebook](../../examples/step_17_connections/14_fastapi_lifespan.ipynb)
+[Python](../../examples/step_19_connections/14_fastapi_lifespan.py) · [Notebook](../../examples/step_19_connections/14_fastapi_lifespan.ipynb)
 
 Observed output:
 
@@ -241,7 +241,7 @@ The complete example includes the holder, a recording pool, the resource and an 
 
 Combine the two lifetimes after learning them separately. The holder makes a pool created at startup available to factories called later.
 
-[Python](../../examples/step_17_connections/16_pool_lifespan.py) · [Notebook](../../examples/step_17_connections/16_pool_lifespan.ipynb)
+[Python](../../examples/step_19_connections/16_pool_lifespan.py) · [Notebook](../../examples/step_19_connections/16_pool_lifespan.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -288,7 +288,7 @@ The factory calls holder.require at request time, after startup. It creates a ne
 
 The holder must give a useful error if a factory reaches it before application startup.
 
-[Python](../../examples/step_17_connections/17_holder_before_startup.py) · [Notebook](../../examples/step_17_connections/17_holder_before_startup.ipynb)
+[Python](../../examples/step_19_connections/17_holder_before_startup.py) · [Notebook](../../examples/step_19_connections/17_holder_before_startup.ipynb)
 
 Observed output:
 
@@ -309,7 +309,7 @@ the adapter does not invent a separate shutdown policy or timeout.
 
 Call the server in process. The counter action and per-call declaration are the same as for HTTP.
 
-[Python](../../examples/step_17_connections/15_mcp_call.py) · [Notebook](../../examples/step_17_connections/15_mcp_call.ipynb)
+[Python](../../examples/step_19_connections/15_mcp_call.py) · [Notebook](../../examples/step_19_connections/15_mcp_call.ipynb)
 
 Observed output:
 
@@ -355,6 +355,6 @@ opens nor finalizes it.
 
 Try replacing the per-call counter's factory with one that returns the shared
 counter. Predict both responses and the lifecycle log, then run the
-[counterexample](../../examples/step_17_connections/11_shared_factory.py).
+[counterexample](../../examples/step_19_connections/11_shared_factory.py).
 For actual PostgreSQL construction and transactions, continue with the
 [PostgreSQL extension](../extensions/postgresql.md).

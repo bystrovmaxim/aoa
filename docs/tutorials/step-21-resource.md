@@ -36,7 +36,7 @@ locking; separate connections alone do not prevent overselling.
 
 Use an in-memory store so the only topic is the division between storage and the business decision.
 
-[Python](../../examples/step_19_resource/01_resource.py) · [Notebook](../../examples/step_19_resource/01_resource.ipynb)
+[Python](../../examples/step_21_resource/01_resource.py) · [Notebook](../../examples/step_21_resource/01_resource.ipynb)
 
 ```python
 from aoa.action_machine.model import BaseState
@@ -144,7 +144,7 @@ The resource reads and updates stock; ReserveStockAction decides whether the req
 
 Use an in-memory store so the only topic is the division between storage and the business decision.
 
-[Python](../../examples/step_19_resource/02_refusal.py) · [Notebook](../../examples/step_19_resource/02_refusal.ipynb)
+[Python](../../examples/step_21_resource/02_refusal.py) · [Notebook](../../examples/step_21_resource/02_refusal.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -171,7 +171,7 @@ The resource reads and updates stock; ReserveStockAction decides whether the req
 
 Use an in-memory store so the only topic is the division between storage and the business decision.
 
-[Python](../../examples/step_19_resource/03_substitution.py) · [Notebook](../../examples/step_19_resource/03_substitution.ipynb)
+[Python](../../examples/step_21_resource/03_substitution.py) · [Notebook](../../examples/step_21_resource/03_substitution.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -235,7 +235,7 @@ The last example calls `box.run` and verifies that the runtime supplies the wrap
 
 The standard wrapper must leave the owner’s connection open.
 
-[Python](../../examples/step_19_resource/05_wrapper_close.py) · [Notebook](../../examples/step_19_resource/05_wrapper_close.ipynb)
+[Python](../../examples/step_21_resource/05_wrapper_close.py) · [Notebook](../../examples/step_21_resource/05_wrapper_close.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -269,7 +269,7 @@ The refusal happens before the owner is touched. The parent can continue using t
 
 A wrapper grants permission to use a connection, not to manage its lifetime.
 
-[Python](../../examples/step_19_resource/06_wrapper_context.py) · [Notebook](../../examples/step_19_resource/06_wrapper_context.ipynb)
+[Python](../../examples/step_21_resource/06_wrapper_context.py) · [Notebook](../../examples/step_21_resource/06_wrapper_context.ipynb)
 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
@@ -304,7 +304,7 @@ The refusal happens before the owner is touched. The parent can continue using t
 
 Let the machine create the wrapper through `box.run`. The resource provides a wrapper with an `add_note` method. The child writes a note through it, then tries to close the resource and catches `TransactionProhibitedError`.
 
-[Python](../../examples/step_19_resource/07_nested_action.py) · [Notebook](../../examples/step_19_resource/07_nested_action.ipynb)
+[Python](../../examples/step_21_resource/07_nested_action.py) · [Notebook](../../examples/step_21_resource/07_nested_action.ipynb)
 
 The resource and its proxy are what this case adds. The resource runs its statement through the driver's helper, and the proxy — the class `get_wrapper_class()` returns — delegates that one method and inherits every refusal:
 

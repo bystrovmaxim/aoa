@@ -253,7 +253,7 @@ Receives the request object from the transport and builds a `Context` — a tran
 # auth = ApiKeyCoordinator(header="X-Api-Key", resolver=lookup_key)
 ```
 
-→ [Authentication and roles](docs/tutorials/step-12-authentication.md)
+→ [Authentication and roles](docs/tutorials/step-13-authentication.md)
 
 #### Observability (`plugin_coordinator`)
 
@@ -293,7 +293,7 @@ The `Action` is only responsible for meaning: via `cache_key` it declares what t
 
 All instruments can be connected, disconnected, and replaced depending on the environment — different configurations for production, development, and tests, including dynamic reconfiguration at runtime. They are all extensible: AOA ships a baseline set of implementations, but for a specific project you can write your own cache coordinator (e.g. Redis), your own logger (Kafka, Slack, PagerDuty), or plugin.
 
-→ [ActionProductMachine](docs/tutorials/step-11-machine.md)
+→ [ActionProductMachine](docs/tutorials/step-12-machine.md)
 
 ---
 
@@ -372,7 +372,7 @@ In AOA, AI agents are not an add-on but an equal consumer of the system. The sam
 
 As an experimental feature, a `LangGraphAdapter` is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
 
-→ [Adapters: HTTP and MCP from one source](docs/tutorials/step-13-fastapi.md)
+→ [Adapters: HTTP and MCP from one source](docs/tutorials/step-14-fastapi.md)
 
 ---
 
@@ -492,7 +492,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
         ...
 ```
 
-→ [Dependencies](docs/tutorials/step-06-dependencies.md) and [Connections](docs/tutorials/step-17-connections.md)
+→ [Dependencies](docs/tutorials/step-06-dependencies.md) and [Connections](docs/tutorials/step-19-connections.md)
 
 ---
 
@@ -598,7 +598,7 @@ assert result.status == "payment_declined"
 
 The same idea applies to access control: simply substitute a user without the required role and the machine will reject the call before any aspects run, without looking at the business logic. Substitution works at any level: the full `Action` — `bench.run()`, a single step — `bench.run_aspect()`, only result assembly — `bench.run_summary()`.
 
-→ [Testing](docs/tutorials/step-23-testbench.md)
+→ [Testing](docs/tutorials/step-26-testbench.md)
 
 ---
 
@@ -657,7 +657,7 @@ class OrderCoreEntity(BaseCoreEntity):
     lifecycle: OrderLifecycle = Field(description="Order lifecycle state")
 ```
 
-An entity chooses one of six kinds: an independent object (`Core`), a technical link without business data (`Assoc`), an owned part (`Detail`), variant-specific data of the same object (`Spec`), a reference value (`Enum`), or a lifecycle state (`State`). Its base and name agree, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks this when Python creates the class, before decorators run; intermediate classes follow the same rule. See [the entity tutorial](docs/tutorials/step-20-entity.md) for one-case examples and declaration failures.
+An entity chooses one of six kinds: an independent object (`Core`), a technical link without business data (`Assoc`), an owned part (`Detail`), variant-specific data of the same object (`Spec`), a reference value (`Enum`), or a lifecycle state (`State`). Its base and name agree, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks this when Python creates the class, before decorators run; intermediate classes follow the same rule. See [the entity tutorial](docs/tutorials/step-22-entity.md) for one-case examples and declaration failures.
 
 ### Entity Relationships
 
@@ -770,9 +770,9 @@ order.lifecycle.available_transitions  # → {"confirmed", "cancelled"}
 order.lifecycle.is_initial             # → True
 ```
 
-→ [Lifecycle explained with independent examples](docs/tutorials/step-22-lifecycle.md)
+→ [Lifecycle explained with independent examples](docs/tutorials/step-25-lifecycle.md)
 → [Full example: Entity, Resource, Action](examples/domain_model/01_domain_model.py)
-→ [Advanced domain modeling](docs/tutorials/step-20-entity.md)
+→ [Advanced domain modeling](docs/tutorials/step-22-entity.md)
 
 ---
 

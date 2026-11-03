@@ -1,6 +1,6 @@
 # Write a transport adapter that completes each call
 
-[Contents](../index.md) · [Connection lifetimes](../tutorials/step-17-connections.md)
+[Contents](../index.md) · [Connection lifetimes](../tutorials/step-19-connections.md)
 
 A transport adapter translates an incoming request into an action call, then
 translates the result back into a response. For a queue, CLI or custom protocol,

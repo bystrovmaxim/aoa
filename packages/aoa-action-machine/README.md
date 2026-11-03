@@ -22,7 +22,7 @@ An entity declares domain information independently of storage. Choose its base 
 
 The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks inheritance and names when Python creates the class, including intermediate and undecorated descendants. `@entity` supplies the description and domain for graph discovery. A status class instead belongs to its lifecycle and is excluded from ordinary Entity nodes.
 
-The [entity tutorial](../../docs/tutorials/step-20-entity.md) explains the distinctions before introducing their code, with a separate script and notebook for each case. The marker does not infer business meaning from fields or impose database keys and deletion behaviour.
+The [entity tutorial](../../docs/tutorials/step-22-entity.md) explains the distinctions before introducing their code, with a separate script and notebook for each case. The marker does not infer business meaning from fields or impose database keys and deletion behaviour.
 
 ## Declared dictionary values and statuses
 
@@ -48,8 +48,8 @@ meaning. Dictionary properties use the supported immutable annotations, while st
 property types keep their existing rules. `to_reference()` exports JSON-compatible data
 and applies field serializers. Input and output schemas are separate because a code-only
 input can resolve to a complete reference. See the
-[dictionary tutorial](../../docs/tutorials/step-20-dictionaries.md) and
-[lifecycle tutorial](../../docs/tutorials/step-22-lifecycle.md) for complete cases and limits.
+[dictionary tutorial](../../docs/tutorials/step-23-dictionaries.md) and
+[lifecycle tutorial](../../docs/tutorials/step-25-lifecycle.md) for complete cases and limits.
 
 ## Installation
 
@@ -217,7 +217,7 @@ server = (
 # python mcp_server.py
 ```
 
-The detailed chapters: **[Step 13 — FastAPI adapter](../../docs/tutorials/step-13-fastapi.md)** · **[Step 14 — MCP adapter](../../docs/tutorials/step-14-mcp.md)**.
+The detailed chapters: **[Step 14 — FastAPI adapter](../../docs/tutorials/step-14-fastapi.md)** · **[Step 15 — MCP adapter](../../docs/tutorials/step-15-mcp.md)**.
 
 ---
 
@@ -242,5 +242,5 @@ A closed dictionary declares its values in the class body and supplies `code`, `
 and an ordered catalogue. Dictionary-typed fields hold declared objects and serialize
 references with their descriptions. A specialization names the dictionary as its second
 type argument; each alternative names one value on its reverse field. Start with
-[closed dictionaries](../../docs/tutorials/step-20-dictionaries.md), then
-[the specialization tutorial](../../docs/tutorials/step-21-relations.md#generalization-and-specialization).
+[closed dictionaries](../../docs/tutorials/step-23-dictionaries.md), then
+[the specialization tutorial](../../docs/tutorials/step-24-relations.md#generalization-and-specialization).

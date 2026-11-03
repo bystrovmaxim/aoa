@@ -6,13 +6,13 @@ Previously bare dictionary fields, explicit embedded entity values and one-sided
 
 ## Ownership, inverse fields and partial loading
 
-Containers carry ids even when the related entities are not loaded. Access to unloaded data raises `RelationNotLoadedError`; a container does not fetch rows. The ownership container expresses intent, without automatically implementing database deletion rules. The endpoint role-pair matrix, however, is enforced at model build: an ownership/ownership pair or a specialization/generalization endpoint paired with an ordinary role is refused. See [the reference](../reference/intents-and-invariants.md#endpoint-role-compatibility) for the symmetric matrix, and [the runnable scenarios](../../examples/step_21_relations/68_role_plain_associations.py) with their executed notebooks.
+Containers carry ids even when the related entities are not loaded. Access to unloaded data raises `RelationNotLoadedError`; a container does not fetch rows. The ownership container expresses intent, without automatically implementing database deletion rules. The endpoint role-pair matrix, however, is enforced at model build: an ownership/ownership pair or a specialization/generalization endpoint paired with an ordinary role is refused. See [the reference](../reference/intents-and-invariants.md#endpoint-role-compatibility) for the symmetric matrix, and [the runnable scenarios](../../examples/step_24_relations/68_role_plain_associations.py) with their executed notebooks.
 
-[Script](../../examples/step_21_relations/01_relations.py) · [Executed notebook](../../examples/step_21_relations/01_relations.ipynb)
+[Script](../../examples/step_24_relations/01_relations.py) · [Executed notebook](../../examples/step_24_relations/01_relations.ipynb)
 
 ```python
 """01_relations.py — Entity relations: ownership, Inverse, partial loading
-Run: .venv/bin/python examples/step_21_relations/01_relations.py
+Run: .venv/bin/python examples/step_24_relations/01_relations.py
 
 
 An Entity rarely stands alone: an order has a customer and line items. AOA
@@ -174,11 +174,11 @@ Actual output:
 
 A reciprocal pair needs `Inverse` on both endpoints, naming each other. An intentional one-way link uses `NoInverse()`. These checks happen during model assembly; normal container construction does not validate the global declaration graph.
 
-[Script](../../examples/step_21_relations/65_reciprocal_directions.py) · [Executed notebook](../../examples/step_21_relations/65_reciprocal_directions.ipynb)
+[Script](../../examples/step_24_relations/65_reciprocal_directions.py) · [Executed notebook](../../examples/step_24_relations/65_reciprocal_directions.ipynb)
 
 ```python
 """Declare reciprocal pairs and migrate one-sided inverse markers.
-Run: .venv/bin/python examples/step_21_relations/65_reciprocal_directions.py
+Run: .venv/bin/python examples/step_24_relations/65_reciprocal_directions.py
 """
 
 from __future__ import annotations
@@ -293,11 +293,11 @@ NoInverse link: accepted
 EntityFieldDeclarationError: Field 'offer' on entity 'OldRegionCoreEntity' is invalid: the reverse field 'regions' on OldOfferCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.
 ```
 
-For separate modules, postpone annotations, use `Inverse(field_name="...")` and rebuild both models with an explicit namespace in the composition root. Read the [cross-module script](../../examples/step_21_relations/67_cross_module_inverse.py), [notebook](../../examples/step_21_relations/67_cross_module_inverse.ipynb) and its [endpoint modules](../../examples/step_21_relations/inverse_model/offer.py). The marker itself does not accept a string class name.
+For separate modules, postpone annotations, use `Inverse(field_name="...")` and rebuild both models with an explicit namespace in the composition root. Read the [cross-module script](../../examples/step_24_relations/67_cross_module_inverse.py), [notebook](../../examples/step_24_relations/67_cross_module_inverse.ipynb) and its [endpoint modules](../../examples/step_24_relations/inverse_model/offer.py). The marker itself does not accept a string class name.
 
 ## Every structural host uses the same complete form
 
-The [stereotype scenario](../../examples/step_21_relations/66_complete_stereotypes.py) and [notebook](../../examples/step_21_relations/66_complete_stereotypes.ipynb) show Core, Assoc, Detail and Spec fields and an Enum selection. There is no shorthand exemption for technical or owned entities.
+The [stereotype scenario](../../examples/step_24_relations/66_complete_stereotypes.py) and [notebook](../../examples/step_24_relations/66_complete_stereotypes.ipynb) show Core, Assoc, Detail and Spec fields and an Enum selection. There is no shorthand exemption for technical or owned entities.
 
 ## Generalization and specialization
 
@@ -307,13 +307,13 @@ A specialization connects a common entity to one of several detail types. The he
 
 Run this complete example in a fresh Python process.
 
-[Script](../../examples/step_21_relations/02_specialization.py) · [Notebook](../../examples/step_21_relations/02_specialization.ipynb)
+[Script](../../examples/step_24_relations/02_specialization.py) · [Notebook](../../examples/step_24_relations/02_specialization.ipynb)
 
 ```python
 """A record with first-pressing details.
 
 Construct the common record and its first-pressing data.
-Run: uv run python examples/step_21_relations/02_specialization.py
+Run: uv run python examples/step_24_relations/02_specialization.py
 """
 
 from __future__ import annotations
@@ -454,57 +454,57 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 
 | Case | Runnable script | Executed notebook |
 | --- | --- | --- |
-| specialization unloaded | [03_specialization_unloaded](../../examples/step_21_relations/03_specialization_unloaded.py) | [Notebook](../../examples/step_21_relations/03_specialization_unloaded.ipynb) |
-| specialization reverse | [04_specialization_reverse](../../examples/step_21_relations/04_specialization_reverse.py) | [Notebook](../../examples/step_21_relations/04_specialization_reverse.ipynb) |
-| specialization mapping | [05_specialization_mapping](../../examples/step_21_relations/05_specialization_mapping.py) | [Notebook](../../examples/step_21_relations/05_specialization_mapping.ipynb) |
-| specialization wrong type | [06_specialization_wrong_type](../../examples/step_21_relations/06_specialization_wrong_type.py) | [Notebook](../../examples/step_21_relations/06_specialization_wrong_type.ipynb) |
-| specialization data codes | [07_specialization_data_codes](../../examples/step_21_relations/07_specialization_data_codes.py) | [Notebook](../../examples/step_21_relations/07_specialization_data_codes.ipynb) |
-| specialization mismatched data | [08_specialization_mismatched_data](../../examples/step_21_relations/08_specialization_mismatched_data.py) | [Notebook](../../examples/step_21_relations/08_specialization_mismatched_data.ipynb) |
-| specialization frozen | [09_specialization_frozen](../../examples/step_21_relations/09_specialization_frozen.py) | [Notebook](../../examples/step_21_relations/09_specialization_frozen.ipynb) |
-| specialization graph | [10_specialization_graph](../../examples/step_21_relations/10_specialization_graph.py) | [Notebook](../../examples/step_21_relations/10_specialization_graph.ipynb) |
-| specialization two axes | [11_specialization_two_axes](../../examples/step_21_relations/11_specialization_two_axes.py) | [Notebook](../../examples/step_21_relations/11_specialization_two_axes.ipynb) |
-| specialization hidden edges | [12_specialization_hidden_edges](../../examples/step_21_relations/12_specialization_hidden_edges.py) | [Notebook](../../examples/step_21_relations/12_specialization_hidden_edges.ipynb) |
-| specialization erd | [13_specialization_erd](../../examples/step_21_relations/13_specialization_erd.py) | [Notebook](../../examples/step_21_relations/13_specialization_erd.ipynb) |
-| specialization single alternative | [14_specialization_single_alternative](../../examples/step_21_relations/14_specialization_single_alternative.py) | [Notebook](../../examples/step_21_relations/14_specialization_single_alternative.ipynb) |
-| specialization storage | [15_specialization_storage](../../examples/step_21_relations/15_specialization_storage.py) | [Notebook](../../examples/step_21_relations/15_specialization_storage.ipynb) |
-| specialization reference | [16_specialization_reference](../../examples/step_21_relations/16_specialization_reference.py) | [Notebook](../../examples/step_21_relations/16_specialization_reference.ipynb) |
-| specialization absent | [17_specialization_absent](../../examples/step_21_relations/17_specialization_absent.py) | [Notebook](../../examples/step_21_relations/17_specialization_absent.ipynb) |
-| specialization bare code | [18_specialization_bare_code](../../examples/step_21_relations/18_specialization_bare_code.py) | [Notebook](../../examples/step_21_relations/18_specialization_bare_code.ipynb) |
-| specialization foreign pair | [19_specialization_foreign_pair](../../examples/step_21_relations/19_specialization_foreign_pair.py) | [Notebook](../../examples/step_21_relations/19_specialization_foreign_pair.ipynb) |
-| error missing classifier | [20_error_missing_classifier](../../examples/step_21_relations/20_error_missing_classifier.py) | [Notebook](../../examples/step_21_relations/20_error_missing_classifier.ipynb) |
-| error missing code | [21_error_missing_code](../../examples/step_21_relations/21_error_missing_code.py) | [Notebook](../../examples/step_21_relations/21_error_missing_code.ipynb) |
-| error unknown head code | [23_error_unknown_head_code](../../examples/step_21_relations/23_error_unknown_head_code.py) | [Notebook](../../examples/step_21_relations/23_error_unknown_head_code.ipynb) |
-| error duplicate code | [25_error_duplicate_code](../../examples/step_21_relations/25_error_duplicate_code.py) | [Notebook](../../examples/step_21_relations/25_error_duplicate_code.ipynb) |
-| error inverse name | [29_error_inverse_name](../../examples/step_21_relations/29_error_inverse_name.py) | [Notebook](../../examples/step_21_relations/29_error_inverse_name.ipynb) |
-| error no reverse | [30_error_no_reverse](../../examples/step_21_relations/30_error_no_reverse.py) | [Notebook](../../examples/step_21_relations/30_error_no_reverse.ipynb) |
-| error two reverse fields | [31_error_two_reverse_fields](../../examples/step_21_relations/31_error_two_reverse_fields.py) | [Notebook](../../examples/step_21_relations/31_error_two_reverse_fields.ipynb) |
-| error undeclared entity | [32_error_undeclared_entity](../../examples/step_21_relations/32_error_undeclared_entity.py) | [Notebook](../../examples/step_21_relations/32_error_undeclared_entity.ipynb) |
-| error two heads | [34_error_two_heads](../../examples/step_21_relations/34_error_two_heads.py) | [Notebook](../../examples/step_21_relations/34_error_two_heads.ipynb) |
-| error outside alternative | [35_error_outside_alternative](../../examples/step_21_relations/35_error_outside_alternative.py) | [Notebook](../../examples/step_21_relations/35_error_outside_alternative.ipynb) |
-| error cycle | [37_error_cycle](../../examples/step_21_relations/37_error_cycle.py) | [Notebook](../../examples/step_21_relations/37_error_cycle.ipynb) |
-| error axis subset | [38_error_axis_subset](../../examples/step_21_relations/38_error_axis_subset.py) | [Notebook](../../examples/step_21_relations/38_error_axis_subset.ipynb) |
-| error codes not literal | [41_error_codes_not_literal](../../examples/step_21_relations/41_error_codes_not_literal.py) | [Notebook](../../examples/step_21_relations/41_error_codes_not_literal.ipynb) |
-| error head classifier | [44_error_head_classifier](../../examples/step_21_relations/44_error_head_classifier.py) | [Notebook](../../examples/step_21_relations/44_error_head_classifier.ipynb) |
-| error marker field | [45_error_marker_field](../../examples/step_21_relations/45_error_marker_field.py) | [Notebook](../../examples/step_21_relations/45_error_marker_field.ipynb) |
-| error empty dictionary | [46_error_empty_dictionary](../../examples/step_21_relations/46_error_empty_dictionary.py) | [Notebook](../../examples/step_21_relations/46_error_empty_dictionary.ipynb) |
-| error foreign value | [47_error_foreign_value](../../examples/step_21_relations/47_error_foreign_value.py) | [Notebook](../../examples/step_21_relations/47_error_foreign_value.ipynb) |
-| error copied value | [48_error_copied_value](../../examples/step_21_relations/48_error_copied_value.py) | [Notebook](../../examples/step_21_relations/48_error_copied_value.ipynb) |
-| error unregistered dictionary | [49_error_unregistered_dictionary](../../examples/step_21_relations/49_error_unregistered_dictionary.py) | [Notebook](../../examples/step_21_relations/49_error_unregistered_dictionary.ipynb) |
-| error one argument | [50_error_one_argument](../../examples/step_21_relations/50_error_one_argument.py) | [Notebook](../../examples/step_21_relations/50_error_one_argument.ipynb) |
-| group label | [51_group_label](../../examples/step_21_relations/51_group_label.py) | [Notebook](../../examples/step_21_relations/51_group_label.ipynb) |
-| required relation | [52_required_relation](../../examples/step_21_relations/52_required_relation.py) | [Notebook](../../examples/step_21_relations/52_required_relation.ipynb) |
-| optional relation | [53_optional_relation](../../examples/step_21_relations/53_optional_relation.py) | [Notebook](../../examples/step_21_relations/53_optional_relation.ipynb) |
-| former embedded entity refused | [54_embedded_entity](../../examples/step_21_relations/54_embedded_entity.py) | [Notebook](../../examples/step_21_relations/54_embedded_entity.ipynb) |
-| bare entity refused | [55_bare_entity_refused](../../examples/step_21_relations/55_bare_entity_refused.py) | [Notebook](../../examples/step_21_relations/55_bare_entity_refused.ipynb) |
-| relation description | [56_relation_description](../../examples/step_21_relations/56_relation_description.py) | [Notebook](../../examples/step_21_relations/56_relation_description.ipynb) |
-| relation factory | [57_relation_factory](../../examples/step_21_relations/57_relation_factory.py) | [Notebook](../../examples/step_21_relations/57_relation_factory.ipynb) |
-| relation null default | [58_relation_null_default](../../examples/step_21_relations/58_relation_null_default.py) | [Notebook](../../examples/step_21_relations/58_relation_null_default.ipynb) |
-| relation object default | [59_relation_object_default](../../examples/step_21_relations/59_relation_object_default.py) | [Notebook](../../examples/step_21_relations/59_relation_object_default.ipynb) |
-| entity collection | [60_entity_collection](../../examples/step_21_relations/60_entity_collection.py) | [Notebook](../../examples/step_21_relations/60_entity_collection.ipynb) |
-| marker on relation | [61_marker_on_relation](../../examples/step_21_relations/61_marker_on_relation.py) | [Notebook](../../examples/step_21_relations/61_marker_on_relation.ipynb) |
-| marker on scalar | [62_marker_on_scalar](../../examples/step_21_relations/62_marker_on_scalar.py) | [Notebook](../../examples/step_21_relations/62_marker_on_scalar.ipynb) |
-| conflicting markers | [63_conflicting_markers](../../examples/step_21_relations/63_conflicting_markers.py) | [Notebook](../../examples/step_21_relations/63_conflicting_markers.ipynb) |
-| nullable required relation | [64_nullable_required_relation](../../examples/step_21_relations/64_nullable_required_relation.py) | [Notebook](../../examples/step_21_relations/64_nullable_required_relation.ipynb) |
+| specialization unloaded | [03_specialization_unloaded](../../examples/step_24_relations/03_specialization_unloaded.py) | [Notebook](../../examples/step_24_relations/03_specialization_unloaded.ipynb) |
+| specialization reverse | [04_specialization_reverse](../../examples/step_24_relations/04_specialization_reverse.py) | [Notebook](../../examples/step_24_relations/04_specialization_reverse.ipynb) |
+| specialization mapping | [05_specialization_mapping](../../examples/step_24_relations/05_specialization_mapping.py) | [Notebook](../../examples/step_24_relations/05_specialization_mapping.ipynb) |
+| specialization wrong type | [06_specialization_wrong_type](../../examples/step_24_relations/06_specialization_wrong_type.py) | [Notebook](../../examples/step_24_relations/06_specialization_wrong_type.ipynb) |
+| specialization data codes | [07_specialization_data_codes](../../examples/step_24_relations/07_specialization_data_codes.py) | [Notebook](../../examples/step_24_relations/07_specialization_data_codes.ipynb) |
+| specialization mismatched data | [08_specialization_mismatched_data](../../examples/step_24_relations/08_specialization_mismatched_data.py) | [Notebook](../../examples/step_24_relations/08_specialization_mismatched_data.ipynb) |
+| specialization frozen | [09_specialization_frozen](../../examples/step_24_relations/09_specialization_frozen.py) | [Notebook](../../examples/step_24_relations/09_specialization_frozen.ipynb) |
+| specialization graph | [10_specialization_graph](../../examples/step_24_relations/10_specialization_graph.py) | [Notebook](../../examples/step_24_relations/10_specialization_graph.ipynb) |
+| specialization two axes | [11_specialization_two_axes](../../examples/step_24_relations/11_specialization_two_axes.py) | [Notebook](../../examples/step_24_relations/11_specialization_two_axes.ipynb) |
+| specialization hidden edges | [12_specialization_hidden_edges](../../examples/step_24_relations/12_specialization_hidden_edges.py) | [Notebook](../../examples/step_24_relations/12_specialization_hidden_edges.ipynb) |
+| specialization erd | [13_specialization_erd](../../examples/step_24_relations/13_specialization_erd.py) | [Notebook](../../examples/step_24_relations/13_specialization_erd.ipynb) |
+| specialization single alternative | [14_specialization_single_alternative](../../examples/step_24_relations/14_specialization_single_alternative.py) | [Notebook](../../examples/step_24_relations/14_specialization_single_alternative.ipynb) |
+| specialization storage | [15_specialization_storage](../../examples/step_24_relations/15_specialization_storage.py) | [Notebook](../../examples/step_24_relations/15_specialization_storage.ipynb) |
+| specialization reference | [16_specialization_reference](../../examples/step_24_relations/16_specialization_reference.py) | [Notebook](../../examples/step_24_relations/16_specialization_reference.ipynb) |
+| specialization absent | [17_specialization_absent](../../examples/step_24_relations/17_specialization_absent.py) | [Notebook](../../examples/step_24_relations/17_specialization_absent.ipynb) |
+| specialization bare code | [18_specialization_bare_code](../../examples/step_24_relations/18_specialization_bare_code.py) | [Notebook](../../examples/step_24_relations/18_specialization_bare_code.ipynb) |
+| specialization foreign pair | [19_specialization_foreign_pair](../../examples/step_24_relations/19_specialization_foreign_pair.py) | [Notebook](../../examples/step_24_relations/19_specialization_foreign_pair.ipynb) |
+| error missing classifier | [20_error_missing_classifier](../../examples/step_24_relations/20_error_missing_classifier.py) | [Notebook](../../examples/step_24_relations/20_error_missing_classifier.ipynb) |
+| error missing code | [21_error_missing_code](../../examples/step_24_relations/21_error_missing_code.py) | [Notebook](../../examples/step_24_relations/21_error_missing_code.ipynb) |
+| error unknown head code | [23_error_unknown_head_code](../../examples/step_24_relations/23_error_unknown_head_code.py) | [Notebook](../../examples/step_24_relations/23_error_unknown_head_code.ipynb) |
+| error duplicate code | [25_error_duplicate_code](../../examples/step_24_relations/25_error_duplicate_code.py) | [Notebook](../../examples/step_24_relations/25_error_duplicate_code.ipynb) |
+| error inverse name | [29_error_inverse_name](../../examples/step_24_relations/29_error_inverse_name.py) | [Notebook](../../examples/step_24_relations/29_error_inverse_name.ipynb) |
+| error no reverse | [30_error_no_reverse](../../examples/step_24_relations/30_error_no_reverse.py) | [Notebook](../../examples/step_24_relations/30_error_no_reverse.ipynb) |
+| error two reverse fields | [31_error_two_reverse_fields](../../examples/step_24_relations/31_error_two_reverse_fields.py) | [Notebook](../../examples/step_24_relations/31_error_two_reverse_fields.ipynb) |
+| error undeclared entity | [32_error_undeclared_entity](../../examples/step_24_relations/32_error_undeclared_entity.py) | [Notebook](../../examples/step_24_relations/32_error_undeclared_entity.ipynb) |
+| error two heads | [34_error_two_heads](../../examples/step_24_relations/34_error_two_heads.py) | [Notebook](../../examples/step_24_relations/34_error_two_heads.ipynb) |
+| error outside alternative | [35_error_outside_alternative](../../examples/step_24_relations/35_error_outside_alternative.py) | [Notebook](../../examples/step_24_relations/35_error_outside_alternative.ipynb) |
+| error cycle | [37_error_cycle](../../examples/step_24_relations/37_error_cycle.py) | [Notebook](../../examples/step_24_relations/37_error_cycle.ipynb) |
+| error axis subset | [38_error_axis_subset](../../examples/step_24_relations/38_error_axis_subset.py) | [Notebook](../../examples/step_24_relations/38_error_axis_subset.ipynb) |
+| error codes not literal | [41_error_codes_not_literal](../../examples/step_24_relations/41_error_codes_not_literal.py) | [Notebook](../../examples/step_24_relations/41_error_codes_not_literal.ipynb) |
+| error head classifier | [44_error_head_classifier](../../examples/step_24_relations/44_error_head_classifier.py) | [Notebook](../../examples/step_24_relations/44_error_head_classifier.ipynb) |
+| error marker field | [45_error_marker_field](../../examples/step_24_relations/45_error_marker_field.py) | [Notebook](../../examples/step_24_relations/45_error_marker_field.ipynb) |
+| error empty dictionary | [46_error_empty_dictionary](../../examples/step_24_relations/46_error_empty_dictionary.py) | [Notebook](../../examples/step_24_relations/46_error_empty_dictionary.ipynb) |
+| error foreign value | [47_error_foreign_value](../../examples/step_24_relations/47_error_foreign_value.py) | [Notebook](../../examples/step_24_relations/47_error_foreign_value.ipynb) |
+| error copied value | [48_error_copied_value](../../examples/step_24_relations/48_error_copied_value.py) | [Notebook](../../examples/step_24_relations/48_error_copied_value.ipynb) |
+| error unregistered dictionary | [49_error_unregistered_dictionary](../../examples/step_24_relations/49_error_unregistered_dictionary.py) | [Notebook](../../examples/step_24_relations/49_error_unregistered_dictionary.ipynb) |
+| error one argument | [50_error_one_argument](../../examples/step_24_relations/50_error_one_argument.py) | [Notebook](../../examples/step_24_relations/50_error_one_argument.ipynb) |
+| group label | [51_group_label](../../examples/step_24_relations/51_group_label.py) | [Notebook](../../examples/step_24_relations/51_group_label.ipynb) |
+| required relation | [52_required_relation](../../examples/step_24_relations/52_required_relation.py) | [Notebook](../../examples/step_24_relations/52_required_relation.ipynb) |
+| optional relation | [53_optional_relation](../../examples/step_24_relations/53_optional_relation.py) | [Notebook](../../examples/step_24_relations/53_optional_relation.ipynb) |
+| former embedded entity refused | [54_embedded_entity](../../examples/step_24_relations/54_embedded_entity.py) | [Notebook](../../examples/step_24_relations/54_embedded_entity.ipynb) |
+| bare entity refused | [55_bare_entity_refused](../../examples/step_24_relations/55_bare_entity_refused.py) | [Notebook](../../examples/step_24_relations/55_bare_entity_refused.ipynb) |
+| relation description | [56_relation_description](../../examples/step_24_relations/56_relation_description.py) | [Notebook](../../examples/step_24_relations/56_relation_description.ipynb) |
+| relation factory | [57_relation_factory](../../examples/step_24_relations/57_relation_factory.py) | [Notebook](../../examples/step_24_relations/57_relation_factory.ipynb) |
+| relation null default | [58_relation_null_default](../../examples/step_24_relations/58_relation_null_default.py) | [Notebook](../../examples/step_24_relations/58_relation_null_default.ipynb) |
+| relation object default | [59_relation_object_default](../../examples/step_24_relations/59_relation_object_default.py) | [Notebook](../../examples/step_24_relations/59_relation_object_default.ipynb) |
+| entity collection | [60_entity_collection](../../examples/step_24_relations/60_entity_collection.py) | [Notebook](../../examples/step_24_relations/60_entity_collection.ipynb) |
+| marker on relation | [61_marker_on_relation](../../examples/step_24_relations/61_marker_on_relation.py) | [Notebook](../../examples/step_24_relations/61_marker_on_relation.ipynb) |
+| marker on scalar | [62_marker_on_scalar](../../examples/step_24_relations/62_marker_on_scalar.py) | [Notebook](../../examples/step_24_relations/62_marker_on_scalar.ipynb) |
+| conflicting markers | [63_conflicting_markers](../../examples/step_24_relations/63_conflicting_markers.py) | [Notebook](../../examples/step_24_relations/63_conflicting_markers.ipynb) |
+| nullable required relation | [64_nullable_required_relation](../../examples/step_24_relations/64_nullable_required_relation.py) | [Notebook](../../examples/step_24_relations/64_nullable_required_relation.ipynb) |
 
 ## Boundaries
 
@@ -522,12 +522,12 @@ Previously a complete ownership/ownership pair could pass; change the reverse fi
 
 | Learning topic | Script | Executed notebook |
 | --- | --- | --- |
-| Plain associations and cardinality | [Script](../../examples/step_21_relations/68_role_plain_associations.py) | [Notebook](../../examples/step_21_relations/68_role_plain_associations.ipynb) |
-| Aggregation, refusal and correction | [Script](../../examples/step_21_relations/69_role_aggregation.py) | [Notebook](../../examples/step_21_relations/69_role_aggregation.ipynb) |
-| Composition, refusals and correction | [Script](../../examples/step_21_relations/70_role_composition.py) | [Notebook](../../examples/step_21_relations/70_role_composition.ipynb) |
-| Classified axis and specialized refusals | [Script](../../examples/step_21_relations/71_role_specialization.py) | [Notebook](../../examples/step_21_relations/71_role_specialization.ipynb) |
-| All six dictionary containers and transport | [Script](../../examples/step_21_relations/72_role_dictionary.py) | [Notebook](../../examples/step_21_relations/72_role_dictionary.ipynb) |
-| Independent NoInverse links versus a pair | [Script](../../examples/step_21_relations/73_role_directions.py) | [Notebook](../../examples/step_21_relations/73_role_directions.ipynb) |
+| Plain associations and cardinality | [Script](../../examples/step_24_relations/68_role_plain_associations.py) | [Notebook](../../examples/step_24_relations/68_role_plain_associations.ipynb) |
+| Aggregation, refusal and correction | [Script](../../examples/step_24_relations/69_role_aggregation.py) | [Notebook](../../examples/step_24_relations/69_role_aggregation.ipynb) |
+| Composition, refusals and correction | [Script](../../examples/step_24_relations/70_role_composition.py) | [Notebook](../../examples/step_24_relations/70_role_composition.ipynb) |
+| Classified axis and specialized refusals | [Script](../../examples/step_24_relations/71_role_specialization.py) | [Notebook](../../examples/step_24_relations/71_role_specialization.ipynb) |
+| All six dictionary containers and transport | [Script](../../examples/step_24_relations/72_role_dictionary.py) | [Notebook](../../examples/step_24_relations/72_role_dictionary.ipynb) |
+| Independent NoInverse links versus a pair | [Script](../../examples/step_24_relations/73_role_directions.py) | [Notebook](../../examples/step_24_relations/73_role_directions.ipynb) |
 
 Each scenario contains explicit declarations, value assertions and the real error text. The [compatibility how-to](../how-to/relationship-role-compatibility.md) explains each outcome and migration.
 

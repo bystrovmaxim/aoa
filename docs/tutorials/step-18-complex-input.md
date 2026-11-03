@@ -23,7 +23,7 @@
 
 The previous chapter was about how an operation **returns** complex data. This one is the mirror: how it **accepts** it. A request rarely carries a couple of scalars — usually it is nested objects, collections, sometimes arbitrary JSON. The good news is that no separate mechanism is needed for this: `Params` is a Pydantic model, so **any** Pydantic shape works as a field, and the [adapters](step-14-fastapi.md) themselves derive both the request body and the schema from it. Complex input in AOA is accepted exactly the same way as simple input.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1YukUsvY7G0z-XzgU6rrGcyCGWZRL4T3x/view?usp=drive_link) · [Open in project](../../examples/step_16_complex_input/01_complex_input.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1YukUsvY7G0z-XzgU6rrGcyCGWZRL4T3x/view?usp=drive_link) · [Open in project](../../examples/step_18_complex_input/01_complex_input.py)
 
 ---
 
@@ -88,7 +88,7 @@ In both cases not a line of code for parsing complex input needs to be written �
 **Run:**
 
 ```bash
-uv run python examples/step_16_complex_input/01_complex_input.py
+uv run python examples/step_18_complex_input/01_complex_input.py
 ```
 
 **Output:**
@@ -137,7 +137,7 @@ Next — **[Connections at the request boundary](step-19-connections.md)**: how 
 5. Why is a structural request shaped as `POST` with a body rather than `GET` with a query?
 6. Why can a field not be named `items`, and how do you work around it?
 
-> **Exercise.** In [01_complex_input.py](../../examples/step_16_complex_input/01_complex_input.py) add an optional field `coupon: str | None = None` to `CreateOrderParams` and check that the request passes both with and without it. Then send through `TestClient` a body with an extra key not in `Params` and confirm the adapter answers `422` — the input contract is strict.
+> **Exercise.** In [01_complex_input.py](../../examples/step_18_complex_input/01_complex_input.py) add an optional field `coupon: str | None = None` to `CreateOrderParams` and check that the request passes both with and without it. Then send through `TestClient` a body with an extra key not in `Params` and confirm the adapter answers `422` — the input contract is strict.
 
 ---
 

@@ -4,7 +4,7 @@ Tests for JwtAuthCoordinator — the full extract -> authenticate -> assemble ->
 pipeline, assembled from BearerCredentialExtractor + JwtAuthenticator + HttpContextAssembler.
 
 FastAPI-level end-to-end proof (a real app, a real LoginAction-issued token, a
-real protected route) lives in ``examples/step_13_fastapi/04_bearer_auth.py`` —
+real protected route) lives in ``examples/step_14_fastapi/04_bearer_auth.py`` —
 aoa-action-machine's own test suite has no FastAPI dependency and stays
 protocol-agnostic, exercising the coordinator against a duck-typed fake request.
 """

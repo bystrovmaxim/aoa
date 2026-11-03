@@ -29,7 +29,7 @@
 
 ---
 
-`JwtAuthCoordinator` is a ready-made [`AuthCoordinator`](../tutorials/step-12-authentication.md) that verifies `Authorization: Bearer <jwt>` on every request: signature, expiry, optionally `audience`/`issuer`, roles — and a mandatory session identifier — from the token's claims. The verification key is either a static secret the service signs its own tokens with (`secret_key`), or the JWKS of an external identity provider (`jwks_url` — Keycloak, Auth0, Google, an in-house token service; see [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks)). Either way, no session store is kept — the token carries everything needed, verification requires no trip to a database.
+`JwtAuthCoordinator` is a ready-made [`AuthCoordinator`](../tutorials/step-13-authentication.md) that verifies `Authorization: Bearer <jwt>` on every request: signature, expiry, optionally `audience`/`issuer`, roles — and a mandatory session identifier — from the token's claims. The verification key is either a static secret the service signs its own tokens with (`secret_key`), or the JWKS of an external identity provider (`jwks_url` — Keycloak, Auth0, Google, an in-house token service; see [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks)). Either way, no session store is kept — the token carries everything needed, verification requires no trip to a database.
 
 **Issuing the token (login) is out of scope.** `JwtAuthCoordinator` only **verifies** a Bearer token on an incoming request. How an application issues a token at login is an ordinary `LoginAction` that signs a JWT with PyJWT directly; no special class ships for this (see [below](#two-phases-issuing-and-verifying)).
 
@@ -72,9 +72,9 @@ This shape has the service play both issuer and verifier. When the issuer is an 
 
 A working, run-verified example in two files:
 
-**Issuing** — [`examples/step_13_fastapi/03_login_action.py`](../../examples/step_13_fastapi/03_login_action.py) ([▶ Try in Colab](#03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AuthorizationError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `sid`, `roles`, `iat`, `exp`); every login gets a new `sid` — see [«The session id»](#the-session-id).
+**Issuing** — [`examples/step_14_fastapi/03_login_action.py`](../../examples/step_14_fastapi/03_login_action.py) ([▶ Try in Colab](#03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AuthorizationError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `sid`, `roles`, `iat`, `exp`); every login gets a new `sid` — see [«The session id»](#the-session-id).
 
-**Verifying** — [`examples/step_13_fastapi/04_bearer_auth.py`](../../examples/step_13_fastapi/04_bearer_auth.py) ([▶ Try in Colab](#04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-12-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
+**Verifying** — [`examples/step_14_fastapi/04_bearer_auth.py`](../../examples/step_14_fastapi/04_bearer_auth.py) ([▶ Try in Colab](#04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-13-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
 
 ```python
 strict_default = JwtAuthCoordinator(
@@ -90,7 +90,7 @@ FastApiAdapter(machine=machine, auth_coordinator=strict_default, title="Bearer A
     .build()
 ```
 
-A real run (`uv run python examples/step_13_fastapi/04_bearer_auth.py`):
+A real run (`uv run python examples/step_14_fastapi/04_bearer_auth.py`):
 
 ```text
 GET /orders (no token)           -> 403 {'detail': 'Authentication required'}
@@ -108,7 +108,7 @@ An authenticated JWT request identifies two things: the caller and the login ses
 
 Issuers name the session claim differently, so its name is configuration: `session_id_claim`. The field it fills, `session_id`, is the same for every issuer. The argument is required on both `JwtAuthenticator` and `JwtAuthCoordinator`. It has no default, and no setting turns the check off.
 
-From [`07_session_id.py`](../../examples/step_13_fastapi/07_session_id.py):
+From [`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py):
 
 ```python
 auth = JwtAuthCoordinator(
@@ -137,7 +137,7 @@ A wrong declaration fails when the object is constructed, before any request arr
 
 **Machine tokens need the claim too.** Every token the coordinator accepts must carry it, including server-to-server tokens whose issuer has no notion of a login. Such an issuer has to add the claim, for example one identifier per issued grant. Until it does, its tokens raise `AuthenticationContractError` (see [below](#required-claims-refusal-or-contract-failure)).
 
-[`07_session_id.py`](../../examples/step_13_fastapi/07_session_id.py) · [notebook](../../examples/step_13_fastapi/07_session_id.ipynb) · [▶ Try in Colab](#07_session_id.ipynb) — the configuration errors above, then a service that issues its own tokens: two logins get two sessions, and a refresh keeps the session. A real run:
+[`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py) · [notebook](../../examples/step_14_fastapi/07_session_id.ipynb) · [▶ Try in Colab](#07_session_id.ipynb) — the configuration errors above, then a service that issues its own tokens: two logins get two sessions, and a refresh keeps the session. A real run:
 
 ```text
 no session_id_claim  -> TypeError: JwtAuthCoordinator.__init__() missing 1 required keyword-only argument: 'session_id_claim'
@@ -228,7 +228,7 @@ Behind an adapter, `JwtAuthCoordinator` does the `authenticate` step and assembl
 
 An `@access_decide` method reads the session id the same way and may base its verdict on it. AOA puts no special limits on such rules: the session id is typed context data like any other field.
 
-Because AOA keeps no session store, ending a session is application logic. In [`08_session_access_rule.py`](../../examples/step_13_fastapi/08_session_access_rule.py), `LogoutAction` records the caller's session in an application registry, and the rule refuses a recorded session:
+Because AOA keeps no session store, ending a session is application logic. In [`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py), `LogoutAction` records the caller's session in an application registry, and the rule refuses a recorded session:
 
 ```python
 @access_decide("Refuse a session the application has ended")
@@ -248,7 +248,7 @@ GET /orders (laptop, ended)   -> 403 {'detail': 'Access denied by ACCESS_DECIDE:
 GET /orders (phone, active)   -> 200 {'orders': ['ord-001']}
 ```
 
-[`08_session_access_rule.py`](../../examples/step_13_fastapi/08_session_access_rule.py) · [notebook](../../examples/step_13_fastapi/08_session_access_rule.ipynb) · [▶ Try in Colab](#08_session_access_rule.ipynb). How object rules work in general — [Roles and object rules](../how-to/roles-and-object-rules.md).
+[`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py) · [notebook](../../examples/step_14_fastapi/08_session_access_rule.ipynb) · [▶ Try in Colab](#08_session_access_rule.ipynb). How object rules work in general — [Roles and object rules](../how-to/roles-and-object-rules.md).
 
 ## Required claims: refusal or contract failure
 
@@ -284,7 +284,7 @@ The exception lives in `aoa.action_machine.exceptions`. `exc.claim` is the confi
 
 **Other errors propagate too.** A programming error or a missing dependency inside token verification or JWKS resolution reaches the caller as its own exception. It does not turn into `None`.
 
-[`09_required_claims.py`](../../examples/step_13_fastapi/09_required_claims.py) · [notebook](../../examples/step_13_fastapi/09_required_claims.ipynb) · [▶ Try in Colab](#09_required_claims.ipynb) — every case above with real tokens. A real run:
+[`09_required_claims.py`](../../examples/step_14_fastapi/09_required_claims.py) · [notebook](../../examples/step_14_fastapi/09_required_claims.ipynb) · [▶ Try in Colab](#09_required_claims.ipynb) — every case above with real tokens. A real run:
 
 ```text
 -- 1. verification comes first
@@ -353,7 +353,7 @@ There isn't one reason — there are three, and they're of very different scope:
 2. **HTTP-based MCP transports (SSE / Streamable HTTP)** — here Bearer/JWT is natively supported **by the protocol itself**: the installed `mcp` SDK already ships `mcp.server.auth.middleware.bearer_auth.BearerAuthBackend` — a Starlette `AuthenticationBackend` that reads `Authorization: Bearer` off the raw HTTP connection and verifies it through a pluggable `TokenVerifier` (a conceptual counterpart to our own `Authenticator`). So the transport and the SDK are not the blocker.
 3. **AOA's own `McpAdapter` implementation** — this is where the real, AOA-specific gap is: `_execute_tool_call` **always** calls `auth_coordinator.process(None)`, regardless of transport — even when the server runs on an HTTP-based transport where a real request with real headers exists. Wiring in `BearerAuthBackend` happens at the ASGI-middleware layer, wrapping the entire HTTP app, before JSON-RPC dispatch — not at the level of the `Tool.fn` handler that `_execute_tool_call` calls. Threading the real request through `AuthCoordinator.process(request_data)` for HTTP-based transports is a separate adapter change, outside the scope of the JWT coordinator itself.
 
-A full demonstration (both phases, including the explicit failure) — [`examples/step_14_mcp/02_bearer_auth_limitation.py`](../../examples/step_14_mcp/02_bearer_auth_limitation.py) ([▶ Try in Colab](#02_bearer_auth_limitation.ipynb)): `LoginAction`, exposed as an MCP tool, works exactly as usual (an Action doesn't know and shouldn't need to know the transport), while trying to use `JwtAuthCoordinator` as the adapter's `auth_coordinator` fails explicitly.
+A full demonstration (both phases, including the explicit failure) — [`examples/step_15_mcp/02_bearer_auth_limitation.py`](../../examples/step_15_mcp/02_bearer_auth_limitation.py) ([▶ Try in Colab](#02_bearer_auth_limitation.ipynb)): `LoginAction`, exposed as an MCP tool, works exactly as usual (an Action doesn't know and shouldn't need to know the transport), while trying to use `JwtAuthCoordinator` as the adapter's `auth_coordinator` fails explicitly.
 
 Tracked in [issue #113](https://github.com/bystrovmaxim/aoa/issues/113). Until it's resolved, the only working `auth_coordinator` for `McpAdapter` is `NoAuthCoordinator`, regardless of transport.
 
@@ -383,7 +383,7 @@ auth = JwtAuthCoordinator(
 - **Header (`BearerCredentialExtractor`)** — the client controls the request programmatically and can explicitly attach the token: API-to-API, CLI, mobile apps, server-to-server integrations.
 - **Cookie (`CookieCredentialExtractor`)** — browser-based SSO across subdomains via an `httpOnly` session: JavaScript cannot read the token by design, so Bearer isn't merely inconvenient here — it's architecturally impossible.
 
-A working example — [`examples/step_13_fastapi/05_cookie_auth.py`](../../examples/step_13_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
+A working example — [`examples/step_14_fastapi/05_cookie_auth.py`](../../examples/step_14_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
 
 ## External IdP: RS256 and JWKS
 
@@ -419,7 +419,7 @@ auth = JwtAuthCoordinator(
 | Rotation | All-or-nothing, logs every token out at once | Seamless — publish old+new, then drop the old one |
 | Typical IdP | Your own | Keycloak, Auth0, Google, an in-house token service |
 
-A working example — [`examples/step_13_fastapi/06_jwks_auth.py`](../../examples/step_13_fastapi/06_jwks_auth.py) ([▶ Try in Colab](#06_jwks_auth.ipynb)): generates an RSA keypair and a local JWKS document right in the example, `LoginAction` signs RS256 with a `kid` header, the protected route verifies through `jwks_url` with `issuer=` set, plus a negative case — a token from a "foreign" issuer gets rejected.
+A working example — [`examples/step_14_fastapi/06_jwks_auth.py`](../../examples/step_14_fastapi/06_jwks_auth.py) ([▶ Try in Colab](#06_jwks_auth.ipynb)): generates an RSA keypair and a local JWKS document right in the example, `LoginAction` signs RS256 with a `kid` header, the protected route verifies through `jwks_url` with `issuer=` set, plus a negative case — a token from a "foreign" issuer gets rejected.
 
 ## Roles: mapping the claim to classes
 
@@ -434,7 +434,7 @@ Unmapped names in the claim are silently dropped rather than rejecting the token
 ## Variants
 
 - **Static key vs. RS256/JWKS.** See [«External IdP: RS256 and JWKS»](#external-idp-rs256-and-jwks) — `secret_key`/`jwks_url` are mutually exclusive, `issuer=` optionally validates `iss`.
-- **One long-lived token (as in the demo) vs. an access+refresh pair.** The demo example uses a single 30-minute token. There is no built-in support for refresh tokens — if needed, issuing them (another `LoginAction`-like Action) and storing them stays application code, just like login itself. A refreshed token keeps the session id of the login it continues; [`07_session_id.py`](../../examples/step_13_fastapi/07_session_id.py) shows a refresh Action that reads it from the context.
+- **One long-lived token (as in the demo) vs. an access+refresh pair.** The demo example uses a single 30-minute token. There is no built-in support for refresh tokens — if needed, issuing them (another `LoginAction`-like Action) and storing them stays application code, just like login itself. A refreshed token keeps the session id of the login it continues; [`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py) shows a refresh Action that reads it from the context.
 
 ## API surface
 
@@ -442,7 +442,7 @@ Unmapped names in the claim are silently dropped rather than rejecting the token
 
 In the context: `UserInfo.session_id: str | None`, read as `Ctx.User.session_id` (`"user.session_id"`). The contract error: `aoa.action_machine.exceptions.AuthenticationContractError` with `.claim` and `.reason`.
 
-How authentication is structured overall — the chapter [Authentication](../tutorials/step-12-authentication.md); your own sign-in mechanism (Basic, API key, OAuth2, anything else) — [«Your own authentication coordinator»](../how-to/authoring-auth-coordinator.md).
+How authentication is structured overall — the chapter [Authentication](../tutorials/step-13-authentication.md); your own sign-in mechanism (Basic, API key, OAuth2, anything else) — [«Your own authentication coordinator»](../how-to/authoring-auth-coordinator.md).
 
 ---
 

@@ -21,13 +21,13 @@ A dictionary is a catalogue of values, not a host for arbitrary entity-valued pr
 
 ## Complete declarations and values
 
-This independent example includes Core, Assoc, Detail and Spec hosts and an Enum target. Each field has its own complete declaration. The Spec example shows ordinary links; a classified head and its alternatives are covered by the [specialization tutorial](../tutorials/step-21-relations.md#generalization-and-specialization).
+This independent example includes Core, Assoc, Detail and Spec hosts and an Enum target. Each field has its own complete declaration. The Spec example shows ordinary links; a classified head and its alternatives are covered by the [specialization tutorial](../tutorials/step-24-relations.md#generalization-and-specialization).
 
-[Script](../../examples/step_21_relations/66_complete_stereotypes.py) · [Executed notebook](../../examples/step_21_relations/66_complete_stereotypes.ipynb)
+[Script](../../examples/step_24_relations/66_complete_stereotypes.py) · [Executed notebook](../../examples/step_24_relations/66_complete_stereotypes.ipynb)
 
 ```python
 """Use complete relationship fields on Core, Assoc, Detail and Spec hosts.
-Run: .venv/bin/python examples/step_21_relations/66_complete_stereotypes.py
+Run: .venv/bin/python examples/step_24_relations/66_complete_stereotypes.py
 """
 
 from typing import Annotated
@@ -127,15 +127,15 @@ Core: eu; Assoc: offer-1; Detail: offer-1; Spec: nullable detail
 
 A required relationship has no default. Nullable does not mean optional to supply: `Annotated[AssociationOne[T] | None, NoInverse()] = Field(description="Target")` still requires the argument, but accepts `None`. Add `default=None` only when omission should mean absence. Factories, preconstructed containers and other defaults are refused at model build. Put the union inside `Annotated`, and keep a single non-null container type.
 
-See [required](../../examples/step_21_relations/52_required_relation.py) ([notebook](../../examples/step_21_relations/52_required_relation.ipynb)), [omittable](../../examples/step_21_relations/53_optional_relation.py) ([notebook](../../examples/step_21_relations/53_optional_relation.ipynb)) and [nullable but required](../../examples/step_21_relations/64_nullable_required_relation.py) ([notebook](../../examples/step_21_relations/64_nullable_required_relation.ipynb)).
+See [required](../../examples/step_24_relations/52_required_relation.py) ([notebook](../../examples/step_24_relations/52_required_relation.ipynb)), [omittable](../../examples/step_24_relations/53_optional_relation.py) ([notebook](../../examples/step_24_relations/53_optional_relation.ipynb)) and [nullable but required](../../examples/step_24_relations/64_nullable_required_relation.py) ([notebook](../../examples/step_24_relations/64_nullable_required_relation.ipynb)).
 
 ## Both inverse endpoints must agree
 
 `NoInverse()` remains the way to declare a one-way link. If one endpoint uses `Inverse`, the named reverse field must exist, use its own `Inverse`, and name the originating entity and field. An inverse paired with `NoInverse()` is refused. Migrate an old one-sided pair by adding the matching marker to the other side; use `NoInverse()` only when no reciprocal pair is intended.
 
-`Inverse(Target, "reverse")` requires a class object. A string class name is not accepted. `Inverse(field_name="reverse")` infers the target from the resolved container argument and now works for ordinary relationships as well as specialization heads. With postponed annotations, import both modules in the composition root and call `model_rebuild(_types_namespace=...)` on both models before building the machine. This avoids runtime imports between endpoint modules. See [the cross-module script](../../examples/step_21_relations/67_cross_module_inverse.py) and [notebook](../../examples/step_21_relations/67_cross_module_inverse.ipynb).
+`Inverse(Target, "reverse")` requires a class object. A string class name is not accepted. `Inverse(field_name="reverse")` infers the target from the resolved container argument and now works for ordinary relationships as well as specialization heads. With postponed annotations, import both modules in the composition root and call `model_rebuild(_types_namespace=...)` on both models before building the machine. This avoids runtime imports between endpoint modules. See [the cross-module script](../../examples/step_24_relations/67_cross_module_inverse.py) and [notebook](../../examples/step_24_relations/67_cross_module_inverse.ipynb).
 
-The [direction scenario](../../examples/step_21_relations/65_reciprocal_directions.py) ([notebook](../../examples/step_21_relations/65_reciprocal_directions.ipynb)) demonstrates a reciprocal pair, a valid one-way link and the former one-sided form. Its exact refusal is:
+The [direction scenario](../../examples/step_24_relations/65_reciprocal_directions.py) ([notebook](../../examples/step_24_relations/65_reciprocal_directions.ipynb)) demonstrates a reciprocal pair, a valid one-way link and the former one-sided form. Its exact refusal is:
 
 ```text
 EntityFieldDeclarationError: Field 'offer' on entity 'OldRegionCoreEntity' is invalid: the reverse field 'regions' on OldOfferCoreEntity declares no Inverse (it is NoInverse or missing a direction marker); declare a reciprocal Inverse(...) on both endpoints.
@@ -149,7 +149,7 @@ These are model declarations, not database row validations. Defining a structura
 
 ### Former embedded declaration
 
-[Script](../../examples/step_21_relations/54_embedded_entity.py) · [Executed notebook](../../examples/step_21_relations/54_embedded_entity.ipynb)
+[Script](../../examples/step_24_relations/54_embedded_entity.py) · [Executed notebook](../../examples/step_24_relations/54_embedded_entity.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (TargetCoreEntity). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).
@@ -157,7 +157,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### Bare entity
 
-[Script](../../examples/step_21_relations/55_bare_entity_refused.py) · [Executed notebook](../../examples/step_21_relations/55_bare_entity_refused.ipynb)
+[Script](../../examples/step_24_relations/55_bare_entity_refused.py) · [Executed notebook](../../examples/step_24_relations/55_bare_entity_refused.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: the field's type is an entity (TargetCoreEntity), so the field cannot be a scalar. Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).
@@ -165,7 +165,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### Non-nullable field with None default
 
-[Script](../../examples/step_21_relations/58_relation_null_default.py) · [Executed notebook](../../examples/step_21_relations/58_relation_null_default.ipynb)
+[Script](../../examples/step_24_relations/58_relation_null_default.py) · [Executed notebook](../../examples/step_24_relations/58_relation_null_default.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: default=None needs a nullable annotation; write Annotated[aoa.action_machine.domain.relation_containers.AssociationOne[__main__.TargetCoreEntity] | None, ...] = Field(default=None, description=...).
@@ -173,7 +173,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### Collection of entity instances
 
-[Script](../../examples/step_21_relations/60_entity_collection.py) · [Executed notebook](../../examples/step_21_relations/60_entity_collection.ipynb)
+[Script](../../examples/step_24_relations/60_entity_collection.py) · [Executed notebook](../../examples/step_24_relations/60_entity_collection.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: the field's type is a collection of an entity (list[__main__.TargetCoreEntity]); a collection is not a relation. Declare the many relationship (Annotated[AssociationMany[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).
@@ -181,7 +181,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### NoRelation on a container
 
-[Script](../../examples/step_21_relations/61_marker_on_relation.py) · [Executed notebook](../../examples/step_21_relations/61_marker_on_relation.ipynb)
+[Script](../../examples/step_24_relations/61_marker_on_relation.py) · [Executed notebook](../../examples/step_24_relations/61_marker_on_relation.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (aoa.action_machine.domain.relation_containers.AssociationOne[__main__.TargetCoreEntity]). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).
@@ -189,7 +189,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### NoRelation on a scalar
 
-[Script](../../examples/step_21_relations/62_marker_on_scalar.py) · [Executed notebook](../../examples/step_21_relations/62_marker_on_scalar.ipynb)
+[Script](../../examples/step_24_relations/62_marker_on_scalar.py) · [Executed notebook](../../examples/step_24_relations/62_marker_on_scalar.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation marks an embedded value, which no longer exists; this field's type is str, not an entity. Declare the field as an ordinary scalar.
@@ -197,7 +197,7 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 
 ### Conflicting markers
 
-[Script](../../examples/step_21_relations/63_conflicting_markers.py) · [Executed notebook](../../examples/step_21_relations/63_conflicting_markers.ipynb)
+[Script](../../examples/step_24_relations/63_conflicting_markers.py) · [Executed notebook](../../examples/step_24_relations/63_conflicting_markers.ipynb)
 
 ```text
 EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invalid: NoRelation no longer declares an embedded value; the field's type is an entity (TargetCoreEntity). Declare the complete relationship (Annotated[AssociationOne[TargetCoreEntity], Inverse(...) or NoInverse()] = Field(description=...)).
@@ -208,9 +208,9 @@ EntityFieldDeclarationError: Field 'target' on entity 'HostCoreEntity' is invali
 The assignment-side `Field` requirement also has a source check. Runtime Pydantic models merge `Field` metadata, so runtime validation alone cannot prove whether a `Field` was inside `Annotated`. Run the source checker on the roots you maintain as well as building the model. It parses files without importing them. Do not mistake a successful model build for proof of source placement.
 
 ```sh
-.venv/bin/python scripts/check_complete_entity_fields.py examples/step_21_relations/65_reciprocal_directions.py examples/step_21_relations/66_complete_stereotypes.py examples/step_21_relations/67_cross_module_inverse.py
+.venv/bin/python scripts/check_complete_entity_fields.py examples/step_24_relations/65_reciprocal_directions.py examples/step_24_relations/66_complete_stereotypes.py examples/step_24_relations/67_cross_module_inverse.py
 ```
 
-See the [dictionary selection guide](dictionary-references.md), [relationship tutorial](../tutorials/step-21-relations.md) and [invariant reference](../reference/intents-and-invariants.md#entity-relations). Current verification limits and reproductions are in the [verification report](../reports/complete-relationship-verification.md).
+See the [dictionary selection guide](dictionary-references.md), [relationship tutorial](../tutorials/step-24-relations.md) and [invariant reference](../reference/intents-and-invariants.md#entity-relations). Current verification limits and reproductions are in the [verification report](../reports/complete-relationship-verification.md).
 
-Specialization and Generalization now refuse NoInverse on either endpoint. Ordinary NoInverse fields remain valid one-way links, including two opposite-direction fields that declare independent relationships. The [direction scenario](../../examples/step_21_relations/73_role_directions.py) and [notebook](../../examples/step_21_relations/73_role_directions.ipynb) distinguish these cases.
+Specialization and Generalization now refuse NoInverse on either endpoint. Ordinary NoInverse fields remain valid one-way links, including two opposite-direction fields that declare independent relationships. The [direction scenario](../../examples/step_24_relations/73_role_directions.py) and [notebook](../../examples/step_24_relations/73_role_directions.ipynb) distinguish these cases.

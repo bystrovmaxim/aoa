@@ -14,7 +14,7 @@ AOA provides six **kind base classes**, also called markers. Each states the rol
 
 ## Start with an independent object
 
-[Script](../../examples/step_20_entity/01_entity.py) · [Notebook](../../examples/step_20_entity/01_entity.ipynb)
+[Script](../../examples/step_22_entity/01_entity.py) · [Notebook](../../examples/step_22_entity/01_entity.ipynb)
 
 An order is something the business identifies in its own right. It stays the same order when its total or state changes. That makes it a **core entity**. Independence here does not mean isolation: an order may depend on a customer and refer to products while retaining its own business meaning.
 
@@ -68,7 +68,7 @@ There are two separate declarations here. `BaseCoreEntity` supplies the kind and
 
 ### A technical association records only a connection
 
-[Script](../../examples/step_20_entity/04_association.py) · [Notebook](../../examples/step_20_entity/04_association.ipynb)
+[Script](../../examples/step_22_entity/04_association.py) · [Notebook](../../examples/step_22_entity/04_association.ipynb)
 
 A product's membership in a category can be represented by a record containing two references: the product and the category. Its entire business meaning is that connection. This is the narrow meaning of **associative entity** in AOA: a technical association without domain data of its own.
 
@@ -88,7 +88,7 @@ This boundary makes the marker useful to a viewer: it could show a technical ass
 
 ### A detail belongs to one owner
 
-[Script](../../examples/step_20_entity/05_detail.py) · [Notebook](../../examples/step_20_entity/05_detail.ipynb)
+[Script](../../examples/step_22_entity/05_detail.py) · [Notebook](../../examples/step_22_entity/05_detail.ipynb)
 
 An order line is a part of a particular order. In domain terms, “line 3” is incomplete identification; “line 3 of order ord-1” identifies the part. The value that distinguishes parts within an owner is called a **discriminator**, here the line number.
 
@@ -107,7 +107,7 @@ The example declares that ownership with `CompositeMany` on the order and a reve
 
 ### A specialization describes what kind of object the head is
 
-[Script](../../examples/step_20_entity/06_specialization.py) · [Notebook](../../examples/step_20_entity/06_specialization.ipynb)
+[Script](../../examples/step_22_entity/06_specialization.py) · [Notebook](../../examples/step_22_entity/06_specialization.ipynb)
 
 A counterparty may be an organisation or an individual. The common entity holds the counterparty's identity and shared information. The organisation variant adds its registration data. The common entity is called the **head**; the variant-specific entity is a **specialization**.
 
@@ -126,7 +126,7 @@ The contract calls for one reverse generalization and at most one instance of a 
 
 ### An enumeration describes a shared reference value
 
-[Script](../../examples/step_20_entity/07_enumeration.py) · [Notebook](../../examples/step_20_entity/07_enumeration.ipynb)
+[Script](../../examples/step_22_entity/07_enumeration.py) · [Notebook](../../examples/step_22_entity/07_enumeration.ipynb)
 
 A currency is a value many prices refer to. The currency's name and symbol describe that
 value; a dated exchange-rate quote is a separate business fact. Removing one price does
@@ -165,7 +165,7 @@ serialization, optional absence, inheritance, graph export and each invalid inpu
 
 ### A state describes a position in a process
 
-[Script](../../examples/step_20_entity/08_state.py) · [Notebook](../../examples/step_20_entity/08_state.ipynb)
+[Script](../../examples/step_22_entity/08_state.py) · [Notebook](../../examples/step_22_entity/08_state.ipynb)
 
 “Paid” describes where an order stands in its lifecycle. Unlike a currency, it participates in a process with allowed transitions. The lifecycle template defines those transitions and determines which states are initial, intermediate or final. The state object holds its code, human-readable name and any additional descriptive fields.
 
@@ -192,7 +192,7 @@ One class carries one kind because one instance must have a clear role. Separate
 
 ## Hydrate the entity at the resource boundary
 
-[Script](../../examples/step_20_entity/02_mapping.py) · [Notebook](../../examples/step_20_entity/02_mapping.ipynb)
+[Script](../../examples/step_22_entity/02_mapping.py) · [Notebook](../../examples/step_22_entity/02_mapping.ipynb)
 
 Selecting a kind leaves the common entity operations available. If storage columns differ from domain field names, the resource supplies a mapping:
 
@@ -217,7 +217,7 @@ ord-2 99.5
 
 ## Distinguish unloaded data from a loaded value
 
-[Script](../../examples/step_20_entity/03_partial.py) · [Notebook](../../examples/step_20_entity/03_partial.ipynb)
+[Script](../../examples/step_22_entity/03_partial.py) · [Notebook](../../examples/step_22_entity/03_partial.ipynb)
 
 A query may retrieve only an identifier. Use `OrderCoreEntity.partial(id="ord-3")` to represent that load level. The type still declares `total`, but that instance has not loaded it:
 
@@ -230,17 +230,17 @@ FieldNotLoadedError
 
 ## Inherit a kind and add ordinary behaviour
 
-[Intermediate class: script](../../examples/step_20_entity/09_inheritance.py) · [Notebook](../../examples/step_20_entity/09_inheritance.ipynb)
+[Intermediate class: script](../../examples/step_22_entity/09_inheritance.py) · [Notebook](../../examples/step_22_entity/09_inheritance.ipynb)
 
 Common fields may live in `BaseDocumentCoreEntity`, with `InvoiceCoreEntity` inheriting from it. Both names must end in `CoreEntity`: the rule follows the whole inheritance chain. The example uses an abstract method to make the intermediate class abstract and `@exclude_graph_model` to keep it out of discovery. A `Base` prefix alone does not do either. The concrete invoice prints `Invoice inv-1`.
 
-[Ordinary mixin: script](../../examples/step_20_entity/10_mixin.py) · [Notebook](../../examples/step_20_entity/10_mixin.ipynb)
+[Ordinary mixin: script](../../examples/step_22_entity/10_mixin.py) · [Notebook](../../examples/step_22_entity/10_mixin.ipynb)
 
 A plain mixin may supply methods alongside one kind base. `OrderCoreEntity(LabelMixin, BaseCoreEntity)` is valid because `LabelMixin` does not supply a second entity kind. The example's inherited method prints `OrderCoreEntity`. Combining `BaseCoreEntity` and `BaseDetailEntity` is different: both attempt to classify the same instance.
 
 ## Read the kind from the exported graph
 
-[Script](../../examples/step_20_entity/11_graph_kind.py) · [Notebook](../../examples/step_20_entity/11_graph_kind.ipynb)
+[Script](../../examples/step_22_entity/11_graph_kind.py) · [Notebook](../../examples/step_22_entity/11_graph_kind.ipynb)
 
 Every exported Entity row includes `properties.entity_kind`. The value comes from the kind base in the inheritance chain, rather than a separately maintained field on each model. AOA's six kinds export as `core`, `assoc`, `detail`, `spec`, `enum` and `state`; state types are excluded from Entity rows, so normal graph export does not produce `state` there. The interchange schema does not fix the list: any lowercase word (`^[a-z][a-z0-9_]*$`) is a valid kind, so a model or another producer may add its own.
 
@@ -251,13 +251,13 @@ graph: core
 Maxitor store: core
 ```
 
-The kind is a required graph property, not an optional hint. [The missing-property case](../../examples/step_20_entity/26_graph_requires_kind.py) ([notebook](../../examples/step_20_entity/26_graph_requires_kind.ipynb)) removes it and prints `Entity row without entity_kind: rejected`. Rebuild graph exports produced before this property was required. Concrete class renames also change graph labels and identifiers containing qualified class names; check consumers that store those identifiers.
+The kind is a required graph property, not an optional hint. [The missing-property case](../../examples/step_22_entity/26_graph_requires_kind.py) ([notebook](../../examples/step_22_entity/26_graph_requires_kind.ipynb)) removes it and prints `Entity row without entity_kind: rejected`. Rebuild graph exports produced before this property was required. Concrete class renames also change graph labels and identifiers containing qualified class names; check consumers that store those identifiers.
 
 Maxitor preserves the kind, but this branch does not make its renderer automatically collapse associative entities. See [Step 29](step-29-maxitor.md) for graph and diagram usage.
 
 ## Name a kind for readers of the graph
 
-[Script](../../examples/step_20_entity/27_kind_label.py) · [Notebook](../../examples/step_20_entity/27_kind_label.ipynb)
+[Script](../../examples/step_22_entity/27_kind_label.py) · [Notebook](../../examples/step_22_entity/27_kind_label.ipynb)
 
 The kind word is for programs; people read a name. Each kind base declares that name in its own body as `KIND_LABEL`, and the export writes it beside the word as `properties.entity_kind_label`. AOA's bases name their kinds Core, Association, Detail, Specialization, Enumeration and State:
 
@@ -292,18 +292,18 @@ The name must be written in the kind base itself, as a non-empty string; inherit
 Each example below contains one invalid declaration and catches its expected exception. It raises an assertion if the framework unexpectedly accepts it, so successful execution demonstrates the refusal. Run any script from the repository root, for example:
 
 ```bash
-uv run python examples/step_20_entity/22_kind_suffix.py
+uv run python examples/step_22_entity/22_kind_suffix.py
 ```
 
 | Case | Why it fails | Result | Runnable example |
 | --- | --- | --- | --- |
-| Ordinary `OrderEntity(BaseEntity)` | No kind was selected | `DeclarationStructureError` | [Script](../../examples/step_20_entity/20_direct_base.py) · [Notebook](../../examples/step_20_entity/20_direct_base.ipynb) |
-| Core and Detail in one hierarchy | Two kinds classify the same instance | `DeclarationStructureError` | [Script](../../examples/step_20_entity/21_two_kinds.py) · [Notebook](../../examples/step_20_entity/21_two_kinds.ipynb) |
-| `OrderEntity(BaseCoreEntity)` | Generic `Entity` is not the required `CoreEntity` suffix | `NamingSuffixError` | [Script](../../examples/step_20_entity/22_kind_suffix.py) · [Notebook](../../examples/step_20_entity/22_kind_suffix.ipynb) |
-| `OrderDetailEntity(BaseCoreEntity)` | Name and inherited kind disagree | `NamingSuffixError` | [Script](../../examples/step_20_entity/23_wrong_kind_suffix.py) · [Notebook](../../examples/step_20_entity/23_wrong_kind_suffix.ipynb) |
-| `BaseDocumentEntity(BaseCoreEntity, ABC)` | Intermediate classes also need the kind suffix | `NamingSuffixError` | [Script](../../examples/step_20_entity/24_intermediate_suffix.py) · [Notebook](../../examples/step_20_entity/24_intermediate_suffix.ipynb) |
-| `BaseCoreEntity()` | A kind base is not an application object | `TypeError` | [Script](../../examples/step_20_entity/25_marker_instance.py) · [Notebook](../../examples/step_20_entity/25_marker_instance.ipynb) |
-| `BaseEventEntity(BaseEntity, ABC)` with its own `__init_subclass__` and no `KIND_LABEL` | A kind base must name its kind in its own body | `DeclarationStructureError` | [Script](../../examples/step_20_entity/27_kind_label.py) · [Notebook](../../examples/step_20_entity/27_kind_label.ipynb) (case 3) |
+| Ordinary `OrderEntity(BaseEntity)` | No kind was selected | `DeclarationStructureError` | [Script](../../examples/step_22_entity/20_direct_base.py) · [Notebook](../../examples/step_22_entity/20_direct_base.ipynb) |
+| Core and Detail in one hierarchy | Two kinds classify the same instance | `DeclarationStructureError` | [Script](../../examples/step_22_entity/21_two_kinds.py) · [Notebook](../../examples/step_22_entity/21_two_kinds.ipynb) |
+| `OrderEntity(BaseCoreEntity)` | Generic `Entity` is not the required `CoreEntity` suffix | `NamingSuffixError` | [Script](../../examples/step_22_entity/22_kind_suffix.py) · [Notebook](../../examples/step_22_entity/22_kind_suffix.ipynb) |
+| `OrderDetailEntity(BaseCoreEntity)` | Name and inherited kind disagree | `NamingSuffixError` | [Script](../../examples/step_22_entity/23_wrong_kind_suffix.py) · [Notebook](../../examples/step_22_entity/23_wrong_kind_suffix.ipynb) |
+| `BaseDocumentEntity(BaseCoreEntity, ABC)` | Intermediate classes also need the kind suffix | `NamingSuffixError` | [Script](../../examples/step_22_entity/24_intermediate_suffix.py) · [Notebook](../../examples/step_22_entity/24_intermediate_suffix.ipynb) |
+| `BaseCoreEntity()` | A kind base is not an application object | `TypeError` | [Script](../../examples/step_22_entity/25_marker_instance.py) · [Notebook](../../examples/step_22_entity/25_marker_instance.ipynb) |
+| `BaseEventEntity(BaseEntity, ABC)` with its own `__init_subclass__` and no `KIND_LABEL` | A kind base must name its kind in its own body | `DeclarationStructureError` | [Script](../../examples/step_22_entity/27_kind_label.py) · [Notebook](../../examples/step_22_entity/27_kind_label.ipynb) (case 3) |
 
 The naming example prints the actual diagnostic:
 

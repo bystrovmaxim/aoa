@@ -3,7 +3,7 @@
 A **head** contains common information; an **alternative** contains data specific to
 one kind of that same object. An **axis** is one head field, its dictionary and its
 alternatives. If these terms are new, begin with the
-[complete working model](../tutorials/step-21-relations.md#declare-the-complete-model).
+[complete working model](../tutorials/step-24-relations.md#declare-the-complete-model).
 
 The supported declaration has two parts. The head uses
 `Specialization[Alternatives, Dictionary]`. Each alternative has a `Generalization[Head]`
@@ -24,7 +24,7 @@ Import `value` from `aoa.action_machine.domain` and write dictionary members as
 `FIRST = value(code="first", display_name="First")`. The removed class-name alias can
 fail before specialization validation even runs. A mutable or unsupported dictionary
 property annotation also fails when its class is created; use the
-[dictionary refusal examples](../tutorials/step-20-dictionaries.md#read-a-refusal-as-a-specific-contract-violation)
+[dictionary refusal examples](../tutorials/step-23-dictionaries.md#read-a-refusal-as-a-specific-contract-violation)
 to distinguish that error from a missing alternative or an incorrect reverse relationship.
 
 
@@ -34,7 +34,7 @@ to distinguish that error from a missing alternative or an incorrect reverse rel
 
 Use str as the second type argument.
 
-[Script](../../examples/step_21_relations/20_error_missing_classifier.py) · [Notebook](../../examples/step_21_relations/20_error_missing_classifier.ipynb)
+[Script](../../examples/step_24_relations/20_error_missing_classifier.py) · [Notebook](../../examples/step_24_relations/20_error_missing_classifier.ipynb)
 
 Output:
 
@@ -48,7 +48,7 @@ Replace str with a nonempty decorated BaseEnumEntity descendant. Omitting the se
 
 Leave the first pressing's reverse field without Classifier.
 
-[Script](../../examples/step_21_relations/21_error_missing_code.py) · [Notebook](../../examples/step_21_relations/21_error_missing_code.ipynb)
+[Script](../../examples/step_24_relations/21_error_missing_code.py) · [Notebook](../../examples/step_24_relations/21_error_missing_code.ipynb)
 
 Output:
 
@@ -62,7 +62,7 @@ Add Classifier(variant=VinylRecordKindEnumEntity.FIRST). A reverse link alone do
 
 Add lost to the dictionary without adding its alternative.
 
-[Script](../../examples/step_21_relations/23_error_unknown_head_code.py) · [Notebook](../../examples/step_21_relations/23_error_unknown_head_code.ipynb)
+[Script](../../examples/step_24_relations/23_error_unknown_head_code.py) · [Notebook](../../examples/step_24_relations/23_error_unknown_head_code.ipynb)
 
 Output:
 
@@ -76,7 +76,7 @@ Add the corresponding alternative and its marker, or choose a dictionary that de
 
 Give two alternative classes the same dictionary value.
 
-[Script](../../examples/step_21_relations/25_error_duplicate_code.py) · [Notebook](../../examples/step_21_relations/25_error_duplicate_code.ipynb)
+[Script](../../examples/step_24_relations/25_error_duplicate_code.py) · [Notebook](../../examples/step_24_relations/25_error_duplicate_code.ipynb)
 
 Output:
 
@@ -90,7 +90,7 @@ Each value must select exactly one class. The current validator first reports th
 
 The head names album while alternatives point back through record.
 
-[Script](../../examples/step_21_relations/29_error_inverse_name.py) · [Notebook](../../examples/step_21_relations/29_error_inverse_name.ipynb)
+[Script](../../examples/step_24_relations/29_error_inverse_name.py) · [Notebook](../../examples/step_24_relations/29_error_inverse_name.ipynb)
 
 Output:
 
@@ -104,7 +104,7 @@ Make Inverse(field_name="record") agree with the actual Generalization field. Th
 
 Remove the first pressing's Generalization field.
 
-[Script](../../examples/step_21_relations/30_error_no_reverse.py) · [Notebook](../../examples/step_21_relations/30_error_no_reverse.ipynb)
+[Script](../../examples/step_24_relations/30_error_no_reverse.py) · [Notebook](../../examples/step_24_relations/30_error_no_reverse.ipynb)
 
 Output:
 
@@ -118,7 +118,7 @@ Restore the reverse field and its Classifier. Without it the head's first value 
 
 Give one alternative two Generalization fields pointing to the same head.
 
-[Script](../../examples/step_21_relations/31_error_two_reverse_fields.py) · [Notebook](../../examples/step_21_relations/31_error_two_reverse_fields.ipynb)
+[Script](../../examples/step_24_relations/31_error_two_reverse_fields.py) · [Notebook](../../examples/step_24_relations/31_error_two_reverse_fields.ipynb)
 
 Output:
 
@@ -132,7 +132,7 @@ Keep one reverse field to this head. The declaration cannot choose which of two 
 
 Leave FirstPressSpecEntity without @entity.
 
-[Script](../../examples/step_21_relations/32_error_undeclared_entity.py) · [Notebook](../../examples/step_21_relations/32_error_undeclared_entity.ipynb)
+[Script](../../examples/step_24_relations/32_error_undeclared_entity.py) · [Notebook](../../examples/step_24_relations/32_error_undeclared_entity.ipynb)
 
 Output:
 
@@ -146,7 +146,7 @@ Decorate the class with its description and domain. Being a Python subclass of B
 
 List the same alternative class under two different heads.
 
-[Script](../../examples/step_21_relations/34_error_two_heads.py) · [Notebook](../../examples/step_21_relations/34_error_two_heads.ipynb)
+[Script](../../examples/step_24_relations/34_error_two_heads.py) · [Notebook](../../examples/step_24_relations/34_error_two_heads.ipynb)
 
 Output:
 
@@ -160,7 +160,7 @@ Declare distinct alternative classes for the distinct heads. Reusing a dictionar
 
 Add a class pointing at the head without listing it among the alternatives.
 
-[Script](../../examples/step_21_relations/35_error_outside_alternative.py) · [Notebook](../../examples/step_21_relations/35_error_outside_alternative.ipynb)
+[Script](../../examples/step_24_relations/35_error_outside_alternative.py) · [Notebook](../../examples/step_24_relations/35_error_outside_alternative.ipynb)
 
 Output:
 
@@ -174,7 +174,7 @@ Include the class and give it an appropriate dictionary value, or remove that re
 
 Make two classes specialize one another.
 
-[Script](../../examples/step_21_relations/37_error_cycle.py) · [Notebook](../../examples/step_21_relations/37_error_cycle.ipynb)
+[Script](../../examples/step_24_relations/37_error_cycle.py) · [Notebook](../../examples/step_24_relations/37_error_cycle.ipynb)
 
 Output:
 
@@ -188,7 +188,7 @@ The chain returns to a class already visited, so it cannot describe a direction 
 
 The second axis covers a smaller set than the classes pointing at this head.
 
-[Script](../../examples/step_21_relations/38_error_axis_subset.py) · [Notebook](../../examples/step_21_relations/38_error_axis_subset.ipynb)
+[Script](../../examples/step_24_relations/38_error_axis_subset.py) · [Notebook](../../examples/step_24_relations/38_error_axis_subset.ipynb)
 
 Output:
 
@@ -202,7 +202,7 @@ The current closure check examines reverse links by head class. Each axis must i
 
 Pass a list of code strings to Classifier.
 
-[Script](../../examples/step_21_relations/41_error_codes_not_literal.py) · [Notebook](../../examples/step_21_relations/41_error_codes_not_literal.ipynb)
+[Script](../../examples/step_24_relations/41_error_codes_not_literal.py) · [Notebook](../../examples/step_24_relations/41_error_codes_not_literal.ipynb)
 
 Output:
 
@@ -218,7 +218,7 @@ Write Classifier(variant=MediaKindEnumEntity.VINYL). The marker belongs to the r
 
 The head already identifies the dictionary in its type argument.
 
-[Script](../../examples/step_21_relations/44_error_head_classifier.py) · [Notebook](../../examples/step_21_relations/44_error_head_classifier.ipynb)
+[Script](../../examples/step_24_relations/44_error_head_classifier.py) · [Notebook](../../examples/step_24_relations/44_error_head_classifier.ipynb)
 
 Output:
 
@@ -232,7 +232,7 @@ Remove the Classifier from the head. Classifier belongs on each alternative's Ge
 
 The marker is on record but says the reverse field is missing.
 
-[Script](../../examples/step_21_relations/45_error_marker_field.py) · [Notebook](../../examples/step_21_relations/45_error_marker_field.ipynb)
+[Script](../../examples/step_24_relations/45_error_marker_field.py) · [Notebook](../../examples/step_24_relations/45_error_marker_field.ipynb)
 
 Output:
 
@@ -246,7 +246,7 @@ Change field="missing" to field="record". This argument names the Generalization
 
 An empty intermediate is a legal Python class but cannot supply an axis vocabulary.
 
-[Script](../../examples/step_21_relations/46_error_empty_dictionary.py) · [Notebook](../../examples/step_21_relations/46_error_empty_dictionary.ipynb)
+[Script](../../examples/step_24_relations/46_error_empty_dictionary.py) · [Notebook](../../examples/step_24_relations/46_error_empty_dictionary.ipynb)
 
 Output:
 
@@ -260,7 +260,7 @@ Name a decorated dictionary that declares at least one value, and supply exactly
 
 The alternative names a different dictionary's FIRST, even though its code is also first.
 
-[Script](../../examples/step_21_relations/47_error_foreign_value.py) · [Notebook](../../examples/step_21_relations/47_error_foreign_value.ipynb)
+[Script](../../examples/step_24_relations/47_error_foreign_value.py) · [Notebook](../../examples/step_24_relations/47_error_foreign_value.ipynb)
 
 Output:
 
@@ -274,7 +274,7 @@ A value belongs to one dictionary. Equal code text does not make values intercha
 
 The alternative constructs a new object instead of naming the declared FIRST.
 
-[Script](../../examples/step_21_relations/48_error_copied_value.py) · [Notebook](../../examples/step_21_relations/48_error_copied_value.ipynb)
+[Script](../../examples/step_24_relations/48_error_copied_value.py) · [Notebook](../../examples/step_24_relations/48_error_copied_value.ipynb)
 
 Output:
 
@@ -288,7 +288,7 @@ Use VinylRecordKindEnumEntity.FIRST. Constructing an equal object neither adds a
 
 The vocabulary has values, but its class lacks @entity.
 
-[Script](../../examples/step_21_relations/49_error_unregistered_dictionary.py) · [Notebook](../../examples/step_21_relations/49_error_unregistered_dictionary.ipynb)
+[Script](../../examples/step_24_relations/49_error_unregistered_dictionary.py) · [Notebook](../../examples/step_24_relations/49_error_unregistered_dictionary.ipynb)
 
 Output:
 
@@ -302,7 +302,7 @@ Add @entity with the dictionary's description and domain. Values alone do not re
 
 Try the retired one-argument container form.
 
-[Script](../../examples/step_21_relations/50_error_one_argument.py) · [Notebook](../../examples/step_21_relations/50_error_one_argument.ipynb)
+[Script](../../examples/step_24_relations/50_error_one_argument.py) · [Notebook](../../examples/step_24_relations/50_error_one_argument.ipynb)
 
 Output:
 
@@ -321,7 +321,7 @@ exercise normal container construction, where errors are Pydantic `ValidationErr
 
 A string cannot fill the dictionary-typed variant field.
 
-[Script](../../examples/step_21_relations/18_specialization_bare_code.py) · [Notebook](../../examples/step_21_relations/18_specialization_bare_code.ipynb)
+[Script](../../examples/step_24_relations/18_specialization_bare_code.py) · [Notebook](../../examples/step_24_relations/18_specialization_bare_code.ipynb)
 
 ```python
 from pydantic import ValidationError
@@ -348,7 +348,7 @@ Even a known code must be resolved explicitly or wrapped in a reference object. 
 
 Pass a reference whose code is unknown after a successful model build.
 
-[Script](../../examples/step_21_relations/07_specialization_data_codes.py) · [Notebook](../../examples/step_21_relations/07_specialization_data_codes.ipynb)
+[Script](../../examples/step_24_relations/07_specialization_data_codes.py) · [Notebook](../../examples/step_24_relations/07_specialization_data_codes.ipynb)
 
 ```python
 ActionProductMachine(loggers=[])
@@ -375,7 +375,7 @@ The build checks declarations; constructing the container checks the incoming va
 
 Pass the head record where pressing details are required.
 
-[Script](../../examples/step_21_relations/06_specialization_wrong_type.py) · [Notebook](../../examples/step_21_relations/06_specialization_wrong_type.ipynb)
+[Script](../../examples/step_24_relations/06_specialization_wrong_type.py) · [Notebook](../../examples/step_24_relations/06_specialization_wrong_type.ipynb)
 
 ```python
 from pydantic import ValidationError
@@ -414,7 +414,7 @@ The first type argument checks which object classes can fill entity. The head is
 
 Pair FIRST with an otherwise valid RepressSpecEntity.
 
-[Script](../../examples/step_21_relations/08_specialization_mismatched_data.py) · [Notebook](../../examples/step_21_relations/08_specialization_mismatched_data.ipynb)
+[Script](../../examples/step_24_relations/08_specialization_mismatched_data.py) · [Notebook](../../examples/step_24_relations/08_specialization_mismatched_data.ipynb)
 
 ```python
 repress = RepressSpecEntity(

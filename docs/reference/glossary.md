@@ -67,7 +67,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`PerCallConnection(factory, finalize)`** — the route or tool declaration for a resource managed around one call. The synchronous factory returns the resource; finalize receives it on exit and may be synchronous or asynchronous. Calling a factory does not prove it returned a new object.
 
-**`connection_scope`** — the asynchronous context manager that resolves declarations, opens created resources when they have open, and attempts every registered finalizer on exit. Ready resources pass through untouched. See [Step 17](../tutorials/step-17-connections.md).
+**`connection_scope`** — the asynchronous context manager that resolves declarations, opens created resources when they have open, and attempts every registered finalizer on exit. Ready resources pass through untouched. See [Step 19](../tutorials/step-19-connections.md).
 
 **Lifespan** — the application or server startup/shutdown context. It owns shared infrastructure, such as a pool; each request's resource scope lives inside that longer interval.
 
@@ -128,7 +128,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 ## The data model
 
-**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and domain. State descriptions are declared through a lifecycle instead. See [Step 20](../tutorials/step-20-entity.md).
+**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and domain. State descriptions are declared through a lifecycle instead. See [Step 22](../tutorials/step-22-entity.md).
 
 **Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`, together with the name its kind base declares as `KIND_LABEL` (`entity_kind_label`: Core, Association, Detail, Specialization, Enumeration, State).
 
@@ -180,7 +180,7 @@ returns JSON-compatible `{code, display_name, properties}` data, applying field 
 
 **ERD** — entity–relationship diagram: a view showing entity classes, their fields, and relationships. In Maxitor it is generated from the declared model, not obtained by inspecting database tables. A frame around specialization alternatives is a visual grouping, not an additional entity.
 
-See [Relations between entities](../tutorials/step-21-relations.md#generalization-and-specialization) for the complete example and [the reference](intents-and-invariants.md#entity-specialization-the-build-rules) for current restrictions.
+See [Relations between entities](../tutorials/step-24-relations.md#generalization-and-specialization) for the complete example and [the reference](intents-and-invariants.md#entity-specialization-the-build-rules) for current restrictions.
 
 **Lifecycle** — a finite-state machine of an entity's states with correctness checked at build; a transition returns a new instance (the entity is immutable).
 

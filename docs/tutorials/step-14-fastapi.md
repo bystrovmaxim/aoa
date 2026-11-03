@@ -30,7 +30,7 @@ The [machine](step-12-machine.md) gives a single entry into an operation, but on
 
 Install: `pip install aoa-fastapi-adapter`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1b2H35JM9YfR8NxvqBEsO-SniygjlZtBH/view?usp=drive_link) · [Open in project](../../examples/step_13_fastapi/01_service.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1b2H35JM9YfR8NxvqBEsO-SniygjlZtBH/view?usp=drive_link) · [Open in project](../../examples/step_14_fastapi/01_service.py)
 
 ---
 
@@ -95,7 +95,7 @@ app = (
 
 Without `auth_coordinator=` on the route, the adapter default applies.
 
-[▶ Try in Colab](#02_auth_override.ipynb) · [Open in project](../../examples/step_13_fastapi/02_auth_override.py)
+[▶ Try in Colab](#02_auth_override.ipynb) · [Open in project](../../examples/step_14_fastapi/02_auth_override.py)
 
 ## OpenAPI from code
 
@@ -150,7 +150,7 @@ The adapter is tested with the same `ActionProductMachine` as in production, thr
 **Run:**
 
 ```bash
-uv run python examples/step_13_fastapi/01_service.py
+uv run python examples/step_14_fastapi/01_service.py
 ```
 
 **Output:**
@@ -195,7 +195,7 @@ Next — **[MCP](step-15-mcp.md)**: how to publish the same operation as a tool 
 7. Into which HTTP codes are `AuthorizationError` and `ValidationFieldError` translated?
 8. A route needs open access, but the adapter default is strict. How do you express that without weakening the default for every other route?
 
-> **Exercise.** In [01_service.py](../../examples/step_13_fastapi/01_service.py) add a `GET` route for an operation with non-empty `Params` and verify through `TestClient` that the parameters are read from the query. Then add a `response_model`/`response_mapper` to one of the routes and confirm that the external response schema changed, while the `Action` itself stayed the same.
+> **Exercise.** In [01_service.py](../../examples/step_14_fastapi/01_service.py) add a `GET` route for an operation with non-empty `Params` and verify through `TestClient` that the parameters are read from the query. Then add a `response_model`/`response_mapper` to one of the routes and confirm that the external response schema changed, while the `Action` itself stayed the same.
 
 ---
 

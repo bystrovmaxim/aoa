@@ -32,7 +32,7 @@ In AOA, LangGraph is just another transport: a way to deliver a call to an Actio
 
 Install: `pip install "aoa-langgraph" langgraph`.
 
-[▶ Example: 01_external_connection.py](../../examples/step_14_langgraph/01_external_connection.py) · [Notebook](../../examples/step_14_langgraph/01_external_connection.ipynb)
+[▶ Example: 01_external_connection.py](../../examples/step_16_langgraph/01_external_connection.py) · [Notebook](../../examples/step_16_langgraph/01_external_connection.ipynb)
 
 ---
 
@@ -102,7 +102,7 @@ ctrl = (
 )
 ```
 
-[▶ Example: 02_inline_graph.py](../../examples/step_14_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_14_langgraph/02_inline_graph.ipynb)
+[▶ Example: 02_inline_graph.py](../../examples/step_16_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_16_langgraph/02_inline_graph.ipynb)
 
 ---
 
@@ -152,7 +152,7 @@ ctrl = (
 )
 ```
 
-[▶ Example: 03_function_node.py](../../examples/step_14_langgraph/03_function_node.py) · [Notebook](../../examples/step_14_langgraph/03_function_node.ipynb)
+[▶ Example: 03_function_node.py](../../examples/step_16_langgraph/03_function_node.py) · [Notebook](../../examples/step_16_langgraph/03_function_node.ipynb)
 
 ---
 
@@ -244,8 +244,8 @@ The node runs purely for a side effect and writes nothing to the state:
 
 Nodes with `params_mapper` or `response_mapper` are **excluded from static contract validation** (`FieldHasNoProducerError`, `OutputHasNoProducerError`) — you take responsibility for the mapping's correctness.
 
-[▶ Example: 04_field_mapping.py](../../examples/step_14_langgraph/04_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/04_field_mapping.ipynb)
-[▶ Example: 06_field_mapping.py](../../examples/step_14_langgraph/06_field_mapping.py) · [Notebook](../../examples/step_14_langgraph/06_field_mapping.ipynb)
+[▶ Example: 04_field_mapping.py](../../examples/step_16_langgraph/04_field_mapping.py) · [Notebook](../../examples/step_16_langgraph/04_field_mapping.ipynb)
+[▶ Example: 06_field_mapping.py](../../examples/step_16_langgraph/06_field_mapping.py) · [Notebook](../../examples/step_16_langgraph/06_field_mapping.ipynb)
 
 ---
 
@@ -283,7 +283,7 @@ result = await ctrl.ainvoke({"ticket_id": "T-1", "note": "invoice"}, box)
 assert result["category"] == "billing"
 ```
 
-[▶ Example: 05_testing.py](../../examples/step_14_langgraph/05_testing.py) · [Notebook](../../examples/step_14_langgraph/05_testing.ipynb)
+[▶ Example: 05_testing.py](../../examples/step_16_langgraph/05_testing.py) · [Notebook](../../examples/step_16_langgraph/05_testing.ipynb)
 
 ---
 
@@ -339,8 +339,8 @@ async def run_summary(self, params, state, box, connections):
 
 `.build()` and compilation are cheap — building inline is fine for most cases. Use `@connection` when one graph is needed by several Actions, or when you want the dependency declared explicitly in the class header.
 
-[▶ Example: 01_external_connection.py](../../examples/step_14_langgraph/01_external_connection.py) · [Notebook](../../examples/step_14_langgraph/01_external_connection.ipynb)
-[▶ Example: 02_inline_graph.py](../../examples/step_14_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_14_langgraph/02_inline_graph.ipynb)
+[▶ Example: 01_external_connection.py](../../examples/step_16_langgraph/01_external_connection.py) · [Notebook](../../examples/step_16_langgraph/01_external_connection.ipynb)
+[▶ Example: 02_inline_graph.py](../../examples/step_16_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_16_langgraph/02_inline_graph.ipynb)
 
 ---
 
@@ -366,7 +366,7 @@ async def run_summary(self, params, state, box, connections):
 5. Which testing pattern should you use if you only need to check the topology and the data contract, without running any Actions?
 6. What's the difference between an external graph through `@connection` and building it inline? When should you prefer each?
 
-> **Exercise.** In [03_function_node.py](../../examples/step_14_langgraph/03_function_node.py), replace the `enrich_ticket` function with an `EnrichAction` Action class. Confirm that `.build()` still passes. What changes in the system's behavior — which AOA mechanisms are now available for this node?
+> **Exercise.** In [03_function_node.py](../../examples/step_16_langgraph/03_function_node.py), replace the `enrich_ticket` function with an `EnrichAction` Action class. Confirm that `.build()` still passes. What changes in the system's behavior — which AOA mechanisms are now available for this node?
 
 ---
 

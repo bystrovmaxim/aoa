@@ -22,7 +22,7 @@
 
 ## When this is needed
 
-A coordinator builds [`Context`](../tutorials/step-07-context.md) from a raw request **before** the machine runs: it extracts credentials (a JWT, an OAuth2 token, an API key, a session), verifies them, establishes the identity and roles. This is [Step 12 — Authentication](../tutorials/step-12-authentication.md) as a concept; here is how to write your own for a specific entry mechanism.
+A coordinator builds [`Context`](../tutorials/step-07-context.md) from a raw request **before** the machine runs: it extracts credentials (a JWT, an OAuth2 token, an API key, a session), verifies them, establishes the identity and roles. This is [Step 13 — Authentication](../tutorials/step-13-authentication.md) as a concept; here is how to write your own for a specific entry mechanism.
 
 The full example: [02_custom_auth_coordinator.py](../../examples/how_to/02_custom_auth_coordinator.py).
 
@@ -125,7 +125,7 @@ invalid key -> None
 no creds    -> None
 ```
 
-One coordinator assembled a `Context` with identity and roles from a valid key and returned `None` on an invalid one — the operation does not need to know about this entry mechanism. The whole concept, with the pipeline and review questions — [Step 12 — Authentication](../tutorials/step-12-authentication.md).
+One coordinator assembled a `Context` with identity and roles from a valid key and returned `None` on an invalid one — the operation does not need to know about this entry mechanism. The whole concept, with the pipeline and review questions — [Step 13 — Authentication](../tutorials/step-13-authentication.md).
 
 ---
 

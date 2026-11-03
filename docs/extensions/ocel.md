@@ -67,7 +67,7 @@ What this solves: reliable analysis of multi-object processes (order-to-cash, ma
 
 ## Why AOA gives OCEL almost for free
 
-An object-centric log requires declared **objects**, their **types**, and their **relationships**. In AOA these already exist: [`Entity`](../tutorials/step-20-entity.md) is an object and its type, [relations](../tutorials/step-21-relations.md) are O2O/E2O, an [`Action`](../tutorials/step-01-action-and-pipeline.md) is an event. So the "choice of case notion" problem simply never arises here: objects are first-class, and the log comes out as a **by-product** of the pipeline rather than a separate export. `OcelPlugin` is an observer (a [plugin](../tutorials/step-09-plugins.md)): it does not touch the business code.
+An object-centric log requires declared **objects**, their **types**, and their **relationships**. In AOA these already exist: [`Entity`](../tutorials/step-22-entity.md) is an object and its type, [relations](../tutorials/step-24-relations.md) are O2O/E2O, an [`Action`](../tutorials/step-01-action-and-pipeline.md) is an event. So the "choice of case notion" problem simply never arises here: objects are first-class, and the log comes out as a **by-product** of the pipeline rather than a separate export. `OcelPlugin` is an observer (a [plugin](../tutorials/step-09-plugins.md)): it does not touch the business code.
 
 Example for this article: [01_ocel.py](../../examples/step_09_plugins/01_ocel.py).
 
@@ -136,7 +136,7 @@ sample event:
 
 Three runs of `CreateOrderAction` produced three OCEL events, each with an E2O link to its own order object via `qualifier`. This is a ready input for PM4Py — assembled from the same pipeline, with no separate analytical subsystem.
 
-The plugin concept is in the chapter [Plugins](../tutorials/step-09-plugins.md); domain objects are in the chapter [Entity](../tutorials/step-20-entity.md); your own observer is [«Your own plugin»](../index.md#how-to-write-your-own-extension).
+The plugin concept is in the chapter [Plugins](../tutorials/step-09-plugins.md); domain objects are in the chapter [Entity](../tutorials/step-22-entity.md); your own observer is [«Your own plugin»](../index.md#how-to-write-your-own-extension).
 
 ---
 

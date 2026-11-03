@@ -29,7 +29,7 @@ An ordinary test assembles a separate world of mocks around a scenario and check
 
 This chapter is about **what you can run**: at what depth to run an operation. What to substitute that reality with (`with_mocks`, connections, Rollup) is the [next chapter](../index.md#vi-testing); assembling the context (`with_user`/…) is the [one after](../index.md#vi-testing). Here `with_user` is used minimally, so that `@check_roles` passes.
 
-[▶ Try in Colab](https://drive.google.com/file/d/10eZ6dRuYxf41lXlII-oDGb6LczZCBTg-/view?usp=drive_link) · [Open in project](../../examples/step_23_testbench/01_testbench.py)
+[▶ Try in Colab](https://drive.google.com/file/d/10eZ6dRuYxf41lXlII-oDGb6LczZCBTg-/view?usp=drive_link) · [Open in project](../../examples/step_26_testbench/01_testbench.py)
 
 ---
 
@@ -108,7 +108,7 @@ result = await bench.run(ChargeAction(), params, rollup=False)
 **Run:**
 
 ```bash
-uv run python examples/step_23_testbench/01_testbench.py
+uv run python examples/step_26_testbench/01_testbench.py
 ```
 
 **Output:**
@@ -150,7 +150,7 @@ Next — **[Substituting the environment](step-27-substitution.md)**: how `with_
 5. How does `run_compensator` differ from the production saga rollback regarding errors, and why is this needed in a test?
 6. How do you check the `@on_error` branch if there is no separate runner for it?
 
-> **Exercise.** In [01_testbench.py](../../examples/step_23_testbench/01_testbench.py) add a `run_aspect` for the case where `gateway.charge` throws an exception, and trace where the error surfaces (in `run_aspect` itself, not in `@on_error`). Then through `run_summary` supply a `state` without `txn_id` and explain which error this turns into and why — this is exactly the check of the result-assembly contract.
+> **Exercise.** In [01_testbench.py](../../examples/step_26_testbench/01_testbench.py) add a `run_aspect` for the case where `gateway.charge` throws an exception, and trace where the error surfaces (in `run_aspect` itself, not in `@on_error`). Then through `run_summary` supply a `state` without `txn_id` and explain which error this turns into and why — this is exactly the check of the result-assembly contract.
 
 ---
 

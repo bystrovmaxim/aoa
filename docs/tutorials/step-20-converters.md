@@ -30,7 +30,7 @@ This is done by a pair of arguments on each route/tool:
 
 > The arguments are named `params_mapper` / `response_mapper`. The older names `params_converter` / `result_converter` from the README are out of date — they are not in the code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1yt4eN9ojuCjvrvR-3C5DyuzTtlOac3LL/view?usp=drive_link) · [Open in project](../../examples/step_18_converters/01_versions.py)
+[▶ Try in Colab](https://drive.google.com/file/d/1yt4eN9ojuCjvrvR-3C5DyuzTtlOac3LL/view?usp=drive_link) · [Open in project](../../examples/step_20_converters/01_versions.py)
 
 ---
 
@@ -62,7 +62,7 @@ A route's "effective" schema is `request_model`/`response_model` if set, otherwi
 **Run:**
 
 ```bash
-uv run python examples/step_18_converters/01_versions.py
+uv run python examples/step_20_converters/01_versions.py
 ```
 
 **Output:**
@@ -133,7 +133,7 @@ With this the **Service** part is fully assembled: the machine, authentication, 
 5. Why are a model and its mapper set as a pair? What is wrong with a `response_mapper` without a `response_model`?
 6. How do converters differ from the topics "result by schema" and "accepting complex input"?
 
-> **Exercise.** In [01_versions.py](../../examples/step_18_converters/01_versions.py) add an `/api/v3/orders` route where `response_mapper` returns a `dict` rather than an `OrderV2Response`, and trace at which boundary this is rejected and with which exception. Then remove `params_mapper` from v2 and confirm that registration fails with a `ValueError` before the server even starts.
+> **Exercise.** In [01_versions.py](../../examples/step_20_converters/01_versions.py) add an `/api/v3/orders` route where `response_mapper` returns a `dict` rather than an `OrderV2Response`, and trace at which boundary this is rejected and with which exception. Then remove `params_mapper` from v2 and confirm that registration fails with a `ValueError` before the server even starts.
 
 ---
 

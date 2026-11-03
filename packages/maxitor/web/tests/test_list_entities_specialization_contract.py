@@ -61,7 +61,7 @@ def _load_example() -> Any:
     fail on a model it never asked for. The example is the model this contract is written against.
     """
     root = Path(__file__).resolve().parents[4]
-    path = root / "examples" / "step_21_relations" / "02_specialization.py"
+    path = root / "examples" / "step_24_relations" / "02_specialization.py"
     spec = importlib.util.spec_from_file_location("specialization_example", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
