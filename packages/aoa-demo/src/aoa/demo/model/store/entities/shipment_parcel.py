@@ -7,7 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
+from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
@@ -32,10 +32,10 @@ class ShipmentParcelCoreEntity(BaseCoreEntity):
     )
 
     origin_facility: Annotated[
-        AssociationOne[FacilityWarehouseCoreEntity],
+        AssociationOne[CrossDockStagingCoreEntity],
         NoInverse(),
     ] = Field(
-        description="Inventory facility staging this shipment"
+        description="Cross-dock the shipment leaves from"
     )
 
 

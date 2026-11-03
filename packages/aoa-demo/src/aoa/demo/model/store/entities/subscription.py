@@ -7,7 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.subscription_lifecycle import SubscriptionLifecycle
 from aoa.demo.model.store.store_domain import StoreDomain
 
@@ -22,10 +22,6 @@ class SubscriptionCoreEntity(BaseCoreEntity):
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
     ] = Field(description="Customer who subscribed")
-    first_order: Annotated[
-        AssociationOne[SalesOrderCoreEntity],
-        NoInverse(),
-    ] = Field(description="Order that started the subscription")
 
 
 SubscriptionCoreEntity.model_rebuild()
