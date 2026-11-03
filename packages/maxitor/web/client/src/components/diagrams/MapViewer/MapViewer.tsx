@@ -9,7 +9,7 @@ import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
 import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { DiffCard } from "@/components/history/DiffCard";
 import { getActiveBase } from "@/api/client";
-import { mapChanges, mapOverview, type MapChange, type MapOverview } from "@/api/map";
+import { comparesTwo, mapChanges, mapOverview, type MapChange, type MapOverview } from "@/api/map";
 import { setChangeStepping, type ChangeEntry } from "@/lib/changeStepping";
 import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
 import { HalfNote } from "@/components/diagrams/SideBySide";
@@ -40,7 +40,7 @@ function toggled(list: readonly string[], key: string): string[] {
 
 /** The pair's changes for what is on screen; a half reads them after the pair's map, which they come from (spec 044). */
 async function changesFor(half: Half | null, overview: MapOverview): Promise<MapChange[]> {
-  return !half && overview.links_changed === undefined ? [] : mapChanges();
+  return !half && !comparesTwo(overview) ? [] : mapChanges();
 }
 
 /**
@@ -124,7 +124,7 @@ export function MapViewer({ onOpenErd }: { onOpenErd?: () => void }) {
   entriesRef.current = entries;
   const sections: PaintSection[] = ["domains", ...((data?.overview.types.length ?? 0) > 1 ? (["kinds"] as const) : []), ...(data?.changes.length ? (["changes"] as const) : [])];
   const paint = paintSource(sections, chosenPaint);
-  const comparing = data !== null && data !== undefined && (half !== null || data.overview.links_changed !== undefined);
+  const comparing = data !== null && data !== undefined && (half !== null || comparesTwo(data.overview));
   // A half's map marks and steps through what its version has; the counts and the list stay the pair's (spec 044).
   const ownChanges = useMemo(() => (half ? shownChanges.filter((change) => drawnOn(half.side, change.status)) : shownChanges), [half, shownChanges]);
 

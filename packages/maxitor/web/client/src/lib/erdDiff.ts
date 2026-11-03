@@ -135,12 +135,11 @@ export function markErd(slice: ErdSlice, compared: CompareResult): ErdSlice {
       ),
       ...(field.lifecycle_id && lifecycleChanged(field, changedIds) ? { lifecycle_parts: lifecycleParts(field.lifecycle_id, compared) } : {}),
     }));
-    // A lifecycle is part of its table: a change inside it changes the table (spec 044).
-    const composed = fields.some((field) => field.lifecycle_id && field.diff === "changed");
     return {
       ...entity,
-      // A table that stands in another domain changed, though its own properties did not (spec 043).
-      diff: compared.nodes[entity.id] ?? (moved.has(entity.id) || composed ? "changed" : "unchanged"),
+      // A table that stands in another domain changed, though its own properties did not (spec 043). A table changed only
+      // through its rows — a lifecycle among them — keeps "unchanged": its rows carry the change, and it is drawn marked.
+      diff: compared.nodes[entity.id] ?? (moved.has(entity.id) ? "changed" : "unchanged"),
       movedDomain: !compared.nodes[entity.id] && moved.has(entity.id),
       fields,
     };

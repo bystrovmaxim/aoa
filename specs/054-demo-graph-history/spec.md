@@ -31,7 +31,8 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | ✅ V2 (#367) | medium | subscriptions appear | In the store domain, a new table `Subscription` with the fields `plan_code` and `renewal_day` and two relations: to the customer (`CustomerAccount`) and to the first order (`SalesOrder`). The subscription has its own lifecycle: Trial → Active → Cancelled, and Trial straight to Cancelled. A new action `SubscriptionStart` for the editor role | large point | 3.4.0 · #367 |
 | ✅ V3 (#368) | small | prices and statuses are made precise | The discount (`DiscountApplication`) field `discount_amount` changes its type from `float` to `Decimal` and gets a new description. The customer lifecycle (`CustomerAccount`) gains the transition Provisioned → Closed | large point | 3.5.0 · #368 |
 | ✅ C1 (#369) | small | a started subscription gets a readable id | `SubscriptionStart` builds the subscription id differently: only the code inside changes, the graph stays | small point | 3.5.1 · #369 |
-| M1 | small | Maxitor flags only real releases | Maxitor itself, five changes, one commit each: (1) a release flag only for a tag with a GitHub Release, never for a tag named `release…`; (2) a new version arriving from GitHub changes nothing on screen — version, diagram, filters, zoom and position stay, Reload included — and a blue dot on the version button says a new one is there; (3) in Diff and Side by side the chip of A stands above the track and the chip of B below, so they never overlap, and the name under A's point stays; (4) an open pull request that raises only the version, not the graph, is shown as a small open point; (5) in a comparison a lifecycle's row, and a table changed only through it, say the lifecycle changed and list its states and transitions that changed. The demo is untouched | not shown | — |
+| ✅ M1 (#370) | small | Maxitor flags only real releases | Maxitor itself, five changes, one commit each: (1) a release flag only for a tag with a GitHub Release, never for a tag named `release…`; (2) a new version arriving from GitHub changes nothing on screen — version, diagram, filters, zoom and position stay, Reload included — and a blue dot on the version button says a new one is there; (3) in Diff and Side by side the chip of A stands above the track and the chip of B below, so they never overlap, and the name under A's point stays; (4) an open pull request that raises only the version, not the graph, is shown as a small open point; (5) in a comparison a lifecycle's row, and a table changed only through it, say the lifecycle changed and list its states and transitions that changed. The demo is untouched | not shown | — |
+| M2 | medium | Maxitor's comparison reads the same everywhere | **Maxitor only**: (1) one rule for the ERD's steps — a table has a step of its own only when the table itself changed (added, removed, moved, its own properties); a table changed only through its rows gives the rows' steps; every step of one table comes together, the table first, then its rows top to bottom, then its lines with no row; the button counts the same steps; (2) the two faults of #356 — the Changes filter and paint shown on a single version of the full graph, and a node chosen in Side by side missing on the other half | not shown | — |
 | N1 | small | the demo's README and tests are tidied | The demo's README and a test are tidied. The demo's version does not rise | not shown | — |
 | V4 | small | checkout gets a new check | The action `CheckoutSubmit` gains the parameter `promo_code` and a new step, "check the promo code". Nothing moves on any diagram: it shows only in the action's card | large point | 3.6.0 · #372 |
 | V5 | large | gift cards start, as their own domain | A new domain `gift_cards`: the tables `GiftCard` (lifecycle Issued → Active → Spent) and `GiftCardRedemption` (linked to the order); the roles gift card issuer and cashier; the actions issue a card and redeem a card. In store, `LoyaltyPointsStub` moves from the guest role to the viewer role, and the gift wrap loses the field `lineage_batch_token`. aoa is released before the merge, the demo's 3.7.0 after it | large point, release flag | 3.7.0 · #373 🚩 |
@@ -42,7 +43,8 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | V9 | large | the gift card pilot is closed | The domain `gift_cards` is removed whole: both tables, their lifecycle, roles and actions. The audit log (`AuditLogEntry`) loses its lifecycle | large point | 3.11.0 · #378 |
 | V10 | small | the demo's first release | The gift wrap gets a new description and a new field `wrap_color`. After the merge, the demo's release 3.12.0 | large point, release flag | 3.12.0 · #379 🚩 |
 | V11 | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
-| V12 | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. The pull request stays open | after Live, open | 3.14.0 · #381 |
+| V12 | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. After the merge, the demo's release | large point, release flag | 3.14.0 🚩 |
+| V13 | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. The pull request stays open | after Live, open | 3.15.0 |
 
 ## Where each kind of change is found
 
@@ -65,10 +67,10 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | Full graph | a large change across several domains | V5 |
 | History | one change | V1, V4 |
 | History | large version | V5, V9 |
-| History | tag and release (flag) | V5, V10 |
+| History | tag and release (flag) | V5, V10, V12 |
 | History | code changed, graph not (small point) | C1, C2 |
 | History | nothing counted changed (not shown) | N1 |
-| History | open pull request after Live | V12 |
+| History | open pull request after Live | V13 |
 
 ## Checks
 
@@ -77,7 +79,7 @@ Maxitor shows the history of a service's graph: any past version, or two version
 
 ## Success Criteria
 
-- **SC-001**: The demo's history shows at least ten versions on the track, with one pull request open after Live.
+- **SC-001**: The demo's history shows at least ten versions on the track, with one pull request, V13, open after Live.
 - **SC-002**: Every row of "Where each kind of change is found" is seen by comparing two versions in Maxitor.
 - **SC-003**: The history opens by its public link with no key.
 - **SC-004**: The demo runs and every check passes after each merged pull request.

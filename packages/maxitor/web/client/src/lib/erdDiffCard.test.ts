@@ -15,13 +15,18 @@ const RELATIONS: ErdRelation[] = [
 ];
 
 describe("the ERD's changes", () => {
-  it("list each table, then its rows, then the lines with no row, each with its cell", () => {
+  it("keep every change of one table together: the table, its rows, the lines that leave it with no row", () => {
     expect(erdChanges(ENTITIES, RELATIONS).map(({ title, status, cell, group }) => ({ title, status, cell, group }))).toEqual([
       { title: "Order", status: "changed", cell: "a_hd0", group: "Order" },
       { title: "total", status: "added", cell: "a_fn0_0", group: "Order" },
       { title: "price", status: "removed", cell: "a_fn1_0", group: "Item" },
-      { title: "Item → Order", status: "changed", cell: "re1", group: "Lines" },
+      { title: "Item → Order", status: "changed", cell: "re1", group: "Item" },
     ]);
+  });
+
+  it("put a line whose table is not drawn last", () => {
+    const away: ErdRelation[] = [{ source: "shop.Gone", target: "shop.Order", relationship_kind: "generalization", diff: "added" }];
+    expect(erdChanges(ENTITIES, away).at(-1)).toMatchObject({ title: "Gone → Order", group: "Lines" });
   });
 
   it("count as the button counts", () => {
@@ -59,10 +64,8 @@ describe("a lifecycle's row", () => {
     expect(card?.parts?.map((part) => part.label)).toEqual(["frozen", "provisioned → closed"]);
   });
 
-  it("tells the same on the table, which changed only through its lifecycle", () => {
+  it("gives the table no step of its own when it changed only through its lifecycle", () => {
     const marked = markErd({ entities: [{ id: "shop.Account", label: "Account", fields: [{ name: "lifecycle", lifecycle_id: LC }] }], relations: [] }, COMPARED);
-    const card = erdChanges(marked.entities!, []).find((change) => change.title === "Account")?.card;
-    expect(card?.note).toBe(LIFECYCLE_CHANGED);
-    expect(card?.parts).toHaveLength(2);
+    expect(erdChanges(marked.entities!, []).map((change) => change.title)).toEqual(["lifecycle"]);
   });
 });
