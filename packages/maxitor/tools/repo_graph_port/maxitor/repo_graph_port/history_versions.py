@@ -44,6 +44,17 @@ from maxitor.repo_graph_port.graph_facts import GraphFacts
 from maxitor.repo_graph_port.tag import Tag
 
 
+def names_version(tag: str, version: str) -> bool:
+    """
+    Whether ``tag`` is the tag of ``version``: it ends with that number and nothing of another number stands before it —
+    ``v3.7.0``, ``aoa-demo-v3.7.0`` and ``release-3.7.0`` name 3.7.0; ``13.7.0`` and ``aoa-action-machine-v1.0.1a9`` do not.
+    """
+    if not version or not tag.endswith(version):
+        return False
+    before = tag[: len(tag) - len(version)]
+    return not before or not (before[-1].isdigit() or before[-1] == ".")
+
+
 def place_tags(chain: Sequence[str], versions: Sequence[str], tags: Iterable[Tag]) -> dict[str, list[str]]:
     """
     AI-CORE-BEGIN

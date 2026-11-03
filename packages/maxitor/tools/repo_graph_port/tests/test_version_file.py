@@ -100,14 +100,15 @@ def test_a_history_with_no_version_file_has_the_points_it_always_had(tmp_path: P
 
 
 def test_a_version_only_point_opens_reads_no_graph_and_takes_tags(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """Listing stores no copy of the graph; a tag lands on the point; opening it gives the graph in that commit."""
+    """Listing stores no copy of the graph; the tag of its version lands on the point, another package's does not; opening it gives the graph in that commit."""
     service = _Service(tmp_path, capsys)
     sha = service.commit("version", {"svc/version.toml": TOML.format("1.1.0")})
-    service.builder.git("tag", "release-1")
+    service.builder.git("tag", "svc-v1.1.0")
+    service.builder.git("tag", "other-package-v2.0.0")
     headers = service.open()
     assert service.client is not None
     listed = service.client.get(f"{BASE}/svc/versions", headers=headers).json()["versions"]
-    assert [tag["name"] for tag in listed[-1]["tags"]] == ["release-1"]
+    assert [tag["name"] for tag in listed[-1]["tags"]] == ["svc-v1.1.0"]
     assert listed[-1]["nodes"] == listed[0]["nodes"] and listed[-1]["change"]["links"] == {"added": 0, "removed": 0}
     assert not list((tmp_path / "cache").rglob(f"{sha}.graph"))
     opened = service.client.get(f"{BASE}/svc/versions/{sha}", headers=headers)
