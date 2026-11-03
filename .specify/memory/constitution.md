@@ -16,6 +16,8 @@
     [PRINCIPLE_*] slots beyond V, [SECTION_2_NAME]/[SECTION_2_CONTENT],
     [SECTION_3_NAME]/[SECTION_3_CONTENT], [GOVERNANCE_RULES]
   Changes after the first draft of this file:
+    I — at the maintainer's instruction: a merge waits until every check of the pull
+      request has passed, read check by check before merging (1.9.0)
     II — the paragraph allowing Russian in `*.ru.md` files and in the notes under
       `archive/` was removed at the maintainer's instruction; the rule has no
       exceptions now
@@ -58,6 +60,8 @@ Commits, pushes, pull requests and merges are made **only on an explicit instruc
 Writing an issue **is** the instruction to create it. When the maintainer asks for an issue, the agent creates it in the same turn, with the title and the body it just wrote, and reports the number and the link. It does not hand the text back as a draft and wait for a second confirmation: a request to write an issue is the permission to write it. The same holds when the request is to add a requirement to an existing issue — the issue is edited in that turn.
 
 This is authoring a document, not shipping a change. Nothing above is loosened: a commit, a push, a pull request and a merge still wait for their own instruction, and the issue an agent creates never authorizes the branch that closes it.
+
+An instruction to merge never covers a pull request whose checks have not passed. Before every merge the agent reads every check of the pull request (`gh pr checks <n>`) and merges only when each one has passed. A check still running, or one that failed, stops the merge: the agent reads the failure, fixes it on the branch or reports it, and waits for the checks again. A waiting command's exit code is not that reading.
 
 ### II. English in commits, in git, and in code (NON-NEGOTIABLE)
 
@@ -186,4 +190,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.8.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
+**Version**: 1.9.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
