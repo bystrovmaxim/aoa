@@ -96,7 +96,8 @@ https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-demo/graph.json?versi
 | 3.9.0 → 3.9.1 | a small point: the version rose, the graph did not |
 | 3.9.1 → 3.10.0 | a role and an action removed, a transition removed |
 | 3.10.0 → 3.11.0 | a domain removed whole, a lifecycle removed |
-| 3.11.0 → 3.14.0 | two more releases, a new table, role and action, states added; after them, one pull request still open |
+| 3.11.0 → 3.14.0 | two more releases, a new table, role and action, states added |
+| 3.14.0 → 3.15.0 | a field and a final state added to the return's lifecycle |
 
 ## Share what you see
 
