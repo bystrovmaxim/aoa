@@ -6,14 +6,20 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { getActiveBase } from "@/api/client";
 import { fetchEventsExplorer } from "@/api/eventsExplorer";
+import { HalfNote } from "@/components/diagrams/SideBySide";
 import { DiagramShell, useDiagramLoader } from "@/components/diagrams/DiagramShell";
 import { ElementCard, type CardSubject } from "@/components/diagrams/ElementCard";
 import { useSvgPanZoom } from "@/components/diagrams/ErdViewer/hooks/useSvgPanZoom";
 import { LayoutGlyphDotLR, LayoutGlyphDotTB } from "@/components/diagrams/ErdViewer/parts/ErdGraphvizCanvas/layoutEngineGlyphs";
 import { ErdFilterPanel, type FilterSection } from "@/components/ui/ErdFilterPanel";
 import { HoverCardsButton, ZoomToolbar } from "@/components/ui/ZoomToolbar";
+import { setDiffCounts, useDiffNames } from "@/lib/diffCounts";
+import { MARK_LOOK } from "@/lib/erdDiffCard";
+import { CHANGE_ORDER, changeDiskUri } from "@/lib/erdFilterPresence";
 import { enabledKeys } from "@/lib/freshGraph";
+import { useHalf, writesForPair } from "@/lib/half";
 import { svgDataUriForGraphNodeIcon, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { usePageSetting } from "@/lib/pageSettings";
 import { loadGraphvizWasmFor } from "@/lib/prefetch/erdGraphviz";
@@ -30,6 +36,9 @@ import {
   appliedFilters,
   buildDot,
   explore,
+  explorerCounts,
+  explorerOfSide,
+  loadExplorerDiff,
   idOf,
   kindOf,
   links,
@@ -46,6 +55,7 @@ import {
   type Mode,
   type Paint,
   type Placed,
+  type Port,
   type PortKind,
   type SectionId,
   type Shown,
@@ -77,8 +87,17 @@ export type EventsExplorerProps = {
   onOpen?: (selection: DiagramSelection) => void;
 };
 
-/** A line's stroke: a domain's lines take its colour by the domains, an emitting line its method's by the methods; else grey. */
-function linkStyle(graph: EventsGraph, link: Link, paint: Paint): { stroke: string; width: number; dash?: string } {
+/** The colour a comparison gives a node or a line, when the changes paint the screen. */
+function changeColour(status: string | undefined): string {
+  return status === "added" || status === "removed" || status === "changed" ? MARK_LOOK[status].colour : "#cbd5e1";
+}
+
+/** A line's stroke: a domain's lines take its colour by the domains, an emitting line its method's by the methods, a changed one its mark's by the changes; else grey. */
+function linkStyle(graph: EventsGraph, link: Link, paint: Paint | "changes"): { stroke: string; width: number; dash?: string } {
+  if (paint === "changes") {
+    const dash = link.kind === "domain_emits" ? "2 4" : link.kind === "belongs" ? "5 4" : undefined;
+    return { stroke: changeColour(link.diff), width: link.diff && link.diff !== "unchanged" ? 2 : 1.4, dash };
+  }
   const domainColour = (node: string) => (paint === "domains" ? (graph.domains.get(idOf(node))?.accent_color ?? NEUTRAL) : "#cbd5e1");
   switch (link.kind) {
     case "holds":
@@ -131,14 +150,45 @@ function cardOf(graph: EventsGraph, node: string, at: CardSubject["at"], onOpen:
   };
 }
 
-function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorerPayload; domainId: string | null; onOpen: EventsExplorerProps["onOpen"] }) {
+/** The changes a closed port has behind it, in Diff: one count per kind of change present, in its colour ("+1 −1"). */
+function PortChanges({ changes }: { changes: NonNullable<Port["changes"]> }) {
+  const kinds = (["added", "removed", "changed"] as const).filter((kind) => changes[kind] > 0);
+  if (kinds.length === 0) return null;
+  return (
+    <Box component="span" data-testid="explorer-port-changes" sx={{ display: "inline-flex", gap: "3px", ml: "3px", fontSize: 10, fontWeight: 700 }}>
+      {kinds.map((kind) => (
+        <Box key={kind} component="span" sx={{ color: MARK_LOOK[kind].colour }}>
+          {MARK_LOOK[kind].sign}
+          {changes[kind]}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function ExplorerCanvas({ payload: merged, domainId, onOpen, diffing }: { payload: EventsExplorerPayload; domainId: string | null; onOpen: EventsExplorerProps["onOpen"]; diffing: boolean }) {
+  const half = useHalf();
+  // Side by side draws each version's part of the same explored screen.
+  const payload = useMemo(() => (half ? explorerOfSide(merged, half.side) : merged), [half, merged]);
   const graph = useMemo(() => new EventsGraph(payload), [payload]);
-  const [mode, setMode] = usePageSetting<Mode>("mode", "domains");
+  const changeCounts = useMemo(() => (diffing ? explorerCounts(merged) : null), [diffing, merged]);
+  const writesPair = writesForPair(half);
+  useEffect(() => {
+    if (writesPair) setDiffCounts(changeCounts);
+    return () => {
+      if (writesPair) setDiffCounts(null);
+    };
+  }, [changeCounts, writesPair]);
+  const diffNames = useDiffNames();
+  const [modeSetting, setMode] = usePageSetting<Mode>("mode", "domains");
+  // A mode the explorer does not know — an old address, a setting out of shape — starts from the domains.
+  const mode: Mode = modeSetting in ROOT_KIND ? modeSetting : "domains";
   const [layout, setLayout] = usePageSetting<Layout>("layout", "dot_lr");
   const [openedList, setOpenedList] = usePageSetting<string[]>("opened", domainId ? [portKey(`domain:${domainId}`, "events")] : []);
   const [chosenDomains, setChosenDomains] = usePageSetting<string[] | null>("domains", null);
   const [offList, setOffList] = usePageSetting<string[]>("off", []);
-  const [paintChoice, setPaintChoice] = usePageSetting<string>("paint", "domains");
+  // One and Diff keep their paints apart, as on ERD: a comparison is painted by its changes at first.
+  const [paintChoice, setPaintChoice] = usePageSetting<string>(diffing ? "paint_diff" : "paint", diffing ? "changes" : "domains");
   const opened = useMemo(() => new Set(openedList), [openedList]);
   const domainKeys = useMemo(() => [...graph.domains.keys()].sort(), [graph]);
   const filters = useMemo<Filters>(() => ({ domains: new Set(enabledKeys(domainKeys, chosenDomains)), off: new Set(offList) }), [domainKeys, chosenDomains, offList]);
@@ -154,7 +204,7 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
     return explore(roots(mode, all, graph), opened, all, ROOT_KIND[mode], graph);
   }, [mode, filters.domains, opened, graph]);
   const offered = useMemo(() => offeredSections(mode, loose, graph), [mode, loose, graph]);
-  const paint: Paint = paintOf(paintChoice, offered.ids);
+  const paint: Paint | "changes" = diffing && paintChoice === "changes" ? "changes" : paintOf(paintChoice, offered.ids);
 
   const [placed, setPlaced] = useState<Placed | null>(null);
   /** Graphviz's answer and the DOT it was laid out from: their hashes prove one input gives one picture (layout determinism). */
@@ -304,7 +354,13 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
       ],
     }),
   };
-  const sections = offered.ids.map((id) => rowsOf[id]());
+  const present = new Set([...graph.domains.values(), ...graph.actions.values(), ...graph.events.values(), ...graph.payload.holds, ...graph.payload.emits].map((element) => element.diff ?? "unchanged"));
+  const sections = [
+    ...offered.ids.map((id) => rowsOf[id]()),
+    ...(diffing
+      ? [{ id: "changes", title: "Changes", paints: true, rows: CHANGE_ORDER.filter((status) => present.has(status)).map((status) => ({ key: status, label: status.charAt(0).toUpperCase() + status.slice(1), iconSrc: changeDiskUri(status, true), on: on(`changes:${status}`) })) }]
+      : []),
+  ];
   const toggleRow = (section: string, row: string) =>
     refit(() => {
       if (section === "domains") setChosenDomains(toggle([...filters.domains], row));
@@ -374,12 +430,12 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
               return (
                 <Box key={node} data-box={node} sx={{ position: "absolute", width: box.w, height: box.h, transition: animate ? GLIDE : "opacity 240ms", opacity: near && !near.has(node) ? 0.35 : 1, animation: "explorerIn 260ms ease-out", "@keyframes explorerIn": { from: { opacity: 0 }, to: { opacity: 1 } } }} style={{ left: box.x, top: box.y }}>
                   <Box sx={{ position: "absolute", left: 0, top: vertical ? 0 : (box.h - body) / 2 }}>
-                    <ExplorerNode graph={graph} node={node} hot={hover?.node === node} paint={paint} kinds={methodKindsOf(node, g)} onClick={() => main && togglePort(node, main.kind)} onHover={(on, x, y) => onNodeHover(node, on, x, y)} />
+                    <ExplorerNode graph={graph} node={node} hot={hover?.node === node} paint={paint} change={diffing ? graph.nodeDiff(node) : undefined} kinds={methodKindsOf(node, g)} onClick={() => main && togglePort(node, main.kind)} onHover={(on, x, y) => onNodeHover(node, on, x, y)} />
                   </Box>
                   {ports.length > 0 && (
                     <Box sx={vertical ? { position: "absolute", left: 0, top: body, width: BODY_W, height: box.h - body, display: "flex", px: "14px", gap: "6px" } : { position: "absolute", left: BODY_W, top: 0, width: box.w - BODY_W, height: box.h, display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px", py: ports.length > 1 ? "2px" : 0 }}>
                       {ports.map((port) => (
-                        <PortPill key={port.kind} port={port} vertical={vertical} onClick={() => togglePort(node, port.kind)} />
+                        <PortPill key={port.kind} port={port} vertical={vertical} changes={diffing && !port.open && port.changes ? <PortChanges changes={port.changes} /> : null} onClick={() => togglePort(node, port.kind)} />
                       ))}
                     </Box>
                   )}
@@ -388,7 +444,8 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
             })}
         </Box>
       </Box>
-      {hoverCard.shown && <ElementCard key={hoverCard.shown.key} subject={hoverCard.shown} newer="B" onEnter={hold} onLeave={release} onClose={close} />}
+      <HalfNote text={half && first.length === 0 && merged.domains.length > 0 ? `Not in ${half.name}` : null} />
+      {hoverCard.shown && <ElementCard key={hoverCard.shown.key} subject={hoverCard.shown} newer={diffNames?.b ?? "B"} onEnter={hold} onLeave={release} onClose={close} />}
       <ZoomToolbar zoomPct={zoomPct} onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fitToContainer}>
         <ToggleButtonGroup
           exclusive
@@ -436,11 +493,12 @@ function ExplorerCanvas({ payload, domainId, onOpen }: { payload: EventsExplorer
 
 /** The events explorer (spec 055): one layer at first, the graph opened link by link through ports. */
 export function EventsExplorer({ domainId, onOpen }: EventsExplorerProps) {
-  const load = useCallback(() => fetchEventsExplorer(), []);
+  const diffing = getActiveBase() !== null;
+  const load = useCallback(() => (diffing ? loadExplorerDiff() : fetchEventsExplorer()), [diffing]);
   const { data, loading, error } = useDiagramLoader(load, { keepPreviousData: true });
   return (
     <DiagramShell loading={loading} error={error}>
-      {data != null ? <ExplorerCanvas payload={data} domainId={domainId} onOpen={onOpen} /> : null}
+      {data != null ? <ExplorerCanvas payload={data} domainId={domainId} onOpen={onOpen} diffing={diffing} /> : null}
     </DiagramShell>
   );
 }

@@ -42,12 +42,12 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 ## Phase 4: Comparison and state (one commit)
 
-- [ ] T027 [US5] In `client/src/lib/eventsExplorer.ts`: `loadExplorerDiff` merging A and B by id (B's where both) and marking nodes and pairs from `compareVersions()`; an event with a changed field marked changed; change counts per status behind each closed port (nodes behind plus links it would draw)
-- [ ] T028 [US5] In the viewer: marks as other diagrams, the change counts on closed ports ("+1 −1", kinds present only), counts on the version button, the change stepper, Side by side drawing each half's part with `drawnOn` (FR-023)
-- [ ] T029 [US5] Page settings `mode`, `layout`, `domains`, `off`, `opened`, `paint`, `paint_diff`, `disabled_changes` through `usePageSetting` in the viewer, read back from the address (FR-024); the room whitelist came in phase 2 (T021)
-- [ ] T030 Add the explorer's pages to `client/scripts/check-layout-determinism.ts`
-- [ ] T031 [US5] Add tests: a pair from `explorer_graph()` / `explorer_graph_b()` showing the event and the link added from the first layer (SC-005), port change counts, the room whitelist accepting and refusing values, an address read back giving the same nodes, ports, filters and paint (SC-006)
-- [ ] T032 Break adversarially (a change behind a port not counted, a setting refused by the room), restore; run only this phase's tests; run quickstart.md on a stand serving both versions of the test graph; commit
+- [x] T027 [US5] In `client/src/lib/eventsExplorer.ts`: `loadExplorerDiff` merging A and B by id (B's where both) and marking nodes and pairs from `compareVersions()`; an event with a changed field marked changed; change counts per status behind each closed port (nodes behind plus links it would draw)
+- [x] T028 [US5] In the viewer: marks as other diagrams, the change counts on closed ports ("+1 −1", kinds present only), counts on the version button, Side by side drawing each half's part with `drawnOn` (FR-023); no step-by-step through changes: the steps of the Graphviz diagrams walk drawn cells, while here a change behind a closed port is counted on the port
+- [x] T029 [US5] Page settings `mode`, `layout`, `domains`, `off`, `opened`, `paint`, `paint_diff`, `disabled_changes` through `usePageSetting` in the viewer, read back from the address (FR-024); the room whitelist came in phase 2 (T021)
+- [x] T030 Keep the explorer's pages in `client/scripts/check-layout-determinism.ts`: it walks the `events_all` and `events_domain` rows of the sidebar, and the explorer carries `data-layout-hash` of Graphviz's answer (since phase 2)
+- [x] T031 [US5] Add tests: a pair from `explorer_graph()` / `explorer_graph_b()` showing the event and the link added from the first layer (SC-005), port change counts, the room whitelist accepting and refusing values, an address read back giving the same nodes, ports, filters and paint (SC-006)
+- [x] T032 Break adversarially (a change behind a port not counted, a setting refused by the room), restore; run only this phase's tests; run quickstart.md on a stand serving both versions of the test graph; commit
 
 ## Phase 5: Closing check run (one commit if it changes anything)
 

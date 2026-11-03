@@ -1,7 +1,8 @@
 // src/lib/eventsExplorer.test.ts
 import { describe, expect, it } from "vitest";
 import type { EventsExplorerPayload } from "@/model/eventsExplorer";
-import { EventsGraph, ROOT_KIND, appliedFilters, explore, links, methodsOff, offeredSections, paintOf, portKey, roots, type Filters, type Mode } from "./eventsExplorer";
+import type { CompareResult } from "@/api/compare";
+import { EventsGraph, ROOT_KIND, appliedFilters, explore, explorerCounts, explorerOfSide, links, markExplorer, methodsOff, offeredSections, paintOf, portKey, roots, type Filters, type Mode } from "./eventsExplorer";
 
 const KINDS = ["RegularAspect", "SummaryAspect", "Compensator", "ErrorHandler", "AccessDecide"];
 
@@ -177,5 +178,55 @@ describe("filter sections and paint", () => {
   it("paint by the section chosen while it is on the panel, else by the domains", () => {
     expect(paintOf("methods", ["domains", "methods"])).toBe("methods");
     expect(paintOf("methods", ["domains", "coverage"])).toBe("domains");
+  });
+});
+
+describe("a comparison of two versions", () => {
+  /** B adds ``e.Refunded`` to the vocabulary of Orders, emitted by the checkout's summary — as ``explorer_graph_b()``. */
+  function versionB() {
+    const b = payload();
+    b.events.push({ id: "e.Refunded", label: "Refunded", fields: [] });
+    b.holds.push({ domain_id: "d.Orders", event_id: "e.Refunded" });
+    b.emits.push({ action_id: "a.Checkout", method_id: "a.Checkout:SummaryAspect", method: "SummaryAspect", kind: "SummaryAspect", event_id: "e.Refunded" });
+    return b;
+  }
+  const compared: CompareResult = {
+    counts: { nodes: { added: 1, removed: 0, changed: 0 }, edges: { added: 2, removed: 0, changed: 0 } },
+    nodes: { "e.Refunded": "added" },
+    edges: { "d.Orders|domain_event|e.Refunded": "added", "a.Checkout:SummaryAspect|@emits|e.Refunded": "added" },
+  } as CompareResult;
+  const marked = new EventsGraph(markExplorer(payload(), versionB(), compared));
+  const diffScreen = (opened: string[] = [], filters: Filters = { domains: new Set(marked.domains.keys()), off: new Set() }) => explore(roots("domains", filters, marked), new Set(opened), filters, "domain", marked);
+
+  it("marks the event and the links added, and counts them for the version button", () => {
+    expect(marked.nodeDiff("event:e.Refunded")).toBe("added");
+    expect(marked.linkDiff("domain:d.Orders", "event:e.Refunded")).toBe("added");
+    expect(marked.linkDiff("action:a.Checkout", "event:e.Refunded")).toBe("added");
+    expect(marked.nodeDiff("event:e.Placed")).toBe("unchanged");
+    expect(explorerCounts(marked.payload)).toEqual({ added: 3, removed: 0, changed: 0 });
+  });
+
+  it("marks changed an event one of whose fields changed", () => {
+    const fields = markExplorer(payload(), payload(), { counts: compared.counts, nodes: { "e.Placed:order_id": "changed" }, edges: {} } as CompareResult);
+    expect(new EventsGraph(fields).nodeDiff("event:e.Placed")).toBe("changed");
+  });
+
+  it("shows on a closed port of the first layer what changed behind it", () => {
+    const orders = diffScreen().ports.get("domain:d.Orders") ?? [];
+    expect(orders.find((port) => port.kind === "events")?.changes).toEqual({ added: 2, removed: 0, changed: 0 });
+    expect(diffScreen().ports.get("domain:d.Support")?.find((port) => port.kind === "events")?.changes).toEqual({ added: 0, removed: 0, changed: 0 });
+  });
+
+  it("draws in each half of Side by side the part that version has", () => {
+    expect(explorerOfSide(marked.payload, "a").events.map((event) => event.id)).not.toContain("e.Refunded");
+    expect(explorerOfSide(marked.payload, "b").events.map((event) => event.id)).toContain("e.Refunded");
+  });
+
+  it("hides the nodes and lines of a kind of change switched off", () => {
+    const off: Filters = { domains: new Set(marked.domains.keys()), off: new Set(["changes:added"]) };
+    const opened = [portKey("domain:d.Orders", "events")];
+    const shown = diffScreen(opened, off);
+    expect(shown.depth.has("event:e.Refunded")).toBe(false);
+    expect(links(diffScreen(opened), new Set(opened), marked).some((link) => link.diff === "added")).toBe(true);
   });
 });

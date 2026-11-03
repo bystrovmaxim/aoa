@@ -5,6 +5,11 @@
  * everything an open port of a shown node leads to. Every rule of the screen lives here, so it is tested without a
  * browser; the viewer only draws what these functions give.
  */
+import { getActiveBase } from "@/api/client";
+import { compareVersions, type CompareResult, type DiffStatus } from "@/api/compare";
+import { fetchEventsExplorer } from "@/api/eventsExplorer";
+import type { DiagramCounts } from "@/lib/erdDiff";
+import { drawnOn, type Side } from "@/lib/half";
 import type { EventsExplorerPayload, ExplorerActionWire, ExplorerDomainWire, ExplorerEmitWire, ExplorerEventWire } from "@/model/eventsExplorer";
 
 export type Kind = "domain" | "event" | "action";
@@ -64,6 +69,35 @@ export class EventsGraph {
       this.emittersOf.set(emit.event_id, [...(this.emittersOf.get(emit.event_id) ?? []), emit]);
       add(this.emittingActionsOf, this.actions.get(emit.action_id)?.domain_id ?? "", emit.action_id);
     }
+  }
+
+  /** In Diff, what the comparison says of a node: its own mark, ``unchanged`` when it has none. */
+  nodeDiff(node: string): DiffStatus {
+    const id = idOf(node);
+    const element = kindOf(node) === "domain" ? this.domains.get(id) : kindOf(node) === "event" ? this.events.get(id) : this.actions.get(id);
+    return element?.diff ?? "unchanged";
+  }
+
+  /**
+   * In Diff, what the comparison says of the link between two nodes: a vocabulary pair's own mark; the marks of the
+   * emitting methods behind a line, one status when they agree and ``changed`` when they do not; an action and its
+   * domain by the action, when it came or went.
+   */
+  linkDiff(a: string, b: string): DiffStatus {
+    const [one, other] = kindOf(a) <= kindOf(b) ? [a, b] : [b, a];
+    const pair = `${kindOf(one)}>${kindOf(other)}`;
+    const combine = (statuses: DiffStatus[]) => (statuses.length === 0 ? "unchanged" : statuses.every((each) => each === statuses[0]) ? statuses[0] : "changed");
+    if (pair === "action>domain") {
+      const own = this.nodeDiff(one);
+      return own === "added" || own === "removed" ? own : "unchanged";
+    }
+    if (pair === "action>event") return combine((this.emitsOf.get(idOf(one)) ?? []).filter((emit) => emit.event_id === idOf(other)).map((emit) => emit.diff ?? "unchanged"));
+    if (pair === "domain>event") {
+      const hold = this.payload.holds.find((each) => each.domain_id === idOf(one) && each.event_id === idOf(other));
+      if (hold) return hold.diff ?? "unchanged";
+      return combine((this.emittersOf.get(idOf(other)) ?? []).filter((emit) => this.actions.get(emit.action_id)?.domain_id === idOf(one)).map((emit) => emit.diff ?? "unchanged"));
+    }
+    return "unchanged";
   }
 
   /** The events a domain's own actions emit. */
@@ -147,6 +181,8 @@ export type Filters = { domains: ReadonlySet<string>; off: ReadonlySet<string> }
  */
 export function passes(node: string, filters: Filters, graph: EventsGraph, g: EventsGraph = graph): boolean {
   const id = idOf(node);
+  // In Diff a kind of change switched off hides what bears it.
+  if (filters.off.has(`changes:${graph.nodeDiff(node)}`)) return false;
   const domainOk = (domainId: string) => filters.domains.has(domainId) && !filters.off.has(`coverage:${graph.withEvents(domainId) ? "with" : "without"}`);
   switch (kindOf(node)) {
     case "domain":
@@ -175,8 +211,9 @@ export function roots(mode: Mode, filters: Filters, graph: EventsGraph, g: Event
 }
 
 /** A port; one that joins (``join``) adds no node, it draws its links to the nodes already on screen. */
-export type Port = { kind: PortKind; total: number; hidden: number; open: boolean; join: boolean };
-export type Shown = { depth: Map<string, number>; ports: Map<string, Port[]> };
+export type Port = { kind: PortKind; total: number; hidden: number; open: boolean; join: boolean; changes?: DiagramCounts };
+/** What is on screen: each node's layer and ports, and the rows switched off, which hide lines of a kind of change too. */
+export type Shown = { depth: Map<string, number>; ports: Map<string, Port[]>; off?: ReadonlySet<string> };
 
 /**
  * The ports that lead on: a path passes each kind once. The first layer leads on to both other kinds, the second only
@@ -228,15 +265,24 @@ export function explore(first: readonly string[], opened: ReadonlySet<string>, f
       allowedPorts(node, level, rootKind).map((kind) => {
         const behind = g.neighbours(node, kind).filter((next) => passes(next, filters, graph, g));
         // An empty port is shown too, with its zero: every node of a kind has the same ports, in the same places.
-        return { kind, total: behind.length, hidden: behind.filter((next) => !depth.has(next)).length, open: behind.length > 0 && opened.has(portKey(node, kind)), join: false };
+        return { kind, total: behind.length, hidden: behind.filter((next) => !depth.has(next)).length, open: behind.length > 0 && opened.has(portKey(node, kind)), join: false, changes: changesBehind(node, behind, graph) };
       }),
     );
   }
-  return { depth, ports };
+  return { depth, ports, off: filters.off };
+}
+
+/** In Diff, the changes behind a port: the changed nodes it leads to and the changed lines it would draw, by status. */
+function changesBehind(node: string, behind: readonly string[], graph: EventsGraph): DiagramCounts {
+  const counts: DiagramCounts = { added: 0, removed: 0, changed: 0 };
+  for (const next of behind) {
+    for (const status of [graph.nodeDiff(next), graph.linkDiff(node, next)]) if (status !== "unchanged") counts[status] += 1;
+  }
+  return counts;
 }
 
 export type LinkKind = "holds" | "emits" | "domain_emits" | "belongs";
-export type Link = { id: string; kind: LinkKind; a: string; b: string; methods: { method: string; kind: string }[] };
+export type Link = { id: string; kind: LinkKind; a: string; b: string; methods: { method: string; kind: string }[]; diff?: DiffStatus };
 
 /**
  * Every link between two neighbouring layers, and every link an open joining port of the third layer asks for. Any
@@ -265,7 +311,10 @@ export function links(shown: Shown, opened: ReadonlySet<string>, graph: EventsGr
       if (on(domain)) out.push({ id: `b|${id}`, kind: "belongs", a: node, b: domain, methods: [] });
     }
   }
-  return out.filter((link) => near(link.a, link.b) || joins(link.a, link.b) || joins(link.b, link.a)).sort((one, other) => (one.id < other.id ? -1 : 1));
+  return out
+    .map((link) => ({ ...link, diff: graph.linkDiff(link.a, link.b) }))
+    .filter((link) => (near(link.a, link.b) || joins(link.a, link.b) || joins(link.b, link.a)) && !(shown.off?.has(`changes:${link.diff}`) ?? false))
+    .sort((one, other) => (one.id < other.id ? -1 : 1));
 }
 
 /** The port a link leaves ``from`` by, toward ``to``. */
@@ -409,4 +458,55 @@ export function offeredSections(mode: Mode, loose: Shown, graph: EventsGraph): {
 /** The section that paints: the one chosen while it is on the panel; otherwise the domains. */
 export function paintOf(chosen: string, offered: readonly SectionId[]): Paint {
   return (offered as readonly string[]).includes(chosen) ? (chosen as Paint) : "domains";
+}
+
+// --- Diff (FR-023)
+
+type Keyed = { id: string } | { domain_id: string; event_id: string } | { method_id: string; event_id: string };
+const keyOf = (element: Keyed) => ("id" in element ? element.id : "method_id" in element ? `${element.method_id}|${element.event_id}` : `${element.domain_id}|${element.event_id}`);
+
+/** Each element of two lists once, B's where both have it, sorted by key. */
+function union<T extends Keyed>(older: readonly T[], newer: readonly T[]): T[] {
+  const byKey = new Map(older.map((element) => [keyOf(element), element]));
+  for (const element of newer) byKey.set(keyOf(element), element);
+  return [...byKey.entries()].sort(([one], [other]) => (one < other ? -1 : one > other ? 1 : 0)).map(([, element]) => element);
+}
+
+/** The events graph of A and B together, every element and pair marked with what the comparison says of it. */
+export function markExplorer(older: EventsExplorerPayload, newer: EventsExplorerPayload, compared: CompareResult): EventsExplorerPayload {
+  const node = (id: string): DiffStatus => compared.nodes[id] ?? "unchanged";
+  const edge = (id: string): DiffStatus => compared.edges[id] ?? "unchanged";
+  // An event one of whose fields changed is marked changed: fields are nodes of their own, named ``<event>:<field>``.
+  const fieldChanged = (id: string) => Object.entries(compared.nodes).some(([each, status]) => each.startsWith(`${id}:`) && Boolean(status));
+  return {
+    domains: union(older.domains, newer.domains).map((domain) => ({ ...domain, diff: node(domain.id) })),
+    actions: union(older.actions, newer.actions).map((action) => ({ ...action, diff: node(action.id) })),
+    events: union(older.events, newer.events).map((event) => {
+      const own = node(event.id);
+      return { ...event, diff: own === "unchanged" && fieldChanged(event.id) ? "changed" : own };
+    }),
+    holds: union(older.holds, newer.holds).map((hold) => ({ ...hold, diff: edge(`${hold.domain_id}|domain_event|${hold.event_id}`) })),
+    emits: union(older.emits, newer.emits).map((emit) => ({ ...emit, diff: edge(`${emit.method_id}|@emits|${emit.event_id}`) })),
+  };
+}
+
+/** The events graph of the pair being compared, read from each version. */
+export async function loadExplorerDiff(): Promise<EventsExplorerPayload> {
+  const base = getActiveBase();
+  if (!base) throw new Error("No two versions to compare.");
+  const [newer, older, compared] = await Promise.all([fetchEventsExplorer(), fetchEventsExplorer(base), compareVersions()]);
+  return markExplorer(older, newer, compared);
+}
+
+/** The part of a marked graph one version has (Side by side): what was added is not in A, what was removed not in B. */
+export function explorerOfSide(payload: EventsExplorerPayload, side: Side): EventsExplorerPayload {
+  const kept = <E extends { diff?: DiffStatus }>(list: readonly E[]) => list.filter((each) => drawnOn(side, each.diff ?? "unchanged"));
+  return { domains: kept(payload.domains), actions: kept(payload.actions), events: kept(payload.events), holds: kept(payload.holds), emits: kept(payload.emits) };
+}
+
+/** What the version button counts: the events, vocabulary pairs and emitting links added, removed and changed. */
+export function explorerCounts(payload: EventsExplorerPayload): DiagramCounts {
+  const counts: DiagramCounts = { added: 0, removed: 0, changed: 0 };
+  for (const element of [...payload.events, ...payload.holds, ...payload.emits]) if (element.diff && element.diff !== "unchanged") counts[element.diff] += 1;
+  return counts;
 }

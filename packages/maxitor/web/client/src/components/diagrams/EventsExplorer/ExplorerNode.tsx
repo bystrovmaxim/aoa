@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Tooltip from "@mui/material/Tooltip";
 import type { ReactElement } from "react";
+import { MARK_LOOK } from "@/lib/erdDiffCard";
 import { svgDataUriForGraphNodeIcon, svgDataUriForInterchangeDomainLegend } from "@/lib/icons";
 import { BODY_H, BODY_W, idOf, kindOf, type EventsGraph, type Paint, type Port, type PortKind } from "@/lib/eventsExplorer";
 import { ACTION_COLOUR, COVERAGE_COLOUR, EVENT_COLOUR, KIND_ICON, METHOD_COLOUR, NEUTRAL, SLATE, STATUS_COLOUR } from "./explorerLook";
@@ -48,7 +49,9 @@ export type ExplorerNodeProps = {
   graph: EventsGraph;
   node: string;
   hot: boolean;
-  paint: Paint;
+  paint: Paint | "changes";
+  /** In Diff, what the comparison says of the node; painted by the changes, it takes its mark's colour. */
+  change?: string;
   /** The kinds of method behind the node, for the paint by methods. */
   kinds: readonly string[];
   onClick: () => void;
@@ -56,12 +59,15 @@ export type ExplorerNodeProps = {
 };
 
 /** A node's body: no frame around anything, an icon, its name, and what the paint gives it. */
-export function ExplorerNode({ graph, node, hot, paint, kinds, onClick, onHover }: ExplorerNodeProps): ReactElement {
+export function ExplorerNode({ graph, node, hot, paint, change, kinds, onClick, onHover }: ExplorerNodeProps): ReactElement {
   const kind = kindOf(node);
   const id = idOf(node);
   const label = graph.label(node);
   const methodFrame = paint === "methods" && kinds.length === 1 ? METHOD_COLOUR[kinds[0]] : null;
   const strip = paint === "methods" ? <KindStrip kinds={kinds} /> : null;
+  const marked = change === "added" || change === "removed" || change === "changed" ? MARK_LOOK[change].colour : null;
+  // Painted by the changes, a node's frame and icon take its mark's colour, an unchanged one grey.
+  const changeColour = paint === "changes" ? (marked ?? "#cbd5e1") : null;
   const common = {
     position: "absolute" as const,
     left: 0,
@@ -87,9 +93,9 @@ export function ExplorerNode({ graph, node, hot, paint, kinds, onClick, onHover 
     const domain = graph.domains.get(id);
     const quiet = !graph.withEvents(id);
     const coverage = COVERAGE_COLOUR[quiet ? "without" : "with"];
-    const disk = paint === "domains" ? (domain?.accent_color ?? "#3b82f6") : paint === "coverage" ? coverage : NEUTRAL;
+    const disk = changeColour ?? (paint === "domains" ? (domain?.accent_color ?? "#3b82f6") : paint === "coverage" ? coverage : NEUTRAL);
     return (
-      <ButtonBase {...events} sx={{ ...common, bgcolor: "#fff", border: `${paint === "coverage" ? 1.5 : 1}px solid ${paint === "coverage" ? coverage : "#e2e8f0"}`, opacity: quiet ? 0.6 : 1 }}>
+      <ButtonBase {...events} sx={{ ...common, bgcolor: "#fff", border: `${paint === "coverage" || changeColour ? 1.5 : 1}px solid ${changeColour ?? (paint === "coverage" ? coverage : "#e2e8f0")}`, opacity: quiet ? 0.6 : 1 }}>
         <img src={svgDataUriForInterchangeDomainLegend(disk)} width={26} height={26} alt="" style={{ borderRadius: "50%", flexShrink: 0 }} />
         <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
           {name({ fontSize: 13, fontWeight: 600 })}
@@ -101,7 +107,7 @@ export function ExplorerNode({ graph, node, hot, paint, kinds, onClick, onHover 
   if (kind === "event") {
     const held = (graph.holders.get(id)?.size ?? 0) > 0;
     // An event keeps its own amber by the domains, which give it no colour; another section that does not paint it makes it grey.
-    const colour = paint === "events" ? STATUS_COLOUR[graph.eventStatus(id)] : paint === "methods" ? (methodFrame ?? NEUTRAL) : paint === "domains" ? EVENT_COLOUR : NEUTRAL;
+    const colour = changeColour ?? (paint === "events" ? STATUS_COLOUR[graph.eventStatus(id)] : paint === "methods" ? (methodFrame ?? NEUTRAL) : paint === "domains" ? EVENT_COLOUR : NEUTRAL);
     const fill = paint === "events" ? `${colour}14` : paint === "domains" ? "#fffbeb" : "#ffffff";
     return (
       <ButtonBase {...events} sx={{ ...common, bgcolor: fill, border: `1.5px ${held ? "solid" : "dashed"} ${colour}` }}>
@@ -115,8 +121,8 @@ export function ExplorerNode({ graph, node, hot, paint, kinds, onClick, onHover 
   const domain = graph.domains.get(action?.domain_id ?? "");
   const emits = graph.emitsOf.has(id);
   const own = ACTION_COLOUR[emits ? "with" : "without"];
-  const frame = paint === "domains" ? (domain?.accent_color ?? NEUTRAL) : paint === "actions" ? own : (methodFrame ?? "#cbd5e1");
-  const icon = paint === "actions" ? own : (methodFrame ?? SLATE);
+  const frame = changeColour ?? (paint === "domains" ? (domain?.accent_color ?? NEUTRAL) : paint === "actions" ? own : (methodFrame ?? "#cbd5e1"));
+  const icon = changeColour ?? (paint === "actions" ? own : (methodFrame ?? SLATE));
   return (
     <ButtonBase {...events} sx={{ ...common, bgcolor: "#fff", border: `1.5px solid ${frame}`, opacity: emits ? 1 : 0.6 }}>
       {strip}
