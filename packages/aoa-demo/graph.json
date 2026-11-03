@@ -37680,6 +37680,15 @@
       "type": "field"
     },
     {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params|field|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:renewal_day",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params",
+      "target_id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:renewal_day",
+      "type": "field"
+    },
+    {
       "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result|field|aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result:subscription_id",
       "is_dag": false,
       "properties": {},
@@ -42562,7 +42571,7 @@
       "properties": {
         "cardinality": "one",
         "deprecated": false,
-        "description": "Inventory facility staging this shipment",
+        "description": "Cross-dock the shipment leaves from",
         "field_name": "origin_facility",
         "has_inverse": false,
         "optional": false,
@@ -42570,7 +42579,7 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.entities.shipment_parcel.ShipmentParcelCoreEntity",
-      "target_id": "aoa.demo.model.inventory.entities.inv_facility_warehouse.FacilityWarehouseCoreEntity",
+      "target_id": "aoa.demo.model.inventory.entities.inv_crossdock_staging.CrossDockStagingCoreEntity",
       "type": "entity_relation"
     },
     {
@@ -54496,6 +54505,30 @@
       "type": "lifecycle_transition"
     },
     {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "paused"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|paused",
+      "is_dag": false,
+      "properties": {
+        "from_state": "paused",
+        "to_state": "active"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "type": "lifecycle_transition"
+    },
+    {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|trial",
       "is_dag": false,
       "properties": {
@@ -54542,6 +54575,17 @@
       "type": "lifecycle_contains_state"
     },
     {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
+      "is_dag": false,
+      "properties": {
+        "state_key": "paused"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
+      "type": "lifecycle_contains_state"
+    },
+    {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
       "is_dag": false,
       "properties": {
@@ -54551,6 +54595,18 @@
       "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
       "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",
       "type": "lifecycle_contains_state"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|paused",
+      "is_dag": false,
+      "properties": {
+        "from_state": "paused",
+        "to_state": "active"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "type": "lifecycle_transition"
     },
     {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|trial",
@@ -54586,6 +54642,18 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
       "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "paused"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
       "type": "lifecycle_transition"
     },
     {
@@ -54660,23 +54728,6 @@
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
       "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity",
-      "type": "entity_relation"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_relation|first_order",
-      "is_dag": false,
-      "properties": {
-        "cardinality": "one",
-        "deprecated": false,
-        "description": "Order that started the subscription",
-        "field_name": "first_order",
-        "has_inverse": false,
-        "optional": false,
-        "relation_type": "association"
-      },
-      "relationship": "Association",
-      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
-      "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
       "type": "entity_relation"
     },
     {
@@ -83569,6 +83620,17 @@
       "type": "Field"
     },
     {
+      "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Params:renewal_day",
+      "label": "renewal_day",
+      "properties": {
+        "description": "Day of the month the subscription renews",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": false
+      },
+      "type": "Field"
+    },
+    {
       "id": "aoa.demo.model.store.actions.subscription_start.SubscriptionStartAction.Result",
       "label": "Result",
       "properties": {},
@@ -92401,12 +92463,26 @@
         "attributes": {
           "code": "cancelled",
           "display_name": "Cancelled",
-          "sort_order": 3
+          "sort_order": 4
         },
         "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
         "state_key": "cancelled"
       },
       "type": "StateFinal"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
+      "label": "Paused",
+      "properties": {
+        "attributes": {
+          "code": "paused",
+          "display_name": "Paused",
+          "sort_order": 3
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
+        "state_key": "paused"
+      },
+      "type": "StateIntermediate"
     },
     {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:trial",

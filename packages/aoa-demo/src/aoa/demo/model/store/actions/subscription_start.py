@@ -19,6 +19,7 @@ class SubscriptionStartAction(BaseAction["SubscriptionStartAction.Params", "Subs
     class Params(BaseParams):
         customer_id: str = Field(description="Customer id")
         plan_code: str = Field(description="Code of the plan to subscribe to")
+        renewal_day: int = Field(default=1, description="Day of the month the subscription renews", ge=1, le=28)
 
     class Result(BaseResult):
         subscription_id: str = Field(description="Id of the new subscription")
