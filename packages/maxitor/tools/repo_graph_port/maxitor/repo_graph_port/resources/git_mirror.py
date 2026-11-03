@@ -21,6 +21,7 @@ ARCHITECTURE / DATA FLOW
     open(repository[, url]) ──► local path as it is, or git clone --bare --filter=blob:none
     fetch(repository)       ──► git fetch (branches and tags), one at a time per repository
     versions / first_parents / tags / file_at ──► git log / rev-list / for-each-ref / show
+    earlier_paths ──► git log --follow: the paths a file had before it moved
     contribution / proposal                   ──► rev-list --parents, log, merge-base, diff --shortstat
     pull_heads / merged / commit              ──► for-each-ref refs/pull, merge-base --is-ancestor, log -1
 
@@ -132,6 +133,17 @@ class GitMirror(BaseStorage):
             utc = datetime.fromisoformat(date).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
             commits.append(Commit(sha=sha, date=utc, message=message.rstrip("\n")))
         return commits
+
+    def earlier_paths(self, repository: str, branch: str, path: str) -> list[str]:
+        """The paths ``path`` had on ``branch`` before it moved, newest first; none for a file that never moved."""
+        out = self._git(self._place(repository), ["log", "--first-parent", "--follow", "--format=", "--name-status", branch, "--", path])
+        found: list[str] = []
+        for line in out.decode("utf-8").splitlines():
+            # A move reads ``R<similarity>\t<old path>\t<new path>``.
+            status, *names = line.split("\t")
+            if status.startswith("R") and len(names) == 2 and names[0] not in found:
+                found.append(names[0])
+        return found
 
     def first_parents(self, repository: str, branch: str) -> list[str]:
         """Every commit of ``branch`` by first parent, oldest first — the chain a tag must sit on to be placed."""

@@ -20,6 +20,7 @@ ARCHITECTURE / DATA FLOW
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 
@@ -59,6 +60,19 @@ class History:
     def watched_paths(self) -> tuple[str, ...]:
         """Every path whose change can make a point."""
         return (*self.graph_paths, *self.version_paths)
+
+    def followed(self, graph_before: Sequence[str], version_before: Sequence[str]) -> History:
+        """The history with the earlier paths git found joined to the ones its config lists, newest first, none twice."""
+        return replace(
+            self,
+            graph_file_before=_joined(graph_before, self.graph_file_before, self.graph_file),
+            version_file_before=_joined(version_before, self.version_file_before, self.version_file),
+        )
+
+
+def _joined(found: Sequence[str], listed: Sequence[str], current: str | None) -> tuple[str, ...]:
+    """``found`` then ``listed``, each path once, the current path left out."""
+    return tuple(dict.fromkeys(path for path in (*found, *listed) if path != current))
 
 
 def _blob(link: str) -> tuple[str, str, str, str] | None:

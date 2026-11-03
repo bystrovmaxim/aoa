@@ -95,7 +95,7 @@ class VersionAction(BaseAction[VersionParams, VersionResult]):
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
         kept = cache.graph(history.repository, history.graph_file, params.sha)
         if kept is None:
-            await refreshed(mirror, cache, host, history, ctx.get("env.history_refresh_seconds"))
+            history = await refreshed(mirror, cache, host, history, ctx.get("env.history_refresh_seconds"))
             points = await points_of(mirror, cache, host, history)
             # A version, or the head of a pull request still open: a reader looks at it before it is merged.
             heads = await asyncio.to_thread(mirror.pull_heads, history.repository)

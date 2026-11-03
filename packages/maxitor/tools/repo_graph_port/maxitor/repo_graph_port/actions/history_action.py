@@ -117,7 +117,7 @@ class HistoryAction(BaseAction[HistoryParams, HistoryResult]):
         cache = cast(VersionCache, connections["VersionCache"])
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
         interval = ctx.get("env.history_refresh_seconds")
-        await refreshed(mirror, cache, host, history, interval)
+        history = await refreshed(mirror, cache, host, history, interval)
         points = await points_of(mirror, cache, host, history)
         shas = [point.commit.sha for point in points]
         if params.after is not None and params.after not in shas:

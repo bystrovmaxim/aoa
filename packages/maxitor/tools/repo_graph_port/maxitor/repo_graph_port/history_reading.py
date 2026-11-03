@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
 
     chosen(config, id, link, reader)            ──► History, or HistoryNotFoundError
     credentials(host, history)                  ──► the App's git configuration for a private history, none otherwise
-    refreshed(mirror, cache, host, history, s)  ──► mirror opened; fetched when older than s seconds
+    refreshed(mirror, cache, host, history, s)  ──► mirror opened; fetched when older than s seconds; the history followed through its moves
     facts_of / graph_of(..., sha)               ──► the cache, or git once and then the cache
     detail_of(..., sha, before)                 ──► who made it, its size, its graph change: the cache, or git once
     pull_request_of / release_of(..., s)        ──► the cache while younger than s seconds, or the host
@@ -105,8 +105,8 @@ async def credentials(host: GitHubHost, history: History) -> dict[str, str]:
     return GitHubHost.git_auth(token)
 
 
-async def refreshed(mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, interval_seconds: int) -> None:
-    """Open the history's repository, and fetch it when its last fetch is older than ``interval_seconds``."""
+async def refreshed(mirror: GitMirror, cache: VersionCache, host: GitHubHost, history: History, interval_seconds: int) -> History:
+    """Open the history's repository, fetch it when its last fetch is older than ``interval_seconds``, and answer the history with the paths its files had before they moved."""
     auth = await credentials(host, history)
     if not mirror.is_open(history.repository):
         await _open(mirror, history, auth)
@@ -115,6 +115,9 @@ async def refreshed(mirror: GitMirror, cache: VersionCache, host: GitHubHost, hi
     if last is None or now - last >= interval_seconds:
         await asyncio.to_thread(mirror.fetch, history.repository, auth)
         cache.mark_fetched(history.repository, now)
+    graph_before = await asyncio.to_thread(mirror.earlier_paths, history.repository, history.branch, history.graph_file)
+    version_before = await asyncio.to_thread(mirror.earlier_paths, history.repository, history.branch, history.version_file) if history.version_file else []
+    return history.followed(graph_before, version_before)
 
 
 async def _open(mirror: GitMirror, history: History, auth: dict[str, str]) -> None:

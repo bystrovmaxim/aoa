@@ -96,7 +96,7 @@ class DescribeHistoryAction(BaseAction[DescribeHistoryParams, DescribeHistoryRes
         mirror = cast(GitMirror, connections["GitMirror"])
         host = cast(GitHubHost, connections["GitHubHost"])
         history = chosen(cast(HistoriesConfig, connections["HistoriesConfig"]), params.history, params.link, ctx.get("user.history"), params.version_link, params.version_key)
-        await refreshed(mirror, cast(VersionCache, connections["VersionCache"]), host, history, ctx.get("env.history_refresh_seconds"))
+        history = await refreshed(mirror, cast(VersionCache, connections["VersionCache"]), host, history, ctx.get("env.history_refresh_seconds"))
         await box.info(Channel.business, "History {%var.history} described for {%var.reader}", history=history.id, reader=ctx.get("user.user_id") or "a guest")
         points = await points_of(mirror, cast(VersionCache, connections["VersionCache"]), host, history)
         return DescribeHistoryResult(

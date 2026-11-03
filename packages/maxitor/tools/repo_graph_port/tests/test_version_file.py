@@ -207,7 +207,7 @@ def test_a_version_link_elsewhere_is_a_problem() -> None:
 
 
 def test_a_moved_folder_keeps_its_history(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """With old paths both sides of the move are read; without them the history starts at the move."""
+    """With old paths listed both sides of the move are read, and without them too: the port finds them in git."""
     service = _Service(tmp_path, capsys, settings='version_file = "new/version.toml"\ngraph_file_before = ["svc/graph.json"]\nversion_file_before = ["svc/version.toml"]\n')
     service.commit("raised", {"svc/version.toml": TOML.format("1.1.0")})
     (tmp_path / "repo" / "new").mkdir()
@@ -226,7 +226,7 @@ def test_a_moved_folder_keeps_its_history(tmp_path: Path, capsys: pytest.Capture
     bare = text.replace('graph_file_before = ["svc/graph.json"]\n', "").replace('version_file_before = ["svc/version.toml"]\n', "")
     config.write_text(bare, encoding="utf-8")
     fresh = TestClient(create_app(config, tmp_path / "cache-bare"))
-    assert fresh.get(f"{BASE}/svc/versions", headers=headers).json()["versions"][0]["version"] == "1.1.0"
+    assert [v["version"] for v in fresh.get(f"{BASE}/svc/versions", headers=headers).json()["versions"]] == ["1.0.0", "1.1.0", "1.2.0"]
 
 
 def _propose(service: _Service, number: int, name: str, files: dict[str, str]) -> str:
