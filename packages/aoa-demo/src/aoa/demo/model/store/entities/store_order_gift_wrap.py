@@ -12,7 +12,7 @@ from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecy
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Gift wrap add-on", domain=StoreDomain)
+@entity(description="Gift wrapping a customer adds to an order, with its paper and a note", domain=StoreDomain)
 class GiftWrapAddonCoreEntity(BaseCoreEntity):
     id: str = Field(description="GiftWrapAddonCoreEntity id")
     lifecycle: SalesOrderLifecycle = Field(description="GiftWrapAddonCoreEntity lifecycle")
@@ -23,6 +23,7 @@ class GiftWrapAddonCoreEntity(BaseCoreEntity):
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     recipient_note: str = Field(description="Short message printed on the gift card for the recipient")
+    wrap_color: str = Field(default="red", description="Colour of the wrapping paper")
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
