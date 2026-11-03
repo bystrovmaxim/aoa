@@ -4,7 +4,7 @@
  * (Graphviz renderer only; other engines omitted).
  */
 
-import type { ChangedPart } from "@/api/compare";
+import type { ChangedPart } from "../api/compare";
 
 /** What happened to a table, a row or a line between two versions (spec 038); absent while one version is drawn. */
 /** A table in the drawing: the rows a collapse hides, and whether it is collapsed. */
