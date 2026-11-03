@@ -59,7 +59,7 @@ Paths below are relative to `packages/maxitor/web/` unless they start with `docs
 
 ## Phase 6: Documentation (one commit)
 
-- [ ] T034 Rewrite the Events paragraph of `docs/tutorials/step-29-maxitor.md` for the explorer: modes, ports by layer, joining ports, filters and paint, Diff on ports
+- [x] T034 Rewrite the Events paragraph of `docs/tutorials/step-29-maxitor.md` for the explorer: modes, ports by layer, joining ports, filters and paint, Diff on ports
 
 ## Phase 7: Changelog (one commit)
 
