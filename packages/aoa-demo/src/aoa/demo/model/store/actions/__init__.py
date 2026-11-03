@@ -1,5 +1,4 @@
 # packages/aoa-demo/src/aoa/demo/model/store/actions/__init__.py
-from aoa.demo.model.store.actions.cart_abandon_stub import CartAbandonStubAction
 from aoa.demo.model.store.actions.checkout_submit import CheckoutSubmitAction
 from aoa.demo.model.store.actions.inventory_hold_stub import InventoryHoldStubAction
 from aoa.demo.model.store.actions.loyalty_points_stub import LoyaltyPointsStubAction
@@ -10,8 +9,6 @@ from aoa.demo.model.store.actions.store_read import StoreReadAction
 from aoa.demo.model.store.actions.store_read_use_case_demo import StoreReadUseCaseDemoAction
 from aoa.demo.model.store.actions.subscription_start import SubscriptionStartAction
 
-CartAbandonStubParams = CartAbandonStubAction.Params
-CartAbandonStubResult = CartAbandonStubAction.Result
 CheckoutSubmitParams = CheckoutSubmitAction.Params
 CheckoutSubmitResult = CheckoutSubmitAction.Result
 InventoryHoldStubParams = InventoryHoldStubAction.Params
@@ -32,9 +29,6 @@ SubscriptionStartParams = SubscriptionStartAction.Params
 SubscriptionStartResult = SubscriptionStartAction.Result
 
 __all__ = [
-    "CartAbandonStubAction",
-    "CartAbandonStubParams",
-    "CartAbandonStubResult",
     "CheckoutSubmitAction",
     "CheckoutSubmitParams",
     "CheckoutSubmitResult",

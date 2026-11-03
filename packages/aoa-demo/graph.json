@@ -36304,15 +36304,6 @@
       "type": "parent_role"
     },
     {
-      "id": "aoa.demo.model.roles.legacy.DeprecatedRole|application|aoa.action_machine.application.application.Application",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.roles.legacy.DeprecatedRole",
-      "target_id": "aoa.action_machine.application.application.Application",
-      "type": "application"
-    },
-    {
       "id": "aoa.demo.model.roles.viewer.ViewerRole|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -36763,69 +36754,6 @@
       "source_id": "aoa.demo.model.settlement_desks.settlement_desks_domain.SettlementDesksDomain",
       "target_id": "aoa.action_machine.application.application.Application",
       "type": "application"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params|field|aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params:session_id",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params",
-      "target_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params:session_id",
-      "type": "field"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result|field|aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result:scheduled",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result",
-      "target_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result:scheduled",
-      "type": "field"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Association",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
-      "type": "@check_roles"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction|@summary_aspect|aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction:schedule_summary",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "target_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction:schedule_summary",
-      "type": "@summary_aspect"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction|domain|aoa.demo.model.store.store_domain.StoreDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction|generic:params|aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "target_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params",
-      "type": "generic:params"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction|generic:result|aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "target_id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result",
-      "type": "generic:result"
     },
     {
       "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:api_token_hint|sensitive|aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction.Params:sensitive:api_token_hint",
@@ -37437,15 +37365,6 @@
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction",
       "target_id": "aoa.demo.model.roles.editor.EditorRole",
-      "type": "@check_roles"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction|@check_roles|aoa.demo.model.roles.legacy.DeprecatedRole",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Association",
-      "source_id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction",
-      "target_id": "aoa.demo.model.roles.legacy.DeprecatedRole",
       "type": "@check_roles"
     },
     {
@@ -41077,18 +40996,6 @@
       "type": "lifecycle_transition"
     },
     {
-      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:provisioned|lifecycle_transition|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed|provisioned",
-      "is_dag": false,
-      "properties": {
-        "from_state": "provisioned",
-        "to_state": "closed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:provisioned",
-      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed",
-      "type": "lifecycle_transition"
-    },
-    {
       "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:active",
       "is_dag": false,
       "properties": {
@@ -41138,18 +41045,6 @@
       "is_dag": false,
       "properties": {
         "from_state": "active",
-        "to_state": "closed"
-      },
-      "relationship": "Composition",
-      "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle",
-      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed",
-      "type": "lifecycle_transition"
-    },
-    {
-      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle:closed|provisioned",
-      "is_dag": false,
-      "properties": {
-        "from_state": "provisioned",
         "to_state": "closed"
       },
       "relationship": "Composition",
@@ -82532,15 +82427,6 @@
       "type": "Role"
     },
     {
-      "id": "aoa.demo.model.roles.legacy.DeprecatedRole",
-      "label": "DeprecatedRole",
-      "properties": {
-        "description": "Deprecated role kept for migration demos",
-        "role_mode": "deprecated"
-      },
-      "type": "Role"
-    },
-    {
       "id": "aoa.demo.model.roles.viewer.ViewerRole",
       "label": "ViewerRole",
       "properties": {
@@ -82823,56 +82709,6 @@
         "typed_events": false
       },
       "type": "Domain"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction",
-      "label": "CartAbandonStubAction",
-      "properties": {
-        "description": "Schedule cart abandonment follow-up (store sample stub)"
-      },
-      "type": "Action"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params",
-      "label": "Params",
-      "properties": {},
-      "type": "Params"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Params:session_id",
-      "label": "session_id",
-      "properties": {
-        "description": "Checkout session id",
-        "entity_schema": false,
-        "json_schema_value": false,
-        "required": true
-      },
-      "type": "Field"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result",
-      "label": "Result",
-      "properties": {},
-      "type": "Result"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction.Result:scheduled",
-      "label": "scheduled",
-      "properties": {
-        "description": "Stub schedule flag",
-        "entity_schema": false,
-        "json_schema_value": false,
-        "required": true
-      },
-      "type": "Field"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.cart_abandon_stub.CartAbandonStubAction:schedule_summary",
-      "label": "schedule_summary",
-      "properties": {
-        "description": "Schedule"
-      },
-      "type": "SummaryAspect"
     },
     {
       "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
@@ -83369,7 +83205,7 @@
       "id": "aoa.demo.model.store.actions.role_migration.RoleMigrationAction",
       "label": "RoleMigrationAction",
       "properties": {
-        "description": "Demo action using deprecated + editor roles"
+        "description": "Demo action that records a migrated legacy item"
       },
       "type": "Action"
     },
