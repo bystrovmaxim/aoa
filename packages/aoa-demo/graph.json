@@ -51037,6 +51037,18 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_field|aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:wrap_color",
+      "is_dag": false,
+      "properties": {
+        "field_name": "wrap_color",
+        "ordinal": 8
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:wrap_color",
+      "type": "entity_field"
+    },
+    {
       "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_relation|order",
       "is_dag": false,
       "properties": {
@@ -89770,7 +89782,7 @@
       "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity",
       "label": "GiftWrapAddonCoreEntity",
       "properties": {
-        "description": "Gift wrap add-on",
+        "description": "Gift wrapping a customer adds to an order, with its paper and a note",
         "entity_kind": "core",
         "entity_kind_label": "Core"
       },
@@ -89993,6 +90005,17 @@
       "label": "tax_jurisdiction_stub",
       "properties": {
         "description": "Derived routing hint for taxation engines",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity:wrap_color",
+      "label": "wrap_color",
+      "properties": {
+        "description": "Colour of the wrapping paper",
         "field_annotation": "str",
         "field_type": "str",
         "primary_key_hint": false
