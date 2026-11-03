@@ -2353,6 +2353,72 @@
       "type": "generic:result"
     },
     {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult|field|maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult:events_explorer",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult",
+      "target_id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult:events_explorer",
+      "type": "field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "aoa.action_machine.auth.guest_role.GuestRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|@connection|maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "is_dag": true,
+      "properties": {
+        "description": "Coordinator graph in DuckDB",
+        "key": "DuckDBGraph"
+      },
+      "relationship": "Association",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "maxitor.web.model.diagrams.resources.duckdb_graph_resource.DuckDBGraphResource",
+      "type": "@connection"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|@summary_aspect|maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction:events_explorer_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction:events_explorer_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|domain|maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "maxitor.web.model.diagrams.diagrams_domain.DiagramsDomain",
+      "type": "domain"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|generic:params|aoa.action_machine.model.params_stub.ParamsStub",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "aoa.action_machine.model.params_stub.ParamsStub",
+      "type": "generic:params"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction|generic:result|maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "target_id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult",
+      "type": "generic:result"
+    },
+    {
       "id": "maxitor.web.model.diagrams.actions.full_graph_action.FullGraphAction.Result|field|maxitor.web.model.diagrams.actions.full_graph_action.FullGraphAction.Result:payload",
       "is_dag": false,
       "properties": {},
@@ -6934,6 +7000,204 @@
       "label": "build_use_case_summary",
       "properties": {
         "description": "Build domain use-case diagram JSON from DuckDB"
+      },
+      "type": "SummaryAspect"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult",
+      "label": "EventsExplorerResult",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.EventsExplorerResult:events_explorer",
+      "label": "events_explorer",
+      "properties": {
+        "description": "Domains, actions, events, vocabulary pairs and emitting methods.",
+        "entity_schema": false,
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "actions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "domain_id": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "short_label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "short_label",
+                  "domain_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "domains": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "accent_color": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "short_label": {
+                    "type": "string"
+                  },
+                  "vocabulary": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "short_label",
+                  "accent_color",
+                  "vocabulary"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "emits": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "action_id": {
+                    "type": "string"
+                  },
+                  "event_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "method_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "action_id",
+                  "method_id",
+                  "method",
+                  "kind",
+                  "event_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "events": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "fields": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "description"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "fields"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "holds": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "domain_id": {
+                    "type": "string"
+                  },
+                  "event_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "domain_id",
+                  "event_id"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "domains",
+            "actions",
+            "events",
+            "holds",
+            "emits"
+          ],
+          "type": "object"
+        },
+        "json_schema_name": "EventsExplorerJson",
+        "json_schema_value": true,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction",
+      "label": "GetEventsExplorerAction",
+      "properties": {
+        "description": "Return the whole events graph for the explorer"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "maxitor.web.model.diagrams.actions.events_explorer_action.GetEventsExplorerAction:events_explorer_summary",
+      "label": "events_explorer_summary",
+      "properties": {
+        "description": "Build the events graph of the explorer"
       },
       "type": "SummaryAspect"
     },
