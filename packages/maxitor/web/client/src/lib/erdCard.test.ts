@@ -78,6 +78,12 @@ describe("a table's card in Diff", () => {
     expect(erdSubject({ kind: "table", id: "t" }, [table], root)?.change).toMatchObject({ status: "changed", note: "Its fields changed." });
   });
 
+  it("says a table changed through its lifecycle and lists what changed in it", () => {
+    const part = { kind: "edge" as const, id: "x", label: "provisioned → closed", type: "Transition", group: "Transitions", status: "added" as const, differences: [] };
+    const table: ErdEntity = { id: "t", diff: "unchanged", fields: [{ name: "lifecycle", diff: "changed", lifecycle_id: "t:lifecycle:lifecycle", lifecycle_parts: [part] }] };
+    expect(erdSubject({ kind: "table", id: "t" }, [table], root)?.change).toMatchObject({ status: "changed", note: "Its lifecycle changed.", parts: [part] });
+  });
+
   it("leaves a table of no change unmarked", () => {
     expect(erdSubject({ kind: "table", id: "t" }, [{ id: "t", diff: "unchanged", fields: [{ name: "same", diff: "unchanged" }] }], root)?.change).toBeNull();
   });

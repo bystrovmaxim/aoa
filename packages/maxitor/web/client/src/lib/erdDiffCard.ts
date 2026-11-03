@@ -50,21 +50,25 @@ function shortName(id: string): string {
 }
 
 /**
- * Every change the ERD draws, in the order it draws them: each table, then its rows, then the lines that have no row,
- * each element once, as ``diagramCounts`` counts them.
+ * Every change the ERD draws, each element once, as ``diagramCounts`` counts them, and every change of one table together:
+ * the table itself when it changed, then its rows top to bottom, then the lines that leave it with no row; last the lines
+ * whose table is not drawn. A table changed only through its rows has no step of its own.
  */
 export function erdChanges(entities: readonly ErdEntity[], relations: readonly ErdRelation[]): ErdChange[] {
   const changes: ErdChange[] = [];
+  const drawn = new Set(entities.map((entity) => entity.id));
+  const line = (relation: ErdRelation, at: number, group: string) => {
+    if (!relation.source_field && marked(relation.diff)) changes.push({ key: relationKey(relation), title: `${shortName(relation.source)} → ${shortName(relation.target)}`, detail: relation.relationship_kind ?? "", status: relation.diff, group, cell: `re${at}`, card: null });
+  };
   entities.forEach((entity, table) => {
     const title = entity.label || entity.id;
     if (marked(entity.diff)) changes.push({ key: entity.id, title, detail: "Table", status: entity.diff, group: title, cell: `a_hd${table}`, card: { title, status: entity.diff, elements: [{ kind: "node", id: entity.id }], ...tableInside(entity) } });
     (entity.fields ?? []).forEach((field, row) => {
       if (marked(field.diff)) changes.push({ key: `${entity.id}:${field.name}`, title: field.name, detail: field.type ?? "", status: field.diff, group: title, cell: `a_fn${table}_${row}`, card: rowCard(entity.id, field, field.diff) });
     });
+    relations.forEach((relation, at) => relation.source === entity.id && line(relation, at, title));
   });
-  relations.forEach((relation, line) => {
-    if (!relation.source_field && marked(relation.diff)) changes.push({ key: relationKey(relation), title: `${shortName(relation.source)} → ${shortName(relation.target)}`, detail: relation.relationship_kind ?? "", status: relation.diff, group: "Lines", cell: `re${line}`, card: null });
-  });
+  relations.forEach((relation, at) => !drawn.has(relation.source) && line(relation, at, "Lines"));
   return changes;
 }
 

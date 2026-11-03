@@ -1,7 +1,7 @@
 // src/lib/erdDiff.test.ts
 import { describe, expect, it } from "vitest";
 import type { CompareResult } from "@/api/compare";
-import { buildDotSource, erdDiffMarks, erdEdgeId, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
+import { buildDotSource, erdDiffMarks, erdEdgeId, erdGlance, erdPreviousEdgeId, type ErdEntity, type ErdRelation } from "./buildDotSource";
 import { drawErdCards } from "./erdPostPass";
 import { diagramCounts, erdHolds, erdOfSide, erdPortable, markErd, mergeErdSlices, nothingChanged, unmarked } from "./erdDiff";
 
@@ -215,14 +215,17 @@ describe("a lifecycle is part of its table (spec 044)", () => {
   const mark = (nodes: Record<string, string>, edges: Record<string, string> = {}) =>
     markErd(mergeErdSlices({ entities: [table] }, { entities: [table] }), { counts: {}, nodes, edges } as unknown as CompareResult).entities![0];
 
-  it("makes the table and the field changed when a state went", () => {
+  it("marks the field changed when a state went, and draws the table changed through it, with no change of its own", () => {
     const entity = mark({ [`${life}:staging`]: "removed" });
-    expect(entity.diff).toBe("changed");
     expect(entity.fields?.map((field) => field.diff)).toEqual(["changed", "unchanged"]);
+    expect(entity.diff).toBe("unchanged");
+    expect(erdGlance(entity)).toBe("changed");
   });
 
   it("does the same for a transition", () => {
-    expect(mark({}, { [`${life}:a|lifecycle_transition|${life}:b|a`]: "added" }).diff).toBe("changed");
+    const entity = mark({}, { [`${life}:a|lifecycle_transition|${life}:b|a`]: "added" });
+    expect(entity.fields?.[0].diff).toBe("changed");
+    expect(erdGlance(entity)).toBe("changed");
   });
 
   it("leaves the table alone when another lifecycle changed", () => {

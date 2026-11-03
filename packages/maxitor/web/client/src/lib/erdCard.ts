@@ -21,7 +21,9 @@ function marked<T>(status: T): status is Exclude<T, "unchanged" | undefined> {
 function tableChange(entity: ErdEntity, title: string): CardTarget | null {
   const status = marked(entity.diff) ? entity.diff : (entity.fields ?? []).some((field) => marked(field.diff)) ? "changed" : null;
   if (!status) return null;
-  const inside = marked(entity.diff) ? tableInside(entity) : { note: FIELDS_CHANGED };
+  // Its own change, a move or its lifecycle say what changed; else only its other rows did.
+  const told = tableInside(entity);
+  const inside = marked(entity.diff) || told.note ? told : { note: FIELDS_CHANGED };
   return { title, status, elements: [{ kind: "node", id: entity.id }], ...inside };
 }
 
