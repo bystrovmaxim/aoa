@@ -18755,6 +18755,87 @@
       "type": "generic:result"
     },
     {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params|field|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:product_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:product_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params|field|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:rating",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:rating",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params|field|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:text",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:text",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result|field|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result:review_id",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result:review_id",
+      "type": "field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction|@check_roles|aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "target_id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole",
+      "type": "@check_roles"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction|@summary_aspect|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction:publish_summary",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction:publish_summary",
+      "type": "@summary_aspect"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction|generic:params|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "type": "generic:params"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction|generic:result|aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result",
+      "is_dag": false,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "target_id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result",
+      "type": "generic:result"
+    },
+    {
       "id": "aoa.demo.model.catalog.domain.CatalogDomain|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -21324,6 +21405,68 @@
       "type": "lifecycle"
     },
     {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_field|aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:id",
+      "is_dag": false,
+      "properties": {
+        "field_name": "id",
+        "ordinal": 0
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "target_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:id",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_field|aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:rating",
+      "is_dag": false,
+      "properties": {
+        "field_name": "rating",
+        "ordinal": 1
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "target_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:rating",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_field|aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:text",
+      "is_dag": false,
+      "properties": {
+        "field_name": "text",
+        "ordinal": 2
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "target_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:text",
+      "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_relation|product",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "Product the review is about",
+        "field_name": "product",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "target_id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity:lifecycle:lifecycle:draft|lifecycle_transition|aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity:lifecycle:lifecycle:staged|draft",
       "is_dag": false,
       "properties": {
@@ -22411,6 +22554,15 @@
       "source_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
       "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
     },
     {
       "id": "aoa.demo.model.catalog_custody.actions.custody_workbench_merge_action.CustodyWorkbenchMergeAction|@check_roles|aoa.demo.model.catalog_custody.catalog_officer_role.CatalogOfficerRole",
@@ -53921,6 +54073,18 @@
       "type": "lifecycle_transition"
     },
     {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "expired"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired",
+      "type": "lifecycle_transition"
+    },
+    {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:active|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused|active",
       "is_dag": false,
       "properties": {
@@ -53991,6 +54155,17 @@
       "type": "lifecycle_contains_state"
     },
     {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired",
+      "is_dag": false,
+      "properties": {
+        "state_key": "expired"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired",
+      "type": "lifecycle_contains_state"
+    },
+    {
       "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_contains_state|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:paused",
       "is_dag": false,
       "properties": {
@@ -54058,6 +54233,18 @@
       "relationship": "Composition",
       "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
       "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:cancelled",
+      "type": "lifecycle_transition"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle|lifecycle_transition|aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired|active",
+      "is_dag": false,
+      "properties": {
+        "from_state": "active",
+        "to_state": "expired"
+      },
+      "relationship": "Composition",
+      "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle",
+      "target_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired",
       "type": "lifecycle_transition"
     },
     {
@@ -69949,6 +70136,78 @@
       "type": "ErrorHandler"
     },
     {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction",
+      "label": "ReviewSubmitAction",
+      "properties": {
+        "description": "Publish a customer's review of a product (sample stub)"
+      },
+      "type": "Action"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params",
+      "label": "Params",
+      "properties": {},
+      "type": "Params"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:product_id",
+      "label": "product_id",
+      "properties": {
+        "description": "Product the review is about",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:rating",
+      "label": "rating",
+      "properties": {
+        "description": "Stars, from 1 to 5",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Params:text",
+      "label": "text",
+      "properties": {
+        "description": "What the customer wrote",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result",
+      "label": "Result",
+      "properties": {},
+      "type": "Result"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction.Result:review_id",
+      "label": "review_id",
+      "properties": {
+        "description": "Id of the published review",
+        "entity_schema": false,
+        "json_schema_value": false,
+        "required": true
+      },
+      "type": "Field"
+    },
+    {
+      "id": "aoa.demo.model.catalog.actions.review_submit.ReviewSubmitAction:publish_summary",
+      "label": "publish_summary",
+      "properties": {
+        "description": "Publish review"
+      },
+      "type": "SummaryAspect"
+    },
+    {
       "id": "aoa.demo.model.catalog.domain.CatalogDomain",
       "label": "CatalogDomain",
       "properties": {
@@ -71705,6 +71964,49 @@
       "type": "StateIntermediate"
     },
     {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
+      "label": "ProductReviewCoreEntity",
+      "properties": {
+        "description": "A customer's review of a product",
+        "entity_kind": "core",
+        "entity_kind_label": "Core"
+      },
+      "type": "Entity"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:id",
+      "label": "id",
+      "properties": {
+        "description": "Review id",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": true
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:rating",
+      "label": "rating",
+      "properties": {
+        "description": "Stars the customer gave, from 1 to 5",
+        "field_annotation": "int",
+        "field_type": "int",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity:text",
+      "label": "text",
+      "properties": {
+        "description": "What the customer wrote",
+        "field_annotation": "str",
+        "field_type": "str",
+        "primary_key_hint": false
+      },
+      "type": "EntityField"
+    },
+    {
       "id": "aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity",
       "label": "RegulatoryLabelPackCoreEntity",
       "properties": {
@@ -72480,6 +72782,15 @@
         "description": "Search sidecar index (stub)"
       },
       "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole",
+      "label": "ReviewModeratorRole",
+      "properties": {
+        "description": "Publishes product reviews and hides the ones that break the rules",
+        "role_mode": "alive"
+      },
+      "type": "Role"
     },
     {
       "id": "aoa.demo.model.catalog_custody.actions.custody_workbench_merge_action.CustodyWorkbenchMergeAction",
@@ -91486,6 +91797,20 @@
         },
         "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
         "state_key": "cancelled"
+      },
+      "type": "StateFinal"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity:lifecycle:lifecycle:expired",
+      "label": "Expired",
+      "properties": {
+        "attributes": {
+          "code": "expired",
+          "display_name": "Expired",
+          "sort_order": 5
+        },
+        "lifecycle_class_id": "aoa.demo.model.store.entities.subscription_lifecycle.SubscriptionLifecycle",
+        "state_key": "expired"
       },
       "type": "StateFinal"
     },
