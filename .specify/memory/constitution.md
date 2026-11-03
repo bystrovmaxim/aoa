@@ -16,6 +16,8 @@
     [PRINCIPLE_*] slots beyond V, [SECTION_2_NAME]/[SECTION_2_CONTENT],
     [SECTION_3_NAME]/[SECTION_3_CONTENT], [GOVERNANCE_RULES]
   Changes after the first draft of this file:
+    VI — at the maintainer's instruction: examples, documentation and the changelog ship in
+      the pull request of the code they describe, never as a pull request of their own (1.10.0)
     I — at the maintainer's instruction: a merge waits until every check of the pull
       request has passed, read check by check before merging (1.9.0)
     II — the paragraph allowing Russian in `*.ru.md` files and in the notes under
@@ -149,6 +151,8 @@ A change is not finished when its behaviour is finished. Once the code is what i
 
 **A pull request opens whole.** Before it opens, the branch holds everything the change is: the code, its tests, the rebuilt graph files, the raised versions, the documentation with its scripts and notebooks, and the changelog. A draft is no exception, and no part is left for a later commit. What CI finds after that is fixed in the same pull request; it is never a reason to open one early.
 
+**Examples, documentation and the changelog never travel alone.** They ship in the same pull request as the code they describe, never as a pull request of their own, before or after it. When a change makes any of them untrue — a merge that ends what a page says is still open, a renamed thing a guide still names — the text is put right in that same pull request, before it merges. A pull request that changes only examples, documentation or the changelog is opened only on the maintainer's instruction, for a page that describes no change of code.
+
 1. **The check run, taken to zero.** Before the pull request opens, every check that can run on this machine is taken to zero. CI's closing check run on the pull request is then read and **every** remark it reports is fixed — none triaged away, none accepted as known, none left for later. The run is green or the change is not finished.
 2. **The documentation.** Written after the code is settled, never beside it, and before the pull request opens.
 3. **The changelog, written last, as one article, and before the pull request opens.** `docs/CHANGELOG.md` gets a single readable piece about this work: what it created, in plain words, with the nuances a user has to know — and without technical detail. It is not a log of the issue's changes, not a per-file account of what moved, and not a list of commits. A reader who has not followed the work should finish it knowing what they can now do.
@@ -190,4 +194,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.9.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
+**Version**: 1.10.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
