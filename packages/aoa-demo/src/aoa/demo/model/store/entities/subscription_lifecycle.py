@@ -21,10 +21,11 @@ class SubscriptionStateEntity(BaseStateEntity):
     ACTIVE = value(code="active", display_name="Active", sort_order=2)
     PAUSED = value(code="paused", display_name="Paused", sort_order=3)
     CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=4)
+    EXPIRED = value(code="expired", display_name="Expired", sort_order=5)
 
 
 class SubscriptionLifecycle(Lifecycle[SubscriptionStateEntity]):
-    """Trial → active → cancelled; a trial may be cancelled, and an active subscription paused and resumed."""
+    """Trial → active → cancelled; a trial may be cancelled, an active subscription paused and resumed, or left to expire."""
 
     _template = (
         Lifecycle()
@@ -32,11 +33,13 @@ class SubscriptionLifecycle(Lifecycle[SubscriptionStateEntity]):
         .to(SubscriptionStateEntity.ACTIVE, SubscriptionStateEntity.CANCELLED)
         .initial()
         .state(SubscriptionStateEntity.ACTIVE)
-        .to(SubscriptionStateEntity.PAUSED, SubscriptionStateEntity.CANCELLED)
+        .to(SubscriptionStateEntity.PAUSED, SubscriptionStateEntity.CANCELLED, SubscriptionStateEntity.EXPIRED)
         .intermediate()
         .state(SubscriptionStateEntity.PAUSED)
         .to(SubscriptionStateEntity.ACTIVE)
         .intermediate()
         .state(SubscriptionStateEntity.CANCELLED)
+        .final()
+        .state(SubscriptionStateEntity.EXPIRED)
         .final()
     )

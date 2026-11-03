@@ -17,6 +17,7 @@ from aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub import (
 from aoa.demo.model.catalog.entities.catalog_merch_copy_variant import MerchCopyVariantCoreEntity
 from aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotCoreEntity
 from aoa.demo.model.catalog.entities.catalog_product_lifecycle import CatalogProductLifecycle
+from aoa.demo.model.catalog.entities.catalog_product_review import ProductReviewCoreEntity
 from aoa.demo.model.catalog.entities.catalog_regulatory_label_pack import RegulatoryLabelPackCoreEntity
 from aoa.demo.model.catalog.entities.catalog_search_boost_weight import SearchBoostWeightCoreEntity
 from aoa.demo.model.catalog.entities.catalog_shelf_placement_hint import ShelfPlacementHintCoreEntity
@@ -39,6 +40,7 @@ __all__ = [
     "ConversionAttributionStubCoreEntity",
     "MerchCopyVariantCoreEntity",
     "PriceRibbonSnapshotCoreEntity",
+    "ProductReviewCoreEntity",
     "RegulatoryLabelPackCoreEntity",
     "SearchBoostWeightCoreEntity",
     "ShelfPlacementHintCoreEntity",
