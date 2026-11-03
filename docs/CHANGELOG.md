@@ -2,7 +2,7 @@
 
 ## [2026-11-03] — The demo's graph history
 
-The demo now has a real history to look at in Maxitor. Thirteen ordinary pull requests changed it one after another, each saying what it did: tables added, moved and removed, fields whose type changed, lifecycles growing and losing states, roles and actions coming and going, a whole domain added and later closed. Three of them are releases, published to PyPI. One is still open. Paste the link from [the guide](how-to/open-a-graph-history.md#try-it-on-the-demo) and compare any two.
+The demo now has a real history to look at in Maxitor. Thirteen ordinary pull requests changed it one after another, each saying what it did: tables added, moved and removed, fields whose type changed, lifecycles growing and losing states, roles and actions coming and going, a whole domain added and later closed. Three of them are releases, published to PyPI. Paste the link from [the guide](how-to/open-a-graph-history.md#try-it-on-the-demo) and compare any two.
 
 Watching it grow changed Maxitor where it read badly. A flag above a point now means a real release: a tag published as a GitHub Release. A tag that is only named `release…` is no flag any more, so a repository that publishes no releases shows no flags at all. In a repository of several packages, a history with a version file takes only the tags of its own versions, so another package's release no longer stands on it.
 

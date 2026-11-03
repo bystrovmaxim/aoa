@@ -47,7 +47,7 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | ✅ V11 (#384) | medium | work after the release | In the catalog domain, a new table `ProductReview` linked to the product, an action to submit a review and a new role, review moderator. The subscription lifecycle gains the state Expired | large point | 3.13.0 · #380 |
 | ✅ M5 (#385) | small | A's chip reads apart from B's | **Maxitor only**: in Diff and Side by side the chip of A is white with a dark outline and dark text, B's stays dark, on the track and pinned to its edge | not shown | — |
 | ✅ V12 (#386) | medium | returns | Returns: the return request (`ReturnRequest`) gains the field `reason_code`, an action to approve a return and a new state. After the merge, the demo's release | large point, release flag | 3.14.0 🚩 |
-| ✅ V13 (#387) | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. The pull request stays open | after Live, open | 3.15.0 |
+| ✅ V13 (#387) | small | exchanges | The return request gains the field `exchange_sku` and the state Exchanged. Left open after Live while the history was built, merged at the maintainer's word | after Live, open | 3.15.0 |
 
 ## Where each kind of change is found
 
@@ -73,7 +73,7 @@ Maxitor shows the history of a service's graph: any past version, or two version
 | History | tag and release (flag) | V5, V10, V12 |
 | History | code changed, graph not (small point) | C1, C2 |
 | History | nothing counted changed (not shown) | N1 |
-| History | open pull request after Live | V13 |
+| History | open pull request after Live | V13, until it was merged; C2 and V7 too while they were open |
 
 ## Checks
 
@@ -82,7 +82,7 @@ Maxitor shows the history of a service's graph: any past version, or two version
 
 ## Success Criteria
 
-- **SC-001**: The demo's history shows at least ten versions on the track, with one pull request, V13, open after Live.
+- **SC-001**: The demo's history shows at least ten versions on the track, with an open pull request after Live while one is open: V13 stood there until the maintainer had it merged.
 - **SC-002**: Every row of "Where each kind of change is found" is seen by comparing two versions in Maxitor.
 - **SC-003**: The history opens by its public link with no key.
 - **SC-004**: The demo runs and every check passes after each merged pull request.
