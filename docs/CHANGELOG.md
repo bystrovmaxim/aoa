@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-04] — A schema field checks its schema once
+
+Fields that hold JSON checked by a JSON Schema — `JsonSchemaValue` and an entity projection, `OrderCoreEntity.schema(schema={...})` — used to check the schema itself again on every value, and that took most of the time: about 550 µs per value for a three-field row. Now the schema is checked once, when the field is declared, and a value takes about 10 µs. Nothing you write changes, and every value passes or fails as before, with the same error.
+
+The schema is also checked in the right draft of JSON Schema. A schema that names its draft in `"$schema"` is checked in that draft; one that names none, in the newest, 2020-12 — the draft its values were always checked with. Before, the declaration checked every schema as Draft 7, so a schema the two drafts read differently, such as a Draft 7 fixed-length array written as a list under `items`, was accepted and then failed on every value with a `SchemaError` that Pydantic did not catch. Such a schema is now refused at import; name it as Draft 7 if that is what it is. No schema in this repository was affected.
+
+[Tutorial step 17](tutorials/step-17-schema-results.md#which-draft-checks-the-schema) shows each case with a script and a notebook.
+
 ## [2026-11-04] — An entity says only what is true
 
 Two things made an entity say something untrue in Python, before any JSON was involved. Both are fixed; this is the first step of making entities usable as the fields of Params and Result (#399).
