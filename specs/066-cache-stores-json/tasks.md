@@ -11,8 +11,8 @@
 
 ## Phase 2: The write's read-back (US2, 9.2) — one commit
 
-- [ ] T003 [US2] Tests: the three kinds raise `CacheSerializationError` with the messages of R2, nothing stored; it is a `CacheContractError`.
-- [ ] T004 Implement R2 and `exceptions/cache_serialization_error.py`.
+- [X] T003 [US2] Tests: the three kinds raise `CacheSerializationError` with the messages of R2, nothing stored; it is a `CacheContractError`.
+- [X] T004 Implement R2 and `exceptions/cache_serialization_error.py`.
 
 ## Phase 3: Stale entries (US3, 9.3) — one commit
 

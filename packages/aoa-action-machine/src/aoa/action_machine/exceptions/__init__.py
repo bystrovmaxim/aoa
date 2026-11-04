@@ -16,6 +16,7 @@ from aoa.action_machine.exceptions.async_required_error import AsyncRequiredErro
 from aoa.action_machine.exceptions.authentication_contract_error import AuthenticationContractError
 from aoa.action_machine.exceptions.authorization_error import AuthorizationError
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
+from aoa.action_machine.exceptions.cache_serialization_error import CacheSerializationError
 from aoa.action_machine.exceptions.checker_declaration_error import CheckerDeclarationError
 from aoa.action_machine.exceptions.connection_already_open_error import ConnectionAlreadyOpenError
 from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNotOpenError
@@ -72,6 +73,7 @@ __all__ = [
     "AuthenticationContractError",
     "AuthorizationError",
     "CacheContractError",
+    "CacheSerializationError",
     "CheckerDeclarationError",
     "ConnectionAlreadyOpenError",
     "ConnectionNotOpenError",

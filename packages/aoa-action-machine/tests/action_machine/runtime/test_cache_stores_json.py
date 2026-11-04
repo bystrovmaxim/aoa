@@ -16,9 +16,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
+import pytest
+from pydantic import Field, field_serializer
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
+from aoa.action_machine.exceptions.cache_serialization_error import CacheSerializationError
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.cache import cache_key, cache_read, cache_write
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
@@ -122,3 +125,127 @@ async def test_the_read_receives_a_new_result_with_the_stored_metadata() -> None
     assert entry.result.names == ["a"]
     assert (entry.pipeline_duration_ms, entry.created_at) == (stored.pipeline_duration_ms, stored.created_at)
     assert entry.access_count == 1
+
+
+# ─── 9.2: a Result that does not read back is refused at the write ─────────────
+
+
+class Frame:
+    """A plain Python class, like a DataFrame."""
+
+
+@meta(description="ReportAction for the read-back tests", domain=OrdersDomain)
+@check_roles(GuestRole)
+class ReportAction(BaseAction[ParamsStub, "ReportAction.Result"]):
+    """Its Result has a JSON Schema and holds a value that has no JSON form."""
+
+    class Result(BaseResult):
+        summary: str = Field(description="Summary")
+        data: Any = Field(description="Raw data")
+
+    @cache_key("One key")
+    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        return "ReportAction"
+
+    @cache_write("Keep it", tags=(CachedItemCoreEntity,))
+    async def picked_cache_write(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ReportAction.Result, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return []
+
+    @summary_aspect("Answer")
+    async def picked_summary(
+        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> ReportAction.Result:
+        return ReportAction.Result(summary="ok", data=Frame())
+
+
+@meta(description="CountAction for the read-back tests", domain=OrdersDomain)
+@check_roles(GuestRole)
+class CountAction(BaseAction[ParamsStub, "CountAction.Result"]):
+    """Its Result writes its count as text its own field does not accept."""
+
+    class Result(BaseResult):
+        count: int = Field(description="Count")
+
+        @field_serializer("count")
+        def _count_text(self, value: int) -> str:
+            return f"{value} items"
+
+    @cache_key("One key")
+    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        return "CountAction"
+
+    @cache_write("Keep it", tags=(CachedItemCoreEntity,))
+    async def picked_cache_write(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: CountAction.Result, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return []
+
+    @summary_aspect("Answer")
+    async def picked_summary(
+        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> CountAction.Result:
+        return CountAction.Result(count=2)
+
+
+@meta(description="FloorAction for the read-back tests", domain=OrdersDomain)
+@check_roles(GuestRole)
+class FloorAction(BaseAction[ParamsStub, "FloorAction.Result"]):
+    """Its Result writes its count as another valid count."""
+
+    class Result(BaseResult):
+        count: int = Field(description="Count")
+
+        @field_serializer("count")
+        def _floor(self, value: int) -> int:
+            return value // 10 * 10
+
+    @cache_key("One key")
+    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        return "FloorAction"
+
+    @cache_write("Keep it", tags=(CachedItemCoreEntity,))
+    async def picked_cache_write(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: FloorAction.Result, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return []
+
+    @summary_aspect("Answer")
+    async def picked_summary(
+        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> FloorAction.Result:
+        return FloorAction.Result(count=29)
+
+
+REFUSED = {
+    "report": (
+        ReportAction,
+        "ReportAction.Result cannot be cached: field 'data' has no JSON form (Unable to serialize unknown type: <class 'tests.action_machine.runtime.test_cache_stores_json.Frame'>).",
+    ),
+    "count": (
+        CountAction,
+        "CountAction.Result cannot be cached: field 'count' does not read back from its own JSON ('2 items': int_parsing).",
+    ),
+    "floor": (FloorAction, "FloorAction.Result cannot be cached: field 'count' reads back as 20, but was 29."),
+}
+
+
+@pytest.mark.parametrize("picked", sorted(REFUSED))
+async def test_a_result_that_does_not_read_back_is_refused_and_not_stored(picked: str) -> None:
+    """Case 9.2: the three kinds the build check cannot see; nothing is stored."""
+    action_cls, message = REFUSED[picked]
+    cache = RecordingCoordinator()
+    with pytest.raises(CacheSerializationError) as refused:
+        await _machine(cache).run(Context(), action_cls(), ParamsStub())
+    assert str(refused.value) == message
+    assert isinstance(refused.value, CacheContractError)
+    assert cache.puts == [] and cache.size == 0
+
+
+async def test_an_action_that_does_not_cache_never_serializes() -> None:
+    """Only a write serializes: a machine without a cache returns the same Result as it is."""
+    action_cls, _ = REFUSED["report"]
+    machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[]), cache_coordinator=None)
+    result = await machine.run(Context(), action_cls(), ParamsStub())
+    assert isinstance(result.data, Frame)
