@@ -42,6 +42,14 @@ ORDER_WIRE: dict[str, Any] = {
 }
 PAIR: dict[str, Any] = {"type": "array", "items": [{"type": "string"}, {"type": "integer"}]}
 PAIR7: dict[str, Any] = {"$schema": "http://json-schema.org/draft-07/schema#", **PAIR}
+# A projection lists fields of its entity (#408), so its Draft 7 tuple form sits inside one of them.
+ORDER_PAIR: dict[str, Any] = {
+    "type": "object",
+    "properties": {"id": {"type": "string", "items": [{"type": "string"}, {"type": "integer"}]}},
+    "required": ["id"],
+    "additionalProperties": False,
+}
+ORDER_PAIR7: dict[str, Any] = {"$schema": "http://json-schema.org/draft-07/schema#", **ORDER_PAIR}
 UNKNOWN_DRAFT: dict[str, Any] = {"$schema": "http://example.com/unknown-draft", "type": "string"}
 TUPLE_REFUSAL = "[{'type': 'string'}, {'type': 'integer'}] is not of type 'object', 'boolean'"
 GOOD_ROW = {"id": "o1", "status": "paid", "total": 99.5}
@@ -98,7 +106,7 @@ def test_a_tuple_schema_without_draft_is_refused_by_json_schema_value() -> None:
 def test_a_tuple_schema_without_draft_is_refused_by_a_projection() -> None:
     """A projection follows the same rule at declaration."""
     with pytest.raises(jsonschema.SchemaError) as exc_info:
-        CheckOrderCoreEntity.schema(schema=PAIR)
+        CheckOrderCoreEntity.schema(schema=ORDER_PAIR)
     assert exc_info.value.message == TUPLE_REFUSAL
 
 
@@ -118,7 +126,7 @@ def test_a_schema_naming_draft_7_checks_its_values_as_draft_7() -> None:
 
 def test_a_projection_naming_draft_7_is_accepted() -> None:
     """A projection whose schema names Draft 7 is declared without error."""
-    assert _projection_marker(PAIR7).schema == PAIR7
+    assert _projection_marker(ORDER_PAIR7).schema == ORDER_PAIR7
 
 
 def test_an_unknown_draft_warns_once_at_declaration() -> None:
@@ -219,7 +227,7 @@ def test_a_copied_marker_checks_values_the_same_way(how: Any) -> None:
 
         order: Annotated[CheckOrderCoreEntity, copied] = Field(description="Order row")
 
-    assert CopiedResult(order=GOOD_ROW).order == GOOD_ROW
+    assert CopiedResult(order=GOOD_ROW).order.model_dump() == GOOD_ROW
     with pytest.raises(ValidationError, match="'total' is a required property"):
         CopiedResult(order=BAD_ROW)
 

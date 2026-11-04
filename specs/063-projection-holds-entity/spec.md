@@ -25,7 +25,7 @@ After this change a projection holds the entity — a partial entity with exactl
 The maintainer asked for the whole task without questions; the answers taken:
 
 - Q: Does a field typed by a dictionary (an enum entity, `currency: CurrencyEnumEntity`) get the graph edge of FR-008? → A: yes. A dictionary value is an entity; the rule is one: a field typed by an entity class is linked to it.
-- Q: What does a Python-mode dump of a projection give? → A: the partial entity, as every entity value gives since #407; JSON mode gives the projection's fields.
+- Q: What does a Python-mode dump of a projection give? → A: a dict of the fields it holds, as any nested entity dumps in Python mode (containers and lifecycles stay objects because they are not models); JSON mode gives the same fields in their JSON form.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -117,7 +117,7 @@ A developer reads the graph of an action whose Result holds an entity.
 - **FR-001**: A projection field MUST hold a partial entity of its class holding exactly the projection's fields present in the value, whether it is given a full entity, a partial entity or a dict, in every mode.
 - **FR-002**: Each projected value MUST be checked by the projection's JSON Schema and by the type of the entity's own field.
 - **FR-003**: A value missing a field the projection's schema requires MUST be refused with a message naming the field.
-- **FR-004**: A projection's JSON form MUST be its fields only; a Python-mode dump MUST keep the entity, as for every other entity value since #407.
+- **FR-004**: A projection's dump MUST be its fields only, in both modes; a Python-mode dump gives them as a dict, as any nested entity.
 - **FR-005**: A projected entity MUST keep the dict-style reads entities already have (`value["id"]`).
 - **FR-006**: Declaring a projection whose schema lists a property that is not a field of the entity MUST be refused, naming the property and the entity.
 - **FR-007**: A field typed by an entity class (bare, `| None`, `list[...]`) MUST refuse a partial entity of that class, with a message that names what the entity holds and points to a projection.

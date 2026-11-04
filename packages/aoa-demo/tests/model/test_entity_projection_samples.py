@@ -41,7 +41,7 @@ def test_sample_result_accepts_valid_order_projection() -> None:
         }
     )
     assert r.label == "x"
-    assert r.order == {"id": "ord-1", "status": "confirmed", "total": 10.0}
+    assert r.order.model_dump() == {"id": "ord-1", "status": "confirmed", "total": 10.0}
 
 
 def test_sample_result_rejects_invalid_order_projection() -> None:

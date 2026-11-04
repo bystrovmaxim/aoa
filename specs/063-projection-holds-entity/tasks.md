@@ -6,12 +6,12 @@
 
 ## Phase 1: Projections (US1–US3) — one commit
 
-- [ ] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/domain/test_projection_holds_entity.py`: 6.1 from a full entity, a partial and a dict; JSON out only the projection's fields; reading a field outside raises `FieldNotLoadedError`; a partial without a required field refused naming it; 6.2 Params from a dict and JSON give a partial entity with attribute and `["id"]` reads; a value the schema accepts and the field type refuses is refused; an entity of another class refused; 6.3 a schema naming `secret` refused at declaration; Python dump keeps the entity; a `| None` projection keeps `None`.
-- [ ] T002 Update `test_entity_schema_pydantic.py` and `aoa-demo/tests/model/test_entity_projection_samples.py`, which compare the value to a dict, to compare its fields.
-- [ ] T003 Confirm T001 fails on today's code.
-- [ ] T004 Create `domain/partial_fields.py` (R1) and move the reader of #407 there; `relation_containers.py` uses it.
-- [ ] T005 `entity_schema_marker.py`: the validator of R2 and the property check of R3; notes and AI-CORE.
-- [ ] T006 Run the phase's tests; adversarial breaks of plan phase 1.
+- [X] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/domain/test_projection_holds_entity.py`: 6.1 from a full entity, a partial and a dict; JSON out only the projection's fields; reading a field outside raises `FieldNotLoadedError`; a partial without a required field refused naming it; 6.2 Params from a dict and JSON give a partial entity with attribute and `["id"]` reads; a value the schema accepts and the field type refuses is refused; an entity of another class refused; 6.3 a schema naming `secret` refused at declaration; Python dump gives the projection's fields; a `| None` projection keeps `None`.
+- [X] T002 Update `test_entity_schema_pydantic.py` and `aoa-demo/tests/model/test_entity_projection_samples.py`, which compare the value to a dict, to compare its fields.
+- [X] T003 Confirm T001 fails on today's code.
+- [X] T004 Create `domain/partial_fields.py` (R1) and move the reader of #407 there; `relation_containers.py` uses it.
+- [X] T005 `entity_schema_marker.py`: the validator of R2 and the property check of R3; notes and AI-CORE.
+- [X] T006 Run the phase's tests; adversarial breaks of plan phase 1.
 
 ## Phase 2: A field typed by the entity carries a full one (US4) — one commit
 
