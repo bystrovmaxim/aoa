@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-04] — The examples check beside the rest
+
+Checking every example made the main CI job about three and a half minutes longer, because the examples shared its machine with everything else. They now run in jobs of their own, `Examples` and `Examples on Python 3.14`. Jobs run at the same time on separate machines, so a pull request waits for the longest of them rather than for all in a row, and it is back to about the time it took before. A local run still checks the examples with everything else.
+
+Running examples side by side turned up one real hazard: `aoa-ocel`'s in-memory store wrote its log in place, so something reading the file as it was written could find it half written, and a failed write could leave a broken log. It now writes the log beside the output and moves it into place; a failed write keeps the previous log. The ERD sample that chapter 29 links to is rewritten only when its content changes.
+
 ## [2026-11-04] — Every example runs as it is written
 
 The documentation teaches by example, and too many examples had stopped working without anyone noticing: a dozen scripts failed, a notebook in five, and none of the "Try in Colab" buttons opened the notebook it promised. Now every example is checked on every pull request, so a change that breaks one fails until it is put right.
