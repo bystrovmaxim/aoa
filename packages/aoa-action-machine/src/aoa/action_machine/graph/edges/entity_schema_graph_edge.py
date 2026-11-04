@@ -67,7 +67,7 @@ def entity_schema_target_from_annotation(annotation: Any) -> type | None:
     if get_origin(actual_type) in (list, tuple):
         arguments = [argument for argument in get_args(actual_type) if argument is not Ellipsis]
         actual_type = _unwrap_optional(arguments[0]) if len(arguments) == 1 else None
-    if _is_declared_entity(actual_type):
+    if isinstance(actual_type, type) and _is_declared_entity(actual_type):
         return actual_type
     return None
 
