@@ -284,6 +284,12 @@ STEPS: tuple[Step, ...] = (
         )
     ),
     Step(
+        "Examples: scripts, notebooks, pages, links",
+        "uv run --extra dev pytest tests/examples -n auto -q",
+        "tests",
+        after=(AUTO_FIX,),
+    ),
+    Step(
         "Pytest tests/scripts (check run, graph files)",
         "uv run --extra dev pytest tests/scripts -v",
         "tests",
