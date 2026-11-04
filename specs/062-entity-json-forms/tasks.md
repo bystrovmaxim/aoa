@@ -87,7 +87,7 @@
 
 ## Phase 8: Changelog — one commit
 
-- [ ] T030 One article in `docs/CHANGELOG.md` and its Russian version in `docs/CHANGELOG.ru_draft.md`.
+- [X] T030 One article in `docs/CHANGELOG.md` and its Russian version in `docs/CHANGELOG.ru_draft.md`.
 
 ---
 
