@@ -42,6 +42,8 @@ ORDER_WIRE = {
 
 # A Draft 7 "tuple": items as a list, one schema per position.
 PAIR = {"type": "array", "items": [{"type": "string"}, {"type": "integer"}]}
+# A projection lists fields of its entity, so there the same tuple form sits inside the id field.
+ORDER_PAIR = {"type": "object", "properties": {"id": {"type": "string", "items": PAIR["items"]}}, "required": ["id"]}
 
 print("1) No $schema: the newest draft checks the schema at declaration")
 try:
@@ -51,7 +53,7 @@ except jsonschema.SchemaError as exc:
 else:
     raise AssertionError("The newest draft refuses a list of items")
 try:
-    OrderCoreEntity.schema(schema=PAIR)
+    OrderCoreEntity.schema(schema=ORDER_PAIR)
 except jsonschema.SchemaError as exc:
     print("   OrderCoreEntity.schema  ->", type(exc).__name__ + ":", exc.message)
 else:

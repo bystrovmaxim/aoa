@@ -29,7 +29,7 @@
 
 ## Phase 5: Closing check run — one commit if it changes anything
 
-- [ ] T012 `bash scripts/run_checks_with_log.sh` to zero; correct what relied on a dict projection.
+- [X] T012 `bash scripts/run_checks_with_log.sh` to zero; correct what relied on a dict projection.
 
 ## Phase 6: Documentation — one commit
 
