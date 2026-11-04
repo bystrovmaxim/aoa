@@ -526,7 +526,7 @@ inherit its parent's catalogue instead.
 | Dictionary property declaration | Supported scalar/date/time/UUID types, Enum, Literal, unions and tuples; list/dict/set/frozenset/Any/nested models are refused, including inside unions or tuples |
 | Entity selection declaration | Any of the six ordinary containers around D with exactly one direction marker and an assignment-side `Field`; D must be a nonempty decorated catalogue included in the graph |
 | Entity selection Python input | An explicit container of the declared class: `AssociationOne(id=code)` for to-one, `AssociationMany(ids=(code, ...))` for to-many; validation creates a new wrapper with the canonical members, without mutating the caller's wrapper |
-| Entity selection JSON input | A to-one field accepts an id-only object (or null when nullable); a to-many field accepts an array of id-only objects. Raw members, strings and Python mappings are not selection inputs |
+| Entity selection JSON input | A to-one field accepts its container, an id-only object or the reference object read by its code (or null when nullable); a to-many field accepts its container or an array of those objects, in JSON and in a dict alike. Raw members and bare strings are not selection inputs |
 | Standalone dictionary/DTO reference | A declared instance or mapping with code; copied or foreign instances, unknown/missing/blank codes, bare strings and unknown top-level keys are refused |
 | Reference descriptions | Standalone reference descriptions do not change the declared value; selection JSON accepts no descriptive keys |
 | Optional reference | None only when the containing field permits it; a loaded empty Many exports an empty array; an unknown code never becomes absence |

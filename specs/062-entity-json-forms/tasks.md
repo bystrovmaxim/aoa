@@ -79,11 +79,11 @@
 
 ## Phase 7: Documentation — one commit
 
-- [ ] T025 [P] Tutorial step 24 (relations): the JSON form of a relation, loaded and not, ids typed by the target, with a script and a notebook.
-- [ ] T026 [P] Tutorial step 23 / how-to dictionary references: the input forms and the reference read back, with a script and a notebook.
-- [ ] T027 [P] Tutorial step 25 (lifecycle): the JSON form and reading a status back, with a script and a notebook.
-- [ ] T028 [P] Tutorial step 22 and the how-to on explicit entity fields: an entity as a Params/Result field now goes out and comes back; links to the sections above.
-- [ ] T029 Example checks of the touched pages and examples; Russian drafts beside each page.
+- [X] T025 [P] Tutorial step 24 (relations): the JSON form of a relation, loaded and not, ids typed by the target, with a script and a notebook.
+- [X] T026 [P] Tutorial step 23 / how-to dictionary references: the input forms and the reference read back, with a script and a notebook.
+- [X] T027 [P] Tutorial step 25 (lifecycle): the JSON form and reading a status back, with a script and a notebook.
+- [X] T028 [P] Tutorial step 22 and the how-to on explicit entity fields: an entity as a Params/Result field now goes out and comes back; links to the sections above.
+- [X] T029 Example checks of the touched pages and examples; Russian drafts beside each page.
 
 ## Phase 8: Changelog — one commit
 

@@ -15,7 +15,7 @@ Previously the dictionary-specific validation accepted only AssociationOne with 
 | AggregateMany[D] | AggregateMany(ids=(...)) | Array of id objects | Array of member references |
 | CompositeMany[D] | CompositeMany(ids=(...)) | Array of id objects | Array of member references |
 
-Every row still needs the complete source declaration. A required field has no default. Put `| None` inside `Annotated` to permit absence; add `default=None` only to permit omission. A required nullable field still needs an argument. Raw members, codes, Python mappings and raw lists/tuples are not implicit relationship wrappers.
+Every row still needs the complete source declaration. A required field has no default. Put `| None` inside `Annotated` to permit absence; add `default=None` only to permit omission. A required nullable field still needs an argument. Raw members, bare codes and raw lists/tuples are not implicit relationship wrappers; a dict with the id object or the reference is accepted on every path (see [Every path takes the same input](#every-path-takes-the-same-input)).
 
 The catalogue must be nonempty, decorated with `@entity` and included in the graph. An empty decorated catalogue fails while its decorator runs; incomplete fields and unavailable targets fail during model assembly or public graph projection. NoRelation is not an embedding alternative. State keeps its lifecycle contract. A dictionary used to classify a specialization is a separate role from a relationship target.
 
@@ -88,11 +88,30 @@ Each to-one id resolves to the identical member returned by `D.by_code(code)`. A
 
 Validation returns a new container of the declared class and does not mutate the input wrapper. Id-only dictionary wrappers become loaded because their catalogue is available locally. An empty Many selection becomes loaded with zero entities; it exports `[]`. An absent nullable field is `None` and exports `null`. Normalization resolves all selected codes rather than leaving a partially loaded dictionary relationship. Ordinary structural-entity loading behavior is unchanged.
 
-## JSON selection input differs from reference export
+## Every path takes the same input
 
-A to-one input is exactly `{"id":"eur"}`. A to-many input is an array such as `[{"id":"usd"},{"id":"eur"}]`; it is not an `{"ids":[...]}` object. Each item has exactly one id key. Unknown keys, blank/wrong-type codes and unknown catalogue codes are refused during host instance validation. A Python mapping passed to normal model construction is not JSON mode and is refused as a wrapper.
+A to-one input is the container, the id object `{"id":"eur"}`, or the reference object `{"code":"eur", ...}` the relation writes. A to-many input is the container or an array of those objects, such as `[{"id":"usd"},{"code":"eur"}]`, with `[]` for no values; it is not an `{"ids":[...]}` object. The same rule holds for JSON, for a dict in code and for a FastAPI or MCP request, which validate parsed dicts. A reference is chosen by its `code`; its `display_name` and `properties` come from the catalogue, so a client cannot relabel a value. An id object with another key, a reference with an undeclared key, a bare code, a raw member, a blank or wrong-type code and an unknown catalogue code are refused during host instance validation.
 
-Export uses each canonical member's `to_reference()` representation: code, display_name and properties. Dictionary property serializers still run. Exported references are not accepted unchanged as selection input: convert code to id explicitly. Python-mode `model_dump()` retains the relationship wrappers.
+[Script](../../examples/how_to/11_dictionary_input_forms.py) · [Notebook](../../examples/how_to/11_dictionary_input_forms.ipynb)
+
+```text
+1) A dict in code, as FastAPI and MCP pass it
+   primary: CompositeOne(id='eur', loaded) | alternatives: ('usd',)
+2) The reference written is read back
+   written: {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}
+   read back equal: True
+3) The code chooses; the catalogue labels
+   primary label: Euro
+   alternatives: ('usd', 'eur')
+4) What is refused
+   refused: eur
+   refused: {'id': 'eur', 'extra': 1}
+   refused: {'display_name': 'Euro'}
+   refused: {'id': 'gbp'}
+5) Input schema: [['id'], ['code']]
+```
+
+Export uses each canonical member's `to_reference()` representation: code, display_name and properties. Dictionary property serializers still run. Each declared value's reference is computed once, when the dictionary declares its values, and every dump writes it into new dicts, so a dump cannot change the catalogue. Python-mode `model_dump()` retains the relationship wrappers.
 
 ## Dump in Python mode and in JSON mode
 

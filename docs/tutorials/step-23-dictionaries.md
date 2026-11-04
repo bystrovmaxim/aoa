@@ -230,7 +230,7 @@ See [validation and export](../how-to/dictionary-validation-and-export.md), [rel
 
 ## Follow a dictionary reference
 
-An entity selection is a complete relationship in a supported ordinary container. Use an explicit wrapper in Python, an id-only object for One JSON input, or an array of id objects for Many JSON input. The canonical member is resolved from its code. Export remains a code/display_name/properties reference; the input and output formats differ.
+An entity selection is a complete relationship in a supported ordinary container. Use an explicit wrapper in Python, or, on any path — JSON, a dict in code, a FastAPI or MCP request — an id object or the reference object for One and an array of them for Many. The canonical member is resolved from its code. Export is a code/display_name/properties reference, and that export is accepted back as input; see [every path takes the same input](../how-to/dictionary-references.md#every-path-takes-the-same-input).
 
 [Script](../../examples/step_23_dictionaries/56_selection_transport.py) · [Executed notebook](../../examples/step_23_dictionaries/56_selection_transport.ipynb)
 

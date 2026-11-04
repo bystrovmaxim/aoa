@@ -184,7 +184,7 @@ A loaded container passes the names it does not have to its entity: that is why 
    order.customer.__pydantic_serializer__ -> AttributeError
 2) Dumps
    Python dump keeps the container: AssociationOne(id='cust-1', loaded)
-   JSON dump -> PydanticSerializationError: Unable to serialize unknown type: <class 'aoa.action_machine.domain.relation_containers.AssociationOne'>
+   JSON dump writes its form: {'id': 'cust-1', 'entity': {'id': 'cust-1', 'name': 'Alice'}}
 3) Copies
    deepcopy: AssociationOne(id='cust-1', loaded) | customer copied: True
    model_copy(deep=True).customer: AssociationOne(id='cust-1', loaded)
@@ -195,9 +195,40 @@ A loaded container passes the names it does not have to its entity: that is why 
    still frozen: AssociationOne is frozen; assigning to 'extra' is not allowed.
 ```
 
-- **Dumps.** A Python-mode `model_dump()` keeps the container. A structural relation has no JSON form yet, so a JSON-mode dump of a loaded one refuses by naming the container, rather than writing the customer's dump in its place or an empty object.
+- **Dumps.** A Python-mode `model_dump()` keeps the container. A JSON-mode dump writes the relation's own form, the id and the customer it holds, never the customer's dump in its place; [the next section](#send-a-relation-as-json) shows every form.
 - **Copies.** `copy.deepcopy` and `model_copy(deep=True)` give a container of the same class with a copy of the customer; `copy.copy` gives an equal container.
 - **Pickle.** A pickled container comes back equal and of the same class, with the same loaded state, and it stays frozen.
+
+## Send a relation as JSON
+
+[Script](../../examples/step_24_relations/10_relation_json_form.py) · [Notebook](../../examples/step_24_relations/10_relation_json_form.ipynb)
+
+An entity with relations can be a field of `Params` and `Result`, so a relation has one JSON form, the same on every path:
+
+| Container | Not loaded | Loaded |
+| --- | --- | --- |
+| One | `{"id": …}` | `{"id": …, "entity": {…}}` |
+| Many | `{"ids": [...]}` | `{"ids": [...], "entities": [...]}` |
+
+The key `"entity"` or `"entities"` is what says loaded, so a Many loaded with zero rows (`"entities": []`) and a Many never loaded stay different. Inside a target, a missing field means not loaded: the target reads back as a partial entity holding the fields that were sent. The same forms are read back from JSON, from a dict in code and from a FastAPI or MCP request, and each id takes the type of the target's `id` field:
+
+```text
+1) Ids only
+   JSON: {'id': 'ord-1', 'customer': {'id': '00000000-0000-0000-0000-000000000001'}, 'lines': {'ids': ['l1', 'l2']}}
+   customer id type: UUID
+2) Loaded
+   JSON: {'id': 'ord-2', 'customer': {'id': '00000000-0000-0000-0000-000000000001', 'entity': {'id': '00000000-0000-0000-0000-000000000001', 'name': 'Alice'}}, 'lines': {'ids': ['l1'], 'entities': [{'id': 'l1', 'qty': 2}]}}
+3) Loaded with zero lines, and not loaded
+   zero lines: {'ids': [], 'entities': []}
+   not loaded: {'ids': []}
+4) Read back
+   equal: True | customer: Alice | lines loaded: True
+   from a dict: AssociationOne(id=UUID('00000000-0000-0000-0000-000000000001'), id_only) CompositeMany(count=1, entities_loaded=no, n_entities=0)
+5) An id of the wrong type
+   ValidationError at ('customer', 'id') - uuid_parsing
+```
+
+An id of the wrong type is refused at the id itself, `customer.id`, not at the whole relation. A target that declares no `id` field takes ids JSON keeps exactly, a string or an integer. The JSON Schema that FastAPI and MCP publish describes each relation as a closed object and names its target by `$ref`, so two entities that point at each other still give a finite schema.
 
 ## Declare both directions
 
