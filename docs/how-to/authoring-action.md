@@ -80,13 +80,41 @@ class LoadParams(BaseParams):
     url: str = Field(min_length=1, description="Service URL.")
 
 class LoadResult(BaseResult):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    node_count: int = Field(ge=0)
-    resource: SomeResource = Field(...)
+    node_count: int = Field(ge=0, description="Nodes loaded.")
+    graph_text: str = Field(min_length=1, description="The graph as JSON text.")
 ```
 
 **Rule:** if a value can be rejected through Pydantic (`min_length`, `ge`, `pattern`, a validator), do it there. An aspect should receive data that's already correct.
+
+### Every field has a JSON form
+
+A `Result` leaves the operation as JSON — through FastAPI, MCP or the cache — and its JSON Schema is what those adapters publish. So every field of `Params` and `Result` must have one: a scalar, a model, an entity, a projection, a relation, a lifecycle, or a [`JsonSchemaValue`](../tutorials/step-17-schema-results.md) for arbitrary JSON. A plain Python object, such as a connection or a resource, has none. The graph build checks each `Params` and `Result` in both Pydantic modes and refuses one without a JSON form, naming the field, before the application serves a call:
+
+```text
+JsonFormError: OpaqueAction.Result.raw has no JSON form (validation mode): Cannot generate a JsonSchema for core_schema.IsInstanceSchema (<class 'Opaque'>). Describe it with JsonSchemaValue, or leave it out of the Result.
+```
+
+A resource the caller needs afterwards is not returned in the `Result`; return what it is built from (here, `graph_text`) and let the caller build it.
+
+### What goes out comes back in
+
+A `Result` read back from its own JSON has the same **observable state**: the same values; for every entity, the same loaded fields; for every relation, the same ids, the same loaded state and the same loaded entities in the same order; for a status or a dictionary value, the same declared object. Equality does not compare all of that, and it does not change: a relation loaded with zero rows equals one never loaded. `observable_difference` compares exactly what can be observed and returns the first difference with its path, or `None`:
+
+```python
+from aoa.action_machine.domain import AssociationMany, observable_difference
+
+never = AssociationMany(ids=())
+empty = AssociationMany(ids=(), entities=(), entities_loaded=True)
+print(never == empty)
+print(observable_difference(never, empty))
+```
+
+```text
+True
+$: loaded False != True
+```
+
+AOA's own tests read back every value type it gives a JSON form, every `Result` the examples build and a sample of every `Result` class of the demo, and compare them this way. A `Result` of yours is held to the same promise by your tests: write it as JSON, read it back with `model_validate_json`, and check that `observable_difference` finds nothing.
 
 The `Params = ...` and `Result = ...` aliases inside the class are an optional convenience: they let you reference the types as `MyAction.Params` instead of a string.
 

@@ -306,6 +306,7 @@ uv run --extra dev pytest tests/examples -n auto -q
 | What | What passes |
 |---|---|
 | A script of `examples/` | it runs from the repository root and exits with 0; nothing is skipped or expected to fail. A folder with `__init__.py` is a package an example imports, not an example |
+| A `Result` a script builds | it reads back from its own JSON with the same observable state: the script runs through `tests/examples/round_trip_runner.py`, which names the `Result` and the first difference ([what goes out comes back in](authoring-action.md#what-goes-out-comes-back-in)) |
 | A notebook of `examples/` | there is one beside every script; it runs in a fresh kernel in its own folder; every line it prints is a line its script prints, in the same order |
 | The notebook's first code cell | `!pip install …`, naming every package its imports need by its PyPI name, so it opens in Colab as it is |
 | A Python block of a page | it runs as written, or its first line says why it does not |

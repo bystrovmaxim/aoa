@@ -26,11 +26,11 @@
 
 ## Phase 4: Closing check run — one commit if it changes anything
 
-- [ ] T012 `bash scripts/run_checks_with_log.sh` to zero.
+- [X] T012 `bash scripts/run_checks_with_log.sh` to zero.
 
 ## Phase 5: Documentation — one commit
 
-- [ ] T013 The page on the checks and the page on Params and Result: what the build refuses, what rule 2 is and where it is checked; Russian drafts.
+- [X] T013 The page on the checks and the page on Params and Result: what the build refuses, what rule 2 is and where it is checked; Russian drafts.
 
 ## Phase 6: Changelog — one commit
 
