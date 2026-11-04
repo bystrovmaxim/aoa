@@ -111,7 +111,7 @@ def test_clean_install_action_machine_provides_graph(tmp_path: Path) -> None:
         "from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode; "
         "from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator; "
         "from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA; "
-        "assert GRAPH_JSON_SCHEMA['properties']['schema_version'] == {'const': '1.3'}; "
+        "assert GRAPH_JSON_SCHEMA['properties']['schema_version'] == {'const': '1.4'}; "
         "assert u.find_spec('aoa.action_machine.plugin.ocel') is None; "
         "assert u.find_spec('aoa.ocel') is None; "
         "assert u.find_spec('aoa.otel') is None; "

@@ -29,7 +29,7 @@
 
 ## Phase 5: Graph files and versions — one commit
 
-- [ ] T012 `graph-builder write`; raise every level that changed; `uv lock`.
+- [X] T012 `graph-builder write`; raise every level that changed; `uv lock`.
 
 ## Phase 6: Closing check run — one commit if it changes anything
 
