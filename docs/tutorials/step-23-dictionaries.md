@@ -281,7 +281,7 @@ def python_selection() -> None:
     try:
         PriceCoreEntity(currency=CurrencyEnumEntity.EUR)
     except ValidationError as error:
-        assert error.errors()[0]["type"] == "is_instance_of"
+        assert error.errors()[0]["type"] == "value_error"
         print(type(error).__name__ + ": " + str(error))
     else:
         raise AssertionError("A raw member was accepted")
@@ -295,16 +295,10 @@ def json_selection() -> None:
     payload = price.model_dump(mode="json")
     assert payload == {"currency": {"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}}
     print("JSON export:", payload)
-    try:
-        PriceCoreEntity.model_validate_json(price.model_dump_json())
-    except ValidationError as error:
-        assert (
-            error.errors()[0]["msg"]
-            == "Value error, a dictionary relation JSON input is an object with exactly one 'id' key."
-        )
-        print(type(error).__name__ + ": " + str(error))
-    else:
-        raise AssertionError("Exported reference was accepted as selection input")
+    # The exported reference is read back by its code; label and properties come from the catalogue.
+    back = PriceCoreEntity.model_validate_json(price.model_dump_json())
+    assert back.currency.entity is CurrencyEnumEntity.EUR
+    print("Exported reference read back:", back.currency.id)
 
 
 def schema_modes() -> None:
@@ -335,13 +329,10 @@ Actual output:
 Python selection: eur €
 ValidationError: 1 validation error for PriceCoreEntity
 currency
-  Input should be an instance of AssociationOne [type=is_instance_of, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]
-    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
+  Value error, a dictionary relation takes its container, an id object {'id': code} or a reference {'code', 'display_name', 'properties'}, got CurrencyEnumEntity(code='eur', display_name='Euro', symbol='€'). [type=value_error, input_value=CurrencyEnumEntity(code='...me='Euro', symbol='€'), input_type=CurrencyEnumEntity]
+    For further information visit https://errors.pydantic.dev/2.14/v/value_error
 JSON export: {'currency': {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}}
-ValidationError: 1 validation error for PriceCoreEntity
-currency
-  Value error, a dictionary relation JSON input is an object with exactly one 'id' key. [type=value_error, input_value={'code': 'eur', 'display_...ies': {'symbol': '€'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+Exported reference read back: eur
 Input keys: ['id']
 Output keys: ['code', 'display_name', 'properties']
 ```

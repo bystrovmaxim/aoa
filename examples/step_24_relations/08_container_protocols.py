@@ -2,8 +2,9 @@
 
 An order holds its customer through an AssociationOne. The container passes
 ordinary names to the loaded customer, so order.customer.name reads the name,
-but it answers Python's and Pydantic's own questions itself: a dump keeps it, a
-copy and a pickle give a container back, loaded or not.
+but it answers Python's and Pydantic's own questions itself: a Python dump keeps
+it, a JSON dump writes its form, a copy and a pickle give a container back,
+loaded or not.
 
 Run: uv run python examples/step_24_relations/08_container_protocols.py
 """
@@ -15,7 +16,6 @@ import pickle
 from typing import Annotated
 
 from pydantic import Field
-from pydantic_core import PydanticSerializationError
 
 from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -59,12 +59,7 @@ else:
 
 print("2) Dumps")
 print("   Python dump keeps the container:", order.model_dump()["customer"])
-try:
-    order.model_dump(mode="json")
-except PydanticSerializationError as exc:
-    print("   JSON dump ->", type(exc).__name__ + ":", str(exc).splitlines()[0])
-else:
-    raise AssertionError("A loaded relation has no JSON form yet")
+print("   JSON dump writes its form:", order.model_dump(mode="json")["customer"])
 
 print("3) Copies")
 deep = copy.deepcopy(order.customer)

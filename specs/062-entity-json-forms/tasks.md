@@ -75,7 +75,7 @@
 
 ## Phase 6: The closing check run — one commit if it changes anything
 
-- [ ] T024 `bash scripts/run_checks_with_log.sh` to zero; correct every test or example the new id typing or input forms break (FR-011).
+- [X] T024 `bash scripts/run_checks_with_log.sh` to zero; correct every test or example the new id typing or input forms break (FR-011).
 
 ## Phase 7: Documentation — one commit
 
