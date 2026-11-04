@@ -17,7 +17,6 @@ from typing import Any, get_type_hints
 
 from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
-from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver
 from aoa.action_machine.intents.cache.cache_signature import RETURNS, decorator_name, handed_over
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
@@ -113,10 +112,4 @@ def validate_types(kind: str, action_cls: type[Any], func: Callable[..., Any]) -
 
 
 
-def validate_declared_types(action_cls: type[Any]) -> None:
-    """Check the annotation types of every cache declaration ``action_cls`` makes in its own body."""
-    for kind, method in CacheIntentResolver.declarations(action_cls).declared:
-        validate_types(kind, action_cls, method)
-
-
-__all__ = ["validate_declared_types", "validate_types"]
+__all__ = ["validate_types"]

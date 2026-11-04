@@ -190,3 +190,74 @@ def test_the_new_edges_have_a_fixed_shape(index: int, member: str, value: Any) -
     document = _events_document()
     document["edges"][index][member] = value
     assert _events_errors(document)
+
+
+PROTOCOL_1_4 = Path(__file__).parents[4] / "open-gnomon-protocol" / "graph" / "1.4.json"
+
+
+def _cache_document() -> dict[str, Any]:
+    """A minimal 1.4 document: a reader with a key and a write, an updater, and the order they tag."""
+    return {
+        "schema_version": "1.4",
+        "nodes": [
+            {"id": "shop.GetOrderAction", "type": "Action", "label": "GetOrderAction", "properties": {"description": "Get"}},
+            {"id": "shop.GetOrderAction:order_cache_write", "type": "Cache", "label": "order_cache_write", "properties": {"kind": "write", "description": "Keep"}},
+            {"id": "shop.OrderCoreEntity", "type": "Entity", "label": "OrderCoreEntity", "properties": {"description": "Order", "entity_kind": "core", "entity_kind_label": "Core"}},
+        ],
+        "edges": [
+            {"id": "e1", "source_id": "shop.GetOrderAction", "target_id": "shop.GetOrderAction:order_cache_write", "type": "@cache_write", "relationship": "Composition", "is_dag": False, "properties": {}},
+            {"id": "e2", "source_id": "shop.GetOrderAction", "target_id": "shop.OrderCoreEntity", "type": "caches", "relationship": "Association", "is_dag": False, "properties": {}},
+        ],
+    }
+
+
+def _cache_errors(document: dict[str, Any]) -> list[Any]:
+    """Check ``document`` against the protocol's own 1.4 file."""
+    schema = json.loads(PROTOCOL_1_4.read_text(encoding="utf-8"))
+    return list(Draft202012Validator(schema).iter_errors(document))
+
+
+def test_the_fixture_of_1_4_shows_every_new_word() -> None:
+    """The ``1.4`` sample holds Cache nodes and the cache edges."""
+    document = _sample("1.4")
+    check_graph(document)
+    assert "Cache" in {node["type"] for node in document["nodes"]}
+    assert {"@cache_key", "@cache_write", "@cache_invalidate", "caches", "invalidates"} <= {edge["type"] for edge in document["edges"]}
+
+
+def test_the_words_of_1_4_pass() -> None:
+    """A document with a Cache node, its composition edge and a ``caches`` edge is a 1.4 graph."""
+    assert _cache_errors(_cache_document()) == []
+
+
+@pytest.mark.parametrize("kind", ["fetch", ""])
+def test_a_cache_node_names_one_of_the_four_kinds(kind: str) -> None:
+    """``kind`` is key, read, write or invalidate."""
+    document = _cache_document()
+    document["nodes"][1]["properties"]["kind"] = kind
+    assert _cache_errors(document)
+
+
+@pytest.mark.parametrize(
+    ("index", "member", "value"),
+    [
+        (0, "relationship", "Association"),
+        (1, "relationship", "Composition"),
+        (0, "is_dag", True),
+        (1, "is_dag", True),
+        (1, "properties", {"a": 1}),
+    ],
+)
+def test_the_cache_edges_have_a_fixed_shape(index: int, member: str, value: Any) -> None:
+    """A declaration edge is a Composition, a tag edge an Association; neither is in the acyclic slice or has properties."""
+    document = _cache_document()
+    document["edges"][index][member] = value
+    assert _cache_errors(document)
+
+
+def test_a_1_3_graph_does_not_know_the_cache() -> None:
+    """The new words are 1.4's: a document claiming 1.3 with them is refused."""
+    document = _cache_document()
+    document["schema_version"] = "1.3"
+    schema = json.loads(PROTOCOL_1_3.read_text(encoding="utf-8"))
+    assert list(Draft202012Validator(schema).iter_errors(document))

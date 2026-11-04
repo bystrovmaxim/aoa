@@ -201,6 +201,12 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       label VARCHAR NOT NULL,
       description VARCHAR
     );""",
+            """CREATE TABLE cache (
+      id VARCHAR NOT NULL,
+      label VARCHAR NOT NULL,
+      kind VARCHAR NOT NULL,
+      description VARCHAR NOT NULL
+    );""",
             """CREATE TABLE compensator (
       id VARCHAR NOT NULL,
       label VARCHAR NOT NULL,
@@ -323,6 +329,42 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       is_dag BOOLEAN NOT NULL
     );""",
             """CREATE TABLE access_decide_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE cache_key_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE cache_read_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE cache_write_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE cache_invalidate_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE caches_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
+            """CREATE TABLE invalidates_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
       relationship VARCHAR NOT NULL,
@@ -562,6 +604,7 @@ _NODE_TABLE_NAMES: tuple[str, ...] = (
     "regular_aspect",
     "summary_aspect",
     "access_decide",
+    "cache",
     "compensator",
     "error_handler",
     "checker",
@@ -587,6 +630,12 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "regular_aspect_edges",
     "summary_aspect_edges",
     "access_decide_edges",
+    "cache_key_edges",
+    "cache_read_edges",
+    "cache_write_edges",
+    "cache_invalidate_edges",
+    "caches_edges",
+    "invalidates_edges",
     "compensate_edges",
     "on_error_edges",
     "result_checker_edges",
@@ -641,6 +690,7 @@ def _graph_union_view_ddls() -> list[str]:
         "SELECT id, label, CAST('regular_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM regular_aspect",
         "SELECT id, label, CAST('summary_aspect' AS VARCHAR) AS type, json_object('description', description) AS payload FROM summary_aspect",
         "SELECT id, label, CAST('access_decide' AS VARCHAR) AS type, json_object('description', description) AS payload FROM access_decide",
+        "SELECT id, label, CAST('cache' AS VARCHAR) AS type, json_object('kind', kind, 'description', description) AS payload FROM cache",
         "SELECT id, label, CAST('compensator' AS VARCHAR) AS type, json_object('description', description, 'target_aspect_name', target_aspect_name) AS payload FROM compensator",
         "SELECT id, label, CAST('error_handler' AS VARCHAR) AS type, json_object('description', description, 'exception_types', exception_types) AS payload FROM error_handler",
         "SELECT id, label, CAST('checker' AS VARCHAR) AS type, json_object('type_checker', type_checker, 'checker_required', checker_required) AS payload FROM checker",
@@ -664,6 +714,12 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('regular_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM regular_aspect_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('summary_aspect_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM summary_aspect_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('access_decide_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM access_decide_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_key_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_key_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_read_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_read_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_write_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_write_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_invalidate_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_invalidate_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('caches_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM caches_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('invalidates_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM invalidates_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('compensate_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM compensate_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('on_error_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM on_error_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('result_checker_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM result_checker_edges",
@@ -964,6 +1020,12 @@ def _fill_simple_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict
         "@regular_aspect": "regular_aspect_edges",
         "@summary_aspect": "summary_aspect_edges",
         "@access_decide": "access_decide_edges",
+        "@cache_key": "cache_key_edges",
+        "@cache_read": "cache_read_edges",
+        "@cache_write": "cache_write_edges",
+        "@cache_invalidate": "cache_invalidate_edges",
+        "caches": "caches_edges",
+        "invalidates": "invalidates_edges",
         "@compensate": "compensate_edges",
         "@on_error": "on_error_edges",
         "@result_checker": "result_checker_edges",
@@ -1094,6 +1156,14 @@ def _fill_aspect_node_tables(con: duckdb.DuckDBPyConnection, nodes_by_type: dict
     )
     _executemany(
         con,
+        "INSERT INTO cache VALUES (?, ?, ?, ?)",
+        [
+            [n["id"], n["label"], _get_properties(n)["kind"], _get_properties(n)["description"]]
+            for n in nodes_by_type.get("Cache", [])
+        ],
+    )
+    _executemany(
+        con,
         "INSERT INTO compensator VALUES (?, ?, ?, ?)",
         [
             [n["id"], n["label"], _get_properties(n).get("description"), _get_properties(n).get("target_aspect_name")]
@@ -1208,6 +1278,7 @@ def _assert_no_unknown_graph_types(
         "RegularAspect",
         "SummaryAspect",
         "AccessDecide",
+        "Cache",
         "Compensator",
         "ErrorHandler",
         "Checker",
@@ -1233,6 +1304,12 @@ def _assert_no_unknown_graph_types(
         "@regular_aspect",
         "@summary_aspect",
         "@access_decide",
+        "@cache_key",
+        "@cache_read",
+        "@cache_write",
+        "@cache_invalidate",
+        "caches",
+        "invalidates",
         "@compensate",
         "@on_error",
         "@result_checker",

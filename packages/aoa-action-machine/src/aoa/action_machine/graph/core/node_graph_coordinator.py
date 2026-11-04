@@ -86,6 +86,7 @@ from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
 from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
 from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
 from aoa.action_machine.graph.validators import (
+    cache_tags_validator,
     emits_vocabulary_validator,
     entity_field_validator,
     entity_inverse_validator,
@@ -173,6 +174,7 @@ class NodeGraphCoordinator(BaseCoordinator):
                 field takes no new path: the pass finds no axis and returns.
             EventContractError: a method declares in ``@emits`` an event outside its domain's ``events``.
             JsonFormError: a Params or Result has no JSON Schema in validation or serialization mode.
+            CacheTagsError: an action invalidates an entity type no action caches, or caches one no action invalidates.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.
         """
@@ -191,6 +193,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         entity_specialization_validator.validate_entity_specializations()
         emits_vocabulary_validator.validate_emits_vocabulary(nodes.values())
         json_form_validator.validate_json_forms(nodes.values())
+        cache_tags_validator.validate_cache_tags(nodes.values())
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
         self._build_indexes(nodes)
@@ -243,7 +246,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             row["id"] = edge_id(row)
             edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.3",
+            "schema_version": "1.4",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }

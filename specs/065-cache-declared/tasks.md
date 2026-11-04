@@ -24,8 +24,8 @@
 
 ## Phase 4: The graph (US4, 11.3, 11.5) — one commit
 
-- [ ] T010 [US4] Tests: `Cache` nodes with kind and description; `caches` and `invalidates` edges; a dead invalidation and a dead tag refused at build; the graph's JSON valid against 1.4; Maxitor loads `Cache` nodes and the new edges.
-- [ ] T011 Implement R5 in AOA and R6: protocol 1.4 and its copies, the graph builder's schema and fixture, Maxitor's store; run; adversarial breaks.
+- [X] T010 [US4] Tests: `Cache` nodes with kind and description; `caches` and `invalidates` edges; a dead invalidation and a dead tag refused at build; the graph's JSON valid against 1.4; Maxitor loads `Cache` nodes and the new edges.
+- [X] T011 Implement R5 in AOA and R6: protocol 1.4 and its copies, the graph builder's schema and fixture, Maxitor's store; run; adversarial breaks.
 
 ## Phase 5: Graph files and versions — one commit
 

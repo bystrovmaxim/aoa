@@ -56,6 +56,10 @@ const GRAPH_NODE_TYPE_LUCIDE_INNER_SVG: Record<string, string> = {
     '<path d="m8 8 6-6" /> ' +
     '<path d="m9 7 8 8" /> ' +
     '<path d="m21 11-8-8" />',
+  Cache:
+    '<ellipse cx="12" cy="5" rx="9" ry="3" /> ' +
+    '<path d="M3 5V19A9 3 0 0 0 21 19V5" /> ' +
+    '<path d="M3 12A9 3 0 0 0 21 12" />',
   Checker:
     '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> ' +
     '<path d="m9 12 2 2 4-4" />',

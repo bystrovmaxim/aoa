@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.3.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.4.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.3"
+      "const": "1.4"
     },
     "nodes": {
       "type": "array",
@@ -108,6 +108,9 @@
         },
         {
           "$ref": "#/$defs/access_decide"
+        },
+        {
+          "$ref": "#/$defs/cache"
         },
         {
           "$ref": "#/$defs/error_handler"
@@ -645,6 +648,41 @@
         }
       ]
     },
+    "cache": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "Cache"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "description"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "key",
+                    "read",
+                    "write",
+                    "invalidate"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "error_handler": {
       "allOf": [
         {
@@ -960,6 +998,12 @@
         },
         {
           "$ref": "#/$defs/domain_event"
+        },
+        {
+          "$ref": "#/$defs/cache_declaration"
+        },
+        {
+          "$ref": "#/$defs/cache_tag"
         }
       ]
     },
@@ -1583,6 +1627,64 @@
             },
             "relationship": {
               "const": "Aggregation"
+            },
+            "is_dag": {
+              "const": false
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "cache_declaration": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "@cache_key",
+                "@cache_read",
+                "@cache_write",
+                "@cache_invalidate"
+              ]
+            },
+            "relationship": {
+              "const": "Composition"
+            },
+            "is_dag": {
+              "const": false
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "cache_tag": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "caches",
+                "invalidates"
+              ]
+            },
+            "relationship": {
+              "const": "Association"
             },
             "is_dag": {
               "const": false
