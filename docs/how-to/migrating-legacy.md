@@ -67,6 +67,7 @@ class PaymentGateway(ABC):
 We hide the monster behind the port. This is an **anti-corruption layer**: the new code no longer depends on the legacy directly.
 
 ```python
+# Fragment: its imports are left out.
 class LegacyPaymentGateway(BaseResource, PaymentGateway):
     def __init__(self) -> None:
         self._legacy = PaymentManager()
@@ -83,6 +84,7 @@ class LegacyPaymentGateway(BaseResource, PaymentGateway):
 A single entry point, DI, and the ability to write tests appear. We do not touch the monster's logic yet — we move it "as is".
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -116,6 +118,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 One step per iteration. Each move makes the pipeline a little more detailed, and the monster a little thinner.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
@@ -149,6 +152,7 @@ class ProcessPaymentAction(BaseAction[ProcessPaymentParams, ProcessPaymentResult
 Card validation is needed in other scenarios too — that is a signal to extract (see [Action, aspect, or resource](choosing-action-aspect-resource.md)).
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -176,6 +180,7 @@ class ValidateCardAction(BaseAction[ValidateCardParams, ValidateCardResult]):
 In the main operation the step becomes a call:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -198,6 +203,7 @@ async def validate_card_aspect(self, params: BaseParams, state: BaseState, box: 
 The monster accumulated statistics — that state cannot be lost. We isolate it as a resource.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -220,6 +226,7 @@ async def record_stats_aspect(self, params: BaseParams, state: BaseState, box: T
 The monster has fallen apart. What remains is a transparent operation whose steps are visible from the class, plus resources holding only state:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @meta(description="Process a payment", domain=BillingDomain)
 @check_roles(AnyRole)
 @depends(PaymentGateway)

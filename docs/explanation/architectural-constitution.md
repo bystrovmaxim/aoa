@@ -41,6 +41,7 @@ The system's data language. An immutable Pydantic model with dot-path navigation
 | `BaseEvent` | a recorded business fact (`frozen`, `extra="forbid"`) |
 
 ```python
+# Fragment: its imports are left out.
 class CreateOrderAction(BaseAction[...]):
     class Params(BaseParams):  # what comes in
         user_id: str
@@ -61,6 +62,7 @@ class CreateOrderAction(BaseAction[...]):
 What the system **does**. An operation with an explicit contract: input parameters, an output result, access, rollbacks, dependencies.
 
 ```python
+# Fragment: its imports are left out.
 class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.Result]): ...
 ```
 
@@ -71,6 +73,7 @@ class CreateOrderAction(BaseAction[CreateOrderAction.Params, CreateOrderAction.R
 What the system **models**. `BaseEntity` supplies the shared domain-object mechanics without ties to storage. Application classes choose one of its six kind bases: Core, Assoc, Detail, Spec, Enum or State. These refine the Entity primitive; they are not additional primitives. [The entity tutorial](../tutorials/step-22-entity.md) explains their different identities and roles.
 
 ```python
+# Fragment: its imports are left out.
 class OrderCoreEntity(BaseCoreEntity):
     order_id: str
     status: str
@@ -83,6 +86,7 @@ class OrderCoreEntity(BaseCoreEntity):
 What **happened**. A typed fact that became true and that everyone who was not the caller should learn of. An event takes the place of `kwargs` in a call of `box`, after the text of the line, and a logger receives it with its type and fields.
 
 ```python
+# Fragment: its imports are left out.
 class OrderCompletedEvent(BaseEvent):
     order_id: str
     total: float
@@ -104,6 +108,7 @@ An event is not a `BaseEntity`: an entity is what the system models, it has a li
 How the system **talks to the outside world over a protocol**. A transport layer on top of the same Actions.
 
 ```python
+# Fragment: its imports are left out.
 class FastApiAdapter(BaseAdapter): ...
 
 
@@ -117,6 +122,7 @@ class McpAdapter(BaseAdapter): ...
 How the machine **changes its own behavior**. Coordinators intercept execution phases and can change the result, abort execution, or trigger compensations.
 
 ```python
+# Fragment: its imports are left out.
 class AuthCoordinator(BaseCoordinator): ...
 
 
@@ -135,6 +141,7 @@ How the machine **reports on itself**. Observers receive lifecycle events and `b
 **The key guarantee:** remove every `BaseObserver` descendant, and the system's behavior doesn't change. They're invisible to business logic.
 
 ```python
+# Fragment: its imports are left out.
 class BaseLogger(BaseObserver): ...  # root of all loggers
 
 
@@ -170,6 +177,7 @@ How a class **declares its participation** in AOA's grammar. An Intent is a mixi
 An Intent carries no behavior — it gives inspectors and coordinators an entry point for discovery and validation.
 
 ```python
+# Fragment: its imports are left out.
 class CheckRolesIntent(BaseIntent): ...  # the class declares role requirements
 
 
@@ -236,6 +244,7 @@ Anything that lives longer than a single call and is injected via DI (`@depends`
 **Constraint:** you can't control its lifecycle. The database existed before you and will remain after.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 class OrdersDbManager(BaseStorage): ...    # PostgreSQL
 class SessionCacheResource(BaseStorage):   # Redis
 class EventQueueResource(BaseStorage):     # Kafka / RabbitMQ
@@ -250,6 +259,7 @@ class EventQueueResource(BaseStorage):     # Kafka / RabbitMQ
 **Constraint:** you can't assume it keeps state for you between calls.
 
 ```python
+# Fragment: an outline, not complete code.
 class PaymentServiceResource(BaseGateway):      # Stripe API
 class NotificationServiceResource(BaseGateway): # SendGrid
 class FraudCheckResource(BaseGateway):          # an external service
@@ -264,6 +274,7 @@ class FraudCheckResource(BaseGateway):          # an external service
 **Constraint:** it lives only as long as the process lives. It doesn't persist on its own.
 
 ```python
+# Fragment: an outline, not complete code.
 class TicketGraphController(BaseController):    # a compiled LangGraph
 class LegacyPricingEngine(BaseController):      # a wrapper around legacy code
 class RuleEngineController(BaseController):     # an in-memory rules engine

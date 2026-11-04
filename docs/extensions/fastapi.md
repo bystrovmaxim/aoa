@@ -24,6 +24,7 @@ Installation: `pip install aoa-fastapi-adapter`.
 ## The essentials
 
 ```python
+# Fragment: one part of an example; `machine` comes from the code around it.
 from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context

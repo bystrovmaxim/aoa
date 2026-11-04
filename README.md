@@ -76,34 +76,51 @@ pip install aoa-action-machine
 
 ```python
 import asyncio
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
-from aoa.action_machine.auth import NoAuthCoordinator
 
-# 1. Params and result — regular Pydantic models
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
+
+
+class GreetingDomain(BaseDomain):
+    name = "greeting"
+    description = "Greetings"
+
+
+# 1. Params and result — Pydantic models whose fields say what they hold
 class HelloParams(BaseParams):
-    name: str
+    name: str = Field(description="Who to greet")
+
 
 class HelloResult(BaseResult):
-    message: str
+    message: str = Field(description="The greeting")
 
-# 2. Action — business logic in an aspect method
-@meta(description="Say hello")
+
+# 2. Action — what it is for, who may call it, and its logic in an aspect
+@meta(description="Say hello", domain=GreetingDomain)
+@check_roles(GuestRole)
 class HelloAction(BaseAction[HelloParams, HelloResult]):
-
     @summary_aspect("Return greeting")
-    async def greet(self, params, state, box, connections):
+    async def greet_summary(self, params: HelloParams, state: BaseState, box: ToolsBox, connections: Connections) -> HelloResult:
         return HelloResult(message=f"Hello, {params.name}!")
 
+
 # 3. The machine handles the entire execution path
-async def main():
-    machine = ActionProductMachine(graph_coordinator=create_node_graph_coordinator())
-    ctx = await NoAuthCoordinator(context=Context()).process(None)
-    result = await machine.run(ctx, HelloAction(), HelloParams(name="World"))
+async def main() -> None:
+    machine = ActionProductMachine()
+    result = await machine.run(Context(), HelloAction(), HelloParams(name="World"))
     print(result.message)
+
 
 asyncio.run(main())
 ```
@@ -114,8 +131,8 @@ Hello, World!
 
 **What's next:**
 
-- Hello World — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/step_01_Action_and_pipeline/01_hello_world.py)
-- Full example — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/domain_model/01_domain_model.py)
+- Hello World — [Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/01_hello_world.ipynb) · [View in project](examples/step_01_Action_and_pipeline/01_hello_world.py)
+- Full example — [Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/domain_model/01_domain_model.ipynb) · [View in project](examples/domain_model/01_domain_model.py)
 
 ## Packages
 
@@ -140,6 +157,7 @@ Launching a service is three sequential steps: create the machine, connect authe
 **FastAPI (HTTP/REST)**
 
 ```python
+# Fragment: needs the `JWT_SECRET` environment variable.
 # app.py
 import os
 
@@ -184,6 +202,7 @@ app = (
 **MCP (AI agents)**
 
 ```python
+# Fragment: its imports are left out.
 # mcp_server.py
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -228,6 +247,7 @@ Let's break down each step in detail.
 The machine itself is responsible for execution. To run an `Action`, it must be passed to the machine's `run()` method:
 
 ```python
+# Fragment: one part of an example; `machine` comes from the code around it.
 result = await machine.run(ctx, HelloAction(), HelloParams(name="World"))
 ```
 
@@ -266,6 +286,7 @@ Pluggable plugins that observe the execution of each `Action`. The machine sends
 Inside an `Action`, business-level events are recorded via `box.info/warning/critical()`: a login attempt, sending a notification to a client, a fraud rule firing. Each event is tagged with a severity level and a channel (`business`, `audit`, `client`, …) — the machine routes it to the registered loggers:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(
     graph_coordinator=create_node_graph_coordinator(),
     loggers=[
@@ -306,6 +327,7 @@ An adapter connects a transport to an `Action`: it receives an incoming request,
 `FastApiAdapter` publishes an operation as a REST endpoint with a ready-made OpenAPI schema, `McpAdapter` — as a tool for an AI agent. Both schemas are derived from the description of the same `Action`, `Params`, and `Result` — which keeps the `Action` transport-agnostic.
 
 ```python
+# Fragment: its imports are left out.
 # HTTP/REST
 app = (
     FastApiAdapter(machine=machine, auth_coordinator=auth, title="Orders API")
@@ -330,6 +352,7 @@ The external schema does not always match the `Action` contract: a new API versi
 The translation is therefore placed at the adapter boundary: `request_model` / `response_model` declare the external shapes, `params_mapper` brings the incoming request to `Params`, and `response_mapper` brings the `Result` to the required response model. The `Action` remains untouched.
 
 ```python
+# Fragment: its imports are left out.
 app = (
     FastApiAdapter(machine=machine, auth_coordinator=auth, title="Orders API")
 
@@ -370,7 +393,7 @@ The transport layer in AOA is open: an adapter is an extension point, not a clos
 
 In AOA, AI agents are not an add-on but an equal consumer of the system. The same operation already running over HTTP for a human becomes a tool for an agent with the simple addition of `McpAdapter` — without duplicating logic and without rewriting for another protocol.
 
-As an experimental feature, a `LangGraphAdapter` is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
+As an experimental feature, a goal-driven transport is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
 
 → [Adapters: HTTP and MCP from one source](docs/tutorials/step-14-fastapi.md)
 
@@ -387,6 +410,7 @@ An `Action` has one typed input (`Params`) and one output (`Result`) — this is
 ![Action pipeline: from Params through aspects to Result](docs/assets/aoa-pipeline.png)
 
 ```python
+# Fragment: one part of an example; `CreateOrderParams` comes from the code around it.
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     @regular_aspect("Check stock availability")
@@ -414,6 +438,7 @@ Each subsequent step in the pipeline depends on the results of the previous ones
 AOA moves this data into an explicit `state` object — shared memory for a single run, separate from `Params` and `Result`, while the `Action` itself remains stateless between calls. The `@result_*` decorators turn `state` into a contract: each step declares what it will put there, and AOA verifies this after execution. This makes `state` an **X-ray of the operation** — the entire data path is visible, not just the input and result, and plugins, compensations (`state_before`/`state_after`), and tests are built on top of it.
 
 ```python
+# Fragment: its imports are left out.
 @result_string("reservation_id", min_length=1)
 @regular_aspect("Reserve items in warehouse")
 async def reserve_items(self, params, state, box, connections):
@@ -440,6 +465,7 @@ In AOA the `Action` itself knows which steps have executed and in what order, so
 ![Compensations unwind in reverse order on failure](docs/assets/aoa-compensate.png)
 
 ```python
+# Fragment: its imports are left out.
 @regular_aspect("Reserve items in warehouse")
 async def reserve_items(self, params, state, box, connections):
     state.reservation_id = await connections.warehouse.reserve(params.items)
@@ -462,6 +488,7 @@ AOA separates these into layers: rollback is `@compensate`, and everything else 
 ![The on_error layer intercepts the error at the end of the pipeline](docs/assets/aoa-on-error.png)
 
 ```python
+# Fragment: its imports are left out.
 @on_error(PaymentDeclinedError, description="Return a meaningful status to the client")
 async def handle_decline(self, params, state, box, connections, error):
     return CreateOrderResult(status="payment_declined")
@@ -482,6 +509,7 @@ Dependencies are usually obtained through a constructor (gives the object state 
 There are two kinds: `@depends` declares types and provides a factory for creating them via `box.resolve()`, while `@connection` describes already-open resources that the `Action` expects to receive — on mismatch the system immediately raises an exception. This way each `Action` remains self-contained and understandable in isolation from the rest of the system.
 
 ```python
+# Fragment: its imports are left out.
 @depends(PaymentService)
 @connection(WarehouseConnection)
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
@@ -503,6 +531,7 @@ A call has an environment — the initiator, roles, `trace id`, request source �
 In AOA the environment is packaged into a `Context`, but each aspect declares the fields it needs via `@context_requires` — just as strictly as it declares dependencies. This keeps `Action` transport-independent: HTTP, MCP, CLI, and tests all supply different environments, and the operation reads them the same way.
 
 ```python
+# Fragment: its imports are left out.
 @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
 @regular_aspect("Check personal limit")
 async def check_limit(self, params, state, box, connections, context):
@@ -520,6 +549,7 @@ Cache does not change business behavior, but it does change the execution path �
 In AOA that place is two methods: `cache_key(params)` builds the key (returns `None` — cache is bypassed and the pipeline runs normally; returns a string — the coordinator looks for the entry and on a hit returns the ready result without running the pipeline), and `on_cache_write(result, params, duration_ms)` decides whether to save the result. The `Action` is only responsible for meaning — which key to build and what to cache; storage, TTL, and invalidation are handled by the cache coordinator.
 
 ```python
+# Fragment: one part of an example; `GetPriceParams` comes from the code around it.
 class GetPriceAction(BaseAction[GetPriceParams, GetPriceResult]):
 
     def cache_key(self, params):
@@ -540,6 +570,7 @@ Observation splits into two tasks — seeing the execution mechanics and recordi
 At every step of the pipeline AOA generates events (start/finish, before/after aspect, rollback, errors) with the full environment — `params`, `state`, context, timings — and the plugin decides what to do with them: send to telemetry, build an execution tree. The business code contains not a single line of observation, a plugin failure does not bring down the process, and the plugins themselves can be switched on and off at runtime — for the application, a domain, or a single `Action`. Out of the box there is OpenTelemetry and [OCEL](https://www.ocel-standard.org/) for process mining.
 
 ```python
+# Fragment: one part of an example; `BasePlugin` comes from the code around it.
 class AuditPlugin(BasePlugin):
 
     async def on_after_regular_aspect(self, event: AfterRegularAspectEvent):
@@ -555,6 +586,7 @@ class AuditPlugin(BasePlugin):
 "Payment declined due to limit" is a business event that plugins cannot see: they only observe the mechanics. For such cases AOA provides `box`:
 
 ```python
+# Fragment: its imports are left out.
 @regular_aspect("Process payment")
 async def charge_aspect(self, params, state, box, connections):
     await box.info(
@@ -578,6 +610,7 @@ Ordinary tests are written when layers in the code have already mixed — and tu
 In AOA an `Action` holds no state and receives everything external only through explicit contracts, so it cannot tell a test call from a production call: roles, pipeline, checkers, compensations all work exactly as in prod. The test does not open up the operation; instead it assembles the "outside world" — for example, a payment gateway that always declines:
 
 ```python
+# Fragment: its imports are left out.
 gateway = AsyncMock(spec=PaymentService)
 gateway.charge.side_effect = ValueError("payment declined: limit exceeded")
 
@@ -615,6 +648,7 @@ Business rules live in `Action`. Transport lives in `Resource`.
 A resource can be a thin adapter over a standard protocol, or a domain-oriented resource that hides transport behind project-level methods. `PostgresResource` ships in the box and manages the connection and the transaction; a domain resource subclasses it and runs its statements through the driver's protected helpers:
 
 ```python
+# Fragment: its imports are left out.
 class OrderResource(PostgresResource):
     async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
         row = await self._fetchrow(
@@ -632,6 +666,7 @@ class OrderResource(PostgresResource):
 `save_order` does not decide whether an order may be created — that is the `Action`'s job. The resource only executes the operation and returns control. The same principle applies to any external executor — a payment gateway, email service, or AI agent:
 
 ```python
+# Fragment: its imports are left out.
 class SupportAgentResource(BaseResource):
     def __init__(self, client: AgentClient) -> None:
         self._client = client
@@ -648,6 +683,7 @@ class SupportAgentResource(BaseResource):
 Every field must have a `description` — this is not a comment but structured metadata: it goes into the system graph, ArchiMate diagrams, and auto-generated documentation. A missing description is a build error.
 
 ```python
+# Fragment: its imports are left out.
 @entity(description="Customer order", domain=StoreDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
@@ -672,6 +708,7 @@ Three relationship types:
 Cardinality is set by the suffix: `One` — a single object, `Many` — a collection.
 
 ```python
+# Fragment: its imports are left out.
 @entity(description="Customer account", domain=StoreDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
@@ -725,6 +762,7 @@ Every relationship must have a mirror on the other side — declared via `Invers
 A lifecycle describes one set of states and the allowed moves between them. Each status is an object with a stable `code` and a human `display_name`. The state type declares its own statuses and carries their catalogue — `members`, `codes()`, `by_code()` and `entity_type`; the axis names that type as `Lifecycle[OrderStateEntity]`; `_template` declares the transitions and which states are initial, intermediate or final.
 
 ```python
+# Fragment: one part of an example; `OrderStateEntity` comes from the code around it.
 from aoa.action_machine.domain import BaseStateEntity, Lifecycle
 
 
@@ -758,6 +796,7 @@ The coordinator validates the graph at startup: whether there are initial and fi
 `Entity` is immutable, so a transition does not mutate the object — it returns a new instance:
 
 ```python
+# Fragment: one part of an example; `order` comes from the code around it.
 new_lifecycle = order.lifecycle.transition("confirmed")
 confirmed_order = order.model_copy(update={"lifecycle": new_lifecycle})
 ```
@@ -765,6 +804,7 @@ confirmed_order = order.model_copy(update={"lifecycle": new_lifecycle})
 The current state, available transitions, and flags are read directly:
 
 ```python
+# Fragment: one part of an example; `order` comes from the code around it.
 order.lifecycle.current_state          # → "new"
 order.lifecycle.available_transitions  # → {"confirmed", "cancelled"}
 order.lifecycle.is_initial             # → True

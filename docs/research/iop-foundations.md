@@ -113,6 +113,7 @@ A typical service method often combines everything: authorization, reading data,
 An `Action` is built differently. It makes the scenario readable before you dive into the details:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @meta(description="Create order draft", domain=OrderDomain)
 @check_roles(CustomerRole)
 class CreateOrderDraftAction(BaseAction[CreateOrderDraftParams, CreateOrderDraftResult]):

@@ -27,7 +27,7 @@ In a distributed system there is no shared transaction. An order reserved goods 
 
 The **Saga** pattern answers this thus: every step has a **compensating** operation that undoes its effect, and on failure the already-executed steps are rolled back in reverse order. AOA builds the saga into the model itself. A compensator is declared with the `@compensate` decorator next to its step — as a visible part of the contract, not an admixture in the code. The machine itself assembles the stack of executed steps and unwinds it on error; the developer is left to describe how to roll back a single step. `@compensate` is as fundamental as `@regular_aspect`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1PUZXdfSVjvkkjzaeoQ5sclUstJmguzbw/view?usp=drive_link) · [Open in project](../../examples/step_04_saga_and_compensations/01_saga_compensate.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_04_saga_and_compensations/01_saga_compensate.ipynb) · [Open in project](../../examples/step_04_saga_and_compensations/01_saga_compensate.py)
 
 ---
 
@@ -40,6 +40,7 @@ Take an order fulfillment of three steps: reserve the item, charge the payment, 
 `@compensate(target_aspect, description)` binds a compensator method to a regular aspect **by direct callable reference**. The target aspect must be defined before the compensator in the class body — the reference is captured at class definition time. A compensator method's name ends with `_compensate`.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -60,6 +61,7 @@ async def reserve_compensate(self, params: BaseParams, state_before: BaseState, 
 So the step and its rollback stand as a pair. `charge_aspect` has its own `charge_compensate` ("refund the money"). And `confirm_summary` in the example fails on purpose:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult

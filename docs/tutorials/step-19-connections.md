@@ -72,6 +72,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 class CounterDomain(BaseDomain):
     """Group this example's resource and action."""
@@ -246,6 +247,7 @@ Combine the two lifetimes after learning them separately. The holder makes a poo
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 holder = PoolHolder()
 created = []
 @asynccontextmanager
@@ -337,6 +339,7 @@ this mechanism. See [failure cases](../how-to/connection-lifecycle-failures.md).
 For a manual call or a custom adapter, use the scope explicitly:
 
 ```python
+# Fragment: its imports are left out.
 async with connection_scope(declarations) as connections:
     result = await machine.run(context, action, params, connections)
 ```

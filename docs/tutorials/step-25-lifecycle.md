@@ -172,6 +172,7 @@ declared object: True
 The code `draft` exists, but the example's template provides no route back from `paid`. Checking and attempting that move are different operations:
 
 ```python
+# Fragment: its imports are left out.
 current = OrderLifecycle("paid")
 assert not current.can_transition("draft")
 try:
@@ -202,6 +203,7 @@ InvalidStateError: State 'missing' is not defined on OrderLifecycle. Valid state
 The model graph is AOA's exported description of the application: its entities, operations and their declared relationships. In this example `@entity` registers `OrderCoreEntity` in a small domain; constructing `ActionProductMachine` builds and validates that graph. The linked files include the registration and all imports. They export the graph and select its `paid` state row:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(loggers=[])
 graph = json.loads(machine.graph_coordinator.to_json())
 row = next(

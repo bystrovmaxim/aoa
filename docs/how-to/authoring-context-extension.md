@@ -64,6 +64,7 @@ The fields are **explicit** (declared), not "extra": the parts are `extra="forbi
 `Context` is born at the boundary — it is assembled by the [authentication coordinator](authoring-auth-coordinator.md). That is where the extended parts go:
 
 ```python
+# Fragment: its imports are left out.
 ctx = Context(
     user=TenantUserInfo(user_id="u-42", tenant_id="acme"),
     request=VersionedRequestInfo(api_version="v3"),
@@ -78,6 +79,7 @@ The `Context` fields are typed by the base classes, but pydantic keeps the passe
 An aspect declares the paths it needs. For standard fields — the `Ctx.*` constants (IDE autocomplete), for your own — **raw string paths** (`"user.tenant_id"`):
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult
@@ -134,6 +136,7 @@ class AppContext(Context):
 An aspect reads them through the same `@context_requires`, with an `env.` prefix:
 
 ```python
+# Fragment: its imports are left out.
 @context_requires("env.region", "env.max_retries")
 async def config_aspect(self, params, state, box, connections, ctx):
     region = ctx.get("env.region")        # "eu-west-1"

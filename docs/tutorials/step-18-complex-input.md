@@ -23,7 +23,7 @@
 
 The previous chapter was about how an operation **returns** complex data. This one is the mirror: how it **accepts** it. A request rarely carries a couple of scalars — usually it is nested objects, collections, sometimes arbitrary JSON. The good news is that no separate mechanism is needed for this: `Params` is a Pydantic model, so **any** Pydantic shape works as a field, and the [adapters](step-14-fastapi.md) themselves derive both the request body and the schema from it. Complex input in AOA is accepted exactly the same way as simple input.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1YukUsvY7G0z-XzgU6rrGcyCGWZRL4T3x/view?usp=drive_link) · [Open in project](../../examples/step_18_complex_input/01_complex_input.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_18_complex_input/01_complex_input.ipynb) · [Open in project](../../examples/step_18_complex_input/01_complex_input.py)
 
 ---
 
@@ -32,6 +32,7 @@ The previous chapter was about how an operation **returns** complex data. This o
 A `Params` field can be another model or a collection — this is ordinary Pydantic, with no special support:
 
 ```python
+# Fragment: its imports are left out.
 class Address(BaseModel):
     city: str
     zip: str
@@ -54,6 +55,7 @@ The machine and the adapters parse this automatically: the incoming JSON is vali
 When part of a request is arbitrary JSON whose shape is set externally (not by your classes), the same [`JsonSchemaValue`](step-17-schema-results.md) works on input as on output: a `Params` field holds JSON validated by a strict schema at construction.
 
 ```python
+# Fragment: its imports are left out.
 OrderMeta = JsonSchemaValue.define(name="OrderMeta", schema={
     "type": "object",
     "properties": {"source": {"type": "string"}, "ab_test": {"type": "string"}},

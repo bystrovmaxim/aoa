@@ -27,7 +27,7 @@ Cache is a strange entity. It is not business logic: the meaning of an operation
 
 AOA gives the cache its own place in the contract, splitting two concerns. **The operation is responsible for meaning**: which key to build, whether a particular result is worth storing, what to evict after writing. **The coordinator is responsible for policy**: where to store, how long to live, local or distributed, how to evict. The same technique as with [dependencies](step-06-dependencies.md): the operation says "what", the infrastructure — "how".
 
-[▶ Try in Colab](https://drive.google.com/file/d/1New2yib1SQTKrnyioeI9bUJTI13xnJqN/view?usp=drive_link) · [Open in project](../../examples/step_08_cache/01_cache.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_08_cache/01_cache.ipynb) · [Open in project](../../examples/step_08_cache/01_cache.py)
 
 ---
 
@@ -36,6 +36,7 @@ AOA gives the cache its own place in the contract, splitting two concerns. **The
 The cache in AOA is built **around** the pipeline, not inside the aspect loop — so as not to mix with the saga and `@on_error`. And it is **optional**: until a coordinator is passed to the machine, there is no cache, and the operation's hooks are simply not called.
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(cache_coordinator=CacheCoordinator())
 ```
 
@@ -46,6 +47,7 @@ An operation declares up to four hooks (all optional): `cache_key`, `on_cache_wr
 `cache_key(params)` builds a key from the input data:
 
 ```python
+# Fragment: its imports are left out.
 class GetOrderAction(BaseAction[OrderParams, OrderResult]):
 
     def cache_key(self, params: OrderParams) -> str | None:
@@ -95,6 +97,7 @@ The second block — "heavy again" — is empty: not a line of log, not a write 
 After a **clean** pass through the pipeline the machine asks the operation whether to store the result. The `on_cache_write` hook returns **tags** or `None`:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
@@ -116,6 +119,7 @@ class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
 `CacheTag` is a pair `(type, key)` that describes the entry's domain membership:
 
 ```python
+# Fragment: its imports are left out.
 @dataclass(frozen=True)
 class CacheTag:
     type: type[Any] | None = None
@@ -141,6 +145,7 @@ Tags solve a problem that `read_cache` does not cover: **one write operation mus
 The `on_cache_invalidate(params, result)` hook is called after **every** successful pipeline pass (not on a cache hit, not on `@on_error`). It returns a list of `CacheTag` matchers or `None`:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 class UpdateOrderAction(BaseAction[UpdateOrderParams, UpdateOrderResult]):

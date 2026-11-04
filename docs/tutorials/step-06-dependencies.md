@@ -26,7 +26,7 @@ In ordinary code dependencies come from anywhere. Through the constructor — an
 
 AOA does it differently: an operation declares everything external **in the header**, and cannot obtain it without declaring it. There are two kinds. `@depends` — a dependency the machine creates on demand (a service, a repository, a nested operation); the aspect takes it via `await box.resolve(...)`. `@connection` — an already-open resource the operation expects to receive at launch (a connection, a pool, a client); the aspect reads it from `connections["key"]`. Both are visible to the reader, the reviewer, the test, and the system graph.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1XS2XyVnHdJJwy3YA-Pm0R4XWSZ1m8iXZ/view?usp=drive_link) · [Open in project](../../examples/step_06_dependencies/01_depends.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_06_dependencies/01_depends.ipynb) · [Open in project](../../examples/step_06_dependencies/01_depends.py)
 
 ---
 
@@ -35,6 +35,7 @@ AOA does it differently: an operation declares everything external **in the head
 An operation's header is its contract with the environment. `@depends(PricingService)` says: "I need this service"; `@connection(LedgerResource, key="ledger")` — "I will be handed this open resource under the key `ledger`". What is not declared is not available.
 
 ```python
+# Fragment: its imports are left out.
 @meta(description="Charge for a product", domain=BillingDomain)
 @check_roles(GuestRole)
 @depends(PricingService)
@@ -48,6 +49,7 @@ class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 A dependency declared through `@depends` is obtained by the aspect with a call to `await box.resolve(...)`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -75,6 +77,7 @@ In most frameworks DI is a container: modules, bindings, providers, configuratio
 Not everything is created by a factory. A transaction, a connection pool, an HTTP client, a store — these are already-open resources that operations **receive** rather than construct. For them there is `@connection`: it declares a slot with a key, and the connections are supplied to `machine.run(...)` as a `connections` dictionary.
 
 ```python
+# Fragment: one part of an example; `machine` comes from the code around it.
 machine.run(Context(), ChargeAction(), params, connections={"ledger": ledger})
 ```
 
@@ -85,6 +88,7 @@ The aspect reads the resource by key: `connections["ledger"]`. The machine check
 Operations call one another through `await box.run(ChildAction, params)` — this is [composition](step-01-action-and-pipeline.md), not inheritance. When a parent passes its connection to a child operation, the machine **wraps it in a proxy**: the child operation can run statements but cannot control the transaction. The transaction belongs to whoever opened it; otherwise a nested call could commit or roll back data it does not own.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource

@@ -26,7 +26,7 @@ Every call has an environment: who made it, where the request came from, in what
 - `with_request(trace_id=, request_path=, …)` → `RequestInfo`;
 - `with_runtime(service_name=, hostname=, …)` → `RuntimeInfo`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1R3It-sKLhcECkYcgH0bm61UGigxyBxfG/view?usp=drive_link) · [Open in project](../../examples/step_28_context/01_context.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_28_context/01_context.ipynb) · [Open in project](../../examples/step_28_context/01_context.py)
 
 ---
 
@@ -35,6 +35,7 @@ Every call has an environment: who made it, where the request came from, in what
 Each `with_*` has reasonable defaults, and additional fields are passed via `**kwargs`. An aspect that declared a context slice sees exactly the assembled values:
 
 ```python
+# Fragment: its imports are left out.
 bench = (
     TestBench()
     .with_user(user_id="u-test", roles=(AdminRole,))
@@ -52,6 +53,7 @@ r = await bench.run(WhoamiAction(), EmptyParams(), rollup=False)
 The roles you put on the user via `with_user(roles=...)` are **exactly** what `@check_roles` will check. Remove the needed role — and the access check rejects the call, as in production:
 
 ```python
+# Fragment: its imports are left out.
 await TestBench().run(WhoamiAction(), EmptyParams(), rollup=False)
 # AccessDenied: Access denied by CHECK_ROLES.
 ```
@@ -63,6 +65,7 @@ await TestBench().run(WhoamiAction(), EmptyParams(), rollup=False)
 Assembling the context does not open an aspect access to everything. The operation reads `Context` only through the declared `@context_requires` slice (the parameter `ctx` is a `ContextView`), and a field the aspect **did not declare** is refused — even if it is in the context:
 
 ```python
+# Fragment: its imports are left out.
 # client_ip is set on the request, but the aspect declared only user_id
 leak_bench = TestBench().with_request(client_ip="10.0.0.7")
 r = await leak_bench.run(LeakAction(), EmptyParams(), rollup=False)
@@ -90,6 +93,7 @@ uv run python examples/step_28_context/01_context.py
 `.with_env(key, value)` registers a constant directly on `TestBench` — the same way `@env` registers a provider on the `Context` class. In tests the value is always known upfront, so only constants are accepted:
 
 ```python
+# Fragment: its imports are left out.
 r = await (
     TestBench()
     .with_user(user_id="u-test", roles=(AdminRole,))

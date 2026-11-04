@@ -27,11 +27,12 @@ Run:
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -39,6 +40,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.langgraph import LangGraphController
 
@@ -192,10 +194,14 @@ async def test_stub_always_routes_to_engineering() -> None:
         classify_cls=StubClassifyAction,
         engineering_cls=StubEngineeringAction,
     )
-    mock_result = MagicMock()
-    mock_result.model_dump.return_value = {"resolved": True, "resolution_note": "[STUB] resolved"}
+    machine = ActionProductMachine()
+
+    async def run_stub(action_cls, params, connections=None):
+        """Run each stub for real, so its fixed result reaches the graph."""
+        return await machine.run(Context(), action_cls(), params)
+
     box = MagicMock()
-    box.run = AsyncMock(return_value=mock_result)
+    box.run = run_stub
 
     result = await ctrl.ainvoke({"ticket_id": "T-9", "note": "anything"}, box)
 

@@ -79,7 +79,7 @@ OcelFrame(doctor, qualifier="Signed prescription")
     └─ (clinic omitted — relation not loaded on doctor)
 ```
 
-If the aspect **did** load `clinic` on the doctor, the builder would add  
+If the aspect **did** load `clinic` on the doctor, the builder would add
 `E2O clinic` with `"Signed prescription.clinic"`. That is valid but may add noise in PM graphs; the aspect controls participation via **partial loading**.
 
 ### E2O vs “everything in the database”
@@ -97,6 +97,7 @@ Participation is **not** inferred from SQL or undeclared fields — only from wh
 Register on ``ActionProductMachine(plugins=[OcelPlugin(store=resource)])``. The store must be opened by the owning action connection; the plugin only calls ``add_event``.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin
 
 @regular_aspect("Export")
@@ -115,4 +116,3 @@ async def ocel_aspect(self, params, state, box, connections):
 ```
 
 On each trace, ``OcelPlugin`` reads ``GlobalFinishEvent.all_aspect_states`` (and optional frames on ``result``), builds one ``OcelEvent``, and appends to the store. The plugin does not mutate pipeline state.
-

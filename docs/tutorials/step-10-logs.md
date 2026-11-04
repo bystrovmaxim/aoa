@@ -26,7 +26,7 @@
 
 The key difference from the usual `logger.info()` — a `box` event carries a **level** and is addressed to a **channel**, and who delivers it where is not decided by the operation code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/18-WlAwBhToJNkGoGiXYTYgQsrgVTiSQm/view?usp=drive_link) · [Open in project](../../examples/step_10_logs/01_logging_sensitive.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_10_logs/01_logging_sensitive.ipynb) · [Open in project](../../examples/step_10_logs/01_logging_sensitive.py)
 
 ---
 
@@ -49,6 +49,7 @@ The first argument to `box` is the **channel**, the semantic address of the even
 | `Channel.error` | an error event |
 
 ```python
+# Fragment: one part of an example; `box` comes from the code around it.
 await box.info(Channel.business | Channel.security, "Login from new device: {%var.user}", user=params.username)
 ```
 
@@ -59,6 +60,7 @@ The channel and level are the **address and importance**: by them loggers decide
 The second argument is a template with substitution. `{%var.name}` inserts the passed value, `{%var.name|cyan}` also colors it in the terminal. Besides `var`, other namespaces are available — for example, `{%params.field}`. There are also conditional inserts `iif` with color functions:
 
 ```python
+# Fragment: one part of an example; `box` comes from the code around it.
 await box.info(
     Channel.business,
     "Info: {iif({%var.amount} > 1000; red('large transaction'); green('normal transaction'))}",
@@ -73,6 +75,7 @@ One restriction is privacy: any path segment starting with `_` is blocked in a t
 A public property can be shown in a log **masked** — with the `@sensitive` decorator on its getter (which is why `@property` is on the outside, `@sensitive` inside):
 
 ```python
+# Fragment: its imports are left out.
 class LoginParams(BaseParams):
     username: str = Field(description="Username")
     amount: float = Field(description="Transaction amount")
@@ -111,6 +114,7 @@ All the techniques are visible: substitution (`user=alice`), the conditional `ii
 Where an event ends up — the console, a queue, Telegram — is not decided by the operation. Loggers are wired to the machine through a coordinator, and each filters the stream by channels and level:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(
     log_coordinator=LogCoordinator(loggers=[
         ConsoleLogger(),                       # everything — to the console

@@ -65,6 +65,7 @@ Impulses carry no business meaning. They exist for SRE and for the immune system
 Business code explicitly names a fact of the subject area through `box`:
 
 ```python
+# Fragment: one part of an example; `box` comes from the code around it.
 await box.info("order.shipped", OrderShippedFact(order_id=order.id, carrier="FedEx"))
 await box.critical("payment.declined", PaymentDeclinedFact(reason="limit_exceeded"))
 ```
@@ -80,6 +81,7 @@ Each event carries a `Channel` (business, audit, client), a `Domain`, `user_id`,
 Analytical plugins (`BusinessMetricsPlugin`, `ImmunityPlugin`) continuously watch the stream of Impulses and Events. When homeostasis is violated, they produce a typed signal:
 
 ```python
+# Fragment: its imports are left out.
 class ConversionDropSignal(BaseModel):
     action: str
     trend: float      # e.g. 0.6 instead of the normal 0.95
@@ -101,6 +103,7 @@ The difference from level 1: level 1 says "the payment was declined," level 2 sa
 A `SupervisorAction` receives a Signal (level 2) + an execution tree (level 0) + business context (level 1). The LLM is isolated: no direct access to the database or the network. It reasons and returns a structured diagnosis:
 
 ```python
+# Fragment: its imports are left out.
 class SupervisorDecision(BaseModel):
     diagnosis: str                    # "PayPal gateway unavailable"
     confidence: float
@@ -118,6 +121,7 @@ A diagnosis is a thought, not an action. It changes the system only through leve
 Executing a `SupervisorDecision` via `box.run(AdminAction)`. Commands are strictly typed, protected by `@check_roles(SystemRole)`, and leave an OCEL audit trail:
 
 ```python
+# Fragment: one part of an example; `box` comes from the code around it.
 await box.run(ToggleFeatureFlagAction, ToggleFeatureFlagParams(
     flag="use_paypal", percent=0
 ))

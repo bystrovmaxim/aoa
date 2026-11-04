@@ -27,7 +27,7 @@ Every call has an environment: who initiated it, with which roles, under what `t
 
 AOA does not make the context an ambient environment you can reach into from anywhere. The environment is packed into `Context`, but an aspect **does not see it by default**. To read a field, an aspect declares it with the `@context_requires` decorator — as strictly as it declares dependencies. In return the machine hands it a `ContextView` — a slice that opens exactly the declared fields and nothing beyond. This is the same principle of explicitness as with [dependencies](step-06-dependencies.md): if you use it, declare it.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1SNlqpMH4ptVTQNdquObgokAkt90H3gUA/view?usp=drive_link) · [Open in project](../../examples/step_07_context/01_context.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_07_context/01_context.ipynb) · [Open in project](../../examples/step_07_context/01_context.py)
 
 ---
 
@@ -46,6 +46,7 @@ This is rich information — and that is exactly why access to it is rationed.
 Without `@context_requires` an aspect does not get the context at all — it has neither a parameter for it nor a loophole (`box` does not hold the context). This is a deliberate least access: only what is declared is visible. The declaration changes the aspect's signature — a last parameter `ctx` is added:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -71,6 +72,7 @@ The `@context_requires` decorator is placed **closer to the body** of the method
 The key point: the restriction works **even if the field is in the context**. If an aspect declared `user_id` and `trace_id`, `client_ip` is unavailable to it, even though it is present in `Context`:
 
 ```python
+# Fragment: its imports are left out.
 try:
     ctx.get(Ctx.Request.client_ip)        # not declared in @context_requires
 except ContextAccessError:
@@ -101,6 +103,7 @@ From this follows the main practical consequence. Since an aspect reads only the
 `UserInfo`, `RequestInfo`, and `RuntimeInfo` can be extended by inheritance — adding your own environment fields. Standard fields are covered by the `Ctx` constants; your own are accessed by a raw dot-path:
 
 ```python
+# Fragment: its imports are left out.
 class BillingUserInfo(UserInfo):
     billing_plan: str = "free"
 
@@ -131,6 +134,7 @@ class AppContext(Context):
 An aspect declares the needed keys via `@context_requires("env.<key>")` and reads them via `ctx.get(...)` — just like any other environment field:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -163,7 +167,7 @@ class AsiaPacificContext(AppContext):
     pass
 ```
 
-[▶ Colab notebook](../../examples/step_07_context/02_env.ipynb) · [Open in project](../../examples/step_07_context/02_env.py)
+[▶ Colab notebook](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_07_context/02_env.ipynb) · [Open in project](../../examples/step_07_context/02_env.py)
 
 **Run:**
 

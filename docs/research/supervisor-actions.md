@@ -83,6 +83,7 @@ Between the plugins and the Supervisor there needs to be an aggregation layer: a
 The difference matters:
 
 ```python
+# Fragment: its imports are left out.
 # A raw event (not this)
 AfterRegularAspectEvent(action="CreateOrderAction", aspect="check_inventory", duration_ms=4200)
 
@@ -131,6 +132,7 @@ Every possible Supervisor command is grouped by risk level:
 - create an anomaly report, raise an incident, request confirmation from a human
 
 ```python
+# Fragment: one part of an example; `MachineCommand` comes from the code around it.
 MachineCommand(type="create_incident", severity="high", signal=signal, summary="...")
 ```
 
@@ -138,6 +140,7 @@ MachineCommand(type="create_incident", severity="high", signal=signal, summary="
 - change a limit, a timeout, a threshold, a feature flag
 
 ```python
+# Fragment: one part of an example; `MachineCommand` comes from the code around it.
 MachineCommand(type="set_config", path="actions.CreateOrder.aspects.check_inventory.timeout_ms", value=8000)
 ```
 
@@ -145,6 +148,7 @@ MachineCommand(type="set_config", path="actions.CreateOrder.aspects.check_invent
 - switch a Resource implementation, open a circuit breaker, enable a canary
 
 ```python
+# Fragment: one part of an example; `MachineCommand` comes from the code around it.
 MachineCommand(type="switch_resource", action="CreateOrderAction", port="inventory",
                from_impl="PostgresInventory", to_impl="RedisInventory")
 ```
@@ -153,6 +157,7 @@ MachineCommand(type="switch_resource", action="CreateOrderAction", port="invento
 - change aspect structure, contracts, roles, domain invariants
 
 ```python
+# Fragment: one part of an example; `MachineCommand` comes from the code around it.
 MachineCommand(type="add_aspect", action="CreateOrderAction", aspect="FraudCheck")
 # ← rejected by the policy engine: structural changes are outside the allowlist
 ```
@@ -168,6 +173,7 @@ If the Supervisor contains an LLM agent, its decisions can be hallucinations too
 That requires typed `MachineCommand`s:
 
 ```python
+# Fragment: its imports are left out.
 @dataclass
 class SwitchResourceCommand(MachineCommand):
     action: type[BaseAction]

@@ -72,11 +72,12 @@ This shape has the service play both issuer and verifier. When the issuer is an 
 
 A working, run-verified example in two files:
 
-**Issuing** — [`examples/step_14_fastapi/03_login_action.py`](../../examples/step_14_fastapi/03_login_action.py) ([▶ Try in Colab](#03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AuthorizationError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `sid`, `roles`, `iat`, `exp`); every login gets a new `sid` — see [«The session id»](#the-session-id).
+**Issuing** — [`examples/step_14_fastapi/03_login_action.py`](../../examples/step_14_fastapi/03_login_action.py) ([▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/03_login_action.ipynb)). `LoginAction` — two aspects: check the username/password (on mismatch — `AuthorizationError`, the same message for a wrong password and for an unknown user — no username enumeration), sign the JWT (`sub`, `sid`, `roles`, `iat`, `exp`); every login gets a new `sid` — see [«The session id»](#the-session-id).
 
-**Verifying** — [`examples/step_14_fastapi/04_bearer_auth.py`](../../examples/step_14_fastapi/04_bearer_auth.py) ([▶ Try in Colab](#04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-13-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
+**Verifying** — [`examples/step_14_fastapi/04_bearer_auth.py`](../../examples/step_14_fastapi/04_bearer_auth.py) ([▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-13-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
 
 ```python
+# Fragment: its imports are left out.
 strict_default = JwtAuthCoordinator(
     secret_key=_SECRET_KEY,
     algorithm=_ALGORITHM,
@@ -111,6 +112,7 @@ Issuers name the session claim differently, so its name is configuration: `sessi
 From [`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py):
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     secret_key=_SECRET_KEY,
     algorithm=_ALGORITHM,
@@ -137,7 +139,7 @@ A wrong declaration fails when the object is constructed, before any request arr
 
 **Machine tokens need the claim too.** Every token the coordinator accepts must carry it, including server-to-server tokens whose issuer has no notion of a login. Such an issuer has to add the claim, for example one identifier per issued grant. Until it does, its tokens raise `AuthenticationContractError` (see [below](#required-claims-refusal-or-contract-failure)).
 
-[`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py) · [notebook](../../examples/step_14_fastapi/07_session_id.ipynb) · [▶ Try in Colab](#07_session_id.ipynb) — the configuration errors above, then a service that issues its own tokens: two logins get two sessions, and a refresh keeps the session. A real run:
+[`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py) · [notebook](../../examples/step_14_fastapi/07_session_id.ipynb) · [▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/07_session_id.ipynb) — the configuration errors above, then a service that issues its own tokens: two logins get two sessions, and a refresh keeps the session. A real run:
 
 ```text
 no session_id_claim  -> TypeError: JwtAuthCoordinator.__init__() missing 1 required keyword-only argument: 'session_id_claim'
@@ -231,6 +233,7 @@ An `@access_decide` method reads the session id the same way and may base its ve
 Because AOA keeps no session store, ending a session is application logic. In [`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py), `LogoutAction` records the caller's session in an application registry, and the rule refuses a recorded session:
 
 ```python
+# Fragment: its imports are left out.
 @access_decide("Refuse a session the application has ended")
 @context_requires(Ctx.User.session_id)
 async def active_session_access_decide(self, params: ParamsStub, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
@@ -248,7 +251,7 @@ GET /orders (laptop, ended)   -> 403 {'detail': 'Access denied by ACCESS_DECIDE:
 GET /orders (phone, active)   -> 200 {'orders': ['ord-001']}
 ```
 
-[`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py) · [notebook](../../examples/step_14_fastapi/08_session_access_rule.ipynb) · [▶ Try in Colab](#08_session_access_rule.ipynb). How object rules work in general — [Roles and object rules](../how-to/roles-and-object-rules.md).
+[`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py) · [notebook](../../examples/step_14_fastapi/08_session_access_rule.ipynb) · [▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/08_session_access_rule.ipynb). How object rules work in general — [Roles and object rules](../how-to/roles-and-object-rules.md).
 
 ## Required claims: refusal or contract failure
 
@@ -284,7 +287,7 @@ The exception lives in `aoa.action_machine.exceptions`. `exc.claim` is the confi
 
 **Other errors propagate too.** A programming error or a missing dependency inside token verification or JWKS resolution reaches the caller as its own exception. It does not turn into `None`.
 
-[`09_required_claims.py`](../../examples/step_14_fastapi/09_required_claims.py) · [notebook](../../examples/step_14_fastapi/09_required_claims.ipynb) · [▶ Try in Colab](#09_required_claims.ipynb) — every case above with real tokens. A real run:
+[`09_required_claims.py`](../../examples/step_14_fastapi/09_required_claims.py) · [notebook](../../examples/step_14_fastapi/09_required_claims.ipynb) · [▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/09_required_claims.ipynb) — every case above with real tokens. A real run:
 
 ```text
 -- 1. verification comes first
@@ -317,6 +320,7 @@ GET /session (verified token, sid empty) -> 500 {'detail': 'Internal server erro
 Code written for the previous version needs two changes: every constructor call names the session claim, and every issuer puts that claim into its tokens.
 
 ```python
+# Fragment: its imports are left out.
 # Before
 JwtAuthCoordinator(secret_key=SECRET_KEY, role_registry={"admin": AdminRole})
 
@@ -353,7 +357,7 @@ There isn't one reason — there are three, and they're of very different scope:
 2. **HTTP-based MCP transports (SSE / Streamable HTTP)** — here Bearer/JWT is natively supported **by the protocol itself**: the installed `mcp` SDK already ships `mcp.server.auth.middleware.bearer_auth.BearerAuthBackend` — a Starlette `AuthenticationBackend` that reads `Authorization: Bearer` off the raw HTTP connection and verifies it through a pluggable `TokenVerifier` (a conceptual counterpart to our own `Authenticator`). So the transport and the SDK are not the blocker.
 3. **AOA's own `McpAdapter` implementation** — this is where the real, AOA-specific gap is: `_execute_tool_call` **always** calls `auth_coordinator.process(None)`, regardless of transport — even when the server runs on an HTTP-based transport where a real request with real headers exists. Wiring in `BearerAuthBackend` happens at the ASGI-middleware layer, wrapping the entire HTTP app, before JSON-RPC dispatch — not at the level of the `Tool.fn` handler that `_execute_tool_call` calls. Threading the real request through `AuthCoordinator.process(request_data)` for HTTP-based transports is a separate adapter change, outside the scope of the JWT coordinator itself.
 
-A full demonstration (both phases, including the explicit failure) — [`examples/step_15_mcp/02_bearer_auth_limitation.py`](../../examples/step_15_mcp/02_bearer_auth_limitation.py) ([▶ Try in Colab](#02_bearer_auth_limitation.ipynb)): `LoginAction`, exposed as an MCP tool, works exactly as usual (an Action doesn't know and shouldn't need to know the transport), while trying to use `JwtAuthCoordinator` as the adapter's `auth_coordinator` fails explicitly.
+A full demonstration (both phases, including the explicit failure) — [`examples/step_15_mcp/02_bearer_auth_limitation.py`](../../examples/step_15_mcp/02_bearer_auth_limitation.py) ([▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_15_mcp/02_bearer_auth_limitation.ipynb)): `LoginAction`, exposed as an MCP tool, works exactly as usual (an Action doesn't know and shouldn't need to know the transport), while trying to use `JwtAuthCoordinator` as the adapter's `auth_coordinator` fails explicitly.
 
 Tracked in [issue #113](https://github.com/bystrovmaxim/aoa/issues/113). Until it's resolved, the only working `auth_coordinator` for `McpAdapter` is `NoAuthCoordinator`, regardless of transport.
 
@@ -368,6 +372,7 @@ For browser-based SSO across subdomains (`app.example.com`, `admin.example.com`,
 It plugs straight into `JwtAuthCoordinator` — the `credential_extractor` parameter swaps `BearerCredentialExtractor` for any other `CredentialExtractor`; the rest of the pipeline (signature, `exp`, `role_registry`) is unchanged:
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     secret_key=...,
     role_registry={"admin": AdminRole},
@@ -383,7 +388,7 @@ auth = JwtAuthCoordinator(
 - **Header (`BearerCredentialExtractor`)** — the client controls the request programmatically and can explicitly attach the token: API-to-API, CLI, mobile apps, server-to-server integrations.
 - **Cookie (`CookieCredentialExtractor`)** — browser-based SSO across subdomains via an `httpOnly` session: JavaScript cannot read the token by design, so Bearer isn't merely inconvenient here — it's architecturally impossible.
 
-A working example — [`examples/step_14_fastapi/05_cookie_auth.py`](../../examples/step_14_fastapi/05_cookie_auth.py) ([▶ Try in Colab](#05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
+A working example — [`examples/step_14_fastapi/05_cookie_auth.py`](../../examples/step_14_fastapi/05_cookie_auth.py) ([▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/05_cookie_auth.ipynb)): `LoginAction` sets `Set-Cookie: session=...; HttpOnly`, the protected route is reached with no `Authorization` header at all — only through the cookie the client stored, and the coordinator is a plain `JwtAuthCoordinator` with `credential_extractor=CookieCredentialExtractor(...)`.
 
 ## External IdP: RS256 and JWKS
 
@@ -392,6 +397,7 @@ A working example — [`examples/step_14_fastapi/05_cookie_auth.py`](../../examp
 The industry answer is **JWKS** (RFC 7517): the issuer publishes its public keys at a URL like `https://issuer/.well-known/jwks.json`, every token carries a `kid` header, and verifiers fetch and cache the key set and pick the right one by `kid`. Rotation becomes seamless: publish old+new, sign with the new key, drop the old one once outstanding tokens expire. The consumer holds no key material at all — only a URL. PyJWT supports this natively via `jwt.PyJWKClient`, no new dependency required.
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     jwks_url="https://sso.example.com/.well-known/jwks.json",
     algorithm="RS256",
@@ -419,13 +425,14 @@ auth = JwtAuthCoordinator(
 | Rotation | All-or-nothing, logs every token out at once | Seamless — publish old+new, then drop the old one |
 | Typical IdP | Your own | Keycloak, Auth0, Google, an in-house token service |
 
-A working example — [`examples/step_14_fastapi/06_jwks_auth.py`](../../examples/step_14_fastapi/06_jwks_auth.py) ([▶ Try in Colab](#06_jwks_auth.ipynb)): generates an RSA keypair and a local JWKS document right in the example, `LoginAction` signs RS256 with a `kid` header, the protected route verifies through `jwks_url` with `issuer=` set, plus a negative case — a token from a "foreign" issuer gets rejected.
+A working example — [`examples/step_14_fastapi/06_jwks_auth.py`](../../examples/step_14_fastapi/06_jwks_auth.py) ([▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/06_jwks_auth.ipynb)): generates an RSA keypair and a local JWKS document right in the example, `LoginAction` signs RS256 with a `kid` header, the protected route verifies through `jwks_url` with `issuer=` set, plus a negative case — a token from a "foreign" issuer gets rejected.
 
 ## Roles: mapping the claim to classes
 
 A JWT carries roles as strings (`"roles": ["admin", "viewer"]`), while `UserInfo.roles` is a tuple of `BaseRole` classes. `role_registry` is the explicit dict the developer supplies:
 
 ```python
+# Fragment: its imports are left out.
 JwtAuthCoordinator(secret_key=..., role_registry={"admin": AdminRole, "viewer": ViewerRole}, session_id_claim="sid")
 ```
 

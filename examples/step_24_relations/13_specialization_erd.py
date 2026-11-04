@@ -116,9 +116,12 @@ def main() -> None:
     print("Groups:", len(diagram["groups"]))
     print("Alternatives:", len(diagram["groups"][0]["members"]))
     print("Group links:", sum(item.get("relationship_kind") == "specialization" for item in diagram["relations"]))
-    output = Path("examples/step_24_relations/02_specialization_erd.json")
+    here = Path.cwd()
+    folder = here if here.name == "step_24_relations" else here / "examples" / "step_24_relations"
+    folder.mkdir(parents=True, exist_ok=True)
+    output = folder / "02_specialization_erd.json"
     output.write_text(json.dumps(diagram, indent=2) + "\n")
-    print("Saved:", output.as_posix())
+    print("Saved:", output.name)
 
 
 if __name__ == "__main__":

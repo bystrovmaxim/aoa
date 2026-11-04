@@ -29,7 +29,7 @@ An ordinary test assembles a separate world of mocks around a scenario and check
 
 This chapter is about **what you can run**: at what depth to run an operation. What to substitute that reality with (`with_mocks`, connections, Rollup) is the [next chapter](../index.md#vi-testing); assembling the context (`with_user`/…) is the [one after](../index.md#vi-testing). Here `with_user` is used minimally, so that `@check_roles` passes.
 
-[▶ Try in Colab](https://drive.google.com/file/d/10eZ6dRuYxf41lXlII-oDGb6LczZCBTg-/view?usp=drive_link) · [Open in project](../../examples/step_26_testbench/01_testbench.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_26_testbench/01_testbench.ipynb) · [Open in project](../../examples/step_26_testbench/01_testbench.py)
 
 ---
 
@@ -56,6 +56,7 @@ On `run`, `run_aspect`, `run_summary` the `rollup` argument is **mandatory and h
 `run(action, params, rollup=...)` — a production-like run through the machine: access, aspects, sagas, errors. In the example the operation is real, while the payment gateway is replaced with a mock:
 
 ```python
+# Fragment: one part of an example; `bench` comes from the code around it.
 result = await bench.run(ChargeAction(), params, rollup=False)
 # -> txn=txn-001 amount=1500.0
 ```
@@ -65,6 +66,7 @@ result = await bench.run(ChargeAction(), params, rollup=False)
 `run_aspect(action, "name", params=, state=, rollup=)` runs one `@regular_aspect` and returns the `state` after it. You supply the input `state`, check the step result and its checkers — in isolation from the rest of the pipeline:
 
 ```python
+# Fragment: one part of an example; `bench` comes from the code around it.
 state_after = await bench.run_aspect(ChargeAction(), "charge_aspect", params=params, state={}, rollup=False)
 state_after["txn_id"]   # "txn-002"
 ```
@@ -74,6 +76,7 @@ state_after["txn_id"]   # "txn-002"
 `run_summary(action, params=, state=, rollup=)` builds `Result` from a **ready** `state`, without touching the regular aspects. Convenient to check exactly the result assembly:
 
 ```python
+# Fragment: one part of an example; `bench` comes from the code around it.
 result = await bench.run_summary(ChargeAction(), params=params, state={"txn_id": "txn-pre"}, rollup=False)
 # txn=txn-pre, while gateway.charge was never called
 ```
@@ -83,6 +86,7 @@ result = await bench.run_summary(ChargeAction(), params=params, state={"txn_id":
 A [compensator](step-04-saga-and-compensations.md) usually fires when a later saga step fails. To test it separately, without building out the whole saga, there is `run_compensator` — the analogue of `run_aspect` for a compensator: you pass `params`, `state_before`, `state_after`, and `error` directly:
 
 ```python
+# Fragment: one part of an example; `bench` comes from the code around it.
 await bench.run_compensator(
     ChargeAction(), "charge_compensate",
     params=params,
@@ -100,6 +104,7 @@ An important subtlety: `run_compensator` **does not suppress** exceptions (in pr
 There is no separate `run_on_error`: [`@on_error`](step-05-error-handling.md) is checked with a **full `run`** that provokes the error. Make the mock throw the needed exception — the handler will catch it and return a `Result`:
 
 ```python
+# Fragment: one part of an example; `gw` comes from the code around it.
 gw.charge.side_effect = ValueError("card declined")
 result = await bench.run(ChargeAction(), params, rollup=False)
 # txn=declined — @on_error(ValueError) fired

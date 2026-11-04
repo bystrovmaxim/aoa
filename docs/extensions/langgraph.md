@@ -29,6 +29,7 @@ Without AOA a LangGraph node is just a function: the graph runs it but does not 
 ## The essentials
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -36,9 +37,16 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.intents.connection import connection
 from aoa.langgraph import LangGraphController
 
+# LangGraphController stays out of the model graph, like PostgresResource;
+# the service declares its graph as a subclass with @meta and connects to that.
+@meta(description="Ticket processing graph", domain=SupportDomain)
+class TicketGraph(LangGraphController):
+    """The ticket graph this service connects its actions to."""
+
+
 # The graph is built once at startup — no machine or context needed here.
 ticket_graph = (
-    LangGraphController()
+    TicketGraph()
     .inp("ticket_id", str, "Ticket identifier")
     .inp("note",      str, "Ticket text")
     .mid("category",        str,  "Category: bug | feature | billing")
@@ -68,7 +76,7 @@ ticket_graph = (
 # Run inside a host Action, whose @summary_aspect receives box from the machine:
 @meta(description="Process a support ticket", domain=SupportDomain)
 @check_roles(GuestRole)
-@connection(LangGraphController, key="graph", description="Ticket-processing graph")
+@connection(TicketGraph, key="graph", description="Ticket-processing graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run the ticket graph")
     async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:
@@ -111,6 +119,7 @@ result = await machine.run(
 **Three ways to test without a machine:**
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 # 1. Structural — topology and data contract only:
 assert ctrl.build()._built is True
 
@@ -127,6 +136,8 @@ result = await ctrl.ainvoke({"ticket_id": "T-1", "note": "crash"}, box)
 Tutorial: [Step 16 — LangGraph](../tutorials/step-16-langgraph.md).
 
 Examples:
+- [02_langgraph.py](../../examples/extensions/02_langgraph.py) · [Notebook](../../examples/extensions/02_langgraph.ipynb) — the shortest graph run by an action
+- [01_langgraph.py](../../examples/step_16_langgraph/01_langgraph.py) · [Notebook](../../examples/step_16_langgraph/01_langgraph.ipynb) — the mistakes the controller catches, and when
 - [01_external_connection.py](../../examples/step_16_langgraph/01_external_connection.py) · [Notebook](../../examples/step_16_langgraph/01_external_connection.ipynb)
 - [02_inline_graph.py](../../examples/step_16_langgraph/02_inline_graph.py) · [Notebook](../../examples/step_16_langgraph/02_inline_graph.ipynb)
 - [03_function_node.py](../../examples/step_16_langgraph/03_function_node.py) · [Notebook](../../examples/step_16_langgraph/03_function_node.ipynb)

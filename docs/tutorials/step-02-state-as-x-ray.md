@@ -37,11 +37,12 @@ Below we walk this path from the beginning: first we establish what counts as a 
 
 ## Checkers
 
-[▶ Try in Colab](https://drive.google.com/file/d/1elqy6vd_gmeZDQ9a63koxzp4PJxhoHAY/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/01_checkers.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/01_checkers.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/01_checkers.py)
 
 A checker is a verifiable promise on an aspect's output: which field must appear in `state`, what type it is, and what constraints it obeys. A single aspect can declare its whole output contract at once — a stack of decorators above the method.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -76,6 +77,7 @@ Constraints like `min_length` or `max_value` are optional. Even a bare `@result_
 What this buys you is visible in the next aspect. The terminal step receives an already-checked state and simply assembles the result, re-verifying nothing:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult
@@ -120,11 +122,12 @@ The first run is with a coupon, the second without. And here a subtlety is worth
 
 ## Independent state
 
-[▶ Try in Colab](https://drive.google.com/file/d/1G27ZaVAsJh7suA9rViFzI7p4BusCxq7G/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.py)
 
 Now to the property of `state` we noticed in the previous chapter but did not explain. `state` is not a shared basket where aspects pile up their goods. Each regular aspect receives a snapshot of state on input and returns a new, independent snapshot for the next one. A snapshot is a self-contained copy of the data at the moment the step finished; later steps do not touch it.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -166,11 +169,12 @@ sku='ABC-001', quantity=5, line_total=500
 
 ## Contract violation
 
-[▶ Try in Colab](https://drive.google.com/file/d/1L3CjV5XoxHCcGmxKfsoAtF-qztAOPXP9/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.py)
 
 Theory is worth testing on a broken case. Here is an aspect that promises a required `sku` but returns only `quantity`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -204,13 +208,14 @@ The second line matters more than the first: the next step did not run at all. T
 
 ## A contract-preserving aspect
 
-[▶ Try in Colab](https://drive.google.com/file/d/1qyyAl6D2bM3bpGYTKkObbbC-uux55xKS/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.py)
 
 A contract protects not only a single aspect — it also protects the rebuilding of the pipeline itself. That is less obvious and therefore more important.
 
 Picture a working chain: an aspect normalizes the item, the terminal step assembles the result. Between them a new step needs to go in — notify an operator, write diagnostics, prepare data for a neighboring system. It must not change the business state. But it stands in the middle, and its output dictionary becomes the input for the terminal step — so it is obliged to return the same contract the code that follows expects.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -254,11 +259,12 @@ inform_aspect is allowed only because it preserves the downstream state contract
 
 ## X-ray in the console
 
-[▶ Try in Colab](https://drive.google.com/file/d/1ZI8Evretmhze7n1-To6nm7jZuwol1Bz8/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.py)
 
 So far `state` has been visible only from inside the code. Let's plug in [OpenTelemetry](https://opentelemetry.io/) — the common observability standard with its traces and logs — and see the same path from the outside. One `machine.run()` gives one trace; each aspect inside is its own span.
 
 ```python
+# Fragment: its imports are left out.
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.sdk._logs import LoggerProvider
@@ -320,7 +326,7 @@ One answers the question of meaning, the other the question of mechanics, and it
 
 ## X-ray to a file
 
-[▶ Try in Colab](https://drive.google.com/file/d/1X-4p5yGmdr5bNTkKrt6oSKAZ8MhZeDOm/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py)
 
 The console is good for a first acquaintance; in production telemetry is written to a file, an agent, or an external backend. At the same time, let's show how to select only the events you need.
 
@@ -329,6 +335,7 @@ The console is good for a first acquaintance; in production telemetry is written
 The `ConsoleSpanExporter` and `ConsoleLogRecordExporter` exporters accept `out` — any file-like object.
 
 ```python
+# Fragment: one part of an example; `TracerProvider` comes from the code around it.
 with open("traces.txt", "w") as traces_file, open("logs.txt", "w") as logs_file:
     tp = TracerProvider()
     tp.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter(out=traces_file)))
@@ -344,6 +351,7 @@ After the run the spans end up in `traces.txt`, the log records in `logs.txt`.
 By default the plugin receives all lifecycle events. Often you need fewer — for example, only `state` snapshots and the finish. That is what `watch_events` is for:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.plugin.core.events import AfterRegularAspectEvent, GlobalFinishEvent
 
 plugin_logs = OpenTelemetryPlugin(
@@ -358,6 +366,7 @@ Such a plugin will see only `AfterRegularAspectEvent` (the `state` snapshot afte
 From here comes the technique the plugin architecture rests on. On one machine you can place two independent plugins:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(plugins=[plugin_traces, plugin_logs])
 ```
 
@@ -374,10 +383,10 @@ uv run python examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py
 ```text
 Result: Order confirmed: 3x WIDGET-42 = $59.97
 
-Traces written to: .../step_02_state_as_x-ray_of_the_operation/traces.txt
+Traces written to: traces.txt
   (root span + 2 child spans — one per @regular_aspect)
 
-Logs written to:   .../step_02_state_as_x-ray_of_the_operation/logs.txt
+Logs written to:   logs.txt
   (only AfterRegularAspectEvent + GlobalFinishEvent)
   (Before*/Start events filtered out by watch_events)
 ```
@@ -388,13 +397,14 @@ Open both files: `traces.txt` shows the structure of execution, `logs.txt` shows
 
 ## Opaque fields
 
-[▶ Try in Colab](https://drive.google.com/file/d/19EuOPk9IgdW3QfqRunB-G17bGTDIZV9O/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/07_opaque.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/07_opaque.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/07_opaque.py)
 
 An x-ray is good exactly as long as it does not show too much. Some fields are needed inside the operation but have no place in the observability layer: a payment token, a temporary key, a raw response from a foreign system, a heavy connection object. They may be part of `state`, but serializing them into logs is not allowed — sometimes for sensitivity, sometimes for weight, sometimes simply for uselessness.
 
 For this, every checker has `opaque=True`.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -473,6 +483,7 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 A contract is assembled from several `@result_*` decorators — one per field.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource

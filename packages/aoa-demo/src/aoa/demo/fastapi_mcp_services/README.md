@@ -177,8 +177,8 @@ Nothing is duplicated — descriptions are written once in the Pydantic models.
 
 In `claude_desktop_config.json`:
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -262,6 +262,7 @@ Optional keyword-only `connections` on each fluent call passes resources into `m
 **FastAPI:**
 
 ```python
+# Fragment: its imports are left out.
 app = (
     FastApiAdapter(machine=machine, title="Orders API", version="0.1.0")
     .get("/api/v1/ping", PingAction, tags=["system"])
@@ -274,6 +275,7 @@ app = (
 **MCP:**
 
 ```python
+# Fragment: its imports are left out.
 server = (
     McpAdapter(machine=machine, server_name="Orders MCP", server_version="0.1.0")
     .tool("system.ping", PingAction)

@@ -99,7 +99,7 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
-| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), `tests/scripts` (the runner's own last-step rule, the saved graph files), and every example of the documentation ([Examples](#examples)) | the auto-fix |
 | Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph-builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
 
@@ -158,7 +158,7 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Vulture, samples public API, Radon | ✅ | ✅ | deterministic static checks |
 | Client build, client unit tests, five ERD scripts | ✅ | ✅ | deterministic, no browser engine |
 | The same layout in three engines | ✅ | — (CI reads its proof) | needs a graphics card: a CI machine has none, so Firefox has no WebGL |
-| Python tests of every package, `tests/scripts` | ✅ | ✅ | deterministic |
+| Python tests of every package, `tests/scripts`, the examples | ✅ | ✅ | deterministic |
 | Speed tests (marked `benchmark`) | full run only | — | fail on a busy machine |
 | Build wheel/sdist × 8, packaging smoke | — | ✅ | need the network; matter at a release |
 | Graph files: write | ✅ (green run only) | — | writes files into the commit |
@@ -270,7 +270,7 @@ FUNCTION_EXCEPTIONS: dict[tuple[str, str], str] = {
 MODULE_EXCEPTIONS: dict[str, str] = {}
 ```
 
-The step then passes and prints the exception:
+The step then passes, and its log names the exception.
 
 ```text
 excepted: packages/aoa-demo/src/aoa/demo/example.py heavy — One flat table of cases; splitting it hides the table.
@@ -291,6 +291,43 @@ packages/aoa-demo/src/aoa/demo/example.py:1 heavy — grade D (complexity 21)
 packages/aoa-demo/src/aoa/demo/example.py heavy — exception has no reason
 2 finding(s) in 1254 files.
 ```
+
+## Examples
+
+`Examples: scripts, notebooks, pages, links` checks every example a reader can run, in parallel, in about a minute:
+
+```bash
+uv run --extra dev pytest tests/examples -n auto -q
+```
+
+| What | What passes |
+|---|---|
+| A script of `examples/` | it runs from the repository root and exits with 0; nothing is skipped or expected to fail. A folder with `__init__.py` is a package an example imports, not an example |
+| A notebook of `examples/` | there is one beside every script; it runs in a fresh kernel in its own folder; every line it prints is a line its script prints, in the same order |
+| The notebook's first code cell | `!pip install …`, naming every package its imports need by its PyPI name, so it opens in Colab as it is |
+| A Python block of a page | it runs as written, or its first line says why it does not |
+| The output a page shows | it is what the block before it prints |
+| A link to an example | the file exists; a Colab button opens the repository's notebook |
+
+Values that differ on every run — ids, times, durations, ports, tokens, the Pydantic version in an error link — are masked before anything is compared.
+
+**A block that does not run on its own** starts with a fragment mark and its reason:
+
+```text
+# Fragment: its imports are left out.
+```
+
+Such a block is not run. Every other Python block of a page runs after the earlier ones of the same page, in one process from the repository root, so a chapter can build one example over several blocks. A block that opens with a docstring is a whole module and runs in a process of its own.
+
+**An output a page shows** is a `text` block, or a block with no language, right after a Python block, with nothing between them or one lead-in sentence that ends with a colon. Any other prose between them breaks the pair.
+
+**A Colab button** points at the repository, never at a copy:
+
+```text
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/01_hello_world.ipynb)
+```
+
+**A notebook's install cell** is checked against its imports through one table, `PYPI_FOR_MODULE` in `tests/examples/harness.py`; a module the table does not know fails the check until it is added there.
 
 ## Secrets
 

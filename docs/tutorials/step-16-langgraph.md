@@ -39,6 +39,7 @@ Install: `pip install "aoa-langgraph" langgraph`.
 ## A minimal graph
 
 ```python
+# Fragment: its imports are left out.
 from aoa.langgraph import LangGraphController
 
 ctrl = (
@@ -55,10 +56,10 @@ result = await ctrl.ainvoke({}, box)           # box = the resource pool
 print(result["message"])                       # → "pong"
 ```
 
-Three differences from `LangGraphAdapter`:
+Three things to notice:
 - `LangGraphController()` is created with no `machine`, no `context`, and no explicit `AgentState` — the schema is built from the field declarations.
 - `.node()` takes an Action **class**, not an instance.
-- Instead of `.compile()` you get `.build()` (validation) + `.ainvoke(data, box)` (running).
+- `.build()` validates the graph once; `.ainvoke(data, box)` runs it, as often as needed.
 
 ---
 
@@ -81,6 +82,7 @@ Three kinds of declarations form the `AgentState` — the internal Pydantic mode
 - Called after `.finish(X)` → a per-finish out: `ainvoke()` returns the fields declared for the node X where the graph ended.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # Global out — both finish nodes return the same fields:
 ctrl = (
     LangGraphController()
@@ -113,6 +115,7 @@ ctrl = (
 ### An Action class
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.node(ClassifyTicketAction)   # node name = "ClassifyTicketAction"
 ```
 
@@ -126,6 +129,7 @@ The Action doesn't know about LangGraph; it works as usual, through `box.run`.
 ### An async function
 
 ```python
+# Fragment: its imports are left out.
 async def enrich_ticket(state: Any) -> dict:
     """Add a system prefix to the note before classification."""
     raw_note: str = getattr(state, "note", "")
@@ -139,6 +143,7 @@ The function receives the current `AgentState` as an object (fields are attribut
 A graph with a function as the starting node:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 ctrl = (
     LangGraphController()
     .inp("note", str, "Ticket text")
@@ -163,6 +168,7 @@ ctrl = (
 `.start(node)` is the entry point. `.edge(src, dst)` is an unconditional edge. `.finish(node)` is a terminal node (replaces a manual `.edge(X, END)`).
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.start(ClassifyTicketAction).edge(ClassifyTicketAction, ResolveAction).finish(ResolveAction)
 ```
 
@@ -171,6 +177,7 @@ ctrl.start(ClassifyTicketAction).edge(ClassifyTicketAction, ResolveAction).finis
 A multi-way branch. `on` is a function from state to a key; `paths` maps a key to a target node. It's called after the source node has finished updating the state.
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.route(
     ClassifyTicketAction,
     on=lambda s: s.category,          # read from an AgentState attribute
@@ -199,6 +206,10 @@ If `on()` returns a key that's not in `paths`, `RouteKeyError` is raised at runt
 | `OutputHasNoProducerError` | An out field is written by no Action (only when there are no nodes with a mapper) |
 | `UnexpectedResultFieldError` | An Action's Result field isn't declared in the inp/mid schema |
 
+A reference to a node that was never registered fails earlier still, where it is written: `.edge()`, `.route()`, `.start()` and `.finish()` raise `UnregisteredNodeError` at once.
+
+[▶ Example: 01_langgraph.py](../../examples/step_16_langgraph/01_langgraph.py) · [Notebook](../../examples/step_16_langgraph/01_langgraph.ipynb) — each mistake caught where it happens: at declaration, at `.build()`, and at run time.
+
 ---
 
 ## Field mapping
@@ -208,6 +219,7 @@ By default the controller maps State → Params fields **by name**: if `Params` 
 ### params_mapper
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     ClassifyTicketAction,
     params_mapper=lambda s: ClassifyParams(
@@ -222,6 +234,7 @@ Replaces automatic extraction by name. Receives the AgentState, returns a Params
 ### response_mapper
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     ClassifyTicketAction,
     response_mapper=lambda r: {"ticket_class": r.category},  # result.category → state.ticket_class
@@ -235,6 +248,7 @@ Replaces `result.model_dump()`. Receives the Result object, returns a dict or a 
 The node runs purely for a side effect and writes nothing to the state:
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     AuditLogAction,
     params_mapper=lambda s: AuditParams(ticket_id=s.ticket_id),
@@ -264,6 +278,7 @@ def test_build_validates_topology():
 **Pattern 2 — a stub Action:** replace the real Action with a stub carrying the same Params/Result contract.
 
 ```python
+# Fragment: one part of an example; `_build_graph` comes from the code around it.
 ctrl = _build_graph(classify_cls=StubClassifyAction, engineering_cls=StubEngineeringAction)
 result = await ctrl.ainvoke({"ticket_id": "T-9", "note": "..."}, mock_box)
 assert result["category"] == "bug"   # StubClassifyAction always → "bug"
@@ -272,6 +287,7 @@ assert result["category"] == "bug"   # StubClassifyAction always → "bug"
 **Pattern 3 — a mock box:** simulate `box.run` with an `AsyncMock`.
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 from unittest.mock import AsyncMock, MagicMock
 
 mock_result = MagicMock()
@@ -291,11 +307,17 @@ assert result["category"] == "billing"
 
 The graph runs inside a `@summary_aspect` of a host Action. The box comes from the machine.
 
-**Option 1 — an external graph through `@connection`** (one graph for every call):
+**Option 1 — an external graph through `@connection`** (one graph for every call). `LangGraphController` is a library resource and stays out of the model graph, like `PostgresResource`; the service declares its graph as a subclass with `@meta`, and `@connection` names that subclass:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
+@meta(description="Ticket processing graph", domain=SupportDomain)
+class TicketGraph(LangGraphController):
+    """The ticket graph this service connects its actions to."""
+
+
 ticket_graph = (
-    LangGraphController()
+    TicketGraph()
     .inp("ticket_id", str, "Ticket ID")
     ...
     .build()
@@ -303,7 +325,7 @@ ticket_graph = (
 
 @meta(description="Process ticket via graph", domain=SupportDomain)
 @check_roles(GuestRole)
-@connection(LangGraphController, key="graph", description="Ticket graph")
+@connection(TicketGraph, key="graph", description="Ticket graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run ticket graph")
     async def run_summary(self, params, state, box, connections):
@@ -325,6 +347,7 @@ await machine.run(
 **Option 2 — the graph is built inline** (every call rebuilds it):
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @summary_aspect("Run inline graph")
 async def run_summary(self, params, state, box, connections):
     ctrl = (
@@ -359,7 +382,7 @@ async def run_summary(self, params, state, box, connections):
 
 ## Review questions
 
-1. How does `LangGraphController` differ from `LangGraphAdapter`? Why doesn't `AgentState` need to be declared by hand anymore?
+1. Why doesn't `AgentState` need to be declared by hand?
 2. How does `.inp()` differ from `.mid()`? What happens if an Action tries to read a mid field before an earlier node has written it?
 3. When is `.route()`'s `on` function called — before or after the source node finishes updating the state?
 4. Why is a node with `response_mapper` excluded from static validation? When does that create a risk?

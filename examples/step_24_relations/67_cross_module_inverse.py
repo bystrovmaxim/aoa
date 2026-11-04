@@ -1,9 +1,11 @@
 """Resolve reciprocal inverse fields after importing independent modules.
-Run: .venv/bin/python examples/step_24_relations/67_cross_module_inverse.py
+
+The two modules live in the package ``inverse_model`` beside this script.
+Run: uv run python examples/step_24_relations/67_cross_module_inverse.py
 """
 
-from examples.step_24_relations.inverse_model.offer import OfferCoreEntity
-from examples.step_24_relations.inverse_model.region import RegionCoreEntity
+from inverse_model.offer import OfferCoreEntity
+from inverse_model.region import RegionCoreEntity
 
 from aoa.action_machine.domain import AssociationMany
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields

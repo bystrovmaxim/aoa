@@ -99,6 +99,7 @@ A suffix in AOA is not a matter of style. Each suffix is fixed by a base class o
 Beyond suffixes there are two more constraints. The description in `@regular_aspect("...")` and `@summary_aspect("...")` cannot be empty or whitespace-only — otherwise `ValueError` at decorator application. And indirect subclasses are checked on a par with direct ones: `class SpecificTask(BaseTaskAction)` without the `Action` suffix fails the same way.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # ✗ arbitrary name — NamingSuffixError at method definition
 @regular_aspect("Validation")
 async def do_validation(self, ...): ...
@@ -135,6 +136,7 @@ Every public operation must have `@check_roles`. Without it the machine will not
 `@check_roles` does not implement the business logic of authorization — it guarantees that **the declaration exists** and is checked on every call. This is a different level: a developer cannot accidentally forget to write the check.
 
 ```python
+# Fragment: its imports are left out.
 # ✗ no @check_roles — the machine refuses
 @meta(description="Delete order", domain=StoreDomain)
 class DeleteOrderAction(BaseAction[...]): ...
@@ -149,6 +151,7 @@ class GetOrderStatusAction(BaseAction[...]): ...
 A role also declares its lifecycle mode, once, with `@role_mode`. The set is closed — `ALIVE`, `DEPRECATED`, `SILENCED`, `UNUSED` — and the argument is checked where it is written: a string, a member of another enum or a class is refused while the module is imported, and the refusal names the role, the value that arrived and all four members. What a mode *means* is decided by its consumer, never by the decorator: `@check_roles` refuses to require an `UNUSED` role and warns about a `DEPRECATED` one, and the access check grants nothing to a `SILENCED` one.
 
 ```python
+# Fragment: its imports are left out.
 # ✗ the string the enum carries — RoleModeDeclarationError at import
 @role_mode("alive")
 class ViewerRole(ApplicationRole): ...
@@ -222,6 +225,7 @@ The rules are the subject of [`examples/step_01_Action_and_pipeline/05_aspect_de
 `@access_decide` marks the operation's own object-level rule — the one part of a decision that needs the object itself. It is a declaration like `@summary_aspect`, and what the system requires of it is checked the same way: at declaration for the shape, at assembly for the types.
 
 ```python
+# Fragment: an outline, not complete code.
     @access_decide("Refuse an order that is already locked")
     async def cancel_order_access_decide(
         self, params, box, connections,
@@ -300,6 +304,7 @@ Each method answers to its own action and that action's domain. A refusal takes 
 Checked at startup. The compensator method name ends with `_compensate`, and its signature is the contract above: the two states it is given differ, `state_before` is always a state while `state_after` is `None` when the compensated aspect did not finish, and its return is ignored — so `-> None` is what it declares.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # ✓ charge_aspect exists — charge_compensate is valid
 @regular_aspect("Charge funds")
 async def charge_aspect(self, ...): ...
@@ -329,6 +334,7 @@ The decorators `@result_string`, `@result_instance`, `@result_bool`, and their k
 This eliminates an entire class of defects of the form "the next step broke because the previous one did not put the data in state". Instead of hope — a guarantee of presence and type.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 
 from aoa.action_machine.model import BaseParams, BaseResult, BaseState
@@ -374,6 +380,7 @@ This is not a convention but a check at the moment the template is rendered. Nee
 `@sensitive` is hung on a `@property` **getter** (order: `@property` outside, `@sensitive` inside). When the logger renders a template and meets such a property, the value is automatically masked: a short prefix is shown (`max_chars`), the rest is replaced with the mask character (`char`, `*` by default).
 
 ```python
+# Fragment: its imports are left out.
 class UserParams(BaseParams):
     user_id: str
     password: str
@@ -586,14 +593,14 @@ No class-to-table mapping or database constraint is generated.
 
 #### Rules across axes and current limits
 
-One dictionary may classify several axes, each with complete coverage. An alternative
-class belongs to one head class. Specialization chains must not form cycles. The current
-closure check compares reverse links by head class: every axis must include every class
-that generalizes to that head. Thus the
-[two-axis example](../../examples/step_24_relations/11_specialization_two_axes.py) shares
-alternatives, while the
-[subset example](../../examples/step_24_relations/38_error_axis_subset.py) is refused.
-Independent disjoint alternative sets on one head are not supported by this check.
+One dictionary may classify the axes of several heads, each with complete coverage. An
+alternative class belongs to one head class. Specialization chains must not form cycles.
+A head has one axis. A second axis over the same alternatives would lead back through
+their one reverse `Generalization` field and give the graph two identical edges, which it
+refuses. A second axis over other alternatives fails the closure check, which compares
+reverse links by head class: every axis must include every class that generalizes to that
+head, so the [subset example](../../examples/step_24_relations/38_error_axis_subset.py)
+is refused.
 
 Use the paired `Inverse` declarations shown in the tutorial. Specialization and Generalization now require reciprocal Inverse markers; NoInverse on either field is refused during declaration validation. Role compatibility supplements the existing classifier/coverage checks. It does not establish a database relationship or perform storage validation. A bare `Generalization` to a head without an axis
 does not establish a validated specialization.

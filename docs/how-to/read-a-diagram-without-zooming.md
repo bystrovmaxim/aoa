@@ -2,8 +2,6 @@
 
 Every field, table and line of the ERD, and every node and link of the full graph, has one card. Rest the pointer on an element, and it says what the element is, what it is for, what changed in a comparison, and shows a lifecycle's picture. You can read a large diagram from far away, and hide what you do not need on it.
 
-[21_element_card.py](../../examples/step_29_maxitor/21_element_card.py) ([notebook](../../examples/step_29_maxitor/21_element_card.ipynb)) runs the read a card makes, case by case.
-
 ## The card
 
 The card waits about 300 ms, so moving across a diagram opens nothing. It stays while the pointer is on it or on its element, and closes when the pointer leaves both, on Escape, or when you drag or zoom.

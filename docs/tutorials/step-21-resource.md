@@ -56,6 +56,7 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
+from aoa.action_machine.resources import Connections
 
 class WarehouseDomain(BaseDomain):
     """Group the inventory example."""
@@ -240,6 +241,7 @@ The standard wrapper must leave the owner’s connection open.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
 owner = PostgresResource(pool=pool)
 await owner.open()
@@ -274,6 +276,7 @@ A wrapper grants permission to use a connection, not to manage its lifetime.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
 owner = PostgresResource(pool=pool)
 await owner.open()
@@ -309,6 +312,7 @@ Let the machine create the wrapper through `box.run`. The resource provides a wr
 The resource and its proxy are what this case adds. The resource runs its statement through the driver's helper, and the proxy — the class `get_wrapper_class()` returns — delegates that one method and inherits every refusal:
 
 ```python
+# Fragment: its imports are left out.
 class NotesResource(PostgresResource):
     """The domain's resource: its own method, and the proxy it hands a child."""
     async def add_note(self, text: str) -> str:
@@ -332,6 +336,7 @@ class NotesWrapper(WrapperSqlResource):
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
 async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
     result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)

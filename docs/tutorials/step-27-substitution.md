@@ -28,7 +28,7 @@ The [previous chapter](step-26-testbench.md) showed at what **depth** to run an 
 
 Plus **Rollup** — a continuation of the resource theme: a run on a live schema with rollback instead of persisting.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1YOZkXCa8BsGbzjqdUG-thKhxDRE531Tp/view?usp=drive_link) · [Open in project](../../examples/step_27_substitution/01_substitution.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_27_substitution/01_substitution.ipynb) · [Open in project](../../examples/step_27_substitution/01_substitution.py)
 
 ---
 
@@ -37,6 +37,7 @@ Plus **Rollup** — a continuation of the resource theme: a run on a live schema
 `with_mocks` substitutes what an operation **resolves**. The key is the dependency or resource class, the value is the mock:
 
 ```python
+# Fragment: its imports are left out.
 pricing = AsyncMock(spec=PricingService)
 pricing.price.return_value = 100.0
 
@@ -51,6 +52,7 @@ The values adapt: a ready `Result` is wrapped in a mock with a fixed result, and
 An important subtlety about nested operations. When a parent calls `await box.run(ReserveStockAction, ...)`, the nested operation **runs for real** through the same machine — `with_mocks` does not substitute its result wholesale. But the mocks reach **the whole tree**: the nested operation's `@depends` dependencies are substituted too. So a nested operation is controlled by substituting **its** dependencies:
 
 ```python
+# Fragment: its imports are left out.
 gateway = AsyncMock(spec=StockGateway)
 gateway.reserve.return_value = "res-001"
 
@@ -66,6 +68,7 @@ So nested operations stay real (they are tested together with the parent), and c
 A `@connection` resource is substituted not through `with_mocks` but through the `connections=` argument on `run`/`run_aspect`/`run_summary` — by the same string key declared in `@connection`:
 
 ```python
+# Fragment: one part of an example; `JournalResource` comes from the code around it.
 journal = JournalResource()
 r = await TestBench().run(RecordAction(), RecordParams(row="row-A"), rollup=False,
                           connections={"journal": journal})
@@ -84,6 +87,7 @@ One detail worth knowing. For reliability, `TestBench.run` runs the operation **
 If a resource does **not** support rollup, the machine honestly fails on `check_rollup_support()` rather than pretending the test is safe:
 
 ```python
+# Fragment: its imports are left out.
 # A resource without rollup support:
 await TestBench().run(QuoteAction(), params, rollup=True)
 # -> RollupNotSupportedError: Class 'PricingService' does not support rollup.

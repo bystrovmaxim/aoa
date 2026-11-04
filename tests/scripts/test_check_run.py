@@ -81,6 +81,14 @@ def test_ci_checks_drops_browser_and_packaging() -> None:
     assert "Graph files (graph-builder check)" in names
 
 
+def test_the_examples_run_in_ci_and_locally() -> None:
+    """Every example is checked on every pull request and in a local run."""
+    runner = _runner()
+    for where in ("ci", "local"):
+        rows = {step.name: step for step in runner._select(runner.STEPS, where, False, None, "packaging")}
+        assert "pytest tests/examples -n auto" in rows["Examples: scripts, notebooks, pages, links"].command
+
+
 def test_the_fast_mode_is_refused() -> None:
     """The closing run is CI's, so no cheaper local run exists."""
     runner = _runner()

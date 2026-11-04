@@ -30,7 +30,7 @@ This is done by a pair of arguments on each route/tool:
 
 > The arguments are named `params_mapper` / `response_mapper`. The older names `params_converter` / `result_converter` from the README are out of date — they are not in the code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1yt4eN9ojuCjvrvR-3C5DyuzTtlOac3LL/view?usp=drive_link) · [Open in project](../../examples/step_20_converters/01_versions.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_20_converters/01_versions.ipynb) · [Open in project](../../examples/step_20_converters/01_versions.py)
 
 ---
 
@@ -39,6 +39,7 @@ This is done by a pair of arguments on each route/tool:
 Without converters the adapter validates the body straight into the operation's `Params` and serializes the `Result` as is — this is the "effective" schema by default. A converter swaps one of the sides:
 
 ```python
+# Fragment: an outline, not complete code.
 # v1 — native contract: Params and Result go through as-is
 .post("/api/v1/orders", CreateOrderAction, tags=["orders"])
 
