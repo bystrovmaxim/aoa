@@ -22,7 +22,7 @@
 
 ## Phase 3: Versions — one commit
 
-- [ ] T011 Raise `aoa-action-machine`; `uv lock`.
+- [X] T011 Raise `aoa-action-machine`; `uv lock`.
 
 ## Phase 4: Closing check run — one commit if it changes anything
 

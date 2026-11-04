@@ -56,7 +56,7 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.0.1a13"
+version = "1.0.1a14"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
@@ -2303,7 +2303,7 @@ wheels = [
 
 [[package]]
 name = "maxitor"
-version = "3.14.2"
+version = "3.14.3"
 source = { editable = "packages/maxitor" }
 dependencies = [
     { name = "jsonschema" },
