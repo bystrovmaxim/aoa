@@ -103,6 +103,9 @@ docs/ru/
 !.python-version
 !uv.lock
 
-# Written by examples/step_02_state_as_x-ray_of_the_operation/06_xray_file on every run.
+# Written by the x-ray example of chapter 2 on every run: beside the example,
+# and at the root when the chapter's page is checked.
 examples/step_02_state_as_x-ray_of_the_operation/logs.txt
 examples/step_02_state_as_x-ray_of_the_operation/traces.txt
+/logs.txt
+/traces.txt
