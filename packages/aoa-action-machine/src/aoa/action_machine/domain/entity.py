@@ -112,7 +112,6 @@ import copy
 from abc import ABC
 from typing import Annotated, Any, ClassVar, Self
 
-import jsonschema
 from pydantic import ConfigDict
 
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
@@ -235,6 +234,8 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
 
         Intentionally **not** Pydantic's ``BaseModel.schema()`` (JSON Schema of the entity model);
         entity classes use this name for wire projection annotations only (see ``docs/guide/entity-wire-projection.md``).
+        The schema is checked here, once, in the draft its ``$schema`` names (the newest without it);
+        a schema that draft refuses raises ``jsonschema.SchemaError``.
         """
         if not isinstance(schema, dict):
             msg = f"{cls.__name__}.schema(): schema must be a dict, got {type(schema).__name__}."
@@ -243,7 +244,6 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
             msg = f"{cls.__name__}.schema(): schema cannot be empty."
             raise ValueError(msg)
         schema_copy = copy.deepcopy(schema)
-        jsonschema.Draft7Validator.check_schema(schema_copy)
         return Annotated[cls, EntitySchemaMarker(entity_cls=cls, schema=schema_copy)]
 
     @classmethod
