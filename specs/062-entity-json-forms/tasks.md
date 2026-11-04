@@ -62,10 +62,10 @@
 
 **Independent test**: `uv run --extra dev pytest packages/aoa-fastapi-adapter/tests/test_fastapi_entity_fields.py -q`, then the MCP and LangGraph files below, each from the repository root.
 
-- [ ] T019 [P] [US4] `packages/aoa-fastapi-adapter/tests/test_fastapi_entity_fields.py`: an action whose Params hold a dictionary reference and an entity with a relation, and whose Result holds an entity with a relation, a reference and a lifecycle; `POST` with `{"currency": {"id": "eur"}}` → 200 (4.1) and the JSON forms in the response (5.1); `app.openapi()` builds; the alias field written as `itemId` (10.1).
-- [ ] T020 [P] [US4] `packages/aoa-mcp-adapter/tests/test_mcp_entity_fields.py`: `_validate_tool_request_kwargs({"currency": {"id": "eur"}}, PriceParams)` (4.2); `_serialize_result` writes the JSON forms and `item_id` (10.1).
-- [ ] T021 [P] [US4] Extend `packages/aoa-langgraph/tests/test_node_binding_entities.py`: the node's state receives entities with relations, references and a lifecycle (1.3); the alias field under `item_id`.
-- [ ] T022 Run the three files: all pass. Their cases failed before phases 1–3 (the Before outputs of 4.1, 4.2 and 5.1 in research.md), and the breaks of T006, T013 and T018 break them.
+- [X] T019 [P] [US4] `packages/aoa-fastapi-adapter/tests/test_fastapi_entity_fields.py`: an action whose Params hold a dictionary reference and an entity with a relation, and whose Result holds an entity with a relation, a reference and a lifecycle; `POST` with `{"currency": {"id": "eur"}}` → 200 (4.1) and the JSON forms in the response (5.1); `app.openapi()` builds; the alias field written as `itemId` (10.1).
+- [X] T020 [P] [US4] `packages/aoa-mcp-adapter/tests/test_mcp_entity_fields.py`: `_validate_tool_request_kwargs({"currency": {"id": "eur"}}, PriceParams)` (4.2); `_serialize_result` writes the JSON forms and `item_id` (10.1).
+- [X] T021 [P] [US4] Extend `packages/aoa-langgraph/tests/test_node_binding_entities.py`: the node's state receives entities with relations, references and a lifecycle (1.3); the alias field under `item_id`.
+- [X] T022 Run the three files: all pass. Their cases failed before phases 1–3 (the Before outputs of 4.1, 4.2 and 5.1 in research.md), and the breaks of T006, T013 and T018 break them.
 
 ---
 
