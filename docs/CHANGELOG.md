@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-05] — The cache stores JSON
+
+The cache used to keep the Result object itself and hand that same object to every hit, so a caller that changed what it received changed it for everyone after, and a store that keeps bytes, such as Redis, could not be plugged in. Now the machine writes the Result's JSON to the store and reads every hit back into a new Result: one caller's change no longer reaches another, and the store only keeps bytes.
+
+Before it stores anything, a write reads the Result back from its own JSON and compares the two — values, loaded fields, loaded relations, declared statuses and dictionary values. A Result that cannot survive this is refused with `CacheSerializationError`, naming the field: one that holds a value with no JSON form (an object in a field typed `Any`), one whose serializer writes something its own type will not read back, and one whose serializer quietly changes the value (`field 'count' reads back as 20, but was 29`). Nothing is stored for it. `CacheSerializationError` is a `CacheContractError`, so code that already handles a broken cache contract handles it too. An action that does not cache pays nothing: only a write serializes.
+
+An entry that the current Result type no longer reads — written by an earlier version of the code into a store that outlived a deploy — is treated as stale: it is dropped and the action runs.
+
+**If you wrote your own store**, change it to keep bytes: `put` now receives `payload: bytes` instead of the Result, and `get_entry` returns a `StoredCacheEntry` with that payload and the metadata. `@cache_read` still receives a `CacheEntry`, whose `result` is the new Result read from those bytes.
+
+[Tutorial step 8](tutorials/step-08-cache.md#what-the-store-keeps) explains it, and [the page on a cache adapter](how-to/authoring-cache-adapter.md) shows a store that keeps bytes, with a script and a notebook.
+
 ## [2026-11-05] — The cache is declared, and the graph shows it
 
 An action used to say what it caches by overriding four methods of `BaseAction` — `cache_key`, `read_cache`, `on_cache_write`, `on_cache_invalidate`. Nothing checked them: the key was synchronous, the order of parameters differed from method to method, none received `box` or `connections`, and the graph did not know the cache existed. Now the cache is four declarations built like the object check: `@cache_key`, `@cache_read`, `@cache_write` and `@cache_invalidate`.
