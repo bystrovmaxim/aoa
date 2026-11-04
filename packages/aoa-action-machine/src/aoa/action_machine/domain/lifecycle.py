@@ -76,9 +76,12 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar, cast, get_args, get_origin
+
+from pydantic_core import core_schema
 
 from aoa.action_machine.domain.exceptions import ForeignStateError, MissingStateError
 
@@ -142,7 +145,7 @@ class InvalidStateError(ValueError):
         self.lifecycle_class = lifecycle_class
         self.valid_states = valid_states
         sorted_states = ", ".join(sorted(valid_states))
-        super().__init__(f"State '{state_key}' is not defined on {lifecycle_class}. " f"Valid states: {sorted_states}.")
+        super().__init__(f"State '{state_key}' is not defined on {lifecycle_class}. Valid states: {sorted_states}.")
 
 
 class InvalidTransitionError(ValueError):
@@ -330,8 +333,7 @@ class _StateBuilder:
         """
         if self._completed:
             raise RuntimeError(
-                f"State '{self._key}' is already complete. "
-                f"Do not call .initial(), .intermediate(), or .final() twice."
+                f"State '{self._key}' is already complete. Do not call .initial(), .intermediate(), or .final() twice."
             )
         self._completed = True
         state_info = StateInfo(
@@ -360,7 +362,10 @@ class Lifecycle[StateT]:
     """
     AI-CORE-BEGIN
         ROLE: Finite state machine for a domain object's transitions.
-        CONTRACT: State graph is declared declaratively; inconsistent graph is a startup error.
+        CONTRACT: State graph is declared declaratively; inconsistent graph is a startup error. As a
+            model field its JSON form is the current status's reference {"code", "display_name",
+            "properties"}; it reads {"code"} in every mode and selects the declared status of the
+            template, so a status read back is the catalogue's object.
         INVARIANTS: Standalone primitive — not a resource, not a coordinator.
         AI-CORE-END
     """
@@ -445,6 +450,62 @@ class Lifecycle[StateT]:
             self._state_entities = dict(template._state_entities)
             self._transition_entities = dict(template._transition_entities)
             self._current_status = self._state_entities[current_state]
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
+        """
+        Give a lifecycle field its JSON form: the current status's reference.
+
+        In every mode the field takes a lifecycle of this class, or ``{"code"[, "display_name",
+        "properties"]}``, which selects the declared status of the template by its code (label and
+        properties come from the catalogue). JSON mode writes the current status's reference;
+        Python mode keeps the lifecycle.
+        """
+        reference_keys = frozenset({"code", "display_name", "properties"})
+
+        def validate(value: Any) -> Any:
+            if isinstance(value, cls):
+                return value
+            if not isinstance(value, Mapping) or not set(value) <= reference_keys or "code" not in value:
+                raise ValueError(
+                    f"{cls.__name__}: a lifecycle takes a {cls.__name__} or its status reference "
+                    f"{{'code', 'display_name', 'properties'}} with a code, got {value!r}."
+                )
+            code = value["code"]
+            if not isinstance(code, str) or not code.strip():
+                raise ValueError(f"{cls.__name__}: a status reference needs a non-empty 'code'.")
+            return cls(code)
+
+        def write(value: Any) -> dict[str, Any]:
+            status = value.current_status
+            exported = status.model_dump(mode="json")
+            properties = {name: item for name, item in exported.items() if name not in {"code", "display_name"}}
+            return {"code": exported["code"], "display_name": exported["display_name"], "properties": properties}
+
+        return core_schema.no_info_plain_validator_function(
+            validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(write, when_used="json"),
+            metadata={"lifecycle": cls},
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
+        """Publish the status reference: ``code`` an enum of the template's states."""
+        template = cls._get_template()
+        codes = list(template.get_state_entities()) if template is not None else []
+        code_schema: dict[str, Any] = {"type": "string", "minLength": 1}
+        if codes:
+            code_schema["enum"] = codes
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["code", "display_name", "properties"] if handler.mode == "serialization" else ["code"],
+            "properties": {
+                "code": code_schema,
+                "display_name": {"type": "string", "minLength": 1},
+                "properties": {"type": "object"},
+            },
+        }
 
     @classmethod
     def _get_template(cls) -> Lifecycle[Any] | None:

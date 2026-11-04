@@ -213,7 +213,7 @@ print(order.id, order.total)
 ord-2 99.5
 ```
 
-`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-17-schema-results.md) is a separate concern: it describes which fields leave the application through an external result.
+`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-17-schema-results.md) is a separate concern: it describes which fields leave the application through an external result. An entity can also be a field of `Params` and `Result` itself: every value it holds has one JSON form, read back on every path — [relations](step-24-relations.md#send-a-relation-as-json), [dictionary selections](../how-to/dictionary-references.md#every-path-takes-the-same-input) and [lifecycles](step-25-lifecycle.md#send-a-lifecycle-as-json).
 
 ## Distinguish unloaded data from a loaded value
 

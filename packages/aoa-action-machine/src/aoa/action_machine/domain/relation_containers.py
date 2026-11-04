@@ -26,6 +26,12 @@ SCOPE (IN / OUT)
     Attribute **proxying** on One containers (`customer_ref.name` → `entity.name`).
     Indexing, slicing, iteration on Many over **loaded** `entities` only.
     Immutability after construction.
+    One JSON form per container: ``{"id"[, "entity"]}`` for One, ``{"ids"[, "entities"]}``
+    for Many (the second key present means loaded); the same validator reads it from
+    JSON, from a dict and from a container, types the ids by the target's ``id`` field
+    and reads a target with missing fields as a partial entity. Python-mode dumps keep
+    the container. A dictionary target writes its declared value's reference instead and
+    reads, in every mode, its container, ``{"id": code}`` or that reference by its code.
 
 **Out of scope**
     Lazy loading or automatic fetches — see `RelationNotLoadedError` in
@@ -110,10 +116,12 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
+from contextvars import ContextVar
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, overload
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypeVar, cast, get_args, overload
 
+from pydantic import TypeAdapter
 from pydantic_core import core_schema
 
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
@@ -207,42 +215,68 @@ def _dictionary_reference_json_schema() -> dict[str, Any]:
 
 
 def _dictionary_input_json_schema() -> dict[str, Any]:
-    """The explicit container input shape."""
+    """The accepted input shapes: the id object, or the reference object read by its code."""
     return {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["id"],
-        "properties": {"id": {"type": "string", "minLength": 1}},
+        "anyOf": [
+            {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["id"],
+                "properties": {"id": {"type": "string", "minLength": 1}},
+            },
+            {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code"],
+                "properties": {
+                    "code": {"type": "string", "minLength": 1},
+                    "display_name": {"type": "string"},
+                    "properties": {"type": "object"},
+                },
+            },
+        ]
     }
+
+
+_REFERENCE_KEYS = frozenset({"code", "display_name", "properties"})
+
+
+def _dictionary_code_of(item: Any, *, item_prefix: str = "") -> Any:
+    """Return the code an input item names: ``{"id": code}`` or a reference ``{"code", …}``."""
+    if isinstance(item, Mapping):
+        if "id" in item:
+            if set(item) != {"id"}:
+                raise ValueError(f"{item_prefix}a dictionary relation id object has exactly one 'id' key.")
+            return item["id"]
+        if "code" in item and set(item) <= _REFERENCE_KEYS:
+            return item["code"]
+    raise ValueError(
+        f"{item_prefix}a dictionary relation takes its container, an id object {{'id': code}} or a "
+        f"reference {{'code', 'display_name', 'properties'}}, got {item!r}."
+    )
 
 
 def _dictionary_one_schema(container_cls: type[Any], dictionary: type[BaseEnumEntity]) -> Any:
     """Build the core schema for a to-one container whose target is a closed dictionary."""
 
-    def validate_python(value: Any) -> Any:
-        return _dictionary_one_value(container_cls, dictionary, value)
-
-    def validate_json(value: Any) -> Any:
-        if not isinstance(value, dict) or set(value) != {"id"}:
-            raise ValueError("a dictionary relation JSON input is an object with exactly one 'id' key.")
-        code = value["id"]
-        member = _dictionary_member_of(dictionary, code)
-        return container_cls(id=code, entity=member)
+    def validate(value: Any) -> Any:
+        if isinstance(value, container_cls):
+            return _dictionary_one_value(container_cls, dictionary, value)
+        if isinstance(value, (BaseRelationOne, BaseRelationMany)):
+            raise ValueError(f"expected {container_cls.__name__}, got {type(value).__name__}.")
+        code = _dictionary_code_of(value)
+        return container_cls(id=code, entity=_dictionary_member_of(dictionary, code))
 
     def serialize(value: Any) -> Any:
-        if value is None or value.entity is None:
+        # The declared value's reference, computed once when the dictionary declared it; Pydantic
+        # writes it into a new dict, so no caller of a dump receives the stored one.
+        if value is None:
             return None
-        return value.entity.to_reference()
+        entity = value.entity
+        return None if entity is None else dictionary._json_references[entity.code]
 
-    return core_schema.json_or_python_schema(
-        json_schema=core_schema.no_info_after_validator_function(
-            validate_json,
-            core_schema.dict_schema(keys_schema=core_schema.str_schema(), values_schema=core_schema.any_schema()),
-        ),
-        python_schema=core_schema.no_info_after_validator_function(
-            validate_python,
-            core_schema.is_instance_schema(container_cls),
-        ),
+    return core_schema.no_info_plain_validator_function(
+        validate,
         serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used="json"),
         metadata={"dictionary_relation": dictionary},
     )
@@ -251,44 +285,230 @@ def _dictionary_one_schema(container_cls: type[Any], dictionary: type[BaseEnumEn
 def _dictionary_many_schema(container_cls: type[Any], dictionary: type[BaseEnumEntity]) -> Any:
     """Build the core schema for a to-many container whose target is a closed dictionary."""
 
-    def validate_python(value: Any) -> Any:
-        if not isinstance(value, container_cls):
+    def validate(value: Any) -> Any:
+        if isinstance(value, container_cls):
+            return _dictionary_many_value(container_cls, dictionary, value.ids, value.entities)
+        if isinstance(value, (BaseRelationOne, BaseRelationMany)):
+            raise ValueError(f"expected {container_cls.__name__}, got {type(value).__name__}.")
+        if not isinstance(value, (list, tuple)):
             raise ValueError(
-                f"a dictionary relation field requires an explicit {container_cls.__name__}[...] wrapper, "
+                f"a to-many dictionary relation takes its container or an array of id objects or references, "
                 f"got {type(value).__name__}."
             )
-        return _dictionary_many_value(container_cls, dictionary, value.ids, value.entities)
-
-    def validate_json(value: Any) -> Any:
-        if not isinstance(value, list):
-            raise ValueError("a dictionary relation JSON input is an array of {'id': code} objects.")
-        codes: list[Any] = []
-        for index, item in enumerate(value):
-            if not isinstance(item, dict) or set(item) != {"id"}:
-                raise ValueError(
-                    f"item {index}: a dictionary relation JSON input is an object with exactly one 'id' key."
-                )
-            codes.append(item["id"])
-        return _dictionary_many_value(container_cls, dictionary, tuple(codes))
+        codes = tuple(_dictionary_code_of(item, item_prefix=f"item {index}: ") for index, item in enumerate(value))
+        return _dictionary_many_value(container_cls, dictionary, codes)
 
     def serialize(value: Any) -> Any:
+        # The declared values' references, computed once; Pydantic writes them into new dicts.
         if value is None:
             return None
-        return [entity.to_reference() for entity in value.entities]
+        return [dictionary._json_references[entity.code] for entity in value.entities]
 
-    return core_schema.json_or_python_schema(
-        json_schema=core_schema.no_info_after_validator_function(
-            validate_json,
-            core_schema.list_schema(
-                core_schema.dict_schema(keys_schema=core_schema.str_schema(), values_schema=core_schema.any_schema())
-            ),
-        ),
-        python_schema=core_schema.no_info_after_validator_function(
-            validate_python,
-            core_schema.is_instance_schema(container_cls),
-        ),
+    return core_schema.no_info_plain_validator_function(
+        validate,
         serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used="json"),
         metadata={"dictionary_relation": dictionary, "dictionary_many": True},
+    )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# The JSON form of a relation to an ordinary entity
+# ═════════════════════════════════════════════════════════════════════════════
+
+_FIELD_ADAPTERS: dict[tuple[Any, str], TypeAdapter[Any]] = {}
+
+# Python-mode dumps keep the container itself; the JSON serializer of the outer schema writes the form.
+_KEEP_IN_PYTHON = core_schema.plain_serializer_function_ser_schema(lambda value: value)
+
+
+def _annotation_of(field: Any) -> Any:
+    """Return a model field's annotation with its constraints, as a type a validator can be built from."""
+    if field.metadata:
+        return Annotated[(field.annotation, *field.metadata)]
+    return field.annotation
+
+
+def _id_schema(target: type, handler: Any) -> Any:
+    """The core schema of a relation's ids: the target's ``id`` type, or ``str | int`` without one."""
+    field = getattr(target, "model_fields", {}).get("id")
+    if field is None:
+        return core_schema.union_schema(
+            [core_schema.str_schema(strict=True), core_schema.int_schema(strict=True)],
+            custom_error_type="relation_id_type",
+            custom_error_message=f"{target.__name__} declares no id field, so a relation's id is a string or an integer",
+        )
+    return handler.generate_schema(_annotation_of(field))
+
+
+def _field_adapter(target: Any, name: str) -> TypeAdapter[Any]:
+    """A validator for one field of ``target``, built on first use."""
+    key = (target, name)
+    adapter = _FIELD_ADAPTERS.get(key)
+    if adapter is None:
+        adapter = TypeAdapter(_annotation_of(target.model_fields[name]))
+        _FIELD_ADAPTERS[key] = adapter
+    return adapter
+
+
+def _target_schema(target: Any) -> Any:
+    """
+    Read a related entity: an instance as it is, a dict as a partial entity holding the fields present.
+
+    The target's own schema is not built here, so a model that names a target whose annotations
+    resolve later (an import cycle closed by ``model_rebuild``) builds as it always did; each field is
+    validated by its own annotation on first use.
+    """
+
+    def read(value: Any) -> Any:
+        if isinstance(value, target):
+            return value
+        if not isinstance(value, Mapping):
+            raise ValueError(f"a related {target.__name__} is an object of its fields, got {type(value).__name__}.")
+        declared = target.model_fields
+        undeclared = sorted(str(name) for name in value if name not in declared)
+        if undeclared:
+            raise ValueError(f"{target.__name__} declares no field(s) {undeclared}.")
+        fields = {name: _field_adapter(target, name).validate_python(item) for name, item in value.items()}
+        return target.partial(**fields)
+
+    return core_schema.no_info_plain_validator_function(read)
+
+
+# The targets whose JSON Schema is being generated right now, by their core-schema reference.
+_TARGETS_IN_PROGRESS: ContextVar[frozenset[str]] = ContextVar("relation_targets_in_progress", default=frozenset())
+
+
+def _core_ref_of(schema: Any) -> str | None:
+    """The reference a model's core schema registers under, if it has one."""
+    if schema.get("type") == "definitions":
+        inner = schema["schema"]
+        return cast(str | None, inner.get("schema_ref") or inner.get("ref"))
+    return cast(str | None, schema.get("ref"))
+
+
+def _target_json_schema(target: Any, handler: Any) -> Any:
+    """
+    The target's JSON Schema: generated once, then a ``$ref`` to it.
+
+    A target that points back (a recursive pair) is met again while its own schema is being
+    generated; that second meeting yields a reference instead of generating it again.
+    """
+    schema = target.__pydantic_core_schema__
+    ref = _core_ref_of(schema)
+    in_progress = _TARGETS_IN_PROGRESS.get()
+    if ref is not None and ref in in_progress:
+        return handler(core_schema.definition_reference_schema(ref))
+    if ref is None or schema.get("type") == "definitions":
+        return handler(schema)
+    token = _TARGETS_IN_PROGRESS.set(in_progress | {ref})
+    try:
+        # Wrapped as a definition, the generator stores the target under $defs and answers with a $ref.
+        return handler(core_schema.definitions_schema(core_schema.definition_reference_schema(ref), [schema]))
+    finally:
+        _TARGETS_IN_PROGRESS.reset(token)
+
+
+def _structural_json_schema(metadata: dict[str, Any], handler: Any) -> dict[str, Any]:
+    """
+    Publish a relation's form: a closed object whose ids are typed and whose target is a ``$ref``.
+
+    Built when a JSON Schema is generated, by then every target is complete; the target's own
+    schema is handed to the generator, which registers it once, so a recursive pair stays finite.
+    """
+    target = metadata["relation_target"]
+    ids_schema = handler(metadata["relation_ids"])
+    entity_schema = _target_json_schema(target, handler)
+    if metadata["relation_many"]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["ids"],
+            "properties": {
+                "ids": {"type": "array", "items": ids_schema},
+                "entities": {"type": "array", "items": entity_schema},
+            },
+        }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id"],
+        "properties": {"id": ids_schema, "entity": entity_schema},
+    }
+
+
+def _structural_one_schema(container_cls: type[Any], target: type, handler: Any) -> Any:
+    """Core schema of a to-one container of an ordinary entity: ``{"id"}`` or ``{"id", "entity"}``."""
+    id_schema = _id_schema(target, handler)
+    form = core_schema.typed_dict_schema(
+        {
+            "id": core_schema.typed_dict_field(id_schema),
+            "entity": core_schema.typed_dict_field(_target_schema(target), required=False),
+        },
+        extra_behavior="forbid",
+    )
+
+    def as_form(value: Any) -> Any:
+        if isinstance(value, (BaseRelationOne, BaseRelationMany)):
+            if not isinstance(value, container_cls):
+                raise ValueError(f"expected {container_cls.__name__}, got {type(value).__name__}.")
+            return write(value)
+        return value
+
+    def as_container(validated: dict[str, Any]) -> Any:
+        return container_cls(id=validated["id"], entity=validated.get("entity"))
+
+    def write(value: Any) -> dict[str, Any]:
+        written_form: dict[str, Any] = {"id": value.id}
+        if value.entity is not None:
+            written_form["entity"] = value.entity
+        return written_form
+
+    return core_schema.no_info_before_validator_function(
+        as_form,
+        core_schema.no_info_after_validator_function(as_container, form, serialization=_KEEP_IN_PYTHON),
+        serialization=core_schema.plain_serializer_function_ser_schema(write, when_used="json"),
+        metadata={"relation_target": target, "relation_ids": id_schema, "relation_many": False},
+    )
+
+
+def _structural_many_schema(container_cls: type[Any], target: type, handler: Any) -> Any:
+    """Core schema of a to-many container of an ordinary entity: ``{"ids"}`` or ``{"ids", "entities"}``."""
+    id_schema = _id_schema(target, handler)
+    form = core_schema.typed_dict_schema(
+        {
+            "ids": core_schema.typed_dict_field(core_schema.list_schema(id_schema)),
+            "entities": core_schema.typed_dict_field(core_schema.list_schema(_target_schema(target)), required=False),
+        },
+        extra_behavior="forbid",
+    )
+
+    def as_form(value: Any) -> Any:
+        if isinstance(value, (BaseRelationOne, BaseRelationMany)):
+            if not isinstance(value, container_cls):
+                raise ValueError(f"expected {container_cls.__name__}, got {type(value).__name__}.")
+            return write(value)
+        return value
+
+    def as_container(validated: dict[str, Any]) -> Any:
+        ids = tuple(validated["ids"])
+        if "entities" not in validated:
+            return container_cls(ids=ids)
+        entities = tuple(validated["entities"])
+        if len(entities) != len(ids):
+            raise ValueError(f"the loaded entities ({len(entities)}) do not match the ids ({len(ids)}).")
+        return container_cls(ids=ids, entities=entities, entities_loaded=True)
+
+    def write(value: Any) -> dict[str, Any]:
+        written_form: dict[str, Any] = {"ids": list(value.ids)}
+        if value.is_loaded:
+            written_form["entities"] = list(value.entities)
+        return written_form
+
+    return core_schema.no_info_before_validator_function(
+        as_form,
+        core_schema.no_info_after_validator_function(as_container, form, serialization=_KEEP_IN_PYTHON),
+        serialization=core_schema.plain_serializer_function_ser_schema(write, when_used="json"),
+        metadata={"relation_target": target, "relation_ids": id_schema, "relation_many": True},
     )
 
 
@@ -348,6 +568,8 @@ class BaseRelationOne[T]:
             Protocol names (``__…__``) are never proxied, so Pydantic, ``copy`` and ``pickle`` see the
             container itself; ``copy``, ``deepcopy`` and ``pickle`` rebuild it through the constructor
             (``__reduce__``) as a container of the same class with the same id and loaded state.
+            JSON form: ``{"id"}`` or ``{"id", "entity"}``; validation returns a new container of the
+            declared class with the id typed by the target's ``id`` field.
         INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
         AI-CORE-END
     """
@@ -358,16 +580,20 @@ class BaseRelationOne[T]:
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
-        """Give a to-one container a dictionary-specific schema; keep a structural wrapper opaque."""
+        """Give a to-one container its JSON form: a dictionary reference, or ``{"id"[, "entity"]}``."""
         target = _relation_target_of(source_type)
         if _is_dictionary_type(target):
             return _dictionary_one_schema(cls, target)
+        if isinstance(target, type) and hasattr(target, "model_fields"):
+            return _structural_one_schema(cls, target, handler)
         return core_schema.is_instance_schema(cls)
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
         """Publish the id-object input shape in validation mode and the reference in serialization mode."""
         metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        if "relation_target" in metadata:
+            return _structural_json_schema(metadata, handler)
         if metadata.get("dictionary_relation") is None:
             return cast(dict[str, Any], handler(schema))
         if handler.mode == "serialization":
@@ -398,7 +624,7 @@ class BaseRelationOne[T]:
     @property
     def entity(self) -> T | None:
         """Hydrated related object, or ``None``."""
-        return cast(T | None, object.__getattribute__(self, "_entity"))
+        return cast("T | None", object.__getattribute__(self, "_entity"))
 
     @property
     def is_loaded(self) -> bool:
@@ -467,6 +693,8 @@ class BaseRelationMany[T]:
         CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
             ``copy``, ``deepcopy`` and ``pickle`` rebuild it through the constructor (``__reduce__``)
             as a container of the same class with the same ids, entities and loaded state.
+            JSON form: ``{"ids"}`` or ``{"ids", "entities"}`` (loaded, ``[]`` for zero rows); validation
+            returns a new container of the declared class with the ids typed by the target's ``id`` field.
         INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
         AI-CORE-END
     """
@@ -477,16 +705,20 @@ class BaseRelationMany[T]:
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> Any:
-        """Give a to-many container a dictionary-specific schema; keep a structural wrapper opaque."""
+        """Give a to-many container its JSON form: dictionary references, or ``{"ids"[, "entities"]}``."""
         target = _relation_target_of(source_type)
         if _is_dictionary_type(target):
             return _dictionary_many_schema(cls, target)
+        if isinstance(target, type) and hasattr(target, "model_fields"):
+            return _structural_many_schema(cls, target, handler)
         return core_schema.is_instance_schema(cls)
 
     @classmethod
     def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
         """Publish the array input shape in validation mode and the reference array in serialization mode."""
         metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        if "relation_target" in metadata:
+            return _structural_json_schema(metadata, handler)
         if metadata.get("dictionary_relation") is None:
             return cast(dict[str, Any], handler(schema))
         if handler.mode == "serialization":
@@ -529,7 +761,7 @@ class BaseRelationMany[T]:
     @property
     def entities(self) -> tuple[T, ...]:
         """Tuple of hydrated entities (possibly empty)."""
-        return cast(tuple[T, ...], object.__getattribute__(self, "_entities"))
+        return cast("tuple[T, ...]", object.__getattribute__(self, "_entities"))
 
     @property
     def is_loaded(self) -> bool:
@@ -567,8 +799,8 @@ class BaseRelationMany[T]:
         entities = self.entities
         result = entities[index]
         if isinstance(index, slice):
-            return cast(tuple[T, ...], result)
-        return cast(T, result)
+            return cast("tuple[T, ...]", result)
+        return cast("T", result)
 
     def __iter__(self) -> Iterator[T]:
         """

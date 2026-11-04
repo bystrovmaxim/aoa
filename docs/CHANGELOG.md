@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-11-04] — An entity goes out as JSON and comes back
+
+An entity can now be a field of `Params` and `Result` and travel through FastAPI, MCP and LangGraph: every value it holds has one JSON form, written by every path and read back by the same rules whether it comes from JSON, from a dict in your code or from a request. What you declare does not change.
+
+**Relations.** A One relation goes out as `{"id": …}`, with `"entity"` when the related entity is loaded; a Many relation as `{"ids": […]}`, with `"entities"` when they are loaded — `"entities": []` means loaded with no rows, which stays different from never loaded. A related entity with fields missing reads back as a partial entity holding the fields that were sent. Each id takes the type of the target's `id` field, so a UUID comes back as a UUID, and an id of the wrong type is refused at that id. The JSON Schema names each related entity by reference, so entities that point at each other publish a finite schema.
+
+**Dictionary selections.** A currency or any other catalogue value is accepted as `{"id": "eur"}` or as the reference it is written as, `{"code": "eur", …}`, on every path — before, FastAPI and MCP refused both. The code chooses the value; its label and properties always come from the catalogue. Writing references is also about six times faster, with the same JSON.
+
+**Lifecycles.** A lifecycle goes out as its current status — code, label and the status's own fields under `properties` — and comes back from `{"code": …}` as the declared status. An entity with a lifecycle no longer breaks the OpenAPI document of the whole application.
+
+Two things behave differently. Validation returns a new relation container with typed ids, so a container whose ids do not match the target's `id` type is now refused, and the field no longer holds the very object you passed. A Python-mode `model_dump()` still keeps containers and lifecycles as objects; only JSON mode writes these forms.
+
+Tutorial steps [24](tutorials/step-24-relations.md#send-a-relation-as-json) and [25](tutorials/step-25-lifecycle.md#send-a-lifecycle-as-json) and [the page on dictionary references](how-to/dictionary-references.md#every-path-takes-the-same-input) show each form with a script and a notebook.
+
 ## [2026-11-04] — A schema field checks its schema once
 
 Fields that hold JSON checked by a JSON Schema — `JsonSchemaValue` and an entity projection, `OrderCoreEntity.schema(schema={...})` — used to check the schema itself again on every value, and that took most of the time: about 550 µs per value for a three-field row. Now the schema is checked once, when the field is declared, and a value takes about 10 µs. Nothing you write changes, and every value passes or fails as before, with the same error.

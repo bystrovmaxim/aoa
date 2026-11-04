@@ -126,10 +126,12 @@ def test_a_bare_code_is_refused() -> None:
         HostCoreEntity(id="h8", currency="eur", structural=AssociationOne(id="s1"))
 
 
-def test_a_python_mapping_is_refused() -> None:
-    """A Python mapping is not an implicit conversion path."""
-    with pytest.raises(ValidationError):
-        HostCoreEntity(id="h9", currency={"id": "eur"}, structural=AssociationOne(id="s1"))
+def test_a_python_mapping_with_the_id_object_is_accepted() -> None:
+    """A dict in code takes the same id object as JSON, as FastAPI and MCP pass it."""
+    host = HostCoreEntity(id="h9", currency={"id": "eur"}, structural=AssociationOne(id="s1"))
+
+    assert type(host.currency) is AssociationOne
+    assert host.currency.id == "eur"
 
 
 def test_the_input_wrapper_is_not_mutated() -> None:

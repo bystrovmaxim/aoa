@@ -46,9 +46,8 @@ def main() -> None:
         PriceTagCoreEntity.model_validate_json('{"id":"tag-1","amount":1.0,"currency":{}}')
     except ValidationError as error:
         assert error.errors()[0]["loc"] == ("currency",)
-        assert (
-            error.errors()[0]["msg"]
-            == "Value error, a dictionary relation JSON input is an object with exactly one 'id' key."
+        assert error.errors()[0]["msg"].startswith(
+            "Value error, a dictionary relation takes its container, an id object {'id': code} or a reference"
         )
         print(type(error).__name__ + ": " + str(error))
     else:
