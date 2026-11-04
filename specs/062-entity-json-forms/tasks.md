@@ -50,11 +50,11 @@
 
 **Independent test**: `uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_lifecycle_json_form.py -q`
 
-- [ ] T014 [US3] Write `test_lifecycle_json_form.py`: JSON form with `properties`; Python dump keeps the lifecycle; schema builds with `code` enum `['draft', 'paid']`; `{"code": "draft"}` reads as `OrderLifecycle("draft")` from a dict and from JSON; `{"code": "shipped"}` refused naming the states; a bare string refused; 5.3 the status's own `model_dump()` unchanged; 5.4 identity after reading back and the changed list visible; a nullable lifecycle field round-trips `None`.
-- [ ] T015 Confirm T014 fails on today's code.
-- [ ] T016 [US3] In `lifecycle.py`, add `__get_pydantic_core_schema__` and `__get_pydantic_json_schema__` on `Lifecycle` (R3); update the module's notes and AI-CORE block.
-- [ ] T017 Run the phase's tests.
-- [ ] T018 Adversarial break: build the status from the stored properties instead of `cls(code)` → the 5.4 identity test fails; restore.
+- [X] T014 [US3] Write `test_lifecycle_json_form.py`: JSON form with `properties`; Python dump keeps the lifecycle; schema builds with `code` enum `['draft', 'paid']`; `{"code": "draft"}` reads as `OrderLifecycle("draft")` from a dict and from JSON; `{"code": "shipped"}` refused naming the states; a bare string refused; 5.3 the status's own `model_dump()` unchanged; 5.4 identity after reading back and the changed list visible; a nullable lifecycle field round-trips `None`.
+- [X] T015 Confirm T014 fails on today's code.
+- [X] T016 [US3] In `lifecycle.py`, add `__get_pydantic_core_schema__` and `__get_pydantic_json_schema__` on `Lifecycle` (R3); update the module's notes and AI-CORE block.
+- [X] T017 Run the phase's tests.
+- [X] T018 Adversarial break: build the status from the stored properties instead of `cls(code)` → the 5.4 identity test fails; restore.
 
 ---
 
