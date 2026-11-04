@@ -46,15 +46,15 @@
 
 ## Phase 3: The closing check run — one commit if it changes anything
 
-- [ ] T011 Run `bash scripts/run_checks_with_log.sh`, the example checks included, and take every remark to zero apart from the two the constitution accepts; this also confirms that no declared schema of the repository is refused as 2020-12 (research R4).
+- [X] T011 Run `bash scripts/run_checks_with_log.sh`, the example checks included, and take every remark to zero apart from the two the constitution accepts; this also confirms that no declared schema of the repository is refused as 2020-12 (research R4).
 
 ---
 
 ## Phase 4: Documentation — one commit
 
-- [ ] T012 [P] Update `docs/tutorials/step-17-schema-results.md` ("Where validation happens"): the schema is checked once, at declaration, in the draft named by its `$schema` or the newest one; each value is checked against that check; a schema its draft refuses is refused at declaration. Explanations from #401 section 4.6, case 6.5; a script and a notebook under `examples/step_17_schema_results/` showing the tuple schema refused, the Draft 7 schema accepted with its two values, and the unchanged message, with outputs from runs.
-- [ ] T013 [P] Update `docs/tutorials/step-18-complex-input.md` ("Arbitrary JSON by schema", "A partial entity on input"): the same rule for input fields, one sentence and a link to step 17's section; step 18 shows no new case, so it gets no example of its own.
-- [ ] T014 Run the example checks of the pages and examples T012–T013 touched.
+- [X] T012 [P] Update `docs/tutorials/step-17-schema-results.md` ("Where validation happens"): the schema is checked once, at declaration, in the draft named by its `$schema` or the newest one; each value is checked against that check; a schema its draft refuses is refused at declaration. Explanations from #401 section 4.6, case 6.5; a script and a notebook under `examples/step_17_schema_results/` showing the tuple schema refused, the Draft 7 schema accepted with its two values, and the unchanged message, with outputs from runs.
+- [X] T013 [P] Update `docs/tutorials/step-18-complex-input.md` ("Arbitrary JSON by schema", "A partial entity on input"): the same rule for input fields, one sentence and a link to step 17's section; step 18 shows no new case, so it gets no example of its own.
+- [X] T014 Run the example checks of the pages and examples T012–T013 touched.
 
 ---
 

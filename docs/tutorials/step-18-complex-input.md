@@ -68,7 +68,7 @@ class CreateOrderParams(BaseParams):
     metadata: OrderMeta             # arbitrary JSON, validated by schema
 ```
 
-Invalid `metadata` (without the required `source`, with an extra key) is rejected at the boundary, and the schema itself is visible in OpenAPI and in the MCP tool description — the client and the agent know in advance what to pass.
+Invalid `metadata` (without the required `source`, with an extra key) is rejected at the boundary, and the schema itself is visible in OpenAPI and in the MCP tool description — the client and the agent know in advance what to pass. As on output, the schema itself is checked once, when `OrderMeta` is declared, in the draft it is written in; see [which draft checks the schema](step-17-schema-results.md#which-draft-checks-the-schema).
 
 ## A partial entity on input
 

@@ -16,6 +16,7 @@
 - [In code, it's plain Pydantic](#in-code-its-plain-pydantic)
 - [A partial entity projection](#a-partial-entity-projection)
 - [Where validation happens](#where-validation-happens)
+- [Which draft checks the schema](#which-draft-checks-the-schema)
 - [Invariants](#invariants)
 - [Review questions](#review-questions)
 
@@ -98,6 +99,7 @@ Important is what this is **not**: the field's value is a plain `dict` validated
 
 ## Where validation happens
 
+- **The schema is checked once, at declaration.** `JsonSchemaValue.define` and `BaseEntity.schema` check the schema when they run, in the draft it is written in, and keep a ready check; a value is then checked against it without the schema being checked again. A broken schema fails at import, not on a request. See [which draft checks the schema](#which-draft-checks-the-schema).
 - **Validation is at model construction.** The ordinary constructor and `model_validate` validate the value; `model_construct()` skips validators (the general Pydantic contract) — it is not for validated assembly.
 - **`None` only for a union with `None`.** For the field to be allowed absent, declare `… | None`; then schema validation is not run on `None`.
 - **An MCP tool's input is from `Params`.** Projections and `JsonSchemaValue` on `Result` affect the serialized JSON and the graph metadata, but **not** the MCP tool's argument schema — it is still derived only from `Params`.
@@ -124,11 +126,35 @@ uv run python examples/step_17_schema_results/01_schema_results.py
    unexpected field -> rejected (schema forbids fields outside the projection)
 ```
 
+## Which draft checks the schema
+
+[Script](../../examples/step_17_schema_results/02_draft_of_schema.py) · [Notebook](../../examples/step_17_schema_results/02_draft_of_schema.ipynb)
+
+JSON Schema has versions, called drafts, and they read some schemas differently. A schema can name its draft in `"$schema"`; a schema that names none is read as the newest draft, 2020-12. A field picks its draft once, when it is declared, checks the schema in that draft, and checks every value in the same draft.
+
+Draft 7 wrote a fixed-length array as a list of schemas under `items`, one per position. The newest draft does not accept that form, so a schema using it without `"$schema"` is refused the moment it is declared — by `JsonSchemaValue.define` and by a projection alike. Named as Draft 7, the same schema is accepted and checks each position:
+
+```text
+1) No $schema: the newest draft checks the schema at declaration
+   JsonSchemaValue.define -> SchemaError: [{'type': 'string'}, {'type': 'integer'}] is not of type 'object', 'boolean'
+   OrderCoreEntity.schema  -> SchemaError: [{'type': 'string'}, {'type': 'integer'}] is not of type 'object', 'boolean'
+2) $schema names Draft 7: the schema and its values are checked as Draft 7
+   ['a', 1] -> ['a', 1]
+   [1, 'a'] -> ValidationError: Value error, 'a' is not of type 'integer'
+3) A refused value reports the best error, as before
+   accepted: {'id': 'o1', 'status': 'paid', 'total': 99.5}
+   refused : Value error, OrderCoreEntity wire projection: 'total' is a required property
+```
+
+`SchemaError` is a mistake in the schema, not in the data, so it is raised where the schema is written. A value with several mistakes reports the one the JSON Schema library ranks first — here the missing `total`, not the wrong type of `id` or the extra `secret`.
+
+Because the schema is checked only once, a value check is cheap: a three-field row takes about 10 µs.
+
 ## Invariants
 
 - **A field, not the whole model.** The schema applies to one field; the other fields stay ordinarily typed.
 - **Strict schema by construction.** Objects list `properties` and set `"additionalProperties": false`, arrays declare `items`; otherwise `define` fails immediately.
-- **Validation at construction.** The constructor/`model_validate` validate; `model_construct` does not.
+- **The schema at declaration, the value at construction.** The schema is checked once, when the field is declared, in the draft its `"$schema"` names (2020-12 without it); the constructor/`model_validate` check the value in the same draft; `model_construct` does not.
 - **The schema is visible to the contract.** `model_dump()` — raw JSON; `model_json_schema()` — the user schema that FastAPI and MCP surface.
 - **A projection ≠ an entity.** `BaseEntity.schema()` gives a validated `dict` slice, not a hydrated instance; an MCP tool's input is taken only from `Params`.
 
