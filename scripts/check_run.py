@@ -286,7 +286,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "Examples: scripts, notebooks, pages, links",
         "uv run --extra dev pytest tests/examples -n auto -q",
-        "tests",
+        "examples",
         after=(AUTO_FIX,),
     ),
     Step(
@@ -487,9 +487,10 @@ def _select(
     where: str,
     only_browser: bool,
     only_group: str | None,
-    skip_group: str | None,
+    skip_group: str | tuple[str, ...] | None,
 ) -> tuple[Step, ...]:
     """The rows a selector keeps; references to rows that did not survive are dropped."""
+    skipped = (skip_group,) if isinstance(skip_group, str) else tuple(skip_group or ())
     rows = list(steps)
     if only_browser:
         rows = [step for step in rows if step.browser or step.name == CLIENT_BUILD]
@@ -498,8 +499,8 @@ def _select(
     else:
         if where != BOTH:
             rows = [step for step in rows if step.home in (where, BOTH)]
-    if skip_group is not None:
-        rows = [step for step in rows if step.group != skip_group]
+    if skipped:
+        rows = [step for step in rows if step.group not in skipped]
     if where == CI:
         rows = [_as_in_ci(step) for step in rows]
     names = {step.name for step in rows}
@@ -519,7 +520,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--where", choices=(LOCAL, CI, BOTH), default=LOCAL, help="which rows to run")
     parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build; a green run proves the commit")
     parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
-    parser.add_argument("--skip-group", metavar="NAME", help="drop the rows of one group")
+    parser.add_argument("--skip-group", metavar="NAME", action="append", help="drop the rows of a group; may be given more than once")
     parser.add_argument("--sign-off", action="store_true", help="report the last full green run to GitHub, and run nothing")
     return parser
 

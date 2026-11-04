@@ -99,7 +99,8 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 | First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
 | Static analysis | mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
-| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), `tests/scripts` (the runner's own last-step rule, the saved graph files), and every example of the documentation ([Examples](#examples)) | the auto-fix |
+| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Examples | every example of the documentation ([Examples](#examples)), in a group of its own so CI can run it on a machine of its own | the auto-fix |
 | Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph-builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
 
@@ -158,17 +159,19 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 | Vulture, samples public API, Radon | ✅ | ✅ | deterministic static checks |
 | Client build, client unit tests, five ERD scripts | ✅ | ✅ | deterministic, no browser engine |
 | The same layout in three engines | ✅ | — (CI reads its proof) | needs a graphics card: a CI machine has none, so Firefox has no WebGL |
-| Python tests of every package, `tests/scripts`, the examples | ✅ | ✅ | deterministic |
+| Python tests of every package, `tests/scripts` | ✅ | ✅ | deterministic |
+| The examples | ✅ | ✅ (jobs `Examples`, `Examples on Python 3.14`) | deterministic; a machine of their own in CI |
 | Speed tests (marked `benchmark`) | full run only | — | fail on a busy machine |
 | Build wheel/sdist × 8, packaging smoke | — | ✅ | need the network; matter at a release |
 | Graph files: write | ✅ (green run only) | — | writes files into the commit |
 | Graph files: check | ✅ (always) | ✅ (always) | never skipped |
 | Versions grew | — | ✅ (pull requests into `main`) | compares a pull request with `main`; see [Versions](#versions) |
 
-CI runs on every pull request, in parallel jobs: `Checks`, `Checks on Python 3.14`, `Packaging`, and `Versions` on a pull request into `main`. Your machine and `Checks` use the version in `.python-version`, 3.12. `Checks on Python 3.14` runs the same steps on the newest version the project supports. Each job calls the same runner:
+CI runs on every pull request, in parallel jobs: `Checks`, `Checks on Python 3.14`, `Examples`, `Examples on Python 3.14`, `Packaging`, and `Versions` on a pull request into `main`. Your machine, `Checks` and `Examples` use the version in `.python-version`, 3.12; the two `on Python 3.14` jobs run the same steps on the newest version the project supports. The examples have jobs of their own because jobs run at the same time on separate machines: a pull request waits for the longest job, not for all of them in a row. Each job calls the same runner:
 
 ```bash
-bash scripts/run_checks_with_log.sh --where ci --skip-group packaging   # both Checks jobs
+bash scripts/run_checks_with_log.sh --where ci --skip-group packaging --skip-group examples   # both Checks jobs
+bash scripts/run_checks_with_log.sh --where ci --only-group examples   # both Examples jobs
 bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Packaging job
 ```
 
@@ -294,7 +297,7 @@ packages/aoa-demo/src/aoa/demo/example.py heavy — exception has no reason
 
 ## Examples
 
-`Examples: scripts, notebooks, pages, links` checks every example a reader can run, in parallel, in about a minute:
+`Examples: scripts, notebooks, pages, links` checks every example a reader can run, in parallel: about a minute on a developer's machine, a few minutes in CI's `Examples` jobs, which leave the tree as it was:
 
 ```bash
 uv run --extra dev pytest tests/examples -n auto -q

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -105,12 +107,19 @@ class InMemoryOcelStoreResource(OcelStoreResource):
                 existing_rels.add(key)
 
     async def _write_locked(self) -> None:
-        doc = self._materialize()
-        self._output_file.parent.mkdir(parents=True, exist_ok=True)
-        self._output_file.write_text(
-            json.dumps(doc, ensure_ascii=False, indent=2, default=self._json_default),
-            encoding="utf-8",
-        )
+        """Replace the output file whole, so a reader never sees it half written."""
+        text = json.dumps(self._materialize(), ensure_ascii=False, indent=2, default=self._json_default)
+        folder = self._output_file.parent
+        folder.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=folder, prefix=f".{self._output_file.name}.", suffix=".tmp", delete=False
+        ) as staged:
+            staged.write(text)
+        try:
+            os.replace(staged.name, self._output_file)
+        except BaseException:
+            os.unlink(staged.name)
+            raise
 
     @staticmethod
     def _json_default(obj: Any) -> Any:
