@@ -65,7 +65,7 @@
 
 ## Phase 3: Versions — one commit
 
-- [ ] T019 Raise the version of each level that changed in its `version.toml` (`packages/aoa-action-machine`; `packages/aoa-langgraph` only if its code changed — tests alone do not count, per `docs/how-to/run-the-checks.md#versions`), and rebuild the graph files with `graph-builder` if they change.
+- [X] T019 Raise the version of each level that changed in its `version.toml` (`packages/aoa-action-machine`; `packages/aoa-langgraph` only if its code changed — tests alone do not count, per `docs/how-to/run-the-checks.md#versions`), and rebuild the graph files with `graph-builder` if they change.
 
 ---
 
