@@ -14,7 +14,7 @@ The graph build refuses a Params or Result without a JSON Schema in either mode 
 
 **Constraints**: `==` unchanged; the examples run once
 
-**Scale/Scope**: `graph/validators/json_form_validator.py` (new), `graph/core/node_graph_coordinator.py`, `model/observable_state.py` (new), `model/__init__.py`; `tests/examples/round_trip_runner.py` (new), `tests/examples/test_examples_run.py`; tests; `aoa-demo/tests/model/test_result_round_trip.py` (new); the pages on the checks and on Params and Result
+**Scale/Scope**: `graph/validators/json_form_validator.py` (new), `graph/core/node_graph_coordinator.py`, `domain/observable_state.py` (new), `domain/__init__.py`; `tests/examples/round_trip_runner.py` (new), `tests/examples/test_examples_run.py`; tests; `aoa-demo/tests/model/test_result_round_trip.py` (new); the pages on the checks and on Params and Result
 
 ## Constitution Check
 

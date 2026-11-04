@@ -19,7 +19,7 @@ Measured on `main` at `fdae3dfec` (after #405–#408), Python 3.12, Pydantic 2.1
 
 ## R2. One comparison of observable state
 
-**Decision**: `model/observable_state.py`, `observable_difference(before, after) -> str | None`: the first difference with its path (`$.order.customer.entity.name`), or `None`. Rules, checked in this order:
+**Decision**: `domain/observable_state.py`, exported from `aoa.action_machine.domain`, `observable_difference(before, after) -> str | None`: the first difference with its path (`$.order.customer.entity.name`), or `None`. Rules, checked in this order:
 
 1. different types → a difference (a UUID and its string differ though `==` holds);
 2. a declared value (`BaseEnumEntity`, `BaseStateEntity` instances) → the same object;
@@ -29,7 +29,7 @@ Measured on `main` at `fdae3dfec` (after #405–#408), Python 3.12, Pydantic 2.1
 6. a list or tuple → the same length, item by item; a mapping → the same keys in order, value by value;
 7. anything else → `==`.
 
-`==` of every type is left as it is (FR-007).
+`==` of every type is left as it is (FR-007). The module lives in `domain`, beside the relation containers, lifecycles and declared values it compares: `domain` already imports parts of `model`, so a `model` module importing them would close an import cycle.
 
 **Rationale**: rule 2 of #399 lists exactly these; a path makes a failure in a deep Result readable, and the cache of #410 can put the same message in its refusal.
 

@@ -13,12 +13,12 @@
 
 ## Phase 2: Observable state and read-back (US2, US3) — one commit
 
-- [ ] T005 [US2] Write `tests/action_machine/model/test_observable_state.py`: the pairs of US2 (case 8.2 included) and the same-state pairs.
-- [ ] T006 [US3] Write `tests/action_machine/model/test_result_round_trip.py`: Results with relations (loaded, not loaded, zero rows), a lifecycle, a dictionary reference, a partial target and a projection read back with no difference.
-- [ ] T007 Create `model/observable_state.py` (R2); export `observable_difference`.
-- [ ] T008 [US3] Create `tests/examples/round_trip_runner.py` (R3); `tests/examples/test_examples_run.py` runs each example through it; a test of the runner refuses a script whose Result reads back different.
-- [ ] T009 [US3] Write `packages/aoa-demo/tests/model/test_result_round_trip.py` (R4).
-- [ ] T010 Run the phase's tests; adversarial breaks of plan phase 2.
+- [X] T005 [US2] Write `tests/action_machine/model/test_observable_state.py`: the pairs of US2 (case 8.2 included) and the same-state pairs.
+- [X] T006 [US3] Write `tests/action_machine/model/test_result_round_trip.py`: Results with relations (loaded, not loaded, zero rows), a lifecycle, a dictionary reference, a partial target and a projection read back with no difference.
+- [X] T007 Create `domain/observable_state.py` (R2); export `observable_difference` from `aoa.action_machine.domain`.
+- [X] T008 [US3] Create `tests/examples/round_trip_runner.py` (R3); `tests/examples/test_examples_run.py` runs each example through it; a test of the runner refuses a script whose Result reads back different.
+- [X] T009 [US3] Write `packages/aoa-demo/tests/model/test_result_round_trip.py` (R4).
+- [X] T010 Run the phase's tests; adversarial breaks of plan phase 2.
 
 ## Phase 3: Versions — one commit
 
