@@ -28,6 +28,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
+from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
@@ -49,6 +50,7 @@ from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
+from ....support.cache_model import CachedItemCoreEntity, CachedReportCoreEntity
 from ....support.domain_model.domains import OrdersDomain
 
 _runs: dict[str, int] = {}
@@ -87,12 +89,12 @@ class GetCachedOrderAction(BaseAction[OrderParams, OrderResult]):
         _seen["read_box"] = box
         return None if _seen.get("refuse_read") else entry.result  # type: ignore[return-value]
 
-    @cache_write("Keep every order")
+    @cache_write("Keep every order", tags=(CachedItemCoreEntity,))
     async def order_cache_write(
         self, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult, duration_ms: float
     ) -> list[CacheTag] | None:
         _seen["write_duration"] = duration_ms
-        return [CacheTag(key=params.order_id)]
+        return [CacheTag(type=CachedItemCoreEntity, key=params.order_id)]
 
     @summary_aspect("Load the order")
     async def load_summary(
@@ -205,7 +207,7 @@ def test_a_declaration_needs_its_suffix() -> None:
     """The method's name ends with its kind."""
     with pytest.raises(NamingSuffixError, match="must end with '_cache_invalidate'"):
 
-        @cache_invalidate("Drop")
+        @cache_invalidate("Drop", tags=(CachedItemCoreEntity,))
         async def drop(self: Any, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult) -> list[CacheTag] | None:
             return None
 
@@ -223,7 +225,7 @@ def test_a_declaration_keeps_its_parameters_in_order() -> None:
     """Names and order are the contract; a swap is refused when the class body runs."""
     with pytest.raises(AspectSignatureError, match=r"\(self, params, box, connections, result, duration_ms\)"):
 
-        @cache_write("Write")
+        @cache_write("Write", tags=(CachedItemCoreEntity,))
         async def swapped_cache_write(
             self: Any, params: OrderParams, box: ToolsBox, connections: Connections, duration_ms: float, result: OrderResult
         ) -> list[CacheTag] | None:
@@ -261,7 +263,7 @@ def test_a_wrong_annotation_type_is_refused_at_assembly() -> None:
         async def wrong_cache_key(self, params: OrderParams, box: ToolsBox, connections: Connections) -> str | None:
             return "k"
 
-        @cache_write("Write")
+        @cache_write("Write", tags=(CachedItemCoreEntity,))
         async def wrong_cache_write(
             self, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult, duration_ms: str
         ) -> list[CacheTag] | None:
@@ -350,7 +352,7 @@ def test_a_key_a_write_and_a_read_come_together(declared_kinds: tuple[str, ...],
 
 def test_an_invalidation_may_stand_alone() -> None:
     """An action that changes data drops what others cached and caches nothing itself."""
-    _action_with("UpdateOnlyAction", x_cache_invalidate=_declared("x_cache_invalidate", cache_invalidate("Drop"), _fresh(_invalidate)))
+    _action_with("UpdateOnlyAction", x_cache_invalidate=_declared("x_cache_invalidate", cache_invalidate("Drop", tags=(CachedItemCoreEntity,)), _fresh(_invalidate)))
 
 
 def test_a_key_with_a_write_and_a_read_is_accepted() -> None:
@@ -361,3 +363,76 @@ def test_a_key_with_a_write_and_a_read_is_accepted() -> None:
         x_cache_read=_declared("x_cache_read", cache_read("Read"), _fresh(_read)),
         x_cache_write=_declared("x_cache_write", cache_write("Write"), _fresh(_write)),
     )
+
+
+# ─── 11.4: tags carry declared types ────────────────────────────────────────
+
+
+_returned: dict[str, list[CacheTag]] = {}
+
+
+@meta(description="Returns whatever tags the test sets", domain=OrdersDomain)
+@check_roles(GuestRole)
+class TaggingAction(BaseAction[OrderParams, OrderResult]):
+    """A writer and an invalidator of items, returning the tags a test chooses."""
+
+    @cache_key("Order")
+    async def tagging_cache_key(self, params: OrderParams, box: ToolsBox, connections: Connections) -> str | None:
+        return params.order_id
+
+    @cache_write("Keep items", tags=(CachedItemCoreEntity,))
+    async def tagging_cache_write(
+        self, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return _returned.get("write", [])
+
+    @cache_invalidate("Drop items", tags=(CachedItemCoreEntity,))
+    async def tagging_cache_invalidate(
+        self, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult
+    ) -> list[CacheTag] | None:
+        return _returned.get("invalidate", [])
+
+    @summary_aspect("Load")
+    async def load_summary(
+        self, params: OrderParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> OrderResult:
+        return OrderResult(order_id=params.order_id, run=0)
+
+
+async def test_a_tag_of_a_declared_type_is_stored() -> None:
+    """The entry is written under the tag the write returned."""
+    _returned.clear()
+    _returned["write"] = [CacheTag(type=CachedItemCoreEntity, key="o1")]
+    cache = CacheCoordinator()
+    machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[]), cache_coordinator=cache)
+    await machine.run(_caller(), TaggingAction(), OrderParams(order_id="o1"))
+    assert await cache.evict_by_tags(frozenset({CacheTag(type=CachedItemCoreEntity, key="o1")})) == 1
+
+
+@pytest.mark.parametrize("step", ["write", "invalidate"])
+@pytest.mark.parametrize(
+    ("tag", "message"),
+    [
+        (CacheTag(type=CachedReportCoreEntity, key="r1"), "whose type CachedReportCoreEntity is not among its declared tags (CachedItemCoreEntity)"),
+        (CacheTag(key="o1"), "which has no type; a tag names one of its declared types (CachedItemCoreEntity)"),
+    ],
+    ids=["undeclared-type", "no-type"],
+)
+async def test_a_returned_tag_must_be_of_a_declared_type(step: str, tag: CacheTag, message: str) -> None:
+    """Case 11.4: a tag of an undeclared type, or without a type, fails the call naming the action and the tag."""
+    _returned.clear()
+    _returned[step] = [tag]
+    with pytest.raises(CacheContractError, match=re.escape(f"TaggingAction.tagging_cache_{step} returned {tag!r}, {message}")):
+        await _machine().run(_caller(), TaggingAction(), OrderParams(order_id="o9"))
+
+
+def test_an_invalidation_declares_at_least_one_type() -> None:
+    """An invalidation without a type drops nothing, refused when the class body runs."""
+    with pytest.raises(DeclarationStructureError, match="declare the entity types it drops"):
+        cache_invalidate("Drop", tags=())
+
+
+def test_a_tag_type_is_an_entity_class() -> None:
+    """The graph links an action to each tag type, so a tag type is an entity."""
+    with pytest.raises(DeclarationStructureError, match=r"\['OrderResult'\] are not"):
+        cache_write("Write", tags=(OrderResult,))

@@ -26,8 +26,6 @@ from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-_NONE_TYPE = types.NoneType
-
 _EXPECTED: dict[str, type] = {
     "params": BaseParams,
     "box": ToolsBox,
@@ -62,7 +60,7 @@ def _is_connections(annotation: Any) -> bool:
 
 def _returns_ok(kind: str, annotation: Any) -> bool:
     """Whether the return annotation is the one this kind answers with, ``None`` allowed."""
-    answers = [member for member in _members(annotation) if member is not _NONE_TYPE]
+    answers = [member for member in _members(annotation) if member is not None.__class__]
     if len(answers) != 1:
         return False
     answer = answers[0]

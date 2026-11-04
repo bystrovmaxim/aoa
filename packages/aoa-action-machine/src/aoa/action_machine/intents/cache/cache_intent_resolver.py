@@ -72,6 +72,11 @@ def kind_of(method: Callable[..., Any]) -> str:
     return str(getattr(method, CACHE_META_ATTR)["kind"])
 
 
+def tags_of(method: Callable[..., Any]) -> tuple[type, ...]:
+    """The entity types a declared write or invalidation names in ``tags=``."""
+    return tuple(getattr(method, CACHE_META_ATTR).get("tags", ()))
+
+
 def description_of(method: Callable[..., Any]) -> str:
     """What a declared method says it does."""
     return str(getattr(method, CACHE_META_ATTR)["description"])
@@ -152,4 +157,4 @@ class CacheIntentResolver:
         return known
 
 
-__all__ = ["CacheDeclarations", "CacheIntentResolver", "description_of", "kind_of", "validate_cache_declarations"]
+__all__ = ["CacheDeclarations", "CacheIntentResolver", "description_of", "kind_of", "tags_of", "validate_cache_declarations"]

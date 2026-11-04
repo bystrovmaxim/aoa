@@ -25,17 +25,10 @@ from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
+from ...support.cache_model import CachedInvoiceCoreEntity, CachedReportCoreEntity
 from ...support.domain_model.domains import OrdersDomain
 
 # ─── Domain types used as CacheTag.type ───────────────────────────────────────
-
-
-class _Report:
-    pass
-
-
-class _Invoice:
-    pass
 
 
 # ─── Call counters ────────────────────────────────────────────────────────────
@@ -72,7 +65,7 @@ class WriteReportAction(BaseAction["WriteReportAction.Params", "WriteReportActio
     ) -> str | None:
         return str(params.report_id)
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -82,7 +75,7 @@ class WriteReportAction(BaseAction["WriteReportAction.Params", "WriteReportActio
         duration_ms: float,
     ) -> list[CacheTag] | None:
         _write_calls.append("WriteReportAction")
-        return [CacheTag(type=_Report, key=params.report_id)]
+        return [CacheTag(type=CachedReportCoreEntity, key=params.report_id)]
 
     @summary_aspect("build")
     async def build_summary(
@@ -106,7 +99,7 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
         done: bool = Field(default=True)
 
     # A write-like action: it caches nothing itself, so it declares no key.
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -115,7 +108,7 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
         result: Result,
     ) -> list[CacheTag] | None:
         _inv_calls.append("InvalidateReportsAction")
-        return [CacheTag(type=_Report)]  # wildcard: evict all reports
+        return [CacheTag(type=CachedReportCoreEntity)]  # wildcard: evict all reports
 
     @summary_aspect("do")
     async def do_summary(
@@ -153,7 +146,7 @@ class WriteInvoiceInvalidatesReportAction(
     ) -> str | None:
         return str(params.invoice_id)
 
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -162,9 +155,9 @@ class WriteInvoiceInvalidatesReportAction(
         result: Result,
     ) -> list[CacheTag] | None:
         _inv_calls.append("WriteInvoiceInvalidatesReportAction")
-        return [CacheTag(type=_Report, key=params.report_id)]
+        return [CacheTag(type=CachedReportCoreEntity, key=params.report_id)]
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedInvoiceCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -174,7 +167,7 @@ class WriteInvoiceInvalidatesReportAction(
         duration_ms: float,
     ) -> list[CacheTag] | None:
         _write_calls.append("WriteInvoiceInvalidatesReportAction")
-        return [CacheTag(type=_Invoice, key=params.invoice_id)]
+        return [CacheTag(type=CachedInvoiceCoreEntity, key=params.invoice_id)]
 
     @summary_aspect("build")
     async def build_summary(
@@ -208,7 +201,7 @@ class NoCacheKeyButInvalidatesAction(
     ) -> str | None:
         return None
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -220,7 +213,7 @@ class NoCacheKeyButInvalidatesAction(
         _write_calls.append("NoCacheKeyButInvalidatesAction")
         return []
 
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -229,7 +222,7 @@ class NoCacheKeyButInvalidatesAction(
         result: Result,
     ) -> list[CacheTag] | None:
         _inv_calls.append("NoCacheKeyButInvalidatesAction")
-        return [CacheTag(type=_Report)]
+        return [CacheTag(type=CachedReportCoreEntity)]
 
     @summary_aspect("do")
     async def do_summary(
@@ -261,7 +254,7 @@ class NoneWriteAction(BaseAction["NoneWriteAction.Params", "NoneWriteAction.Resu
     ) -> str | None:
         return "none-write"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -302,7 +295,7 @@ class BadWriteTypeAction(BaseAction["BadWriteTypeAction.Params", "BadWriteTypeAc
     ) -> str | None:
         return "bad-write-type"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -342,7 +335,7 @@ class BadWriteItemAction(BaseAction["BadWriteItemAction.Params", "BadWriteItemAc
     ) -> str | None:
         return "bad-write-item"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -373,7 +366,7 @@ class BadInvalidateTypeAction(BaseAction["BadInvalidateTypeAction.Params", "BadI
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -403,7 +396,7 @@ class BadInvalidateItemAction(BaseAction["BadInvalidateItemAction.Params", "BadI
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -442,7 +435,7 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
     ) -> str | None:
         return "error-path"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedReportCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -452,9 +445,9 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
         duration_ms: float,
     ) -> list[CacheTag] | None:
         _write_calls.append("ErrorPathCachedAction")
-        return [CacheTag(type=_Report, key="error-path")]
+        return [CacheTag(type=CachedReportCoreEntity, key="error-path")]
 
-    @cache_invalidate("Drop stale entries")
+    @cache_invalidate("Drop stale entries", tags=(CachedReportCoreEntity,))
     async def run_cache_invalidate(
         self,
         params: Params,
@@ -463,7 +456,7 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
         result: Result,
     ) -> list[CacheTag] | None:
         _inv_calls.append("ErrorPathCachedAction")
-        return [CacheTag(type=_Report)]
+        return [CacheTag(type=CachedReportCoreEntity)]
 
     @summary_aspect("s")
     async def run_summary(
@@ -513,7 +506,7 @@ async def test_on_cache_write_tags_indexed_in_coordinator() -> None:
     cache = CacheCoordinator()
     machine = _machine(cache)
     await machine.run(_ctx(), WriteReportAction(), WriteReportAction.Params(report_id=7))
-    tag = CacheTag(type=_Report, key=7)
+    tag = CacheTag(type=CachedReportCoreEntity, key=7)
     assert tag in cache._tag_to_keys
     assert len(cache._tag_to_keys[tag]) == 1
 

@@ -46,6 +46,7 @@ from aoa.action_machine.runtime.sync_action_product_machine import SyncActionPro
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing.bench import TestBench
 
+from ...support.cache_model import CachedItemCoreEntity
 from ...support.domain_model.domains import SystemDomain
 from .emission_support import (
     KINDS,
@@ -247,7 +248,7 @@ class _CachedAction(BaseAction[_Params, _Result]):
         """Every call shares one entry."""
         return "fixed"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: _Params,
@@ -257,7 +258,7 @@ class _CachedAction(BaseAction[_Params, _Result]):
         duration_ms: float,
     ) -> list[CacheTag] | None:
         """Keep the result."""
-        return [CacheTag(key="fixed")]
+        return [CacheTag(type=CachedItemCoreEntity, key="fixed")]
 
     @cache_read("Read a hit")
     async def run_cache_read(

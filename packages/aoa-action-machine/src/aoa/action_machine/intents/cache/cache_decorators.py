@@ -23,8 +23,8 @@ each kind in its own body; a subclass caches only what it declares itself.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    decoration   ──▶ description, suffix, async, names in order, annotations;
-                     ``_cache_meta`` {kind, description} written on the method
+    decoration   ──▶ description, tag types, suffix, async, names in order, annotations;
+                     ``_cache_meta`` {kind, description, tags} written on the method
     class creation ─▶ BaseAction checks one of a kind and the old hook names
     assembly     ──▶ the annotations' types (the graph's Cache node)
     runtime      ──▶ the machine calls each declaration it finds on the operation's own class
@@ -48,11 +48,36 @@ from aoa.action_machine.intents.cache.cache_signature import (
 )
 
 CACHE_META_ATTR = "_cache_meta"
-"""Attribute each cache decorator writes on its method: ``{"kind", "description"}``."""
+"""Attribute each cache decorator writes on its method: ``{"kind", "description", "tags"}``."""
 
 
-def _declaration(kind: CacheKind, description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Build the decorator of one kind after checking its description."""
+def _is_entity(candidate: Any) -> bool:
+    """An entity class: what ``@entity`` declared, which the graph holds as a node."""
+    return isinstance(candidate, type) and getattr(candidate, "_entity_info", None) is not None
+
+
+def _checked_tags(name: str, tags: Any, *, required: bool) -> tuple[type, ...]:
+    """The declared tag types: a tuple of distinct entity classes, non-empty when ``required``."""
+    if not isinstance(tags, tuple):
+        raise DeclarationStructureError(f"{name}: tags must be a tuple of entity classes, got {type(tags).__name__}.")
+    if required and not tags:
+        raise DeclarationStructureError(
+            f"{name}: declare the entity types it drops in tags=(...); an invalidation without a type drops nothing."
+        )
+    not_entities = [getattr(tag, "__name__", repr(tag)) for tag in tags if not _is_entity(tag)]
+    if not_entities:
+        raise DeclarationStructureError(
+            f"{name}: tags name entity classes, and {not_entities} are not; the graph links an action to each tag type."
+        )
+    if len(set(tags)) != len(tags):
+        raise DeclarationStructureError(f"{name}: tags list a type more than once.")
+    return tags
+
+
+def _declaration(
+    kind: CacheKind, description: str, tags: tuple[type, ...] = ()
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Build the decorator of one kind after checking its description and its tag types."""
     name = decorator_name(kind)
     if not isinstance(description, str):
         raise DescriptionTypeError(f"{name} expects a string description, got {type(description).__name__}.")
@@ -72,7 +97,7 @@ def _declaration(kind: CacheKind, description: str) -> Callable[[Callable[..., A
             raise DeclarationStructureError(f"{name}: method '{func.__name__}' must be async (async def).")
         validate_names(kind, func)
         validate_annotated(kind, func)
-        setattr(func, CACHE_META_ATTR, {"kind": kind, "description": description})
+        setattr(func, CACHE_META_ATTR, {"kind": kind, "description": description, "tags": tags})
         return func
 
     return decorator
@@ -100,14 +125,28 @@ def cache_read(description: str) -> Callable[[Callable[..., Any]], Callable[...,
     return _declaration("read", description)
 
 
-def cache_write(description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Declare the write after a clean run: the tags to store the Result under, or ``None`` to skip."""
-    return _declaration("write", description)
+def cache_write(description: str, *, tags: tuple[type, ...] = ()) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Declare the write after a clean run: the tags to store the Result under, or ``None`` to skip.
+
+    ``tags`` are the entity types the returned tags may name; the method returns the keys.
+
+    Example:
+        @cache_write("Keep every order", tags=(OrderCoreEntity,))
+        async def order_cache_write(self, params: Params, box: ToolsBox, connections: Connections,
+                                    result: Result, duration_ms: float) -> list[CacheTag] | None:
+            return [CacheTag(type=OrderCoreEntity, key=params.order_id)]
+    """
+    return _declaration("write", description, _checked_tags("@cache_write", tags, required=False))
 
 
-def cache_invalidate(description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Declare the invalidation after every clean run: the tags of the entries to drop, or ``None``."""
-    return _declaration("invalidate", description)
+def cache_invalidate(description: str, *, tags: tuple[type, ...]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Declare the invalidation after every clean run: the tags of the entries to drop, or ``None``.
+
+    ``tags`` are the entity types it drops, at least one; the method returns which ones.
+    """
+    return _declaration("invalidate", description, _checked_tags("@cache_invalidate", tags, required=True))
 
 
 __all__ = ["CACHE_META_ATTR", "cache_invalidate", "cache_key", "cache_read", "cache_write"]

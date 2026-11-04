@@ -34,6 +34,7 @@ from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
+from ...support.cache_model import CachedItemCoreEntity
 from ...support.domain_model.domains import OrdersDomain
 from ...support.domain_model.error_actions import ErrorTestParams, ErrorTestResult
 from ...support.domain_model.roles import ManagerRole
@@ -104,7 +105,7 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
     ) -> str | None:
         return "fixed-key"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -113,7 +114,7 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key="count")]
+        return [CacheTag(type=CachedItemCoreEntity, key="count")]
 
     @summary_aspect("count")
     async def summary(
@@ -146,7 +147,7 @@ class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerU
     ) -> str | None:
         return f"{params.user_id}:{params.order_id}"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -155,7 +156,7 @@ class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerU
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key=f"{params.user_id}:{params.order_id}")]
+        return [CacheTag(type=CachedItemCoreEntity, key=f"{params.user_id}:{params.order_id}")]
 
     @summary_aspect("sum")
     async def summary(
@@ -202,7 +203,7 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
             return None
         return cast(StaleReadCacheAction.Result, entry.result)
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -211,7 +212,7 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key="stale")]
+        return [CacheTag(type=CachedItemCoreEntity, key="stale")]
 
     @summary_aspect("s")
     async def summary(
@@ -252,7 +253,7 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
     ) -> Result | None:
         return {}  # type: ignore[return-value]
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -261,7 +262,7 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key="dict-bad")]
+        return [CacheTag(type=CachedItemCoreEntity, key="dict-bad")]
 
     @summary_aspect("s")
     async def summary(
@@ -292,7 +293,7 @@ class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCach
     ) -> str | None:
         return ""
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -332,7 +333,7 @@ class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWri
     ) -> str | None:
         return "bad-write"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -372,7 +373,7 @@ class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteC
     ) -> str | None:
         return "boom-write"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -422,7 +423,7 @@ class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCach
     ) -> Result | None:
         raise RuntimeError("read boom")
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -431,7 +432,7 @@ class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCach
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key="boom-read")]
+        return [CacheTag(type=CachedItemCoreEntity, key="boom-read")]
 
     @summary_aspect("s")
     async def summary(
@@ -462,7 +463,7 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
     ) -> str | None:
         return "mgr-secret"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: Params,
@@ -471,7 +472,7 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
         result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key="mgr-secret")]
+        return [CacheTag(type=CachedItemCoreEntity, key="mgr-secret")]
 
     @summary_aspect("s")
     async def summary(
@@ -498,7 +499,7 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     ) -> str | None:
         return f"err:{params.value}:{params.should_fail}"
 
-    @cache_write("Store the result")
+    @cache_write("Store the result", tags=(CachedItemCoreEntity,))
     async def run_cache_write(
         self,
         params: ErrorTestParams,
@@ -507,7 +508,7 @@ class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
         result: ErrorTestResult,
         duration_ms: float,
     ) -> list[CacheTag] | None:
-        return [CacheTag(key=f"err:{params.value}:{params.should_fail}")]
+        return [CacheTag(type=CachedItemCoreEntity, key=f"err:{params.value}:{params.should_fail}")]
 
     @regular_aspect("Process value")
     @result_string("processed", required=True)

@@ -19,8 +19,8 @@
 
 ## Phase 3: Tag types (US3, 11.4) — one commit
 
-- [ ] T008 [US3] Tests: `tags=` on write and invalidate; a returned tag of an undeclared type and one without a type raise `CacheContractError` naming action and tag; empty invalidate tags and a non-entity type refused at declaration.
-- [ ] T009 Implement R4; run; adversarial break.
+- [X] T008 [US3] Tests: `tags=` on write and invalidate; a returned tag of an undeclared type and one without a type raise `CacheContractError` naming action and tag; empty invalidate tags and a non-entity type refused at declaration.
+- [X] T009 Implement R4; run; adversarial break.
 
 ## Phase 4: The graph (US4, 11.3, 11.5) — one commit
 

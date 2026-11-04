@@ -154,7 +154,7 @@ from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.undecided import Undecided
 from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver
+from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver, tags_of
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.console_logger import ConsoleLogger
@@ -400,6 +400,25 @@ class ActionProductMachine(BaseActionMachine):
         if keys:
             return await declared(action, params, step_box, conns, *own, ContextView(context, frozenset(keys)))
         return await declared(action, params, step_box, conns, *own)
+
+    @staticmethod
+    def _validate_tag_types(tags: list[CacheTag] | None, action: BaseAction[Any, Any], declared: Callable[..., Any]) -> None:
+        """Refuse a returned tag without a type, or of a type its declaration does not name in ``tags=``."""
+        if not tags:
+            return
+        allowed = tags_of(declared)
+        where = f"{type(action).__name__}.{TypeIntrospection.unwrapped_callable_name(declared)}"
+        names = ", ".join(entity_type.__name__ for entity_type in allowed) or "none"
+        for tag in tags:
+            if tag.type is None:
+                raise CacheContractError(
+                    f"{where} returned {tag!r}, which has no type; a tag names one of its declared types ({names}), "
+                    "so the graph can show what it touches."
+                )
+            if tag.type not in allowed:
+                raise CacheContractError(
+                    f"{where} returned {tag!r}, whose type {tag.type.__name__} is not among its declared tags ({names})."
+                )
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -1021,6 +1040,7 @@ class ActionProductMachine(BaseActionMachine):
                             cache.invalidate, action, params, box, conns, context, result
                         )
                         self._validate_cache_invalidate(invalidations, action)
+                        self._validate_tag_types(invalidations, action, cache.invalidate)
                         if invalidations:
                             await self._cache_coordinator.evict_by_tags(frozenset(invalidations))
                     # Write only when the key was not None for this call.
@@ -1029,6 +1049,7 @@ class ActionProductMachine(BaseActionMachine):
                             cache.write, action, params, box, conns, context, result, total_duration_ms
                         )
                         self._validate_cache_write_decision(write_tags, action)
+                        self._validate_tag_types(write_tags, action, cache.write)
                         if write_tags is not None:
                             await self._cache_coordinator.put(
                                 action_cls,
