@@ -21,7 +21,7 @@
 
 ## Phase 4: Rule 2 on a real hit (US4) — one commit
 
-- [ ] T007 [US4] `tests/action_machine/runtime/test_cache_hit_round_trip.py` with a recording store (R4); adversarial break.
+- [X] T007 [US4] `tests/action_machine/runtime/test_cache_hit_round_trip.py` with a recording store (R4); adversarial break.
 
 ## Phase 5: Versions — T008 · Phase 6: Closing check run — T009 · Phase 7: Documentation — T010 · Phase 8: Changelog — T011
 
