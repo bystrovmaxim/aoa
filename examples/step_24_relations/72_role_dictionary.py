@@ -103,9 +103,10 @@ def json_transport() -> None:
     validation = PriceListCoreEntity.model_json_schema(mode="validation")["properties"]
     serialization = PriceListCoreEntity.model_json_schema(mode="serialization")["properties"]
     assert validation["alternatives"]["type"] == serialization["alternatives"]["type"] == "array"
-    assert validation["alternatives"]["items"]["required"] == ["id"]
+    input_keys = [shape["required"] for shape in validation["alternatives"]["items"]["anyOf"]]
+    assert input_keys == [["id"], ["code"]]
     assert serialization["alternatives"]["items"]["required"] == ["code", "display_name", "properties"]
-    print("Input item keys:", validation["alternatives"]["items"]["required"])
+    print("Input item keys:", input_keys)
     print("Output item keys:", serialization["alternatives"]["items"]["required"])
 
 

@@ -65,7 +65,7 @@ Partial load vs full construction:
          └─ subset only ──>  OrderCoreEntity.partial(id=..., amount=...)
                                     │
                                     ▼
-                            __getattr__ on missing **model** field
+                            __getattr__ on a declared field it does not hold
                                     │
                                     └─> FieldNotLoadedError (not lazy I/O)
 
@@ -100,8 +100,9 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
   `@entity` runs and sets `_entity_info`; Pydantic builds `model_fields`.
 - **Coordinator `build()`**: inspectors validate lifecycles, descriptions,
   relations, and graph consistency — **not** in this module.
-- **Runtime**: normal construction validates types; `partial()` does not;
-  attribute access on partial instances may raise `FieldNotLoadedError`.
+- **Runtime**: normal construction validates types and fills defaults; `partial()`
+  does neither and holds only the given fields; reading a declared field the
+  instance does not hold raises `FieldNotLoadedError`.
 
 """
 
@@ -111,7 +112,6 @@ import copy
 from abc import ABC
 from typing import Annotated, Any, ClassVar, Self
 
-import jsonschema
 from pydantic import ConfigDict
 
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
@@ -147,8 +147,11 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
     """
     AI-CORE-BEGIN
         ROLE: Domain object with no coupling to any storage backend.
-        CONTRACT: Knows only its own structure and Lifecycle.
-        INVARIANTS: Can be hydrated from any source.
+        CONTRACT: Knows only its own structure and Lifecycle. A field is loaded exactly when the
+            instance holds it in its own ``__dict__``: a validated entity holds every field, a
+            ``partial()`` one holds only the fields it was given, with no flag and no default.
+        INVARIANTS: Can be hydrated from any source; reading a declared field it does not hold
+            raises FieldNotLoadedError; equality is Pydantic's.
         AI-CORE-END
     """
 
@@ -231,6 +234,8 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
 
         Intentionally **not** Pydantic's ``BaseModel.schema()`` (JSON Schema of the entity model);
         entity classes use this name for wire projection annotations only (see ``docs/guide/entity-wire-projection.md``).
+        The schema is checked here, once, in the draft its ``$schema`` names (the newest without it);
+        a schema that draft refuses raises ``jsonschema.SchemaError``.
         """
         if not isinstance(schema, dict):
             msg = f"{cls.__name__}.schema(): schema must be a dict, got {type(schema).__name__}."
@@ -239,105 +244,87 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
             msg = f"{cls.__name__}.schema(): schema cannot be empty."
             raise ValueError(msg)
         schema_copy = copy.deepcopy(schema)
-        jsonschema.Draft7Validator.check_schema(schema_copy)
         return Annotated[cls, EntitySchemaMarker(entity_cls=cls, schema=schema_copy)]
 
     @classmethod
     def partial(cls, **kwargs: Any) -> Self:
         """
-        Build a **partial** entity without Pydantic validation.
+        Build a **partial** entity from the fields of one load, without Pydantic validation.
 
-        Uses `model_construct()` so type checks and required-field rules are
+        The instance holds exactly the given declared fields: no default and no
+        default factory of another field runs, and a field it does not hold is
+        neither read nor dumped. Type checks and required-field rules are
         skipped — callers that load from storage are responsible for consistency.
-        Sets `_partial_instance=True` and `_loaded_fields=frozenset(kwargs)` via
-        `object.__setattr__` to satisfy `frozen` instances.
+        The slots Pydantic expects are set as ``model_construct()`` sets them,
+        private attributes included, without filling defaults.
 
         Args:
-            **kwargs: Field names and values present in this load.
+            **kwargs: Field names and values present in this load. A name that is
+                not a declared field is not kept.
 
         Returns:
-            An instance with only the given fields materialized in ``__dict__``.
-
-        Raises:
-            Does not validate; invalid combinations may only surface later on
-            access or when merging into a full instance.
+            An instance whose ``__dict__`` and ``model_fields_set`` hold only the given fields.
 
         Example:
             ``OrderCoreEntity.partial(id="ORD-001", amount=1500.0)`` — reading
-            ``status`` raises `FieldNotLoadedError`.
+            ``status`` raises `FieldNotLoadedError`, even when ``status`` has a default.
         """
-        instance = cls.model_construct(**kwargs)
-        object.__setattr__(instance, "_partial_instance", True)
-        object.__setattr__(instance, "_loaded_fields", frozenset(kwargs.keys()))
+        fields = {name: value for name, value in kwargs.items() if name in cls.model_fields}
+        instance = cls.__new__(cls)
+        object.__setattr__(instance, "__dict__", fields)
+        object.__setattr__(instance, "__pydantic_fields_set__", set(fields))
+        object.__setattr__(instance, "__pydantic_extra__", None)
+        object.__setattr__(instance, "__pydantic_private__", None)
+        if cls.__pydantic_post_init__:
+            instance.model_post_init(None)
         return instance
+
+    def _loaded_field_names(self) -> frozenset[str]:
+        """Names of the declared fields this instance holds."""
+        held = object.__getattribute__(self, "__dict__")
+        return frozenset(name for name in self.__class__.model_fields if name in held)
 
     def __getattr__(self, name: str) -> Any:
         """
-        Handle access to **declared** fields that were not passed to `partial()`.
+        Refuse a **declared** field this instance does not hold.
 
-        Pydantic invokes this only when `object.__getattribute__` does not find
-        ``name``. Fully constructed instances store all fields in ``__dict__``,
-        so this path is mainly for partial instances.
+        Python calls this only when normal lookup does not find ``name``. A
+        validated entity holds every field, so a missing declared field means a
+        partial entity that was not given it.
 
         Args:
             name: Attribute name.
 
         Returns:
-            Never returns for a missing partial field; see Raises.
+            Never returns; see Raises.
 
         Raises:
-            FieldNotLoadedError: ``name`` is a model field, the instance is
-                partial, and ``name`` was not in `_loaded_fields`.
-            AttributeError: ``name`` is not a model field (standard object
-                semantics).
+            FieldNotLoadedError: ``name`` is a declared field the instance does not hold.
+            AttributeError: ``name`` is not a declared field (standard object semantics).
         """
         if name in self.__class__.model_fields:
-            try:
-                is_partial = object.__getattribute__(self, "_partial_instance")
-            except AttributeError:
-                is_partial = False
-
-            if is_partial:
-                loaded = object.__getattribute__(self, "_loaded_fields")
-                raise FieldNotLoadedError(
-                    field_name=name,
-                    entity_class_name=self.__class__.__name__,
-                    loaded_fields=loaded,
-                )
-
+            raise FieldNotLoadedError(
+                field_name=name,
+                entity_class_name=self.__class__.__name__,
+                loaded_fields=self._loaded_field_names(),
+            )
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def is_field_loaded(self, field_name: str) -> bool:
-        """True when ``field_name`` is declared and present on this instance."""
-        if field_name not in self.__class__.model_fields:
-            return False
-        try:
-            is_partial = object.__getattribute__(self, "_partial_instance")
-        except AttributeError:
-            is_partial = False
-        if not is_partial:
-            return True
-        loaded = object.__getattribute__(self, "_loaded_fields")
-        return field_name in loaded
+        """True when ``field_name`` is declared and this instance holds it."""
+        return field_name in self.__class__.model_fields and field_name in object.__getattribute__(self, "__dict__")
 
     def get_field_value(self, field_name: str) -> Any:
         """Return a loaded field value without triggering hidden lazy-load."""
         if field_name not in self.__class__.model_fields:
             raise AttributeError(f"'{self.__class__.__name__}' has no field '{field_name}'")
         if not self.is_field_loaded(field_name):
-            loaded_fields: frozenset[str] = frozenset()
-            try:
-                is_partial = object.__getattribute__(self, "_partial_instance")
-                if is_partial:
-                    loaded_fields = object.__getattribute__(self, "_loaded_fields")
-            except AttributeError:
-                pass
             raise FieldNotLoadedError(
                 field_name=field_name,
                 entity_class_name=self.__class__.__name__,
-                loaded_fields=loaded_fields,
+                loaded_fields=self._loaded_field_names(),
             )
-        return object.__getattribute__(self, field_name)
+        return object.__getattribute__(self, "__dict__")[field_name]
 
     def is_field(self, field_name: str) -> bool:
         """True when the field is declared and loaded on this instance."""

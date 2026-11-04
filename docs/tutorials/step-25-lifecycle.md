@@ -381,6 +381,27 @@ The status type owns the descriptions; `Lifecycle[OrderStateEntity]` owns the tr
 rules. Stored codes need no renaming, and a transition does not perform business work or
 save anything to a database.
 
+## Send a lifecycle as JSON
+
+[Script](../../examples/step_25_lifecycle/22_lifecycle_json_form.py) · [Notebook](../../examples/step_25_lifecycle/22_lifecycle_json_form.ipynb)
+
+An entity with a lifecycle can be a field of `Params` and `Result`. In JSON the lifecycle is its current status's reference — the code, the label, and the status's own fields under `properties` — the same shape a dictionary value has. It comes back from `{"code": ...}`, which selects the declared status of the template; a bare string and a code the template does not declare are refused. A Python-mode dump keeps the lifecycle object:
+
+```text
+1) JSON out
+   JSON: {'code': 'paid', 'display_name': 'Payment received', 'properties': {'receipt_required': True}}
+   Python dump keeps: OrderLifecycle
+2) JSON in
+   current state: paid
+   the declared status: True
+   equal to what went out: True
+3) An unknown code
+   ValidationError: Value error, State 'shipped' is not defined on OrderLifecycle. Valid states: draft, paid.
+4) Schema codes: ['draft', 'paid']
+```
+
+Reading back chooses the declared status by its code, so `current_status` is the very object every lifecycle in that state shares, as it is for a lifecycle built in code. The `properties` written beside the code are for the reader and are not restored: a status shows the catalogue's fields at the moment it is read. The JSON Schema that FastAPI and MCP publish lists the template's codes, so an entity with a lifecycle no longer breaks the OpenAPI document.
+
 ## Review and practice
 
 1. Which object describes what `paid` means, and which value says that a particular order is paid?

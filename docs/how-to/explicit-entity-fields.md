@@ -15,6 +15,8 @@ Previously a bare dictionary selected a value, `NoRelation("reason")` could decl
 | Enum | Dictionary targets support all six ordinary containers with a complete declaration; current catalogue property validation blocks a declared reverse relationship ([gap](../reports/endpoint-role-verification.md#dictionary-reverse-endpoints)) |
 | State | Keep the lifecycle contract; use a `Lifecycle[...]` subclass on the owning field, rather than an ordinary link to a status entity |
 
+A complete declaration is also what lets an entity travel: an entity field of `Params` or `Result` goes out as JSON and comes back on every path, because each relation, dictionary selection and lifecycle has one JSON form — see [relations](../tutorials/step-24-relations.md#send-a-relation-as-json), [dictionary selections](dictionary-references.md#every-path-takes-the-same-input) and [lifecycles](../tutorials/step-25-lifecycle.md#send-a-lifecycle-as-json).
+
 A dictionary is a catalogue of values, not a host for arbitrary entity-valued properties. Its property type check runs at dictionary class creation. The Enum rule above describes selecting that catalogue from another entity. It does not relax property restrictions.
 
 `AssociationOne`/`AssociationMany` express links without ownership; `CompositeOne`/`CompositeMany` express composition; `AggregateOne`/`AggregateMany` express aggregation. A reciprocal ordinary pair may have at most one Aggregate or Composite endpoint; its reverse must be an association. Specialization pairs only with Generalization. One/Many does not alter compatibility. These declarations do not implement storage deletion or database constraints. See the [complete matrix and migration](relationship-role-compatibility.md).

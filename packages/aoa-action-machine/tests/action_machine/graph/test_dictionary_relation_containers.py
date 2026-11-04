@@ -199,10 +199,9 @@ def test_both_schema_modes_describe_input_and_reference() -> None:
     validation = ContainerHostCoreEntity.model_json_schema(mode="validation")["properties"]
     serialization = ContainerHostCoreEntity.model_json_schema(mode="serialization")["properties"]
 
-    assert validation["a_one"]["type"] == "object"
-    assert validation["a_one"]["required"] == ["id"]
+    assert [shape["required"] for shape in validation["a_one"]["anyOf"]] == [["id"], ["code"]]
     assert validation["a_many"]["type"] == "array"
-    assert validation["a_many"]["items"]["required"] == ["id"]
+    assert [shape["required"] for shape in validation["a_many"]["items"]["anyOf"]] == [["id"], ["code"]]
 
     assert set(serialization["a_one"]["required"]) == {"code", "display_name", "properties"}
     assert serialization["a_many"]["type"] == "array"

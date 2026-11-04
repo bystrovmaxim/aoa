@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-11-04] — An entity goes out as JSON and comes back
+
+An entity can now be a field of `Params` and `Result` and travel through FastAPI, MCP and LangGraph: every value it holds has one JSON form, written by every path and read back by the same rules whether it comes from JSON, from a dict in your code or from a request. What you declare does not change.
+
+**Relations.** A One relation goes out as `{"id": …}`, with `"entity"` when the related entity is loaded; a Many relation as `{"ids": […]}`, with `"entities"` when they are loaded — `"entities": []` means loaded with no rows, which stays different from never loaded. A related entity with fields missing reads back as a partial entity holding the fields that were sent. Each id takes the type of the target's `id` field, so a UUID comes back as a UUID, and an id of the wrong type is refused at that id. The JSON Schema names each related entity by reference, so entities that point at each other publish a finite schema.
+
+**Dictionary selections.** A currency or any other catalogue value is accepted as `{"id": "eur"}` or as the reference it is written as, `{"code": "eur", …}`, on every path — before, FastAPI and MCP refused both. The code chooses the value; its label and properties always come from the catalogue. Writing references is also about six times faster, with the same JSON.
+
+**Lifecycles.** A lifecycle goes out as its current status — code, label and the status's own fields under `properties` — and comes back from `{"code": …}` as the declared status. An entity with a lifecycle no longer breaks the OpenAPI document of the whole application.
+
+Two things behave differently. Validation returns a new relation container with typed ids, so a container whose ids do not match the target's `id` type is now refused, and the field no longer holds the very object you passed. A Python-mode `model_dump()` still keeps containers and lifecycles as objects; only JSON mode writes these forms.
+
+Tutorial steps [24](tutorials/step-24-relations.md#send-a-relation-as-json) and [25](tutorials/step-25-lifecycle.md#send-a-lifecycle-as-json) and [the page on dictionary references](how-to/dictionary-references.md#every-path-takes-the-same-input) show each form with a script and a notebook.
+
+## [2026-11-04] — A schema field checks its schema once
+
+Fields that hold JSON checked by a JSON Schema — `JsonSchemaValue` and an entity projection, `OrderCoreEntity.schema(schema={...})` — used to check the schema itself again on every value, and that took most of the time: about 550 µs per value for a three-field row. Now the schema is checked once, when the field is declared, and a value takes about 10 µs. Nothing you write changes, and every value passes or fails as before, with the same error.
+
+The schema is also checked in the right draft of JSON Schema. A schema that names its draft in `"$schema"` is checked in that draft; one that names none, in the newest, 2020-12 — the draft its values were always checked with. Before, the declaration checked every schema as Draft 7, so a schema the two drafts read differently, such as a Draft 7 fixed-length array written as a list under `items`, was accepted and then failed on every value with a `SchemaError` that Pydantic did not catch. Such a schema is now refused at import; name it as Draft 7 if that is what it is. No schema in this repository was affected.
+
+[Tutorial step 17](tutorials/step-17-schema-results.md#which-draft-checks-the-schema) shows each case with a script and a notebook.
+
+## [2026-11-04] — An entity says only what is true
+
+Two things made an entity say something untrue in Python, before any JSON was involved. Both are fixed; this is the first step of making entities usable as the fields of Params and Result (#399).
+
+**A partial entity holds only what was loaded.** `OrderCoreEntity.partial(id="o1")` used to fill in the defaults of the fields nobody loaded: a currency declared with the default `"RUB"` read as `"RUB"` and went out in the dump, and a default factory that needed a missing field failed inside `partial()`. Now a partial entity holds exactly the fields it was given. A field it was not given raises `FieldNotLoadedError` even when it has a default, is left out of both dumps, and runs no code. A field loaded later through `model_copy(update=...)` counts as loaded, and a partial entity given every field is equal to the full one. If your code read the default of a field it never loaded, it now gets `FieldNotLoadedError`: that value never came from your storage.
+
+**A relation container answers for itself.** `order.customer.name` still reads the name of a loaded customer, but the container no longer answers Python's and Pydantic's own questions on the customer's behalf. So `model_dump()` of an entity with a dictionary reference returns the container instead of failing, and so does a LangGraph node whose Result holds one; `copy.deepcopy` and `model_copy(deep=True)` keep the container instead of handing back the customer; a container, loaded or not, can be copied and pickled and stays frozen. A structural relation has no JSON form yet, so a JSON dump of a loaded one now refuses by naming the container instead of writing an empty object; that form comes in the next steps of #399.
+
+Tutorial steps [22](tutorials/step-22-entity.md#an-unloaded-field-has-no-default) and [24](tutorials/step-24-relations.md#a-container-is-never-its-entity), and [the page on dictionary references](how-to/dictionary-references.md#dump-in-python-mode-and-in-json-mode), show each case with a script and a notebook.
+
 ## [2026-11-04] — The examples check beside the rest
 
 Checking every example made the main CI job about three and a half minutes longer, because the examples shared its machine with everything else. They now run in jobs of their own, `Examples` and `Examples on Python 3.14`. Jobs run at the same time on separate machines, so a pull request waits for the longest of them rather than for all in a row, and it is back to about the time it took before. A local run still checks the examples with everything else.

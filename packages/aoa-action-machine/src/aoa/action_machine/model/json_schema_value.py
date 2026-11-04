@@ -32,8 +32,11 @@ DATA FLOW
           v
     new type T (subclass of ``_JsonSchemaValueBase``)
           |
+          +--> ``JsonSchemaCheck(schema)`` once, at ``define``: the draft named by ``$schema``
+          |         (the newest without it) checks the schema
+          |
           +--> ``T.__get_pydantic_core_schema__`` at model class build time
-          |         -> ``jsonschema.validate(instance, schema)`` on assignment
+          |         -> ``check.error_of(instance)`` on assignment; the schema is not checked again
           |         -> plain serializer so ``model_dump()`` / ``model_dump_json()`` emit raw JSON
           |
           +--> ``T.__get_pydantic_json_schema__`` -> user schema dict (copy) for OpenAPI / tools
@@ -96,8 +99,9 @@ FAILURES
 
 - **Field value:** invalid JSON for the schema raises Pydantic ``ValidationError`` (the core
   validator wraps ``jsonschema.ValidationError`` as ``ValueError`` for a single error surface).
-- **``define()`` schema document:** invalid JSON Schema raises ``jsonschema.SchemaError``; schemas
-  that violate strict-shape rules raise ``ValueError`` before ``check_schema``.
+- **``define()`` schema document:** a schema its own draft refuses (the draft its ``$schema``
+  names, the newest without it) raises ``jsonschema.SchemaError`` here, never on a value; schemas
+  that violate strict-shape rules raise ``ValueError`` before that check.
 - **``define()`` arguments:** ``TypeError`` if ``name`` is not a ``str`` or ``schema`` is not a
   ``Mapping``; ``ValueError`` if ``name`` is whitespace-only.
 """
@@ -108,9 +112,10 @@ import copy
 from collections.abc import Mapping
 from typing import Any
 
-import jsonschema
 import pydantic_core
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+
+from aoa.action_machine.system_core.json_schema_check import JsonSchemaCheck
 
 JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
 
@@ -223,6 +228,7 @@ class _JsonSchemaValueBase:
     """Internal base: frozen schema plus Pydantic v2 core/json-schema hooks."""
 
     _json_schema: dict[str, Any]
+    _json_schema_check: JsonSchemaCheck
     _type_name: str
 
     @classmethod
@@ -231,14 +237,13 @@ class _JsonSchemaValueBase:
         _source_type: Any,
         handler: GetCoreSchemaHandler,
     ) -> pydantic_core.CoreSchema:
-        """Validate with jsonschema; serialize as plain JSON-compatible value."""
-        schema = cls._json_schema
+        """Validate with the check built at ``define``; serialize as plain JSON-compatible value."""
+        check = cls._json_schema_check
 
         def validate(value: Any) -> Any:
-            try:
-                jsonschema.validate(instance=value, schema=schema)
-            except jsonschema.ValidationError as exc:
-                raise ValueError(str(exc)) from exc
+            error = check.error_of(value)
+            if error is not None:
+                raise ValueError(str(error)) from error
             return value
 
         return pydantic_core.core_schema.no_info_plain_validator_function(
@@ -263,8 +268,9 @@ class JsonSchemaValue:
     """
     AI-CORE-BEGIN
     ROLE: Factory for Pydantic v2 compatible schema-backed JSON field types.
-    CONTRACT: ``define`` returns a new type; instances validate via jsonschema; ``define`` rejects
-              loose object/array shapes; ``model_dump()`` returns raw JSON; ``model_json_schema()`` exposes the user schema for the field.
+    CONTRACT: ``define`` returns a new type; ``define`` rejects loose object/array shapes, then checks
+              the schema once in the draft its ``$schema`` names (the newest without it); instances are
+              checked in that draft by a check built once; ``model_dump()`` returns raw JSON; ``model_json_schema()`` exposes the user schema for the field.
     INVARIANTS: Input ``schema`` mapping is deep-copied; distinct types never share one dict object.
     AI-CORE-END
     """
@@ -276,7 +282,7 @@ class JsonSchemaValue:
         name: str,
         schema: Mapping[str, Any],
     ) -> type:
-        """Return a new annotation type that validates instances against ``schema`` via jsonschema."""
+        """Return a new annotation type that validates instances against ``schema``, checked once here."""
         if not isinstance(name, str):
             raise TypeError("JsonSchemaValue.define: name must be a str.")
         if not name.strip():
@@ -288,13 +294,14 @@ class JsonSchemaValue:
 
         frozen_schema = copy.deepcopy(dict(schema))
         _enforce_strict_json_schema(frozen_schema, path="$")
-        jsonschema.Draft7Validator.check_schema(frozen_schema)
+        check = JsonSchemaCheck(frozen_schema)
 
         return type(
             name,
             (_JsonSchemaValueBase,),
             {
                 "_json_schema": frozen_schema,
+                "_json_schema_check": check,
                 "_type_name": name,
             },
         )

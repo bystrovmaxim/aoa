@@ -125,15 +125,28 @@ describe.each([
   });
 });
 
+// The test runs in Node, while the client's TypeScript configuration describes the browser: name the one Node call it uses.
+declare const process: { cpuUsage(): { user: number; system: number } };
+
+/**
+ * Milliseconds of processor time this test's own process has spent. Unlike the wall clock, it does not grow while
+ * the machine runs other work at the same time (a full check run starts many steps at once), so a time limit on it
+ * measures the component, not the load.
+ */
+function processorMs(): number {
+  const { user, system } = process.cpuUsage();
+  return (user + system) / 1000;
+}
+
 describe("a long history with a version file (spec 051, SC-006)", () => {
   const joined = versions(500).map((version, at) => ({ ...version, graph_changed: at % 2 === 0, version: `1.${at}.0`, version_changed: true }));
 
   it("chooses a point and hides half of 500 inside a second", () => {
-    const started = performance.now();
+    const started = processorMs();
     const { rerender } = render(<VersionTrack versions={joined} live={null} value={id(1)} onChange={() => undefined} width={WIDTH} versionFile />);
     rerender(<VersionTrack versions={joined} live={null} value={id(3)} onChange={() => undefined} width={WIDTH} versionFile />);
     rerender(<VersionTrack versions={joined} live={null} value={id(3)} onChange={() => undefined} width={WIDTH} versionFile hideSmall />);
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(processorMs() - started).toBeLessThan(1000);
     expect(screen.getAllByTestId(/^point-/)).toHaveLength(251);
   });
 });

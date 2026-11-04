@@ -44,7 +44,7 @@ def python_selection() -> None:
     try:
         PriceCoreEntity(currency=CurrencyEnumEntity.EUR)
     except ValidationError as error:
-        assert error.errors()[0]["type"] == "is_instance_of"
+        assert error.errors()[0]["type"] == "value_error"
         print(type(error).__name__ + ": " + str(error))
     else:
         raise AssertionError("A raw member was accepted")
@@ -58,16 +58,10 @@ def json_selection() -> None:
     payload = price.model_dump(mode="json")
     assert payload == {"currency": {"code": "eur", "display_name": "Euro", "properties": {"symbol": "€"}}}
     print("JSON export:", payload)
-    try:
-        PriceCoreEntity.model_validate_json(price.model_dump_json())
-    except ValidationError as error:
-        assert (
-            error.errors()[0]["msg"]
-            == "Value error, a dictionary relation JSON input is an object with exactly one 'id' key."
-        )
-        print(type(error).__name__ + ": " + str(error))
-    else:
-        raise AssertionError("Exported reference was accepted as selection input")
+    # The exported reference is read back by its code; label and properties come from the catalogue.
+    back = PriceCoreEntity.model_validate_json(price.model_dump_json())
+    assert back.currency.entity is CurrencyEnumEntity.EUR
+    print("Exported reference read back:", back.currency.id)
 
 
 def schema_modes() -> None:
