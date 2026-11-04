@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.4.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/graph/1.5.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.4"
+      "const": "1.5"
     },
     "nodes": {
       "type": "array",
@@ -671,7 +671,8 @@
                     "key",
                     "read",
                     "write",
-                    "invalidate"
+                    "invalidate",
+                    "entity_key"
                   ]
                 },
                 "description": {
@@ -1652,7 +1653,8 @@
                 "@cache_key",
                 "@cache_read",
                 "@cache_write",
-                "@cache_invalidate"
+                "@cache_invalidate",
+                "@cache_entity_key"
               ]
             },
             "relationship": {

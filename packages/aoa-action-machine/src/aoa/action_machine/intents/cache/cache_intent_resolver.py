@@ -28,15 +28,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from weakref import WeakKeyDictionary
 
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.intents.cache.cache_decorators import CACHE_META_ATTR
+from aoa.action_machine.intents.cache.cache_layout import CacheLayout
 from aoa.action_machine.intents.cache.cache_signature import decorator_name
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-_KINDS = ("key", "read", "write", "invalidate")
+_KINDS = ("key", "read", "write", "invalidate", "entity_key")
 
 # Old hook name -> the kind that replaces it.
 _OLD_HOOKS = {
@@ -60,10 +61,11 @@ class CacheDeclarations:
     read: Callable[..., Any] | None = None
     write: Callable[..., Any] | None = None
     invalidate: Callable[..., Any] | None = None
+    entity_key: Callable[..., Any] | None = None
 
     @property
     def declared(self) -> tuple[tuple[str, Callable[..., Any]], ...]:
-        """``(kind, method)`` for each declaration present, in the order key, read, write, invalidate."""
+        """``(kind, method)`` for each declaration present, in the order key, read, write, invalidate, entity key."""
         return tuple((kind, method) for kind in _KINDS if (method := getattr(self, kind)) is not None)
 
 
@@ -75,6 +77,11 @@ def kind_of(method: Callable[..., Any]) -> str:
 def tags_of(method: Callable[..., Any]) -> tuple[type, ...]:
     """The entity types a declared write or invalidation names in ``tags=``."""
     return tuple(getattr(method, CACHE_META_ATTR).get("tags", ()))
+
+
+def layout_of(method: Callable[..., Any]) -> CacheLayout:
+    """The layout a declared write stores its Result in."""
+    return cast(CacheLayout, getattr(method, CACHE_META_ATTR).get("layout", CacheLayout.WHOLE))
 
 
 def description_of(method: Callable[..., Any]) -> str:
@@ -116,6 +123,8 @@ def validate_cache_declarations(action_cls: type[Any]) -> None:
                 "an operation declares each cache step once."
             )
     _refuse_without_effect(action_cls.__name__, {kind for kind, methods in by_kind.items() if methods})
+    write = by_kind["write"][0] if by_kind["write"] else None
+    _refuse_a_lone_layout(action_cls.__name__, write, bool(by_kind["entity_key"]))
 
 
 def _refuse_without_effect(name: str, kinds: set[str]) -> None:
@@ -131,6 +140,21 @@ def _refuse_without_effect(name: str, kinds: set[str]) -> None:
     if "read" in kinds and "key" not in kinds:
         raise DeclarationStructureError(
             f"{name} declares @cache_read without @cache_key and @cache_write; nothing is ever stored for it to read."
+        )
+
+
+def _refuse_a_lone_layout(name: str, write: Callable[..., Any] | None, has_entity_key: bool) -> None:
+    """``layout=CacheLayout.ENTITIES`` and ``@cache_entity_key`` come together: one without the other does nothing."""
+    entities = write is not None and layout_of(write) is CacheLayout.ENTITIES
+    if entities and not has_entity_key:
+        raise DeclarationStructureError(
+            f"{name} writes with layout=CacheLayout.ENTITIES without @cache_entity_key; "
+            "without a key for each entity nothing can be stored entity by entity."
+        )
+    if has_entity_key and not entities:
+        raise DeclarationStructureError(
+            f"{name} declares @cache_entity_key without @cache_write(..., layout=CacheLayout.ENTITIES); "
+            "the key of an entity is called only for that layout."
         )
 
 
@@ -157,4 +181,12 @@ class CacheIntentResolver:
         return known
 
 
-__all__ = ["CacheDeclarations", "CacheIntentResolver", "description_of", "kind_of", "tags_of", "validate_cache_declarations"]
+__all__ = [
+    "CacheDeclarations",
+    "CacheIntentResolver",
+    "description_of",
+    "kind_of",
+    "layout_of",
+    "tags_of",
+    "validate_cache_declarations",
+]

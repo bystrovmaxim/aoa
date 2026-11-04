@@ -27,14 +27,23 @@ EXAMPLES
 
 from __future__ import annotations
 
-from aoa.action_machine.intents.cache.cache_decorators import cache_invalidate, cache_key, cache_read, cache_write
+from aoa.action_machine.intents.cache.cache_decorators import (
+    cache_entity_key,
+    cache_invalidate,
+    cache_key,
+    cache_read,
+    cache_write,
+)
 from aoa.action_machine.intents.cache.cache_intent import CacheIntent
 from aoa.action_machine.intents.cache.cache_intent_resolver import CacheDeclarations, CacheIntentResolver
+from aoa.action_machine.intents.cache.cache_layout import CacheLayout
 
 __all__ = [
     "CacheDeclarations",
     "CacheIntent",
     "CacheIntentResolver",
+    "CacheLayout",
+    "cache_entity_key",
     "cache_invalidate",
     "cache_key",
     "cache_read",

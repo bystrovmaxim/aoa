@@ -10,8 +10,9 @@ No declaration without an effect. Across every action of one graph:
 
 - a **dead invalidation** — an entity type an ``@cache_invalidate`` names that no
   ``@cache_write`` names — drops nothing, ever;
-- a **dead tag** — an entity type an ``@cache_write`` names that no ``@cache_invalidate``
-  names — marks entries nothing will ever tell they are stale.
+- a **dead tag** — an entity type an ``@cache_write`` caches (its tags, and with
+  ``layout=CacheLayout.ENTITIES`` the entity types its Result stores entity by entity)
+  that no ``@cache_invalidate`` names — marks entries nothing will ever tell they are stale.
 
 Both refuse the build. The check sees one graph, which is one service; it is exact
 while a cache store belongs to one service. The pass only reads.
@@ -23,6 +24,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from aoa.action_machine.graph.core.exceptions import InvalidGraphError
+from aoa.action_machine.intents.cache.cache_entity_fields import cached_types
 from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver, tags_of
 from aoa.action_machine.model.base_action import BaseAction
 
@@ -39,13 +41,16 @@ class CacheTagsError(InvalidGraphError):
 
 
 def _tagged(actions: list[type[Any]], kind: str) -> dict[type, list[str]]:
-    """Each tag type named by the ``kind`` declarations of ``actions``, with the actions that name it."""
+    """Each type the ``kind`` declarations of ``actions`` cache or drop, with the actions that do."""
     found: dict[type, list[str]] = {}
     for action_cls in actions:
-        method = getattr(CacheIntentResolver.declarations(action_cls), kind)
-        if method is not None:
-            for tag in tags_of(method):
-                found.setdefault(tag, []).append(action_cls.__name__)
+        if kind == "write":
+            types_named = cached_types(action_cls)
+        else:
+            method = CacheIntentResolver.declarations(action_cls).invalidate
+            types_named = tags_of(method) if method is not None else ()
+        for tag in types_named:
+            found.setdefault(tag, []).append(action_cls.__name__)
     return found
 
 

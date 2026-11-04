@@ -4,7 +4,7 @@
 
 **Tests**: required. **Commits**: one phase = one commit; after a phase only its test files run.
 
-- [ ] T001 [US1] Phase 1: `CacheLayout`, `@cache_entity_key`, the pairing at class creation, the entity fields at assembly; the `entity_key` node, `caches` edges to entity types, the dead-tag count; protocol 1.5 and its readers; tests `tests/action_machine/intents/cache/test_cache_entity_layout.py`.
+- [X] T001 [US1] Phase 1: `CacheLayout`, `@cache_entity_key`, the pairing at class creation, the entity fields at assembly; the `entity_key` node, `caches` edges to entity types, the dead-tag count; protocol 1.5 and its readers; tests `tests/action_machine/intents/cache/test_cache_entity_layout.py`.
 - [ ] T002 [US2] Phase 2: the write of R2/R3; tests in `tests/action_machine/runtime/test_cache_entity_by_entity.py`.
 - [ ] T003 [US3] Phase 3: the hit of R3; tests in the same file.
 - [ ] T004 [US4] Phase 4: `get_entries` in `CacheCoordinator` and the how-to's store; a test counts the store's calls.

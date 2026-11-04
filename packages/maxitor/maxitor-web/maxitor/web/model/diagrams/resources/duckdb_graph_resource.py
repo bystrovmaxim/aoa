@@ -358,6 +358,12 @@ class DuckDBGraphResource(ExternalServiceResource[duckdb.DuckDBPyConnection]):
       relationship VARCHAR NOT NULL,
       is_dag BOOLEAN NOT NULL
     );""",
+            """CREATE TABLE cache_entity_key_edges (
+      source_id VARCHAR NOT NULL,
+      target_id VARCHAR NOT NULL,
+      relationship VARCHAR NOT NULL,
+      is_dag BOOLEAN NOT NULL
+    );""",
             """CREATE TABLE caches_edges (
       source_id VARCHAR NOT NULL,
       target_id VARCHAR NOT NULL,
@@ -634,6 +640,7 @@ _EDGE_TABLE_NAMES: tuple[str, ...] = (
     "cache_read_edges",
     "cache_write_edges",
     "cache_invalidate_edges",
+    "cache_entity_key_edges",
     "caches_edges",
     "invalidates_edges",
     "compensate_edges",
@@ -718,6 +725,7 @@ def _graph_union_view_ddls() -> list[str]:
         f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_read_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_read_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_write_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_write_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_invalidate_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_invalidate_edges",
+        f"SELECT source_id, target_id, relationship, is_dag, CAST('cache_entity_key_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM cache_entity_key_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('caches_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM caches_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('invalidates_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM invalidates_edges",
         f"SELECT source_id, target_id, relationship, is_dag, CAST('compensate_edges' AS VARCHAR) AS type, {_nj()} AS payload FROM compensate_edges",
@@ -1024,6 +1032,7 @@ def _fill_simple_edge_tables(con: duckdb.DuckDBPyConnection, edges_by_type: dict
         "@cache_read": "cache_read_edges",
         "@cache_write": "cache_write_edges",
         "@cache_invalidate": "cache_invalidate_edges",
+        "@cache_entity_key": "cache_entity_key_edges",
         "caches": "caches_edges",
         "invalidates": "invalidates_edges",
         "@compensate": "compensate_edges",
@@ -1308,6 +1317,7 @@ def _assert_no_unknown_graph_types(
         "@cache_read",
         "@cache_write",
         "@cache_invalidate",
+        "@cache_entity_key",
         "caches",
         "invalidates",
         "@compensate",

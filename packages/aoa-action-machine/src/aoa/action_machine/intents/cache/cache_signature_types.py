@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any, get_type_hints
 
 from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 from aoa.action_machine.intents.cache.cache_signature import RETURNS, decorator_name, handed_over
 from aoa.action_machine.model.base_params import BaseParams
@@ -32,6 +33,7 @@ _EXPECTED: dict[str, type] = {
     "result": BaseResult,
     "duration_ms": float,
     "ctx": ContextView,
+    "entity": BaseEntity,
 }
 
 
@@ -58,7 +60,9 @@ def _is_connections(annotation: Any) -> bool:
 
 
 def _returns_ok(kind: str, annotation: Any) -> bool:
-    """Whether the return annotation is the one this kind answers with, ``None`` allowed."""
+    """Whether the return annotation is the one this kind answers with, ``None`` allowed except for an entity key."""
+    if kind == "entity_key":
+        return annotation is str
     answers = [member for member in _members(annotation) if member is not None.__class__]
     if len(answers) != 1:
         return False
