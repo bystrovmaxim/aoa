@@ -84,7 +84,7 @@ class EntitySchemaMarker:
     entity_cls: type
     schema: dict[str, Any]
     check: JsonSchemaCheck = field(init=False, compare=False, repr=False)
-    fields: frozenset[str] = field(init=False, compare=False, repr=False)
+    fields: tuple[str, ...] = field(init=False, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         """Check the schema once, keep the check, and keep the entity fields the projection names."""
@@ -98,7 +98,9 @@ class EntitySchemaMarker:
                 f"{name}.schema(): {unknown} are not fields of {name}; a projection names only fields of its entity."
             )
         object.__setattr__(self, "check", JsonSchemaCheck(self.schema))
-        object.__setattr__(self, "fields", frozenset(properties))
+        # Entity declaration order, so the JSON written has the same key order on every run.
+        declared = tuple(n for n in getattr(self.entity_cls, "model_fields", {}) if n in properties)
+        object.__setattr__(self, "fields", declared)
 
     def __get_pydantic_core_schema__(
         self,

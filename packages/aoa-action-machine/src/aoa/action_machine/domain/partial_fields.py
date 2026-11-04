@@ -69,7 +69,9 @@ def validated_partial(entity_cls: Any, fields: Mapping[str, Any]) -> Any:
     if undeclared:
         raise ValueError(f"{entity_cls.__name__} declares no field(s) {undeclared}.")
     validated: dict[str, Any] = {}
-    for name, item in fields.items():
+    # Entity declaration order, whatever order the mapping came in.
+    for name in (declared_name for declared_name in declared if declared_name in fields):
+        item = fields[name]
         try:
             validated[name] = field_adapter(entity_cls, name).validate_python(item)
         except ValidationError as exc:

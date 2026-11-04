@@ -192,3 +192,44 @@ def test_a_schema_naming_a_field_the_entity_lacks_is_refused() -> None:
     with pytest.raises(ValueError, match="secret") as exc_info:
         ProjOrderCoreEntity.schema(schema=leak)
     assert "ProjOrderCoreEntity" in str(exc_info.value)
+
+
+_EIGHT = [f"f{i}" for i in range(8)]
+
+
+@entity(description="Eight fields, enough that a hash order rarely matches the declared one", domain=_ProjectionDomain)
+class ProjWideCoreEntity(BaseCoreEntity):
+    """An entity with eight string fields."""
+
+    id: str = Field(description="Id")
+    f0: str = Field(description="Field 0")
+    f1: str = Field(description="Field 1")
+    f2: str = Field(description="Field 2")
+    f3: str = Field(description="Field 3")
+    f4: str = Field(description="Field 4")
+    f5: str = Field(description="Field 5")
+    f6: str = Field(description="Field 6")
+    f7: str = Field(description="Field 7")
+
+
+_WIDE_WIRE = {
+    "type": "object",
+    "properties": {name: {"type": "string"} for name in reversed(_EIGHT)},
+    "required": list(reversed(_EIGHT)),
+    "additionalProperties": False,
+}
+
+
+class WideResult(BaseResult):
+    """Return the projection of the eight fields."""
+
+    row: ProjWideCoreEntity.schema(schema=_WIDE_WIRE) = Field(description="Row")  # type: ignore[valid-type]
+
+
+def test_the_json_of_a_projection_follows_the_entity_field_order() -> None:
+    """JSON keys come in the entity's declaration order, from an entity and from a reversed dict alike."""
+    values = {name: name.upper() for name in _EIGHT}
+    from_entity = WideResult(row=ProjWideCoreEntity(id="w1", **values))
+    from_dict = WideResult(row=dict(reversed(list(values.items()))))
+    assert list(from_entity.model_dump(mode="json")["row"]) == _EIGHT
+    assert list(from_dict.model_dump(mode="json")["row"]) == _EIGHT
