@@ -228,6 +228,41 @@ FieldNotLoadedError
 
 `is_field_loaded("total")` reports availability without reading the field. Reading an unloaded declared field raises `FieldNotLoadedError`, rather than silently returning `None`. This allows one domain class to serve several load levels without pretending every field is available. Partial construction does not turn the object into another kind.
 
+### An unloaded field has no default
+
+[Script](../../examples/step_22_entity/12_partial_defaults.py) · [Notebook](../../examples/step_22_entity/12_partial_defaults.ipynb)
+
+A default is what validation puts into a field nobody supplied. A full entity goes through validation, so it gets its defaults; a partial entity does not, so a field it was not given stays unloaded even when the field declares a default. Here `currency` defaults to `"RUB"` and `code` is made from the identifier by a default factory, and the query loaded only the identifier:
+
+```text
+currency loaded: False
+reading currency: FieldNotLoadedError
+Python dump: {'id': 'ord-4'}
+JSON dump: {'id': 'ord-4'}
+nothing loaded: {}
+full entity: {'id': 'ord-4', 'currency': 'RUB', 'code': 'ORD-4'}
+```
+
+The partial order does not read `"RUB"`, and neither dump carries a currency or a code: what leaves the instance is what was loaded. No code of an unloaded field runs either. `OrderCoreEntity.partial()`, with nothing loaded, does not call the factory that needs the identifier, so it does not fail; it is an order that holds no field at all. The full order, built through validation, applies the default and runs the factory.
+
+If code read the default of a field it never loaded, it now gets `FieldNotLoadedError`: that value was never loaded, so the code was reading something the storage never said.
+
+### Load a field later
+
+[Script](../../examples/step_22_entity/13_partial_update.py) · [Notebook](../../examples/step_22_entity/13_partial_update.ipynb)
+
+An entity is frozen, so a field loaded later goes into a copy: `model_copy(update={"total": 42.0})`. A field is loaded exactly when the instance holds it, so the copy reports the total loaded, while the currency, still not loaded, still raises:
+
+```text
+total loaded: True 42.0
+currency loaded: False
+reading currency: FieldNotLoadedError
+partial with every field == full: True
+partial with the id only == full: False
+```
+
+A partial entity given every field holds what a full one holds, and the two are equal. A partial entity that lacks a field is not equal to the full one, because it does not hold the same fields.
+
 ## Inherit a kind and add ordinary behaviour
 
 [Intermediate class: script](../../examples/step_22_entity/09_inheritance.py) · [Notebook](../../examples/step_22_entity/09_inheritance.ipynb)

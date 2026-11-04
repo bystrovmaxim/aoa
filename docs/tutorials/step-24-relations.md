@@ -172,6 +172,33 @@ Actual output:
    order2.customer.name = Alice   (proxied through the loaded entity)
 ```
 
+## A container is never its entity
+
+[Script](../../examples/step_24_relations/08_container_protocols.py) · [Notebook](../../examples/step_24_relations/08_container_protocols.ipynb)
+
+A loaded container passes the names it does not have to its entity: that is why `order.customer.name` reads the customer's name. Python and Pydantic ask an object questions too, through names that start and end with two underscores — `__pydantic_serializer__` asks "how are you dumped?", `__reduce__` asks "how are you pickled?". A container never passes those on: it answers them itself, as a container, whether its entity is loaded or not.
+
+```text
+1) Names
+   order.customer.name: Alice
+   order.customer.__pydantic_serializer__ -> AttributeError
+2) Dumps
+   Python dump keeps the container: AssociationOne(id='cust-1', loaded)
+   JSON dump -> PydanticSerializationError: Unable to serialize unknown type: <class 'aoa.action_machine.domain.relation_containers.AssociationOne'>
+3) Copies
+   deepcopy: AssociationOne(id='cust-1', loaded) | customer copied: True
+   model_copy(deep=True).customer: AssociationOne(id='cust-1', loaded)
+   copy.copy is equal: True
+4) Pickle
+   unloaded one: AssociationOne(id='cust-9', id_only) | equal: True
+   unloaded many: AssociationMany(count=2, entities_loaded=no, n_entities=0)
+   still frozen: AssociationOne is frozen; assigning to 'extra' is not allowed.
+```
+
+- **Dumps.** A Python-mode `model_dump()` keeps the container. A structural relation has no JSON form yet, so a JSON-mode dump of a loaded one refuses by naming the container, rather than writing the customer's dump in its place or an empty object.
+- **Copies.** `copy.deepcopy` and `model_copy(deep=True)` give a container of the same class with a copy of the customer; `copy.copy` gives an equal container.
+- **Pickle.** A pickled container comes back equal and of the same class, with the same loaded state, and it stays frozen.
+
 ## Declare both directions
 
 A reciprocal pair needs `Inverse` on both endpoints, naming each other. An intentional one-way link uses `NoInverse()`. These checks happen during model assembly; normal container construction does not validate the global declaration graph.
