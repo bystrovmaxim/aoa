@@ -1,21 +1,12 @@
 """
-01_langgraph.py — AOA Actions as LangGraph nodes via LangGraphAdapter
+01_langgraph.py — the mistakes LangGraphController catches, and when
 
-LangGraph wires components into graphs; AOA wraps each step with roles,
-connections, and context. LangGraphAdapter bridges the two: register Actions
-with .node(), declare edges with .edge(), .conditional_edge(), or .route(),
-then call .compile() — you get a standard LangGraph CompiledGraph with
-ainvoke(), astream(), and get_graph().draw_mermaid().
+A LangGraphController is declared, built and run. Each step catches its own
+mistakes: a reference to a node that was never registered fails where it is
+declared, a broken topology or data contract fails at .build(), and a routing
+key the paths do not cover fails when the graph runs.
 
-Key properties:
-- Topology errors are caught at build time: .edge() raises UnregisteredNodeError
-  immediately if a node was never registered — no waiting for ainvoke().
-- Connection pool is filtered per-Action by @connection keys — no manual plumbing.
-- .build_graph() returns a raw StateGraph for native LangGraph continuation.
-
-Extension: ../../docs/extensions/langgraph.md  ·  topic: LangGraphAdapter
-
-Install:  pip install "aoa-langgraph" langgraph
+Install:  pip install aoa-action-machine aoa-langgraph langgraph
 
 Run:
     uv run python examples/step_16_langgraph/01_langgraph.py
@@ -23,7 +14,6 @@ Run:
 
 import asyncio
 
-from langgraph.graph import END
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -37,21 +27,15 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.langgraph import AgentState, LangGraphAdapter, RouteKeyError, StateFieldMismatchError, UnregisteredNodeError
+from aoa.langgraph import (
+    FieldHasNoProducerError,
+    LangGraphController,
+    NoFinishPointError,
+    RouteKeyError,
+    UnregisteredNodeError,
+)
 
-# ─── State ────────────────────────────────────────────────────────────────────
-# TypedDict becomes the LangGraph state schema.
-# Each Action node receives the full state; result.model_dump() is merged back in.
-
-
-class TicketState(AgentState):
-    ticket_id: str
-    category: str = ""      # filled by ClassifyTicketAction
-    resolved: bool = False
-    note: str = ""
-
-
-# ─── Domain ───────────────────────────────────────────────────────────────────
+# ─── Domain, params, results ──────────────────────────────────────────────────
 
 
 class SupportDomain(BaseDomain):
@@ -59,12 +43,9 @@ class SupportDomain(BaseDomain):
     description = "Support ticket processing domain"
 
 
-# ─── Params / Results ─────────────────────────────────────────────────────────
-
-
 class ClassifyParams(BaseParams):
     ticket_id: str = Field(description="Ticket identifier")
-    note: str = Field(default="", description="Ticket description")
+    note: str = Field(description="Ticket content")
 
 
 class ClassifyResult(BaseResult):
@@ -77,202 +58,126 @@ class ResolveParams(BaseParams):
 
 
 class ResolveResult(BaseResult):
-    resolved: bool = Field(description="Resolved flag")
-    note: str = Field(description="Resolution note")
+    resolved: bool = Field(description="Resolution flag")
+    resolution_note: str = Field(description="Resolution note")
 
 
 # ─── Actions ──────────────────────────────────────────────────────────────────
-# Action.Params fields are extracted from the LangGraph state by name.
-# Result fields are merged back into the state after the node returns.
 
 
 @meta(description="Classify a support ticket by content", domain=SupportDomain)
 @check_roles(GuestRole)
 class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
-
     @summary_aspect("Classify ticket")
     async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: Connections) -> ClassifyResult:
         text = params.note.lower()
-        if "billing" in text or "invoice" in text or "payment" in text:
-            cat = "billing"
-        elif "crash" in text or "error" in text or "bug" in text:
-            cat = "bug"
-        else:
-            cat = "feature"
-        return ClassifyResult(category=cat)
+        if "invoice" in text or "payment" in text:
+            return ClassifyResult(category="billing")
+        if "crash" in text or "error" in text:
+            return ClassifyResult(category="bug")
+        return ClassifyResult(category="feature")
 
 
-@meta(description="Route ticket to engineering team", domain=SupportDomain)
+@meta(description="Route ticket to engineering", domain=SupportDomain)
 @check_roles(GuestRole)
 class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
-
     @summary_aspect("Assign to engineering")
     async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
-        tag = params.category.upper()
-        return ResolveResult(
-            resolved=True,
-            note=f"[{tag}] #{params.ticket_id} → engineering",
-        )
+        return ResolveResult(resolved=True, resolution_note=f"[{params.category.upper()}] #{params.ticket_id} → engineering")
 
 
-@meta(description="Route ticket to billing team", domain=SupportDomain)
+def _fields(ctrl: LangGraphController) -> LangGraphController:
+    """Declare the ticket fields every graph of this example shares."""
+    return (
+        ctrl.inp("ticket_id", str, "Ticket identifier")
+        .inp("note", str, "Ticket content")
+        .mid("category", str, "Ticket category")
+        .mid("resolved", bool, "Resolution flag")
+        .mid("resolution_note", str, "Resolution note")
+    )
+
+
+# ─── A graph whose routes cover bugs only ─────────────────────────────────────
+
+
+bugs_only = (
+    _fields(LangGraphController())
+    .out("category")
+    .out("resolution_note")
+    .node(ClassifyTicketAction)
+    .node(EngineeringAction)
+    .start(ClassifyTicketAction)
+    .route(ClassifyTicketAction, on=lambda s: s.category, paths={"bug": EngineeringAction})
+    .finish(EngineeringAction)
+    .build()
+)
+
+
+class TicketParams(BaseParams):
+    ticket_id: str = Field(description="Ticket identifier")
+    note: str = Field(description="Ticket content")
+
+
+class TicketResult(BaseResult):
+    category: str = Field(description="Ticket category")
+    resolution_note: str = Field(description="Resolution note")
+
+
+@meta(description="Run the bugs-only graph", domain=SupportDomain)
 @check_roles(GuestRole)
-class BillingAction(BaseAction[ResolveParams, ResolveResult]):
-
-    @summary_aspect("Assign to billing")
-    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
-        return ResolveResult(
-            resolved=True,
-            note=f"[BILLING] #{params.ticket_id} → billing team",
-        )
-
-
-# ─── Plain async function node ────────────────────────────────────────────────
-# Plain async fns can be mixed in — they receive the full state dict directly.
-
-
-async def close_ticket(state: TicketState) -> dict:
-    return {"note": state["note"] + " [closed]"}
-
-
-# ─── Graph assembly ───────────────────────────────────────────────────────────
+class BugsOnlyAction(BaseAction[TicketParams, TicketResult]):
+    @summary_aspect("Run the graph")
+    async def run_summary(self, params: TicketParams, state: BaseState, box: ToolsBox, connections: Connections) -> TicketResult:
+        result = await bugs_only.ainvoke({"ticket_id": params.ticket_id, "note": params.note}, box)
+        return TicketResult(category=result["category"], resolution_note=result["resolution_note"])
 
 
 async def main() -> None:
-    machine = ActionProductMachine()
-    context = Context()
-
-    # --- Part 1: early error detection --- #
-    #
-    # .edge() validates that both endpoints are registered with .node().
-    # A typo in a node name raises UnregisteredNodeError immediately —
-    # long before ainvoke() is ever called.
-    #
+    # 1. A node referenced before it is registered fails where it is declared.
+    print("1. Declaring an edge to an unregistered node")
     try:
-        (
-            LangGraphAdapter(machine=machine, context=context, agentstate=TicketState)
-            .node(ClassifyTicketAction())
-            .edge(ClassifyTicketAction, "typo_node")  # "typo_node" not registered
-        )
+        _fields(LangGraphController()).node(ClassifyTicketAction).edge(ClassifyTicketAction, EngineeringAction)
     except UnregisteredNodeError as exc:
-        print(f"[UnregisteredNodeError] {exc}\n")
+        print(f"   UnregisteredNodeError: {exc}")
 
-    # --- Part 2: multi-path routing with .route() --- #
-    #
-    # .route(source, on=fn, paths={key: target}) routes to a different node
-    # based on a function that returns a key from the current state.
-    # Targets can be Action classes, instances, or plain strings.
-    #
-    compiled = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=TicketState)
-        .node(ClassifyTicketAction())
-        .node(EngineeringAction())
-        .node(BillingAction())
-        .node(close_ticket, name="close_ticket")
-        .start(ClassifyTicketAction)
-        .route(
-            ClassifyTicketAction,
-            on=lambda s: s.get("category"),
-            paths={
-                "bug":     EngineeringAction,   # bugs and features both go
-                "feature": EngineeringAction,   # to the engineering node
-                "billing": BillingAction,
-            },
-        )
-        .edge(EngineeringAction, "close_ticket")
-        .edge(BillingAction,     "close_ticket")
-        .edge("close_ticket",    END)
-        .compile()
-    )
-
-    tickets = [
-        TicketState(ticket_id="T-1", note="App crashes on startup"),
-        TicketState(ticket_id="T-2", note="Wrong invoice amount"),
-        TicketState(ticket_id="T-3", note="Add support for dark mode"),
-        TicketState(ticket_id="T-4", note="Payment failed on checkout"),
-    ]
-    print("=== Ticket routing ===")
-    for t in tickets:
-        r = await compiled.ainvoke(t)
-        print(f"  {r['ticket_id']}  [{r['category']:8}]  {r['note']}")
-
-    # --- Part 3: RouteKeyError — key not found in paths --- #
-    #
-    # .route(on=..., paths={...}) raises RouteKeyError when on() returns a key
-    # that is not in paths. The error surfaces at ainvoke() time — not at graph
-    # build time — because the value of on() depends on the state of a given run.
-    #
-    # Here paths covers only "bug", but a billing ticket yields category="billing".
-    #
-    print("\n=== RouteKeyError demo ===")
-    incomplete_compiled = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=TicketState)
-        .node(ClassifyTicketAction())
-        .node(EngineeringAction())
-        .start(ClassifyTicketAction)
-        .route(
-            ClassifyTicketAction,
-            on=lambda s: s.get("category"),
-            paths={"bug": EngineeringAction},   # "billing" and "feature" not covered!
-        )
-        .edge(EngineeringAction, END)
-        .compile()
-    )
-    try:
-        await incomplete_compiled.ainvoke(
-            TicketState(ticket_id="ERR-1", note="Wrong invoice amount")  # → "billing"
-        )
-    except RouteKeyError as exc:
-        print(f"[RouteKeyError] {exc}\n")
-
-    # --- Part 4: StateFieldMismatchError — a Result field is missing from AgentState --- #
-    #
-    # .compile() verifies that every field of every Action's Result type is declared
-    # in AgentState. A missing field silently vanishes on merge — the adapter detects
-    # this before the first run.
-    #
-    # EngineeringAction returns resolved=bool and note=str.
-    # _IncompleteState declares only ticket_id and category — resolved and note are forgotten.
-    #
-    print("=== StateFieldMismatchError demo ===")
-
-    class _IncompleteState(AgentState):
-        ticket_id: str
-        category: str = ""
-        # resolved: bool and note: str are not declared — EngineeringAction returns them!
-
+    # 2. A graph with no finish node fails at .build().
+    print("2. Building a graph with no finish node")
     try:
         (
-            LangGraphAdapter(machine=machine, context=context, agentstate=_IncompleteState)
-            .node(ClassifyTicketAction())
-            .node(EngineeringAction())
+            _fields(LangGraphController())
+            .out("category")
+            .node(ClassifyTicketAction)
+            .node(EngineeringAction)
             .start(ClassifyTicketAction)
-            .compile()   # ← StateFieldMismatchError here, before the first ainvoke()
+            .edge(ClassifyTicketAction, EngineeringAction)
+            .build()
         )
-    except StateFieldMismatchError as exc:
-        print(f"[StateFieldMismatchError] {exc}\n")
+    except NoFinishPointError as exc:
+        print(f"   NoFinishPointError: {exc}")
 
-    # --- Part 5: native continuation via build_graph() --- #
-    #
-    # .build_graph() returns the StateGraph before .compile().
-    # You can add more nodes or edges with the native LangGraph API,
-    # then call .compile() yourself.
-    #
-    print("\n=== Native continuation ===")
-    graph = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=TicketState)
-        .node(ClassifyTicketAction())
-        .start(ClassifyTicketAction)
-        .build_graph()          # ← returns StateGraph, not CompiledGraph
-    )
-    graph.add_edge("classify_ticket", END)   # native LangGraph API
-    native_compiled = graph.compile()
-    r = await native_compiled.ainvoke(TicketState(ticket_id="T-5", note="billing question"))
-    print(f"  T-5 classified as: {r['category']}")
+    # 3. A Params field that nothing produces fails at .build().
+    print("3. Building a graph that starts where `category` is not yet known")
+    try:
+        (
+            _fields(LangGraphController())
+            .out("resolution_note")
+            .node(EngineeringAction)
+            .start(EngineeringAction)
+            .finish(EngineeringAction)
+            .build()
+        )
+    except FieldHasNoProducerError as exc:
+        print(f"   FieldHasNoProducerError: {exc}")
 
-    # --- Graph structure (Mermaid) --- #
-    print("\n=== Graph (Mermaid) ===")
-    print(compiled.get_graph().draw_mermaid())
+    # 4. A routing key the paths do not cover fails when the graph runs.
+    machine = ActionProductMachine()
+    print("4. Running the bugs-only graph")
+    bug = await machine.run(Context(), BugsOnlyAction(), TicketParams(ticket_id="T-1", note="App crashes on login"))
+    print(f"   T-1 [{bug.category}] {bug.resolution_note}")
+    try:
+        await machine.run(Context(), BugsOnlyAction(), TicketParams(ticket_id="T-2", note="Wrong invoice total"))
+    except RouteKeyError as exc:
+        print(f"   T-2 RouteKeyError: {exc}")
 
 
 if __name__ == "__main__":

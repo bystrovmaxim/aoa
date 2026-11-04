@@ -1,21 +1,14 @@
 """
-02_langgraph.py — LangGraphAdapter: AOA Actions as LangGraph nodes
+02_langgraph.py — LangGraphController: AOA actions as the nodes of a LangGraph graph
 
-LangGraph connects components into graphs; AOA wraps each step with metadata
-(roles, checkers, connections, context). LangGraphAdapter bridges the two:
-register actions with .node(), declare edges with .edge() or
-.conditional_edge(), and call .compile() — you get a standard LangGraph
-CompiledGraph with ainvoke(), astream(), and get_graph().draw_mermaid().
+LangGraph connects steps into a graph; AOA runs each step as an action, with
+its roles, checks and connections. LangGraphController declares the graph's
+fields (.inp/.mid/.out), registers action classes as nodes, wires them with
+.start/.edge/.route/.finish, and validates topology and data contract at
+.build(). An action then runs the graph with .ainvoke(data, box): each node goes
+through the same machine as any other action.
 
-Key advantages of the adapter form:
-- Nodes are typed Python objects, not strings — typos become immediate
-  UnregisteredNodeError at graph build time, not silent runtime failures.
-- Connection pool is filtered per Action by declared @connection keys — no
-  manual plumbing.
-- .build_graph() returns a raw StateGraph for native LangGraph continuation
-  when you need low-level control.
-
-Install:  pip install "aoa-langgraph"
+Install:  pip install aoa-action-machine aoa-langgraph langgraph
 
 Run:
     uv run python examples/extensions/02_langgraph.py
@@ -23,7 +16,6 @@ Run:
 
 import asyncio
 
-from langgraph.graph import END
 from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
@@ -37,169 +29,108 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.langgraph import AgentState, LangGraphAdapter
-
-# ─── State ────────────────────────────────────────────────────────────────────
-# TypedDict becomes the LangGraph state schema.
-# node_fn(agentstate) receives this dict; result.model_dump() is merged back in.
+from aoa.langgraph import LangGraphController
 
 
-class OrderState(AgentState):
-    order_id: str
-    valid: bool = False
-    status: str = ""
+class SupportDomain(BaseDomain):
+    name = "support"
+    description = "Support ticket processing domain"
 
 
-# LegacyState uses different field names than Action Params/Results.
-# params_mapper and response_mapper bridge the gap.
-class LegacyState(AgentState):
-    ref: str           # Action expects "order_id"
-    checked: bool = False  # Action returns "valid"
+class ClassifyParams(BaseParams):
+    ticket_id: str = Field(description="Ticket identifier")
+    note: str = Field(description="Ticket content")
 
 
-# ─── Domain ───────────────────────────────────────────────────────────────────
+class ClassifyResult(BaseResult):
+    category: str = Field(description="bug | feature | billing")
 
 
-class OrderDomain(BaseDomain):
-    name = "orders"
-    description = "Order processing domain"
+class ResolveParams(BaseParams):
+    ticket_id: str = Field(description="Ticket identifier")
+    category: str = Field(description="Ticket category")
 
 
-# ─── Params / Results ─────────────────────────────────────────────────────────
+class ResolveResult(BaseResult):
+    resolution_note: str = Field(description="Resolution note")
 
 
-class ValidateParams(BaseParams):
-    order_id: str = Field(description="Order identifier")
-
-
-class ValidateResult(BaseResult):
-    valid: bool = Field(description="True if order_id has valid format")
-
-
-class ConfirmParams(BaseParams):
-    order_id: str = Field(description="Order identifier")
-
-
-class ConfirmResult(BaseResult):
-    status: str = Field(description="Confirmation token")
-
-
-# ─── Actions ──────────────────────────────────────────────────────────────────
-# Action.Params fields are extracted from the LangGraph state by name.
-# Result fields are merged back into the state after the node returns.
-
-
-@meta(description="Validate order format", domain=OrderDomain)
+@meta(description="Classify a support ticket by content", domain=SupportDomain)
 @check_roles(GuestRole)
-class ValidateOrderAction(BaseAction[ValidateParams, ValidateResult]):
-    @summary_aspect("Check order_id format")
-    async def validate_summary(self, params: ValidateParams, state: BaseState, box: ToolsBox, connections: Connections) -> ValidateResult:
-        return ValidateResult(valid=params.order_id.startswith("ORD-"))
+class ClassifyTicketAction(BaseAction[ClassifyParams, ClassifyResult]):
+    @summary_aspect("Classify ticket")
+    async def classify_summary(self, params: ClassifyParams, state: BaseState, box: ToolsBox, connections: Connections) -> ClassifyResult:
+        text = params.note.lower()
+        if "invoice" in text or "payment" in text:
+            return ClassifyResult(category="billing")
+        if "crash" in text or "error" in text:
+            return ClassifyResult(category="bug")
+        return ClassifyResult(category="feature")
 
 
-@meta(description="Confirm a valid order", domain=OrderDomain)
+@meta(description="Route ticket to engineering", domain=SupportDomain)
 @check_roles(GuestRole)
-class ConfirmOrderAction(BaseAction[ConfirmParams, ConfirmResult]):
-    @summary_aspect("Issue confirmation token")
-    async def confirm_summary(self, params: ConfirmParams, state: BaseState, box: ToolsBox, connections: Connections) -> ConfirmResult:
-        return ConfirmResult(status=f"confirmed:{params.order_id}")
+class EngineeringAction(BaseAction[ResolveParams, ResolveResult]):
+    @summary_aspect("Assign to engineering")
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
+        return ResolveResult(resolution_note=f"[{params.category.upper()}] #{params.ticket_id} → engineering")
 
 
-# ─── Plain async function node ────────────────────────────────────────────────
-# Plain async fns can be mixed in — they receive the full state dict.
+@meta(description="Route ticket to billing", domain=SupportDomain)
+@check_roles(GuestRole)
+class BillingAction(BaseAction[ResolveParams, ResolveResult]):
+    @summary_aspect("Assign to billing")
+    async def resolve_summary(self, params: ResolveParams, state: BaseState, box: ToolsBox, connections: Connections) -> ResolveResult:
+        return ResolveResult(resolution_note=f"[BILLING] #{params.ticket_id} → billing team")
 
 
-async def reject_order(state: OrderState) -> dict:
-    return {"status": f"rejected:{state['order_id']}"}
+ticket_graph = (
+    LangGraphController()
+    .inp("ticket_id", str, "Ticket identifier")
+    .inp("note", str, "Ticket content")
+    .mid("category", str, "Ticket category")
+    .mid("resolution_note", str, "Resolution note")
+    .out("category")
+    .out("resolution_note")
+    .node(ClassifyTicketAction)
+    .node(EngineeringAction)
+    .node(BillingAction)
+    .start(ClassifyTicketAction)
+    .route(
+        ClassifyTicketAction,
+        on=lambda s: s.category,
+        paths={"bug": EngineeringAction, "feature": EngineeringAction, "billing": BillingAction},
+    )
+    .finish(EngineeringAction)
+    .finish(BillingAction)
+    .build()
+)
 
 
-# ─── Graph assembly ───────────────────────────────────────────────────────────
+class TicketParams(BaseParams):
+    ticket_id: str = Field(description="Ticket identifier")
+    note: str = Field(description="Ticket content")
+
+
+class TicketResult(BaseResult):
+    category: str = Field(description="Ticket category")
+    resolution_note: str = Field(description="Resolution note")
+
+
+@meta(description="Process a support ticket through the graph", domain=SupportDomain)
+@check_roles(GuestRole)
+class ProcessTicketAction(BaseAction[TicketParams, TicketResult]):
+    @summary_aspect("Run the ticket graph")
+    async def run_summary(self, params: TicketParams, state: BaseState, box: ToolsBox, connections: Connections) -> TicketResult:
+        result = await ticket_graph.ainvoke({"ticket_id": params.ticket_id, "note": params.note}, box)
+        return TicketResult(category=result["category"], resolution_note=result["resolution_note"])
 
 
 async def main() -> None:
     machine = ActionProductMachine()
-    context = Context()
-
-    # --- Variant A: AOA adapter --- #
-    #
-    # .node() accepts Action instances or plain async functions (name= required).
-    # .edge() / .conditional_edge() accept Action classes, instances, or strings.
-    # Referencing an unregistered node raises UnregisteredNodeError immediately —
-    # graph topology errors surface at build time, not at ainvoke() time.
-    #
-    compiled = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=OrderState)
-        .node(ValidateOrderAction())
-        .node(ConfirmOrderAction())
-        .node(reject_order, name="reject_order")
-        .start(ValidateOrderAction)
-        .conditional_edge(
-            ValidateOrderAction,
-            when=lambda s: s.get("valid"),
-            if_true=ConfirmOrderAction,
-            if_false="reject_order",
-        )
-        .edge(ConfirmOrderAction, END)
-        .edge("reject_order", END)
-        .compile()  # → standard LangGraph CompiledGraph
-    )
-
-    print("=== Valid order ===")
-    result = await compiled.ainvoke(OrderState(order_id="ORD-001"))
-    print(f"  status={result['status']}  valid={result['valid']}")
-
-    print("\n=== Invalid order ===")
-    result = await compiled.ainvoke(OrderState(order_id="inv-002"))
-    print(f"  status={result['status']}  valid={result['valid']}")
-
-    # --- Variant B: native LangGraph continuation via build_graph() --- #
-    #
-    # build_graph() returns a StateGraph — add more nodes/edges, then compile.
-    # Useful when you need low-level LangGraph control after the AOA portion.
-    #
-    print("\n=== Native continuation ===")
-    graph = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=OrderState)
-        .node(ValidateOrderAction())
-        .start(ValidateOrderAction)
-        .build_graph()  # → StateGraph (not yet compiled)
-    )
-    # Add the rest with the native LangGraph API:
-    graph.add_edge("validate_order", END)
-    native_compiled = graph.compile()
-    result = await native_compiled.ainvoke(OrderState(order_id="ORD-003"))
-    print(f"  valid={result['valid']}")
-
-    # --- Variant C: params_mapper / response_mapper --- #
-    #
-    # When your LangGraph state field names differ from Action Params/Result field
-    # names, pass mapper lambdas to .node():
-    #
-    #   params_mapper(agentstate) → Params instance   (replaces auto-extraction)
-    #   response_mapper(result)   → dict | Pydantic   (replaces result.model_dump())
-    #
-    # Here LegacyState uses "ref"/"checked"; ValidateOrderAction uses "order_id"/"valid".
-    #
-    print("\n=== Mapper example ===")
-    mapper_compiled = (
-        LangGraphAdapter(machine=machine, context=context, agentstate=LegacyState)
-        .node(
-            ValidateOrderAction(),
-            params_mapper=lambda s: ValidateParams(order_id=s["ref"]),
-            response_mapper=lambda r: {"checked": r.valid},
-        )
-        .start(ValidateOrderAction)
-        .edge(ValidateOrderAction, END)
-        .compile()
-    )
-    result = await mapper_compiled.ainvoke(LegacyState(ref="ORD-005"))
-    print(f"  ref={result['ref']}  checked={result['checked']}")
-    result = await mapper_compiled.ainvoke(LegacyState(ref="inv-006"))
-    print(f"  ref={result['ref']}  checked={result['checked']}")
-
-    # --- Mermaid diagram (works because compile() returns a real CompiledGraph) --- #
-    print("\n=== Graph structure ===")
-    print(compiled.get_graph().draw_mermaid())
+    for ticket_id, note in [("T-1", "App crashes on login"), ("T-2", "Wrong invoice total"), ("T-3", "Add dark mode")]:
+        result = await machine.run(Context(), ProcessTicketAction(), TicketParams(ticket_id=ticket_id, note=note))
+        print(f"{ticket_id} [{result.category:8}] {result.resolution_note}")
 
 
 if __name__ == "__main__":

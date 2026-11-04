@@ -55,10 +55,10 @@ result = await ctrl.ainvoke({}, box)           # box = the resource pool
 print(result["message"])                       # → "pong"
 ```
 
-Three differences from `LangGraphAdapter`:
+Three things to notice:
 - `LangGraphController()` is created with no `machine`, no `context`, and no explicit `AgentState` — the schema is built from the field declarations.
 - `.node()` takes an Action **class**, not an instance.
-- Instead of `.compile()` you get `.build()` (validation) + `.ainvoke(data, box)` (running).
+- `.build()` validates the graph once; `.ainvoke(data, box)` runs it, as often as needed.
 
 ---
 
@@ -199,6 +199,10 @@ If `on()` returns a key that's not in `paths`, `RouteKeyError` is raised at runt
 | `OutputHasNoProducerError` | An out field is written by no Action (only when there are no nodes with a mapper) |
 | `UnexpectedResultFieldError` | An Action's Result field isn't declared in the inp/mid schema |
 
+A reference to a node that was never registered fails earlier still, where it is written: `.edge()`, `.route()`, `.start()` and `.finish()` raise `UnregisteredNodeError` at once.
+
+[▶ Example: 01_langgraph.py](../../examples/step_16_langgraph/01_langgraph.py) · [Notebook](../../examples/step_16_langgraph/01_langgraph.ipynb) — each mistake caught where it happens: at declaration, at `.build()`, and at run time.
+
 ---
 
 ## Field mapping
@@ -291,11 +295,16 @@ assert result["category"] == "billing"
 
 The graph runs inside a `@summary_aspect` of a host Action. The box comes from the machine.
 
-**Option 1 — an external graph through `@connection`** (one graph for every call):
+**Option 1 — an external graph through `@connection`** (one graph for every call). `LangGraphController` is a library resource and stays out of the model graph, like `PostgresResource`; the service declares its graph as a subclass with `@meta`, and `@connection` names that subclass:
 
 ```python
+@meta(description="Ticket processing graph", domain=SupportDomain)
+class TicketGraph(LangGraphController):
+    """The ticket graph this service connects its actions to."""
+
+
 ticket_graph = (
-    LangGraphController()
+    TicketGraph()
     .inp("ticket_id", str, "Ticket ID")
     ...
     .build()
@@ -303,7 +312,7 @@ ticket_graph = (
 
 @meta(description="Process ticket via graph", domain=SupportDomain)
 @check_roles(GuestRole)
-@connection(LangGraphController, key="graph", description="Ticket graph")
+@connection(TicketGraph, key="graph", description="Ticket graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run ticket graph")
     async def run_summary(self, params, state, box, connections):
@@ -359,7 +368,7 @@ async def run_summary(self, params, state, box, connections):
 
 ## Review questions
 
-1. How does `LangGraphController` differ from `LangGraphAdapter`? Why doesn't `AgentState` need to be declared by hand anymore?
+1. Why doesn't `AgentState` need to be declared by hand?
 2. How does `.inp()` differ from `.mid()`? What happens if an Action tries to read a mid field before an earlier node has written it?
 3. When is `.route()`'s `on` function called — before or after the source node finishes updating the state?
 4. Why is a node with `response_mapper` excluded from static validation? When does that create a risk?

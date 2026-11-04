@@ -5,13 +5,13 @@
     "attributes": {
         "aoa.action": "CheckoutAction",
         "aoa.aspect": "validate_aspect",
-        "aoa.duration_ms": 0.019788742065429688,
+        "aoa.duration_ms": 0.02193450927734375,
         "aoa.state.sku": "WIDGET-42",
         "aoa.state.quantity": 3
     },
     "dropped_attributes": 0,
-    "timestamp": "2026-11-04T08:16:16.228470Z",
-    "observed_timestamp": "2026-11-04T08:16:16.228470Z",
+    "timestamp": "2026-11-04T08:22:39.037961Z",
+    "observed_timestamp": "2026-11-04T08:22:39.037961Z",
     "trace_id": "0x00000000000000000000000000000000",
     "span_id": "0x0000000000000000",
     "trace_flags": 0,
@@ -20,7 +20,7 @@
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
             "telemetry.sdk.version": "1.45.1",
-            "service.instance.id": "b80ede4c-af74-4ae8-9895-aa4421f26730",
+            "service.instance.id": "57a7985d-992e-4cd2-a6fc-5cd89a65e1a0",
             "service.name": "unknown_service:python"
         },
         "schema_url": ""
@@ -34,14 +34,14 @@
     "attributes": {
         "aoa.action": "CheckoutAction",
         "aoa.aspect": "enrich_aspect",
-        "aoa.duration_ms": 0.028133392333984375,
+        "aoa.duration_ms": 0.0362396240234375,
         "aoa.state.sku": "WIDGET-42",
         "aoa.state.quantity": 3,
         "aoa.state.total": 59.97
     },
     "dropped_attributes": 0,
-    "timestamp": "2026-11-04T08:16:16.228836Z",
-    "observed_timestamp": "2026-11-04T08:16:16.228836Z",
+    "timestamp": "2026-11-04T08:22:39.038440Z",
+    "observed_timestamp": "2026-11-04T08:22:39.038440Z",
     "trace_id": "0x00000000000000000000000000000000",
     "span_id": "0x0000000000000000",
     "trace_flags": 0,
@@ -50,7 +50,7 @@
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
             "telemetry.sdk.version": "1.45.1",
-            "service.instance.id": "b80ede4c-af74-4ae8-9895-aa4421f26730",
+            "service.instance.id": "57a7985d-992e-4cd2-a6fc-5cd89a65e1a0",
             "service.name": "unknown_service:python"
         },
         "schema_url": ""
@@ -63,14 +63,14 @@
     "severity_text": "INFO",
     "attributes": {
         "aoa.action": "CheckoutAction",
-        "aoa.duration_ms": 1.2857913970947266,
+        "aoa.duration_ms": 1.5442371368408203,
         "aoa.result.sku": "WIDGET-42",
         "aoa.result.total": 59.97,
         "aoa.result.confirmation": "Order confirmed: 3x WIDGET-42 = $59.97"
     },
     "dropped_attributes": 0,
-    "timestamp": "2026-11-04T08:16:16.229151Z",
-    "observed_timestamp": "2026-11-04T08:16:16.229151Z",
+    "timestamp": "2026-11-04T08:22:39.038907Z",
+    "observed_timestamp": "2026-11-04T08:22:39.038907Z",
     "trace_id": "0x00000000000000000000000000000000",
     "span_id": "0x0000000000000000",
     "trace_flags": 0,
@@ -79,7 +79,7 @@
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
             "telemetry.sdk.version": "1.45.1",
-            "service.instance.id": "b80ede4c-af74-4ae8-9895-aa4421f26730",
+            "service.instance.id": "57a7985d-992e-4cd2-a6fc-5cd89a65e1a0",
             "service.name": "unknown_service:python"
         },
         "schema_url": ""

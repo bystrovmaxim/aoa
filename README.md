@@ -370,7 +370,7 @@ The transport layer in AOA is open: an adapter is an extension point, not a clos
 
 In AOA, AI agents are not an add-on but an equal consumer of the system. The same operation already running over HTTP for a human becomes a tool for an agent with the simple addition of `McpAdapter` — without duplicating logic and without rewriting for another protocol.
 
-As an experimental feature, a `LangGraphAdapter` is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
+As an experimental feature, a goal-driven transport is planned — a smart transport that moves intelligence into the transport layer itself. Since in AOA an operation is described through intention and result — *what* needs to be obtained, not *how* to obtain it — such a transport only needs a goal, and it will decide which `Action` operations to call and in what order to achieve it. The service declares available results, the transport handles orchestration — and again without a single change to the operations themselves.
 
 → [Adapters: HTTP and MCP from one source](docs/tutorials/step-14-fastapi.md)
 

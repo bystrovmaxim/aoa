@@ -37,6 +37,7 @@ lead-in sentence ending with a colon, stands between the two.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import subprocess
@@ -211,3 +212,100 @@ def run_page(blocks: list[Block]) -> list[BlockRun]:
 def runnable_python_blocks(page: Path) -> list[Block]:
     """Python blocks of ``page`` that carry no fragment mark."""
     return [block for block in page_blocks(page) if block.language == "python" and block.fragment_reason is None]
+
+
+# What each imported module needs from PyPI, matched by the longest module prefix.
+PYPI_FOR_MODULE: dict[str, tuple[str, ...]] = {
+    "aoa.action_machine": ("aoa-action-machine",),
+    "aoa.action_machine.resources.postgres": ("aoa-action-machine[postgres]",),
+    "aoa.fastapi": ("aoa-fastapi-adapter",),
+    "aoa.mcp": ("aoa-mcp-adapter",),
+    "aoa.langgraph": ("aoa-langgraph",),
+    "aoa.otel": ("aoa-otel",),
+    "aoa.ocel": ("aoa-ocel",),
+    "maxitor": ("maxitor",),
+    "maxitor.web": ("maxitor[web]",),
+    "pydantic": ("aoa-action-machine",),
+    "pydantic_core": ("aoa-action-machine",),
+    "jsonschema": ("aoa-action-machine",),
+    "asyncpg": ("aoa-action-machine[postgres]",),
+    "jwt": ("aoa-action-machine[jwt]",),
+    "cryptography": ("aoa-action-machine[jwt]",),
+    "fastapi": ("aoa-fastapi-adapter",),
+    "fastapi.testclient": ("aoa-fastapi-adapter", "httpx"),
+    "starlette": ("aoa-fastapi-adapter",),
+    "starlette.testclient": ("aoa-fastapi-adapter", "httpx"),
+    "httpx": ("httpx",),
+    "mcp": ("aoa-mcp-adapter",),
+    "langgraph": ("aoa-langgraph",),
+    "opentelemetry": ("aoa-otel",),
+}
+
+_REQUIREMENT = re.compile(r"^(?P<name>[A-Za-z0-9_.-]+)(?:\[(?P<extras>[^\]]*)\])?")
+
+
+def imported_modules(sources: list[str]) -> set[str]:
+    """Absolute modules the code ``sources`` import; shell and magic lines are left out."""
+    modules: set[str] = set()
+    for source in sources:
+        code = "\n".join(line for line in source.splitlines() if not line.lstrip().startswith(("!", "%")))
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                modules.add(node.module)
+    return modules
+
+
+def requirements_for(module: str) -> tuple[str, ...] | None:
+    """PyPI requirements ``module`` needs: ``()`` for the standard library, ``None`` when unknown."""
+    if module.split(".")[0] in sys.stdlib_module_names:
+        return ()
+    parts = module.split(".")
+    for length in range(len(parts), 0, -1):
+        prefix = ".".join(parts[:length])
+        if prefix in PYPI_FOR_MODULE:
+            return PYPI_FOR_MODULE[prefix]
+    return None
+
+
+def install_line(requirements: set[str]) -> str:
+    """The ``!pip install`` line for ``requirements``, a bare name dropped when an extra of it is there."""
+    merged: dict[str, set[str]] = {}
+    for requirement in requirements:
+        found = _REQUIREMENT.match(requirement)
+        assert found is not None, requirement
+        extras = {extra.strip() for extra in (found.group("extras") or "").split(",") if extra.strip()}
+        merged.setdefault(found.group("name"), set()).update(extras)
+    names = []
+    for name in sorted(merged, key=lambda item: (not item.startswith("aoa-"), item)):
+        extras = merged[name]
+        names.append(f'"{name}[{",".join(sorted(extras))}]"' if extras else name)
+    return "!pip install -q " + " ".join(names)
+
+
+def installed_requirements(line: str) -> dict[str, set[str]]:
+    """Package names an ``!pip install`` line installs, each with its extras."""
+    installed: dict[str, set[str]] = {}
+    for token in line.split()[2:]:
+        token = token.strip("\"'")
+        if token.startswith("-"):
+            continue
+        found = _REQUIREMENT.match(token)
+        if found:
+            extras = {extra.strip() for extra in (found.group("extras") or "").split(",") if extra.strip()}
+            installed.setdefault(found.group("name").lower(), set()).update(extras)
+    return installed
+
+
+def is_satisfied(requirement: str, installed: dict[str, set[str]]) -> bool:
+    """Whether ``installed`` holds ``requirement``, with every extra it names."""
+    found = _REQUIREMENT.match(requirement)
+    assert found is not None, requirement
+    extras = {extra.strip() for extra in (found.group("extras") or "").split(",") if extra.strip()}
+    name = found.group("name").lower()
+    return name in installed and extras <= installed[name]
