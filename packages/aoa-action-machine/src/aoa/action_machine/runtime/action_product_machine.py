@@ -159,7 +159,14 @@ from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.undecided import Undecided
 from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from aoa.action_machine.intents.cache.cache_intent_resolver import CacheDeclarations, CacheIntentResolver, tags_of
+from aoa.action_machine.intents.cache.cache_entity_fields import entity_fields
+from aoa.action_machine.intents.cache.cache_intent_resolver import (
+    CacheDeclarations,
+    CacheIntentResolver,
+    layout_of,
+    tags_of,
+)
+from aoa.action_machine.intents.cache.cache_layout import CacheLayout
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.console_logger import ConsoleLogger
@@ -177,6 +184,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_entity import CachedEntity, collection_payload
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
@@ -286,6 +294,32 @@ def _first_field_difference(result: BaseResult, back: BaseResult) -> str | None:
             return f"field '{name}' reads back as {after!r}, but was {before!r}"
         return f"field '{name}' reads back different ({difference})"
     return None
+
+
+
+class _EntityKeyCall:
+    """``@cache_entity_key`` bound to one call: the key of each entity, checked to be a non-empty string."""
+
+    def __init__(
+        self,
+        machine: ActionProductMachine,
+        declared: Callable[..., Any],
+        action: BaseAction[Any, Any],
+        params: Any,
+        box: ToolsBox,
+        conns: Connections,
+        context: Context,
+    ) -> None:
+        self._call = (machine, declared, action, params, box, conns, context)
+
+    async def __call__(self, entity: Any) -> str:
+        machine, declared, action, params, box, conns, context = self._call
+        key = await machine._call_cache(declared, action, params, box, conns, context, entity)
+        if not isinstance(key, str) or not key.strip():
+            raise CacheContractError(
+                f"@cache_entity_key in {type(action).__name__!r} must return a non-empty str; got {key!r}."
+            )
+        return key
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -479,10 +513,14 @@ class ActionProductMachine(BaseActionMachine):
         write_tags = await self._call_cache(cache.write, action, params, box, conns, context, result, duration_ms)
         self._validate_cache_write_decision(write_tags, action)
         self._validate_tag_types(write_tags, action, cache.write)
-        if write_tags is not None:
-            # The store keeps bytes: the Result's JSON in UTF-8, never the Result itself.
-            payload = self._encode_for_cache(result)
-            await coordinator.put(type(action), key, payload, duration_ms, tags=write_tags)
+        if write_tags is None:
+            return
+        # The store keeps bytes: the Result's JSON in UTF-8, never the Result itself.
+        payload = self._encode_for_cache(result)
+        if layout_of(cache.write) is CacheLayout.ENTITIES and cache.entity_key is not None:
+            entity_call = _EntityKeyCall(self, cache.entity_key, action, params, box, conns, context)
+            payload = await self._put_entities(coordinator, entity_call, result, duration_ms)
+        await coordinator.put(type(action), key, payload, duration_ms, tags=write_tags)
 
     @staticmethod
     def _encode_for_cache(result: BaseResult) -> bytes:
@@ -512,6 +550,33 @@ class ActionProductMachine(BaseActionMachine):
         if difference is not None:
             raise CacheSerializationError(f"{where}: {difference}.")
         return payload
+
+    @staticmethod
+    async def _put_entities(
+        coordinator: CacheCoordinator, entity_call: _EntityKeyCall, result: BaseResult, duration_ms: float
+    ) -> bytes:
+        """
+        Store each entity of ``result``'s entity fields under its key, and return the collection entry's payload.
+
+        Every entity entry is tagged with its type and id, so invalidation finds it as it finds a
+        whole entry; the collection entry keeps the keys and the Result's other fields.
+        """
+        fields = entity_fields(type(result))
+        references: dict[str, Any] = {}
+        for name, (entity_cls, many) in fields.items():
+            value = result.__dict__.get(name)
+            if value is None:
+                references[name] = None
+                continue
+            stored: list[str] = []
+            for one in value if many else [value]:
+                entity_key = await entity_call(one)
+                tag = CacheTag(type=entity_cls, key=one.get_field_value("id"))
+                await coordinator.put(CachedEntity, entity_key, one.model_dump_json().encode(), duration_ms, tags=[tag])
+                stored.append(entity_key)
+            references[name] = stored if many else stored[0]
+        others = result.model_dump(mode="json", exclude=set(fields))
+        return collection_payload(others, references)
 
     async def _call_cache(
         self,
