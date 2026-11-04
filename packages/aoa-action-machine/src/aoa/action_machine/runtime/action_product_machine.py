@@ -133,6 +133,7 @@ passed include verification are not modeled and should be avoided for ``include`
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Callable
 from contextvars import ContextVar, Token
@@ -184,7 +185,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
-from aoa.action_machine.runtime.cache_entity import CachedEntity, collection_payload
+from aoa.action_machine.runtime.cache_entity import CachedEntity, collection_keys, collection_payload
 from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
@@ -461,11 +462,16 @@ class ActionProductMachine(BaseActionMachine):
         if stored is None:
             return key, None
         # Every hit reads a new Result from the stored bytes; no caller gets another caller's object.
+        entities = cache.write is not None and layout_of(cache.write) is CacheLayout.ENTITIES
+        payload = await self._assemble_entities(self._cache_coordinator, stored.payload) if entities else stored.payload
         try:
-            fresh = result_type.model_validate_json(stored.payload)
+            if payload is None:
+                raise ValueError("an entity of the collection entry is gone")
+            fresh = result_type.model_validate_json(payload)
         except ValueError:
-            # Bytes the current Result type no longer reads (an earlier version wrote them) are a
-            # stale entry: dropped, and the pipeline runs, as when @cache_read declines one.
+            # Bytes the current Result type no longer reads (an earlier version wrote them), or a
+            # collection entry one of whose entities is gone, are a stale entry: dropped, and the
+            # pipeline runs whole, as when @cache_read declines one.
             await self._cache_coordinator.invalidate(action_cls, key)
             return key, None
         cached = (
@@ -550,6 +556,31 @@ class ActionProductMachine(BaseActionMachine):
         if difference is not None:
             raise CacheSerializationError(f"{where}: {difference}.")
         return payload
+
+    @staticmethod
+    async def _assemble_entities(coordinator: CacheCoordinator, payload: bytes) -> bytes | None:
+        """
+        Rebuild a Result's JSON from a collection entry and its entity entries, or ``None`` when one is gone.
+
+        A missing entity is never an error and never a shorter list: the caller turns ``None`` into
+        a miss, so the pipeline runs whole and writes everything again.
+        """
+        try:
+            document = json.loads(payload)
+            fields, references = document["fields"], document["entities"]
+        except (ValueError, KeyError, TypeError):
+            return None
+        keys = collection_keys(references)
+        stored = [await coordinator.get_entry(CachedEntity, key) for key in keys]
+        if any(entry is None for entry in stored):
+            return None
+        by_key = {key: json.loads(entry.payload) for key, entry in zip(keys, stored, strict=True) if entry is not None}
+        for name, reference in references.items():
+            if isinstance(reference, list):
+                fields[name] = [by_key[key] for key in reference]
+            else:
+                fields[name] = None if reference is None else by_key[reference]
+        return json.dumps(fields).encode()
 
     @staticmethod
     async def _put_entities(

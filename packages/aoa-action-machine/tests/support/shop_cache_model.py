@@ -16,7 +16,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.cache import CacheLayout, cache_entity_key, cache_invalidate, cache_key, cache_write
+from aoa.action_machine.intents.cache import (
+    CacheLayout,
+    cache_entity_key,
+    cache_invalidate,
+    cache_key,
+    cache_read,
+    cache_write,
+)
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -25,6 +32,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -32,6 +40,7 @@ from .domain_model.domains import OrdersDomain
 
 DATABASE: dict[str, dict[str, object]] = {}
 RUNS: dict[str, int] = {}
+READS: list[object] = []  # what each hit of ListOrdersAction handed @cache_read
 
 
 def reset(orders: dict[str, tuple[str, float]] | None = None) -> None:
@@ -40,6 +49,7 @@ def reset(orders: dict[str, tuple[str, float]] | None = None) -> None:
     for order_id, (customer_id, total) in (orders or {"o1": ("c1", 10.0), "o2": ("c1", 20.0)}).items():
         DATABASE[order_id] = {"customer_id": customer_id, "total": total}
     RUNS.clear()
+    READS.clear()
 
 
 def _ran(action: str) -> None:
@@ -135,6 +145,13 @@ class ListOrdersAction(BaseAction[CustomerIdParams, OrderListResult]):
         self, params: CustomerIdParams, box: ToolsBox, connections: Connections, entity: ShopOrderCoreEntity
     ) -> str:
         return f"a:order:{entity.id}:row"
+
+    @cache_read("Record what a hit assembled, and keep it")
+    async def orders_cache_read(
+        self, params: CustomerIdParams, box: ToolsBox, connections: Connections, entry: CacheEntry
+    ) -> OrderListResult | None:
+        READS.append(entry.result)
+        return entry.result  # type: ignore[no-any-return]
 
     @cache_write("Keep the list order by order", tags=(ShopCustomerCoreEntity,), layout=CacheLayout.ENTITIES)
     async def orders_cache_write(

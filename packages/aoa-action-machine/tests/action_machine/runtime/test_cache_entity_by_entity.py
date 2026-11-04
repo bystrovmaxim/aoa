@@ -57,3 +57,39 @@ async def test_an_entity_entry_is_tagged_with_its_type_and_id() -> None:
     assert await cache.evict_by_tags(frozenset({CacheTag(type=shop.ShopOrderCoreEntity, key="o1")})) == 1
     assert await _stored(cache, CachedEntity, "a:order:o1:row") is None
     assert await _stored(cache, CachedEntity, "a:order:o2:row") == {"id": "o2", "total": 20.0}
+
+
+async def test_a_hit_assembles_the_result_from_the_entries_without_running() -> None:
+    """12.2: the second list is read from its entries; the pipeline does not run; @cache_read gets it whole."""
+    shop.reset()
+    machine = _machine(CacheCoordinator())
+    first = await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    second = await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    assert shop.RUNS == {"ListOrdersAction": 1}
+    assert second is not first and second.model_dump() == first.model_dump()
+    assert [result.model_dump() for result in shop.READS] == [first.model_dump()]  # type: ignore[attr-defined]
+
+
+async def test_a_missing_entity_makes_a_miss_never_a_shorter_list() -> None:
+    """12.3: o1 dropped, the list misses, runs whole and writes o1 again; @cache_read is not called."""
+    shop.reset()
+    cache = CacheCoordinator()
+    machine = _machine(cache)
+    await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    await cache.evict_by_tags(frozenset({CacheTag(type=shop.ShopOrderCoreEntity, key="o1")}))
+    again = await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    assert [one.id for one in again.orders] == ["o1", "o2"]
+    assert shop.RUNS == {"ListOrdersAction": 2} and shop.READS == []
+    assert await _stored(cache, CachedEntity, "a:order:o1:row") == {"id": "o1", "total": 10.0}
+
+
+async def test_an_entity_entry_of_a_form_the_reader_refuses_makes_a_miss() -> None:
+    """12.5: a partial order under the shared key cannot fill a field that takes a full one."""
+    shop.reset()
+    cache = CacheCoordinator()
+    machine = _machine(cache)
+    await machine.run(Context(), shop.GetOrderAction(), shop.OrderIdParams(order_id="o1"))
+    await cache.put(CachedEntity, "a:order:o1:row", b'{"id":"o1"}', 1.0)
+    again = await machine.run(Context(), shop.GetOrderAction(), shop.OrderIdParams(order_id="o1"))
+    assert again.order.total == 10.0
+    assert shop.RUNS == {"GetOrderAction": 2}
