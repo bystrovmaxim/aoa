@@ -27,5 +27,5 @@
 
 - [X] T008 Raise `aoa-action-machine`; `uv lock`.
 - [X] T009 `bash scripts/run_checks_with_log.sh` to zero.
-- [ ] T010 Tutorial step 8, the how-to on a cache adapter and its example and notebook; Russian drafts.
+- [X] T010 Tutorial step 8, the how-to on a cache adapter and its example and notebook; Russian drafts.
 - [ ] T011 One article and its Russian version.

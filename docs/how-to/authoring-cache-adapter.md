@@ -43,14 +43,14 @@ There is **no** base class to subclass — the machine talks to the store by a d
 
 ```python
 # Fragment: an outline, not complete code.
-async def get_entry(self, action_cls, user_key) -> CacheEntry | None
+async def get_entry(self, action_cls, user_key) -> StoredCacheEntry | None
 async def invalidate(self, action_cls, user_key) -> bool
-async def put(self, action_cls, user_key, result, pipeline_duration_ms,
+async def put(self, action_cls, user_key, payload: bytes, pipeline_duration_ms,
               tags: list[CacheTag] | None = None) -> None
 async def evict_by_tags(self, directive_tags: frozenset[CacheTag]) -> int
 ```
 
-`CacheEntry` (`from aoa.action_machine.runtime.cache_entry import CacheEntry`) carries `result` and `pipeline_duration_ms` (+ access metadata). `CacheTag` (`from aoa.action_machine.runtime.cache_tag import CacheTag`) is a typed tag for indexing and invalidation. **Keys must be namespaced by the operation class** (`module.qualname`), otherwise two operations with the same short name will collide.
+**The store keeps bytes.** `put` receives `payload`, the Result's JSON in UTF-8, which the machine wrote with `model_dump_json()`; `get_entry` returns a `StoredCacheEntry` (`from aoa.action_machine.runtime.cache_entry import StoredCacheEntry`) with that `payload`, `pipeline_duration_ms` and access metadata. The store never sees a Result: on every hit the machine reads the bytes back into a new Result with the operation's Result type, so Redis, which keeps bytes, does the same job as a dict. `CacheTag` (`from aoa.action_machine.runtime.cache_tag import CacheTag`) is a typed tag for indexing and invalidation. **Keys must be namespaced by the operation class** (`module.qualname`), otherwise two operations with the same short name will collide.
 
 ## Step 1. Implement the adapter
 
@@ -58,12 +58,12 @@ Here a plain `dict` stands in for Redis, but the interface is the same:
 
 ```python
 from collections import defaultdict
-from aoa.action_machine.runtime.cache_entry import CacheEntry
+from aoa.action_machine.runtime.cache_entry import StoredCacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 class DictCacheAdapter:
     def __init__(self) -> None:
-        self._store: dict[str, CacheEntry] = {}
+        self._store: dict[str, StoredCacheEntry] = {}
         self._tag_to_keys: defaultdict[CacheTag, set[str]] = defaultdict(set)
         self._key_to_tags: dict[str, set[CacheTag]] = {}
 
@@ -74,10 +74,11 @@ class DictCacheAdapter:
     async def get_entry(self, action_cls, user_key):
         return self._store.get(self._key(action_cls, user_key))
 
-    async def put(self, action_cls, user_key, result, pipeline_duration_ms,
+    async def put(self, action_cls, user_key, payload, pipeline_duration_ms,
                   tags=None) -> None:
+        # Bytes in, bytes out: the machine encodes the Result and reads it back.
         k = self._key(action_cls, user_key)
-        self._store[k] = CacheEntry(result=result, pipeline_duration_ms=pipeline_duration_ms)
+        self._store[k] = StoredCacheEntry(payload=payload, pipeline_duration_ms=pipeline_duration_ms)
         if tags:
             self._key_to_tags[k] = set(tags)
             for tag in tags:
@@ -109,7 +110,7 @@ class DictCacheAdapter:
         return len(candidates)
 ```
 
-For Redis the body of the same methods is `GET` / `DEL` / `SET` with a tag index (for example, Redis Sets: tag → set of keys).
+For Redis the body of the same methods is `GET` / `DEL` / `SET` of the payload bytes, with a tag index (for example, Redis Sets: tag → set of keys).
 
 ## Step 2. Policy on the operation side
 
@@ -158,6 +159,7 @@ machine = ActionProductMachine(cache_coordinator=DictCacheAdapter())
 - **Key namespacing is mandatory** (`module.qualname`) — otherwise collisions between operations.
 - **Returns are validated.** `@cache_key` → `str | None` (non-empty); `@cache_read` → `Result | None`; `@cache_write` and `@cache_invalidate` → `list[CacheTag] | None`, each tag of a declared type; a violation → `CacheContractError`. An exception from a declaration or a store method surfaces outward, it is not swallowed.
 - **Tags are a domain contract.** `evict_by_tags` removes only entries that were indexed under the relevant tags when `put` was called. If a tag was not passed at write time — it cannot be found at invalidation time.
+- **What reads back is what is stored.** Before a write the machine reads the Result back from its own JSON and compares it with the original; a Result that has no JSON form, or reads back different, raises `CacheSerializationError` and nothing reaches the store. An entry whose bytes the current Result type no longer reads — written by an earlier version of the code into a store that outlived a deploy — is dropped, and the pipeline runs.
 - **v1 has no TTL and no single-flight.** Staleness is expressed via `@cache_read` returning `None`; simultaneous misses on one key may run the pipeline several times. TTL is the logic of *your* adapter (Redis `EX`).
 
 ## Verification
@@ -172,12 +174,13 @@ quote('ABC') -> 30.0
 quote('XYZW') -> 40.0
 pipeline executions: ['ABC', 'XYZW']
 cache size: 2
+stored for 'ABC': b'{"price":30.0}'
 after reprice, cache size: 1
 quote('ABC') -> 30.0
 pipeline executions: ['ABC', 'XYZW', 'ABC']
 ```
 
-The second `quote('ABC')` is a hit: the machine took the result from the adapter and **did not run the pipeline** (there is no second `ABC` in `executions` at that point). `RepriceAction` then drops the `ABC` entry through `evict_by_tags`, so the next quote runs the pipeline again. The whole cache concept, with review questions — [Step 8 — Cache](../tutorials/step-08-cache.md).
+The second `quote('ABC')` is a hit: the machine read the result from the adapter's bytes and **did not run the pipeline** (there is no second `ABC` in `executions` at that point). `RepriceAction` then drops the `ABC` entry through `evict_by_tags`, so the next quote runs the pipeline again. The whole cache concept, with review questions — [Step 8 — Cache](../tutorials/step-08-cache.md).
 
 ---
 
