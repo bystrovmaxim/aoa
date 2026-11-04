@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-04] — A projection holds the entity
+
+A projection, `OrderCoreEntity.schema(schema={...})`, used to hold a plain dict: an action returning an order through it had to copy the fields by hand, and an action receiving one got a dict instead of an order. Now the field holds the entity itself — a partial `OrderCoreEntity` with exactly the projection's fields. You can return the full order and the projection keeps only its part; a field outside the projection is not loaded and reading it raises `FieldNotLoadedError`. On input the action reads `params.order.id` as on any entity, and reading by key, `params.order["id"]`, still works. JSON on the wire and the published schema are what they were.
+
+A value is now checked twice over: by the projection's schema and by the entity's own field types, so a constraint the entity declares, such as `total >= 0`, holds through a projection too.
+
+Three declarations that used to pass are now refused. A projection's schema may name only fields of its entity; a key the entity does not have fails at import. A field typed by the entity itself, `order: OrderCoreEntity`, takes a full entity: a partial one is refused with a message that names what it holds and points to a projection, because the JSON it wrote broke the field's own schema. The same goes for `OrderCoreEntity | None` and for each item of `list[OrderCoreEntity]`. A relation inside an entity still holds a partial target. And a projection's value compared with `==` to a dict is no longer equal to it; compare its `model_dump()`.
+
+Every field typed by an entity, not only a projection, is now linked to that entity in the graph, so Maxitor shows which Results and Params carry which entities.
+
+[Tutorial step 17](tutorials/step-17-schema-results.md#a-partial-entity-projection) shows each case with a script and a notebook; steps [18](tutorials/step-18-complex-input.md#a-partial-entity-on-input) and [22](tutorials/step-22-entity.md#a-params-or-result-field-takes-a-full-entity) cover input and full entities.
+
 ## [2026-11-04] — An entity goes out as JSON and comes back
 
 An entity can now be a field of `Params` and `Result` and travel through FastAPI, MCP and LangGraph: every value it holds has one JSON form, written by every path and read back by the same rules whether it comes from JSON, from a dict in your code or from a request. What you declare does not change.
