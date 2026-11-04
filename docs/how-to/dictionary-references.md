@@ -94,6 +94,27 @@ A to-one input is exactly `{"id":"eur"}`. A to-many input is an array such as `[
 
 Export uses each canonical member's `to_reference()` representation: code, display_name and properties. Dictionary property serializers still run. Exported references are not accepted unchanged as selection input: convert code to id explicitly. Python-mode `model_dump()` retains the relationship wrappers.
 
+## Dump in Python mode and in JSON mode
+
+[Script](../../examples/how_to/10_dictionary_python_dump.py) · [Notebook](../../examples/how_to/10_dictionary_python_dump.ipynb)
+
+Python mode is for code that keeps working with the entity: each wrapper stays as it is, holding the canonical members. JSON mode is for the wire: each selected member becomes its reference. With `price` from the example above:
+
+```python
+python_dump = price.model_dump()
+print("Python primary:", python_dump["primary"])
+print("Python alternatives:", python_dump["alternatives"])
+print("Canonical member kept:", python_dump["primary"].entity is CurrencyEnumEntity.EUR)
+print("JSON primary:", price.model_dump(mode="json")["primary"])
+```
+
+```text
+Python primary: CompositeOne(id='eur', loaded)
+Python alternatives: AggregateMany(count=2, entities_loaded=yes, n_entities=2)
+Canonical member kept: True
+JSON primary: {'code': 'eur', 'display_name': 'Euro', 'properties': {'symbol': '€'}}
+```
+
 [Script](../../examples/step_24_relations/72_role_dictionary.py) · [Executed notebook](../../examples/step_24_relations/72_role_dictionary.ipynb)
 
 ```text

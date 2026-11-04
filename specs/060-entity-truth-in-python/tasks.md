@@ -77,9 +77,9 @@
 
 ## Phase 5: Documentation — one commit
 
-- [ ] T021 [P] Update `docs/tutorials/step-22-entity.md` (partial entities: an unloaded field with a default is not readable, nothing of an unloaded field runs, `model_copy(update=...)`), explanations from #401 section 4.2, examples run with outputs from the runs; add a script and notebook under `examples/step_22_entity/` for every new case.
-- [ ] T022 [P] Update `docs/tutorials/step-24-relations.md` (a container is never its entity: dumps, copies and pickles), explanations from #401 section 4.1, with a script and notebook under `examples/step_24_relations/`.
-- [ ] T023 [P] Update `docs/how-to/dictionary-references.md`: its statement that Python-mode `model_dump()` retains the wrappers gets an example that runs, as a script and a notebook under `examples/how_to/`.
+- [X] T021 [P] Update `docs/tutorials/step-22-entity.md` (partial entities: an unloaded field with a default is not readable, nothing of an unloaded field runs, `model_copy(update=...)`), explanations from #401 section 4.2, examples run with outputs from the runs; add a script and notebook under `examples/step_22_entity/` for every new case.
+- [X] T022 [P] Update `docs/tutorials/step-24-relations.md` (a container is never its entity: dumps, copies and pickles), explanations from #401 section 4.1, with a script and notebook under `examples/step_24_relations/`.
+- [X] T023 [P] Update `docs/how-to/dictionary-references.md`: its statement that Python-mode `model_dump()` retains the wrappers gets an example that runs, as a script and a notebook under `examples/how_to/`.
 
 ---
 
