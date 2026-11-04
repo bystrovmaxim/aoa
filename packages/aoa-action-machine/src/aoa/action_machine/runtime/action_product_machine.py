@@ -172,6 +172,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
@@ -382,7 +383,9 @@ class ActionProductMachine(BaseActionMachine):
     ) -> tuple[str | None, Any]:
         """Return the call's key and, on a hit, the Result to answer with (``None`` on a miss).
 
-        A stored entry the read declines is dropped, so the pipeline runs and writes it anew.
+        The stored bytes are read into a new Result with the action's Result type; ``@cache_read``
+        receives it with the stored metadata. A stored entry the read declines is dropped, so the
+        pipeline runs and writes it anew.
         """
         if self._cache_coordinator is None or cache.key is None:
             return None, None
@@ -391,13 +394,15 @@ class ActionProductMachine(BaseActionMachine):
         self._validate_cache_key(key, action)
         if key is None:
             return None, None
-        entry = await self._cache_coordinator.get_entry(action_cls, key)
-        if entry is None:
+        stored = await self._cache_coordinator.get_entry(action_cls, key)
+        if stored is None:
             return key, None
+        # Every hit reads a new Result from the stored bytes; no caller gets another caller's object.
+        fresh = result_type.model_validate_json(stored.payload)
         cached = (
-            await self._call_cache(cache.read, action, params, box, conns, context, entry)
+            await self._call_cache(cache.read, action, params, box, conns, context, CacheEntry.from_stored(stored, fresh))
             if cache.read is not None
-            else entry.result
+            else fresh
         )
         if cached is None:
             await self._cache_coordinator.invalidate(action_cls, key)
@@ -440,7 +445,9 @@ class ActionProductMachine(BaseActionMachine):
         self._validate_cache_write_decision(write_tags, action)
         self._validate_tag_types(write_tags, action, cache.write)
         if write_tags is not None:
-            await coordinator.put(type(action), key, result, duration_ms, tags=write_tags)
+            # The store keeps bytes: the Result's JSON in UTF-8, never the Result itself.
+            payload = result.model_dump_json().encode()
+            await coordinator.put(type(action), key, payload, duration_ms, tags=write_tags)
 
     async def _call_cache(
         self,

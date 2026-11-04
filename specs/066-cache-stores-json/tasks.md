@@ -6,8 +6,8 @@
 
 ## Phase 1: Bytes (US1, 9.1) — one commit
 
-- [ ] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/runtime/test_cache_stores_json.py`: case 9.1; `put` receives bytes; `@cache_read` receives the new Result with the stored metadata.
-- [ ] T002 Implement R1 in `cache_entry.py` and `cache_coordinator.py`, and the machine's encode and read; update the tests that read `CacheEntry.result` from the store.
+- [X] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/runtime/test_cache_stores_json.py`: case 9.1; `put` receives bytes; `@cache_read` receives the new Result with the stored metadata.
+- [X] T002 Implement R1 in `cache_entry.py` and `cache_coordinator.py`, and the machine's encode and read; update the tests that read `CacheEntry.result` from the store.
 
 ## Phase 2: The write's read-back (US2, 9.2) — one commit
 

@@ -14,6 +14,10 @@ Keys are namespaced per action class using ``module.qualname`` so distinct class
 with the same short name do not collide. The coordinator is **not** attached via
 ``ClassVar`` on ``BaseAction``; one instance is injected on the machine.
 
+**Bytes.** The store keeps what the machine writes: the Result's JSON in UTF-8, with
+its duration and tags. It never sees a Result, so a store that keeps bytes, such as
+Redis, does the same job behind the same four methods.
+
 **Tag index.** ``put`` accepts a ``tags: list[CacheTag]`` list; two reverse-lookup
 dicts are kept in sync — ``_tag_to_keys`` (CacheTag → internal keys) and
 ``_key_to_tags`` (internal key → CacheTag set). ``evict_by_tags`` uses wildcard
@@ -31,10 +35,9 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import defaultdict
-from typing import Any
 
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
-from aoa.action_machine.runtime.cache_entry import CacheEntry
+from aoa.action_machine.runtime.cache_entry import StoredCacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 
@@ -43,8 +46,8 @@ class CacheCoordinator(BaseCoordinator):
     In-memory cache store shared across action classes in one machine instance.
 
     Wired through :class:`~aoa.action_machine.runtime.action_product_machine.ActionProductMachine`
-    only; actions interact via ``cache_key``, ``read_cache``, ``on_cache_write``, and
-    ``on_cache_invalidate``, not by calling this type directly from ``BaseAction``.
+    only; actions interact through their cache declarations (``@cache_key``, ``@cache_write``,
+    ``@cache_read``, ``@cache_invalidate``), never by calling this type directly.
 
     All mutating operations are serialized with a single :class:`asyncio.Lock`.
     There is **no** TTL and **no** single-flight in v1.
@@ -52,7 +55,7 @@ class CacheCoordinator(BaseCoordinator):
 
     def __init__(self, max_size: int | None = None) -> None:
         """Create an empty store; ``max_size`` caps entries and enables eviction when full."""
-        self._store: dict[str, CacheEntry] = {}
+        self._store: dict[str, StoredCacheEntry] = {}
         self._tag_to_keys: defaultdict[CacheTag, set[str]] = defaultdict(set)
         self._key_to_tags: dict[str, set[CacheTag]] = {}
         self._lock = asyncio.Lock()
@@ -95,7 +98,7 @@ class CacheCoordinator(BaseCoordinator):
         """Number of entries currently stored."""
         return len(self._store)
 
-    async def get_entry(self, action_cls: type, user_key: str) -> CacheEntry | None:
+    async def get_entry(self, action_cls: type, user_key: str) -> StoredCacheEntry | None:
         """Return a namespaced row or ``None``; on hit, bump access metadata."""
         internal_key = self._make_key(action_cls, user_key)
         async with self._lock:
@@ -110,19 +113,19 @@ class CacheCoordinator(BaseCoordinator):
         self,
         action_cls: type,
         user_key: str,
-        result: Any,
+        payload: bytes,
         pipeline_duration_ms: float,
         tags: list[CacheTag] | None = None,
     ) -> None:
-        """Upsert ``result`` under the namespaced key and index ``tags``; evict one row if at ``max_size``."""
+        """Upsert ``payload`` (the Result's JSON bytes) under the namespaced key and index ``tags``; evict one row if at ``max_size``."""
         internal_key = self._make_key(action_cls, user_key)
         async with self._lock:
             if self._max_size is not None and len(self._store) >= self._max_size:
                 if internal_key not in self._store:
                     self._evict_one()
             self._unindex_key(internal_key)
-            self._store[internal_key] = CacheEntry(
-                result=result,
+            self._store[internal_key] = StoredCacheEntry(
+                payload=payload,
                 pipeline_duration_ms=pipeline_duration_ms,
             )
             if tags:
