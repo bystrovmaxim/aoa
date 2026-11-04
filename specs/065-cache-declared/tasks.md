@@ -6,11 +6,11 @@
 
 ## Phase 1: Declarations (US1, 11.1, 11.6) — one commit
 
-- [ ] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/intents/test_cache_declarations.py`: description, suffix, `async`, names and order, annotations, `@context_requires` above instead of under; one of a kind naming both; not inherited; types at assembly; old names refused naming the replacement; `BaseAction` has none of the four methods.
-- [ ] T002 [US1] Rewrite `tests/action_machine/runtime/test_action_product_machine_cache.py`, `test_action_product_machine_cache_invalidation.py`, `tests/action_machine/model/test_base_action_cache_hooks.py` and the cache part of `test_emission_rules.py` with declarations: hit, `ctx` in the key, `@cache_read` returning `None`, invalidate before write, `@on_error` neither writes nor invalidates.
-- [ ] T003 Confirm they fail on today's code.
-- [ ] T004 Create `intents/cache/` (R1): decorators, signature, resolver, marker; `BaseAction` loses the four methods and checks one of a kind and old names in `__init_subclass__`; the machine calls the declarations (R3).
-- [ ] T005 Run the phase's tests; adversarial breaks of plan phase 1.
+- [X] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/intents/test_cache_declarations.py`: description, suffix, `async`, names and order, annotations, `@context_requires` above instead of under; one of a kind naming both; not inherited; types at assembly; old names refused naming the replacement; `BaseAction` has none of the four methods.
+- [X] T002 [US1] Rewrite `tests/action_machine/runtime/test_action_product_machine_cache.py`, `test_action_product_machine_cache_invalidation.py`, `tests/action_machine/model/test_base_action_cache_hooks.py` and the cache part of `test_emission_rules.py` with declarations: hit, `ctx` in the key, `@cache_read` returning `None`, invalidate before write, `@on_error` neither writes nor invalidates.
+- [X] T003 Confirm they fail on today's code.
+- [X] T004 Create `intents/cache/` (R1): decorators, signature, resolver, marker; `BaseAction` loses the four methods and checks one of a kind and old names in `__init_subclass__`; the machine calls the declarations (R3).
+- [X] T005 Run the phase's tests; adversarial breaks of plan phase 1.
 
 ## Phase 2: Pairing (US2, 11.2) — one commit
 

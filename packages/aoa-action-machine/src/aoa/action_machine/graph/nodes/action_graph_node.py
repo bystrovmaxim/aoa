@@ -40,6 +40,7 @@ from aoa.action_machine.exceptions.missing_summary_aspect_error import MissingSu
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
+from aoa.action_machine.intents.cache.cache_signature_types import validate_declared_types
 from aoa.action_machine.intents.depends.use_case import VALID_USE_CASE_MODES
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
@@ -113,6 +114,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(action_cls))
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
         object.__setattr__(self, "access_decide", AccessDecideGraphEdge.get_access_decide_edges(action_cls))
+        validate_declared_types(action_cls)
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
         object.__setattr__(

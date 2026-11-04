@@ -134,12 +134,14 @@ passed include verification are not modeled and should be avoided for ``include`
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypeVar, cast
 
 from aoa.action_machine.context.context import Context
+from aoa.action_machine.context.context_view import ContextView
 from aoa.action_machine.exceptions.access_denied import AccessDenied
 from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
@@ -152,6 +154,7 @@ from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.undecided import Undecided
 from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
+from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.console_logger import ConsoleLogger
@@ -309,27 +312,27 @@ class ActionProductMachine(BaseActionMachine):
             return
         if not isinstance(cache_key, str):
             raise CacheContractError(
-                f"cache_key in {type(action).__name__!r} must return str | None; " f"got {type(cache_key).__name__!r}.",
+                f"@cache_key in {type(action).__name__!r} must return str | None; " f"got {type(cache_key).__name__!r}.",
             )
         if not cache_key.strip():
             raise CacheContractError(
-                f"cache_key in {type(action).__name__!r} must not be empty or whitespace-only.",
+                f"@cache_key in {type(action).__name__!r} must not be empty or whitespace-only.",
             )
 
     @staticmethod
     def _validate_cache_invalidate(invalidations: object, action: BaseAction[Any, Any]) -> None:
-        """Ensure ``on_cache_invalidate`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
+        """Ensure ``@cache_invalidate`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
         if invalidations is None:
             return
         if not isinstance(invalidations, list):
             raise CacheContractError(
-                f"on_cache_invalidate in {type(action).__name__!r} must return "
+                f"@cache_invalidate in {type(action).__name__!r} must return "
                 f"list[CacheTag] | None; got {type(invalidations).__name__!r}.",
             )
         for item in invalidations:
             if not isinstance(item, CacheTag):
                 raise CacheContractError(
-                    f"on_cache_invalidate in {type(action).__name__!r}: each item must be "
+                    f"@cache_invalidate in {type(action).__name__!r}: each item must be "
                     f"CacheTag; got {type(item).__name__!r}.",
                 )
 
@@ -342,7 +345,7 @@ class ActionProductMachine(BaseActionMachine):
         """Ensure ``cached_result`` is an instance of ``result_type`` or raise :exc:`CacheContractError`."""
         if not isinstance(cached_result, result_type):
             raise CacheContractError(
-                f"read_cache in {type(action).__name__!r} returned "
+                f"@cache_read in {type(action).__name__!r} returned "
                 f"{type(cached_result).__name__!r}, expected "
                 f"{result_type.__name__!r} or None.",
             )
@@ -352,20 +355,51 @@ class ActionProductMachine(BaseActionMachine):
         write_tags: object,
         action: BaseAction[Any, Any],
     ) -> None:
-        """Ensure ``on_cache_write`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
+        """Ensure ``@cache_write`` returned ``list[CacheTag] | None`` or raise :exc:`CacheContractError`."""
         if write_tags is None:
             return
         if not isinstance(write_tags, list):
             raise CacheContractError(
-                f"on_cache_write in {type(action).__name__!r} must return list[CacheTag] | None; "
+                f"@cache_write in {type(action).__name__!r} must return list[CacheTag] | None; "
                 f"got {type(write_tags).__name__!r}.",
             )
         for item in write_tags:
             if not isinstance(item, CacheTag):
                 raise CacheContractError(
-                    f"on_cache_write in {type(action).__name__!r}: each item must be CacheTag; "
+                    f"@cache_write in {type(action).__name__!r}: each item must be CacheTag; "
                     f"got {type(item).__name__!r}.",
                 )
+
+    async def _call_cache(
+        self,
+        declared: Callable[..., Any],
+        action: BaseAction[Any, Any],
+        params: Any,
+        box: ToolsBox,
+        conns: Connections,
+        context: Context,
+        *own: Any,
+    ) -> Any:
+        """Call one cache declaration the way it was declared, with a box of its own.
+
+        It receives ``params``, its box, ``connections``, what only its kind has (``entry``;
+        ``result, duration_ms``; ``result``), and the ``ctx`` view when it asked for context
+        with ``@context_requires``, as the object check does.
+        """
+        method_name = TypeIntrospection.unwrapped_callable_name(declared)
+        step_box = method_box(
+            box,
+            coordinator=self._log_coordinator,
+            action=action,
+            method_name=method_name,
+            context=context,
+            state=BaseState(),
+            params=params,
+        )
+        keys = getattr(declared, "_required_context_keys", None)
+        if keys:
+            return await declared(action, params, step_box, conns, *own, ContextView(context, frozenset(keys)))
+        return await declared(action, params, step_box, conns, *own)
 
     def get_action_node_by_id(self, action_cls: type) -> ActionGraphNode[BaseAction[Any, Any]]:
         """Return the materialized ``Action`` graph node for ``action_cls`` (same id as :class:`ActionGraphNode`)."""
@@ -947,16 +981,21 @@ class ActionProductMachine(BaseActionMachine):
             cache_key_str: str | None = None
             cache_hit = False
 
-            if self._cache_coordinator is not None:
-                cache_key_str = action.cache_key(params)
+            cache = CacheIntentResolver.declarations(action_cls)
+            if self._cache_coordinator is not None and cache.key is not None:
+                cache_key_str = await self._call_cache(cache.key, action, params, box, conns, context)
                 self._validate_cache_key(cache_key_str, action)
                 if cache_key_str is not None:
                     entry = await self._cache_coordinator.get_entry(action_cls, cache_key_str)
                     if entry is not None:
-                        cached_result = await action.read_cache(params, entry)
+                        cached_result = (
+                            await self._call_cache(cache.read, action, params, box, conns, context, entry)
+                            if cache.read is not None
+                            else entry.result
+                        )
                         if cached_result is not None:
                             self._validate_cached_result(cached_result, result_type, action)
-                            result = cached_result
+                            result = cast("R", cached_result)
                             cache_hit = True
                         else:
                             await self._cache_coordinator.invalidate(action_cls, cache_key_str)
@@ -977,13 +1016,18 @@ class ActionProductMachine(BaseActionMachine):
                     # immediately remove the entry it just stored, leaving the cache empty
                     # after every run. By inverting the order — evict stale entries, then
                     # write the fresh result — the new entry always survives the current cycle.
-                    invalidations = await action.on_cache_invalidate(params, result)
-                    self._validate_cache_invalidate(invalidations, action)
-                    if invalidations:
-                        await self._cache_coordinator.evict_by_tags(frozenset(invalidations))
-                    # Write only when cache_key returned a non-None key for this call.
-                    if cache_key_str is not None:
-                        write_tags = await action.on_cache_write(result, params, total_duration_ms)
+                    if cache.invalidate is not None:
+                        invalidations = await self._call_cache(
+                            cache.invalidate, action, params, box, conns, context, result
+                        )
+                        self._validate_cache_invalidate(invalidations, action)
+                        if invalidations:
+                            await self._cache_coordinator.evict_by_tags(frozenset(invalidations))
+                    # Write only when the key was not None for this call.
+                    if cache_key_str is not None and cache.write is not None:
+                        write_tags = await self._call_cache(
+                            cache.write, action, params, box, conns, context, result, total_duration_ms
+                        )
                         self._validate_cache_write_decision(write_tags, action)
                         if write_tags is not None:
                             await self._cache_coordinator.put(

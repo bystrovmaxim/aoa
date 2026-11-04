@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import pytest
 from pydantic import Field
@@ -14,6 +14,7 @@ from aoa.action_machine.exceptions import AccessDenied
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from aoa.action_machine.intents.cache import cache_key, cache_read, cache_write
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -94,13 +95,22 @@ class CacheableCountingAction(BaseAction["CacheableCountingAction.Params", "Cach
     class Result(BaseResult):
         n: int = Field(description="run ordinal")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "fixed-key"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key="count")]
@@ -127,13 +137,22 @@ class PerUserOrderCacheAction(BaseAction["PerUserOrderCacheAction.Params", "PerU
     class Result(BaseResult):
         n: int = Field(description="run ordinal")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return f"{params.user_id}:{params.order_id}"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key=f"{params.user_id}:{params.order_id}")]
@@ -162,18 +181,34 @@ class StaleReadCacheAction(BaseAction["StaleReadCacheAction.Params", "StaleReadC
     class Result(BaseResult):
         tag: str = Field(default="v1")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "stale-key"
 
-    async def read_cache(self, params: Params, entry: CacheEntry) -> Result | None:
+    @cache_read("Read a hit")
+    async def run_cache_read(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        entry: CacheEntry,
+    ) -> Result | None:
         if StaleReadCacheAction._reject_next_read:
             return None
-        return await super().read_cache(params, entry)
+        return cast(StaleReadCacheAction.Result, entry.result)
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key="stale")]
@@ -198,16 +233,32 @@ class BadDictReadCacheAction(BaseAction["BadDictReadCacheAction.Params", "BadDic
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "dict-bad"
 
-    async def read_cache(self, params: Params, entry: CacheEntry) -> Result | None:
+    @cache_read("Read a hit")
+    async def run_cache_read(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        entry: CacheEntry,
+    ) -> Result | None:
         return {}  # type: ignore[return-value]
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key="dict-bad")]
@@ -232,7 +283,13 @@ class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCach
     class Result(BaseResult):
         x: int = Field(default=0)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return ""
 
     @summary_aspect("s")
@@ -255,13 +312,22 @@ class BadWriteDecisionAction(BaseAction["BadWriteDecisionAction.Params", "BadWri
     class Result(BaseResult):
         x: int = Field(default=0)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "bad-write"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return 1  # type: ignore[return-value]  — not a list, triggers CacheContractError
@@ -286,13 +352,22 @@ class BoomWriteCacheAction(BaseAction["BoomWriteCacheAction.Params", "BoomWriteC
     class Result(BaseResult):
         x: int = Field(default=0)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "boom-write"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         raise RuntimeError("write boom")
@@ -317,16 +392,32 @@ class BoomReadCacheAction(BaseAction["BoomReadCacheAction.Params", "BoomReadCach
     class Result(BaseResult):
         x: int = Field(default=0)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "boom-read"
 
-    async def read_cache(self, params: Params, entry: CacheEntry) -> Result | None:
+    @cache_read("Read a hit")
+    async def run_cache_read(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        entry: CacheEntry,
+    ) -> Result | None:
         raise RuntimeError("read boom")
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key="boom-read")]
@@ -351,13 +442,22 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "mgr-secret"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: Result,
         params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key="mgr-secret")]
@@ -378,13 +478,22 @@ class ManagerOnlyCacheAction(BaseAction["ManagerOnlyCacheAction.Params", "Manage
 class CacheableErrorHandledAction(BaseAction[ErrorTestParams, ErrorTestResult]):
     """Like ``ErrorHandledAction`` with stable ``cache_key`` and ``on_cache_write`` True."""
 
-    def cache_key(self, params: ErrorTestParams) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: ErrorTestParams,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return f"err:{params.value}:{params.should_fail}"
 
-    async def on_cache_write(
+    @cache_write("Store the result")
+    async def run_cache_write(
         self,
-        result: ErrorTestResult,
         params: ErrorTestParams,
+        box: ToolsBox,
+        connections: Connections,
+        result: ErrorTestResult,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         return [CacheTag(key=f"err:{params.value}:{params.should_fail}")]
@@ -555,7 +664,7 @@ async def test_read_cache_wrong_type_raises_cache_contract_error() -> None:
     ctx = _ctx_manager()
     # Prime cache with valid pipeline (default read_cache not used on write path)
     await machine.run(ctx, BadDictReadCacheAction(), BadDictReadCacheAction.Params())
-    with pytest.raises(CacheContractError, match="read_cache"):
+    with pytest.raises(CacheContractError, match="@cache_read"):
         await machine.run(ctx, BadDictReadCacheAction(), BadDictReadCacheAction.Params())
 
 
@@ -563,7 +672,7 @@ async def test_read_cache_wrong_type_raises_cache_contract_error() -> None:
 async def test_empty_cache_key_raises_cache_contract_error() -> None:
     machine = _machine()
     ctx = _ctx_manager()
-    with pytest.raises(CacheContractError, match="cache_key"):
+    with pytest.raises(CacheContractError, match="@cache_key"):
         await machine.run(ctx, EmptyKeyCacheAction(), EmptyKeyCacheAction.Params())
 
 
@@ -571,7 +680,7 @@ async def test_empty_cache_key_raises_cache_contract_error() -> None:
 async def test_on_cache_write_non_list_raises_cache_contract_error() -> None:
     machine = _machine()
     ctx = _ctx_manager()
-    with pytest.raises(CacheContractError, match="on_cache_write"):
+    with pytest.raises(CacheContractError, match="@cache_write"):
         await machine.run(ctx, BadWriteDecisionAction(), BadWriteDecisionAction.Params())
 
 

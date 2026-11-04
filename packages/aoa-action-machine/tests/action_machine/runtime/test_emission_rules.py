@@ -25,6 +25,7 @@ from aoa.action_machine.exceptions.on_error_handler_error import OnErrorHandlerE
 from aoa.action_machine.intents.access_control import Allowed, Undecided, Verdict
 from aoa.action_machine.intents.access_decide import access_decide
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
+from aoa.action_machine.intents.cache import cache_key, cache_read, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.emits import emits
@@ -236,15 +237,36 @@ class _CatchAllAction(BaseAction[_Params, _Result]):
 class _CachedAction(BaseAction[_Params, _Result]):
     """Its summary emits only when it runs."""
 
-    def cache_key(self, params: _Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: _Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         """Every call shares one entry."""
         return "fixed"
 
-    async def on_cache_write(self, result: _Result, params: _Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: _Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: _Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         """Keep the result."""
         return [CacheTag(key="fixed")]
 
-    async def read_cache(self, params: _Params, entry: CacheEntry) -> _Result | None:
+    @cache_read("Read a hit")
+    async def run_cache_read(
+        self,
+        params: _Params,
+        box: ToolsBox,
+        connections: Connections,
+        entry: CacheEntry,
+    ) -> _Result | None:
         """Serve the kept result."""
         return _Result(outcome="cache")
 

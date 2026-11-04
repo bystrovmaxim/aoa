@@ -10,6 +10,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
+from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_write
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.on_error import on_error
@@ -62,10 +63,24 @@ class WriteReportAction(BaseAction["WriteReportAction.Params", "WriteReportActio
     class Result(BaseResult):
         value: str = Field(default="report")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return str(params.report_id)
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         _write_calls.append("WriteReportAction")
         return [CacheTag(type=_Report, key=params.report_id)]
 
@@ -90,10 +105,23 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
     class Result(BaseResult):
         done: bool = Field(default=True)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return None  # write-like action; does not cache itself
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         _inv_calls.append("InvalidateReportsAction")
         return [CacheTag(type=_Report)]  # wildcard: evict all reports
 
@@ -124,14 +152,35 @@ class WriteInvoiceInvalidatesReportAction(
     class Result(BaseResult):
         value: str = Field(default="invoice")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return str(params.invoice_id)
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         _inv_calls.append("WriteInvoiceInvalidatesReportAction")
         return [CacheTag(type=_Report, key=params.report_id)]
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         _write_calls.append("WriteInvoiceInvalidatesReportAction")
         return [CacheTag(type=_Invoice, key=params.invoice_id)]
 
@@ -158,10 +207,23 @@ class NoCacheKeyButInvalidatesAction(
     class Result(BaseResult):
         ok: bool = Field(default=True)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return None
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         _inv_calls.append("NoCacheKeyButInvalidatesAction")
         return [CacheTag(type=_Report)]
 
@@ -186,10 +248,24 @@ class NoneWriteAction(BaseAction["NoneWriteAction.Params", "NoneWriteAction.Resu
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "none-write"
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         return None  # explicitly skip write
 
     @summary_aspect("s")
@@ -213,10 +289,24 @@ class BadWriteTypeAction(BaseAction["BadWriteTypeAction.Params", "BadWriteTypeAc
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "bad-write-type"
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         return True  # type: ignore[return-value]  — bool is not a list
 
     @summary_aspect("s")
@@ -239,10 +329,24 @@ class BadWriteItemAction(BaseAction["BadWriteItemAction.Params", "BadWriteItemAc
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "bad-write-item"
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         return ["not-a-cache-tag"]  # type: ignore[list-item]
 
     @summary_aspect("s")
@@ -265,7 +369,14 @@ class BadInvalidateTypeAction(BaseAction["BadInvalidateTypeAction.Params", "BadI
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         return "bad"  # type: ignore[return-value]
 
     @summary_aspect("s")
@@ -288,7 +399,14 @@ class BadInvalidateItemAction(BaseAction["BadInvalidateItemAction.Params", "BadI
     class Result(BaseResult):
         x: int = Field(default=1)
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         return [42]  # type: ignore[list-item]  — int is not a CacheTag
 
     @summary_aspect("s")
@@ -311,14 +429,35 @@ class ErrorPathCachedAction(BaseAction["ErrorPathCachedAction.Params", "ErrorPat
     class Result(BaseResult):
         status: str = Field(default="ok")
 
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("Key of the call")
+    async def run_cache_key(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+    ) -> str | None:
         return "error-path"
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
         _write_calls.append("ErrorPathCachedAction")
         return [CacheTag(type=_Report, key="error-path")]
 
-    async def on_cache_invalidate(self, params: Params, result: Result) -> list[CacheTag] | None:
+    @cache_invalidate("Drop stale entries")
+    async def run_cache_invalidate(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+    ) -> list[CacheTag] | None:
         _inv_calls.append("ErrorPathCachedAction")
         return [CacheTag(type=_Report)]
 
@@ -397,14 +536,14 @@ async def test_on_cache_write_none_second_run_goes_through_pipeline() -> None:
 @pytest.mark.asyncio
 async def test_on_cache_write_wrong_type_raises_cache_contract_error() -> None:
     machine = _machine()
-    with pytest.raises(CacheContractError, match="on_cache_write"):
+    with pytest.raises(CacheContractError, match="@cache_write"):
         await machine.run(_ctx(), BadWriteTypeAction(), BadWriteTypeAction.Params())
 
 
 @pytest.mark.asyncio
 async def test_on_cache_write_bad_item_raises_cache_contract_error() -> None:
     machine = _machine()
-    with pytest.raises(CacheContractError, match="on_cache_write"):
+    with pytest.raises(CacheContractError, match="@cache_write"):
         await machine.run(_ctx(), BadWriteItemAction(), BadWriteItemAction.Params())
 
 
@@ -514,14 +653,14 @@ async def test_on_cache_invalidate_none_does_not_evict_anything() -> None:
 @pytest.mark.asyncio
 async def test_on_cache_invalidate_wrong_type_raises_cache_contract_error() -> None:
     machine = _machine()
-    with pytest.raises(CacheContractError, match="on_cache_invalidate"):
+    with pytest.raises(CacheContractError, match="@cache_invalidate"):
         await machine.run(_ctx(), BadInvalidateTypeAction(), BadInvalidateTypeAction.Params())
 
 
 @pytest.mark.asyncio
 async def test_on_cache_invalidate_bad_item_raises_cache_contract_error() -> None:
     machine = _machine()
-    with pytest.raises(CacheContractError, match="on_cache_invalidate"):
+    with pytest.raises(CacheContractError, match="@cache_invalidate"):
         await machine.run(_ctx(), BadInvalidateItemAction(), BadInvalidateItemAction.Params())
 
 
