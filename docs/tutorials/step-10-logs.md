@@ -26,7 +26,7 @@
 
 The key difference from the usual `logger.info()` — a `box` event carries a **level** and is addressed to a **channel**, and who delivers it where is not decided by the operation code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/18-WlAwBhToJNkGoGiXYTYgQsrgVTiSQm/view?usp=drive_link) · [Open in project](../../examples/step_10_logs/01_logging_sensitive.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_10_logs/01_logging_sensitive.ipynb) · [Open in project](../../examples/step_10_logs/01_logging_sensitive.py)
 
 ---
 

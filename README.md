@@ -131,8 +131,8 @@ Hello, World!
 
 **What's next:**
 
-- Hello World — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/step_01_Action_and_pipeline/01_hello_world.py)
-- Full example — [Try in Colab](https://colab.research.google.com/...) · [View in project](examples/domain_model/01_domain_model.py)
+- Hello World — [Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/01_hello_world.ipynb) · [View in project](examples/step_01_Action_and_pipeline/01_hello_world.py)
+- Full example — [Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/domain_model/01_domain_model.ipynb) · [View in project](examples/domain_model/01_domain_model.py)
 
 ## Packages
 

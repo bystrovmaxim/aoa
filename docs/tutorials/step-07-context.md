@@ -27,7 +27,7 @@ Every call has an environment: who initiated it, with which roles, under what `t
 
 AOA does not make the context an ambient environment you can reach into from anywhere. The environment is packed into `Context`, but an aspect **does not see it by default**. To read a field, an aspect declares it with the `@context_requires` decorator — as strictly as it declares dependencies. In return the machine hands it a `ContextView` — a slice that opens exactly the declared fields and nothing beyond. This is the same principle of explicitness as with [dependencies](step-06-dependencies.md): if you use it, declare it.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1SNlqpMH4ptVTQNdquObgokAkt90H3gUA/view?usp=drive_link) · [Open in project](../../examples/step_07_context/01_context.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_07_context/01_context.ipynb) · [Open in project](../../examples/step_07_context/01_context.py)
 
 ---
 
@@ -167,7 +167,7 @@ class AsiaPacificContext(AppContext):
     pass
 ```
 
-[▶ Colab notebook](../../examples/step_07_context/02_env.ipynb) · [Open in project](../../examples/step_07_context/02_env.py)
+[▶ Colab notebook](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_07_context/02_env.ipynb) · [Open in project](../../examples/step_07_context/02_env.py)
 
 **Run:**
 

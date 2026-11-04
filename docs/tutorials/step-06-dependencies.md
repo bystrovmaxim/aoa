@@ -26,7 +26,7 @@ In ordinary code dependencies come from anywhere. Through the constructor — an
 
 AOA does it differently: an operation declares everything external **in the header**, and cannot obtain it without declaring it. There are two kinds. `@depends` — a dependency the machine creates on demand (a service, a repository, a nested operation); the aspect takes it via `await box.resolve(...)`. `@connection` — an already-open resource the operation expects to receive at launch (a connection, a pool, a client); the aspect reads it from `connections["key"]`. Both are visible to the reader, the reviewer, the test, and the system graph.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1XS2XyVnHdJJwy3YA-Pm0R4XWSZ1m8iXZ/view?usp=drive_link) · [Open in project](../../examples/step_06_dependencies/01_depends.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_06_dependencies/01_depends.ipynb) · [Open in project](../../examples/step_06_dependencies/01_depends.py)
 
 ---
 

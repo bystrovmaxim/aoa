@@ -30,7 +30,7 @@ The [machine](step-12-machine.md) gives a single entry into an operation, but on
 
 Install: `pip install aoa-fastapi-adapter`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1b2H35JM9YfR8NxvqBEsO-SniygjlZtBH/view?usp=drive_link) · [Open in project](../../examples/step_14_fastapi/01_service.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/01_service.ipynb) · [Open in project](../../examples/step_14_fastapi/01_service.py)
 
 ---
 
@@ -97,7 +97,7 @@ app = (
 
 Without `auth_coordinator=` on the route, the adapter default applies.
 
-[▶ Try in Colab](#02_auth_override.ipynb) · [Open in project](../../examples/step_14_fastapi/02_auth_override.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_14_fastapi/02_auth_override.ipynb) · [Open in project](../../examples/step_14_fastapi/02_auth_override.py)
 
 ## OpenAPI from code
 

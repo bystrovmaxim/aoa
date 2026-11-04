@@ -30,7 +30,7 @@ In AOA an AI agent is an equal consumer of the system, on a par with a human beh
 
 Install: `pip install aoa-mcp-adapter`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1MQBDfiix8uyixiQbbDnS-g_FWz0pdp2R/view?usp=drive_link) · [Open in project](../../examples/step_15_mcp/01_tool.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_15_mcp/01_tool.ipynb) · [Open in project](../../examples/step_15_mcp/01_tool.py)
 
 ---
 

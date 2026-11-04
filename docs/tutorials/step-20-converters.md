@@ -30,7 +30,7 @@ This is done by a pair of arguments on each route/tool:
 
 > The arguments are named `params_mapper` / `response_mapper`. The older names `params_converter` / `result_converter` from the README are out of date — they are not in the code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1yt4eN9ojuCjvrvR-3C5DyuzTtlOac3LL/view?usp=drive_link) · [Open in project](../../examples/step_20_converters/01_versions.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_20_converters/01_versions.ipynb) · [Open in project](../../examples/step_20_converters/01_versions.py)
 
 ---
 

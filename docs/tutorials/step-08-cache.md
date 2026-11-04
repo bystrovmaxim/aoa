@@ -27,7 +27,7 @@ Cache is a strange entity. It is not business logic: the meaning of an operation
 
 AOA gives the cache its own place in the contract, splitting two concerns. **The operation is responsible for meaning**: which key to build, whether a particular result is worth storing, what to evict after writing. **The coordinator is responsible for policy**: where to store, how long to live, local or distributed, how to evict. The same technique as with [dependencies](step-06-dependencies.md): the operation says "what", the infrastructure — "how".
 
-[▶ Try in Colab](https://drive.google.com/file/d/1New2yib1SQTKrnyioeI9bUJTI13xnJqN/view?usp=drive_link) · [Open in project](../../examples/step_08_cache/01_cache.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_08_cache/01_cache.ipynb) · [Open in project](../../examples/step_08_cache/01_cache.py)
 
 ---
 

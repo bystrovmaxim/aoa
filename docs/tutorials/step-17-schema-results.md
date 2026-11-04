@@ -25,7 +25,7 @@ An operation's contract is described by `Params` and `Result` — usually as str
 
 AOA gives two **field-level** tools: a single model field can hold arbitrary JSON, validated by an explicit **strict JSON Schema** at object construction, while the other fields stay ordinary typed fields. This is especially convenient for services — to hand out data without building a heavy `Result` model around it — but it works [in code too](#in-code-its-plain-pydantic), because these are plain Pydantic v2 types.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1h1VgrUKEKlaKs_tiGAR0pAqRyFZwKZb3/view?usp=drive_link) · [Open in project](../../examples/step_17_schema_results/01_schema_results.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_17_schema_results/01_schema_results.ipynb) · [Open in project](../../examples/step_17_schema_results/01_schema_results.py)
 
 ---
 

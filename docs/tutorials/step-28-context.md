@@ -26,7 +26,7 @@ Every call has an environment: who made it, where the request came from, in what
 - `with_request(trace_id=, request_path=, …)` → `RequestInfo`;
 - `with_runtime(service_name=, hostname=, …)` → `RuntimeInfo`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1R3It-sKLhcECkYcgH0bm61UGigxyBxfG/view?usp=drive_link) · [Open in project](../../examples/step_28_context/01_context.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_28_context/01_context.ipynb) · [Open in project](../../examples/step_28_context/01_context.py)
 
 ---
 

@@ -26,7 +26,7 @@
 
 AOA separates this into layers. Rollback is `@compensate` ([previous chapter](step-04-saga-and-compensations.md)). Everything else — releasing resources, deciding whether to re-raise the exception or return a meaningful result — is taken on by the global `@on_error`, firing at the end. Business logic, rollback, and error handling become three independent layers, and `try/except` nearly disappears from the main code.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1K8iE9PCF1p_jHuksS9Dkb3K55vaVtJhj/view?usp=drive_link) · [Open in project](../../examples/step_05_error_handling/01_on_error.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_05_error_handling/01_on_error.ipynb) · [Open in project](../../examples/step_05_error_handling/01_on_error.py)
 
 ---
 

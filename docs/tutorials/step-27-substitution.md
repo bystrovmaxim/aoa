@@ -28,7 +28,7 @@ The [previous chapter](step-26-testbench.md) showed at what **depth** to run an 
 
 Plus **Rollup** — a continuation of the resource theme: a run on a live schema with rollback instead of persisting.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1YOZkXCa8BsGbzjqdUG-thKhxDRE531Tp/view?usp=drive_link) · [Open in project](../../examples/step_27_substitution/01_substitution.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_27_substitution/01_substitution.ipynb) · [Open in project](../../examples/step_27_substitution/01_substitution.py)
 
 ---
 

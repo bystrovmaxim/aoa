@@ -37,7 +37,7 @@ Below we walk this path from the beginning: first we establish what counts as a 
 
 ## Checkers
 
-[▶ Try in Colab](https://drive.google.com/file/d/1elqy6vd_gmeZDQ9a63koxzp4PJxhoHAY/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/01_checkers.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/01_checkers.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/01_checkers.py)
 
 A checker is a verifiable promise on an aspect's output: which field must appear in `state`, what type it is, and what constraints it obeys. A single aspect can declare its whole output contract at once — a stack of decorators above the method.
 
@@ -122,7 +122,7 @@ The first run is with a coupon, the second without. And here a subtlety is worth
 
 ## Independent state
 
-[▶ Try in Colab](https://drive.google.com/file/d/1G27ZaVAsJh7suA9rViFzI7p4BusCxq7G/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/02_independent_state.py)
 
 Now to the property of `state` we noticed in the previous chapter but did not explain. `state` is not a shared basket where aspects pile up their goods. Each regular aspect receives a snapshot of state on input and returns a new, independent snapshot for the next one. A snapshot is a self-contained copy of the data at the moment the step finished; later steps do not touch it.
 
@@ -169,7 +169,7 @@ sku='ABC-001', quantity=5, line_total=500
 
 ## Contract violation
 
-[▶ Try in Colab](https://drive.google.com/file/d/1L3CjV5XoxHCcGmxKfsoAtF-qztAOPXP9/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/03_contract_violation.py)
 
 Theory is worth testing on a broken case. Here is an aspect that promises a required `sku` but returns only `quantity`:
 
@@ -208,7 +208,7 @@ The second line matters more than the first: the next step did not run at all. T
 
 ## A contract-preserving aspect
 
-[▶ Try in Colab](https://drive.google.com/file/d/1qyyAl6D2bM3bpGYTKkObbbC-uux55xKS/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/04_contract_preserving_step.py)
 
 A contract protects not only a single aspect — it also protects the rebuilding of the pipeline itself. That is less obvious and therefore more important.
 
@@ -259,7 +259,7 @@ inform_aspect is allowed only because it preserves the downstream state contract
 
 ## X-ray in the console
 
-[▶ Try in Colab](https://drive.google.com/file/d/1ZI8Evretmhze7n1-To6nm7jZuwol1Bz8/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/05_xray_console.py)
 
 So far `state` has been visible only from inside the code. Let's plug in [OpenTelemetry](https://opentelemetry.io/) — the common observability standard with its traces and logs — and see the same path from the outside. One `machine.run()` gives one trace; each aspect inside is its own span.
 
@@ -326,7 +326,7 @@ One answers the question of meaning, the other the question of mechanics, and it
 
 ## X-ray to a file
 
-[▶ Try in Colab](https://drive.google.com/file/d/1X-4p5yGmdr5bNTkKrt6oSKAZ8MhZeDOm/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py)
 
 The console is good for a first acquaintance; in production telemetry is written to a file, an agent, or an external backend. At the same time, let's show how to select only the events you need.
 
@@ -397,7 +397,7 @@ Open both files: `traces.txt` shows the structure of execution, `logs.txt` shows
 
 ## Opaque fields
 
-[▶ Try in Colab](https://drive.google.com/file/d/19EuOPk9IgdW3QfqRunB-G17bGTDIZV9O/view?usp=drive_link) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/07_opaque.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_02_state_as_x-ray_of_the_operation/07_opaque.ipynb) · [Open in project](../../examples/step_02_state_as_x-ray_of_the_operation/07_opaque.py)
 
 An x-ray is good exactly as long as it does not show too much. Some fields are needed inside the operation but have no place in the observability layer: a payment token, a temporary key, a raw response from a foreign system, a heavy connection object. They may be part of `state`, but serializing them into logs is not allowed — sometimes for sensitivity, sometimes for weight, sometimes simply for uselessness.
 

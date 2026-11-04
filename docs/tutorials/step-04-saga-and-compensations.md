@@ -27,7 +27,7 @@ In a distributed system there is no shared transaction. An order reserved goods 
 
 The **Saga** pattern answers this thus: every step has a **compensating** operation that undoes its effect, and on failure the already-executed steps are rolled back in reverse order. AOA builds the saga into the model itself. A compensator is declared with the `@compensate` decorator next to its step — as a visible part of the contract, not an admixture in the code. The machine itself assembles the stack of executed steps and unwinds it on error; the developer is left to describe how to roll back a single step. `@compensate` is as fundamental as `@regular_aspect`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1PUZXdfSVjvkkjzaeoQ5sclUstJmguzbw/view?usp=drive_link) · [Open in project](../../examples/step_04_saga_and_compensations/01_saga_compensate.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_04_saga_and_compensations/01_saga_compensate.ipynb) · [Open in project](../../examples/step_04_saga_and_compensations/01_saga_compensate.py)
 
 ---
 

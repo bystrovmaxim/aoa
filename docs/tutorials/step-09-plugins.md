@@ -26,7 +26,7 @@ Observing a system splits into two tasks: seeing the **mechanics** of execution 
 
 AOA separates them. The mechanics are observed by **plugins** — that is this chapter. Business events are written by `box` — that is the [next one](../index.md#iii-business-logic). The key property of a plugin: it is an **observer, not a participant**. At every step boundary the machine emits an event, the plugin receives it — and cannot change `params`, `state`, or `result`.
 
-[▶ Try in Colab](https://drive.google.com/file/d/1oepjkBpFi_DVU5v42WwuCHj5QaKO9ahR/view?usp=drive_link) · [Open in project](../../examples/step_09_plugins/01_ocel.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_09_plugins/01_ocel.ipynb) · [Open in project](../../examples/step_09_plugins/01_ocel.py)
 
 ---
 

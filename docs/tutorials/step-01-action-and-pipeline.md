@@ -30,7 +30,7 @@ The code assumes fluency in Python: decorators, `async`/`await`, and [Pydantic](
 
 ## Hello, world!
 
-[▶ Try in Colab](https://drive.google.com/file/d/1hHNELkgJY2Wo5HYp_480xlPDTkfOf0R3/view?usp=drive_link) · [Open in project](../../examples/step_01_Action_and_pipeline/01_hello_world.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/01_hello_world.ipynb) · [Open in project](../../examples/step_01_Action_and_pipeline/01_hello_world.py)
 
 Let's start with an operation that does nothing useful — it prints a line and returns an empty stub. Its value is elsewhere: it shows the minimum of declarations AOA requires before it will run anything at all.
 
@@ -90,7 +90,7 @@ The takeaway is worth stating plainly. Even an empty operation already carries a
 
 ## Params, Result, and box
 
-[▶ Try in Colab](https://drive.google.com/file/d/1g7TxGauYe-lIoXk2d9A4-CpU5J9D9kr1/view?usp=drive_link) · [Open in project](../../examples/step_01_Action_and_pipeline/02_params_result_and_box.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/02_params_result_and_box.ipynb) · [Open in project](../../examples/step_01_Action_and_pipeline/02_params_result_and_box.py)
 
 Stubs are fine for introductions; a real operation works with data. Let's give it an input and an output — and at the same time swap `print` for the instrument operations in AOA use to speak with the outside world.
 
@@ -158,7 +158,7 @@ Result: Hello, Alice!
 
 ## Multiple aspects
 
-[▶ Try in Colab](https://drive.google.com/file/d/1sxwC9n4P7ArCU155zBnUhF15EDhUKI1E/view?usp=drive_link) · [Open in project](../../examples/step_01_Action_and_pipeline/03_multiple_aspects.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/03_multiple_aspects.ipynb) · [Open in project](../../examples/step_01_Action_and_pipeline/03_multiple_aspects.py)
 
 One step is rarely enough. Usually there are several, and intermediate data must pass between them. In ordinary code such data settles wherever it can — in local variables, in object fields, in thread-locals — and either vanishes with the call or, conversely, lingers and turns the object into an unnoticed store of state between calls. AOA leaves no such freedom: intermediate data flows through the pipeline in an explicit `state`, while the `Action` itself stays empty between calls.
 
@@ -229,7 +229,7 @@ Result:
 
 ## Inheritance
 
-[▶ Try in Colab](https://drive.google.com/file/d/1lpjOhb7nrtrUpuF3r8VLjSJInanG9Csc/view?usp=drive_link) · [Open in project](../../examples/step_01_Action_and_pipeline/04_inheritance.py)
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_01_Action_and_pipeline/04_inheritance.ipynb) · [Open in project](../../examples/step_01_Action_and_pipeline/04_inheritance.py)
 
 > If operation inheritance is of no use to you right now, you can skip this section and come back later; it does not affect the other chapters.
 
