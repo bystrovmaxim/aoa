@@ -117,6 +117,7 @@ LIFECYCLE (IMPORT VS BUILD VS RUNTIME)
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
+from contextvars import ContextVar
 from enum import Enum
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypeVar, cast, get_args, overload
 
@@ -349,8 +350,14 @@ def _field_adapter(target: Any, name: str) -> TypeAdapter[Any]:
     return adapter
 
 
-def _target_schema(target: Any, handler: Any) -> Any:
-    """Read a related entity: an instance as it is, a dict as a partial entity holding the fields present."""
+def _target_schema(target: Any) -> Any:
+    """
+    Read a related entity: an instance as it is, a dict as a partial entity holding the fields present.
+
+    The target's own schema is not built here, so a model that names a target whose annotations
+    resolve later (an import cycle closed by ``model_rebuild``) builds as it always did; each field is
+    validated by its own annotation on first use.
+    """
 
     def read(value: Any) -> Any:
         if isinstance(value, target):
@@ -364,7 +371,69 @@ def _target_schema(target: Any, handler: Any) -> Any:
         fields = {name: _field_adapter(target, name).validate_python(item) for name, item in value.items()}
         return target.partial(**fields)
 
-    return core_schema.no_info_plain_validator_function(read, json_schema_input_schema=handler.generate_schema(target))
+    return core_schema.no_info_plain_validator_function(read)
+
+
+# The targets whose JSON Schema is being generated right now, by their core-schema reference.
+_TARGETS_IN_PROGRESS: ContextVar[frozenset[str]] = ContextVar("relation_targets_in_progress", default=frozenset())
+
+
+def _core_ref_of(schema: Any) -> str | None:
+    """The reference a model's core schema registers under, if it has one."""
+    if schema.get("type") == "definitions":
+        inner = schema["schema"]
+        return cast(str | None, inner.get("schema_ref") or inner.get("ref"))
+    return cast(str | None, schema.get("ref"))
+
+
+def _target_json_schema(target: Any, handler: Any) -> Any:
+    """
+    The target's JSON Schema: generated once, then a ``$ref`` to it.
+
+    A target that points back (a recursive pair) is met again while its own schema is being
+    generated; that second meeting yields a reference instead of generating it again.
+    """
+    schema = target.__pydantic_core_schema__
+    ref = _core_ref_of(schema)
+    in_progress = _TARGETS_IN_PROGRESS.get()
+    if ref is not None and ref in in_progress:
+        return handler(core_schema.definition_reference_schema(ref))
+    if ref is None or schema.get("type") == "definitions":
+        return handler(schema)
+    token = _TARGETS_IN_PROGRESS.set(in_progress | {ref})
+    try:
+        # Wrapped as a definition, the generator stores the target under $defs and answers with a $ref.
+        return handler(core_schema.definitions_schema(core_schema.definition_reference_schema(ref), [schema]))
+    finally:
+        _TARGETS_IN_PROGRESS.reset(token)
+
+
+def _structural_json_schema(metadata: dict[str, Any], handler: Any) -> dict[str, Any]:
+    """
+    Publish a relation's form: a closed object whose ids are typed and whose target is a ``$ref``.
+
+    Built when a JSON Schema is generated, by then every target is complete; the target's own
+    schema is handed to the generator, which registers it once, so a recursive pair stays finite.
+    """
+    target = metadata["relation_target"]
+    ids_schema = handler(metadata["relation_ids"])
+    entity_schema = _target_json_schema(target, handler)
+    if metadata["relation_many"]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["ids"],
+            "properties": {
+                "ids": {"type": "array", "items": ids_schema},
+                "entities": {"type": "array", "items": entity_schema},
+            },
+        }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id"],
+        "properties": {"id": ids_schema, "entity": entity_schema},
+    }
 
 
 def _structural_one_schema(container_cls: type[Any], target: type, handler: Any) -> Any:
@@ -373,14 +442,7 @@ def _structural_one_schema(container_cls: type[Any], target: type, handler: Any)
     form = core_schema.typed_dict_schema(
         {
             "id": core_schema.typed_dict_field(id_schema),
-            "entity": core_schema.typed_dict_field(_target_schema(target, handler), required=False),
-        },
-        extra_behavior="forbid",
-    )
-    written = core_schema.typed_dict_schema(
-        {
-            "id": core_schema.typed_dict_field(id_schema),
-            "entity": core_schema.typed_dict_field(handler.generate_schema(target), required=False),
+            "entity": core_schema.typed_dict_field(_target_schema(target), required=False),
         },
         extra_behavior="forbid",
     )
@@ -404,7 +466,8 @@ def _structural_one_schema(container_cls: type[Any], target: type, handler: Any)
     return core_schema.no_info_before_validator_function(
         as_form,
         core_schema.no_info_after_validator_function(as_container, form, serialization=_KEEP_IN_PYTHON),
-        serialization=core_schema.plain_serializer_function_ser_schema(write, return_schema=written, when_used="json"),
+        serialization=core_schema.plain_serializer_function_ser_schema(write, when_used="json"),
+        metadata={"relation_target": target, "relation_ids": id_schema, "relation_many": False},
     )
 
 
@@ -414,18 +477,7 @@ def _structural_many_schema(container_cls: type[Any], target: type, handler: Any
     form = core_schema.typed_dict_schema(
         {
             "ids": core_schema.typed_dict_field(core_schema.list_schema(id_schema)),
-            "entities": core_schema.typed_dict_field(
-                core_schema.list_schema(_target_schema(target, handler)), required=False
-            ),
-        },
-        extra_behavior="forbid",
-    )
-    written = core_schema.typed_dict_schema(
-        {
-            "ids": core_schema.typed_dict_field(core_schema.list_schema(id_schema)),
-            "entities": core_schema.typed_dict_field(
-                core_schema.list_schema(handler.generate_schema(target)), required=False
-            ),
+            "entities": core_schema.typed_dict_field(core_schema.list_schema(_target_schema(target)), required=False),
         },
         extra_behavior="forbid",
     )
@@ -455,7 +507,8 @@ def _structural_many_schema(container_cls: type[Any], target: type, handler: Any
     return core_schema.no_info_before_validator_function(
         as_form,
         core_schema.no_info_after_validator_function(as_container, form, serialization=_KEEP_IN_PYTHON),
-        serialization=core_schema.plain_serializer_function_ser_schema(write, return_schema=written, when_used="json"),
+        serialization=core_schema.plain_serializer_function_ser_schema(write, when_used="json"),
+        metadata={"relation_target": target, "relation_ids": id_schema, "relation_many": True},
     )
 
 
@@ -539,6 +592,8 @@ class BaseRelationOne[T]:
     def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
         """Publish the id-object input shape in validation mode and the reference in serialization mode."""
         metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        if "relation_target" in metadata:
+            return _structural_json_schema(metadata, handler)
         if metadata.get("dictionary_relation") is None:
             return cast(dict[str, Any], handler(schema))
         if handler.mode == "serialization":
@@ -662,6 +717,8 @@ class BaseRelationMany[T]:
     def __get_pydantic_json_schema__(cls, schema: Any, handler: Any) -> dict[str, Any]:
         """Publish the array input shape in validation mode and the reference array in serialization mode."""
         metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+        if "relation_target" in metadata:
+            return _structural_json_schema(metadata, handler)
         if metadata.get("dictionary_relation") is None:
             return cast(dict[str, Any], handler(schema))
         if handler.mode == "serialization":

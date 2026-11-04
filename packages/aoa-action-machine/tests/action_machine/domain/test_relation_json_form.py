@@ -87,6 +87,36 @@ class FormOrderCoreEntity(BaseCoreEntity):
 FormCustomerCoreEntity.model_rebuild()
 
 
+@entity(description="A target that names a class declared later", domain=_FormsDomain)
+class FormBriefCoreEntity(BaseCoreEntity):
+    """A target whose own annotation resolves only after another class exists."""
+
+    id: str = Field(description="Brief id")
+    stage: Annotated[AssociationOne[FormStageCoreEntity], NoInverse()] = Field(description="Stage")
+
+
+@entity(description="Points at the brief before the brief is complete", domain=_FormsDomain)
+class FormHintCoreEntity(BaseCoreEntity):
+    """An entity rebuilt while its relation's target is still incomplete."""
+
+    id: str = Field(description="Hint id")
+    brief: Annotated[AssociationOne[FormBriefCoreEntity], NoInverse()] = Field(description="Brief")
+
+
+# An import cycle closed by model_rebuild: the hint is rebuilt before its target can be.
+FormHintCoreEntity.model_rebuild()
+
+
+@entity(description="Declared after the brief", domain=_FormsDomain)
+class FormStageCoreEntity(BaseCoreEntity):
+    """The class the brief names."""
+
+    id: str = Field(description="Stage id")
+
+
+FormBriefCoreEntity.model_rebuild()
+
+
 def _order(**fields: Any) -> FormOrderCoreEntity:
     data: dict[str, Any] = {
         "id": "o1",
@@ -220,6 +250,18 @@ def test_a_target_without_an_id_takes_str_or_int() -> None:
     assert _order(note=CompositeOne[FormNoteDetailEntity](id=7)).note.id == 7
     with pytest.raises(ValidationError):
         _order(note=CompositeOne[FormNoteDetailEntity](id=1.5))
+
+
+# ── an import cycle ─────────────────────────────────────────────────────────
+
+
+def test_an_entity_rebuilds_before_its_relations_target_is_complete() -> None:
+    """A relation does not need its target's schema to build, as before #407; the forms still work."""
+    hint = FormHintCoreEntity.model_validate({"id": "h1", "brief": {"id": "b1"}})
+    assert hint.brief.id == "b1"
+    assert hint.model_dump(mode="json") == {"id": "h1", "brief": {"id": "b1"}}
+    schema = FormHintCoreEntity.model_json_schema()
+    assert schema["properties"]["brief"]["properties"]["entity"]["$ref"] == "#/$defs/FormBriefCoreEntity"
 
 
 # ── refusals ────────────────────────────────────────────────────────────────
