@@ -6,8 +6,10 @@ LoadAOAServiceAction — validate and load a remote AOA service graph into Maxit
 PURPOSE
 ════════════════════════════════════════════════════════════════════════════════
 
-Five-aspect pipeline that accepts a user-supplied AOA service URL and loads
-the coordinator graph into DuckDB.
+Five-aspect pipeline that accepts a user-supplied AOA service URL, downloads
+the coordinator graph and checks it. The Result carries the graph's JSON text,
+from which the caller builds its DuckDB resource: a Result holds only what has a
+JSON form, so it never holds the resource itself.
 
 Aspect sequence:
   1. validate_url — verify the input is a well-formed HTTP/HTTPS URL
@@ -15,7 +17,7 @@ Aspect sequence:
   3. validate_service — download through ``GraphSourceGateway``; take the envelope's coordinator_json, or a bare graph
      (``nodes`` and ``edges`` at the top, as a graph file keeps it) as it is
   4. parse_service_graph — parse coordinator_json string, validate nodes/edges structure
-  5. build_duckdb_graph (summary) — ingest service_graph_data into DuckDB, return counts
+  5. summarize_graph (summary) — return the URL, the counts, the source identity and the graph's text
 """
 
 from __future__ import annotations
@@ -32,7 +34,6 @@ from maxitor.web.model.core.resources.graph_source_gateway import (
     Unreachable,
 )
 from maxitor.web.model.core.source_label import label
-from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
 from pydantic import ConfigDict, Field
 
 from aoa.action_machine.auth import GuestRole
@@ -73,12 +74,9 @@ class LoadAOAServiceParams(BaseParams):
 
 
 class LoadAOAServiceResult(BaseResult):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     service_graph_json_url: str = Field(min_length=1, description="Resolved graph-json endpoint URL.")
-    node_count: int = Field(ge=0, description="Number of nodes loaded into DuckDB.")
-    edge_count: int = Field(ge=0, description="Number of edges loaded into DuckDB.")
-    graph_resource: DuckDBGraphResource = Field(description="Populated DuckDB graph resource.")
+    node_count: int = Field(ge=0, description="Number of nodes in the graph.")
+    edge_count: int = Field(ge=0, description="Number of edges in the graph.")
     content_sha256: str = Field(min_length=64, max_length=64, description="SHA-256 of the graph-json body the graph was built from.")
     etag: str = Field(description="The service's ETag for that body; empty when it gave none.")
     last_modified: str = Field(description="The service's Last-Modified for that body; empty when it gave none.")
@@ -91,8 +89,8 @@ class LoadAOAServiceResult(BaseResult):
 class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult]):
     """
     AI-CORE-BEGIN
-    ROLE: Five-aspect pipeline — validate URL format, normalize to endpoint path, validate service reachability, parse graph data, build DuckDB graph.
-    CONTRACT: Params.service_url accepts both a bare base URL (http://host:8001) and a full graph-json endpoint (http://host:8001/examples/model/graph-json); Result.graph_resource holds the populated DuckDB resource ready for catalog queries.
+    ROLE: Five-aspect pipeline — validate URL format, normalize to endpoint path, validate service reachability, parse graph data, summarize it.
+    CONTRACT: Params.service_url accepts both a bare base URL (http://host:8001) and a full graph-json endpoint (http://host:8001/examples/model/graph-json); Result.graph_text holds the graph JSON the caller builds its DuckDB resource from.
     INVARIANTS: Only one download is made, through ``connections[GraphSource]`` in validate_service_aspect; subsequent aspects read from state without re-fetching; the body's SHA-256, validators and the graph's text travel to the result.
     AI-CORE-END
     """
@@ -243,8 +241,8 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
 
     # ─── Aspect 5 (summary) ──────────────────────────────────────────────────
 
-    @summary_aspect("Build DuckDB graph from service graph data and return load statistics.")
-    async def build_duckdb_graph_summary(
+    @summary_aspect("Summarize the checked graph: its URL, counts, source identity and JSON text.")
+    async def summarize_graph_summary(
         self,
         params: LoadAOAServiceParams,
         state: BaseState,
@@ -256,8 +254,6 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
         service_graph_data = cast(dict[str, Any], state["service_graph_data"])
         identity = cast(dict[str, str], state["source_identity"])
 
-        graph_resource = DuckDBGraphResource.build_from_json(service_graph_data)
-
         node_count = len(list(service_graph_data.get("nodes") or []))
         edge_count = len(list(service_graph_data.get("edges") or []))
 
@@ -265,7 +261,6 @@ class LoadAOAServiceAction(BaseAction[LoadAOAServiceParams, LoadAOAServiceResult
             service_graph_json_url=url,
             node_count=node_count,
             edge_count=edge_count,
-            graph_resource=graph_resource,
             content_sha256=identity["sha256"],
             etag=identity["etag"],
             last_modified=identity["last_modified"],
