@@ -16,8 +16,8 @@
 
 ## Phase 3: Stale entries (US3, 9.3) — one commit
 
-- [ ] T005 [US3] Tests: unreadable bytes → invalidated, pipeline run, `@cache_read` not called, next run a hit.
-- [ ] T006 Implement R3.
+- [X] T005 [US3] Tests: unreadable bytes → invalidated, pipeline run, `@cache_read` not called, next run a hit.
+- [X] T006 Implement R3.
 
 ## Phase 4: Rule 2 on a real hit (US4) — one commit
 

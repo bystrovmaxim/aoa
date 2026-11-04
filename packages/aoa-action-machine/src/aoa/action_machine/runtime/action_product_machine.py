@@ -413,8 +413,8 @@ class ActionProductMachine(BaseActionMachine):
         """Return the call's key and, on a hit, the Result to answer with (``None`` on a miss).
 
         The stored bytes are read into a new Result with the action's Result type; ``@cache_read``
-        receives it with the stored metadata. A stored entry the read declines is dropped, so the
-        pipeline runs and writes it anew.
+        receives it with the stored metadata. A stored entry whose bytes no longer read, or that the
+        read declines, is dropped, so the pipeline runs and writes it anew.
         """
         if self._cache_coordinator is None or cache.key is None:
             return None, None
@@ -427,7 +427,13 @@ class ActionProductMachine(BaseActionMachine):
         if stored is None:
             return key, None
         # Every hit reads a new Result from the stored bytes; no caller gets another caller's object.
-        fresh = result_type.model_validate_json(stored.payload)
+        try:
+            fresh = result_type.model_validate_json(stored.payload)
+        except ValueError:
+            # Bytes the current Result type no longer reads (an earlier version wrote them) are a
+            # stale entry: dropped, and the pipeline runs, as when @cache_read declines one.
+            await self._cache_coordinator.invalidate(action_cls, key)
+            return key, None
         cached = (
             await self._call_cache(cache.read, action, params, box, conns, context, CacheEntry.from_stored(stored, fresh))
             if cache.read is not None

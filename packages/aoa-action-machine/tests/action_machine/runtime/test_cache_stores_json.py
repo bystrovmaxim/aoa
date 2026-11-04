@@ -249,3 +249,51 @@ async def test_an_action_that_does_not_cache_never_serializes() -> None:
     machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[]), cache_coordinator=None)
     result = await machine.run(Context(), action_cls(), ParamsStub())
     assert isinstance(result.data, Frame)
+
+
+# ─── 9.3: a stored entry that no longer reads ─────────────────────────────────
+
+
+_runs: list[str] = []
+
+
+@meta(description="A list whose stored JSON an old version wrote", domain=OrdersDomain)
+@check_roles(GuestRole)
+class RenamedListAction(BaseAction[ParamsStub, ItemsResult]):
+    """Counts its runs and its reads."""
+
+    @cache_key("One key")
+    async def renamed_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        return "list"
+
+    @cache_read("Count the reads")
+    async def renamed_cache_read(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, entry: CacheEntry
+    ) -> ItemsResult | None:
+        _runs.append("read")
+        return entry.result  # type: ignore[no-any-return]
+
+    @cache_write("Keep it", tags=(CachedItemCoreEntity,))
+    async def renamed_cache_write(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ItemsResult, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return []
+
+    @summary_aspect("Load")
+    async def load_summary(
+        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> ItemsResult:
+        _runs.append("run")
+        return ItemsResult(names=["a"])
+
+
+async def test_an_entry_that_no_longer_reads_is_dropped_and_the_pipeline_runs() -> None:
+    """Case 9.3: bytes an earlier Result wrote are stale; the next entry is fresh and read."""
+    _runs.clear()
+    cache = CacheCoordinator()
+    await cache.put(RenamedListAction, "list", b'{"items":["old"]}', 5.0)
+    machine = _machine(cache)
+    first = await machine.run(Context(), RenamedListAction(), ParamsStub())
+    second = await machine.run(Context(), RenamedListAction(), ParamsStub())
+    assert (first.names, second.names) == (["a"], ["a"])
+    assert _runs == ["run", "read"]
