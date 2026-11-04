@@ -60,7 +60,7 @@
 
 ## Phase 5: Changelog — one commit
 
-- [ ] T015 Write one article in `docs/CHANGELOG.md`, and its Russian version at the top of `docs/CHANGELOG.ru_draft.md`: what changed for a reader of schema fields, in plain words, without per-file detail.
+- [X] T015 Write one article in `docs/CHANGELOG.md`, and its Russian version at the top of `docs/CHANGELOG.ru_draft.md`: what changed for a reader of schema fields, in plain words, without per-file detail.
 
 ---
 
