@@ -571,7 +571,7 @@ class ActionProductMachine(BaseActionMachine):
         except (ValueError, KeyError, TypeError):
             return None
         keys = collection_keys(references)
-        stored = [await coordinator.get_entry(CachedEntity, key) for key in keys]
+        stored = await coordinator.get_entries(CachedEntity, keys)  # one round trip, however long the list
         if any(entry is None for entry in stored):
             return None
         by_key = {key: json.loads(entry.payload) for key, entry in zip(keys, stored, strict=True) if entry is not None}

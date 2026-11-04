@@ -12,6 +12,7 @@ Cases 12.1–12.3 and 12.5 of issue #413, on the shop of ``tests/support/shop_ca
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
@@ -93,3 +94,39 @@ async def test_an_entity_entry_of_a_form_the_reader_refuses_makes_a_miss() -> No
     again = await machine.run(Context(), shop.GetOrderAction(), shop.OrderIdParams(order_id="o1"))
     assert again.order.total == 10.0
     assert shop.RUNS == {"GetOrderAction": 2}
+
+
+class CountingStore(CacheCoordinator):
+    """The shipped store, counting how it is asked for entries."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[tuple[str, int]] = []
+
+    async def get_entry(self, action_cls: type, user_key: str) -> Any:
+        self.calls.append(("get_entry", 1))
+        return await super().get_entry(action_cls, user_key)
+
+    async def get_entries(self, action_cls: type, user_keys: list[str]) -> Any:
+        self.calls.append(("get_entries", len(user_keys)))
+        return await super().get_entries(action_cls, user_keys)
+
+
+async def test_a_hit_reads_every_entity_in_one_call() -> None:
+    """12.7.4: one call for the collection entry, one for all its entities."""
+    shop.reset({"o1": ("c1", 10.0), "o2": ("c1", 20.0), "o3": ("c1", 30.0)})
+    store = CountingStore()
+    machine = _machine(store)
+    await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    store.calls.clear()
+    await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
+    assert store.calls == [("get_entry", 1), ("get_entries", 3)]
+
+
+async def test_get_entries_answers_in_the_order_asked_with_none_for_a_missing_key() -> None:
+    """The store's new method, on its own."""
+    store = CacheCoordinator()
+    await store.put(CachedEntity, "a", b'"A"', 1.0)
+    await store.put(CachedEntity, "c", b'"C"', 1.0)
+    found = await store.get_entries(CachedEntity, ["c", "b", "a"])
+    assert [None if entry is None else entry.payload for entry in found] == [b'"C"', None, b'"A"']

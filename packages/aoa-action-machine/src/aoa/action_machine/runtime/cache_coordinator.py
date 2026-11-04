@@ -109,6 +109,24 @@ class CacheCoordinator(BaseCoordinator):
             entry.last_accessed_at = time.monotonic()
             return entry
 
+    async def get_entries(self, action_cls: type, user_keys: list[str]) -> list[StoredCacheEntry | None]:
+        """
+        Return the rows of several keys in one call, in the order given, ``None`` for each one missing.
+
+        A hit of an entity-by-entity entry reads all its entities this way, so a store such as Redis
+        answers in one round trip (``MGET``) rather than one per entity.
+        """
+        now = time.monotonic()
+        async with self._lock:
+            found: list[StoredCacheEntry | None] = []
+            for user_key in user_keys:
+                entry = self._store.get(self._make_key(action_cls, user_key))
+                if entry is not None:
+                    entry.access_count += 1
+                    entry.last_accessed_at = now
+                found.append(entry)
+            return found
+
     async def put(
         self,
         action_cls: type,
