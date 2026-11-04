@@ -324,6 +324,7 @@ A string cannot fill the dictionary-typed variant field.
 [Script](../../examples/step_24_relations/18_specialization_bare_code.py) · [Notebook](../../examples/step_24_relations/18_specialization_bare_code.ipynb)
 
 ```python
+# Fragment: its imports are left out.
 from pydantic import ValidationError
 
 try:
@@ -351,6 +352,7 @@ Pass a reference whose code is unknown after a successful model build.
 [Script](../../examples/step_24_relations/07_specialization_data_codes.py) · [Notebook](../../examples/step_24_relations/07_specialization_data_codes.ipynb)
 
 ```python
+# Fragment: its imports are left out.
 ActionProductMachine(loggers=[])
 try:
     Specialization[FirstPressSpecEntity | RepressSpecEntity | TestPressSpecEntity, VinylRecordKindEnumEntity](
@@ -378,6 +380,7 @@ Pass the head record where pressing details are required.
 [Script](../../examples/step_24_relations/06_specialization_wrong_type.py) · [Notebook](../../examples/step_24_relations/06_specialization_wrong_type.ipynb)
 
 ```python
+# Fragment: one part of an example; `VinylRecordCoreEntity` comes from the code around it.
 from pydantic import ValidationError
 
 record = VinylRecordCoreEntity(
@@ -417,6 +420,7 @@ Pair FIRST with an otherwise valid RepressSpecEntity.
 [Script](../../examples/step_24_relations/08_specialization_mismatched_data.py) · [Notebook](../../examples/step_24_relations/08_specialization_mismatched_data.ipynb)
 
 ```python
+# Fragment: one part of an example; `RepressSpecEntity` comes from the code around it.
 repress = RepressSpecEntity(
     id="rec-1",
     year=1997,

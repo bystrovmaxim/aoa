@@ -42,6 +42,7 @@ Below we walk this path from the beginning: first we establish what counts as a 
 A checker is a verifiable promise on an aspect's output: which field must appear in `state`, what type it is, and what constraints it obeys. A single aspect can declare its whole output contract at once — a stack of decorators above the method.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -76,6 +77,7 @@ Constraints like `min_length` or `max_value` are optional. Even a bare `@result_
 What this buys you is visible in the next aspect. The terminal step receives an already-checked state and simply assembles the result, re-verifying nothing:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult
@@ -125,6 +127,7 @@ The first run is with a coupon, the second without. And here a subtlety is worth
 Now to the property of `state` we noticed in the previous chapter but did not explain. `state` is not a shared basket where aspects pile up their goods. Each regular aspect receives a snapshot of state on input and returns a new, independent snapshot for the next one. A snapshot is a self-contained copy of the data at the moment the step finished; later steps do not touch it.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -171,6 +174,7 @@ sku='ABC-001', quantity=5, line_total=500
 Theory is worth testing on a broken case. Here is an aspect that promises a required `sku` but returns only `quantity`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -211,6 +215,7 @@ A contract protects not only a single aspect — it also protects the rebuilding
 Picture a working chain: an aspect normalizes the item, the terminal step assembles the result. Between them a new step needs to go in — notify an operator, write diagnostics, prepare data for a neighboring system. It must not change the business state. But it stands in the middle, and its output dictionary becomes the input for the terminal step — so it is obliged to return the same contract the code that follows expects.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -259,6 +264,7 @@ inform_aspect is allowed only because it preserves the downstream state contract
 So far `state` has been visible only from inside the code. Let's plug in [OpenTelemetry](https://opentelemetry.io/) — the common observability standard with its traces and logs — and see the same path from the outside. One `machine.run()` gives one trace; each aspect inside is its own span.
 
 ```python
+# Fragment: its imports are left out.
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from opentelemetry.sdk._logs import LoggerProvider
@@ -329,6 +335,7 @@ The console is good for a first acquaintance; in production telemetry is written
 The `ConsoleSpanExporter` and `ConsoleLogRecordExporter` exporters accept `out` — any file-like object.
 
 ```python
+# Fragment: one part of an example; `TracerProvider` comes from the code around it.
 with open("traces.txt", "w") as traces_file, open("logs.txt", "w") as logs_file:
     tp = TracerProvider()
     tp.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter(out=traces_file)))
@@ -344,6 +351,7 @@ After the run the spans end up in `traces.txt`, the log records in `logs.txt`.
 By default the plugin receives all lifecycle events. Often you need fewer — for example, only `state` snapshots and the finish. That is what `watch_events` is for:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.plugin.core.events import AfterRegularAspectEvent, GlobalFinishEvent
 
 plugin_logs = OpenTelemetryPlugin(
@@ -358,6 +366,7 @@ Such a plugin will see only `AfterRegularAspectEvent` (the `state` snapshot afte
 From here comes the technique the plugin architecture rests on. On one machine you can place two independent plugins:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(plugins=[plugin_traces, plugin_logs])
 ```
 
@@ -395,6 +404,7 @@ An x-ray is good exactly as long as it does not show too much. Some fields are n
 For this, every checker has `opaque=True`.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -473,6 +483,7 @@ from aoa.action_machine.exceptions.validation_field_error import ValidationField
 A contract is assembled from several `@result_*` decorators — one per field.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource

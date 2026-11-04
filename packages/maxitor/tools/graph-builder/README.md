@@ -97,6 +97,7 @@ A repository conforms when it lists its graphs in `graph-builder.toml`, keeps ea
 ## From Python
 
 ```python
+# Fragment: its imports are left out.
 from maxitor.graph_builder.schemas import check_graph, graph_schema
 from maxitor.graph_builder.config import read_config
 

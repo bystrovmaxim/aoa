@@ -32,6 +32,7 @@ Nothing in the previous chapter stops being true. Everything here is optional, a
 An event is a class. Its name ends with `Event`, and its fields are typed. It takes the place of `kwargs`, after the text of the line:
 
 ```python
+# Fragment: one part of an example; `box` comes from the code around it.
 from aoa.action_machine.model.base_event import BaseEvent
 
 
@@ -88,6 +89,7 @@ Lines with `kwargs` stop working only when a switch is on, and there are two swi
 `@emits` lists what a method may emit. It works on the five kinds of method that receive `box`: `@regular_aspect`, `@summary_aspect`, `@compensate`, `@on_error` and `@access_decide`. It stands above or below the method's own decorator, once per method.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.intents.emits import emits
 
 
@@ -124,6 +126,7 @@ The rules cover operation code only. What plugins and the machine write stays as
 `events` lists the facts of a domain. Declaring it switches the whole domain on:
 
 ```python
+# Fragment: its imports are left out.
 class StoreDomain(BaseDomain):
     name = "store"
     description = "Storefront operations"

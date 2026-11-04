@@ -290,6 +290,7 @@ If intent lives separately, the link can break right after generation. The descr
 In AOA, the equivalent intent looks like part of the executable structure:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @regular_aspect("Issue token")
 @result_string("token", opaque=True, required=True)
 async def issue_token_aspect(...):

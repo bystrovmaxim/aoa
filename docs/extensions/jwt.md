@@ -77,6 +77,7 @@ A working, run-verified example in two files:
 **Verifying** — [`examples/step_14_fastapi/04_bearer_auth.py`](../../examples/step_14_fastapi/04_bearer_auth.py) ([▶ Try in Colab](#04_bearer_auth.ipynb)). `JwtAuthCoordinator` is the adapter's strict default; `/auth/login` is an explicit [route-level override](../tutorials/step-13-authentication.md#route-level-override) (`NoAuthCoordinator`), because login has no token to present yet:
 
 ```python
+# Fragment: its imports are left out.
 strict_default = JwtAuthCoordinator(
     secret_key=_SECRET_KEY,
     algorithm=_ALGORITHM,
@@ -111,6 +112,7 @@ Issuers name the session claim differently, so its name is configuration: `sessi
 From [`07_session_id.py`](../../examples/step_14_fastapi/07_session_id.py):
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     secret_key=_SECRET_KEY,
     algorithm=_ALGORITHM,
@@ -231,6 +233,7 @@ An `@access_decide` method reads the session id the same way and may base its ve
 Because AOA keeps no session store, ending a session is application logic. In [`08_session_access_rule.py`](../../examples/step_14_fastapi/08_session_access_rule.py), `LogoutAction` records the caller's session in an application registry, and the rule refuses a recorded session:
 
 ```python
+# Fragment: its imports are left out.
 @access_decide("Refuse a session the application has ended")
 @context_requires(Ctx.User.session_id)
 async def active_session_access_decide(self, params: ParamsStub, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
@@ -317,6 +320,7 @@ GET /session (verified token, sid empty) -> 500 {'detail': 'Internal server erro
 Code written for the previous version needs two changes: every constructor call names the session claim, and every issuer puts that claim into its tokens.
 
 ```python
+# Fragment: its imports are left out.
 # Before
 JwtAuthCoordinator(secret_key=SECRET_KEY, role_registry={"admin": AdminRole})
 
@@ -368,6 +372,7 @@ For browser-based SSO across subdomains (`app.example.com`, `admin.example.com`,
 It plugs straight into `JwtAuthCoordinator` — the `credential_extractor` parameter swaps `BearerCredentialExtractor` for any other `CredentialExtractor`; the rest of the pipeline (signature, `exp`, `role_registry`) is unchanged:
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     secret_key=...,
     role_registry={"admin": AdminRole},
@@ -392,6 +397,7 @@ A working example — [`examples/step_14_fastapi/05_cookie_auth.py`](../../examp
 The industry answer is **JWKS** (RFC 7517): the issuer publishes its public keys at a URL like `https://issuer/.well-known/jwks.json`, every token carries a `kid` header, and verifiers fetch and cache the key set and pick the right one by `kid`. Rotation becomes seamless: publish old+new, sign with the new key, drop the old one once outstanding tokens expire. The consumer holds no key material at all — only a URL. PyJWT supports this natively via `jwt.PyJWKClient`, no new dependency required.
 
 ```python
+# Fragment: its imports are left out.
 auth = JwtAuthCoordinator(
     jwks_url="https://sso.example.com/.well-known/jwks.json",
     algorithm="RS256",
@@ -426,6 +432,7 @@ A working example — [`examples/step_14_fastapi/06_jwks_auth.py`](../../example
 A JWT carries roles as strings (`"roles": ["admin", "viewer"]`), while `UserInfo.roles` is a tuple of `BaseRole` classes. `role_registry` is the explicit dict the developer supplies:
 
 ```python
+# Fragment: its imports are left out.
 JwtAuthCoordinator(secret_key=..., role_registry={"admin": AdminRole, "viewer": ViewerRole}, session_id_claim="sid")
 ```
 

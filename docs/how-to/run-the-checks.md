@@ -270,7 +270,7 @@ FUNCTION_EXCEPTIONS: dict[tuple[str, str], str] = {
 MODULE_EXCEPTIONS: dict[str, str] = {}
 ```
 
-The step then passes and prints the exception:
+The step then passes, and its log names the exception.
 
 ```text
 excepted: packages/aoa-demo/src/aoa/demo/example.py heavy — One flat table of cases; splitting it hides the table.

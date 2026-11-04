@@ -92,6 +92,7 @@ Before applying, you see the before/after table, affected files, prepared change
 An AOA service (Python) — the framework builds the graph:
 
 ```python
+# Fragment: `my_service` stands for a module of your own.
 # my_service/build_graph.py
 import importlib
 import sys

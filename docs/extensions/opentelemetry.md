@@ -54,6 +54,7 @@ pip install aoa-otel
 You configure the provider (the backend is your choice), the plugin only emits:
 
 ```python
+# Fragment: its imports are left out.
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter

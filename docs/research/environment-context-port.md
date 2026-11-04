@@ -34,6 +34,7 @@ But one channel is often left in the dark: the execution environment.
 Feature flags, environment variables, runtime settings, tenant config, A/B parameters, and operational limits are usually read directly:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -72,6 +73,7 @@ If you read every environment variable when the machine starts, the system gets 
 So `environment` should store not the actual value but a provider:
 
 ```python
+# Fragment: an outline, not complete code.
 @environment("enable_new_flow", lambda: read_flag("new_flow"), cache="request")
 ```
 
@@ -90,6 +92,7 @@ Lazy reading matters especially for AOA: if the environment becomes a port, the 
 A possible API:
 
 ```python
+# Fragment: one part of an example; `environment` comes from the code around it.
 @environment("enable_new_flow", provider=lambda: read_flag("new_flow"), type_=bool, cache="request")
 @environment("risk_limit", provider=lambda: read_limit("risk"), type_=int, cache="ttl", ttl_seconds=30)
 class AppContext(BaseContext):
@@ -99,6 +102,7 @@ class AppContext(BaseContext):
 Used inside an Action:
 
 ```python
+# Fragment: its imports are left out.
 @regular_aspect("Select order flow")
 @context_requires(AppContext.Env.enable_new_flow)
 # design sketch: the port this page argues for is not the API, so this signature is not
@@ -157,6 +161,7 @@ async def select_flow_aspect(self, params, state, box, connections, context):
 Allowed:
 
 ```python
+# Fragment: its imports are left out.
 @context_requires(AppContext.Env.enable_new_flow)
 # design sketch: the port this page argues for is not the API, so this signature is not
 # meant to compile against the current one
@@ -205,6 +210,7 @@ The environment port must be substitutable just as explicitly as a Resource.
 Otherwise a test ends up tied to the machine's real environment again:
 
 ```python
+# Fragment: its imports are left out.
 bench = TestBench(CreateOrderAction).with_environment(
     enable_new_flow=True,
     risk_limit=10_000,
@@ -214,6 +220,7 @@ bench = TestBench(CreateOrderAction).with_environment(
 or:
 
 ```python
+# Fragment: its imports are left out.
 bench = TestBench(CreateOrderAction).with_environment_provider(
     AppContext.Env.risk_limit,
     lambda: 10_000,

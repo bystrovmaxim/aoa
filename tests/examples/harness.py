@@ -32,7 +32,9 @@ RATIONALE
 A fragment carries ``# Fragment: <reason>.`` as its first line: visible on the
 page, kept when copied, and readable without a Markdown extension. A ``text``
 block is a Python block's shown output when nothing but blank lines, or one
-lead-in sentence ending with a colon, stands between the two.
+lead-in sentence ending with a colon, stands between the two; a block with no
+language counts as ``text``. A block that opens with a docstring is a whole
+module and runs in a process of its own.
 """
 
 from __future__ import annotations
@@ -149,7 +151,7 @@ def page_blocks(page: Path) -> list[Block]:
         if language == "python" and position + 1 < len(raw):
             next_start, _, next_language, next_code = raw[position + 1]
             between = lines[stop : next_start - 1]
-            if next_language == "text" and _is_lead_in(between):
+            if next_language in ("text", "") and _is_lead_in(between):
                 shown = next_code
         blocks.append(Block(page=page, line=start, language=language, code=code, shown_output=shown))
     return blocks
@@ -171,9 +173,11 @@ def mask(text: str) -> str:
 
 
 _DRIVER = r"""
-import ast, asyncio, contextlib, io, json, sys, traceback
+import ast, asyncio, contextlib, io, json, sys, traceback, types
 blocks = json.load(sys.stdin)
-namespace = {"__name__": "__main__"}
+page_module = types.ModuleType("__main__")
+sys.modules["__main__"] = page_module
+namespace = page_module.__dict__
 loop = asyncio.new_event_loop()
 results = []
 for where, code in blocks:
@@ -194,7 +198,27 @@ sys.__stdout__.write("\n@@RESULTS@@" + json.dumps(results))
 """
 
 
+def is_whole_module(block: Block) -> bool:
+    """Whether ``block`` is a whole module, opening with its docstring, that runs in a process of its own."""
+    return block.code.lstrip().startswith(('"""', "'''"))
+
+
 def run_page(blocks: list[Block]) -> list[BlockRun]:
+    """Run ``blocks`` in page order: whole modules each alone, the rest together; stop at the first error."""
+    runs: list[BlockRun] = []
+    together = [block for block in blocks if not is_whole_module(block)]
+    together_runs = {id(run.block): run for run in _run_together(together)} if together else {}
+    for block in blocks:
+        run = _run_together([block])[0] if is_whole_module(block) else together_runs.get(id(block))
+        if run is None:
+            break
+        runs.append(run)
+        if run.error:
+            break
+    return runs
+
+
+def _run_together(blocks: list[Block]) -> list[BlockRun]:
     """Run ``blocks`` in order in one process from the repository root; stop at the first error."""
     payload = json.dumps([[block.where, block.code] for block in blocks])
     finished = subprocess.run(

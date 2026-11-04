@@ -87,6 +87,7 @@ Phase 1 never disappeared. It retreated into places where being wrong is cheap: 
 **The practice.** The admissible shape of the solution is not described in prose but declared in code, in a form the runtime itself enforces. A business operation is an `Action`: a class with typed input and output, a declared domain, a declared access rule, a linear pipeline of steps, declared dependencies, and declared postconditions for every step.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState

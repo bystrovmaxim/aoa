@@ -32,12 +32,14 @@ The full example: [04_custom_logger.py](../../examples/how_to/04_custom_logger.p
 `BaseLogger` (`from aoa.action_machine.logging.base_logger import BaseLogger`) gives a two-phase pipeline `match_filters → write` and asks you to implement only the write:
 
 ```python
+# Fragment: an outline, not complete code.
 async def write(self, scope, message, var, ctx, state, params, indent) -> None
 ```
 
 The coordinator does everything heavy **before** the loggers: it validates `var`, substitutes the templates (`{%var.x}`, `{iif(...)}`, `@sensitive` masking), and fans out to all loggers. Into `write` comes an **already-rendered string** `message`, and the message metadata is in `var`:
 
 ```python
+# Fragment: one part of an example; `var` comes from the code around it.
 var["level"]       # LogLevelPayload(mask=Level.*, name="INFO" | "WARNING" | "CRITICAL")
 var["channels"]    # LogChannelPayload(mask=Channel.*, names="business" | ...)
 var.get("domain")  # a BaseDomain subclass or None
@@ -48,6 +50,7 @@ var.get("domain")  # a BaseDomain subclass or None
 `var` has two forms. In a line with `kwargs`, or with no variables, it is a dictionary. In a line with an [event](../tutorials/step-11-object-events.md), it is that event, with its system fields filled, so a sink can tell facts apart:
 
 ```python
+# Fragment: one part of an example; `var` comes from the code around it.
 if isinstance(var, OrderCompletedEvent):
     send(var.model_dump())       # the fact's own fields
 ```
@@ -81,6 +84,7 @@ class JsonLinesLogger(BaseLogger):
 Filtering is **not rewritten** — it is built in. Without subscriptions a logger accepts everything. With subscriptions a message passes if **any** matches (`OR` across rules); within one rule `channels`, `levels`, `domains` are `AND`. The method is fluent:
 
 ```python
+# Fragment: one part of an example; `sink` comes from the code around it.
 logger = (
     JsonLinesLogger(sink)
     .subscribe("warn-only", levels=Level.warning)              # only WARNING
@@ -95,6 +99,7 @@ logger = (
 Loggers are collected into a `LogCoordinator` and passed to the machine:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[logger]))
 ```
 

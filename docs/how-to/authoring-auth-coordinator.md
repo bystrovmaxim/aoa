@@ -31,6 +31,7 @@ The full example: [02_custom_auth_coordinator.py](../../examples/how_to/02_custo
 A coordinator is an object with one async method:
 
 ```python
+# Fragment: an outline, not complete code.
 async def process(self, request_data) -> Context | None
 ```
 
@@ -95,6 +96,7 @@ Inside, `process` does exactly this: `extract()` → if empty, `None`; `authenti
 If the entry mechanism is more convenient to describe with one call (an external SSO, a ready identity-provider client), implement `process` directly — nothing to subclass, the adapter only needs the duck-typed contract:
 
 ```python
+# Fragment: its imports are left out.
 class SsoCoordinator:
     async def process(self, request_data) -> Context | None:
         token = request_data.headers.get("authorization")

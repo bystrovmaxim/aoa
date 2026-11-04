@@ -40,6 +40,7 @@ Take an order fulfillment of three steps: reserve the item, charge the payment, 
 `@compensate(target_aspect, description)` binds a compensator method to a regular aspect **by direct callable reference**. The target aspect must be defined before the compensator in the class body — the reference is captured at class definition time. A compensator method's name ends with `_compensate`.
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -60,6 +61,7 @@ async def reserve_compensate(self, params: BaseParams, state_before: BaseState, 
 So the step and its rollback stand as a pair. `charge_aspect` has its own `charge_compensate` ("refund the money"). And `confirm_summary` in the example fails on purpose:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult

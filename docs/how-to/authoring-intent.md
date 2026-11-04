@@ -88,6 +88,7 @@ The `annotates` edge targets the operation node's `node_id` — and its `id` equ
 Subclass `BaseGraphNodeInspector[Axis]`, where the axis is a root type (`BaseAction[Any, Any]`, `BaseEntity`, `BaseResource`…). Implement only `_get_node(cls)`: return a node for the rule's carriers or `None` for the rest. The base itself walks the axis and all its subclasses:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNodeInspector
 
@@ -104,6 +105,7 @@ class CriticalityInspector(BaseGraphNodeInspector[BaseAction[Any, Any]]):
 Add your inspector to the shipped ones and build the coordinator, then inject it into the machine:
 
 ```python
+# Fragment: one part of an example; `CriticalityInspector` comes from the code around it.
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import all_axis_graph_node_inspectors
 

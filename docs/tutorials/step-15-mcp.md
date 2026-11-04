@@ -39,6 +39,7 @@ Install: `pip install aoa-mcp-adapter`.
 The adapter is assembled the same fluent way as [FastAPI](step-14-fastapi.md): `.tool(...)` per tool, `.build()` returns a ready MCP server (`FastMCP`).
 
 ```python
+# Fragment: one part of an example; `GreetAction` comes from the code around it.
 from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
@@ -87,6 +88,7 @@ A tool name is the identifier the agent names when calling. The recommended form
 When you need to expose the whole operation catalog to the agent at once, instead of listing `.tool(...)` by hand there is `.register_all()` — it registers all operations from the graph (those with at least one aspect), deriving the name from the class name in snake_case without the `Action` suffix (`CreateOrderAction → create_order`):
 
 ```python
+# Fragment: its imports are left out.
 server = McpAdapter(machine, NoAuthCoordinator(context=Context())).register_all().build()
 ```
 
@@ -140,6 +142,7 @@ Extracting the agent's credentials from the MCP call itself (an api-key or token
 As with [FastAPI](step-14-fastapi.md#authentication-is-mandatory), a specific tool can override the adapter default with its own coordinator — `auth_coordinator=` in `.tool(...)`:
 
 ```python
+# Fragment: its imports are left out.
 server = (
     McpAdapter(machine=machine, auth_coordinator=strict_default)
     .tool("system.login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # exception
@@ -153,6 +156,7 @@ server = (
 Schema reconciliation is arranged identically to [FastAPI](step-14-fastapi.md#when-the-external-schema-diverges-from-the-contract): `request_model`/`response_model` set the external shape, while `params_mapper`/`response_mapper` translate it into the operation's `Params`/`Result` and back — at the adapter boundary, without touching the `Action` itself.
 
 ```python
+# Fragment: an outline, not complete code.
 .tool(
     "greetings.greet_v2",
     GreetAction,

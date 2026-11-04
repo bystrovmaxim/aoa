@@ -39,6 +39,7 @@ This is done by a pair of arguments on each route/tool:
 Without converters the adapter validates the body straight into the operation's `Params` and serializes the `Result` as is — this is the "effective" schema by default. A converter swaps one of the sides:
 
 ```python
+# Fragment: an outline, not complete code.
 # v1 — native contract: Params and Result go through as-is
 .post("/api/v1/orders", CreateOrderAction, tags=["orders"])
 

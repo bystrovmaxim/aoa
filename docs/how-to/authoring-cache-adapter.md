@@ -42,6 +42,7 @@ The adapter answers only the question "where to store" — no business decisions
 There is **no** base class to subclass — the machine talks to the store by a duck-typed contract. Per run it calls exactly four async methods:
 
 ```python
+# Fragment: an outline, not complete code.
 async def get_entry(self, action_cls, user_key) -> CacheEntry | None
 async def invalidate(self, action_cls, user_key) -> bool
 async def put(self, action_cls, user_key, result, pipeline_duration_ms,
@@ -115,6 +116,7 @@ For Redis the body of the same methods is `GET` / `DEL` / `SET` with a tag index
 The store caches nothing on its own until the operation allows it. Four `BaseAction` hooks:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
@@ -140,6 +142,7 @@ Machine flow: with a coordinator present — `cache_key(params)`; if not `None` 
 The adapter is injected on the machine — the cache is **opt-in**, without a coordinator the machine does not touch the store:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(cache_coordinator=DictCacheAdapter())
 ```
 

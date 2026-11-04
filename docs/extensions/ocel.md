@@ -82,6 +82,7 @@ pip install aoa-ocel
 The data flow: an aspect returns `list[OcelFrame]` → on `GlobalFinishEvent` `OcelPlugin` assembles an `OcelEvent` (with E2O links and object attributes) → writes it to the store. The aspect puts "frames" into `state` under the key `OCEL_FRAMES_KEY`; each `OcelFrame(object=entity, qualifier="...")` links the operation-event to a domain object:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -103,6 +104,7 @@ async def validate_aspect(self, params: BaseParams, state: BaseState, box: Tools
 The store is attached as a resource with an `open()`/`close()` lifecycle; `InMemoryOcelStoreResource` accumulates events in memory and writes OCEL-2.0 JSON on `close()`:
 
 ```python
+# Fragment: its imports are left out.
 store = InMemoryOcelStoreResource(output_file="ocel_log.json")
 machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True)])
 await store.open()

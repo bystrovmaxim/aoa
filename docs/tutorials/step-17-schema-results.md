@@ -34,6 +34,7 @@ AOA gives two **field-level** tools: a single model field can hold arbitrary JSO
 `JsonSchemaValue.define(name=, schema=)` creates a **field type** for `BaseResult`, `BaseParams`, or any `BaseModel`. The value of such a field is arbitrary JSON, which at model construction is validated against the schema via `jsonschema`:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseResult, JsonSchemaValue
 
 AUDIT_SCHEMA = {
@@ -71,6 +72,7 @@ When a service hands out data whose shape is set externally (by an interchange c
 A `JsonSchemaValue` field is an ordinary Pydantic v2 type, so it validates the value the same way whether you return it from a service or validate a dict right in the code. No machine is needed for this:
 
 ```python
+# Fragment: one part of an example; `ChangeAuditResult` comes from the code around it.
 ChangeAuditResult.model_validate({"entity_id": "ord-2", "audit": {"actor": "bob", "changes": []}})  # ok
 ChangeAuditResult.model_validate({"entity_id": "ord-3", "audit": {"actor": "eve",
     "changes": [{"field": "status"}]}})  # ValidationError: a change is missing the required 'to'
@@ -83,6 +85,7 @@ So the same schema safeguards data both at the service boundary and in any inter
 The third case is to return **part** of a domain entity, not the whole. `BaseEntity.schema(schema={...})` creates an `Annotated[Entity, …]` annotation: the field is semantically bound to the entity class (for readers and the graph), but on the wire it is validated against an explicit JSON Schema — a subset of its fields.
 
 ```python
+# Fragment: its imports are left out.
 class OrderSummaryResult(BaseResult):
     order: OrderCoreEntity.schema(schema=_ORDER_WIRE) = Field(  # type: ignore[valid-type]
         description="Partial order projection (no nested customer)",

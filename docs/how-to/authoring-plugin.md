@@ -36,6 +36,7 @@ Subclass `Plugin` (`from aoa.action_machine.plugin.core import Plugin`) and impl
 2. one or more **`@on(EventClass, ...)`** handlers with a fixed 4-argument signature:
 
 ```python
+# Fragment: an outline, not complete code.
 async def handler(self, state, event: EventClass, log) -> state
 ```
 
@@ -46,6 +47,7 @@ async def handler(self, state, event: EventClass, log) -> state
 `@on` (`from aoa.action_machine.intents.on import on, ...`) takes an event class. The subscription matches that class **and all its subclasses** via `isinstance` — hence the adjustable granularity:
 
 ```python
+# Fragment: an outline, not complete code.
 @on(BasePluginEvent)         # all events at all
 @on(AspectEvent)             # all before/after of any aspects
 @on(AfterRegularAspectEvent) # only after a regular aspect
@@ -61,6 +63,7 @@ The hierarchy mirrors the lifecycle: `GlobalStart/Finish`, aspects (`Regular`/`S
 A plugin **does not keep request state in instance fields**. At the start of each run the machine calls `get_initial_state()`, then threads this state through the plugin's handlers (each receives the current one, returns an updated one), and at the end of the run — discards it:
 
 ```python
+# Fragment: its imports are left out.
 async def get_initial_state(self) -> dict:
     return {"aspect_events": 0}      # fresh on EVERY run
 
@@ -73,6 +76,7 @@ async def on_count_aspects(self, state, event, log):
 Need to accumulate **between** runs (a counter, an OCEL file, a metrics client) — inject external storage into the constructor:
 
 ```python
+# Fragment: its imports are left out.
 class CallAuditPlugin(Plugin):
     def __init__(self, sink: list) -> None:
         super().__init__()
@@ -89,6 +93,7 @@ class CallAuditPlugin(Plugin):
 A plugin is supplied to the machine as a list — once per machine:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(plugins=[CallAuditPlugin(sink)])
 ```
 
@@ -102,6 +107,7 @@ Two levels of narrowing, both optional:
 - **`@on(...)`** — additional filters: `action_class`, `action_name_pattern`, `aspect_name_pattern`, `nest_level`, `domain`, `predicate=lambda e: ...`, `ignore_exceptions`. **Within one `@on` — AND**; several `@on` on one method give **OR**.
 
 ```python
+# Fragment: its imports are left out.
 @on(GlobalFinishEvent, nest_level=0, predicate=lambda e: e.duration_ms > 1000)
 async def on_slow_root_call(self, state, event, log):
     ...

@@ -33,6 +33,7 @@ The split is simple: **the operation describes what to do; the machine guarantee
 An operation is launched in a single way:
 
 ```python
+# Fragment: one part of an example; `machine` comes from the code around it.
 result = await machine.run(context, action, params, connections)
 ```
 
@@ -71,6 +72,7 @@ Alongside them work the executive parts of the same path: the connection validat
 The tools are passed at machine creation — all optional, each with a reasonable default:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(
     plugins=[OpenTelemetryPlugin()],                               # observation
     log_coordinator=LogCoordinator(loggers=[ConsoleLogger()]),     # business events

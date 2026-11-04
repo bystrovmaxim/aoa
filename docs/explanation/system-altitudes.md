@@ -113,6 +113,7 @@ The method body is still closed. The step is visible only as an information boun
 Answers the question: **how exactly is a concrete piece of the scenario executed?**
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource

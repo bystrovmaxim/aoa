@@ -39,6 +39,7 @@ Install: `pip install "aoa-langgraph" langgraph`.
 ## A minimal graph
 
 ```python
+# Fragment: its imports are left out.
 from aoa.langgraph import LangGraphController
 
 ctrl = (
@@ -81,6 +82,7 @@ Three kinds of declarations form the `AgentState` — the internal Pydantic mode
 - Called after `.finish(X)` → a per-finish out: `ainvoke()` returns the fields declared for the node X where the graph ended.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # Global out — both finish nodes return the same fields:
 ctrl = (
     LangGraphController()
@@ -113,6 +115,7 @@ ctrl = (
 ### An Action class
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.node(ClassifyTicketAction)   # node name = "ClassifyTicketAction"
 ```
 
@@ -126,6 +129,7 @@ The Action doesn't know about LangGraph; it works as usual, through `box.run`.
 ### An async function
 
 ```python
+# Fragment: its imports are left out.
 async def enrich_ticket(state: Any) -> dict:
     """Add a system prefix to the note before classification."""
     raw_note: str = getattr(state, "note", "")
@@ -139,6 +143,7 @@ The function receives the current `AgentState` as an object (fields are attribut
 A graph with a function as the starting node:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 ctrl = (
     LangGraphController()
     .inp("note", str, "Ticket text")
@@ -163,6 +168,7 @@ ctrl = (
 `.start(node)` is the entry point. `.edge(src, dst)` is an unconditional edge. `.finish(node)` is a terminal node (replaces a manual `.edge(X, END)`).
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.start(ClassifyTicketAction).edge(ClassifyTicketAction, ResolveAction).finish(ResolveAction)
 ```
 
@@ -171,6 +177,7 @@ ctrl.start(ClassifyTicketAction).edge(ClassifyTicketAction, ResolveAction).finis
 A multi-way branch. `on` is a function from state to a key; `paths` maps a key to a target node. It's called after the source node has finished updating the state.
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 ctrl.route(
     ClassifyTicketAction,
     on=lambda s: s.category,          # read from an AgentState attribute
@@ -212,6 +219,7 @@ By default the controller maps State → Params fields **by name**: if `Params` 
 ### params_mapper
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     ClassifyTicketAction,
     params_mapper=lambda s: ClassifyParams(
@@ -226,6 +234,7 @@ Replaces automatic extraction by name. Receives the AgentState, returns a Params
 ### response_mapper
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     ClassifyTicketAction,
     response_mapper=lambda r: {"ticket_class": r.category},  # result.category → state.ticket_class
@@ -239,6 +248,7 @@ Replaces `result.model_dump()`. Receives the Result object, returns a dict or a 
 The node runs purely for a side effect and writes nothing to the state:
 
 ```python
+# Fragment: an outline, not complete code.
 .node(
     AuditLogAction,
     params_mapper=lambda s: AuditParams(ticket_id=s.ticket_id),
@@ -268,6 +278,7 @@ def test_build_validates_topology():
 **Pattern 2 — a stub Action:** replace the real Action with a stub carrying the same Params/Result contract.
 
 ```python
+# Fragment: one part of an example; `_build_graph` comes from the code around it.
 ctrl = _build_graph(classify_cls=StubClassifyAction, engineering_cls=StubEngineeringAction)
 result = await ctrl.ainvoke({"ticket_id": "T-9", "note": "..."}, mock_box)
 assert result["category"] == "bug"   # StubClassifyAction always → "bug"
@@ -276,6 +287,7 @@ assert result["category"] == "bug"   # StubClassifyAction always → "bug"
 **Pattern 3 — a mock box:** simulate `box.run` with an `AsyncMock`.
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 from unittest.mock import AsyncMock, MagicMock
 
 mock_result = MagicMock()
@@ -298,6 +310,7 @@ The graph runs inside a `@summary_aspect` of a host Action. The box comes from t
 **Option 1 — an external graph through `@connection`** (one graph for every call). `LangGraphController` is a library resource and stays out of the model graph, like `PostgresResource`; the service declares its graph as a subclass with `@meta`, and `@connection` names that subclass:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @meta(description="Ticket processing graph", domain=SupportDomain)
 class TicketGraph(LangGraphController):
     """The ticket graph this service connects its actions to."""
@@ -334,6 +347,7 @@ await machine.run(
 **Option 2 — the graph is built inline** (every call rebuilds it):
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 @summary_aspect("Run inline graph")
 async def run_summary(self, params, state, box, connections):
     ctrl = (

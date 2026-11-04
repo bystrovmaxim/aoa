@@ -273,6 +273,7 @@ BaseStateEntity    KIND_LABEL = 'State'
 A model may declare a kind of its own: a base that inherits `BaseEntity` directly, defines its own `__init_subclass__` and names its kind. Its entities then carry both values:
 
 ```python
+# Fragment: its imports are left out.
 class BaseAggregateEntity(BaseEntity, ABC):
     KIND_LABEL: ClassVar[str] = "Aggregate"
 

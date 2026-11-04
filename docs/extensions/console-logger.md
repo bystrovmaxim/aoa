@@ -32,6 +32,7 @@ One line per accepted event, via `print`. When color is enabled, the line gets t
 Loggers are attached to the machine through `LogCoordinator`; the operation code knows nothing about the console:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.logging import ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 
@@ -47,6 +48,7 @@ Without a coordinator, `box` events are silently dropped — logging is switched
 By default a logger **with no subscriptions accepts everything**. To narrow the stream, add subscriptions:
 
 ```python
+# Fragment: its imports are left out.
 logger = ConsoleLogger()
 logger.subscribe("audit", channels=Channel.security, levels=Level.critical)
 ```

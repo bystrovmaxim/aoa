@@ -35,6 +35,7 @@ The code assumes fluency in Python: decorators, `async`/`await`, and [Pydantic](
 Let's start with an operation that does nothing useful — it prints a line and returns an empty stub. Its value is elsewhere: it shows the minimum of declarations AOA requires before it will run anything at all.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -64,6 +65,7 @@ The class itself inherits `BaseAction[ParamsStub, ResultStub]`; in the brackets 
 The machine runs the operation:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine()
 await machine.run(Context(), SayHelloAction(), ParamsStub())
 ```
@@ -93,6 +95,7 @@ The takeaway is worth stating plainly. Even an empty operation already carries a
 Stubs are fine for introductions; a real operation works with data. Let's give it an input and an output — and at the same time swap `print` for the instrument operations in AOA use to speak with the outside world.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -127,6 +130,7 @@ The arguments read naturally. The first is the **channel**: `Channel.business` m
 There is a neat decoupling hidden here. Where the event goes the operation does not decide — that is the machine's concern. Without a logger `box.info` is simply dropped silently; to make a record reach the console, you give the machine a coordinator:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(
     log_coordinator=LogCoordinator(loggers=[ConsoleLogger()]),
 )
@@ -161,6 +165,7 @@ One step is rarely enough. Usually there are several, and intermediate data must
 A pipeline step is called an **aspect**. There are two kinds: intermediate (`@regular_aspect`) and terminal (`@summary_aspect`).
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
@@ -231,6 +236,7 @@ Result:
 Operations inherit like ordinary classes — but with one caveat that runs against intuition and so deserves a separate word. Imagine that a parent's aspects automatically entered the child's pipeline. Then, to understand what an operation does, you would have to read not it but the whole chain of ancestors — and the idea "open the class, see the operation" would fall apart. So in AOA **aspects are not inherited into the pipeline**: the machine builds the pipeline only from what is declared in the class itself. You can reuse a parent's logic — but consciously and explicitly.
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # Parent: two aspects in the pipeline
 class BaseOrderAction(BaseAction[OrderParams, OrderResult]):
     @regular_aspect("Validate order")
@@ -328,6 +334,7 @@ Suffixes are checked at class declaration or at decorator application. Violation
 The description enters external schemas and documentation. An empty string → `ValueError`:
 
 ```python
+# Fragment: an outline, not complete code.
 @meta(description="")       # ValueError
 @summary_aspect("")         # ValueError
 @regular_aspect("")         # ValueError
@@ -338,6 +345,7 @@ The description enters external schemas and documentation. An empty string → `
 A `@regular_aspect` must return a dictionary, and every field of a non-empty dictionary must be covered by a checker — otherwise `ValidationFieldError`:
 
 ```python
+# Fragment: an outline; `...` marks what is left out.
 # Violation: field "cleaned" is not covered by a checker
 @regular_aspect("Step 1")
 async def validate_aspect(self, ...):

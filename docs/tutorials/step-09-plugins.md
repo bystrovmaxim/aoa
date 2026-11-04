@@ -55,6 +55,7 @@ AOA ships two plugins out of the box, both observing the same event stream in di
 They are wired the same way — as a list on the machine; the `Action` business code does not change:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.ocel import OcelPlugin, OcelFrame, InMemoryOcelStoreResource, OCEL_FRAMES_KEY
 
 machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True)])
@@ -65,6 +66,7 @@ machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True
 `OcelPlugin` turns operation runs into an object-centric event log. An aspect that wants to participate in process mining returns `OcelFrame` rows under the key `OCEL_FRAMES_KEY`; the plugin serializes them, and the store (`InMemoryOcelStoreResource`) writes JSON on `close()`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -107,6 +109,7 @@ Three runs of `CreateOrderAction` produced three events in `ocel_log.json` — w
 A plugin can be narrowed to the needed events with the `watch_events` parameter — we saw this in the [`state` x-ray](step-02-state-as-x-ray.md), where one plugin wrote the full trace and a second only the `state` snapshots and the finish. On one machine you place several independent plugins, and each sees its own part of the stream:
 
 ```python
+# Fragment: its imports are left out.
 machine = ActionProductMachine(plugins=[plugin_traces, plugin_logs])
 ```
 

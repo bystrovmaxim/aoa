@@ -30,8 +30,16 @@ Import `value` from `aoa.action_machine.domain` and declare members inside their
 
 ```python
 from aoa.action_machine.domain import BaseEnumEntity, value
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entity import entity
 
 
+class ShopDomain(BaseDomain):
+    name = "shop"
+    description = "Shop catalogue"
+
+
+@entity(description="Accepted currency", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Describe the accepted currency."""
 
@@ -82,7 +90,10 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
+from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 class GreetingDomain(BaseDomain):
@@ -102,7 +113,7 @@ class GreetResult(BaseResult):
 @check_roles(GuestRole)  # GuestRole — the operation is open to everyone (declared explicitly)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     @summary_aspect("Assemble the greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         return GreetResult(message=f"Hello, {params.name}!")
 ```
 
@@ -145,11 +156,11 @@ from aoa.action_machine.intents.checkers import result_string
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     @regular_aspect("Normalise the name")
     @result_string("name", required=True, min_length=1)
-    async def normalise_aspect(self, params, state, box, connections):
+    async def normalise_aspect(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, str]:
         return {"name": params.name.strip().title()}
 
     @summary_aspect("Assemble the greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         return GreetResult(message=f"Hello, {state['name']}!")
 ```
 
@@ -162,6 +173,7 @@ Aspects run strictly top to bottom. If a step does not fulfil the checker's cont
 Everything external is declared by the operation in its header via `@depends` and obtained through `box.resolve(...)`; the machine will not hand out an undeclared dependency. Business events are written through `box`, not `print`:
 
 ```python
+# Fragment: `GreeterService` stands for a service of your own.
 from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.logging import Channel
 
@@ -171,7 +183,7 @@ from aoa.action_machine.logging import Channel
 @depends(GreeterService)
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     @summary_aspect("Assemble the greeting")
-    async def greet_summary(self, params, state, box, connections):
+    async def greet_summary(self, params: GreetParams, state: BaseState, box: ToolsBox, connections: Connections) -> GreetResult:
         greeter = await box.resolve(GreeterService)
         await box.info(Channel.business, "greeting name={%var.name|cyan}", name=params.name)
         return GreetResult(message=greeter.greet(params.name))
@@ -188,13 +200,13 @@ The operation knows nothing about transport, so the same `GreetAction` can be ex
 **HTTP (FastAPI):**
 
 ```python
-from aoa.action_machine.adapters.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.fastapi import FastApiAdapter
 
 machine = ActionProductMachine()
 
 app = (
-    FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), title="Greetings API")
+    FastApiAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), title="Greetings API")
     .post("/greet", GreetAction, tags=["greetings"])
     .build()
 )
@@ -206,11 +218,11 @@ app = (
 **MCP (AI agents):**
 
 ```python
-from aoa.action_machine.adapters.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
+from aoa.mcp import McpAdapter
 
 server = (
-    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(), server_name="Greetings MCP")
+    McpAdapter(machine=machine, auth_coordinator=NoAuthCoordinator(context=Context()), server_name="Greetings MCP")
     .tool("greetings.greet", GreetAction)
     .build()
 )

@@ -3,6 +3,7 @@
 Part of the [`maxitor`](../../README.md) package: `pip install maxitor` with no extra installs it. It needs nothing beyond Python's standard library and knows nothing about AOA or any language.
 
 ```python
+# Fragment: reads `graph-0.8.0.json`, a file of your own.
 import json
 from maxitor.graph_compare import compare
 

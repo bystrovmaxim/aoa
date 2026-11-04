@@ -44,6 +44,7 @@ The link between them is `Context`: authentication **produces** it (puts the use
 Authentication is performed not by the machine but by a **coordinator** at the transport boundary. It takes a raw request object and returns a `Context` — or `None`, if entry failed:
 
 ```python
+# Fragment: one part of an example; `auth_coordinator` comes from the code around it.
 context = await auth_coordinator.process(request)
 if context is None:
     ...  # rejection: invalid credentials
@@ -58,6 +59,7 @@ The machine receives `Context` already assembled and verified. That is why an `A
 `AuthCoordinator` is an orchestrator of three swappable components. `process` calls them in turn and assembles `Context`:
 
 ```python
+# Fragment: its imports are left out.
 class AuthCoordinator:
     def __init__(self, extractor, auth_instance, assembler): ...
 
@@ -81,6 +83,7 @@ Each component is an extension point (an abstract class):
 `Authenticator` is the place where the concrete entry method lives. For example:
 
 ```python
+# Fragment: its imports are left out.
 class MyTokenAuthenticator(Authenticator):
     async def authenticate(self, credentials) -> UserInfo | None:
         claims = verify_jwt(credentials["token"])           # your signature verification
@@ -96,6 +99,7 @@ class MyTokenAuthenticator(Authenticator):
 Two coordinators ship out of the box: `NoAuthCoordinator` for open access and [`JwtAuthCoordinator`](../extensions/jwt.md) for Bearer/JWT (`extra [jwt]`). `NoAuthCoordinator` does not authenticate but returns the same explicitly declared **anonymous** `Context` (`user_id=None`, `roles=()`) on every call:
 
 ```python
+# Fragment: its imports are left out.
 context = await NoAuthCoordinator(context=Context()).process(None)
 ```
 
@@ -121,6 +125,7 @@ Once the rest arrive, typical authentication will be wirable without writing you
 The coordinator lives on the transport **adapter**, not on the machine. The adapter calls `process(request)` to build `Context`, and then passes it to `machine.run`:
 
 ```python
+# Fragment: its imports are left out.
 app = FastApiAdapter(machine=machine, auth_coordinator=auth_coordinator, title="Orders API")
 ```
 
@@ -131,6 +136,7 @@ How the adapters themselves are built is in the [FastAPI](step-14-fastapi.md) an
 The coordinator on the adapter is a **default**, not the only option. A specific route can set its own:
 
 ```python
+# Fragment: its imports are left out.
 app = (
     FastApiAdapter(machine=machine, auth_coordinator=strict_jwt_coordinator)  # default — strict
     .post("/auth/login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # explicit exception

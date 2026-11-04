@@ -34,6 +34,7 @@ Together they turn an agent from a blind caller into an **understanding particip
 Installation: `pip install aoa-mcp-adapter`.
 
 ```python
+# Fragment: one part of an example; `machine` comes from the code around it.
 from aoa.mcp import McpAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context

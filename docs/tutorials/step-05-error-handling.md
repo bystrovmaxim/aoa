@@ -39,6 +39,7 @@ When error handling lives right inside an aspect, it drags everything along: the
 `@on_error(exception_type, description=...)` declares a handler method for a particular error type. The machine catches exceptions thrown by regular aspects **and** the summary, finds the first matching handler by `isinstance(error, type)`, and calls it. The method name ends with `_on_error`, the method is async; the signature is like an aspect's, plus the error itself:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult
@@ -85,6 +86,7 @@ The aspect failed with `ValueError`, the handler intercepted it, recorded the ev
 There can be several handlers, and they are checked **top to bottom in declaration order** in the class; the first one whose type matches `isinstance` fires. Hence the rule: **specific first, then general**.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseResult

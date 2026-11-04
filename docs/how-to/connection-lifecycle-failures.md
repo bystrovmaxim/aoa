@@ -23,6 +23,7 @@ Omitting finalize fails when the declaration is constructed, before any call is 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 try:
     PerCallConnection(factory=lambda: TraceResource([]))
 except TypeError as error:
@@ -49,6 +50,7 @@ A present value is not enough: the adapter must be able to call finalize.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 try:
     validate_connection_entries({"db": PerCallConnection(lambda: TraceResource([]), finalize=None)})
 except TypeError as error:
@@ -75,6 +77,7 @@ A resource may hold only Python data. Its per-call declaration still has to spec
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 @exclude_graph_model
 class NoteResource(BaseResource):
     """Carry a note for one call."""
@@ -107,6 +110,7 @@ The body of the scope fails after acquisition. Watch the event order, then inspe
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 declaration = PerCallConnection(lambda: TraceResource(events), lambda resource: resource.close())
 try:
@@ -137,6 +141,7 @@ Cancellation asks an asynchronous task to stop. It is a separate exit path from 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 started = asyncio.Event()
 async def work():
@@ -174,6 +179,7 @@ Two resources are declared. The first opens successfully; construction of the se
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 def fail_factory():
     """Fail before returning a resource."""
@@ -208,6 +214,7 @@ Construction and acquisition are separate steps. A resource can exist even when 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 @exclude_graph_model
 class BrokenResource(TraceResource):
     """Fail while acquiring a connection."""
@@ -245,6 +252,7 @@ The body succeeds, but its finalizer fails. A successful body does not make the 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 try:
     async with connection_scope({"db": PerCallConnection(lambda: TraceResource(events), fail_close)}):
@@ -273,6 +281,7 @@ Both the body and cleanup fail. The scope preserves the work error and attaches 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 try:
     async with connection_scope({"db": PerCallConnection(lambda: TraceResource(events), fail_close)}):
@@ -302,6 +311,7 @@ Cleanup tries every created resource even when the first finalizer raises.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: its imports are left out.
 events = []
 try:
     async with connection_scope({
@@ -332,6 +342,7 @@ PerCallConnection calls the factory every time. It cannot guarantee that the fac
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: one part of an example; `TraceResource` comes from the code around it.
 events = []
 shared = TraceResource(events)
 declaration = PerCallConnection(lambda: shared, lambda resource: resource.close())

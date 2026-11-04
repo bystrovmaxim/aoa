@@ -29,6 +29,7 @@ Without AOA a LangGraph node is just a function: the graph runs it but does not 
 ## The essentials
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -118,6 +119,7 @@ result = await machine.run(
 **Three ways to test without a machine:**
 
 ```python
+# Fragment: one part of an example; `ctrl` comes from the code around it.
 # 1. Structural — topology and data contract only:
 assert ctrl.build()._built is True
 

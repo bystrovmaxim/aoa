@@ -47,6 +47,11 @@ def test_shown_output_follows_a_lead_in_ending_with_a_colon(tmp_path: Path) -> N
     assert page_blocks(page)[0].shown_output == "1\n"
 
 
+def test_a_block_with_no_language_is_a_shown_output(tmp_path: Path) -> None:
+    page = _page(tmp_path, "```python\nprint(1)\n```\n\n```\n1\n```\n")
+    assert page_blocks(page)[0].shown_output == "1\n"
+
+
 def test_other_prose_breaks_the_pair(tmp_path: Path) -> None:
     page = _page(tmp_path, "```python\nprint(1)\n```\n\nA layout of folders.\n\n```text\na/\n```\n")
     assert page_blocks(page)[0].shown_output is None
@@ -85,6 +90,19 @@ def test_a_later_block_sees_an_earlier_blocks_names(tmp_path: Path) -> None:
     runs = run_page(page_blocks(page))
     assert [run.error for run in runs] == [None, None]
     assert runs[1].printed == "42\n"
+
+
+def test_postponed_annotations_resolve(tmp_path: Path) -> None:
+    code = "from __future__ import annotations\nfrom pydantic import BaseModel\nclass A(BaseModel):\n    b: B | None = None\nclass B(BaseModel):\n    x: int = 1\nA.model_rebuild()\nprint(A(b=B()).b.x)\n"
+    page = _page(tmp_path, "```python\n" + code + "```\n")
+    (run,) = run_page(page_blocks(page))
+    assert run.error is None and run.printed == "1\n"
+
+
+def test_a_whole_module_runs_alone(tmp_path: Path) -> None:
+    page = _page(tmp_path, "```python\nx = 1\n```\n\n```python\n\"\"\"A module.\"\"\"\nprint('x' in globals())\n```\n")
+    runs = run_page(page_blocks(page))
+    assert [run.error for run in runs] == [None, None] and runs[1].printed == "False\n"
 
 
 def test_top_level_await_runs(tmp_path: Path) -> None:

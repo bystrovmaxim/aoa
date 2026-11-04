@@ -19,6 +19,7 @@ pip install "aoa-action-machine[postgres]"
 ```
 
 ```python
+# Fragment: one part of an example; `pool` comes from the code around it.
 from aoa.action_machine.resources.postgres import PostgresResource
 
 # One connection owned by this resource:
@@ -224,6 +225,7 @@ parameters, so the output also shows which note belongs to each connection.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool(size=2)
 ready = asyncio.Event()
 arrivals = []
@@ -269,6 +271,7 @@ The only connection is held by the first resource. A second resource must time o
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 class QuickResource(PostgresResource):
     """Use a short wait so this failure is quick to reproduce."""
     acquire_timeout = 0.01
@@ -307,6 +310,7 @@ The direct form calls asyncpg.connect in open and the connection’s close in cl
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 connection = RecordingConnection(1)
 connect = AsyncMock(return_value=connection)
 with patch("aoa.action_machine.resources.postgres.postgres_resource.asyncpg.connect", connect):
@@ -337,6 +341,7 @@ A resource cannot both borrow and own its connection. Choose one source.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
     PostgresResource({"dsn": "example"}, pool=RecordingPool())
 except ConnectionValidationError:
@@ -362,6 +367,7 @@ The resource has no implicit default pool or connection settings. Supply one sou
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
     PostgresResource()
 except ConnectionValidationError:
@@ -387,6 +393,7 @@ Repeated open keeps the held connection; repeated close does not return it twice
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 db = PostgresResource(pool=pool)
 await db.open()
@@ -428,6 +435,7 @@ Opening a resource does not begin a transaction. Start and finish the transactio
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
     db = connections["db"]
@@ -458,6 +466,7 @@ The transaction owner catches a work failure, rolls back, then lets the original
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
     async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
@@ -495,6 +504,7 @@ Use the normal transaction code, but construct the resource with rollup=True.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool, rollup=True), lambda resource: resource.close())}) as connections:
     db = connections["db"]
@@ -531,6 +541,7 @@ Omit commit and rollback deliberately. This is a programming mistake, even if th
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 db = PostgresResource(pool=pool)
 await db.open()
@@ -567,6 +578,7 @@ The body raises while its transaction is still open. Cleanup detects a contract 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
     async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
@@ -598,6 +610,7 @@ Cancel a call while its transaction is open. Cleanup must release its connection
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 started = asyncio.Event()
 async def work():
@@ -639,6 +652,7 @@ The connection rejects COMMIT. A failed commit cannot be treated as a completed 
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 class FailingCommitConnection(RecordingConnection):
     """Fail only the commit command."""
     async def execute(self, query, *params):
@@ -686,6 +700,7 @@ absent value means.
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
+# Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 resource = NotesResource(pool=pool)
 await resource.open()

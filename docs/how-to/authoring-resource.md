@@ -152,6 +152,7 @@ that error and raises its own with the cause attached. `SqlResource` does not re
 `execute()` method; the resource defines the public methods its callers need.
 
 ```python
+# Fragment: its imports are left out.
 async def list_notes(self, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
     """Return one ordered, bounded page of notes."""
     rows = await self._fetch(

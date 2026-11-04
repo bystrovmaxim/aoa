@@ -39,6 +39,7 @@ Install: `pip install aoa-fastapi-adapter`.
 The adapter is assembled fluently: each `.post/.get/...` call is one endpoint, and `.build()` returns a ready FastAPI app.
 
 ```python
+# Fragment: one part of an example; `GreetAction` comes from the code around it.
 from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
@@ -85,6 +86,7 @@ Each route has `tags`, `summary`, `operation_id`, `deprecated` for OpenAPI.
 A specific route can override this default with its own coordinator — `auth_coordinator=` in `.post/.get/.put/.delete/.patch(...)`:
 
 ```python
+# Fragment: its imports are left out.
 app = (
     FastApiAdapter(machine=machine, auth_coordinator=strict_jwt_coordinator)
     .post("/auth/login", LoginAction, auth_coordinator=NoAuthCoordinator(context=Context()))  # exception
@@ -109,6 +111,7 @@ The external schema does not always match the operation's contract: a new API ve
 - `response_model` — the external response model; `response_mapper(result)` brings the `Result` to it.
 
 ```python
+# Fragment: an outline, not complete code.
 .post(
     "/greet/v2",
     GreetAction,

@@ -32,6 +32,7 @@ The previous chapter was about how an operation **returns** complex data. This o
 A `Params` field can be another model or a collection — this is ordinary Pydantic, with no special support:
 
 ```python
+# Fragment: its imports are left out.
 class Address(BaseModel):
     city: str
     zip: str
@@ -54,6 +55,7 @@ The machine and the adapters parse this automatically: the incoming JSON is vali
 When part of a request is arbitrary JSON whose shape is set externally (not by your classes), the same [`JsonSchemaValue`](step-17-schema-results.md) works on input as on output: a `Params` field holds JSON validated by a strict schema at construction.
 
 ```python
+# Fragment: its imports are left out.
 OrderMeta = JsonSchemaValue.define(name="OrderMeta", schema={
     "type": "object",
     "properties": {"source": {"type": "string"}, "ab_test": {"type": "string"}},

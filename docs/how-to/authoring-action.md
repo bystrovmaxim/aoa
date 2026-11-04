@@ -28,6 +28,7 @@
 A minimal operation with a single summary aspect:
 
 ```python
+# Fragment: one part of an example; `MyDomain` comes from the code around it.
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
@@ -70,6 +71,7 @@ Three declarations on the class are mandatory: `@meta`, `@check_roles`, `BaseAct
 `BaseParams` and `BaseResult` are Pydantic models. All input validation lives here, not in the aspects:
 
 ```python
+# Fragment: its imports are left out.
 from pydantic import ConfigDict, Field
 
 class LoadParams(BaseParams):
@@ -93,6 +95,7 @@ The `Params = ...` and `Result = ...` aliases inside the class are an optional c
 When logic breaks down into steps, each step is a separate regular aspect. Aspects run **in declaration order**. Each one receives the accumulated `state` and returns a **dict with every key** the later aspects and the summary need.
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -130,6 +133,7 @@ class LoadGraphAction(BaseAction[LoadParams, LoadResult]):
 Checkers verify that an aspect returned the expected key with the expected type/non-empty value. A checker decorator goes **above** `@regular_aspect`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
@@ -166,6 +170,7 @@ Checkers **don't** have a `description` parameter.
 If an operation needs an external resource (a DB, an HTTP client), declare it through `@connection` on the class. Aspects read the resource from `connections[key]`:
 
 ```python
+# Fragment: its imports are left out.
 from typing import Any
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
@@ -196,6 +201,7 @@ class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
 When an operation takes no user parameters (all data arrives through `connections`), use `ParamsStub`:
 
 ```python
+# Fragment: its imports are left out.
 from aoa.action_machine.model import ParamsStub
 
 @meta(...)
@@ -230,6 +236,7 @@ Breaking the suffix convention raises `NamingSuffixError` when the graph is buil
 Every aspect is an ordinary async method. Test them one at a time, passing the accumulated state through `BaseState(**kwargs)`:
 
 ```python
+# Fragment: one part of an example; `LoadGraphAction` comes from the code around it.
 from aoa.action_machine.model import BaseState
 
 _ACTION = LoadGraphAction()
