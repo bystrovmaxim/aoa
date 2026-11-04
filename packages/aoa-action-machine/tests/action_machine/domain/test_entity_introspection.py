@@ -116,7 +116,9 @@ class TestRelationForeignKeys:
         assert fks == {"policy": policy_ref}
         assert fks["policy"].id == "pol-9"
         assert "policy" not in child.get_scalar_fields()
-        assert child.get_all_fields()["policy"] is policy_ref
+        # Validation returns a new container of the declared class with the same id.
+        assert child.get_all_fields()["policy"] == policy_ref
+        assert type(child.get_all_fields()["policy"]) is AssociationOne
 
     def test_none_relation_omitted(self) -> None:
         @entity(description="Child", domain=TestDomain)

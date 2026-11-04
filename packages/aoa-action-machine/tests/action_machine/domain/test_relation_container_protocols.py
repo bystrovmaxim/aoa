@@ -19,7 +19,6 @@ from typing import Annotated
 
 import pytest
 from pydantic import Field
-from pydantic_core import PydanticSerializationError
 
 from aoa.action_machine.domain import (
     AssociationMany,
@@ -89,9 +88,8 @@ def _order() -> ProtocolOrderCoreEntity:
 
 
 def test_json_dump_of_a_loaded_relation_is_never_an_empty_object() -> None:
-    """Case 1.1: the container has no JSON form yet, so the dump says so instead of writing {}."""
-    with pytest.raises(PydanticSerializationError, match="AssociationOne"):
-        _order().model_dump(mode="json")
+    """Case 1.1: a loaded relation goes out as its id and the entity it holds, never as {}."""
+    assert _order().model_dump(mode="json")["customer"] == {"id": "c1", "entity": {"id": "c1", "name": "Ann"}}
 
 
 def test_python_dump_of_a_dictionary_reference_keeps_the_container() -> None:
