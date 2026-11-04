@@ -20,8 +20,8 @@
 
 ## Phase 3: The graph edge (US5) — one commit
 
-- [ ] T009 [US5] Write `test_entity_typed_field_graph_edge.py`: bare, `| None`, `list[...]`, a dictionary type each give an `entity_schema` edge; a projection unchanged; a non-entity field none.
-- [ ] T010 Confirm it fails; implement R5 in the two field nodes and `entity_schema_graph_edge.py`; run; adversarial break.
+- [X] T009 [US5] Write `test_entity_typed_field_graph_edge.py`: bare, `| None`, `list[...]`, a dictionary type each give an `entity_schema` edge; a projection unchanged; a non-entity field none.
+- [X] T010 Confirm it fails; implement R5 in the two field nodes and `entity_schema_graph_edge.py`; run; adversarial break.
 
 ## Phase 4: Graph files and versions — one commit
 
