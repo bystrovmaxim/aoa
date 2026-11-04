@@ -3,11 +3,12 @@
 
 Caching in AOA has two sides:
 
-  - POLICY lives on the Action (override four hooks):
-      cache_key(params)                              -> str | None
-      read_cache(params, entry)                      -> R | None
-      on_cache_write(result, params, duration_ms)    -> list[CacheTag] | None
-      on_cache_invalidate(params, result)            -> list[CacheTag] | None
+  - POLICY lives on the Action, in four declarations (each takes
+    self, params, box, connections first):
+      @cache_key         (...)                       -> str | None
+      @cache_read        (..., entry)                -> R | None
+      @cache_write       (..., result, duration_ms)  -> list[CacheTag] | None
+      @cache_invalidate  (..., result)               -> list[CacheTag] | None
 
   - STORAGE lives in a coordinator injected on the machine. The shipped
     `CacheCoordinator` is in-memory; to back the cache with Redis/Memcached/etc.
@@ -41,9 +42,12 @@ from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -113,15 +117,18 @@ class DictCacheAdapter:
         return len(self._store)
 
 
-# ── Domain and action types used as CacheTag.type ────────────────────────────
+# ── Domain and the entity a cache tag names ──────────────────────────────────
 
 class PricingDomain(BaseDomain):
     name = "pricing"
     description = "Pricing domain"
 
 
-class Quote:
-    """Sentinel type for CacheTag(type=Quote, key=sku)."""
+@entity(description="A price quote", domain=PricingDomain)
+class QuoteCoreEntity(BaseCoreEntity):
+    """What a quote's cache entry is tagged with: CacheTag(type=QuoteCoreEntity, key=sku)."""
+
+    id: str = Field(description="Product SKU")
 
 
 # ── A normal Action that opts into caching ────────────────────────────────────
@@ -140,19 +147,35 @@ class QuoteResult(BaseResult):
 @meta(description="Compute a price quote", domain=PricingDomain)
 @check_roles(GuestRole)
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
-    def cache_key(self, params: QuoteParams) -> str | None:
-        return params.sku  # cache per SKU
+    @cache_key("Quote per SKU")
+    async def quote_cache_key(self, params: QuoteParams, box: ToolsBox, connections: Connections) -> str | None:
+        return params.sku
 
-    async def on_cache_write(
-        self, result: QuoteResult, params: QuoteParams, duration_ms: float
+    @cache_write("Keep every quote", tags=(QuoteCoreEntity,))
+    async def quote_cache_write(
+        self, params: QuoteParams, box: ToolsBox, connections: Connections, result: QuoteResult, duration_ms: float
     ) -> list[CacheTag] | None:
         # Tag the entry so it can later be evicted by type or by sku.
-        return [CacheTag(type=Quote, key=params.sku)]
+        return [CacheTag(type=QuoteCoreEntity, key=params.sku)]
 
     @summary_aspect("Expensive pricing")
     async def quote_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: Connections) -> QuoteResult:
         EXECUTIONS.append(params.sku)  # the "expensive" work
         return QuoteResult(price=len(params.sku) * 10.0)
+
+
+@meta(description="Change a price", domain=PricingDomain)
+@check_roles(GuestRole)
+class RepriceAction(BaseAction[QuoteParams, QuoteResult]):
+    @cache_invalidate("Drop the quote of the repriced SKU", tags=(QuoteCoreEntity,))
+    async def quote_cache_invalidate(
+        self, params: QuoteParams, box: ToolsBox, connections: Connections, result: QuoteResult
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=QuoteCoreEntity, key=params.sku)]
+
+    @summary_aspect("Store the new price")
+    async def reprice_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: Connections) -> QuoteResult:
+        return QuoteResult(price=0.0)
 
 
 async def main() -> None:
@@ -169,6 +192,11 @@ async def main() -> None:
 
     print("pipeline executions:", EXECUTIONS)        # ['ABC', 'XYZW'] — second 'ABC' was a hit
     print("cache size:", cache.size)
+
+    await machine.run(Context(), RepriceAction(), QuoteParams(sku="ABC"), {})  # drops ABC's entry
+    print("after reprice, cache size:", cache.size)
+    print("quote('ABC') ->", await quote("ABC"))    # miss again → runs pipeline
+    print("pipeline executions:", EXECUTIONS)
 
 
 if __name__ == "__main__":

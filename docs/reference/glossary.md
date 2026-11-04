@@ -106,7 +106,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **`@on_error`** — the operation's global error handler: error types, order, fallback path — as a visible contract, a layer separate from the business logic and rollbacks.
 
-**Cache** (`cache_key`, `on_cache_write`) — the operation declares what and under which conditions to cache; where to store and for how long is decided by the cache coordinator.
+**Cache** (`@cache_key`, `@cache_write`, `@cache_read`, `@cache_invalidate`) — the operation declares what and under which conditions to cache, and which entity types its entries are tagged with; where to store and for how long is decided by the cache coordinator.
 
 ## Observability
 

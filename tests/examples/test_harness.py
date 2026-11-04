@@ -77,7 +77,8 @@ def test_an_indented_block_loses_its_indent(tmp_path: Path) -> None:
         ('"aoa.duration_ms": 0.0290870666', '"aoa.duration_ms": <n>'),
         ("'iat': 1793750449", "'iat': <epoch>"),
         ("order_id: ord-1dc8d4c0", "order_id: ord-<id>"),
-        ("kept ord-20240001", "kept ord-20240001"),
+        ("order_id: ord-25776620", "order_id: ord-<id>"),
+        ("item ord-deadbeef", "item ord-deadbeef"),
         ("kept 42   ", "kept 42"),
     ],
 )

@@ -1,7 +1,9 @@
 """
-Caching: key from params; cache only heavy runs (by duration_ms).
+Caching: a key from params, a write only for heavy runs, and an invalidation that drops it.
 
-Tutorial: ../../docs/index_draft.md  ·  topic: Cache
+The cache is four declarations, like the object check: @cache_key, @cache_write,
+@cache_read and @cache_invalidate. Each tag names an entity type, declared in tags=(...),
+and the graph build checks that a type some action caches is one some action drops.
 
 Run:
     uv run python examples/step_08_cache/01_cache.py
@@ -12,9 +14,12 @@ from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
@@ -44,24 +49,32 @@ class ConfigResult(BaseResult):
     value: str = Field(description="Config value")
 
 
+@entity(description="A tenant's configuration value", domain=RootDomain)
+class ConfigCoreEntity(BaseCoreEntity):
+    id: str = Field(description="tenant:name")
+
+
 @meta(description="Get config (cached)", domain=RootDomain)
 @check_roles(GuestRole)
 class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
-
-    def cache_key(self, params: ConfigParams) -> str | None:
+    @cache_key("Config by tenant and name")
+    async def config_cache_key(self, params: ConfigParams, box: ToolsBox, connections: Connections) -> str | None:
         return f"{params.tenant_id}:{params.name}"
 
-    async def on_cache_write(
+    @cache_write("Keep only heavy runs", tags=(ConfigCoreEntity,))
+    async def config_cache_write(
         self,
-        result: ConfigResult,
         params: ConfigParams,
+        box: ToolsBox,
+        connections: Connections,
+        result: ConfigResult,
         duration_ms: float,
     ) -> list[CacheTag] | None:
         if duration_ms < HEAVY_MIN_MS:
-            print(f"  on_cache_write: duration_ms={duration_ms:.1f}, write=no (too light)")
+            print(f"  config_cache_write: duration_ms={duration_ms:.1f}, write=no (too light)")
             return None
-        print(f"  on_cache_write: duration_ms={duration_ms:.1f}, write=yes")
-        return [CacheTag(key=f"{params.tenant_id}:{params.name}")]
+        print(f"  config_cache_write: duration_ms={duration_ms:.1f}, write=yes")
+        return [CacheTag(type=ConfigCoreEntity, key=f"{params.tenant_id}:{params.name}")]
 
     @summary_aspect("Load config")
     async def load_summary(self, params: ConfigParams, state: BaseState, box: ToolsBox, connections: Connections) -> ConfigResult:
@@ -76,6 +89,21 @@ class GetConfigAction(BaseAction[ConfigParams, ConfigResult]):
             name=params.name,
         )
         return ConfigResult(value=f"{params.tenant_id}:{params.name}:value")
+
+
+@meta(description="Set config (drops the cached value)", domain=RootDomain)
+@check_roles(GuestRole)
+class SetConfigAction(BaseAction[ConfigParams, ConfigResult]):
+    @cache_invalidate("Drop the changed value", tags=(ConfigCoreEntity,))
+    async def config_cache_invalidate(
+        self, params: ConfigParams, box: ToolsBox, connections: Connections, result: ConfigResult
+    ) -> list[CacheTag] | None:
+        print(f"  config_cache_invalidate: drop {params.tenant_id}:{params.name}")
+        return [CacheTag(type=ConfigCoreEntity, key=f"{params.tenant_id}:{params.name}")]
+
+    @summary_aspect("Store config")
+    async def store_summary(self, params: ConfigParams, state: BaseState, box: ToolsBox, connections: Connections) -> ConfigResult:
+        return ConfigResult(value=f"{params.tenant_id}:{params.name}:new-value")
 
 
 async def main() -> None:
@@ -104,6 +132,12 @@ async def main() -> None:
         GetConfigAction(),
         params=ConfigParams(tenant_id="acme", name="ping"),
     )
+
+    print("\nSample 06 cache — set the heavy value (drops it)\n")
+    await machine.run(Context(), SetConfigAction(), params=params)
+
+    print("\nSample 06 cache — heavy again (runs, cached anew)\n")
+    await machine.run(Context(), GetConfigAction(), params=params)
 
 
 asyncio.run(main())

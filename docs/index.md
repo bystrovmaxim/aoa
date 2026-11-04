@@ -54,7 +54,7 @@ The guide moves from a practical entry point to the complete project architectur
 - **[Explicit error handling](tutorials/step-05-error-handling.md)** — @on_error: business logic, rollback, and errors as three independent layers
 - **[Dependencies](tutorials/step-06-dependencies.md)** — @depends and @connection: an explicit contract on everything external, right in the header
 - **[Context and environment](tutorials/step-07-context.md)** — `@context_requires` declares a slice of the call environment; `@env` connects lazy config and feature-flag providers right on the Context class with optional TTL; no thread-locals or globals
-- **[Cache](tutorials/step-08-cache.md)** — cache_key and on_cache_write: the operation is responsible for meaning, the coordinator for storage
+- **[Cache](tutorials/step-08-cache.md)** — `@cache_key`, `@cache_write`, `@cache_invalidate`: the operation is responsible for meaning, the coordinator for storage
 - **[Plugins](tutorials/step-09-plugins.md)** — an observer, not a participant: OpenTelemetry and OCEL out of the box
 - **[Logs as business events](tutorials/step-10-logs.md)** — box.info with channels and levels instead of logger.info in the business code
 - **[Object events](tutorials/step-11-object-events.md)** — a typed fact in place of `kwargs`, declared by a method with `@emits` and by a domain with `events`
@@ -155,7 +155,7 @@ The framework's extension points. The principle everywhere is the same: you impl
 - **[Your own authentication coordinator](how-to/authoring-auth-coordinator.md)** — JWT, OAuth2, API key: building `Context` from a request
 - **[Your own plugin](how-to/authoring-plugin.md)** — a lifecycle observer over the machine's events
 - **[Your own logger](how-to/authoring-logger.md)** — delivery of `box` business events to Kafka, Slack, PagerDuty
-- **[Your own cache adapter](how-to/authoring-cache-adapter.md)** — Redis and other stores behind `cache_key` / `on_cache_write`
+- **[Your own cache adapter](how-to/authoring-cache-adapter.md)** — Redis and other stores behind the cache declarations
 - **[Your own resource](how-to/authoring-resource.md)** — a new data source behind the `BaseResource` interface
 - **[Connection lifecycle failures](how-to/connection-lifecycle-failures.md)** — separate runnable cases for failed construction, opening, execution, cancellation and cleanup
 - **[Extending Context](how-to/authoring-context-extension.md)** — your own call-environment fields and access to them through `@context_requires`

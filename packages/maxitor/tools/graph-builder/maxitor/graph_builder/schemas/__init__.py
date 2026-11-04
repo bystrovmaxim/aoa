@@ -38,7 +38,7 @@ import jsonschema_rs
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError, best_match
 
-SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1", "1.2", "1.3")
+SCHEMA_VERSIONS: tuple[str, ...] = ("1.0", "1.1", "1.2", "1.3", "1.4")
 SHOWN_CHARACTERS = 200
 
 

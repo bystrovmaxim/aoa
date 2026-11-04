@@ -46,10 +46,10 @@ There are no other entrances. You cannot call an aspect directly, you cannot ski
 1. **Access check.** [`@check_roles`](step-03-authorization-and-roles.md) is matched against `context.user.roles` — before anything else. No decorator — `MissingCheckRolesError`; the role does not fit — `AuthorizationError`. Important: access is checked **before the cache**, so a cached result will not reach someone the operation forbids.
 2. **Connection validation.** The declared `@connection` keys are checked against the supplied ones.
 3. **`global_start`** — [plugins](step-09-plugins.md) receive the start event.
-4. **Cache.** If a [cache coordinator](step-08-cache.md) is wired: an entry is looked up by `cache_key`; a hit returns the ready result, **bypassing the pipeline**.
+4. **Cache.** If a [cache coordinator](step-08-cache.md) is wired: an entry is looked up by the key the operation's `@cache_key` returns; a hit returns the ready result, **bypassing the pipeline**.
 5. **Pipeline.** On a miss the regular [aspects](step-01-action-and-pipeline.md) run — each with `before`/`after` events and [checker](step-02-state-as-x-ray.md) validation — then the `summary`.
 6. **Errors.** On an aspect failure: the [saga unwind](step-04-saga-and-compensations.md) (if there is a stack), then [`@on_error`](step-05-error-handling.md) with the original error.
-7. **Cache write.** After a clean `summary` — `on_cache_write` decides whether to store.
+7. **Cache write.** After a clean `summary` — `@cache_invalidate` drops what it names, then `@cache_write` decides whether to store.
 8. **`global_finish`** — plugins receive the result and the full time.
 
 Along the whole path [`box`](step-10-logs.md) emits business events that fan out to the loggers. Nested calls (`box.run`) take the same path with their own nesting level.

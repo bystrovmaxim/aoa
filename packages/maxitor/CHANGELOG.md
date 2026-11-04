@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The cache in the graph**: Maxitor reads graphs of protocol 1.4 — the `Cache` node of each cache declaration, drawn with a glyph and colour of its own, and the edges `@cache_key`, `@cache_read`, `@cache_write`, `@cache_invalidate`, `caches` and `invalidates`. The graph builder and the comparison read 1.4 as well.
+
 ### Changed
 
 - **Loading a graph returns its text, not the DuckDB graph**: `LoadAOAServiceAction` downloads, checks and summarizes a service's graph, and its Result carries the graph's JSON text; the server builds the DuckDB graph from that text. A Result holds only values with a JSON form, and AOA's graph build now refuses one that does not. A broken graph still fails the load as before.

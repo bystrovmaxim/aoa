@@ -130,7 +130,7 @@ This same layer holds:
 - `@context_requires` — which slice of the environment it's allowed to read;
 - `@compensate` — how to roll back a step's effect;
 - `@on_error` — how to handle an error after rollback;
-- `cache_key` / `on_cache_write` — how the operation participates in caching;
+- `@cache_key` / `@cache_write` / `@cache_invalidate` — how the operation participates in caching;
 - `box.info(...)` — which business events the operation considers significant.
 
 This matters: the business layer in AOA doesn't reduce to "methods with logic." It holds the operation's intent, its boundaries, its obligations to the next steps, its recovery after failure, and its observability.

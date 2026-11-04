@@ -47,6 +47,7 @@ from aoa.action_machine.runtime.dependency_info import DependencyInfo
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 from ..edges.access_decide_graph_edge import AccessDecideGraphEdge
+from ..edges.cache_graph_edge import CacheGraphEdge, CacheTagGraphEdge
 from ..edges.compensator_graph_edge import CompensatorGraphEdge
 from ..edges.connection_graph_edge import ConnectionGraphEdge
 from ..edges.depends_graph_edge import DependsGraphEdge
@@ -87,6 +88,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
     regular_aspect: list[RegularAspectGraphEdge]
     summary_aspect: list[SummaryAspectGraphEdge]
     access_decide: list[AccessDecideGraphEdge]
+    cache: list[CacheGraphEdge]
+    cache_tags: list[CacheTagGraphEdge]
     compensators: list[CompensatorGraphEdge]
     on_error_handlers: list[ErrorHandlerGraphEdge]
     parent_actions: list[ParentActionGraphEdge]
@@ -113,6 +116,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
         object.__setattr__(self, "regular_aspect", RegularAspectGraphEdge.get_regular_aspect_edges(action_cls))
         object.__setattr__(self, "summary_aspect", SummaryAspectGraphEdge.get_summary_aspect_edges(action_cls))
         object.__setattr__(self, "access_decide", AccessDecideGraphEdge.get_access_decide_edges(action_cls))
+        object.__setattr__(self, "cache", CacheGraphEdge.get_cache_edges(action_cls))
+        object.__setattr__(self, "cache_tags", CacheTagGraphEdge.get_cache_tag_edges(action_cls))
         object.__setattr__(self, "compensators", CompensatorGraphEdge.get_compensator_edges(action_cls))
         object.__setattr__(self, "on_error_handlers", ErrorHandlerGraphEdge.get_on_error_handlers_edges(action_cls))
         object.__setattr__(
@@ -224,6 +229,8 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *self.regular_aspect,
             *self.summary_aspect,
             *self.access_decide,
+            *self.cache,
+            *self.cache_tags,
             *self.compensators,
             *self.on_error_handlers,
             *self.parent_actions,
@@ -239,6 +246,7 @@ class ActionGraphNode(BaseGraphNode[type[TAction]]):
             *(cast(BaseGraphNode[Any], n) for n in regular),
             *((cast(BaseGraphNode[Any], summary),) if summary is not None else ()),
             *((cast(BaseGraphNode[Any], access_decide),) if access_decide is not None else ()),
+            *(cast(BaseGraphNode[Any], edge.target_node) for edge in self.cache),
             *(cast(BaseGraphNode[Any], n) for n in compensators),
             *(cast(BaseGraphNode[Any], n) for n in error_handlers),
         ]
