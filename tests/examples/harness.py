@@ -57,10 +57,13 @@ _MASKS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<jwt>"),
     (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"), "<uuid>"),
     (re.compile(r"\b[0-9a-f]{32}\b"), "<hex>"),
+    (re.compile(r"\b([a-z]+-)(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{8}\b"), r"\1<id>"),
     (re.compile(r"0x[0-9a-fA-F]+"), "<addr>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"), "<time>"),
     (re.compile(r"\b\d+(?:\.\d+)?\s?(?:ms|µs|us|ns|s)\b"), "<duration>"),
     (re.compile(r"(localhost|127\.0\.0\.1|\[::1\]):\d+"), r"\1:<port>"),
+    (re.compile(r"(duration\w*[\"']?\s*[:=]\s*)\d+(?:\.\d+)?"), r"\1<n>"),
+    (re.compile(r"\b1[6-9]\d{8}\b"), "<epoch>"),
 )
 
 

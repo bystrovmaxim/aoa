@@ -68,6 +68,11 @@ def test_an_indented_block_loses_its_indent(tmp_path: Path) -> None:
         ("took 0.61 ms", "took <duration>"),
         ("http://127.0.0.1:60780/x", "http://127.0.0.1:<port>/x"),
         ("token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhIn0.c2ln", "token <jwt>"),
+        ("on_cache_write: duration_ms=81.5, write=yes", "on_cache_write: duration_ms=<n>, write=yes"),
+        ('"aoa.duration_ms": 0.0290870666', '"aoa.duration_ms": <n>'),
+        ("'iat': 1793750449", "'iat': <epoch>"),
+        ("order_id: ord-1dc8d4c0", "order_id: ord-<id>"),
+        ("kept ord-20240001", "kept ord-20240001"),
         ("kept 42   ", "kept 42"),
     ],
 )

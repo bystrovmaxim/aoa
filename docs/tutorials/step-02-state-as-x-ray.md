@@ -374,10 +374,10 @@ uv run python examples/step_02_state_as_x-ray_of_the_operation/06_xray_file.py
 ```text
 Result: Order confirmed: 3x WIDGET-42 = $59.97
 
-Traces written to: .../step_02_state_as_x-ray_of_the_operation/traces.txt
+Traces written to: traces.txt
   (root span + 2 child spans — one per @regular_aspect)
 
-Logs written to:   .../step_02_state_as_x-ray_of_the_operation/logs.txt
+Logs written to:   logs.txt
   (only AfterRegularAspectEvent + GlobalFinishEvent)
   (Before*/Start events filtered out by watch_events)
 ```

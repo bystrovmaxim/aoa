@@ -29,7 +29,7 @@ Run:
 """
 
 import asyncio
-import os
+from pathlib import Path
 from typing import Any
 
 from opentelemetry.sdk._logs import LoggerProvider
@@ -108,12 +108,15 @@ class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
 # Runner
 # ---------------------------------------------------------------------------
 
-OUTPUT_DIR = os.path.dirname(__file__)
+# The files land beside this example, whether it runs from the repository root or from its folder.
+_HERE = Path.cwd()
+OUTPUT_DIR = _HERE if _HERE.name == "step_02_state_as_x-ray_of_the_operation" else _HERE / "examples" / "step_02_state_as_x-ray_of_the_operation"
 
 
 async def main() -> None:
-    traces_path = os.path.join(OUTPUT_DIR, "traces.txt")
-    logs_path = os.path.join(OUTPUT_DIR, "logs.txt")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    traces_path = OUTPUT_DIR / "traces.txt"
+    logs_path = OUTPUT_DIR / "logs.txt"
 
     with open(traces_path, "w") as traces_file, open(logs_path, "w") as logs_file:
 
@@ -144,10 +147,10 @@ async def main() -> None:
 
     print(f"Result: {result.confirmation}")
     print()
-    print(f"Traces written to: {traces_path}")
+    print(f"Traces written to: {traces_path.name}")
     print("  (root span + 2 child spans — one per @regular_aspect)")
     print()
-    print(f"Logs written to:   {logs_path}")
+    print(f"Logs written to:   {logs_path.name}")
     print("  (only AfterRegularAspectEvent + GlobalFinishEvent)")
     print("  (Before*/Start events filtered out by watch_events)")
 
