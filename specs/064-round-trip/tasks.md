@@ -6,10 +6,10 @@
 
 ## Phase 1: The build check (US1) — one commit
 
-- [ ] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/graph/test_json_form_validator.py`: a Result field `raw: Opaque` refused at graph build naming `OpaqueAction.Result.raw`; the same on Params; a field whose schema fails only in serialization mode refused; `JsonSchemaValue`, a projection, an entity, a lifecycle and relations pass.
-- [ ] T002 Confirm T001 fails on today's code.
-- [ ] T003 Create `graph/validators/json_form_validator.py` (R1) with `JsonFormError`; call it from `NodeGraphCoordinator.build`; notes and AI-CORE.
-- [ ] T004 Run the phase's tests and the package's graph tests; adversarial breaks of plan phase 1.
+- [X] T001 [US1] Write `packages/aoa-action-machine/tests/action_machine/graph/test_json_form_validator.py`: a Result field `raw: Opaque` refused at graph build naming `OpaqueAction.Result.raw`; the same on Params; a field whose schema fails only in serialization mode refused; `JsonSchemaValue`, a projection, an entity, a lifecycle and relations pass.
+- [X] T002 Confirm T001 fails on today's code.
+- [X] T003 Create `graph/validators/json_form_validator.py` (R1) with `JsonFormError`; call it from `NodeGraphCoordinator.build`; notes and AI-CORE.
+- [X] T004 Run the phase's tests and the package's graph tests; adversarial breaks of plan phase 1.
 
 ## Phase 2: Observable state and read-back (US2, US3) — one commit
 

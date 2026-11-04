@@ -91,6 +91,7 @@ from aoa.action_machine.graph.validators import (
     entity_inverse_validator,
     entity_role_compatibility_validator,
     entity_specialization_validator,
+    json_form_validator,
 )
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
@@ -171,6 +172,7 @@ class NodeGraphCoordinator(BaseCoordinator):
                 extensions in a way the framework cannot honour. A model that declares no such
                 field takes no new path: the pass finds no axis and returns.
             EventContractError: a method declares in ``@emits`` an event outside its domain's ``events``.
+            JsonFormError: a Params or Result has no JSON Schema in validation or serialization mode.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.
         """
@@ -188,6 +190,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         self._validate_edge_identity(nodes)
         entity_specialization_validator.validate_entity_specializations()
         emits_vocabulary_validator.validate_emits_vocabulary(nodes.values())
+        json_form_validator.validate_json_forms(nodes.values())
         self._validate_dag_acyclicity(nodes, dag_adjacency)
         self._nodes = nodes
         self._build_indexes(nodes)
