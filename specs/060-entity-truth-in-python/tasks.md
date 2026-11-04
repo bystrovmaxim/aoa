@@ -85,7 +85,7 @@
 
 ## Phase 6: Changelog — one commit
 
-- [ ] T024 Write one article in `docs/CHANGELOG.md`: what changed for a reader of entities, in plain words, without per-file detail.
+- [X] T024 Write one article in `docs/CHANGELOG.md`: what changed for a reader of entities, in plain words, without per-file detail.
 
 ---
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-04] — An entity says only what is true
+
+Two things made an entity say something untrue in Python, before any JSON was involved. Both are fixed; this is the first step of making entities usable as the fields of Params and Result (#399).
+
+**A partial entity holds only what was loaded.** `OrderCoreEntity.partial(id="o1")` used to fill in the defaults of the fields nobody loaded: a currency declared with the default `"RUB"` read as `"RUB"` and went out in the dump, and a default factory that needed a missing field failed inside `partial()`. Now a partial entity holds exactly the fields it was given. A field it was not given raises `FieldNotLoadedError` even when it has a default, is left out of both dumps, and runs no code. A field loaded later through `model_copy(update=...)` counts as loaded, and a partial entity given every field is equal to the full one. If your code read the default of a field it never loaded, it now gets `FieldNotLoadedError`: that value never came from your storage.
+
+**A relation container answers for itself.** `order.customer.name` still reads the name of a loaded customer, but the container no longer answers Python's and Pydantic's own questions on the customer's behalf. So `model_dump()` of an entity with a dictionary reference returns the container instead of failing, and so does a LangGraph node whose Result holds one; `copy.deepcopy` and `model_copy(deep=True)` keep the container instead of handing back the customer; a container, loaded or not, can be copied and pickled and stays frozen. A structural relation has no JSON form yet, so a JSON dump of a loaded one now refuses by naming the container instead of writing an empty object; that form comes in the next steps of #399.
+
+Tutorial steps [22](tutorials/step-22-entity.md#an-unloaded-field-has-no-default) and [24](tutorials/step-24-relations.md#a-container-is-never-its-entity), and [the page on dictionary references](how-to/dictionary-references.md#dump-in-python-mode-and-in-json-mode), show each case with a script and a notebook.
+
 ## [2026-11-04] — The examples check beside the rest
 
 Checking every example made the main CI job about three and a half minutes longer, because the examples shared its machine with everything else. They now run in jobs of their own, `Examples` and `Examples on Python 3.14`. Jobs run at the same time on separate machines, so a pull request waits for the longest of them rather than for all in a row, and it is back to about the time it took before. A local run still checks the examples with everything else.
