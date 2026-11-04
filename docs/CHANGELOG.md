@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-05] — The cache is declared, and the graph shows it
+
+An action used to say what it caches by overriding four methods of `BaseAction` — `cache_key`, `read_cache`, `on_cache_write`, `on_cache_invalidate`. Nothing checked them: the key was synchronous, the order of parameters differed from method to method, none received `box` or `connections`, and the graph did not know the cache existed. Now the cache is four declarations built like the object check: `@cache_key`, `@cache_read`, `@cache_write` and `@cache_invalidate`.
+
+Each takes a description and sits on an `async` method whose name ends with its kind — `order_cache_key`, `order_cache_write` and so on. Its parameters start as every declaration's do, `self, params, box, connections`, then take what only its kind has (`entry`; `result, duration_ms`; `result`), then `ctx` when `@context_requires` is under it, so a key can include the tenant from the context. An action declares at most one of each kind, and a subclass caches only what it declares itself. **To move an action**, put the right decorator on each method, rename it with the suffix and give it the new parameters: `BaseAction` no longer has the four methods, and a method left under an old name is refused when the class is created, with the declaration that replaces it.
+
+A declaration that can never have an effect is refused at the earliest moment that can see it. A key without a write — which cached nothing while its author thought it did — and a write without a key are refused when the class is created; an invalidation may stand alone. The entity types a tag may name are declared in the decorator, `@cache_write("…", tags=(OrderCoreEntity,))`, at least one on an invalidation; a returned tag of another type, or one without a type, which used to match entries of every type, now fails the call naming the action and the tag. And the graph build compares the types across actions: a type some action drops and none caches, or caches and none drops, stops the application at start.
+
+The graph shows the cache: each declaration is a `Cache` node of its action, and `caches` and `invalidates` edges go from the action to the entities its tags name, so Maxitor can show which actions drop what others cache. These are new words of the graph protocol, version 1.4, which AOA now writes and Maxitor, the graph builder and the comparison read.
+
+[Tutorial step 8](tutorials/step-08-cache.md) shows every rule with a script and a notebook; the [reference of intents and invariants](reference/intents-and-invariants.md#the-declared-cache) lists them, and [the page on a cache adapter](how-to/authoring-cache-adapter.md) follows.
+
 ## [2026-11-05] — What goes out comes back in
 
 A Result goes out as JSON through FastAPI, MCP and soon the cache, and it must come back as the same thing. Two checks now hold every Result to that.

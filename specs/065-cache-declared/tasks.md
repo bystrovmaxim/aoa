@@ -41,4 +41,4 @@
 
 ## Phase 8: Changelog — one commit
 
-- [ ] T015 One article and its Russian version.
+- [X] T015 One article and its Russian version.
