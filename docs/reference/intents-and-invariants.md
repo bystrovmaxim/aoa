@@ -95,6 +95,7 @@ A suffix in AOA is not a matter of style. Each suffix is fixed by a base class o
 | Method with `@summary_aspect` | `_summary` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@compensate` | `_compensate` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@on_error` | `_on_error` | the decorator at method definition | `NamingSuffixError` |
+| Method with `@cache_key`, `@cache_read`, `@cache_write`, `@cache_invalidate` | `_cache_key`, `_cache_read`, `_cache_write`, `_cache_invalidate` | the decorator at method definition | `NamingSuffixError` |
 
 Beyond suffixes there are two more constraints. The description in `@regular_aspect("...")` and `@summary_aspect("...")` cannot be empty or whitespace-only — otherwise `ValueError` at decorator application. And indirect subclasses are checked on a par with direct ones: `class SpecificTask(BaseTaskAction)` without the `Action` suffix fails the same way.
 
@@ -244,6 +245,30 @@ The rules are the subject of [`examples/step_01_Action_and_pipeline/05_aspect_de
 
 The refusal rules above are the subject of [`examples/step_03_authorization_and_roles/06_the_declaration.py`](../../examples/step_03_authorization_and_roles/06_the_declaration.py), which runs each of them.
 
+## The declared cache
+
+What an operation caches is four declarations built like the object check: `@cache_key`, `@cache_read`, `@cache_write` and `@cache_invalidate`. Tutorial [step 8](../tutorials/step-08-cache.md) runs each rule.
+
+```python
+# Fragment: an outline, not complete code.
+    @cache_key("Order by id")
+    async def order_cache_key(self, params, box, connections) -> str | None:
+        return params.order_id
+
+    @cache_write("Keep every order", tags=(OrderCoreEntity,))
+    async def order_cache_write(self, params, box, connections, result, duration_ms) -> list[CacheTag] | None:
+        return [CacheTag(type=OrderCoreEntity, key=params.order_id)]
+```
+
+- **A description, a suffix, `async`.** As for `@access_decide`: an empty description, a name without `_cache_<kind>` or a plain `def` is refused where it is written.
+- **The signature is fixed.** `self, params, box, connections`, then `entry` (read), `result, duration_ms` (write) or `result` (invalidate), then `ctx` under `@context_requires`; names and annotations at declaration, types at assembly, with `AspectSignatureError`. The key returns `str | None`, the read the operation's `Result | None`, the write and the invalidation `list[CacheTag] | None`.
+- **At most one of each kind, never inherited.** A second one is refused when the class is created, naming both methods; a subclass caches only what it declares itself.
+- **No old hook.** `BaseAction` has no cache methods; a method named `cache_key`, `read_cache`, `on_cache_write` or `on_cache_invalidate` is refused when the class is created, naming the declaration that replaces it.
+- **A key and a write together.** Each alone is refused when the class is created; a read only with both; an invalidation may stand alone.
+- **Tag types are declared.** `tags=(...)` lists entity classes, at least one on an invalidation. A returned tag of another type, or without a type, raises `CacheContractError` naming the action, the method and the tag.
+- **No dead invalidation, no dead tag.** The graph build refuses an entity type some invalidation drops and no write caches (`DropInvoiceAction drops InvoiceCoreEntity, but no action caches it.`), and a type some write caches and no invalidation drops.
+- **The graph shows it.** Each declaration is a `Cache` node with its `kind` and `description`; `caches` and `invalidates` edges go from the operation to the entities of its tags.
+
 ## Every method gets its own box
 
 Every method of an action that receives `box` receives one of its own, carrying its own name. There are no exceptions, and an action cannot choose or change that name.
@@ -255,6 +280,7 @@ Every method of an action that receives `box` receives one of its own, carrying 
 | `@compensate` | the method's name | the snapshot before its step |
 | `@on_error` | the handler's name | the `state` the handler receives |
 | `@access_decide` | the method's name | nothing: it has no `state` |
+| `@cache_key`, `@cache_read`, `@cache_write`, `@cache_invalidate` | the method's name | nothing: they have no `state` |
 
 What follows from it, case by case:
 

@@ -37,7 +37,7 @@
 
 ## Phase 7: Documentation — one commit
 
-- [ ] T014 Tutorial step 8, the reference of intents and invariants, the how-to on a cache adapter, the glossary, and the examples that cache, with notebooks; Russian drafts.
+- [X] T014 Tutorial step 8, the reference of intents and invariants, the how-to on a cache adapter, the glossary, and the examples that cache, with notebooks; Russian drafts.
 
 ## Phase 8: Changelog — one commit
 

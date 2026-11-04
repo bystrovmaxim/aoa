@@ -32,7 +32,7 @@ The full example: [05_custom_cache_adapter.py](../../examples/how_to/05_custom_c
 
 The cache in AOA is split into **policy** and **storage**:
 
-- **Policy — on the operation.** Four overridable `BaseAction` hooks decide *what* and *when* to cache. By default the cache is off (`cache_key` → `None`).
+- **Policy — on the operation.** Four declarations — `@cache_key`, `@cache_write`, `@cache_read`, `@cache_invalidate` — decide *what* and *when* to cache. An operation that declares none caches nothing.
 - **Storage — a coordinator injected on the machine.** This is the extension point: where the entries physically live. Your own store replaces the shipped `CacheCoordinator`.
 
 The adapter answers only the question "where to store" — no business decisions; *what* to cache is decided by the operation.
@@ -113,29 +113,35 @@ For Redis the body of the same methods is `GET` / `DEL` / `SET` with a tag index
 
 ## Step 2. Policy on the operation side
 
-The store caches nothing on its own until the operation allows it. Four `BaseAction` hooks:
+The store caches nothing on its own until the operation allows it. The operation declares its policy (the rules of each declaration are in [step 8](../tutorials/step-08-cache.md#four-declarations)):
 
 ```python
 # Fragment: its imports are left out.
 from aoa.action_machine.runtime.cache_tag import CacheTag
 
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
-    def cache_key(self, params) -> str | None:
-        return params.sku                        # None -> skip the cache for this call
+    @cache_key("Quote per SKU")
+    async def quote_cache_key(self, params: QuoteParams, box: ToolsBox, connections: Connections) -> str | None:
+        return params.sku                                       # None -> skip the cache for this call
 
-    async def read_cache(self, params, entry):   # by default returns entry.result
-        return entry.result                      # None -> entry is stale, machine drops it
+    @cache_write("Keep every quote", tags=(QuoteCoreEntity,))
+    async def quote_cache_write(
+        self, params: QuoteParams, box: ToolsBox, connections: Connections, result: QuoteResult, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=QuoteCoreEntity, key=params.sku)]  # None -> do not store
 
-    async def on_cache_write(self, result, params, duration_ms) -> list[CacheTag] | None:
-        return [CacheTag(type=Quote, key=params.sku)]  # None -> do not store
 
-    async def on_cache_invalidate(self, params, result) -> list[CacheTag] | None:
-        return None                              # by default — invalidate nothing
+class RepriceAction(BaseAction[QuoteParams, QuoteResult]):
+    @cache_invalidate("Drop the quote of the repriced SKU", tags=(QuoteCoreEntity,))
+    async def quote_cache_invalidate(
+        self, params: QuoteParams, box: ToolsBox, connections: Connections, result: QuoteResult
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=QuoteCoreEntity, key=params.sku)]
 ```
 
-The `on_cache_write` hook returns **tags** (not a `bool`): `None` — do not write; a list of `CacheTag` — store the result and index it under those tags. The `on_cache_invalidate` hook is called after **every** clean pipeline regardless of `cache_key` — including write operations that do not cache themselves but must evict the cache of read operations.
+`@cache_write` returns **tags** (not a `bool`): `None` — do not write; a list of `CacheTag` — store the result and index it under those tags, each of an entity type named in `tags=(...)`. `@cache_invalidate` is called after **every** clean pipeline — including write operations that do not cache themselves but must evict the cache of read operations. An optional `@cache_read` receives the stored `entry` and returns the Result, or `None` when the entry is stale.
 
-Machine flow: with a coordinator present — `cache_key(params)`; if not `None` → `get_entry`; on a hit → `read_cache`; on a miss — the pipeline → `on_cache_invalidate` → `evict_by_tags` → `on_cache_write` → `put`. **Results from `@on_error` are not cached.**
+Machine flow: with a coordinator present — `@cache_key`; if not `None` → `get_entry`; on a hit → `@cache_read` (or the stored Result); on a miss — the pipeline → `@cache_invalidate` → `evict_by_tags` → `@cache_write` → `put`. **Results from `@on_error` are not cached.**
 
 ## Step 3. Wiring
 
@@ -150,9 +156,9 @@ machine = ActionProductMachine(cache_coordinator=DictCacheAdapter())
 
 - **A duck-typed contract, no inheritance.** Four async methods with the right signatures are enough; the shipped `CacheCoordinator`'s `clear`/`size` are management, not needed during a run.
 - **Key namespacing is mandatory** (`module.qualname`) — otherwise collisions between operations.
-- **Returns are validated.** `cache_key` → `str | None` (non-empty); `read_cache` → `Result | None`; `on_cache_write` → `list[CacheTag] | None`; `on_cache_invalidate` → `list[CacheTag] | None`; a violation → `CacheContractError`. An exception from a hook or a store method surfaces outward, it is not swallowed.
+- **Returns are validated.** `@cache_key` → `str | None` (non-empty); `@cache_read` → `Result | None`; `@cache_write` and `@cache_invalidate` → `list[CacheTag] | None`, each tag of a declared type; a violation → `CacheContractError`. An exception from a declaration or a store method surfaces outward, it is not swallowed.
 - **Tags are a domain contract.** `evict_by_tags` removes only entries that were indexed under the relevant tags when `put` was called. If a tag was not passed at write time — it cannot be found at invalidation time.
-- **v1 has no TTL and no single-flight.** Staleness is expressed via `read_cache → None`; simultaneous misses on one key may run the pipeline several times. TTL is the logic of *your* adapter (Redis `EX`).
+- **v1 has no TTL and no single-flight.** Staleness is expressed via `@cache_read` returning `None`; simultaneous misses on one key may run the pipeline several times. TTL is the logic of *your* adapter (Redis `EX`).
 
 ## Verification
 
@@ -166,9 +172,12 @@ quote('ABC') -> 30.0
 quote('XYZW') -> 40.0
 pipeline executions: ['ABC', 'XYZW']
 cache size: 2
+after reprice, cache size: 1
+quote('ABC') -> 30.0
+pipeline executions: ['ABC', 'XYZW', 'ABC']
 ```
 
-The second `quote('ABC')` is a hit: the machine took the result from the adapter and **did not run the pipeline** (there is no second `ABC` in `executions`). The whole cache concept, with review questions — [Step 8 — Cache](../tutorials/step-08-cache.md).
+The second `quote('ABC')` is a hit: the machine took the result from the adapter and **did not run the pipeline** (there is no second `ABC` in `executions` at that point). `RepriceAction` then drops the `ABC` entry through `evict_by_tags`, so the next quote runs the pipeline again. The whole cache concept, with review questions — [Step 8 — Cache](../tutorials/step-08-cache.md).
 
 ---
 

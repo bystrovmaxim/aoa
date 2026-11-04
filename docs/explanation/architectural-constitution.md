@@ -184,7 +184,7 @@ class CheckRolesIntent(BaseIntent): ...  # the class declares role requirements
 class EntityIntent(BaseIntent): ...  # the class participates in the @entity grammar
 
 
-class CacheIntent(BaseIntent): ...  # the class declares cache_key / on_cache_write
+class CacheIntent(BaseIntent): ...  # the class declares @cache_key / @cache_write
 ```
 
 An Intent is orthogonal to the other primitives — it can be mixed into `BaseAction`, `BaseEntity`, or any other class.
