@@ -128,7 +128,19 @@ Sample 06 cache — heavy again (runs, cached anew)
   config_cache_write: duration_ms=83.0, write=yes
 ```
 
-The second block — "heavy again" — is empty: not a line of log, not a write. That is the hit: the machine returned the ready result without executing a single aspect (events for regular and summary aspects are not emitted on a hit; `global_start`/`global_finish` are always emitted). The last two blocks are the invalidation: `SetConfigAction` drops the entry, and the next read runs and stores it again. *(The `duration_ms` numbers depend on the run.)*
+The second block — "heavy again" — is empty: not a line of log, not a write. That is the hit: the machine read the stored result without executing a single aspect (events for regular and summary aspects are not emitted on a hit; `global_start`/`global_finish` are always emitted). The last two blocks are the invalidation: `SetConfigAction` drops the entry, and the next read runs and stores it again. *(The `duration_ms` numbers depend on the run.)*
+
+### What the store keeps
+
+The store keeps the Result's **JSON**, not the Result: on a write the machine hands it `model_dump_json()` in UTF-8, and on every hit it reads those bytes back into a **new** Result with the operation's Result type. So a caller that changes the Result it received changes nothing another caller gets, and a store that keeps bytes, such as Redis, can be plugged in ([your own store](../how-to/authoring-cache-adapter.md)). `@cache_read` receives that new Result in `entry.result`, with the stored entry's metadata.
+
+Because a hit must return what the miss returned, a write first reads the Result back from its own JSON and compares the two — values, loaded fields, loaded relations, declared objects. A Result that cannot survive that is refused at the write, and nothing is stored:
+
+```text
+CacheSerializationError: FloorAction.Result cannot be cached: field 'count' reads back as 20, but was 29.
+```
+
+The same error names a field with no JSON form (`field 'data' has no JSON form (...)`) and a field whose JSON its own type refuses (`field 'count' does not read back from its own JSON ('2 items': int_parsing)`). It is a `CacheContractError`. And an entry whose bytes the current Result type no longer reads — written by an earlier version of the code into a store that outlived a deploy — is treated as stale: the key is dropped and the pipeline runs.
 
 ## To store or not — and under which tags
 
@@ -239,6 +251,7 @@ The cache coexists neatly with the neighboring layers, and this is visible in tw
 - **A scoped key.** For subject-dependent data the key must include `user_id`/`tenant_id` — otherwise a leak between clients.
 - **A key and a write together.** Each alone is refused at class creation; a read only with both; an invalidation may stand alone.
 - **A hit bypasses the pipeline.** On a hit the aspects do not run; their events are not emitted.
+- **The store keeps JSON.** A write stores the Result's JSON after reading it back to the same observable state (`CacheSerializationError` otherwise); every hit is a new Result read from it; an entry that no longer reads is stale.
 - **`@cache_write` — only with a non-None key.** Returns `list[CacheTag] | None`: `None` — do not write; a list of tags — write and index.
 - **Tag types are declared.** `tags=(...)` names entity classes; a returned tag of another type, or without a type, → `CacheContractError`.
 - **A result from `@on_error` is not cached.** Only a clean summary pass.
@@ -265,7 +278,7 @@ Next — **[Plugins](../index.md#iii-business-logic)**: lifecycle observers that
 4. What happens on a cache hit to the aspects and their events? Why is the second "heavy" block in the output empty?
 5. Why must the key include `user_id`/`tenant_id` for subject-dependent data, and how does `@context_requires` help?
 6. Why is a key without a write refused, while an invalidation may stand alone?
-7. Why is a result returned from `@on_error` not cached?
+7. Why is a result returned from `@on_error` not cached? Why does every hit return a new Result, and what does a write check before it stores one?
 8. How is "freshness" expressed without a TTL? What happens when `@cache_read` returns `None`?
 9. Why is the include contract not checked on a cache hit?
 10. Why must a tag name a declared entity type? What did a tag without a type do before?

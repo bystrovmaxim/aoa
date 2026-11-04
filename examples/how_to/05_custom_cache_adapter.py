@@ -12,12 +12,14 @@ Caching in AOA has two sides:
 
   - STORAGE lives in a coordinator injected on the machine. The shipped
     `CacheCoordinator` is in-memory; to back the cache with Redis/Memcached/etc.
-    you write your own. The machine talks to it through a duck-typed contract
-    (no base class to subclass) — four async methods are called during a run:
+    you write your own. The store keeps bytes: the machine hands it the
+    Result's JSON in UTF-8 and reads every hit back into a new Result itself.
+    It talks to the store through a duck-typed contract (no base class to
+    subclass) — four async methods are called during a run:
 
-      async get_entry(action_cls, user_key)  -> CacheEntry | None
+      async get_entry(action_cls, user_key)  -> StoredCacheEntry | None
       async invalidate(action_cls, user_key) -> bool
-      async put(action_cls, user_key, result, pipeline_duration_ms,
+      async put(action_cls, user_key, payload: bytes, pipeline_duration_ms,
                 tags: list[CacheTag] | None = None) -> None
       async evict_by_tags(directive_tags: frozenset[CacheTag]) -> int
 
@@ -36,7 +38,6 @@ Run:
 
 import asyncio
 from collections import defaultdict
-from typing import Any
 
 from pydantic import Field
 
@@ -53,7 +54,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.action_machine.runtime.cache_entry import CacheEntry
+from aoa.action_machine.runtime.cache_entry import StoredCacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -61,7 +62,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 
 class DictCacheAdapter:
     def __init__(self) -> None:
-        self._store: dict[str, CacheEntry] = {}
+        self._store: dict[str, StoredCacheEntry] = {}
         self._tag_to_keys: defaultdict[CacheTag, set[str]] = defaultdict(set)
         self._key_to_tags: dict[str, set[CacheTag]] = {}
 
@@ -69,19 +70,20 @@ class DictCacheAdapter:
     def _key(action_cls: type, user_key: str) -> str:
         return f"{action_cls.__module__}.{action_cls.__qualname__}:{user_key}"
 
-    async def get_entry(self, action_cls: type, user_key: str) -> CacheEntry | None:
+    async def get_entry(self, action_cls: type, user_key: str) -> StoredCacheEntry | None:
         return self._store.get(self._key(action_cls, user_key))
 
     async def put(
         self,
         action_cls: type,
         user_key: str,
-        result: Any,
+        payload: bytes,
         pipeline_duration_ms: float,
         tags: list[CacheTag] | None = None,
     ) -> None:
+        # Bytes in, bytes out: the machine encodes the Result and reads it back.
         k = self._key(action_cls, user_key)
-        self._store[k] = CacheEntry(result=result, pipeline_duration_ms=pipeline_duration_ms)
+        self._store[k] = StoredCacheEntry(payload=payload, pipeline_duration_ms=pipeline_duration_ms)
         if tags:
             self._key_to_tags[k] = set(tags)
             for tag in tags:
@@ -115,6 +117,10 @@ class DictCacheAdapter:
     @property
     def size(self) -> int:
         return len(self._store)
+
+    def payload(self, action_cls: type, user_key: str) -> bytes:
+        """What the store holds for a key — the Result's JSON, as Redis would hold it."""
+        return self._store[self._key(action_cls, user_key)].payload
 
 
 # ── Domain and the entity a cache tag names ──────────────────────────────────
@@ -192,6 +198,7 @@ async def main() -> None:
 
     print("pipeline executions:", EXECUTIONS)        # ['ABC', 'XYZW'] — second 'ABC' was a hit
     print("cache size:", cache.size)
+    print("stored for 'ABC':", cache.payload(QuoteAction, "ABC"))
 
     await machine.run(Context(), RepriceAction(), QuoteParams(sku="ABC"), {})  # drops ABC's entry
     print("after reprice, cache size:", cache.size)

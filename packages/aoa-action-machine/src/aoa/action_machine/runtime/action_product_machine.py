@@ -140,11 +140,16 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, TypeVar, cast
 
+from pydantic import ValidationError
+from pydantic_core import PydanticSerializationError
+
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.context_view import ContextView
+from aoa.action_machine.domain.observable_state import observable_difference
 from aoa.action_machine.exceptions.access_denied import AccessDenied
 from aoa.action_machine.exceptions.access_undecided import AccessUndecided
 from aoa.action_machine.exceptions.cache_contract_error import CacheContractError
+from aoa.action_machine.exceptions.cache_serialization_error import CacheSerializationError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
 from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
@@ -172,6 +177,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.aspect_executor import AspectExecutor
 from aoa.action_machine.runtime.base_action_machine import BaseActionMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
+from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
@@ -256,6 +262,30 @@ def _all_aspect_states_from_saga_stack(
         for frame in saga_stack
         if isinstance(frame.state_after, BaseState)
     )
+
+
+
+def _unserializable_field(result: BaseResult, error: Exception) -> str:
+    """Name the first field whose own dump fails, as the dump of the whole Result does not say."""
+    for name in type(result).model_fields:
+        try:
+            result.model_dump_json(include={name})
+        except PydanticSerializationError as exc:
+            return f"field '{name}' has no JSON form ({exc})"
+    return f"it has no JSON form ({error})"
+
+
+def _first_field_difference(result: BaseResult, back: BaseResult) -> str | None:
+    """Describe the first top-level field whose read-back differs, or return ``None``."""
+    for name in type(result).model_fields:
+        before, after = result.__dict__.get(name), back.__dict__.get(name)
+        difference = observable_difference(before, after, f"$.{name}")
+        if difference is None:
+            continue
+        if isinstance(before, (str, int, float, bool)) and type(before) is type(after):
+            return f"field '{name}' reads back as {after!r}, but was {before!r}"
+        return f"field '{name}' reads back different ({difference})"
+    return None
 
 
 class ActionProductMachine(BaseActionMachine):
@@ -382,7 +412,9 @@ class ActionProductMachine(BaseActionMachine):
     ) -> tuple[str | None, Any]:
         """Return the call's key and, on a hit, the Result to answer with (``None`` on a miss).
 
-        A stored entry the read declines is dropped, so the pipeline runs and writes it anew.
+        The stored bytes are read into a new Result with the action's Result type; ``@cache_read``
+        receives it with the stored metadata. A stored entry whose bytes no longer read, or that the
+        read declines, is dropped, so the pipeline runs and writes it anew.
         """
         if self._cache_coordinator is None or cache.key is None:
             return None, None
@@ -391,13 +423,21 @@ class ActionProductMachine(BaseActionMachine):
         self._validate_cache_key(key, action)
         if key is None:
             return None, None
-        entry = await self._cache_coordinator.get_entry(action_cls, key)
-        if entry is None:
+        stored = await self._cache_coordinator.get_entry(action_cls, key)
+        if stored is None:
+            return key, None
+        # Every hit reads a new Result from the stored bytes; no caller gets another caller's object.
+        try:
+            fresh = result_type.model_validate_json(stored.payload)
+        except ValueError:
+            # Bytes the current Result type no longer reads (an earlier version wrote them) are a
+            # stale entry: dropped, and the pipeline runs, as when @cache_read declines one.
+            await self._cache_coordinator.invalidate(action_cls, key)
             return key, None
         cached = (
-            await self._call_cache(cache.read, action, params, box, conns, context, entry)
+            await self._call_cache(cache.read, action, params, box, conns, context, CacheEntry.from_stored(stored, fresh))
             if cache.read is not None
-            else entry.result
+            else fresh
         )
         if cached is None:
             await self._cache_coordinator.invalidate(action_cls, key)
@@ -440,7 +480,38 @@ class ActionProductMachine(BaseActionMachine):
         self._validate_cache_write_decision(write_tags, action)
         self._validate_tag_types(write_tags, action, cache.write)
         if write_tags is not None:
-            await coordinator.put(type(action), key, result, duration_ms, tags=write_tags)
+            # The store keeps bytes: the Result's JSON in UTF-8, never the Result itself.
+            payload = self._encode_for_cache(result)
+            await coordinator.put(type(action), key, payload, duration_ms, tags=write_tags)
+
+    @staticmethod
+    def _encode_for_cache(result: BaseResult) -> bytes:
+        """
+        Return ``result``'s JSON in UTF-8, after proving it reads back to the same observable state.
+
+        Raises:
+            CacheSerializationError: the Result has no JSON form, its JSON does not read back,
+                or it reads back different; the message names the field and nothing is stored.
+        """
+        result_type = type(result)
+        where = f"{result_type.__qualname__} cannot be cached"
+        try:
+            payload = result.model_dump_json().encode()
+        except PydanticSerializationError as exc:
+            raise CacheSerializationError(f"{where}: {_unserializable_field(result, exc)}.") from exc
+        try:
+            back = result_type.model_validate_json(payload)
+        except ValidationError as exc:
+            first = exc.errors()[0]
+            field_name = first["loc"][0] if first["loc"] else "?"
+            raise CacheSerializationError(
+                f"{where}: field '{field_name}' does not read back from its own JSON "
+                f"({first.get('input')!r}: {first['type']})."
+            ) from exc
+        difference = _first_field_difference(result, back)
+        if difference is not None:
+            raise CacheSerializationError(f"{where}: {difference}.")
+        return payload
 
     async def _call_cache(
         self,

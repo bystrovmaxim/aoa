@@ -3,9 +3,10 @@
 Entities the cache tests tag their entries with, and the action that drops them.
 
 A cache tag names an entity type (issue #412), and the graph build refuses a type
-some action caches that no action invalidates. Every test module that caches one of
-these types imports this module, so the action below, which invalidates all of them,
-is in each graph those modules build.
+some action caches that no action invalidates, and the other way round. Every test
+module that caches one of these types imports this module, so the two actions below,
+one caching all of them and one invalidating all of them, keep each graph those
+modules build balanced, whichever of them runs alone.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
-from aoa.action_machine.intents.cache import cache_invalidate
+from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_write
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
@@ -66,6 +67,28 @@ class ClearCachedModelAction(BaseAction[ParamsStub, ResultStub]):
 
     @summary_aspect("Clear")
     async def clear_summary(
+        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> ResultStub:
+        return ResultStub()
+
+
+@meta(description="Cache every type of the cache tests", domain=OrdersDomain)
+@check_roles(GuestRole)
+class KeepCachedModelAction(BaseAction[ParamsStub, ResultStub]):
+    """Caches under every type the cache tests invalidate."""
+
+    @cache_key("One key")
+    async def keep_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        return "all"
+
+    @cache_write("Keep under every cached type", tags=CACHED_TYPES)
+    async def keep_cache_write(
+        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ResultStub, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=entity_type, key="all") for entity_type in CACHED_TYPES]
+
+    @summary_aspect("Keep")
+    async def keep_summary(
         self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ResultStub:
         return ResultStub()
