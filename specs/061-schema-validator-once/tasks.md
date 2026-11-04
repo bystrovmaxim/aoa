@@ -40,7 +40,7 @@
 
 ## Phase 2: Versions — one commit
 
-- [ ] T010 Raise the version of `packages/aoa-action-machine` in its `pyproject.toml` and update `uv.lock`; run `uv run --extra dev graph-builder check` and rebuild the graph files only if it reports a change.
+- [X] T010 Raise the version of `packages/aoa-action-machine` in its `pyproject.toml` and update `uv.lock`; run `uv run --extra dev graph-builder check` and rebuild the graph files only if it reports a change.
 
 ---
 
