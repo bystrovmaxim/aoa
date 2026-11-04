@@ -123,7 +123,7 @@ The build checks declarations, not database rows. Normal construction now also c
 
 ### Can two choices on the same entity use different alternatives?
 
-The current closure check still requires every axis to include the classes that generalize to its head. The [working two-axis example](../../examples/step_24_relations/11_specialization_two_axes.py) shares both the dictionary and alternatives; the [subset example](../../examples/step_24_relations/38_error_axis_subset.py) shows the refusal. A dictionary can classify several axes, but this does not remove the restriction on alternative sets. There are no separate classifier fields.
+No, and not with the same alternatives either: a head has one specialization axis. A specialization has one reverse generalization and one head, so a second axis over the same alternatives would lead back through the same reverse field, and the graph refuses the two identical edges that gives. A second axis over other alternatives is refused by the closure check, which requires every axis to include every class that generalizes to its head; the [subset example](../../examples/step_24_relations/38_error_axis_subset.py) shows the refusal. One dictionary can classify the axes of several heads. There are no separate classifier fields.
 
 ### Can I omit the reverse declaration?
 

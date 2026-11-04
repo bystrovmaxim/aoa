@@ -586,14 +586,14 @@ No class-to-table mapping or database constraint is generated.
 
 #### Rules across axes and current limits
 
-One dictionary may classify several axes, each with complete coverage. An alternative
-class belongs to one head class. Specialization chains must not form cycles. The current
-closure check compares reverse links by head class: every axis must include every class
-that generalizes to that head. Thus the
-[two-axis example](../../examples/step_24_relations/11_specialization_two_axes.py) shares
-alternatives, while the
-[subset example](../../examples/step_24_relations/38_error_axis_subset.py) is refused.
-Independent disjoint alternative sets on one head are not supported by this check.
+One dictionary may classify the axes of several heads, each with complete coverage. An
+alternative class belongs to one head class. Specialization chains must not form cycles.
+A head has one axis. A second axis over the same alternatives would lead back through
+their one reverse `Generalization` field and give the graph two identical edges, which it
+refuses. A second axis over other alternatives fails the closure check, which compares
+reverse links by head class: every axis must include every class that generalizes to that
+head, so the [subset example](../../examples/step_24_relations/38_error_axis_subset.py)
+is refused.
 
 Use the paired `Inverse` declarations shown in the tutorial. Specialization and Generalization now require reciprocal Inverse markers; NoInverse on either field is refused during declaration validation. Role compatibility supplements the existing classifier/coverage checks. It does not establish a database relationship or perform storage validation. A bare `Generalization` to a head without an axis
 does not establish a validated specialization.

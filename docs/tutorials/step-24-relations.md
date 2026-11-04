@@ -464,7 +464,6 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 | specialization mismatched data | [08_specialization_mismatched_data](../../examples/step_24_relations/08_specialization_mismatched_data.py) | [Notebook](../../examples/step_24_relations/08_specialization_mismatched_data.ipynb) |
 | specialization frozen | [09_specialization_frozen](../../examples/step_24_relations/09_specialization_frozen.py) | [Notebook](../../examples/step_24_relations/09_specialization_frozen.ipynb) |
 | specialization graph | [10_specialization_graph](../../examples/step_24_relations/10_specialization_graph.py) | [Notebook](../../examples/step_24_relations/10_specialization_graph.ipynb) |
-| specialization two axes | [11_specialization_two_axes](../../examples/step_24_relations/11_specialization_two_axes.py) | [Notebook](../../examples/step_24_relations/11_specialization_two_axes.ipynb) |
 | specialization hidden edges | [12_specialization_hidden_edges](../../examples/step_24_relations/12_specialization_hidden_edges.py) | [Notebook](../../examples/step_24_relations/12_specialization_hidden_edges.ipynb) |
 | specialization erd | [13_specialization_erd](../../examples/step_24_relations/13_specialization_erd.py) | [Notebook](../../examples/step_24_relations/13_specialization_erd.ipynb) |
 | specialization single alternative | [14_specialization_single_alternative](../../examples/step_24_relations/14_specialization_single_alternative.py) | [Notebook](../../examples/step_24_relations/14_specialization_single_alternative.ipynb) |

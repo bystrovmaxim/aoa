@@ -2,8 +2,6 @@
 
 A service's graph is a file in its repository, so the file's git history is the graph's history. With [`repo-graph-port`](run-the-repo-graph-port.md) serving that history, Maxitor opens it from one address and shows any version on a time axis: every change that reached the branch, the pull requests still open that would change it, and Live — the service running now.
 
-[16_open_a_history.py](../../examples/step_29_maxitor/16_open_a_history.py) ([notebook](../../examples/step_29_maxitor/16_open_a_history.ipynb)) runs every case below against a real port and prints what Maxitor answers.
-
 ## Open a history
 
 Paste one of three addresses into the **AOA Service URL** field:

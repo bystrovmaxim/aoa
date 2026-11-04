@@ -36,21 +36,6 @@ deferred = ["local-update"]
 
 `skill` is the revision of the wizard, not a release. Only `local-update` and `ci-graph-check` may be deferred, and a deferred item is also decided. An older file that lists `version-tags` keeps working; the wizard proposes removing it.
 
-The [script](../../examples/step_29_maxitor/15_setup_decisions.py) and [notebook](../../examples/step_29_maxitor/15_setup_decisions.ipynb) show which records are accepted:
-
-```bash
-uv run --extra dev python examples/step_29_maxitor/15_setup_decisions.py
-```
-
-```text
-Optional update deferred:
-ok tiny
-Setup decisions preserved: True
-A green graph check says nothing about version checks.
-Deferred mandatory config: refused setup.deferred.0
-Undecided local update: refused setup.decided
-```
-
 ## How a version check is proved
 
 A workflow file proves nothing, so the wizard checks a real failure in a disposable Git copy: it commits the setup, commits one counted change without raising a number, and requires the tool to fail.
