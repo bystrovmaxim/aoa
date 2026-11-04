@@ -9,7 +9,7 @@ No new types. Two existing ones change behaviour.
 | Identity | `id` (One) or `ids` (Many), always present |
 | Loaded state | `entity` set (One); `entities_loaded` (Many) |
 | Attribute forwarding | an ordinary name goes to the loaded entity; a name that starts and ends with `__` is never forwarded and raises `AttributeError` |
-| Copy | `copy.copy` returns the container itself |
+| Copy | `copy.copy` gives an equal container of the same class, rebuilt through the constructor |
 | Deep copy | a new container of the same class: same ids, deep-copied entities, same loaded state |
 | Pickle | rebuilt through the constructor; equal to the original and still frozen |
 | Equality | unchanged: class and ids |

@@ -57,8 +57,11 @@ def test_full_entity_getattr_unknown_still_attribute_error() -> None:
         _ = entity.unknown_attr  # type: ignore[attr-defined]
 
 
-def test_construct_without_partial_flag_missing_model_field_attribute_error() -> None:
-    """Declared field missing and no ``_partial_instance`` → generic ``AttributeError``."""
+def test_any_instance_missing_a_declared_field_raises_field_not_loaded() -> None:
+    """A declared field the instance does not hold is not loaded, however the instance was built."""
     entity = SampleCoreEntity.model_construct(id="only-id")
-    with pytest.raises(AttributeError, match="name"):
+    with pytest.raises(FieldNotLoadedError, match="name") as exc_info:
         _ = entity.name
+
+    assert isinstance(exc_info.value, AttributeError)
+    assert exc_info.value.loaded_fields == frozenset({"id"})

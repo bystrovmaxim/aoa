@@ -45,19 +45,19 @@
 
 ### Tests first
 
-- [ ] T009 [P] [US3] Write `packages/aoa-action-machine/tests/action_machine/domain/test_entity_partial_loading.py` with tests for: case 2.1 (`currency: str = "RUB"` unloaded → `FieldNotLoadedError` on read, absent from `model_dump()` in both modes, `is_field_loaded` False); case 2.3 (a factory `lambda data: data["id"].upper()` → `partial()` returns an instance with nothing loaded; a counting factory runs 0 times for `partial(id="o1")`); a partial with every field equals the full entity and reports every field loaded; a full entity still applies its defaults.
-- [ ] T010 [P] [US4] Add case 2.2 to the same file: `partial(id="o1").model_copy(update={"total": 2.0})` reports `total` loaded and reads 2.0, while a field still unloaded raises `FieldNotLoadedError`.
-- [ ] T011 [P] [US3] Add a test that pins the construction against Pydantic: a partial instance has exactly the given keys in `__dict__`, `model_fields_set` equal to them, `__pydantic_extra__` None and the class's private defaults.
-- [ ] T012 Run T009–T011 and confirm each fails on today's code with the Before output of #405.
+- [X] T009 [P] [US3] Write `packages/aoa-action-machine/tests/action_machine/domain/test_entity_partial_loading.py` with tests for: case 2.1 (`currency: str = "RUB"` unloaded → `FieldNotLoadedError` on read, absent from `model_dump()` in both modes, `is_field_loaded` False); case 2.3 (a factory `lambda data: data["id"].upper()` → `partial()` returns an instance with nothing loaded; a counting factory runs 0 times for `partial(id="o1")`); a partial with every field equals the full entity and reports every field loaded; a full entity still applies its defaults.
+- [X] T010 [P] [US4] Add case 2.2 to the same file: `partial(id="o1").model_copy(update={"total": 2.0})` reports `total` loaded and reads 2.0, while a field still unloaded raises `FieldNotLoadedError`.
+- [X] T011 [P] [US3] Add a test that pins the construction against Pydantic: a partial instance has exactly the given keys in `__dict__`, `model_fields_set` equal to them, `__pydantic_extra__` None and the class's private defaults.
+- [X] T012 Run T009–T011 and confirm each fails on today's code with the Before output of #405.
 
 ### Implementation
 
-- [ ] T013 [US3] In `packages/aoa-action-machine/src/aoa/action_machine/domain/entity.py`, rewrite `BaseEntity.partial()` to create the instance without `model_construct`, setting `__dict__` to the given fields only, `__pydantic_fields_set__` to their names, `__pydantic_extra__` to None and `__pydantic_private__` to the class's private defaults (research R1); remove `_partial_instance` and `_loaded_fields`.
-- [ ] T014 [US3] In the same file make `__getattr__`, `is_field_loaded` and `get_field_value` decide by presence of the field in the instance's `__dict__`: a declared field that is absent raises `FieldNotLoadedError` with the loaded field names; update the module docstring and the AI-CORE block of `BaseEntity` to the new contract.
-- [ ] T015 [US3] Revisit `packages/aoa-action-machine/tests/action_machine/domain/test_entity_partial_getattr.py`: the test that expected a generic `AttributeError` for a declared field missing on a non-partial instance now expects `FieldNotLoadedError` (an `AttributeError`); keep its intent, do not weaken it.
-- [ ] T016 [US3] Update the docstring example in `packages/aoa-action-machine/tests/support/domain_model/entities.py` if it no longer matches.
-- [ ] T017 Run the phase's tests only — the files T009–T011 and T015 wrote or changed: all pass. The other tests that build partial entities (`test_entity_introspection.py`, `test_specialization_container.py`) run in the closing check run (T020).
-- [ ] T018 Adversarial break against the phase's test files only: build `partial()` through `model_construct` again → the 2.1 and 2.3 tests fail; restore.
+- [X] T013 [US3] In `packages/aoa-action-machine/src/aoa/action_machine/domain/entity.py`, rewrite `BaseEntity.partial()` to create the instance without `model_construct`, setting `__dict__` to the given fields only, `__pydantic_fields_set__` to their names, `__pydantic_extra__` to None and `__pydantic_private__` to the class's private defaults (research R1); remove `_partial_instance` and `_loaded_fields`.
+- [X] T014 [US3] In the same file make `__getattr__`, `is_field_loaded` and `get_field_value` decide by presence of the field in the instance's `__dict__`: a declared field that is absent raises `FieldNotLoadedError` with the loaded field names; update the module docstring and the AI-CORE block of `BaseEntity` to the new contract.
+- [X] T015 [US3] Revisit `packages/aoa-action-machine/tests/action_machine/domain/test_entity_partial_getattr.py`: the test that expected a generic `AttributeError` for a declared field missing on a non-partial instance now expects `FieldNotLoadedError` (an `AttributeError`); keep its intent, do not weaken it.
+- [X] T016 [US3] Update the docstring example in `packages/aoa-action-machine/tests/support/domain_model/entities.py` if it no longer matches (it still matches: no change).
+- [X] T017 Run the phase's tests only — the files T009–T011 and T015 wrote or changed: all pass. The other tests that build partial entities (`test_entity_introspection.py`, `test_specialization_container.py`) run in the closing check run (T020).
+- [X] T018 Adversarial break against the phase's test files only: build `partial()` through `model_construct` again → the 2.1 and 2.3 tests fail; restore.
 
 **Checkpoint**: show the diff; commit only on instruction.
 
