@@ -34,4 +34,4 @@
 
 ## Phase 6: Changelog — one commit
 
-- [ ] T014 One article and its Russian version.
+- [X] T014 One article and its Russian version.

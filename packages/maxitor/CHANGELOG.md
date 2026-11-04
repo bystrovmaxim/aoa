@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Loading a graph returns its text, not the DuckDB graph**: `LoadAOAServiceAction` downloads, checks and summarizes a service's graph, and its Result carries the graph's JSON text; the server builds the DuckDB graph from that text. A Result holds only values with a JSON form, and AOA's graph build now refuses one that does not. A broken graph still fails the load as before.
+
 ### Added
 
 - **`repo-graph-port` follows a moved file**: when the folder of a graph file or a version file moves, the port asks git where the file was and reads each older version there, so the history keeps everything before the move — for a public link too. `graph_file_before` and `version_file_before` remain for a move git cannot see.
