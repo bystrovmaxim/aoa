@@ -71,7 +71,7 @@
 
 ## Phase 5: Versions — one commit
 
-- [ ] T023 Raise `aoa-action-machine` in `pyproject.toml` and `uv.lock`; the adapter packages only if their code changed; `graph-builder check`.
+- [X] T023 Raise `aoa-action-machine` in `pyproject.toml` and `uv.lock`; the adapter packages only if their code changed; `graph-builder check`.
 
 ## Phase 6: The closing check run — one commit if it changes anything
 
