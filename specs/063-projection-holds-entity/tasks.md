@@ -33,7 +33,7 @@
 
 ## Phase 6: Documentation — one commit
 
-- [ ] T013 Steps 17 and 18: a projection holds the entity, on output and input, with a script and a notebook; step 22: a field typed by the entity carries a full one, a projection for a part; Russian drafts.
+- [x] T013 Steps 17 and 18: a projection holds the entity, on output and input, with a script and a notebook; step 22: a field typed by the entity carries a full one, a projection for a part; Russian drafts.
 
 ## Phase 7: Changelog — one commit
 

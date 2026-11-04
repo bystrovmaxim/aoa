@@ -213,7 +213,7 @@ print(order.id, order.total)
 ord-2 99.5
 ```
 
-`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-17-schema-results.md) is a separate concern: it describes which fields leave the application through an external result. An entity can also be a field of `Params` and `Result` itself: every value it holds has one JSON form, read back on every path — [relations](step-24-relations.md#send-a-relation-as-json), [dictionary selections](../how-to/dictionary-references.md#every-path-takes-the-same-input) and [lifecycles](step-25-lifecycle.md#send-a-lifecycle-as-json).
+`fields.id` and `fields.total` are field-name tokens used by the mapper. The resource translates storage vocabulary; an action receives the same `OrderCoreEntity`. Entity instances remain frozen, and undeclared fields are forbidden. An [entity schema projection](step-17-schema-results.md#a-partial-entity-projection) is a separate concern: it describes which fields of the entity an external contract carries, and holds a partial entity with exactly those fields. An entity can also be a field of `Params` and `Result` itself: every value it holds has one JSON form, read back on every path — [relations](step-24-relations.md#send-a-relation-as-json), [dictionary selections](../how-to/dictionary-references.md#every-path-takes-the-same-input) and [lifecycles](step-25-lifecycle.md#send-a-lifecycle-as-json).
 
 ## Distinguish unloaded data from a loaded value
 
@@ -262,6 +262,16 @@ partial with the id only == full: False
 ```
 
 A partial entity given every field holds what a full one holds, and the two are equal. A partial entity that lacks a field is not equal to the full one, because it does not hold the same fields.
+
+### A Params or Result field takes a full entity
+
+A field typed by the entity itself, `order: OrderCoreEntity`, publishes the entity's whole schema, so it takes a full entity and refuses a partial one; otherwise the JSON it writes would lack fields its own schema requires. A part of an entity goes through a [projection](step-17-schema-results.md#a-partial-entity-projection), `OrderCoreEntity.schema(schema={...})`, which names the fields it carries:
+
+```text
+ValidationError: Value error, order: OrderCoreEntity is partial (loaded: id); this field takes a full entity. Declare a projection with OrderCoreEntity.schema(...).
+```
+
+The same holds for `OrderCoreEntity | None` and for each item of `list[OrderCoreEntity]`. Inside an entity a relation still holds a partial target: that is what a relation's load level means.
 
 ## Inherit a kind and add ordinary behaviour
 
