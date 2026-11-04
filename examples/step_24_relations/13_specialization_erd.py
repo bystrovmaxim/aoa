@@ -120,7 +120,10 @@ def main() -> None:
     folder = here if here.name == "step_24_relations" else here / "examples" / "step_24_relations"
     folder.mkdir(parents=True, exist_ok=True)
     output = folder / "02_specialization_erd.json"
-    output.write_text(json.dumps(diagram, indent=2) + "\n")
+    text = json.dumps(diagram, indent=2) + "\n"
+    # The saved file is the sample a chapter links to; it is rewritten only when the answer changed.
+    if not output.exists() or output.read_text() != text:
+        output.write_text(text)
     print("Saved:", output.name)
 
 

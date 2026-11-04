@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`InMemoryOcelStoreResource` replaces its output file whole.** It writes the log into a temporary file beside the output and moves it into place, so a reader never meets a file written halfway, a failed write keeps the previous log, and no temporary file is left behind. ([#402](https://github.com/bystrovmaxim/aoa/issues/402))
+
 ## [1.0.2] – 2026-10-26
 
 ### Documentation

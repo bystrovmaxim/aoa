@@ -57,6 +57,29 @@ def test_close_writes_ocel_json(tmp_path: Path, event_time: datetime) -> None:
     assert doc["objects"][0]["id"].startswith("aoa.shop.domain.order.OrderCoreEntity:")
 
 
+def test_close_leaves_only_the_output_file(tmp_path: Path, event_time: datetime) -> None:
+    output = tmp_path / "out.ocel.json"
+    asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time)))
+
+    assert [path.name for path in tmp_path.iterdir()] == ["out.ocel.json"]
+
+
+def test_a_failed_write_keeps_the_previous_file(tmp_path: Path, event_time: datetime, monkeypatch: pytest.MonkeyPatch) -> None:
+    output = tmp_path / "out.ocel.json"
+    asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time)))
+    before = output.read_text(encoding="utf-8")
+
+    def broken_replace(source: str, target: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr("aoa.ocel.resource.in_memory_ocel_store_resource.os.replace", broken_replace)
+    with pytest.raises(OSError, match="disk full"):
+        asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time, "trace-002")))
+
+    assert output.read_text(encoding="utf-8") == before
+    assert [path.name for path in tmp_path.iterdir()] == ["out.ocel.json"]
+
+
 def test_duplicate_event_id_raises(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "dup.ocel.json"
     resource = InMemoryOcelStoreResource(output_file=output)
