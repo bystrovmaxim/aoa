@@ -76,6 +76,7 @@ from pydantic import (
     ConfigDict,
     Field,
     GetCoreSchemaHandler,
+    SerializationInfo,
     SerializerFunctionWrapHandler,
     ValidationInfo,
     field_validator,
@@ -99,7 +100,7 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
 
     AI-CORE-BEGIN
         ROLE: A value of a closed reference dictionary — a currency, a country, an edition kind — declared in the dictionary type's own body and identified by its code.
-        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; the dictionary node carries its values in the graph, and a field typed by the dictionary is a reference: the graph carries one ``entity_reference`` edge to the dictionary beside the field row. Its display name in the graph is ``KIND_LABEL`` = "Enumeration".
+        CONTRACT: The type declares its values in its class body; ``code`` is the identity inside the dictionary and ``display_name`` is the human label; ``members``, ``codes()``, ``by_code()`` and ``entity_type`` expose the catalogue; a field typed by the dictionary holds a declared value or its reference object; the reference form is the value's JSON export, so every leaf is JSON and a declared field serializer's text is what a consumer sees; the input JSON schema accepts a code-only reference and the output schema types each emitted property, the asymmetry being deliberate; each declared value's JSON reference is computed once, when the dictionary declares its values, and every JSON dump writes it into new dicts; the dictionary node carries its values in the graph, and a field typed by the dictionary is a reference: the graph carries one ``entity_reference`` edge to the dictionary beside the field row. Its display name in the graph is ``KIND_LABEL`` = "Enumeration".
         INVARIANTS: Concrete dictionaries declare at least one value; codes are unique inside a dictionary; values are immutable and shared; a value's extra fields are limited to immutable types — str, int, float, bool, Decimal, date, datetime, time, UUID, an Enum, a Literal, Optional of those and tuples of them — because a list or a mapping would be reachable through `to_reference()`; the rule is checked twice, on the declared annotation and on the completed member after user validation, so a validator cannot publish a list, a value of another type, or an Enum whose own value is mutable; values are not inherited; no business Lifecycle; not a Specialization head, not a Generalization source, never a Composite target. A dated fact such as an exchange-rate quote is a separate business object, not another field of the dictionary.
     AI-CORE-END
     """
@@ -118,6 +119,9 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
     code: str = Field(description="Stable value code — identity inside the dictionary")
     display_name: str = Field(description="Human label for UI and diagrams")
 
+    # Each declared value's JSON reference, by code, computed once when the dictionary declares its values.
+    _json_references: ClassVar[dict[str, dict[str, Any]]] = {}
+
     def __init__(self, **data: Any) -> None:  # pylint: disable=super-init-not-called
         """Build a value from its validated fields."""
         # Use BaseModel's validation path with a private, type-specific construction context.
@@ -127,6 +131,13 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
         """Hold every descendant to the kind's name suffix."""
         super().__init_subclass__(**kwargs)
         super()._require_kind_suffix("EnumEntity")
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        """Fill the catalogue, then compute each declared value's JSON reference once."""
+        super().__pydantic_init_subclass__(**kwargs)
+        cls._json_references = {}
+        cls._json_references = {member.code: member.model_dump(mode="json") for member in cls.members}
 
     @classmethod
     def __get_pydantic_core_schema__(  # pylint: disable=arguments-differ
@@ -239,8 +250,15 @@ class BaseEnumEntity(_DeclaredValues, BaseEntity, ABC):
         return "<value>"
 
     @model_serializer(mode="wrap")
-    def _serialize_as_reference(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+    def _serialize_as_reference(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
         """Serialize the value whole: its code, its label and its extra fields under ``properties``."""
+        if info.mode_is_json():
+            stored = type(self)._json_references.get(self.code)
+            if stored is not None and type(self)._by_code.get(self.code) is self:
+                # Pydantic writes the result into new dicts, so the stored reference never leaves.
+                return stored
         exported = handler(self)
         properties = {name: item for name, item in exported.items() if name not in {"code", "display_name"}}
         return {

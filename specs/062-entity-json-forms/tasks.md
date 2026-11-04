@@ -34,13 +34,13 @@
 
 **Independent test**: `uv run --extra dev pytest packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_reference_forms.py packages/aoa-action-machine/tests/action_machine/domain/test_dictionary_association_schema.py packages/aoa-action-machine/tests/action_machine/graph/test_dictionary_relation_containers.py -q`
 
-- [ ] T007 [US2] Write `test_dictionary_reference_forms.py`: 4.3 (a dict `{"id": "eur"}` in code, One; `[{"id": "usd"}, {"code": "eur"}]` and `[]`, Many); 4.4 (read back `model_dump_json()`; `{"code": "eur", "display_name": "Dollar"}` → `EUR` labelled `Euro`; validation schema `anyOf` the id object and the reference object; serialization schema the reference); 4.5 (JSON byte-identical to the reference built by `to_reference()`; a value's reference computed once — a counting probe; a reference returned by a dump changed by the caller does not change the next dump); a bare code still refused; a reference without `code` refused.
-- [ ] T008 Update `test_dictionary_association_schema.py` to the new messages where the JSON-only branch's wording was asserted; keep every refusal it tests.
-- [ ] T009 Run T007–T008 and confirm the new tests fail on today's code; measure 4.5 before.
-- [ ] T010 [US2] In `relation_containers.py`, replace the JSON-only/Python-only dictionary branches by one chain for every mode (R2), with `anyOf` input schemas; in `enum_entity.py`, compute the reference map once per dictionary after its catalogue is filled and serve new dicts from it in `_serialize_as_reference`; update AI-CORE blocks.
-- [ ] T011 Update the step-23 examples that assert the old messages or error types (`20_bare_code.py`, `23_missing_code.py`, `25_flat_fields.py`, `56_selection_transport.py`) and their notebooks with outputs from runs.
-- [ ] T012 Run the phase's tests and the example checks of `examples/step_23_dictionaries`; measure 4.5 after.
-- [ ] T013 Adversarial breaks: the dict input refused in Python mode again → the 4.3 tests fail; the stored reference returned as is → the mutation test fails; the reference recomputed per call → the counting test fails; restore after each.
+- [X] T007 [US2] Write `test_dictionary_reference_forms.py`: 4.3 (a dict `{"id": "eur"}` in code, One; `[{"id": "usd"}, {"code": "eur"}]` and `[]`, Many); 4.4 (read back `model_dump_json()`; `{"code": "eur", "display_name": "Dollar"}` → `EUR` labelled `Euro`; validation schema `anyOf` the id object and the reference object; serialization schema the reference); 4.5 (JSON byte-identical to the reference built by `to_reference()`; a value's reference computed once — a counting probe; a reference returned by a dump changed by the caller does not change the next dump); a bare code still refused; a reference without `code` refused.
+- [X] T008 Update `test_dictionary_association_schema.py` to the new messages where the JSON-only branch's wording was asserted; keep every refusal it tests.
+- [X] T009 Run T007–T008 and confirm the new tests fail on today's code; measure 4.5 before.
+- [X] T010 [US2] In `relation_containers.py`, replace the JSON-only/Python-only dictionary branches by one chain for every mode (R2), with `anyOf` input schemas; in `enum_entity.py`, compute the reference map once per dictionary after its catalogue is filled and serve new dicts from it in `_serialize_as_reference`; update AI-CORE blocks.
+- [X] T011 Update the step-23 examples that assert the old messages or error types (`20_bare_code.py`, `23_missing_code.py`, `25_flat_fields.py`, `56_selection_transport.py`) and their notebooks with outputs from runs.
+- [X] T012 Run the phase's tests and the example checks of `examples/step_23_dictionaries`; measure 4.5 after.
+- [X] T013 Adversarial breaks: the dict input refused in Python mode again → the 4.3 tests fail; the stored reference returned as is → the mutation test fails; the reference recomputed per call → the counting test fails; restore after each.
 
 ---
 
