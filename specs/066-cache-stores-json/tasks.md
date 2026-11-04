@@ -25,7 +25,7 @@
 
 ## Phase 5: Versions — T008 · Phase 6: Closing check run — T009 · Phase 7: Documentation — T010 · Phase 8: Changelog — T011
 
-- [ ] T008 Raise `aoa-action-machine`; `uv lock`.
+- [X] T008 Raise `aoa-action-machine`; `uv lock`.
 - [ ] T009 `bash scripts/run_checks_with_log.sh` to zero.
 - [ ] T010 Tutorial step 8, the how-to on a cache adapter and its example and notebook; Russian drafts.
 - [ ] T011 One article and its Russian version.
