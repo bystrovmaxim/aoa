@@ -1,0 +1,3 @@
+# version.toml — the Maxitor concept's data model is a component: its graph history reads the number from here.
+kind = "component"
+version = "0.1.0"
