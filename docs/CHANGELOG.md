@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-11-04] — Every example runs as it is written
+
+The documentation teaches by example, and too many examples had stopped working without anyone noticing: a dozen scripts failed, a notebook in five, and none of the "Try in Colab" buttons opened the notebook it promised. Now every example is checked on every pull request, so a change that breaks one fails until it is put right.
+
+What a reader can rely on:
+
+- **Every script in `examples/` runs** as its chapter says, and nothing is set aside as a known failure.
+- **Every notebook runs** and shows what its script prints. Its first cell installs what it needs, so any notebook opens in Colab and runs from the top.
+- **"Try in Colab" opens the repository's own notebook**, in its current version. The copies on Google Drive are no longer used.
+- **A code block on a page either runs as written or says why not.** A part shown on its own begins with `# Fragment:` and a reason — its imports are left out, it is an outline, it is the body of an example's `main()` — so a reader can tell a fragment from a mistake. When a page shows what a block prints, that is what it prints.
+- **Every link to an example leads to it.**
+
+Some examples changed on the way. The LangGraph examples use `LangGraphController`; to connect a graph to an action, a service declares its own subclass of the controller with `@meta`, as it does for a database resource. The examples of the Maxitor chapter are gone: Maxitor is a site to use, not a library to learn by examples, and its chapter still describes it. The example of two specialization axes through one reverse field is gone as well: a specialization has one reverse generalization and one head, so a head has one axis, and the reference pages now say so.
+
+How a page or a notebook is checked, and how to mark a fragment, is on [the page on the checks](how-to/run-the-checks.md#examples).
+
 ## [2026-11-04] — Maxitor's parts under the names people use
 
 Three folders of Maxitor were named for code: its web part was `web`, and its two tools were `repo_graph_port` and `graph_builder`, with underscores, while everything else — the packages of this repository, the stand's `repo-graph-port.aoa.run`, the `graph-builder` command — uses hyphens. Since a history is now named after its folder, those names showed. The folders are now `packages/maxitor/maxitor-web`, `packages/maxitor/tools/repo-graph-port` and `packages/maxitor/tools/graph-builder`. What you install, import and run is the same.
