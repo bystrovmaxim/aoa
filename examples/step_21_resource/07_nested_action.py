@@ -11,6 +11,7 @@ import asyncio
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.resources.postgres import PostgresResource
@@ -127,7 +128,6 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
 from aoa.action_machine.exceptions import TransactionProhibitedError
 from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 

@@ -32,23 +32,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "examples"
 _TIMEOUT_SECONDS = 60
 
-# Known-broken scripts, excluded from the pass/fail gate but not silently dropped: each
-# still runs and is expected to fail for a specific, tracked, unrelated reason. strict=True
-# so a future fix flips this to an error instead of staying quietly green forever — whoever
-# fixes issue #83 is forced to also delete the matching entry here.
-_XFAIL_REASONS: dict[str, str] = {
-    "extensions/02_langgraph.py": "aoa.langgraph no longer exports LangGraphAdapter (issue #83 rework, in progress)",
-    "step_16_langgraph/01_external_connection.py": (
-        "graph references aoa.langgraph.controller.LangGraphController, which no longer "
-        "exists (issue #83 rework, in progress)"
-    ),
-    "step_16_langgraph/01_langgraph.py": "aoa.langgraph no longer exports LangGraphAdapter (issue #83 rework, in progress)",
-    "step_16_langgraph/05_testing.py": "RouteKeyError: route key 'UNSET' not found (issue #83 rework, in progress)",
-}
+
+def _is_in_package(script: Path) -> bool:
+    """Whether ``script`` is a module of a package folder an example imports, not an example."""
+    return any((parent / "__init__.py").exists() for parent in script.parents if parent != EXAMPLES_ROOT and EXAMPLES_ROOT in parent.parents)
 
 
 def _discover_example_scripts() -> list[Path]:
-    return sorted(p for p in EXAMPLES_ROOT.rglob("*.py") if "__pycache__" not in p.parts)
+    return sorted(p for p in EXAMPLES_ROOT.rglob("*.py") if "__pycache__" not in p.parts and not _is_in_package(p))
 
 
 def _example_id(script: Path) -> str:
@@ -58,14 +49,7 @@ def _example_id(script: Path) -> str:
 _SCRIPTS = _discover_example_scripts()
 
 
-def _make_param(script: Path) -> pytest.param:
-    rel = _example_id(script)
-    reason = _XFAIL_REASONS.get(rel)
-    marks = [pytest.mark.xfail(reason=reason, strict=True)] if reason else []
-    return pytest.param(script, id=rel, marks=marks)
-
-
-@pytest.mark.parametrize("script", [_make_param(p) for p in _SCRIPTS])
+@pytest.mark.parametrize("script", _SCRIPTS, ids=_example_id)
 def test_example_script_runs_without_error(script: Path) -> None:
     result = subprocess.run(
         [sys.executable, str(script)],
@@ -79,10 +63,3 @@ def test_example_script_runs_without_error(script: Path) -> None:
         f"--- stdout ---\n{result.stdout}\n"
         f"--- stderr ---\n{result.stderr}"
     )
-
-
-def test_every_xfail_entry_still_exists() -> None:
-    """Catch the opposite drift: a stale xfail entry for a script that got deleted/renamed."""
-    known_paths = {_example_id(p) for p in _SCRIPTS}
-    stale = set(_XFAIL_REASONS) - known_paths
-    assert not stale, f"xfail entries with no matching script (rename/delete happened?): {stale}"

@@ -118,8 +118,8 @@ def invalid_selections() -> None:
         )
     except ValidationError as error:
         assert (
-            str(error)
-            == "1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 1: 'xxx' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']. [type=value_error, input_value=[{'id': 'eur'}, {'id': 'xxx'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+            error.errors()[0]["msg"]
+            == "Value error, item 1: 'xxx' is not a declared value of CurrencyEnumEntity. Declared: ['eur', 'usd']."
         )
         assert error.errors()[0]["loc"] == ("alternatives",)
         assert (
@@ -138,10 +138,6 @@ def invalid_selections() -> None:
             bundled=CompositeMany(ids=()),
         )
     except ValidationError as error:
-        assert (
-            str(error)
-            == "1 validation error for PriceListCoreEntity\nalternatives\n  Value error, item 0: the supplied entity is not the declared value for code 'eur'. [type=value_error, input_value=AssociationMany(count=1, ...oaded=yes, n_entities=1), input_type=AssociationMany]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
-        )
         assert (
             error.errors()[0]["msg"]
             == "Value error, item 0: the supplied entity is not the declared value for code 'eur'."

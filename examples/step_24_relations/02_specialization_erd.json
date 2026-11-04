@@ -12,7 +12,10 @@
           "type": "str",
           "primary_key": true,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "The head record identifier"
         },
         {
           "field_id": "FirstPressSpecEntity:stamper",
@@ -20,15 +23,21 @@
           "type": "str",
           "primary_key": false,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "Stamper code"
         },
         {
           "field_id": "FirstPressSpecEntity:record",
           "name": "record",
-          "type": "Generalization[VinylRecordCoreEntity]",
+          "type": "VinylRecordCoreEntity",
           "primary_key": false,
-          "foreign_key": false,
-          "reference_qualname": null
+          "foreign_key": true,
+          "reference_qualname": null,
+          "annotation": "Generalization[VinylRecordCoreEntity]",
+          "lifecycle_id": null,
+          "description": "Record described by this pressing"
         }
       ],
       "values": []
@@ -45,7 +54,10 @@
           "type": "str",
           "primary_key": true,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "The head record identifier"
         },
         {
           "field_id": "RepressSpecEntity:year",
@@ -53,15 +65,21 @@
           "type": "int",
           "primary_key": false,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "int",
+          "lifecycle_id": null,
+          "description": "Re-pressing year"
         },
         {
           "field_id": "RepressSpecEntity:record",
           "name": "record",
-          "type": "Generalization[VinylRecordCoreEntity]",
+          "type": "VinylRecordCoreEntity",
           "primary_key": false,
-          "foreign_key": false,
-          "reference_qualname": null
+          "foreign_key": true,
+          "reference_qualname": null,
+          "annotation": "Generalization[VinylRecordCoreEntity]",
+          "lifecycle_id": null,
+          "description": "Record described by this pressing"
         }
       ],
       "values": []
@@ -78,7 +96,10 @@
           "type": "str",
           "primary_key": true,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "The head record identifier"
         },
         {
           "field_id": "TestPressSpecEntity:approved_by",
@@ -86,15 +107,21 @@
           "type": "str",
           "primary_key": false,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "Reviewer name"
         },
         {
           "field_id": "TestPressSpecEntity:record",
           "name": "record",
-          "type": "Generalization[VinylRecordCoreEntity]",
+          "type": "VinylRecordCoreEntity",
           "primary_key": false,
-          "foreign_key": false,
-          "reference_qualname": null
+          "foreign_key": true,
+          "reference_qualname": null,
+          "annotation": "Generalization[VinylRecordCoreEntity]",
+          "lifecycle_id": null,
+          "description": "Record described by this pressing"
         }
       ],
       "values": []
@@ -111,7 +138,10 @@
           "type": "str",
           "primary_key": true,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "Record identifier"
         },
         {
           "field_id": "VinylRecordCoreEntity:pressing",
@@ -119,7 +149,10 @@
           "type": "FirstPressSpec (first) | RepressSpec (repress) | TestPressSpec (test)",
           "primary_key": false,
           "foreign_key": true,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": null,
+          "lifecycle_id": null,
+          "description": null
         },
         {
           "field_id": "VinylRecordCoreEntity:title",
@@ -127,7 +160,10 @@
           "type": "str",
           "primary_key": false,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": "Album title"
         }
       ],
       "values": []
@@ -144,7 +180,10 @@
           "type": "str",
           "primary_key": true,
           "foreign_key": false,
-          "reference_qualname": null
+          "reference_qualname": null,
+          "annotation": "str",
+          "lifecycle_id": null,
+          "description": null
         }
       ],
       "values": [
@@ -169,6 +208,17 @@
   "relations": [
     {
       "source": "VinylRecordCoreEntity",
+      "target": "VinylRecordKindEnumEntity",
+      "label": "pressing",
+      "relationship_kind": "reference",
+      "source_cardinality": "zero_many",
+      "target_cardinality": "one",
+      "source_field": "pressing",
+      "target_field": null,
+      "description": null
+    },
+    {
+      "source": "VinylRecordCoreEntity",
       "target": "VinylRecordCoreEntity:pressing",
       "label": "by VinylRecordKindEnumEntity",
       "relationship_kind": "specialization",
@@ -180,24 +230,30 @@
       "target": "VinylRecordCoreEntity",
       "label": "first",
       "relationship_kind": "generalization",
-      "source_cardinality": "zero_many",
-      "target_cardinality": "one"
+      "source_cardinality": "zero_one",
+      "target_cardinality": "one",
+      "source_field": "record",
+      "target_field": "pressing"
     },
     {
       "source": "RepressSpecEntity",
       "target": "VinylRecordCoreEntity",
       "label": "repress",
       "relationship_kind": "generalization",
-      "source_cardinality": "zero_many",
-      "target_cardinality": "one"
+      "source_cardinality": "zero_one",
+      "target_cardinality": "one",
+      "source_field": "record",
+      "target_field": "pressing"
     },
     {
       "source": "TestPressSpecEntity",
       "target": "VinylRecordCoreEntity",
       "label": "test",
       "relationship_kind": "generalization",
-      "source_cardinality": "zero_many",
-      "target_cardinality": "one"
+      "source_cardinality": "zero_one",
+      "target_cardinality": "one",
+      "source_field": "record",
+      "target_field": "pressing"
     }
   ],
   "groups": [
