@@ -21,17 +21,17 @@
 
 ### Tests first
 
-- [ ] T001 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/domain/test_relation_container_protocols.py` with tests for: case 1.1 (JSON dump of an entity with a loaded `AssociationOne` raises `PydanticSerializationError` naming the container, never `{}`); case 1.2 (`model_dump()` of `PricesCoreEntity(primary=CompositeOne(id="eur"))` returns `{'primary': CompositeOne(id='eur', loaded)}`); a dunder name on a loaded container raises `AttributeError`; `order.customer.name` still reads `'Ann'`; an unloaded container still raises `RelationNotLoadedError` for an ordinary name; a name with one leading underscore is still forwarded.
-- [ ] T002 [P] [US2] Add to the same file tests for case 1.4 (`copy.deepcopy(loaded)` and `order.model_copy(deep=True).customer` are `AssociationOne` with the same id and a copy of the entity, for a One and a Many container) and case 1.5 (`copy.copy`, `copy.deepcopy` and a `pickle` round trip of a loaded and an unloaded container give an equal container that still refuses assignment).
-- [ ] T003 [P] [US1] Write `packages/aoa-langgraph/tests/test_node_binding_entities.py`: case 1.3 — `_run_action_node` with an action whose Result holds `PriceCoreEntity(id="p1", currency=CompositeOne(id="eur"))` returns `{'price': {'id': 'p1', 'currency': CompositeOne(id='eur', loaded)}}`.
-- [ ] T004 Run T001–T003 and confirm each fails on today's code with the Before output of #405.
+- [X] T001 [P] [US1] Write `packages/aoa-action-machine/tests/action_machine/domain/test_relation_container_protocols.py` with tests for: case 1.1 (JSON dump of an entity with a loaded `AssociationOne` raises `PydanticSerializationError` naming the container, never `{}`); case 1.2 (`model_dump()` of `PricesCoreEntity(primary=CompositeOne(id="eur"))` returns `{'primary': CompositeOne(id='eur', loaded)}`); a dunder name on a loaded container raises `AttributeError`; `order.customer.name` still reads `'Ann'`; an unloaded container still raises `RelationNotLoadedError` for an ordinary name; a name with one leading underscore is still forwarded.
+- [X] T002 [P] [US2] Add to the same file tests for case 1.4 (`copy.deepcopy(loaded)` and `order.model_copy(deep=True).customer` are `AssociationOne` with the same id and a copy of the entity, for a One and a Many container) and case 1.5 (`copy.copy`, `copy.deepcopy` and a `pickle` round trip of a loaded and an unloaded container give an equal container that still refuses assignment).
+- [X] T003 [P] [US1] Write `packages/aoa-langgraph/tests/test_node_binding_entities.py`: case 1.3 — `_run_action_node` with an action whose Result holds `PriceCoreEntity(id="p1", currency=CompositeOne(id="eur"))` returns `{'price': {'id': 'p1', 'currency': CompositeOne(id='eur', loaded)}}`.
+- [X] T004 Run T001–T003 and confirm each fails on today's code with the Before output of #405.
 
 ### Implementation
 
-- [ ] T005 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py`, make `BaseRelationOne.__getattr__` raise `AttributeError` for a name that starts and ends with `__` before it looks at the entity; keep every other name forwarded.
-- [ ] T006 [US2] In the same file add to `BaseRelationOne` and `BaseRelationMany` `__reduce__` (rebuilds through the constructor from `type(self)`, the id(s), the entity(ies) and the loaded state; `copy.copy`, `copy.deepcopy` and `pickle` all use it), each with a one-line docstring; update the classes' AI-CORE blocks to state the copy and forwarding contract.
-- [ ] T007 Run the phase's tests (T001–T003): all pass.
-- [ ] T008 Adversarial breaks, one at a time, against the phase's test files only: forward dunder names again in T005 → the 1.1–1.4 tests fail; remove `__reduce__` → the deep-copy tests of 1.4 and the copy, deepcopy and pickle tests of 1.5 fail; restore after each.
+- [X] T005 [US1] In `packages/aoa-action-machine/src/aoa/action_machine/domain/relation_containers.py`, make `BaseRelationOne.__getattr__` raise `AttributeError` for a name that starts and ends with `__` before it looks at the entity; keep every other name forwarded.
+- [X] T006 [US2] In the same file add to `BaseRelationOne` and `BaseRelationMany` `__reduce__` (rebuilds through the constructor from `type(self)`, the id(s), the entity(ies) and the loaded state; `copy.copy`, `copy.deepcopy` and `pickle` all use it), each with a one-line docstring; update the classes' AI-CORE blocks to state the copy and forwarding contract.
+- [X] T007 Run the phase's tests (T001–T003): all pass.
+- [X] T008 Adversarial breaks, one at a time, against the phase's test files only: forward dunder names again in T005 → the 1.1–1.4 tests fail; remove `__reduce__` → the deep-copy tests of 1.4 and the copy, deepcopy and pickle tests of 1.5 fail; restore after each.
 
 **Checkpoint**: show the diff; commit only on instruction.
 

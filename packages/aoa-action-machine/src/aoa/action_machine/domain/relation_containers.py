@@ -320,11 +320,34 @@ class RelationType(Enum):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
+def _is_protocol_name(name: str) -> bool:
+    """True for a name of Python's or Pydantic's protocols, such as ``__deepcopy__``."""
+    return name.startswith("__") and name.endswith("__")
+
+
+def _rebuild_one(cls: type[BaseRelationOne[Any]], relation_id: Any, entity: Any) -> BaseRelationOne[Any]:
+    """Build a to-one container again from its id and entity; ``__reduce__`` returns it for ``copy``, ``deepcopy`` and ``pickle``."""
+    return cls(id=relation_id, entity=entity)
+
+
+def _rebuild_many(
+    cls: type[BaseRelationMany[Any]],
+    ids: tuple[Any, ...],
+    entities: tuple[Any, ...],
+    entities_loaded: bool,
+) -> BaseRelationMany[Any]:
+    """Build a to-many container again from its ids, entities and loaded state; ``__reduce__`` returns it for ``copy``, ``deepcopy`` and ``pickle``."""
+    return cls(ids=ids, entities=entities, entities_loaded=entities_loaded)
+
+
 class BaseRelationOne[T]:
     """
     AI-CORE-BEGIN
         ROLE: Base immutable to-one relation wrapper.
-        CONTRACT: Always store id; optionally hold hydrated entity and proxy attributes to it.
+        CONTRACT: Always store id; optionally hold hydrated entity and proxy ordinary attribute names to it.
+            Protocol names (``__…__``) are never proxied, so Pydantic, ``copy`` and ``pickle`` see the
+            container itself; ``copy``, ``deepcopy`` and ``pickle`` rebuild it through the constructor
+            (``__reduce__``) as a container of the same class with the same id and loaded state.
         INVARIANTS: id is mandatory; missing hydrated entity triggers RelationNotLoadedError for proxied access.
         AI-CORE-END
     """
@@ -387,7 +410,8 @@ class BaseRelationOne[T]:
         Forward attribute access to ``entity`` when it is loaded.
 
         ``id``, ``entity``, ``is_loaded``, ``relation_type``, and ``__slots__``
-        fields are resolved without entering this hook.
+        fields are resolved without entering this hook. A protocol name
+        (``__…__``) is never forwarded: the container answers for itself.
 
         Args:
             name: Attribute requested on the container.
@@ -396,9 +420,11 @@ class BaseRelationOne[T]:
             Attribute value from ``entity``.
 
         Raises:
+            AttributeError: ``name`` is a protocol name, or ``entity`` is set but has no such attribute.
             RelationNotLoadedError: ``entity`` is ``None`` (see ``exceptions.py``).
-            AttributeError: ``entity`` is set but has no such attribute.
         """
+        if _is_protocol_name(name):
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
         entity = object.__getattribute__(self, "_entity")
         if entity is None:
             entity_id = object.__getattribute__(self, "_id")
@@ -421,6 +447,10 @@ class BaseRelationOne[T]:
         loaded = "loaded" if entity is not None else "id_only"
         return f"{self.__class__.__name__}(id={entity_id!r}, {loaded})"
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        """Rebuild the container through the constructor from its class, id and entity; ``copy``, ``deepcopy`` and ``pickle`` use it."""
+        return (_rebuild_one, (type(self), self.id, self.entity))
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseRelationOne):
             return NotImplemented
@@ -435,6 +465,8 @@ class BaseRelationMany[T]:
     AI-CORE-BEGIN
         ROLE: Base immutable to-many relation wrapper.
         CONTRACT: Track ids plus optional hydrated entities with explicit loaded-state semantics.
+            ``copy``, ``deepcopy`` and ``pickle`` rebuild it through the constructor (``__reduce__``)
+            as a container of the same class with the same ids, entities and loaded state.
         INVARIANTS: Index/iteration require loaded entities; unloaded access fails fast.
         AI-CORE-END
     """
@@ -564,6 +596,10 @@ class BaseRelationMany[T]:
         n_ent = len(self.entities)
         flag = "yes" if self.is_loaded else "no"
         return f"{self.__class__.__name__}(count={count}, entities_loaded={flag}, n_entities={n_ent})"
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        """Rebuild the container through the constructor from its class, ids, entities and loaded state; ``copy``, ``deepcopy`` and ``pickle`` use it."""
+        return (_rebuild_many, (type(self), self.ids, self.entities, self.is_loaded))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BaseRelationMany):
