@@ -81,12 +81,35 @@ def test_ci_checks_drops_browser_and_packaging() -> None:
     assert "Graph files (graph-builder check)" in names
 
 
-def test_the_examples_run_in_ci_and_locally() -> None:
-    """Every example is checked on every pull request and in a local run."""
+EXAMPLES = "Examples: scripts, notebooks, pages, links"
+
+
+def test_the_examples_run_in_a_local_run() -> None:
+    """A local run checks every example with everything else."""
     runner = _runner()
-    for where in ("ci", "local"):
-        rows = {step.name: step for step in runner._select(runner.STEPS, where, False, None, "packaging")}
-        assert "pytest tests/examples -n auto" in rows["Examples: scripts, notebooks, pages, links"].command
+    rows = {step.name: step for step in runner._select(runner.STEPS, "local", False, None, None)}
+    assert "pytest tests/examples -n auto" in rows[EXAMPLES].command
+
+
+def test_the_examples_job_runs_the_examples_alone() -> None:
+    """CI's Examples job runs that one step, on a machine of its own."""
+    runner = _runner()
+    assert [step.name for step in runner._select(runner.STEPS, "ci", False, "examples", None)] == [EXAMPLES]
+
+
+def test_the_checks_jobs_leave_the_examples_to_their_job() -> None:
+    """CI's Checks jobs drop both the packaging and the examples, and keep the rest."""
+    runner = _runner()
+    names = _names(runner._select(runner.STEPS, "ci", False, None, ("packaging", "examples")))
+    assert EXAMPLES not in names
+    assert not any(name.startswith("Build wheel/sdist") for name in names)
+    assert "Graph files (graph-builder check)" in names
+
+
+def test_skip_group_may_be_given_more_than_once() -> None:
+    """The command line collects every --skip-group it is given."""
+    options = _runner()._parser().parse_args(["--skip-group", "packaging", "--skip-group", "examples"])
+    assert options.skip_group == ["packaging", "examples"]
 
 
 def test_the_fast_mode_is_refused() -> None:
@@ -369,7 +392,7 @@ def test_ci_does_not_wait_for_the_proof() -> None:
 def test_text_only_changes_skip_every_gate_job_but_versions() -> None:
     """Each heavy job names the ``changes`` job, so a text-only pull request does not run it."""
     workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    assert workflow.count("needs.changes.outputs.code == 'true'") == 3
+    assert workflow.count("needs.changes.outputs.code == 'true'") == 5
 
 
 def _pr_repo(tmp_path: Path) -> tuple[Path, Path]:
