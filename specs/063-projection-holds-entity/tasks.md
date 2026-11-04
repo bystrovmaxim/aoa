@@ -25,7 +25,7 @@
 
 ## Phase 4: Graph files and versions — one commit
 
-- [ ] T011 `graph-builder write` if the files change; raise `aoa-action-machine` (and any other level the diff touches); `uv lock`.
+- [X] T011 `graph-builder write` if the files change; raise `aoa-action-machine` (and any other level the diff touches); `uv lock`.
 
 ## Phase 5: Closing check run — one commit if it changes anything
 
