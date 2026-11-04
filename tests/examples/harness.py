@@ -59,7 +59,8 @@ _MASKS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<jwt>"),
     (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"), "<uuid>"),
     (re.compile(r"\b[0-9a-f]{32}\b"), "<hex>"),
-    (re.compile(r"\b([a-z]+-)(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{8}\b"), r"\1<id>"),
+    # An id such as ``ord-1dc8d4c0``: eight hex characters, at least one a digit; a random one may be all digits.
+    (re.compile(r"\b([a-z]+-)(?=[0-9a-f]*\d)[0-9a-f]{8}\b"), r"\1<id>"),
     (re.compile(r"0x[0-9a-fA-F]+"), "<addr>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"), "<time>"),
     (re.compile(r"\b\d+(?:\.\d+)?\s?(?:ms|µs|us|ns|s)\b"), "<duration>"),

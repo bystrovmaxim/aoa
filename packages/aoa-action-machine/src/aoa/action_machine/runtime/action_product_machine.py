@@ -154,7 +154,7 @@ from aoa.action_machine.intents.access_control.gate import Gate
 from aoa.action_machine.intents.access_control.undecided import Undecided
 from aoa.action_machine.intents.access_control.verdict import Verdict
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
-from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver, tags_of
+from aoa.action_machine.intents.cache.cache_intent_resolver import CacheDeclarations, CacheIntentResolver, tags_of
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.console_logger import ConsoleLogger
@@ -369,6 +369,78 @@ class ActionProductMachine(BaseActionMachine):
                     f"@cache_write in {type(action).__name__!r}: each item must be CacheTag; "
                     f"got {type(item).__name__!r}.",
                 )
+
+    async def _read_cache(
+        self,
+        cache: CacheDeclarations,
+        action: BaseAction[Any, Any],
+        params: Any,
+        box: ToolsBox,
+        conns: Connections,
+        context: Context,
+        result_type: type[BaseResult],
+    ) -> tuple[str | None, Any]:
+        """Return the call's key and, on a hit, the Result to answer with (``None`` on a miss).
+
+        A stored entry the read declines is dropped, so the pipeline runs and writes it anew.
+        """
+        if self._cache_coordinator is None or cache.key is None:
+            return None, None
+        action_cls = type(action)
+        key = await self._call_cache(cache.key, action, params, box, conns, context)
+        self._validate_cache_key(key, action)
+        if key is None:
+            return None, None
+        entry = await self._cache_coordinator.get_entry(action_cls, key)
+        if entry is None:
+            return key, None
+        cached = (
+            await self._call_cache(cache.read, action, params, box, conns, context, entry)
+            if cache.read is not None
+            else entry.result
+        )
+        if cached is None:
+            await self._cache_coordinator.invalidate(action_cls, key)
+            return key, None
+        self._validate_cached_result(cached, result_type, action)
+        return key, cached
+
+    async def _write_cache(
+        self,
+        cache: CacheDeclarations,
+        action: BaseAction[Any, Any],
+        params: Any,
+        box: ToolsBox,
+        conns: Connections,
+        context: Context,
+        key: str | None,
+        result: Any,
+        duration_ms: float,
+    ) -> None:
+        """After a clean run: drop what the invalidation names, then write the Result under the write's tags.
+
+        ORDER: invalidate first, then write. Invalidation must precede the write so that the new
+        entry is never evicted by its own directives: an action that both evicts
+        ``CacheTag(type=Order, key=42)`` and writes a fresh entry under that tag would otherwise
+        remove the entry it just stored. Evicting first lets the new entry survive the cycle.
+        """
+        coordinator = self._cache_coordinator
+        if coordinator is None:
+            return
+        if cache.invalidate is not None:
+            invalidations = await self._call_cache(cache.invalidate, action, params, box, conns, context, result)
+            self._validate_cache_invalidate(invalidations, action)
+            self._validate_tag_types(invalidations, action, cache.invalidate)
+            if invalidations:
+                await coordinator.evict_by_tags(frozenset(invalidations))
+        # Write only when the key was not None for this call.
+        if key is None or cache.write is None:
+            return
+        write_tags = await self._call_cache(cache.write, action, params, box, conns, context, result, duration_ms)
+        self._validate_cache_write_decision(write_tags, action)
+        self._validate_tag_types(write_tags, action, cache.write)
+        if write_tags is not None:
+            await coordinator.put(type(action), key, result, duration_ms, tags=write_tags)
 
     async def _call_cache(
         self,
@@ -997,27 +1069,11 @@ class ActionProductMachine(BaseActionMachine):
             )
             self._react_to(verdict)
 
-            cache_key_str: str | None = None
-            cache_hit = False
-
             cache = CacheIntentResolver.declarations(action_cls)
-            if self._cache_coordinator is not None and cache.key is not None:
-                cache_key_str = await self._call_cache(cache.key, action, params, box, conns, context)
-                self._validate_cache_key(cache_key_str, action)
-                if cache_key_str is not None:
-                    entry = await self._cache_coordinator.get_entry(action_cls, cache_key_str)
-                    if entry is not None:
-                        cached_result = (
-                            await self._call_cache(cache.read, action, params, box, conns, context, entry)
-                            if cache.read is not None
-                            else entry.result
-                        )
-                        if cached_result is not None:
-                            self._validate_cached_result(cached_result, result_type, action)
-                            result = cast("R", cached_result)
-                            cache_hit = True
-                        else:
-                            await self._cache_coordinator.invalidate(action_cls, cache_key_str)
+            cache_key_str, cached = await self._read_cache(cache, action, params, box, conns, context, result_type)
+            cache_hit = cached is not None
+            if cached is not None:
+                result = cast("R", cached)
 
             if not cache_hit:
                 outcome = await self._execute_pipeline_aspects(
@@ -1026,38 +1082,9 @@ class ActionProductMachine(BaseActionMachine):
                 result = outcome.result
                 if self._cache_coordinator is not None and not outcome.from_error_handler:
                     total_duration_ms = (time.time() - start_time) * 1000
-                    # ORDER: invalidate first, then write.
-                    #
-                    # Invalidation must precede the write so that the new entry is never
-                    # evicted by its own directives. Consider an action that both evicts
-                    # CacheTag(type=Order, key=42) AND writes a fresh entry under that same
-                    # tag: if the write came first, the subsequent eviction pass would
-                    # immediately remove the entry it just stored, leaving the cache empty
-                    # after every run. By inverting the order — evict stale entries, then
-                    # write the fresh result — the new entry always survives the current cycle.
-                    if cache.invalidate is not None:
-                        invalidations = await self._call_cache(
-                            cache.invalidate, action, params, box, conns, context, result
-                        )
-                        self._validate_cache_invalidate(invalidations, action)
-                        self._validate_tag_types(invalidations, action, cache.invalidate)
-                        if invalidations:
-                            await self._cache_coordinator.evict_by_tags(frozenset(invalidations))
-                    # Write only when the key was not None for this call.
-                    if cache_key_str is not None and cache.write is not None:
-                        write_tags = await self._call_cache(
-                            cache.write, action, params, box, conns, context, result, total_duration_ms
-                        )
-                        self._validate_cache_write_decision(write_tags, action)
-                        self._validate_tag_types(write_tags, action, cache.write)
-                        if write_tags is not None:
-                            await self._cache_coordinator.put(
-                                action_cls,
-                                cache_key_str,
-                                result,
-                                total_duration_ms,
-                                tags=write_tags,
-                            )
+                    await self._write_cache(
+                        cache, action, params, box, conns, context, cache_key_str, result, total_duration_ms
+                    )
 
             if owns_include_tracker and not cache_hit:
                 IncludeContractChecker.verify(action, frozenset(active_include_types))

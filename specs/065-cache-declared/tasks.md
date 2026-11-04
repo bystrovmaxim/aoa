@@ -33,7 +33,7 @@
 
 ## Phase 6: Closing check run — one commit if it changes anything
 
-- [ ] T013 `bash scripts/run_checks_with_log.sh` to zero.
+- [X] T013 `bash scripts/run_checks_with_log.sh` to zero.
 
 ## Phase 7: Documentation — one commit
 

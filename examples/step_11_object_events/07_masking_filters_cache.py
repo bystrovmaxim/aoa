@@ -18,10 +18,13 @@ from pydantic import Field
 
 from aoa.action_machine.auth import GuestRole
 from aoa.action_machine.context import Context
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_read, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.emits import emits
+from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, sensitive
 from aoa.action_machine.logging.base_logger import BaseLogger
@@ -62,16 +65,26 @@ class Result(BaseResult):
     source: str = Field(description="Who answered")
 
 
+@entity(description="A card charge", domain=StoreDomain)
+class ChargeCoreEntity(BaseCoreEntity):
+    id: str = Field(description="Charge id")
+
+
 @meta(description="Charge a card, cached", domain=StoreDomain)
 @check_roles(GuestRole)
 class ChargeAction(BaseAction[Params, Result]):
-    def cache_key(self, params: Params) -> str | None:
+    @cache_key("One fixed key")
+    async def charge_cache_key(self, params: Params, box: ToolsBox, connections: Connections) -> str | None:
         return "fixed"
 
-    async def on_cache_write(self, result: Result, params: Params, duration_ms: float) -> list[CacheTag] | None:
-        return [CacheTag(key="fixed")]
+    @cache_write("Keep the charge", tags=(ChargeCoreEntity,))
+    async def charge_cache_write(
+        self, params: Params, box: ToolsBox, connections: Connections, result: Result, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=ChargeCoreEntity, key="fixed")]
 
-    async def read_cache(self, params: Params, entry: CacheEntry) -> Result | None:
+    @cache_read("Answer from the cache")
+    async def charge_cache_read(self, params: Params, box: ToolsBox, connections: Connections, entry: CacheEntry) -> Result | None:
         return Result(source="cache")
 
     @summary_aspect("Charge")
@@ -80,6 +93,20 @@ class ChargeAction(BaseAction[Params, Result]):
         event = CardChargedEvent(card="4111222233334444")
         await box.info(Channel.business, "masked {%var.card_shown}, plain {%var.card}", event)
         return Result(source="method")
+
+
+@meta(description="Void a charge, so its cached answer goes", domain=StoreDomain)
+@check_roles(GuestRole)
+class VoidChargeAction(BaseAction[Params, Result]):
+    @cache_invalidate("Drop the voided charge", tags=(ChargeCoreEntity,))
+    async def void_cache_invalidate(
+        self, params: Params, box: ToolsBox, connections: Connections, result: Result
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=ChargeCoreEntity, key="fixed")]
+
+    @summary_aspect("Void")
+    async def void_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
+        return Result(source="void")
 
 
 class ShowLogger(BaseLogger):
