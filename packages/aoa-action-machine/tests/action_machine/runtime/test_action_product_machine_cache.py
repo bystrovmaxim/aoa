@@ -292,6 +292,17 @@ class EmptyKeyCacheAction(BaseAction["EmptyKeyCacheAction.Params", "EmptyKeyCach
     ) -> str | None:
         return ""
 
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
+        return []
+
     @summary_aspect("s")
     async def summary(
         self,

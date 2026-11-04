@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import inspect
 import re
+import types
 from typing import Any
 
 import pytest
@@ -287,3 +288,76 @@ def test_the_signatures_are_the_contract_of_the_issue() -> None:
         "order_cache_read": ("self", "params", "box", "connections", "entry"),
         "order_cache_write": ("self", "params", "box", "connections", "result", "duration_ms"),
     }
+
+
+# ─── 11.2: a key and a write come together ──────────────────────────────────
+
+
+async def _key(self: Any, params: OrderParams, box: ToolsBox, connections: Connections) -> str | None:
+    return "k"
+
+
+async def _read(self: Any, params: OrderParams, box: ToolsBox, connections: Connections, entry: CacheEntry) -> OrderResult | None:
+    return None
+
+
+async def _write(
+    self: Any, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult, duration_ms: float
+) -> list[CacheTag] | None:
+    return None
+
+
+async def _invalidate(self: Any, params: OrderParams, box: ToolsBox, connections: Connections, result: OrderResult) -> list[CacheTag] | None:
+    return None
+
+
+def _declared(name: str, decorator: Any, func: Any) -> Any:
+    func.__name__ = func.__qualname__ = name
+    return decorator(func)
+
+
+def _action_with(name: str, **methods: Any) -> type:
+    return type(name, (BaseAction,), {"__module__": __name__, **methods})
+
+
+def _fresh(func: Any) -> Any:
+    """A copy of ``func``, so each declaration gets its own name and mark."""
+    copy = types.FunctionType(func.__code__, func.__globals__, func.__name__, func.__defaults__, func.__closure__)
+    copy.__annotations__ = dict(func.__annotations__)
+    return copy
+
+
+@pytest.mark.parametrize(
+    ("declared_kinds", "message"),
+    [
+        (("key",), "KeyOnlyAction declares @cache_key without @cache_write; a key without a write never stores anything."),
+        (("write",), "WriteOnlyAction declares @cache_write without @cache_key; the machine calls a write only for a key."),
+        (("read",), "ReadOnlyAction declares @cache_read without @cache_key and @cache_write; nothing is ever stored for it to read."),
+        (("key", "read"), "KeyReadAction declares @cache_key without @cache_write; a key without a write never stores anything."),
+    ],
+)
+def test_a_key_a_write_and_a_read_come_together(declared_kinds: tuple[str, ...], message: str) -> None:
+    """Case 11.2: each one alone is refused when the class is created."""
+    templates = {"key": (cache_key, _key), "read": (cache_read, _read), "write": (cache_write, _write)}
+    name = {("key",): "KeyOnlyAction", ("write",): "WriteOnlyAction", ("read",): "ReadOnlyAction", ("key", "read"): "KeyReadAction"}[declared_kinds]
+    methods = {
+        f"x_cache_{kind}": _declared(f"x_cache_{kind}", templates[kind][0]("Declared"), _fresh(templates[kind][1]))
+        for kind in declared_kinds
+    }
+    with pytest.raises(DeclarationStructureError, match=re.escape(message)):
+        _action_with(name, **methods)
+
+
+def test_an_invalidation_may_stand_alone() -> None:
+    """An action that changes data drops what others cached and caches nothing itself."""
+    _action_with("UpdateOnlyAction", x_cache_invalidate=_declared("x_cache_invalidate", cache_invalidate("Drop"), _fresh(_invalidate)))
+
+
+def test_a_key_with_a_write_and_a_read_is_accepted() -> None:
+    """The full set is accepted."""
+    _action_with(
+        "FullCacheAction",
+        x_cache_key=_declared("x_cache_key", cache_key("Key"), _fresh(_key)),
+        x_cache_read=_declared("x_cache_read", cache_read("Read"), _fresh(_read)),
+        x_cache_write=_declared("x_cache_write", cache_write("Write"), _fresh(_write)),
+    )

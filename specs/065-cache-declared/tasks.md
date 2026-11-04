@@ -14,8 +14,8 @@
 
 ## Phase 2: Pairing (US2, 11.2) — one commit
 
-- [ ] T006 [US2] Tests: key alone, write alone, read without the pair refused at class creation with the message of 11.2; invalidate alone accepted.
-- [ ] T007 Implement in `validate_cache_declarations`; run; adversarial break.
+- [X] T006 [US2] Tests: key alone, write alone, read without the pair refused at class creation with the message of 11.2; invalidate alone accepted.
+- [X] T007 Implement in `validate_cache_declarations`; run; adversarial break.
 
 ## Phase 3: Tag types (US3, 11.4) — one commit
 

@@ -105,15 +105,7 @@ class InvalidateReportsAction(BaseAction["InvalidateReportsAction.Params", "Inva
     class Result(BaseResult):
         done: bool = Field(default=True)
 
-    @cache_key("Key of the call")
-    async def run_cache_key(
-        self,
-        params: Params,
-        box: ToolsBox,
-        connections: Connections,
-    ) -> str | None:
-        return None  # write-like action; does not cache itself
-
+    # A write-like action: it caches nothing itself, so it declares no key.
     @cache_invalidate("Drop stale entries")
     async def run_cache_invalidate(
         self,
@@ -215,6 +207,18 @@ class NoCacheKeyButInvalidatesAction(
         connections: Connections,
     ) -> str | None:
         return None
+
+    @cache_write("Store the result")
+    async def run_cache_write(
+        self,
+        params: Params,
+        box: ToolsBox,
+        connections: Connections,
+        result: Result,
+        duration_ms: float,
+    ) -> list[CacheTag] | None:
+        _write_calls.append("NoCacheKeyButInvalidatesAction")
+        return []
 
     @cache_invalidate("Drop stale entries")
     async def run_cache_invalidate(

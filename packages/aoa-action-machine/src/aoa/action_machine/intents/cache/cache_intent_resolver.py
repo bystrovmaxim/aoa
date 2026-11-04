@@ -9,7 +9,8 @@ PURPOSE
 One place that answers "what does this operation cache, and through which methods".
 It reads the operation's **own** namespace, so a subclass never inherits what its
 parent caches, and it holds the rules checked when an action class is created:
-at most one declaration of each kind, and no method left under an old hook name
+at most one declaration of each kind, a key and a write together (a read only with
+them; an invalidation may stand alone), and no method left under an old hook name
 (``cache_key``, ``read_cache``, ``on_cache_write``, ``on_cache_invalidate``), which
 the machine no longer calls.
 
@@ -87,7 +88,9 @@ def _own_by_kind(action_cls: type[Any]) -> dict[str, list[Callable[..., Any]]]:
 
 def validate_cache_declarations(action_cls: type[Any]) -> None:
     """
-    Refuse, when an action class is created, two declarations of one kind and a method under an old hook name.
+    Refuse, when an action class is created, a method under an old hook name, two declarations of one kind,
+    and a declaration that can never have an effect: a key without a write, a write without a key, a read
+    without both.
 
     Raises:
         DeclarationStructureError: names the class, the methods and the declaration to use.
@@ -99,13 +102,31 @@ def validate_cache_declarations(action_cls: type[Any]) -> None:
                 f"Declare it with {decorator_name(kind)}(\"...\") on an async method whose name ends with "
                 f"'_cache_{kind}'."
             )
-    for kind, methods in _own_by_kind(action_cls).items():
+    by_kind = _own_by_kind(action_cls)
+    for kind, methods in by_kind.items():
         if len(methods) > 1:
             names = ", ".join(sorted(method.__name__ for method in methods))
             raise DeclarationStructureError(
                 f"{action_cls.__name__} declares {decorator_name(kind)} more than once ({names}); "
                 "an operation declares each cache step once."
             )
+    _refuse_without_effect(action_cls.__name__, {kind for kind, methods in by_kind.items() if methods})
+
+
+def _refuse_without_effect(name: str, kinds: set[str]) -> None:
+    """A key and a write come together, and a read only with them; an invalidation may stand alone."""
+    if "key" in kinds and "write" not in kinds:
+        raise DeclarationStructureError(
+            f"{name} declares @cache_key without @cache_write; a key without a write never stores anything."
+        )
+    if "write" in kinds and "key" not in kinds:
+        raise DeclarationStructureError(
+            f"{name} declares @cache_write without @cache_key; the machine calls a write only for a key."
+        )
+    if "read" in kinds and "key" not in kinds:
+        raise DeclarationStructureError(
+            f"{name} declares @cache_read without @cache_key and @cache_write; nothing is ever stored for it to read."
+        )
 
 
 class CacheIntentResolver:
