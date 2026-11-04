@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -48,11 +49,10 @@ async def test_full_pipeline_against_real_service() -> None:
     print(f"\nnodes: {len(graph_data['nodes'])}, edges: {len(graph_data['edges'])}")
 
     # aspect 5 (summary)
-    result = await _ACTION.build_duckdb_graph_summary(params, _state(**{**r2, **r4}), None, {})  # type: ignore[arg-type]
+    result = await _ACTION.summarize_graph_summary(params, _state(**{**r2, **r4}), None, {})  # type: ignore[arg-type]
     assert isinstance(result, LoadAOAServiceResult)
     assert result.node_count == len(graph_data["nodes"])
     assert result.edge_count == len(graph_data["edges"])
-    assert result.graph_resource is not None
+    assert json.loads(result.graph_text)["nodes"]
     print(f"node_count={result.node_count}, edge_count={result.edge_count}")
     print(f"service_graph_json_url={result.service_graph_json_url}")
-    print(f"graph_resource={result.graph_resource}")

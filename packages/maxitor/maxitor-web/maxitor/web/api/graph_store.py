@@ -58,6 +58,7 @@ reference: CPython frees the graph when the last request still using it lets go.
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -296,17 +297,19 @@ async def build_graph_entry(machine: ActionProductMachine, gateway: GraphSourceG
             LoadAOAServiceParams(service_url=source),
             connections={GRAPH_SOURCE_CONNECTION_KEY: gateway.with_key(key) if key else gateway},
         )
+        # The Result carries the graph's text; the DuckDB resource is built here, where the graph is kept.
+        graph = DuckDBGraphResource.build_from_json(json.loads(load_result.graph_text))
         sidebar_result = await machine.run(
             Context(),
             GetLeftMenuSidebarDataAction(),
             ParamsStub(),
-            connections={DUCKDB_GRAPH_CONNECTION_KEY: load_result.graph_resource},
+            connections={DUCKDB_GRAPH_CONNECTION_KEY: graph},
         )
     except Exception as exc:
         raise GraphBuildError(str(exc)) from exc
     return GraphEntry(
         source=source,
-        graph=load_result.graph_resource,
+        graph=graph,
         sidebar=sidebar_result,
         last_read=0.0,
         content_sha256=load_result.content_sha256,

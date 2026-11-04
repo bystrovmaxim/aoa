@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-05] — What goes out comes back in
+
+A Result goes out as JSON through FastAPI, MCP and soon the cache, and it must come back as the same thing. Two checks now hold every Result to that.
+
+**A field without a JSON form stops the application at start.** A Params or Result field of a plain Python class — a connection, a resource, any object with no JSON Schema — used to pass the start and fail only when something wrote the value, on a live request. The graph build now refuses it and names the field: `OpaqueAction.Result.raw has no JSON form (validation mode): …`. Describe such a value with `JsonSchemaValue`, or leave it out of the Result. If your Result returns a resource for the caller to use, return what the resource is built from instead. Maxitor's graph loading did exactly that: its Result now carries the graph's text, and the server builds the DuckDB graph from it.
+
+**One comparison of what can be observed.** `observable_difference(before, after)`, exported from `aoa.action_machine.domain`, returns the first place two values differ — the values and their types, the loaded fields of each entity, each relation's ids, loaded state and loaded entities, the declared statuses and dictionary values — with a path such as `$.order.lines.entities[0].quantity: 2 != 3`, or `None`. It sees what `==` cannot: a relation loaded with zero rows equals one never loaded, and only this comparison tells them apart. Equality itself does not change.
+
+AOA's tests now read back every value type it gives a JSON form, every Result the tutorial's examples build and every Result class of the demo, and find no difference. To hold your own Result to the same promise, write it as JSON, read it back with `model_validate_json`, and check that `observable_difference` finds nothing.
+
+[Writing an operation](how-to/authoring-action.md#every-field-has-a-json-form) explains both, and [the page on the checks](how-to/run-the-checks.md#examples) says how the examples are read back.
+
 ## [2026-11-04] — A projection holds the entity
 
 A projection, `OrderCoreEntity.schema(schema={...})`, used to hold a plain dict: an action returning an order through it had to copy the fields by hand, and an action receiving one got a dict instead of an order. Now the field holds the entity itself — a partial `OrderCoreEntity` with exactly the projection's fields. You can return the full order and the projection keeps only its part; a field outside the projection is not loaded and reading it raises `FieldNotLoadedError`. On input the action reads `params.order.id` as on any entity, and reading by key, `params.order["id"]`, still works. JSON on the wire and the published schema are what they were.

@@ -131,6 +131,7 @@ from aoa.action_machine.domain.exceptions import (
 )
 from aoa.action_machine.domain.hydration import build
 from aoa.action_machine.domain.lifecycle import Lifecycle, StateInfo, StateType
+from aoa.action_machine.domain.observable_state import observable_difference
 from aoa.action_machine.domain.relation_containers import (
     AggregateMany,
     AggregateOne,
@@ -202,6 +203,7 @@ __all__ = [
     "build",
     "entity_schema_marker_from_annotated",
     "make",
+    "observable_difference",
     # Declarations
     "value",
 ]

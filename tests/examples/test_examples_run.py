@@ -18,6 +18,10 @@ ever changes.
 
 Each script is its own parametrized test node: one failure never hides another, and the
 failure message carries the script's stdout/stderr for a same-glance diagnosis.
+
+Each script runs through ``round_trip_runner.py``, which runs it as ``python <script>``
+does and then reads back every Result it built (rule 2 of #399, issue #409): a Result
+that reads back with a different observable state fails the script's test.
 """
 
 from __future__ import annotations
@@ -31,6 +35,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "examples"
 _TIMEOUT_SECONDS = 60
+RUNNER = Path(__file__).with_name("round_trip_runner.py")
 
 
 def _is_in_package(script: Path) -> bool:
@@ -52,11 +57,12 @@ _SCRIPTS = _discover_example_scripts()
 @pytest.mark.parametrize("script", _SCRIPTS, ids=_example_id)
 def test_example_script_runs_without_error(script: Path) -> None:
     result = subprocess.run(
-        [sys.executable, str(script)],
+        [sys.executable, str(RUNNER), str(script)],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         timeout=_TIMEOUT_SECONDS,
+        check=False,
     )
     assert result.returncode == 0, (
         f"{_example_id(script)} exited {result.returncode}\n"

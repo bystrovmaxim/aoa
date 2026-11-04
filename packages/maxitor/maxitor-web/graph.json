@@ -1323,12 +1323,12 @@
       "type": "@regular_aspect"
     },
     {
-      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction|@summary_aspect|maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:build_duckdb_graph_summary",
+      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction|@summary_aspect|maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:summarize_graph_summary",
       "is_dag": false,
       "properties": {},
       "relationship": "Composition",
       "source_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction",
-      "target_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:build_duckdb_graph_summary",
+      "target_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:summarize_graph_summary",
       "type": "@summary_aspect"
     },
     {
@@ -1392,15 +1392,6 @@
       "relationship": "Composition",
       "source_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult",
       "target_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:etag",
-      "type": "field"
-    },
-    {
-      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult|field|maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_resource",
-      "is_dag": false,
-      "properties": {},
-      "relationship": "Composition",
-      "source_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult",
-      "target_id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_resource",
       "type": "field"
     },
     {
@@ -5444,14 +5435,6 @@
       "type": "Action"
     },
     {
-      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:build_duckdb_graph_summary",
-      "label": "build_duckdb_graph_summary",
-      "properties": {
-        "description": "Build DuckDB graph from service graph data and return load statistics."
-      },
-      "type": "SummaryAspect"
-    },
-    {
       "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:normalize_url_aspect",
       "label": "normalize_url_aspect",
       "properties": {
@@ -5529,6 +5512,14 @@
         "value_check": null
       },
       "type": "Checker"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:summarize_graph_summary",
+      "label": "summarize_graph_summary",
+      "properties": {
+        "description": "Summarize the checked graph: its URL, counts, source identity and JSON text."
+      },
+      "type": "SummaryAspect"
     },
     {
       "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceAction:validate_service_aspect",
@@ -5635,7 +5626,7 @@
       "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:edge_count",
       "label": "edge_count",
       "properties": {
-        "description": "Number of edges loaded into DuckDB.",
+        "description": "Number of edges in the graph.",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -5647,17 +5638,6 @@
       "label": "etag",
       "properties": {
         "description": "The service's ETag for that body; empty when it gave none.",
-        "entity_schema": false,
-        "json_schema_value": false,
-        "required": true
-      },
-      "type": "Field"
-    },
-    {
-      "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:graph_resource",
-      "label": "graph_resource",
-      "properties": {
-        "description": "Populated DuckDB graph resource.",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
@@ -5690,7 +5670,7 @@
       "id": "maxitor.web.model.core.actions.load_aoa_service_action.LoadAOAServiceResult:node_count",
       "label": "node_count",
       "properties": {
-        "description": "Number of nodes loaded into DuckDB.",
+        "description": "Number of nodes in the graph.",
         "entity_schema": false,
         "json_schema_value": false,
         "required": true
