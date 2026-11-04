@@ -35,9 +35,11 @@ Every error keeps today's wording, `<Entity> wire projection: …`. The JSON ser
 
 ## R4. A field typed by the bare entity refuses a partial
 
-**Decision**: `BaseEntity.__get_pydantic_core_schema__` wraps the model schema with an *after* step: an instance that does not hold every declared field is refused with `"<Entity> is partial (loaded: a, b); this field takes a full entity. Declare a projection with <Entity>.schema(...)."`. `| None` and `list[...]` reuse the same schema, so they follow. The dictionary kind overrides the hook and is never partial.
+**Decision**: `BaseParams` and `BaseResult` refuse, after validation, a partial entity (a model missing a declared field) in any field and in each item of a list or tuple, with `"<field>: <Entity> is partial (loaded: a, b); this field takes a full entity. Declare a projection with <Entity>.schema(...)."`. A projection's field is skipped: its marker declares `holds_partial_entity = True`, found in the field's metadata or inside its annotation (`… | None`).
 
-**Rationale**: the class's own schema is what every field typed by it uses; one check covers every container type. A projection never reaches it (its marker validates instead), nor does a relation's target (read by R1).
+**Rationale**: the first attempt wrapped the entity's own core schema with the check. It reached every validation of the entity and broke the JSON Schema of a recursive pair (measured: `RecursionError` in Pydantic's definitions remapping, a schema dict containing itself). The check belongs where the issue puts it — fields of Params and Result — and there it needs neither the entity's schema nor an import of the domain layer.
+
+**Alternatives considered**: `revalidate_instances` on entities — refused: it copies every full entity, fills the defaults of a partial one instead of refusing it, and reports a generic `Field required`.
 
 ## R5. The graph edge
 

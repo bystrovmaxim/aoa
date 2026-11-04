@@ -14,7 +14,7 @@ A projection's value becomes a partial entity with exactly the projection's fiel
 
 **Constraints**: adapters unchanged; the published projection schema unchanged; error wording `<Entity> wire projection: …` kept
 
-**Scale/Scope**: `domain/partial_fields.py` (new), `domain/relation_containers.py`, `domain/entity_schema_marker.py`, `domain/entity.py`, `graph/nodes/field_graph_node.py`, `graph/nodes/property_field_graph_node.py`, `graph/edges/entity_schema_graph_edge.py`; tests; the demo's projection test; tutorial steps 17, 18, 22
+**Scale/Scope**: `domain/partial_fields.py` (new), `domain/relation_containers.py`, `domain/entity_schema_marker.py`, `model/full_entities.py` (new), `model/base_params.py`, `model/base_result.py`, `graph/nodes/field_graph_node.py`, `graph/nodes/property_field_graph_node.py`, `graph/edges/entity_schema_graph_edge.py`; tests; the demo's projection test; tutorial steps 17, 18, 22
 
 ## Constitution Check
 
@@ -32,7 +32,7 @@ No violation.
 One phase = one commit.
 
 1. **Projections** (6.1–6.3) — R1–R3. Tests: entity/partial/dict in, JSON out, outside field unreadable, missing required field named, Params give an entity with attribute and dict-style reads, a value the schema takes but the field type refuses, an entity of another class, a schema naming a non-field. Adversarial: the dict kept as the value; the field-type check skipped; the property check removed.
-2. **Bare entity refuses a partial** (6.4) — R4. Tests: bare, `| None`, `list[...]`; full accepted; message names what is loaded and points to `.schema(...)`. Adversarial: the after step removed.
+2. **Bare entity refuses a partial** (6.4) — R4, in `BaseParams`/`BaseResult` (`model/full_entities.py`). Tests: bare, `| None`, `list[...]`; full accepted; message names what is loaded and points to `.schema(...)`; a projection, `| None` included, still holds its partial. Adversarial: the check removed; the projection skip removed.
 3. **Graph edge** (7.1) — R5. Tests: bare, `| None`, `list[...]`, a dictionary type, a projection unchanged. Adversarial: the annotation branch removed.
 4. **Graph files and versions**.
 5. **Closing check run**.

@@ -36,7 +36,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, ClassVar, get_args, get_origin
 
 import pydantic_core
 from pydantic import BaseModel, GetCoreSchemaHandler, GetJsonSchemaHandler
@@ -77,6 +77,9 @@ class EntitySchemaMarker:
                 equality and ``repr`` are ``entity_cls`` and ``schema`` only.
     AI-CORE-END
     """
+
+    # A projection's field holds a partial entity by design; Params and Result do not refuse it (#408).
+    holds_partial_entity: ClassVar[bool] = True
 
     entity_cls: type
     schema: dict[str, Any]

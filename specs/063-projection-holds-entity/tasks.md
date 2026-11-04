@@ -15,8 +15,8 @@
 
 ## Phase 2: A field typed by the entity carries a full one (US4) — one commit
 
-- [ ] T007 [US4] Write `test_entity_field_takes_full.py`: bare, `| None`, `list[...]` refuse a partial with the message of R4; a full one accepted; a dictionary value unaffected.
-- [ ] T008 Confirm it fails; implement R4 in `entity.py`; run the phase's tests and the package; adversarial break.
+- [X] T007 [US4] Write `test_entity_field_takes_full.py`: bare, `| None`, `list[...]` refuse a partial with the message of R4; a full one accepted; a dictionary value unaffected.
+- [X] T008 Confirm it fails; implement R4 in `model/full_entities.py`, used by `BaseParams` and `BaseResult`, with the projection marker's `holds_partial_entity`; run the phase's tests and the package; adversarial breaks.
 
 ## Phase 3: The graph edge (US5) — one commit
 

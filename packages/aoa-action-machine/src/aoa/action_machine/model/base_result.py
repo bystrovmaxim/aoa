@@ -46,10 +46,13 @@ Result is built by the summary aspect and returned to calling code.
 
 """
 
-from pydantic import ConfigDict
+from typing import Self
+
+from pydantic import ConfigDict, model_validator
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_schema import BaseSchema
+from aoa.action_machine.model.full_entities import refuse_partial_entities
 
 
 @exclude_graph_model
@@ -57,3 +60,9 @@ class BaseResult(BaseSchema):
     """Frozen base class for final action result payloads."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def _carry_full_entities(self) -> Self:
+        """A field typed by an entity carries a full one; a projection is the field for a part (#408)."""
+        refuse_partial_entities(self)
+        return self
