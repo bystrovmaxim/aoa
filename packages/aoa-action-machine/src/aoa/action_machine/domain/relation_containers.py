@@ -119,12 +119,12 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from contextvars import ContextVar
 from enum import Enum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypeVar, cast, get_args, overload
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, overload
 
-from pydantic import TypeAdapter
 from pydantic_core import core_schema
 
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
+from aoa.action_machine.domain.partial_fields import annotation_of, validated_partial
 
 if TYPE_CHECKING:
     from aoa.action_machine.domain.enum_entity import BaseEnumEntity
@@ -315,17 +315,8 @@ def _dictionary_many_schema(container_cls: type[Any], dictionary: type[BaseEnumE
 # The JSON form of a relation to an ordinary entity
 # ═════════════════════════════════════════════════════════════════════════════
 
-_FIELD_ADAPTERS: dict[tuple[Any, str], TypeAdapter[Any]] = {}
-
 # Python-mode dumps keep the container itself; the JSON serializer of the outer schema writes the form.
 _KEEP_IN_PYTHON = core_schema.plain_serializer_function_ser_schema(lambda value: value)
-
-
-def _annotation_of(field: Any) -> Any:
-    """Return a model field's annotation with its constraints, as a type a validator can be built from."""
-    if field.metadata:
-        return Annotated[(field.annotation, *field.metadata)]
-    return field.annotation
 
 
 def _id_schema(target: type, handler: Any) -> Any:
@@ -337,17 +328,7 @@ def _id_schema(target: type, handler: Any) -> Any:
             custom_error_type="relation_id_type",
             custom_error_message=f"{target.__name__} declares no id field, so a relation's id is a string or an integer",
         )
-    return handler.generate_schema(_annotation_of(field))
-
-
-def _field_adapter(target: Any, name: str) -> TypeAdapter[Any]:
-    """A validator for one field of ``target``, built on first use."""
-    key = (target, name)
-    adapter = _FIELD_ADAPTERS.get(key)
-    if adapter is None:
-        adapter = TypeAdapter(_annotation_of(target.model_fields[name]))
-        _FIELD_ADAPTERS[key] = adapter
-    return adapter
+    return handler.generate_schema(annotation_of(field))
 
 
 def _target_schema(target: Any) -> Any:
@@ -364,12 +345,7 @@ def _target_schema(target: Any) -> Any:
             return value
         if not isinstance(value, Mapping):
             raise ValueError(f"a related {target.__name__} is an object of its fields, got {type(value).__name__}.")
-        declared = target.model_fields
-        undeclared = sorted(str(name) for name in value if name not in declared)
-        if undeclared:
-            raise ValueError(f"{target.__name__} declares no field(s) {undeclared}.")
-        fields = {name: _field_adapter(target, name).validate_python(item) for name, item in value.items()}
-        return target.partial(**fields)
+        return validated_partial(target, value)
 
     return core_schema.no_info_plain_validator_function(read)
 

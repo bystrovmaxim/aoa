@@ -6,10 +6,11 @@ EntitySchemaGraphEdge — AGGREGATION from field/property node → declared enti
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-When a schema field or property uses ``BaseEntity.schema(...)`` (``Annotated`` +
-:class:`~aoa.action_machine.domain.entity_schema_marker.EntitySchemaMarker`), the
-interchange graph records a semantic link from that concrete field/property node
-to the host entity class. The wire payload remains JSON Schema on the field row;
+When a schema field or property is typed by an entity — a projection
+``BaseEntity.schema(...)`` (``Annotated`` +
+:class:`~aoa.action_machine.domain.entity_schema_marker.EntitySchemaMarker`), or the
+entity class itself, bare, ``| None`` or ``list[...]`` — the interchange graph
+records a semantic link from that concrete field/property node to the entity class. The wire payload remains JSON Schema on the field row;
 this edge is only the entity binding for coordinators and tooling.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -42,11 +43,33 @@ def _unwrap_optional(annotation: Any) -> Any:
     return annotation
 
 
-def entity_schema_projection_target_from_annotation(annotation: Any) -> type | None:
-    """Return entity class from a ``BaseEntity.schema(...)`` annotation, if present."""
+def _is_declared_entity(candidate: Any) -> bool:
+    """
+    True for a class declared with ``@entity`` — the classes the graph has entity nodes for.
+
+    Read from the attribute the decorator sets, so this module imports nothing of the domain
+    layer, which itself imports the graph.
+    """
+    return isinstance(candidate, type) and getattr(candidate, "_entity_info", None) is not None
+
+
+def entity_schema_target_from_annotation(annotation: Any) -> type | None:
+    """
+    Return the entity a field is typed by: a projection's entity, or an entity class itself.
+
+    ``X | None`` and ``list[X]`` are looked through, so a field typed ``Entity``, ``Entity | None`` or
+    ``list[Entity]`` is linked to ``Entity`` as a projection ``Entity.schema(...)`` is.
+    """
     actual_type = _unwrap_optional(annotation)
     marker = entity_schema_marker_from_annotated(actual_type)
-    return None if marker is None else marker.entity_cls
+    if marker is not None:
+        return marker.entity_cls
+    if get_origin(actual_type) in (list, tuple):
+        arguments = [argument for argument in get_args(actual_type) if argument is not Ellipsis]
+        actual_type = _unwrap_optional(arguments[0]) if len(arguments) == 1 else None
+    if isinstance(actual_type, type) and _is_declared_entity(actual_type):
+        return actual_type
+    return None
 
 
 class EntitySchemaGraphEdge(AggregationGraphEdge):

@@ -25,7 +25,7 @@ class TestEntityProjectionResultValidation:
         payload = {"domain": "Billing", "order": {"id": "e1", "name": "One"}}
         result = EntityProjectionAdapterTestAction.Result.model_validate(payload)
         assert result.domain == "Billing"
-        assert result.order == {"id": "e1", "name": "One"}
+        assert result.order.model_dump() == {"id": "e1", "name": "One"}
 
     def test_rejects_missing_required_property(self) -> None:
         payload = {"domain": "Billing", "order": {"id": "e1"}}
@@ -40,11 +40,11 @@ class TestEntityProjectionResultValidation:
         with pytest.raises(ValueError, match="wire projection"):
             EntityProjectionAdapterTestAction.Result.model_validate(payload)
 
-    def test_validator_returns_same_dict_object(self) -> None:
-        order = {"id": "e1", "name": "One"}
-        payload = {"domain": "Billing", "order": order}
+    def test_validator_holds_a_partial_entity(self) -> None:
+        """The projection holds the entity, partial with exactly the projection's fields (#408)."""
+        payload = {"domain": "Billing", "order": {"id": "e1", "name": "One"}}
         result = EntityProjectionAdapterTestAction.Result.model_validate(payload)
-        assert result.order is order
+        assert result.order == SampleCoreEntity.partial(id="e1", name="One")
 
 
 class TestEntityProjectionJsonSchema:

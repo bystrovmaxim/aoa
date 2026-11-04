@@ -95,7 +95,29 @@ class OrderSummaryResult(BaseResult):
 OrderSummaryResult.model_validate({"order": {"id": "o1", "status": "paid", "total": 99.5}})  # ok
 ```
 
-Important is what this is **not**: the field's value is a plain `dict` validated against the schema, and **not** a hydrated `OrderCoreEntity` instance (no lifecycle, relations, or `FieldNotLoadedError`). Full entities are assembled elsewhere — in [resources](../index.md#v-data-model). The projection returns exactly the declared slice: a field outside the schema will be rejected. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
+The field holds the entity itself: a partial `OrderCoreEntity` with exactly the projection's fields. It takes a full entity, a partial one or a dict, checks each value by the projection's schema and by the entity's own field types, and writes only the projection's fields to JSON. A field outside the projection is not loaded: reading it raises `FieldNotLoadedError`. A projection names only fields of its entity — a schema naming any other key is refused when it is declared. A field typed by the bare entity, `order: OrderCoreEntity`, takes a full entity and refuses a partial one; a part goes through a projection. When you need a rich Python type on the wire (computed fields, your own structure) — use a separate `BaseModel`, not a projection.
+
+[Script](../../examples/step_17_schema_results/03_projection_holds_entity.py) · [Notebook](../../examples/step_17_schema_results/03_projection_holds_entity.ipynb)
+
+```bash
+uv run python examples/step_17_schema_results/03_projection_holds_entity.py
+```
+
+```text
+1) Return the entity through the projection
+   JSON: {'order': {'id': 'ord-1', 'status': 'paid', 'total': 99.5}}
+   held: OrderCoreEntity | status: paid
+   customer_email -> FieldNotLoadedError
+2) Receive the projection as an entity
+   held: OrderCoreEntity | id: ord-2 | by key: ord-2
+   total -1 -> Value error, OrderCoreEntity.total: Input should be greater than or equal to 0
+3) A projection names only fields of its entity
+   ValueError: OrderCoreEntity.schema(): ['secret'] are not fields of OrderCoreEntity; a projection names only fields of its entity.
+4) A field typed by the entity takes a full one
+   ValidationError: Value error, order: OrderCoreEntity is partial (loaded: id); this field takes a full entity. Declare a projection with OrderCoreEntity.schema(...).
+```
+
+The schema lets `total` be any number; the entity's own `ge=0` refuses `-1`, so the projection never holds a value its entity would not.
 
 ## Where validation happens
 
@@ -122,7 +144,7 @@ uv run python examples/step_17_schema_results/01_schema_results.py
    invalid payload -> ValidationError (a change item is missing required 'to')
 
 3) Partial entity projection (BaseEntity.schema):
-   partial order   -> accepted: {'id': 'o1', 'status': 'paid', 'total': 99.5}
+   partial order   -> accepted: id='o1' status='paid' total=99.5
    unexpected field -> rejected (schema forbids fields outside the projection)
 ```
 
@@ -142,7 +164,7 @@ Draft 7 wrote a fixed-length array as a list of schemas under `items`, one per p
    ['a', 1] -> ['a', 1]
    [1, 'a'] -> ValidationError: Value error, 'a' is not of type 'integer'
 3) A refused value reports the best error, as before
-   accepted: {'id': 'o1', 'status': 'paid', 'total': 99.5}
+   accepted: id='o1' status='paid' total=99.5
    refused : Value error, OrderCoreEntity wire projection: 'total' is a required property
 ```
 
@@ -156,7 +178,7 @@ Because the schema is checked only once, a value check is cheap: a three-field r
 - **Strict schema by construction.** Objects list `properties` and set `"additionalProperties": false`, arrays declare `items`; otherwise `define` fails immediately.
 - **The schema at declaration, the value at construction.** The schema is checked once, when the field is declared, in the draft its `"$schema"` names (2020-12 without it); the constructor/`model_validate` check the value in the same draft; `model_construct` does not.
 - **The schema is visible to the contract.** `model_dump()` — raw JSON; `model_json_schema()` — the user schema that FastAPI and MCP surface.
-- **A projection ≠ an entity.** `BaseEntity.schema()` gives a validated `dict` slice, not a hydrated instance; an MCP tool's input is taken only from `Params`.
+- **A projection holds a part of the entity.** `BaseEntity.schema()` holds a partial entity with exactly the projection's fields, checked by the schema and by the entity's field types; it names only fields of its entity; a field typed by the bare entity takes a full one. An MCP tool's input is taken only from `Params`.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md).
 
@@ -174,7 +196,7 @@ Next — **[Accepting complex data from a request](step-18-complex-input.md)**: 
 2. What does "strict schema" mean, and at what moment is its strictness checked?
 3. Where is value validation against the schema performed, and why does `model_construct()` skip it?
 4. How do you make a field optional so that validation is not run on `None`?
-5. How does `BaseEntity.schema(...)` differ from returning a hydrated entity instance? What exactly is in the field?
+5. How does a field `BaseEntity.schema(...)` differ from a field typed by the bare entity? What exactly is in each?
 6. Does a projection on `Result` affect an MCP tool's argument schema? Where does the tool's input come from?
 7. Why does such a field's schema automatically land in OpenAPI and the MCP tool description?
 

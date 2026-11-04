@@ -72,7 +72,7 @@ Invalid `metadata` (without the required `source`, with an extra key) is rejecte
 
 ## A partial entity on input
 
-Symmetrically to output projections, [`BaseEntity.schema(...)`](step-17-schema-results.md#a-partial-entity-projection) works on input too: a `Params` field accepts a partial "slice" of an entity — a schema-validated `dict` semantically bound to the entity class. This is convenient when the client sends not the whole entity but exactly the declared subset of its fields.
+Symmetrically to output projections, [`BaseEntity.schema(...)`](step-17-schema-results.md#a-partial-entity-projection) works on input too: a `Params` field accepts a partial "slice" of an entity. The client sends a dict of the projection's fields; the action receives the entity itself — a partial `OrderCoreEntity` with exactly those fields, read as attributes (`params.order.id`) or by key (`params.order["id"]`). Each value is checked by the projection's schema and by the entity's own field type, so a constraint declared on the entity holds on input too. A `Params` field typed by the bare entity takes the whole entity; for a subset, declare a projection.
 
 ## How the transports see it
 

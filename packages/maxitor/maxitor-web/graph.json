@@ -930,6 +930,42 @@
       "type": "field"
     },
     {
+      "id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level1_nodes|entity_schema|maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level1_nodes",
+      "target_id": "maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "type": "entity_schema"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level2_diagrams|entity_schema|maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level2_diagrams",
+      "target_id": "maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "type": "entity_schema"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level2_nodes|entity_schema|maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level2_nodes",
+      "target_id": "maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "type": "entity_schema"
+    },
+    {
+      "id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level3_diagrams|entity_schema|maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level3_diagrams",
+      "target_id": "maxitor.web.model.core.entities.node_entity.NodeCoreEntity",
+      "type": "entity_schema"
+    },
+    {
       "id": "maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result|field|maxitor.web.model.core.actions.left_sidebar_action.GetLeftMenuSidebarDataAction.Result:level1_nodes",
       "is_dag": false,
       "properties": {},
@@ -5200,7 +5236,7 @@
       "label": "level1_nodes",
       "properties": {
         "description": "",
-        "entity_schema": false,
+        "entity_schema": true,
         "json_schema_value": false,
         "required": true
       },
@@ -5211,7 +5247,7 @@
       "label": "level2_diagrams",
       "properties": {
         "description": "",
-        "entity_schema": false,
+        "entity_schema": true,
         "json_schema_value": false,
         "required": true
       },
@@ -5222,7 +5258,7 @@
       "label": "level2_nodes",
       "properties": {
         "description": "",
-        "entity_schema": false,
+        "entity_schema": true,
         "json_schema_value": false,
         "required": true
       },
@@ -5233,7 +5269,7 @@
       "label": "level3_diagrams",
       "properties": {
         "description": "",
-        "entity_schema": false,
+        "entity_schema": true,
         "json_schema_value": false,
         "required": true
       },
