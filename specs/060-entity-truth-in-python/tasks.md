@@ -71,7 +71,7 @@
 
 ## Phase 4: The closing check run — one commit if it changes anything
 
-- [ ] T020 Run the checks this machine can run, the example checks included, take every remark to zero, and fix what they find in this work; the two accepted remarks of the constitution stay.
+- [X] T020 Run the checks this machine can run, the example checks included, take every remark to zero, and fix what they find in this work; the two accepted remarks of the constitution stay.
 
 ---
 
