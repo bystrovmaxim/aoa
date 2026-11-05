@@ -16,14 +16,17 @@ Generalization (UML inheritance) edges ``parent_action``, ``parent_role``, and `
 ``properties`` block allows ``maxProperties: 0``, while an entity generalization has to name the field it
 came through, the head's field it answers to, the code it declares, and the head itself.
 
+``entity_resource`` (1.6) is the aggregation edge from every entity to the one resource that stores it;
+the schema leaves "exactly one per entity" to the exporter, which AOA checks when it builds the graph.
+
 ``entity_specialization`` is the association edge from a head to one of its alternatives. One edge per
 alternative; ``alternatives`` repeats the whole ordered declaration on every edge of the cluster, so a
 consumer holding one row has the set without a second lookup and without re-sorting what was written.
 
 The schema belongs to the Open Gnomon Protocol, a standard with no code that lives in
-bystrovmaxim/gnomon (``packages/open-gnomon-protocol/graph/1.5.json``); ``graph_json_schema.json``
+bystrovmaxim/gnomon (``packages/open-gnomon-protocol/graph/1.6.json``); ``graph_json_schema.json``
 beside this module is a copy of it, which ``tests/scripts/test_schema_copies.py`` keeps equal to
-version ``1.5`` as published. AOA writes version ``1.5``.
+version ``1.6`` as published. AOA writes version ``1.6``.
 """
 
 from __future__ import annotations

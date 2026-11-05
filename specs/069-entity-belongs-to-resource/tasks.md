@@ -27,12 +27,12 @@ Goal: case 2.4 for every link kind and the shared state type.
 
 Goal: `entity_resource` edge, domain from the resource, protocol 1.6, graph-build refusals (2.5).
 
-- [ ] T010 [US3] Copy `/Users/bystrovmaxim/PythonDev/gnomon/packages/open-gnomon-protocol/graph/1.6.json` (gnomon `main` `2d6159df`) over `src/graph/graph_json_schema.json` byte for byte; `src/graph/graph_json_schema.py` docstring → 1.6; `tests/scripts/test_schema_copies.py` → 1.6's `$id` and SHA-256.
-- [ ] T011 [US3] Create `src/graph/edges/entity_resource_graph_edge.py` (`EntityResourceGraphEdge(AggregationGraphEdge)`, `edge_name="entity_resource"`, `is_dag=True`, `properties` `{}`, default id); export from `src/graph/edges/__init__.py` if edges are exported there.
-- [ ] T012 [US3] In `src/graph/nodes/entity_graph_node.py`: `resource` field, built in `__init__`, first in `get_all_edges` after `domain`; docstrings.
-- [ ] T013 [US3] In `src/graph/core/node_graph_coordinator.py`: `_validate_entity_resource_edges(nodes)` after `_single_pass_validate_and_wire` (research R4); `to_json` writes `"1.6"`; docstrings.
-- [ ] T014 [US3] Write `tests/graph/test_entity_resource_graph.py`: the edge row; the domain edge's target is the resource's domain; a built graph validates against `GRAPH_JSON_SCHEMA`; `schema_version` `1.6`; zero and two edges refused; on hand-built nodes past the class pass, each of `entity_relation`, `entity_reference`, `entity_specialization`, `parent_entity` and a state group across resources refused (SC-005). Move every test asserting `"1.5"` to `"1.6"`.
-- [ ] T015 [US3] Run T014, the moved tests and `tests/scripts/test_schema_copies.py`; adversarial: emit the edge twice → the count case fails alone; drop the node check → the hand-built case fails alone; restore. Commit.
+- [X] T010 [US3] Copy `/Users/bystrovmaxim/PythonDev/gnomon/packages/open-gnomon-protocol/graph/1.6.json` (gnomon `main` `2d6159df`) over `src/graph/graph_json_schema.json` byte for byte; `src/graph/graph_json_schema.py` docstring → 1.6; `tests/scripts/test_schema_copies.py` → 1.6's `$id` and SHA-256.
+- [X] T011 [US3] Create `src/graph/edges/entity_resource_graph_edge.py` (`EntityResourceGraphEdge(AggregationGraphEdge)`, `edge_name="entity_resource"`, `is_dag=True`, `properties` `{}`, default id); export from `src/graph/edges/__init__.py` if edges are exported there.
+- [X] T012 [US3] In `src/graph/nodes/entity_graph_node.py`: `resource` field, built in `__init__`, first in `get_all_edges` after `domain`; docstrings.
+- [X] T013 [US3] In `src/graph/core/node_graph_coordinator.py`: `_validate_entity_resource_edges(nodes)` after `_single_pass_validate_and_wire` (research R4); `to_json` writes `"1.6"`; docstrings.
+- [X] T014 [US3] Write `tests/graph/test_entity_resource_graph.py`: the edge row; the domain edge's target is the resource's domain; a built graph validates against `GRAPH_JSON_SCHEMA`; `schema_version` `1.6`; zero and two edges refused; on hand-built nodes past the class pass, each of `entity_relation`, `entity_reference`, `entity_specialization`, `parent_entity` and a state group across resources refused (SC-005). Move every test asserting `"1.5"` to `"1.6"`.
+- [X] T015 [US3] Run T014, the moved tests and `tests/scripts/test_schema_copies.py`; adversarial: emit the edge twice → the count case fails alone; drop the node check → the hand-built case fails alone; restore. Commit.
 
 ## Phase 4: the demo — US4 (P2)
 
