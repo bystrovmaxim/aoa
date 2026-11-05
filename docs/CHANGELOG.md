@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-11-06] — An entity belongs to one resource, and its relations stay inside it
+
+An entity is a row stored somewhere, and now the model says where. `@entity` names the resource that stores the entity — `@entity(description="Customer order", resource=StorefrontDatabase)` — and the entity takes its domain from that resource's `@meta(domain=...)`. Any kind of resource may store entities: a storage, a gateway or a controller, and the three kinds are now imported together from `aoa.action_machine.resources`.
+
+This is a breaking change, and `aoa-action-machine` moves to 1.1.0b1. `resource=` is required and `domain=` is gone from `@entity`: a declaration without a resource is refused with `@entity needs resource=`, and `domain=` is refused by Python itself. A resource must be one concrete class that declares its domain; a domain, a kind base such as `BaseStorage`, a resource without `@meta` or several resources at once are refused when the class is defined, with the entity named. To move a model, give each domain's entities the resource that stores them — usually one storage per database — and write `resource=` where `domain=` was.
+
+Because every entity has one resource, a relation can no longer pretend to join two stores no query can join. An association, an aggregation or a composition, an inverse side, a specialization, a generalization, a dictionary field and a state type shared through `Lifecycle[...]` must all stay inside one resource; a link across resources stops the model build with `EntityResourceError`, naming the field, both entities and both resources. A dictionary several databases need is declared once per resource, and a state type once per resource that uses it. A reference from an entity of one resource to an entity of another has no allowed form yet.
+
+The graph is written by version 1.6 of the Open Gnomon Protocol. Every entity has an `entity_resource` edge to its resource, so a reader finds the data model of each database; the entity's `domain` edge still points at its domain, taken from the resource. The graph build refuses a graph where an entity has no such edge or two, or where a link crosses resources. Reading 1.6 needs Maxitor 3.16.0, released for it; drawing an entity's resource in Maxitor comes with gnomon#46.
+
+The demo follows the rule: every one of its 213 entities is stored by one resource, the currency dictionary moved into Billing, and links that crossed databases were removed. The tutorial's chapter 29 on Maxitor and the examples that drew the graph with Maxitor left this repository; Maxitor's own pages live in gnomon. [Step 22](tutorials/step-22-entity.md#store-the-entity-in-the-resource-that-holds-it), [step 24](tutorials/step-24-relations.md#a-relation-stays-inside-one-resource) and [step 25](tutorials/step-25-lifecycle.md#a-lifecycle-stays-inside-one-resource) show every case with a script and a notebook.
+
 ## [2026-11-05] — The protocol's schemas are only in gnomon
 
 The last files of the Open Gnomon Protocol left this repository: `packages/open-gnomon-protocol` with the schemas of versions 1.0 to 1.5. The protocol lives in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon/tree/main/packages/open-gnomon-protocol). AOA writes its graph by version 1.5 exactly as before, and its own copy of that schema is checked to be the version as published.

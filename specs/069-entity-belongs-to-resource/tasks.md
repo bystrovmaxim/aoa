@@ -64,7 +64,7 @@ Goal: every demo entity stored by one resource, none related across resources (r
 
 ## Phase 9: changelog
 
-- [ ] T027 One article in `docs/CHANGELOG.md` and its `.ru_draft.md`. Commit.
+- [X] T027 One article in `docs/CHANGELOG.md` and its `.ru_draft.md`. Commit.
 
 ## Dependencies
 
