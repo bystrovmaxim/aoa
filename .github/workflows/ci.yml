@@ -15,9 +15,8 @@ on:
 #   checks-314 — the same gate on Python 3.14, the newest version the project supports;
 #   packaging  — the wheel/sdist build and the install smoke;
 #   versions   — version-gate, on pull requests into main only: a task's sub-issues raise a version once.
-# The three-engine layout check is not here: these machines have no graphics card, so Firefox
-# has no WebGL and the map cannot be drawn. It runs locally with `scripts/check_before_pr.sh`, whose
-# commit status `Local check run` the merge rule of main requires.
+# Maxitor, its client and its browser checks live in bystrovmaxim/gnomon; this CI checks AOA alone, and
+# a pull request merges on these jobs.
 jobs:
   # A pull request that changes only text proves nothing the checks below could test. A job skipped
   # by its `if` counts as passed for the merge rule, so nothing is left waiting.
@@ -72,13 +71,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: packages/maxitor/maxitor-web/client/package-lock.json
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
 
@@ -94,10 +86,10 @@ jobs:
         if: failure()
         run: cat archive/logs/check-all.txt || true
 
-      # Maxitor's own action, the one other projects use, here running this checkout's graph-builder:
-      # this is the only place it runs before someone else depends on it.
+      # The demo's graph file is current, checked by graph-builder's own action, from the Maxitor release
+      # this repository takes from PyPI.
       - name: Graph files are current (graph-builder action)
-        uses: ./packages/maxitor/tools/graph-builder
+        uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@maxitor-v3.15.0
         with:
           graph-builder: uv run --extra dev graph-builder
 
@@ -136,13 +128,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: packages/maxitor/maxitor-web/client/package-lock.json
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
