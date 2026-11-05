@@ -4,4 +4,4 @@
 - [X] T002 Phase 2: versions.
 - [X] T003 Phase 3: closing check run.
 - [X] T004 Phase 4: tutorial step 22, a script and a notebook; Russian draft.
-- [ ] T005 Phase 5: one article and its Russian version.
+- [X] T005 Phase 5: one article and its Russian version.
