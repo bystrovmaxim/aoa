@@ -99,18 +99,9 @@ The guide moves from a practical entry point to the complete project architectur
 
 ---
 
-## VII Maxitor
-
-> **The big problem:** how to see the whole system — operations, dependencies, entities — without a single line of manual documentation.
-
-- **[Maxitor: a system you can see](tutorials/step-29-maxitor.md)** — graph of operations, ERD, use case, and lifecycle: four projections from one code, without manual documentation
-- **[The graph saved with every change](tutorials/step-29-maxitor.md#the-graph-saved-with-every-change)** — each service keeps its current graph in one file that every pull request carries, by the [Open Gnomon Protocol](https://github.com/bystrovmaxim/gnomon/blob/main/packages/open-gnomon-protocol/README.md), kept by `graph-builder` of [maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md)
-
----
-
 ## Additional materials
 
-The materials below are not a continuation of the linear I–VII route. They are a reference, practical solutions, extensions, and research notes to return to as needed.
+The materials below are not a continuation of the linear I–VI route. They are a reference, practical solutions, extensions, and research notes to return to as needed.
 
 ### How-to guides
 

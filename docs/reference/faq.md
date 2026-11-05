@@ -135,7 +135,7 @@ Graph-edge construction can read the code mapping before the specialization vali
 
 ### Does the frame in Maxitor represent another entity?
 
-No. It groups the possible detail classes in the entity–relationship diagram. The entities inside keep their own fields. The frame is a display object and says nothing about a physical table or stored row. The [Maxitor chapter](../tutorials/step-29-maxitor.md#specialization-the-variants-in-one-frame) includes the actual rendered image and explains the frame, dictionary card and generalization arrows.
+No. It groups the possible detail classes in the entity–relationship diagram. The entities inside keep their own fields. The frame is a display object and says nothing about a physical table or stored row. [Maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) draws the frame, the dictionary card and the generalization arrows.
 
 ---
 

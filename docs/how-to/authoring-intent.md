@@ -24,7 +24,7 @@
 
 ## When this is needed
 
-This is the deepest extension point. An intent turns an agreement — "we mark critical operations", "this is PII", "this step has an SLA" — into a **full-fledged graph object** that can be walked and queried. The same move the shipped `@meta`, `@check_roles`, `@connection` are built on: exactly the reification discussed in [«Questions AOA answers with code»](../explanation/questions-aoa-answers-with-code.md). Once a rule lands in the graph, you can build a [self-audit](../research/self-knowledge.md) and [Maxitor](../tutorials/step-29-maxitor.md) diagrams on it.
+This is the deepest extension point. An intent turns an agreement — "we mark critical operations", "this is PII", "this step has an SLA" — into a **full-fledged graph object** that can be walked and queried. The same move the shipped `@meta`, `@check_roles`, `@connection` are built on: exactly the reification discussed in [«Questions AOA answers with code»](../explanation/questions-aoa-answers-with-code.md). Once a rule lands in the graph, you can build a [self-audit](../research/self-knowledge.md) and [Maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) diagrams on it.
 
 The full example: [08_custom_intent.py](../../examples/how_to/08_custom_intent.py).
 
@@ -121,7 +121,7 @@ crit = [n for n in machine.graph_coordinator.get_all_nodes() if n.node_type == "
 
 - **`build()` tests the graph for soundness.** `node_id` must be unique; each edge's `target_node_id` must resolve to an existing node (otherwise `InvalidGraphError`); among edges with `is_dag=True` there must be no cycles. For annotations set `is_dag=False`.
 - **A custom `node_type` is not rejected by the graph.** The `export_json_schema` parameter of `build()` is currently ignored — your new node type passes on a par with the shipped ones.
-- **The inspector reflects the loaded scope.** The base walks the axis and all its subclasses actually imported into the interpreter; "junk" classes from tests/samples are excluded via [`exclude_graph_model`](../tutorials/step-29-maxitor.md) or by cleaning imports, not by a filter in the inspector.
+- **The inspector reflects the loaded scope.** The base walks the axis and all its subclasses actually imported into the interpreter; "junk" classes from tests/samples are excluded via `exclude_graph_model` or by cleaning imports, not by a filter in the inspector.
 - **`to_dict()` is only for JSON export.** Introspection via `get_all_nodes()`/`get_all_edges()` does not call it, but with non-empty `properties` it must be overridden (otherwise the base raises on export).
 
 ## Verification
@@ -137,7 +137,7 @@ high-criticality operations: ['ChargeCardAction']
 ChargeCardAction ran -> True
 ```
 
-The `@criticality` rule became a graph node with an edge to the operation; the graph answered which operations are critical, while the operation itself kept working as before — the intent only added knowledge. This is the whole AOA move in miniature: [an agreement turned into a verifiable object](../explanation/questions-aoa-answers-with-code.md). How this graph is read as a whole — [the operation graph (Maxitor)](../tutorials/step-29-maxitor.md); how diagnostics are built on it — [what the system knows about itself](../research/self-knowledge.md).
+The `@criticality` rule became a graph node with an edge to the operation; the graph answered which operations are critical, while the operation itself kept working as before — the intent only added knowledge. This is the whole AOA move in miniature: [an agreement turned into a verifiable object](../explanation/questions-aoa-answers-with-code.md). How this graph is read as a whole — [the operation graph (Maxitor)](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md); how diagnostics are built on it — [what the system knows about itself](../research/self-knowledge.md).
 
 ---
 
