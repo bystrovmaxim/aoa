@@ -42,6 +42,7 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.mcp.adapter import McpAdapter, _serialize_result, _validate_tool_request_kwargs
@@ -55,7 +56,12 @@ class McpShopDomain(BaseDomain):
     description = "Entities carried through MCP"
 
 
-@entity(description="Currencies", domain=McpShopDomain)
+@meta(description="Stores the mcp shop entities", domain=McpShopDomain)
+class McpShopStorage(BaseStorage):
+    """Hold the mcp shop entities."""
+
+
+@entity(description="Currencies", resource=McpShopStorage)
 class McpCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -63,7 +69,7 @@ class McpCurrencyEnumEntity(BaseEnumEntity):
     EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
-@entity(description="Order state", domain=McpShopDomain)
+@entity(description="Order state", resource=McpShopStorage)
 class McpOrderStateEntity(BaseStateEntity):
     """The statuses of an order."""
 
@@ -84,7 +90,7 @@ class McpOrderLifecycle(Lifecycle[McpOrderStateEntity]):
     )
 
 
-@entity(description="Customer", domain=McpShopDomain)
+@entity(description="Customer", resource=McpShopStorage)
 class McpCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
@@ -92,7 +98,7 @@ class McpCustomerCoreEntity(BaseCoreEntity):
     name: str = Field(description="Name")
 
 
-@entity(description="Order", domain=McpShopDomain)
+@entity(description="Order", resource=McpShopStorage)
 class McpOrderCoreEntity(BaseCoreEntity):
     """An order with a customer, a currency and a lifecycle."""
 

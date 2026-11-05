@@ -47,6 +47,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -58,6 +59,11 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 class StoreDomain(BaseDomain):
     name = "store"
     description = "E-commerce store domain"
+
+
+@meta(description="Stores the store entities", domain=StoreDomain)
+class StoreStorage(BaseStorage):
+    """Hold the store entities."""
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +81,6 @@ class OrderStateEntity(BaseStateEntity):
     SHIPPED = value(code="shipped", display_name="Shipped", sort_order=3)
     DELIVERED = value(code="delivered", display_name="Delivered", sort_order=4)
     CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=5)
-
 
 
 class OrderLifecycle(Lifecycle[OrderStateEntity]):
@@ -110,7 +115,6 @@ class OrderLineStateEntity(BaseStateEntity):
     CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=5)
 
 
-
 class OrderLineLifecycle(Lifecycle[OrderLineStateEntity]):
 
     _template = (
@@ -139,7 +143,7 @@ class OrderLineLifecycle(Lifecycle[OrderLineStateEntity]):
 # so Inverse() can reference partner types at class-body time.
 
 
-@entity(description="Registered customer account", domain=StoreDomain)
+@entity(description="Registered customer account", resource=StoreStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
@@ -152,7 +156,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Field(default=None, description="Orders placed by this customer; NULL when not loaded")
 
 
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StoreStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -172,7 +176,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Field(description="Line items of the order")
 
 
-@entity(description="Single line item within an order", domain=StoreDomain)
+@entity(description="Single line item within an order", resource=StoreStorage)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_id: str = Field(description="Product identifier")

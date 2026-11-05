@@ -56,6 +56,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_entry import StoredCacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
@@ -137,7 +138,12 @@ class PricingDomain(BaseDomain):
     description = "Pricing domain"
 
 
-@entity(description="A price quote", domain=PricingDomain)
+@meta(description="Stores the pricing entities", domain=PricingDomain)
+class PricingStorage(BaseStorage):
+    """Hold the pricing entities."""
+
+
+@entity(description="A price quote", resource=PricingStorage)
 class QuoteCoreEntity(BaseCoreEntity):
     """What a quote's cache entry is tagged with: CacheTag(type=QuoteCoreEntity, key=sku)."""
 

@@ -70,6 +70,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOMAIN
@@ -81,6 +82,11 @@ class TestDomain(BaseDomain):
 
     name = "test"
     description = "Test domain"
+
+
+@meta(description="Stores the test entities", domain=TestDomain)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -96,7 +102,6 @@ class DraftStateEntity(BaseStateEntity):
     DRAFT = value(code="draft", display_name="Draft", sort_order=1)
     ACTIVE = value(code="active", display_name="Active", sort_order=2)
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
-
 
 
 class DraftLifecycle(Lifecycle[DraftStateEntity]):
@@ -119,7 +124,7 @@ class DraftLifecycle(Lifecycle[DraftStateEntity]):
 
 
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", domain=TestDomain)
+@entity(description="Simple test entity", resource=TestStorage)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
@@ -128,7 +133,7 @@ class SampleCoreEntity(BaseCoreEntity):
     value: int = Field(description="Value", ge=0)
 
 
-@entity(description="Entity with lifecycle", domain=TestDomain)
+@entity(description="Entity with lifecycle", resource=TestStorage)
 class LifecycleCoreEntity(BaseCoreEntity):
     """
     Entity for lifecycle tests.
@@ -152,7 +157,7 @@ class LifecycleCoreEntity(BaseCoreEntity):
     lifecycle: DraftLifecycle | None = Field(description="Lifecycle state machine")
 
 
-@entity(description="Related entity", domain=TestDomain)
+@entity(description="Related entity", resource=TestStorage)
 class RelatedCoreEntity(BaseCoreEntity):
     """
     Entity for relation tests.
@@ -175,7 +180,7 @@ class RelatedCoreEntity(BaseCoreEntity):
     ] = Field(default=None, description="Child entities")
 
 
-@entity(description="Complex entity", domain=TestDomain)
+@entity(description="Complex entity", resource=TestStorage)
 class ComplexCoreEntity(BaseCoreEntity):
     """
     Full-featured entity for integration-style tests.

@@ -683,7 +683,7 @@ Every field must have a `description` — this is not a comment but structured m
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StoreStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -708,7 +708,7 @@ Cardinality is set by the suffix: `One` — a single object, `Many` — a collec
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer account", domain=StoreDomain)
+@entity(description="Customer account", resource=StoreStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
@@ -720,7 +720,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Rel(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StoreStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -739,7 +739,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Rel(description="Line items of the order")
 
 
-@entity(description="Single line item within an order", domain=StoreDomain)
+@entity(description="Single line item within an order", resource=StoreStorage)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_name: str = Field(description="Product display name")

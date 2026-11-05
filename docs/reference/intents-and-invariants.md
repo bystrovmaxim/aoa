@@ -663,7 +663,7 @@ Python inheritance or stored-object links.
 reverse edges. Maxitor uses the forward edges to group multiple alternatives and label
 the group by its dictionary. A single alternative has no group; its reverse generalization
 can still appear as a relation. Dictionary cards show value codes, labels and descriptive
-properties. See [Step 29](../tutorials/step-29-maxitor.md#specialization-the-variants-in-one-frame).
+properties.
 
 
 ## Lifecycle FSM

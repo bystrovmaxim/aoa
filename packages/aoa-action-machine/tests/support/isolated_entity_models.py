@@ -61,6 +61,10 @@ _PRELUDE = textwrap.dedent(
 
     import sys
     sys.path.insert(0, "packages/aoa-action-machine/src")
+
+    # Every entity is stored by a resource; fixtures declare one with these two names.
+    from aoa.action_machine.intents.meta import meta
+    from aoa.action_machine.resources.base_storage import BaseStorage
     """
 )
 

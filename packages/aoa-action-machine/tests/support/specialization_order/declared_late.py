@@ -26,6 +26,8 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class LateOrderDomain(BaseDomain):
@@ -35,7 +37,12 @@ class LateOrderDomain(BaseDomain):
     description = "A part declared after the kinds"
 
 
-@entity(description="Kinds", domain=LateOrderDomain)
+@meta(description="Stores the late order entities", domain=LateOrderDomain)
+class LateOrderStorage(BaseStorage):
+    """Hold the late order entities."""
+
+
+@entity(description="Kinds", resource=LateOrderStorage)
 class KindEnumEntity(BaseEnumEntity):
     """The two kinds of a head."""
 
@@ -43,7 +50,7 @@ class KindEnumEntity(BaseEnumEntity):
     OTHER = value(code="other", display_name="Other")
 
 
-@entity(description="Head", domain=LateOrderDomain)
+@entity(description="Head", resource=LateOrderStorage)
 class HeadCoreEntity(BaseCoreEntity):
     """The common part, with two kinds."""
 
@@ -53,7 +60,7 @@ class HeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Variant", domain=LateOrderDomain)
+@entity(description="Variant", resource=LateOrderStorage)
 class VariantSpecEntity(BaseSpecEntity):
     """The first kind, linking to parts."""
 
@@ -64,7 +71,7 @@ class VariantSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "variants")] = Field(description="Parts")
 
 
-@entity(description="Other variant", domain=LateOrderDomain)
+@entity(description="Other variant", resource=LateOrderStorage)
 class OtherSpecEntity(BaseSpecEntity):
     """The second kind, linking to parts."""
 
@@ -75,7 +82,7 @@ class OtherSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "others")] = Field(description="Parts")
 
 
-@entity(description="A part the variants link to", domain=LateOrderDomain)
+@entity(description="A part the variants link to", resource=LateOrderStorage)
 class PartCoreEntity(BaseCoreEntity):
     """Declared after the kinds that link to it."""
 

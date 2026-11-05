@@ -181,7 +181,6 @@ The following cases are separate scripts and notebooks. Each was executed agains
 | inheritance | [06_inheritance](../../examples/step_23_dictionaries/06_inheritance.py) | [Notebook](../../examples/step_23_dictionaries/06_inheritance.ipynb) |
 | frozen | [07_frozen](../../examples/step_23_dictionaries/07_frozen.py) | [Notebook](../../examples/step_23_dictionaries/07_frozen.ipynb) |
 | graph | [08_graph](../../examples/step_23_dictionaries/08_graph.py) | [Notebook](../../examples/step_23_dictionaries/08_graph.ipynb) |
-| erd | [09_erd](../../examples/step_23_dictionaries/09_erd.py) | [Notebook](../../examples/step_23_dictionaries/09_erd.ipynb) |
 | tuple property | [10_tuple_property](../../examples/step_23_dictionaries/10_tuple_property.py) | [Notebook](../../examples/step_23_dictionaries/10_tuple_property.ipynb) |
 | json reference | [11_json_reference](../../examples/step_23_dictionaries/11_json_reference.py) | [Notebook](../../examples/step_23_dictionaries/11_json_reference.ipynb) |
 | field serializer | [12_field_serializer](../../examples/step_23_dictionaries/12_field_serializer.py) | [Notebook](../../examples/step_23_dictionaries/12_field_serializer.ipynb) |
@@ -246,6 +245,8 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class SelectionDomain(BaseDomain):
@@ -255,7 +256,12 @@ class SelectionDomain(BaseDomain):
     description = "Dictionary selection transport"
 
 
-@entity(description="Currency", domain=SelectionDomain)
+@meta(description="Stores the selection entities", domain=SelectionDomain)
+class SelectionStorage(BaseStorage):
+    """Hold the selection entities."""
+
+
+@entity(description="Currency", resource=SelectionStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the shared currency values."""
 
@@ -263,7 +269,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
     EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
-@entity(description="Price selection", domain=SelectionDomain)
+@entity(description="Price selection", resource=SelectionStorage)
 class PriceCoreEntity(BaseCoreEntity):
     """Require a selection while permitting explicit absence."""
 

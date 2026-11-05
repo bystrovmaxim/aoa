@@ -21,6 +21,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.exceptions import RoleCompatibilityError
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class CompositionDomain(BaseDomain):
@@ -30,7 +32,12 @@ class CompositionDomain(BaseDomain):
     description = "Composition"
 
 
-@entity(description="Order", domain=CompositionDomain)
+@meta(description="Stores the composition entities", domain=CompositionDomain)
+class CompositionStorage(BaseStorage):
+    """Hold the composition entities."""
+
+
+@entity(description="Order", resource=CompositionStorage)
 class OrderCoreEntity(BaseCoreEntity):
     """An order owns many lines (CompositeMany / AssociationOne)."""
 
@@ -40,7 +47,7 @@ class OrderCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Order line", domain=CompositionDomain)
+@entity(description="Order line", resource=CompositionStorage)
 class OrderLineCoreEntity(BaseCoreEntity):
     """A line's reverse is an association, never another composite."""
 
@@ -50,7 +57,7 @@ class OrderLineCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Cart", domain=CompositionDomain)
+@entity(description="Cart", resource=CompositionStorage)
 class CartCoreEntity(BaseCoreEntity):
     """A cart owns one checkout (CompositeOne / AssociationMany)."""
 
@@ -60,7 +67,7 @@ class CartCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Checkout", domain=CompositionDomain)
+@entity(description="Checkout", resource=CompositionStorage)
 class CheckoutCoreEntity(BaseCoreEntity):
     """Many carts point back through an association."""
 
@@ -70,7 +77,7 @@ class CheckoutCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Composite A", domain=CompositionDomain)
+@entity(description="Composite A", resource=CompositionStorage)
 class CompositeACoreEntity(BaseCoreEntity):
     """A composite whose reverse is another composite — refused."""
 
@@ -78,7 +85,7 @@ class CompositeACoreEntity(BaseCoreEntity):
     b: Annotated[CompositeOne[CompositeBCoreEntity], Inverse(field_name="a")] = Field(description="Composite B")
 
 
-@entity(description="Composite B", domain=CompositionDomain)
+@entity(description="Composite B", resource=CompositionStorage)
 class CompositeBCoreEntity(BaseCoreEntity):
     """The second composite of the refused pair."""
 
@@ -86,7 +93,7 @@ class CompositeBCoreEntity(BaseCoreEntity):
     a: Annotated[CompositeMany[CompositeACoreEntity], Inverse(field_name="b")] = Field(description="Composite A")
 
 
-@entity(description="Composite over aggregate", domain=CompositionDomain)
+@entity(description="Composite over aggregate", resource=CompositionStorage)
 class CompositeOverAggregateCoreEntity(BaseCoreEntity):
     """A composite paired with an aggregate — refused."""
 
@@ -94,7 +101,7 @@ class CompositeOverAggregateCoreEntity(BaseCoreEntity):
     b: Annotated[AggregateOne[AggregateReverseCoreEntity], Inverse(field_name="a")] = Field(description="Aggregate")
 
 
-@entity(description="Aggregate reverse", domain=CompositionDomain)
+@entity(description="Aggregate reverse", resource=CompositionStorage)
 class AggregateReverseCoreEntity(BaseCoreEntity):
     """The aggregate side of the refused composite / aggregate pair."""
 
@@ -104,7 +111,7 @@ class AggregateReverseCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Corrected composite", domain=CompositionDomain)
+@entity(description="Corrected composite", resource=CompositionStorage)
 class CorrectedCompositeCoreEntity(BaseCoreEntity):
     """The corrected pair keeps one composite and one association."""
 
@@ -112,7 +119,7 @@ class CorrectedCompositeCoreEntity(BaseCoreEntity):
     b: Annotated[CompositeOne[CorrectedReverseCoreEntity], Inverse(field_name="a")] = Field(description="Reverse")
 
 
-@entity(description="Corrected reverse", domain=CompositionDomain)
+@entity(description="Corrected reverse", resource=CompositionStorage)
 class CorrectedReverseCoreEntity(BaseCoreEntity):
     """The reverse is an association, so the pair is permitted."""
 

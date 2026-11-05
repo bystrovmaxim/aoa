@@ -27,7 +27,9 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseResult
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class RoundTripDomain(BaseDomain):
@@ -37,7 +39,12 @@ class RoundTripDomain(BaseDomain):
     description = "Read-back model"
 
 
-@entity(description="Customer", domain=RoundTripDomain)
+@meta(description="Stores the round trip entities", domain=RoundTripDomain)
+class RoundTripStorage(BaseStorage):
+    """Hold the round trip entities."""
+
+
+@entity(description="Customer", resource=RoundTripStorage)
 class RtCustomerCoreEntity(BaseCoreEntity):
     """A customer with a UUID id."""
 
@@ -46,7 +53,7 @@ class RtCustomerCoreEntity(BaseCoreEntity):
     email: str = Field(description="Email")
 
 
-@entity(description="Order line", domain=RoundTripDomain)
+@entity(description="Order line", resource=RoundTripStorage)
 class RtLineCoreEntity(BaseCoreEntity):
     """A line of an order."""
 
@@ -54,7 +61,7 @@ class RtLineCoreEntity(BaseCoreEntity):
     quantity: int = Field(ge=1, description="Quantity")
 
 
-@entity(description="Currency", domain=RoundTripDomain)
+@entity(description="Currency", resource=RoundTripStorage)
 class RtCurrencyEnumEntity(BaseEnumEntity):
     """A closed catalogue of currencies."""
 
@@ -63,7 +70,7 @@ class RtCurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Order status", domain=RoundTripDomain)
+@entity(description="Order status", resource=RoundTripStorage)
 class RtOrderStateEntity(BaseStateEntity):
     """The statuses of an order."""
 
@@ -84,7 +91,7 @@ class RtOrderLifecycle(Lifecycle[RtOrderStateEntity]):
     )
 
 
-@entity(description="Order", domain=RoundTripDomain)
+@entity(description="Order", resource=RoundTripStorage)
 class RtOrderCoreEntity(BaseCoreEntity):
     """An order with every kind of value."""
 

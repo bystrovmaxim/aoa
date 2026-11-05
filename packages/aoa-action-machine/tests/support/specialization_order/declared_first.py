@@ -25,6 +25,8 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class FirstOrderDomain(BaseDomain):
@@ -34,7 +36,12 @@ class FirstOrderDomain(BaseDomain):
     description = "A part declared before the kinds"
 
 
-@entity(description="A part the variants link to", domain=FirstOrderDomain)
+@meta(description="Stores the first order entities", domain=FirstOrderDomain)
+class FirstOrderStorage(BaseStorage):
+    """Hold the first order entities."""
+
+
+@entity(description="A part the variants link to", resource=FirstOrderStorage)
 class PartCoreEntity(BaseCoreEntity):
     """Declared before the kinds that link to it."""
 
@@ -45,7 +52,7 @@ class PartCoreEntity(BaseCoreEntity):
     others: Annotated[AssociationMany[OtherSpecEntity], Inverse(OtherSpecEntity, "parts")] = Field(description="Others")
 
 
-@entity(description="Kinds", domain=FirstOrderDomain)
+@entity(description="Kinds", resource=FirstOrderStorage)
 class KindEnumEntity(BaseEnumEntity):
     """The two kinds of a head."""
 
@@ -53,7 +60,7 @@ class KindEnumEntity(BaseEnumEntity):
     OTHER = value(code="other", display_name="Other")
 
 
-@entity(description="Head", domain=FirstOrderDomain)
+@entity(description="Head", resource=FirstOrderStorage)
 class HeadCoreEntity(BaseCoreEntity):
     """The common part, with two kinds."""
 
@@ -63,7 +70,7 @@ class HeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Variant", domain=FirstOrderDomain)
+@entity(description="Variant", resource=FirstOrderStorage)
 class VariantSpecEntity(BaseSpecEntity):
     """The first kind, linking to parts."""
 
@@ -74,7 +81,7 @@ class VariantSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "variants")] = Field(description="Parts")
 
 
-@entity(description="Other variant", domain=FirstOrderDomain)
+@entity(description="Other variant", resource=FirstOrderStorage)
 class OtherSpecEntity(BaseSpecEntity):
     """The second kind, linking to parts."""
 

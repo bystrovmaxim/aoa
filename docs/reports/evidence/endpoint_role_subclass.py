@@ -11,6 +11,8 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, CompositeMany, CompositeOne, Inverse
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class CustomCompositeOne[T](CompositeOne[T]):
@@ -24,14 +26,19 @@ class SubclassDomain(BaseDomain):
     description = "Container subclass reproduction"
 
 
-@entity(description="First owner", domain=SubclassDomain)
+@meta(description="Stores the subclass entities", domain=SubclassDomain)
+class SubclassStorage(BaseStorage):
+    """Hold the subclass entities."""
+
+
+@entity(description="First owner", resource=SubclassStorage)
 class FirstCoreEntity(BaseCoreEntity):
     """Declare an ownership endpoint through a subclass."""
 
     second: Annotated[CustomCompositeOne[SecondCoreEntity], Inverse(field_name="first")] = Field(description="Second")
 
 
-@entity(description="Second owner", domain=SubclassDomain)
+@entity(description="Second owner", resource=SubclassStorage)
 class SecondCoreEntity(BaseCoreEntity):
     """Declare the incompatible ownership reverse."""
 

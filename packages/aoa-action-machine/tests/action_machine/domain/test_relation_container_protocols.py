@@ -32,6 +32,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class _ProtocolsDomain(BaseDomain):
@@ -41,7 +43,12 @@ class _ProtocolsDomain(BaseDomain):
     description = "Entities for the relation container protocol tests"
 
 
-@entity(description="Customer", domain=_ProtocolsDomain)
+@meta(description="Stores the protocols entities", domain=_ProtocolsDomain)
+class _ProtocolsStorage(BaseStorage):
+    """Hold the protocols entities."""
+
+
+@entity(description="Customer", resource=_ProtocolsStorage)
 class ProtocolCustomerCoreEntity(BaseCoreEntity):
     """A customer an order points at."""
 
@@ -53,7 +60,7 @@ class ProtocolCustomerCoreEntity(BaseCoreEntity):
         return self.name
 
 
-@entity(description="Order", domain=_ProtocolsDomain)
+@entity(description="Order", resource=_ProtocolsStorage)
 class ProtocolOrderCoreEntity(BaseCoreEntity):
     """An order with one relation to its customer."""
 
@@ -61,7 +68,7 @@ class ProtocolOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[AssociationOne[ProtocolCustomerCoreEntity], NoInverse()] = Field(description="Customer")
 
 
-@entity(description="Currencies", domain=_ProtocolsDomain)
+@entity(description="Currencies", resource=_ProtocolsStorage)
 class ProtocolCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -69,7 +76,7 @@ class ProtocolCurrencyEnumEntity(BaseEnumEntity):
     EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
-@entity(description="Prices", domain=_ProtocolsDomain)
+@entity(description="Prices", resource=_ProtocolsStorage)
 class ProtocolPricesCoreEntity(BaseCoreEntity):
     """An entity with a dictionary reference."""
 

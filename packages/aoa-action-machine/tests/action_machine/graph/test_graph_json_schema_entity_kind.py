@@ -35,6 +35,8 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 
@@ -44,6 +46,11 @@ class KindShopDomain(BaseDomain):
 
     name = "kind-shop"
     description = "Kind shop"
+
+
+@meta(description="Stores the kind shop entities", domain=KindShopDomain)
+class KindShopStorage(BaseStorage):
+    """Hold the kind shop entities."""
 
 
 def _document(properties: dict[str, Any]) -> dict[str, Any]:
@@ -89,31 +96,31 @@ def test_an_enum_row_without_values_is_still_rejected() -> None:
 
 
 @exclude_graph_model
-@entity(description="Customer", domain=KindShopDomain)
+@entity(description="Customer", resource=KindShopStorage)
 class KindCustomerCoreEntity(BaseCoreEntity):
     """A core row."""
 
 
 @exclude_graph_model
-@entity(description="Customer link", domain=KindShopDomain)
+@entity(description="Customer link", resource=KindShopStorage)
 class KindLinkAssocEntity(BaseAssocEntity):
     """An association row."""
 
 
 @exclude_graph_model
-@entity(description="Order line", domain=KindShopDomain)
+@entity(description="Order line", resource=KindShopStorage)
 class KindLineDetailEntity(BaseDetailEntity):
     """A detail row."""
 
 
 @exclude_graph_model
-@entity(description="Card payment", domain=KindShopDomain)
+@entity(description="Card payment", resource=KindShopStorage)
 class KindCardSpecEntity(BaseSpecEntity):
     """A specialization row."""
 
 
 @exclude_graph_model
-@entity(description="Currency", domain=KindShopDomain)
+@entity(description="Currency", resource=KindShopStorage)
 class KindCurrencyEnumEntity(BaseEnumEntity):
     """A dictionary row."""
 
@@ -150,7 +157,7 @@ def test_a_user_kind_exports_its_own_word_and_name() -> None:
         },
     ))
     order = exclude_graph_model(
-        entity(description="Order", domain=KindShopDomain)(type("OrderAggregateEntity", (aggregate,), {"__module__": __name__}))
+        entity(description="Order", resource=KindShopStorage)(type("OrderAggregateEntity", (aggregate,), {"__module__": __name__}))
     )
     row = EntityGraphNode(order).to_dict()
     assert row["properties"]["entity_kind"] == "aggregate"

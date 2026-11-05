@@ -37,7 +37,7 @@ from ...action_machine.adapters.entity_projection_adapter_fixtures import (
     EntityProjectionAdapterTestAction,
     EntityProjectionParamsMcpTestAction,
 )
-from ...support.domain_model.domains import TestDomain
+from ...support.domain_model.domains import TestDomain, TestStorage
 from ...support.domain_model.entities import SampleCoreEntity
 
 _ORPHAN_WIRE: dict[str, object] = {
@@ -53,7 +53,7 @@ _ORPHAN_WIRE: dict[str, object] = {
 
 @exclude_graph_model
 @meta(description="Excluded orphan entity for missing-target graph tests", domain=TestDomain)
-@entity(description="Excluded orphan entity", domain=TestDomain)
+@entity(description="Excluded orphan entity", resource=TestStorage)
 class OrphanWireCoreEntity(BaseCoreEntity):
     """Present in type hints but omitted from ``EntityGraphNodeInspector`` rows."""
 

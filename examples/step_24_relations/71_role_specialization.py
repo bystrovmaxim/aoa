@@ -25,6 +25,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.exceptions import RoleCompatibilityError
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class SpecializationDomain(BaseDomain):
@@ -34,14 +36,19 @@ class SpecializationDomain(BaseDomain):
     description = "Specialization"
 
 
-@entity(description="Record kind", domain=SpecializationDomain)
+@meta(description="Stores the specialization entities", domain=SpecializationDomain)
+class SpecializationStorage(BaseStorage):
+    """Hold the specialization entities."""
+
+
+@entity(description="Record kind", resource=SpecializationStorage)
 class RecordKindEnumEntity(BaseEnumEntity):
     """The dictionary an axis borrows its codes from."""
 
     FIRST = value(code="first", display_name="First")
 
 
-@entity(description="Record", domain=SpecializationDomain)
+@entity(description="Record", resource=SpecializationStorage)
 class RecordCoreEntity(BaseCoreEntity):
     """A head with one classified alternative."""
 
@@ -52,7 +59,7 @@ class RecordCoreEntity(BaseCoreEntity):
     ] = Field(description="Pressing details")
 
 
-@entity(description="First press", domain=SpecializationDomain)
+@entity(description="First press", resource=SpecializationStorage)
 class FirstPressSpecEntity(BaseSpecEntity):
     """The alternative side of the valid axis."""
 
@@ -65,7 +72,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Head with ordinary reverse", domain=SpecializationDomain)
+@entity(description="Head with ordinary reverse", resource=SpecializationStorage)
 class SpecOrdinaryHeadCoreEntity(BaseCoreEntity):
     """A specialization whose reverse is an ordinary association — refused."""
 
@@ -76,7 +83,7 @@ class SpecOrdinaryHeadCoreEntity(BaseCoreEntity):
     ] = Field(description="Pressing details")
 
 
-@entity(description="Ordinary reverse", domain=SpecializationDomain)
+@entity(description="Ordinary reverse", resource=SpecializationStorage)
 class OrdinaryReverseCoreEntity(BaseCoreEntity):
     """The reverse is an association, so the specialization / ordinary pair is refused."""
 
@@ -86,7 +93,7 @@ class OrdinaryReverseCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Generalization A", domain=SpecializationDomain)
+@entity(description="Generalization A", resource=SpecializationStorage)
 class GeneralizationACoreEntity(BaseCoreEntity):
     """A generalization whose reverse is another generalization — refused."""
 
@@ -96,7 +103,7 @@ class GeneralizationACoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Generalization B", domain=SpecializationDomain)
+@entity(description="Generalization B", resource=SpecializationStorage)
 class GeneralizationBCoreEntity(BaseCoreEntity):
     """The second generalization of the refused pair."""
 
@@ -106,7 +113,7 @@ class GeneralizationBCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Unpaired head", domain=SpecializationDomain)
+@entity(description="Unpaired head", resource=SpecializationStorage)
 class UnpairedHeadCoreEntity(BaseCoreEntity):
     """Show that a specialization cannot opt out of its reverse."""
 
@@ -115,7 +122,7 @@ class UnpairedHeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Detail of unpaired head", domain=SpecializationDomain)
+@entity(description="Detail of unpaired head", resource=SpecializationStorage)
 class UnpairedDetailSpecEntity(BaseSpecEntity):
     """Keep the opposite endpoint explicit."""
 
@@ -126,7 +133,7 @@ class UnpairedDetailSpecEntity(BaseSpecEntity):
     ] = Field(description="Record")
 
 
-@entity(description="Unpaired generalization", domain=SpecializationDomain)
+@entity(description="Unpaired generalization", resource=SpecializationStorage)
 class UnpairedAlternativeSpecEntity(BaseSpecEntity):
     """Show that a generalization cannot opt out either."""
 

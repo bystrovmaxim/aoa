@@ -47,6 +47,11 @@ _IMPORTS = textwrap.dedent(
     class AdvDomain(BaseDomain):
         name = "adv"
         description = "Adversarial"
+
+
+    @meta(description="Stores the adv entities", domain=AdvDomain)
+    class AdvStorage(BaseStorage):
+        pass
     """
 )
 
@@ -60,14 +65,14 @@ def _run(body: str) -> str:
 def _run_pair(container_a: str, container_b: str) -> str:
     """Declare one reciprocal ordinary pair in a fresh process and return its verdict."""
     body = f"""
-        @entity(description="First", domain=AdvDomain)
+        @entity(description="First", resource=AdvStorage)
         class FirstCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             second: Annotated[{container_a}[SecondCoreEntity], Inverse(field_name="first")] = Field(
                 description="Second"
             )
 
-        @entity(description="Second", domain=AdvDomain)
+        @entity(description="Second", resource=AdvStorage)
         class SecondCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             first: Annotated[{container_b}[FirstCoreEntity], Inverse(field_name="second")] = Field(
@@ -106,11 +111,11 @@ def _run_valid_axis() -> str:
     """Declare a complete valid classified axis and return its verdict."""
     return _run(
         """
-        @entity(description="Kind", domain=AdvDomain)
+        @entity(description="Kind", resource=AdvStorage)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", domain=AdvDomain)
+        @entity(description="Head", resource=AdvStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -118,7 +123,7 @@ def _run_valid_axis() -> str:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", domain=AdvDomain)
+        @entity(description="Alt", resource=AdvStorage)
         class AltSpecEntity(BaseSpecEntity):
             id: str = Field(description="Identifier")
             record: Annotated[
@@ -142,12 +147,12 @@ def _run_generalization_pair() -> str:
     """Declare two Generalization fields pointing at each other and return the verdict."""
     return _run(
         """
-        @entity(description="A", domain=AdvDomain)
+        @entity(description="A", resource=AdvStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[Generalization[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", domain=AdvDomain)
+        @entity(description="B", resource=AdvStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[Generalization[ACoreEntity], Inverse(field_name="b")] = Field(description="A")

@@ -21,10 +21,10 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.intents.entity import entity
 
-from ...support.domain_model.domains import TestDomain
+from ...support.domain_model.domains import TestStorage
 
 
-@entity(description="An order with a private attribute", domain=TestDomain)
+@entity(description="An order with a private attribute", resource=TestStorage)
 class PrivateSourceOrderCoreEntity(BaseCoreEntity):
     """Keeps where it came from in a private attribute."""
 

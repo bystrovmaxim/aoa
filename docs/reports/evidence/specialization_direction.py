@@ -22,6 +22,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class DirectionDomain(BaseDomain):
@@ -31,21 +33,26 @@ class DirectionDomain(BaseDomain):
     description = "Specialization direction reproduction"
 
 
-@entity(description="Kinds", domain=DirectionDomain)
+@meta(description="Stores the direction entities", domain=DirectionDomain)
+class DirectionStorage(BaseStorage):
+    """Hold the direction entities."""
+
+
+@entity(description="Kinds", resource=DirectionStorage)
 class KindEnumEntity(BaseEnumEntity):
     """Provide one classified alternative."""
 
     ONLY = value(code="only", display_name="Only")
 
 
-@entity(description="Head", domain=DirectionDomain)
+@entity(description="Head", resource=DirectionStorage)
 class HeadCoreEntity(BaseCoreEntity):
     """Declare the head endpoint without an inverse."""
 
     detail: Annotated[Specialization[DetailSpecEntity, KindEnumEntity], NoInverse()] = Field(description="Detail")
 
 
-@entity(description="Alternative", domain=DirectionDomain)
+@entity(description="Alternative", resource=DirectionStorage)
 class DetailSpecEntity(BaseSpecEntity):
     """Declare an inverse that points at the unpaired head."""
 

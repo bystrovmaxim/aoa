@@ -23,6 +23,8 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDetailEntity, BaseDomain, CompositeMany, Inverse
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class PartsDomain(BaseDomain):
@@ -31,14 +33,19 @@ class PartsDomain(BaseDomain):
     description = "Owners and parts"
 
 
-@entity(description="Owner", domain=PartsDomain)
+@meta(description="Stores the parts entities", domain=PartsDomain)
+class PartsStorage(BaseStorage):
+    """Hold the parts entities."""
+
+
+@entity(description="Owner", resource=PartsStorage)
 class OwnerCoreEntity(BaseCoreEntity):
     """Keep one composition endpoint."""
     id: str = Field(description="Owner identifier")
     parts: Annotated[CompositeMany[PartDetailEntity], Inverse(field_name="owner")] = Field(description="Owned parts")
 
 
-@entity(description="Part", domain=PartsDomain)
+@entity(description="Part", resource=PartsStorage)
 class PartDetailEntity(BaseDetailEntity):
     """Point back through an association."""
     id: str = Field(description="Part identifier")

@@ -23,6 +23,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -33,14 +35,19 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Kind of CounterpartyCoreEntity", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Kind of CounterpartyCoreEntity", resource=ShopStorage)
 class CounterpartyKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     ORGANISATION = value(code="organisation", display_name="Organisation")
 
 
-@entity(description="Counterparty", domain=ShopDomain)
+@entity(description="Counterparty", resource=ShopStorage)
 class CounterpartyCoreEntity(BaseCoreEntity):
     """Hold the common identity and the selected counterparty kind."""
 
@@ -51,7 +58,7 @@ class CounterpartyCoreEntity(BaseCoreEntity):
     ] = Field(description="Variant-specific data")
 
 
-@entity(description="Organisation data of a counterparty", domain=ShopDomain)
+@entity(description="Organisation data of a counterparty", resource=ShopStorage)
 class OrganisationSpecEntity(BaseSpecEntity):
     """Add organisation data to the same counterparty."""
 

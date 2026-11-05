@@ -32,6 +32,8 @@ from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model, excluded_from_graph_model
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
@@ -41,6 +43,11 @@ class ShopDomain(BaseDomain):
 
     name = "shop"
     description = "Shop model"
+
+
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 KINDS = (
     (BaseCoreEntity, "core", "CoreEntity"),
@@ -146,7 +153,7 @@ def test_an_ordinary_mixin_does_not_count_as_a_kind() -> None:
 def test_a_decorated_dictionary_is_a_real_entity_in_the_graph() -> None:
     """The dictionary kind is an ordinary entity: only its marker is kept out of the model graph."""
 
-    @entity(description="Currency reference value", domain=ShopDomain)
+    @entity(description="Currency reference value", resource=ShopStorage)
     class GraphCurrencyEnumEntity(BaseEnumEntity):
         """A decorated dictionary stays in the graph, like any other entity."""
 

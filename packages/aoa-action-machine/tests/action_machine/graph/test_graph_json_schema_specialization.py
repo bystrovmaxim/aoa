@@ -70,6 +70,8 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
@@ -80,8 +82,13 @@ class SchemaDomain(BaseDomain):
     description = "schema"
 
 
+@meta(description="Stores the schema entities", domain=SchemaDomain)
+class SchemaStorage(BaseStorage):
+    """Hold the schema entities."""
+
+
 @exclude_graph_model
-@entity(description="First variant", domain=SchemaDomain)
+@entity(description="First variant", resource=SchemaStorage)
 class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -92,7 +99,7 @@ class SchemaFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Second variant", domain=SchemaDomain)
+@entity(description="Second variant", resource=SchemaStorage)
 class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -103,7 +110,7 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of SchemaHeadCoreEntity", domain=SchemaDomain)
+@entity(description="Kind of SchemaHeadCoreEntity", resource=SchemaStorage)
 class SchemaHeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -112,7 +119,7 @@ class SchemaHeadKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Head", domain=SchemaDomain)
+@entity(description="Head", resource=SchemaStorage)
 class SchemaHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Annotated[

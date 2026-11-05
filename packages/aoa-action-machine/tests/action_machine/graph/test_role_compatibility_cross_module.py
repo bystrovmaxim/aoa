@@ -68,14 +68,19 @@ def test_field_only_and_concrete_inverse_receive_the_same_check() -> None:
             name = "cross2"
             description = "Cross 2"
 
-        @entity(description="Offer", domain=CrossDomain)
+
+        @meta(description="Stores the cross entities", domain=CrossDomain)
+        class CrossStorage(BaseStorage):
+            pass
+
+        @entity(description="Offer", resource=CrossStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(RegionCoreEntity, "offer")] = Field(
                 description="Regions"
             )
 
-        @entity(description="Region", domain=CrossDomain)
+        @entity(description="Region", resource=CrossStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(
@@ -104,12 +109,17 @@ def test_cross_module_ownership_pair_is_refused() -> None:
             name = "cross3"
             description = "Cross 3"
 
-        @entity(description="A", domain=CrossDomain)
+
+        @meta(description="Stores the cross entities", domain=CrossDomain)
+        class CrossStorage(BaseStorage):
+            pass
+
+        @entity(description="A", resource=CrossStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", domain=CrossDomain)
+        @entity(description="B", resource=CrossStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")

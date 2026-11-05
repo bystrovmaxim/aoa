@@ -22,11 +22,11 @@ from ...support.domain_model.entities import (
     LifecycleCoreEntity,
     RelatedCoreEntity,
     SampleCoreEntity,
-    TestDomain,
+    TestStorage,
 )
 
 
-@entity(description="Order", domain=TestDomain)
+@entity(description="Order", resource=TestStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     number: str = Field(description="Order number")
@@ -100,7 +100,7 @@ class TestGetFieldValue:
 
 class TestRelationForeignKeys:
     def test_association_one_container_in_get_foreign_keys(self) -> None:
-        @entity(description="Child", domain=TestDomain)
+        @entity(description="Child", resource=TestStorage)
         class ChildAssocEntity(BaseAssocEntity):
             id: str = Field(description="id")
             policy: Annotated[
@@ -121,7 +121,7 @@ class TestRelationForeignKeys:
         assert type(child.get_all_fields()["policy"]) is AssociationOne
 
     def test_none_relation_omitted(self) -> None:
-        @entity(description="Child", domain=TestDomain)
+        @entity(description="Child", resource=TestStorage)
         class ChildAssocEntity(BaseAssocEntity):
             id: str = Field(description="id")
             policy: Annotated[

@@ -18,6 +18,8 @@ from pydantic import Field, ValidationError, field_serializer
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class CoreSchemaShopDomain(BaseDomain):
@@ -27,8 +29,13 @@ class CoreSchemaShopDomain(BaseDomain):
     description = "Core schema shop"
 
 
+@meta(description="Stores the core schema shop entities", domain=CoreSchemaShopDomain)
+class CoreSchemaShopStorage(BaseStorage):
+    """Hold the core schema shop entities."""
+
+
 @exclude_graph_model
-@entity(description="Currency reference value", domain=CoreSchemaShopDomain)
+@entity(description="Currency reference value", resource=CoreSchemaShopStorage)
 class SchemaCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -39,7 +46,7 @@ class SchemaCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Dated reference value", domain=CoreSchemaShopDomain)
+@entity(description="Dated reference value", resource=CoreSchemaShopStorage)
 class SchemaDatedEnumEntity(BaseEnumEntity):
     """A dictionary whose date field carries its own serializer."""
 
@@ -55,7 +62,7 @@ class SchemaDatedEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Plain dated reference value", domain=CoreSchemaShopDomain)
+@entity(description="Plain dated reference value", resource=CoreSchemaShopStorage)
 class SchemaPlainDatedEnumEntity(BaseEnumEntity):
     """A dictionary whose date field has no serializer, so JSON mode chooses the form."""
 

@@ -11,6 +11,8 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, BaseDomain, Inverse
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class AssociationDomain(BaseDomain):
@@ -20,7 +22,12 @@ class AssociationDomain(BaseDomain):
     description = "Plain associations"
 
 
-@entity(description="Customer", domain=AssociationDomain)
+@meta(description="Stores the association entities", domain=AssociationDomain)
+class AssociationStorage(BaseStorage):
+    """Hold the association entities."""
+
+
+@entity(description="Customer", resource=AssociationStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     """One customer points at one account (AssociationOne / AssociationOne)."""
 
@@ -30,7 +37,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Account", domain=AssociationDomain)
+@entity(description="Account", resource=AssociationStorage)
 class AccountCoreEntity(BaseCoreEntity):
     """One account points back at one customer."""
 
@@ -40,7 +47,7 @@ class AccountCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Team", domain=AssociationDomain)
+@entity(description="Team", resource=AssociationStorage)
 class TeamCoreEntity(BaseCoreEntity):
     """One team holds many members (AssociationOne / AssociationMany)."""
 
@@ -50,7 +57,7 @@ class TeamCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Member", domain=AssociationDomain)
+@entity(description="Member", resource=AssociationStorage)
 class MemberCoreEntity(BaseCoreEntity):
     """Many members each belong to one team."""
 
@@ -60,7 +67,7 @@ class MemberCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Group", domain=AssociationDomain)
+@entity(description="Group", resource=AssociationStorage)
 class GroupCoreEntity(BaseCoreEntity):
     """Many groups share many peer groups (AssociationMany / AssociationMany)."""
 
@@ -68,7 +75,7 @@ class GroupCoreEntity(BaseCoreEntity):
     peers: Annotated[AssociationMany[PeerCoreEntity], Inverse(field_name="groups")] = Field(description="Peer groups")
 
 
-@entity(description="Peer", domain=AssociationDomain)
+@entity(description="Peer", resource=AssociationStorage)
 class PeerCoreEntity(BaseCoreEntity):
     """Many peers belong to many groups."""
 

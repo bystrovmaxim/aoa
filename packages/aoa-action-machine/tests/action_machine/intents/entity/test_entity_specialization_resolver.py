@@ -55,11 +55,18 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     gather_entity_specialization_intent_resolvers,
     is_specialization_field,
 )
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class _SDomain(BaseDomain):
     name = "s"
     description = "s"
+
+
+@meta(description="Stores the s entities", domain=_SDomain)
+class _SStorage(BaseStorage):
+    """Hold the s entities."""
 
 
 def _code_of(cls: type[BaseEntity]) -> str | None:
@@ -81,7 +88,7 @@ def _code_of(cls: type[BaseEntity]) -> str | None:
 
 
 @exclude_graph_model
-@entity(description="First", domain=_SDomain)
+@entity(description="First", resource=_SStorage)
 class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -92,7 +99,7 @@ class _FirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Second", domain=_SDomain)
+@entity(description="Second", resource=_SStorage)
 class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -103,7 +110,7 @@ class _SecondSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Third", domain=_SDomain)
+@entity(description="Third", resource=_SStorage)
 class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -114,7 +121,7 @@ class _ThirdSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _HeadCoreEntity", domain=_SDomain)
+@entity(description="Kind of _HeadCoreEntity", resource=_SStorage)
 class _HeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -123,7 +130,7 @@ class _HeadKindEnumEntity(BaseEnumEntity):
     TEST = value(code="test", display_name="Test")
 
 @exclude_graph_model
-@entity(description="Head", domain=_SDomain)
+@entity(description="Head", resource=_SStorage)
 class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pressed: Annotated[
@@ -142,7 +149,7 @@ for _cls in (_FirstSpecEntity, _SecondSpecEntity, _ThirdSpecEntity, _HeadCoreEnt
 
 
 @exclude_graph_model
-@entity(description="Silent", domain=_SDomain)
+@entity(description="Silent", resource=_SStorage)
 class _SilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[Generalization[_HeadWithSilentCoreEntity], Inverse(_HeadWithSilentCoreEntity, "pressed")] = Field(
@@ -151,7 +158,7 @@ class _SilentSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="First for silent", domain=_SDomain)
+@entity(description="First for silent", resource=_SStorage)
 class _FirstForSilentSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -162,7 +169,7 @@ class _FirstForSilentSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _HeadWithSilentCoreEntity", domain=_SDomain)
+@entity(description="Kind of _HeadWithSilentCoreEntity", resource=_SStorage)
 class _HeadWithSilentKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -170,7 +177,7 @@ class _HeadWithSilentKindEnumEntity(BaseEnumEntity):
     REPRESS = value(code="repress", display_name="Repress")
 
 @exclude_graph_model
-@entity(description="Head over a silent class", domain=_SDomain)
+@entity(description="Head over a silent class", resource=_SStorage)
 class _HeadWithSilentCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pressed: Annotated[
@@ -185,7 +192,7 @@ class _HeadWithSilentCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Greedy", domain=_SDomain)
+@entity(description="Greedy", resource=_SStorage)
 class _GreedySpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -196,14 +203,14 @@ class _GreedySpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _HeadWithGreedyCoreEntity", domain=_SDomain)
+@entity(description="Kind of _HeadWithGreedyCoreEntity", resource=_SStorage)
 class _HeadWithGreedyKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     FIRST = value(code="first", display_name="First")
 
 @exclude_graph_model
-@entity(description="Head over a greedy class", domain=_SDomain)
+@entity(description="Head over a greedy class", resource=_SStorage)
 class _HeadWithGreedyCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pressed: Annotated[
@@ -218,7 +225,7 @@ class _HeadWithGreedyCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Twin A", domain=_SDomain)
+@entity(description="Twin A", resource=_SStorage)
 class _TwinASpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -229,7 +236,7 @@ class _TwinASpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Twin B", domain=_SDomain)
+@entity(description="Twin B", resource=_SStorage)
 class _TwinBSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -240,7 +247,7 @@ class _TwinBSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _HeadWithTwinCoreEntity", domain=_SDomain)
+@entity(description="Kind of _HeadWithTwinCoreEntity", resource=_SStorage)
 class _HeadWithTwinKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -248,7 +255,7 @@ class _HeadWithTwinKindEnumEntity(BaseEnumEntity):
     REPRESS = value(code="repress", display_name="Repress")
 
 @exclude_graph_model
-@entity(description="Head over twins", domain=_SDomain)
+@entity(description="Head over twins", resource=_SStorage)
 class _HeadWithTwinCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pressed: Annotated[
@@ -263,14 +270,14 @@ class _HeadWithTwinCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Plain", domain=_SDomain)
+@entity(description="Plain", resource=_SStorage)
 class _PlainCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     note: str = Field(description="an ordinary column")
 
 
 @exclude_graph_model
-@entity(description="Bare container", domain=_SDomain)
+@entity(description="Bare container", resource=_SStorage)
 class _BareContainerAssocEntity(BaseAssocEntity):
     id: str = Field(description="id")
     pressed: Annotated[
@@ -279,14 +286,14 @@ class _BareContainerAssocEntity(BaseAssocEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _QuietHeadCoreEntity", domain=_SDomain)
+@entity(description="Kind of _QuietHeadCoreEntity", resource=_SStorage)
 class _QuietHeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     FIRST = value(code="first", display_name="First")
 
 @exclude_graph_model
-@entity(description="Quiet head", domain=_SDomain)
+@entity(description="Quiet head", resource=_SStorage)
 class _QuietHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pressed: Annotated[

@@ -22,6 +22,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class MusicDomain(BaseDomain):
@@ -31,7 +33,12 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+@meta(description="Stores the music entities", domain=MusicDomain)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
+
+
+@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -39,7 +46,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
     REPRESS = value(code="repress", display_name="Repress")
 
 
-@entity(description="Vinyl record", domain=MusicDomain)
+@entity(description="Vinyl record", resource=MusicStorage)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
@@ -51,7 +58,7 @@ class VinylRecordCoreEntity(BaseCoreEntity):
     ] = Field(description="Details of this pressing")
 
 
-@entity(description="First pressing", domain=MusicDomain)
+@entity(description="First pressing", resource=MusicStorage)
 class FirstPressSpecEntity(BaseSpecEntity):
     """Describe the stamper used for a first pressing."""
 
@@ -64,7 +71,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Re-pressing", domain=MusicDomain)
+@entity(description="Re-pressing", resource=MusicStorage)
 class RepressSpecEntity(BaseSpecEntity):
     """Describe when an album was pressed again."""
 
@@ -77,7 +84,7 @@ class RepressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Test pressing", domain=MusicDomain)
+@entity(description="Test pressing", resource=MusicStorage)
 class TestPressSpecEntity(BaseSpecEntity):
     """Describe who approved a test pressing."""
 

@@ -26,6 +26,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_tag import CacheTag
@@ -40,6 +41,11 @@ class RootDomain(BaseDomain):
     description = "Root domain"
 
 
+@meta(description="Stores the root entities", domain=RootDomain)
+class RootStorage(BaseStorage):
+    """Hold the root entities."""
+
+
 class ConfigParams(BaseParams):
     tenant_id: str = Field(description="Tenant ID")
     name: str = Field(description="Config name")
@@ -49,7 +55,7 @@ class ConfigResult(BaseResult):
     value: str = Field(description="Config value")
 
 
-@entity(description="A tenant's configuration value", domain=RootDomain)
+@entity(description="A tenant's configuration value", resource=RootStorage)
 class ConfigCoreEntity(BaseCoreEntity):
     id: str = Field(description="tenant:name")
 

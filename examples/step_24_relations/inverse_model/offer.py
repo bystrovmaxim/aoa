@@ -9,13 +9,13 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationMany, BaseCoreEntity, Inverse
 from aoa.action_machine.intents.entity import entity
 
-from .domain import CrossModuleDomain
+from .domain import CrossModuleStorage
 
 if TYPE_CHECKING:
     from .region import RegionCoreEntity
 
 
-@entity(description="Offer", domain=CrossModuleDomain)
+@entity(description="Offer", resource=CrossModuleStorage)
 class OfferCoreEntity(BaseCoreEntity):
     """Collect the opposite endpoint through a forward reference."""
 

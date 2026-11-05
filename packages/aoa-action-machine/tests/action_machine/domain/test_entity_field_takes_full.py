@@ -21,7 +21,9 @@ from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class _FullDomain(BaseDomain):
@@ -31,7 +33,12 @@ class _FullDomain(BaseDomain):
     description = "Entities for the full-entity field tests"
 
 
-@entity(description="Order", domain=_FullDomain)
+@meta(description="Stores the full entities", domain=_FullDomain)
+class _FullStorage(BaseStorage):
+    """Hold the full entities."""
+
+
+@entity(description="Order", resource=_FullStorage)
 class FullPlainOrderCoreEntity(BaseCoreEntity):
     """An order with two fields."""
 
@@ -39,7 +46,7 @@ class FullPlainOrderCoreEntity(BaseCoreEntity):
     total: float = Field(description="Total")
 
 
-@entity(description="Currencies", domain=_FullDomain)
+@entity(description="Currencies", resource=_FullStorage)
 class FullCurrencyEnumEntity(BaseEnumEntity):
     """A dictionary: its values are never partial."""
 

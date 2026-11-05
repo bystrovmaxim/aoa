@@ -41,10 +41,10 @@ from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-from ....support.domain_model.domains import OrdersDomain
+from ....support.domain_model.domains import OrdersDomain, OrdersStorage
 
 
-@entity(description="An order of the layout tests", domain=OrdersDomain)
+@entity(description="An order of the layout tests", resource=OrdersStorage)
 class LayoutOrderCoreEntity(BaseCoreEntity):
     """An order with an id."""
 
@@ -52,7 +52,7 @@ class LayoutOrderCoreEntity(BaseCoreEntity):
     total: float = Field(description="Total")
 
 
-@entity(description="A customer of the layout tests", domain=OrdersDomain)
+@entity(description="A customer of the layout tests", resource=OrdersStorage)
 class LayoutCustomerCoreEntity(BaseCoreEntity):
     """Owns lists of orders."""
 
@@ -241,7 +241,7 @@ def test_a_result_without_an_entity_field_is_refused_at_assembly() -> None:
 def test_an_entity_without_an_id_is_refused_at_assembly() -> None:
     """12.7.1: an entity entry is tagged with its type and id."""
 
-    @entity(description="A note without an id", domain=OrdersDomain)
+    @entity(description="A note without an id", resource=OrdersStorage)
     class NoteWithoutIdCoreEntity(BaseCoreEntity):
         text: str = Field(description="Text")
 

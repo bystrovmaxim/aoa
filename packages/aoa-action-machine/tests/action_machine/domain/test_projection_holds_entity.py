@@ -25,8 +25,10 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDomain, NoInverse
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class _ProjectionDomain(BaseDomain):
@@ -36,14 +38,19 @@ class _ProjectionDomain(BaseDomain):
     description = "Entities for the projection tests"
 
 
-@entity(description="Customer", domain=_ProjectionDomain)
+@meta(description="Stores the projection entities", domain=_ProjectionDomain)
+class _ProjectionStorage(BaseStorage):
+    """Hold the projection entities."""
+
+
+@entity(description="Customer", resource=_ProjectionStorage)
 class ProjCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
     id: str = Field(description="Customer id")
 
 
-@entity(description="Order", domain=_ProjectionDomain)
+@entity(description="Order", resource=_ProjectionStorage)
 class ProjOrderCoreEntity(BaseCoreEntity):
     """An order with fields inside and outside the projection."""
 
@@ -54,7 +61,7 @@ class ProjOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[AssociationOne[ProjCustomerCoreEntity], NoInverse()] = Field(description="Customer")
 
 
-@entity(description="Another entity", domain=_ProjectionDomain)
+@entity(description="Another entity", resource=_ProjectionStorage)
 class ProjInvoiceCoreEntity(BaseCoreEntity):
     """An entity of another class with the same field names."""
 
@@ -197,7 +204,7 @@ def test_a_schema_naming_a_field_the_entity_lacks_is_refused() -> None:
 _EIGHT = [f"f{i}" for i in range(8)]
 
 
-@entity(description="Eight fields, enough that a hash order rarely matches the declared one", domain=_ProjectionDomain)
+@entity(description="Eight fields, enough that a hash order rarely matches the declared one", resource=_ProjectionStorage)
 class ProjWideCoreEntity(BaseCoreEntity):
     """An entity with eight string fields."""
 

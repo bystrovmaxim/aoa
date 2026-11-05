@@ -45,10 +45,6 @@ class CheckoutController(BaseController):
     """Run checkout jobs."""
 
 
-class NoMetaDatabase(BaseStorage):
-    """A storage that declares no domain."""
-
-
 def _declare(**kwargs: object) -> type:
     """Declare ``SalesOrderCoreEntity`` with the given ``@entity`` keywords."""
 
@@ -103,10 +99,6 @@ def test_case_2_2_domain_is_not_a_parameter() -> None:
             "SalesOrderCoreEntity — @entity resource= must be a concrete resource, got BaseResource, "
             "which is excluded from the graph model.",
         ),
-        (
-            NoMetaDatabase,
-            "SalesOrderCoreEntity — @entity resource= NoMetaDatabase declares no domain: decorate it with @meta(domain=...).",
-        ),
     ],
 )
 def test_case_2_3_the_resource_must_be_a_resource(given: object, message: str) -> None:
@@ -114,6 +106,19 @@ def test_case_2_3_the_resource_must_be_a_resource(given: object, message: str) -
     with pytest.raises(EntityDecoratorError) as error:
         _declare(resource=given)
     assert str(error.value) == message
+
+
+def test_case_2_3_a_resource_without_meta_is_refused() -> None:
+    """2.3: a resource that declares no domain gives the entity none; defined here so no graph sees it."""
+
+    class NoMetaDatabase(BaseStorage):
+        """A storage that declares no domain."""
+
+    with pytest.raises(EntityDecoratorError) as error:
+        _declare(resource=NoMetaDatabase)
+    assert str(error.value) == (
+        "SalesOrderCoreEntity — @entity resource= NoMetaDatabase declares no domain: decorate it with @meta(domain=...)."
+    )
 
 
 def test_case_2_3_an_action_is_not_a_resource() -> None:

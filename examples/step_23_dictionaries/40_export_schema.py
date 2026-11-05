@@ -4,8 +4,10 @@ Run: .venv/bin/python examples/step_23_dictionaries/40_export_schema.py
 
 import json
 from enum import Enum
+
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, Field
+
 from aoa.action_machine.domain import BaseEnumEntity, value
 
 

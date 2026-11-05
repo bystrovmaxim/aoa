@@ -9,6 +9,8 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class SchemaDomain(BaseDomain):
@@ -18,7 +20,12 @@ class SchemaDomain(BaseDomain):
     description = "Association schema reproduction"
 
 
-@entity(description="Dictionary", domain=SchemaDomain)
+@meta(description="Stores the schema entities", domain=SchemaDomain)
+class SchemaStorage(BaseStorage):
+    """Hold the schema entities."""
+
+
+@entity(description="Dictionary", resource=SchemaStorage)
 class NumberEnumEntity(BaseEnumEntity):
     """Declare a typed custom property."""
 
@@ -26,7 +33,7 @@ class NumberEnumEntity(BaseEnumEntity):
     ONE = value(code="one", display_name="One", count=1)
 
 
-@entity(description="Host", domain=SchemaDomain)
+@entity(description="Host", resource=SchemaStorage)
 class HostCoreEntity(BaseCoreEntity):
     """Select the dictionary through an association."""
 

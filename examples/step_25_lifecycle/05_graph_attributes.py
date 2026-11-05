@@ -11,6 +11,8 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -43,7 +45,12 @@ class ShopDomain(BaseDomain):
     description = "Small shop"
 
 
-@entity(description="Customer order", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     """Attach the lifecycle to a model entity."""
 

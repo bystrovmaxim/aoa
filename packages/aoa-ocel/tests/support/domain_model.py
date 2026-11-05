@@ -14,6 +14,7 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class TestDomain(BaseDomain):
@@ -23,8 +24,13 @@ class TestDomain(BaseDomain):
     description = "Test domain"
 
 
+@meta(description="Stores the test entities", domain=TestDomain)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""
+
+
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", domain=TestDomain)
+@entity(description="Simple test entity", resource=TestStorage)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 

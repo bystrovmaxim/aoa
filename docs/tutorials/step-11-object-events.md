@@ -256,32 +256,7 @@ The logger subscribed to `debug` receives nothing. The property is masked and th
 
 Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.3` of the [Open Gnomon Protocol](https://github.com/bystrovmaxim/gnomon/blob/main/packages/open-gnomon-protocol/README.md).
 
-[08_events_in_graph.py](../../examples/step_11_object_events/08_events_in_graph.py) ([notebook](../../examples/step_11_object_events/08_events_in_graph.ipynb)) holds every case and prints this:
-
-```text
-schema_version: 1.3
-Event nodes: ['CouponUsedEvent', 'OrderCompletedEvent', 'RefundIssuedEvent', 'StockCheckedEvent']
-PlainDomain: False []
-ZoneDomain: False []
-StoreDomain: True ['CouponUsedEvent', 'OrderCompletedEvent']
-SilentDomain: True []
-OutletDomain: True ['CouponUsedEvent', 'OrderCompletedEvent']
-ReturnsDomain: True ['RefundIssuedEvent']
-CompleteOrderAction:answer_on_error -> OrderCompletedEvent (ErrorHandler)
-CompleteOrderAction:decide_access_decide -> OrderCompletedEvent (AccessDecide)
-CompleteOrderAction:finish_summary -> OrderCompletedEvent (SummaryAspect)
-CompleteOrderAction:release_compensate -> OrderCompletedEvent (Compensator)
-CompleteOrderAction:reserve_aspect -> OrderCompletedEvent (RegularAspect)
-ZoneAction:finish_summary -> StockCheckedEvent (SummaryAspect)
-domains: ['BillingDomain', 'OutletDomain', 'StoreDomain']
-order_id: 'The completed order'
-total: ''
-EventContractError: WrongAction.finish_summary declares StockCheckedEvent, which is not in the events of domain 'store'.
-added nodes: ['CouponUsedEvent']
-added edges: ['OutletDomain|domain_event|CouponUsedEvent', 'StoreDomain|domain_event|CouponUsedEvent']
-```
-
-An event becomes one `Event` node, however many methods and domains name it. A class nobody names stays out, which is why `UnusedEvent` is not in the list. Each case below is what a reader of the file sees:
+An event becomes one `Event` node, however many methods and domains name it. A class nobody names stays out. Each case below is what a reader of the file sees:
 
 | Case | `Event` nodes | `@emits` edges | `domain_event` edges | `typed_events` |
 |---|---|---|---|---|

@@ -30,8 +30,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.langgraph.node_binding import _run_action_node
 
 
@@ -42,14 +44,19 @@ class _NodeDomain(BaseDomain):
     description = "Entities for the LangGraph node binding test"
 
 
-@entity(description="Currencies", domain=_NodeDomain)
+@meta(description="Stores the node entities", domain=_NodeDomain)
+class _NodeStorage(BaseStorage):
+    """Hold the node entities."""
+
+
+@entity(description="Currencies", resource=_NodeStorage)
 class NodeCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
     EUR = value(code="eur", display_name="Euro")
 
 
-@entity(description="Price", domain=_NodeDomain)
+@entity(description="Price", resource=_NodeStorage)
 class NodePriceCoreEntity(BaseCoreEntity):
     """A price with a dictionary reference."""
 
@@ -57,7 +64,7 @@ class NodePriceCoreEntity(BaseCoreEntity):
     currency: Annotated[CompositeOne[NodeCurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
 
-@entity(description="Customer", domain=_NodeDomain)
+@entity(description="Customer", resource=_NodeStorage)
 class NodeCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
@@ -65,7 +72,7 @@ class NodeCustomerCoreEntity(BaseCoreEntity):
     name: str = Field(description="Name")
 
 
-@entity(description="Order state", domain=_NodeDomain)
+@entity(description="Order state", resource=_NodeStorage)
 class NodeOrderStateEntity(BaseStateEntity):
     """The statuses of an order."""
 
@@ -86,7 +93,7 @@ class NodeOrderLifecycle(Lifecycle[NodeOrderStateEntity]):
     )
 
 
-@entity(description="Order", domain=_NodeDomain)
+@entity(description="Order", resource=_NodeStorage)
 class NodeOrderCoreEntity(BaseCoreEntity):
     """An order with a customer and a lifecycle."""
 

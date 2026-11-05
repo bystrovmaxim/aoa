@@ -30,6 +30,8 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNode
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
@@ -118,7 +120,12 @@ class ReferenceShopDomain(BaseDomain):
     description = "Reference shop"
 
 
-@entity(description="Currency reference value", domain=ReferenceShopDomain)
+@meta(description="Stores the reference shop entities", domain=ReferenceShopDomain)
+class ReferenceShopStorage(BaseStorage):
+    """Hold the reference shop entities."""
+
+
+@entity(description="Currency reference value", resource=ReferenceShopStorage)
 class ReferenceCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary a field can reference."""
 
@@ -126,7 +133,7 @@ class ReferenceCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Price tag", domain=ReferenceShopDomain)
+@entity(description="Price tag", resource=ReferenceShopStorage)
 class ReferenceTagCoreEntity(BaseCoreEntity):
     """A row with a dictionary reference, an optional one, and a scalar."""
 

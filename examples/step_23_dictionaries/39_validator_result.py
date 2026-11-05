@@ -3,6 +3,7 @@ Run: .venv/bin/python examples/step_23_dictionaries/39_validator_result.py
 """
 
 from pydantic import field_validator
+
 from aoa.action_machine.domain import BaseEnumEntity, value
 
 

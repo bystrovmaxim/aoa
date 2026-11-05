@@ -13,6 +13,8 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class OverrideDomain(BaseDomain):
@@ -22,26 +24,31 @@ class OverrideDomain(BaseDomain):
     description = "Override reproduction"
 
 
-@entity(description="Item", domain=OverrideDomain)
+@meta(description="Stores the override entities", domain=OverrideDomain)
+class OverrideStorage(BaseStorage):
+    """Hold the override entities."""
+
+
+@entity(description="Item", resource=OverrideStorage)
 class ItemCoreEntity(BaseCoreEntity):
     """Point at the base host."""
 
     owner: Annotated[AssociationOne[BaseHostCoreEntity], Inverse(field_name="entries")] = Field(description="Owner")
 
 
-@entity(description="Base host", domain=OverrideDomain)
+@entity(description="Base host", resource=OverrideStorage)
 class BaseHostCoreEntity(BaseCoreEntity):
     """Introduce the original endpoint."""
 
     entries: Annotated[AssociationMany[ItemCoreEntity], Inverse(field_name="owner")] = Field(description="Items")
 
 
-@entity(description="Unchanged child", domain=OverrideDomain)
+@entity(description="Unchanged child", resource=OverrideStorage)
 class UnchangedHostCoreEntity(BaseHostCoreEntity):
     """Inherit the endpoint without redeclaring it."""
 
 
-@entity(description="Override child", domain=OverrideDomain)
+@entity(description="Override child", resource=OverrideStorage)
 class OverrideHostCoreEntity(BaseHostCoreEntity):
     """Redeclare the same annotation as a new endpoint."""
 

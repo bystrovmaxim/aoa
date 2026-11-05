@@ -25,7 +25,9 @@ from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_
 from aoa.action_machine.graph.validators import json_form_validator
 from aoa.action_machine.graph.validators.json_form_validator import JsonFormError, validate_json_forms
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseParams, BaseResult, JsonSchemaValue
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class Opaque:
@@ -39,14 +41,19 @@ class _JsonFormDomain(BaseDomain):
     description = "Entities for the build check tests"
 
 
-@entity(description="Customer", domain=_JsonFormDomain)
+@meta(description="Stores the json form entities", domain=_JsonFormDomain)
+class _JsonFormStorage(BaseStorage):
+    """Hold the json form entities."""
+
+
+@entity(description="Customer", resource=_JsonFormStorage)
 class JsonFormCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
     id: str = Field(description="Customer id")
 
 
-@entity(description="Order", domain=_JsonFormDomain)
+@entity(description="Order", resource=_JsonFormStorage)
 class JsonFormOrderCoreEntity(BaseCoreEntity):
     """An order with relations."""
 

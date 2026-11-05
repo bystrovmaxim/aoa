@@ -46,8 +46,8 @@ Goal: every demo entity stored by one resource, none related across resources (r
 
 ## Phase 5: examples and tests — US4 (P2)
 
-- [ ] T021 [US4] Script in the scratchpad (research R7) over `packages/aoa-action-machine/tests`, `packages/aoa-{fastapi-adapter,mcp-adapter,langgraph,ocel,otel}/tests`, `examples/`; then fix by hand what it cannot (relations that cross, domains imported from elsewhere, tests that asserted the old `domain` behaviour).
-- [ ] T022 [US4] Run the test files and examples the phase changed. Commit.
+- [X] T021 [US4] Script in the scratchpad (research R7) over `packages/aoa-action-machine/tests`, `packages/aoa-{fastapi-adapter,mcp-adapter,langgraph,ocel,otel}/tests`, `examples/`; then fix by hand what it cannot (relations that cross, domains imported from elsewhere, tests that asserted the old `domain` behaviour).
+- [X] T022 [US4] Run the test files and examples the phase changed. Commit.
 
 ## Phase 6: graph files and versions
 

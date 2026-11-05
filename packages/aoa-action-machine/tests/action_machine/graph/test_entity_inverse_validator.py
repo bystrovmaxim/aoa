@@ -39,6 +39,11 @@ _IMPORTS = textwrap.dedent(
         description = "Inverse"
 
 
+    @meta(description="Stores the inv entities", domain=InvDomain)
+    class InvStorage(BaseStorage):
+        pass
+
+
     def probe(*classes):
         try:
             validate_entity_inverses(list(classes))
@@ -57,13 +62,13 @@ def _run(body: str) -> str:
 
 _RECIPROCAL = """
     @exclude_graph_model
-    @entity(description="Region", domain=InvDomain)
+    @entity(description="Region", resource=InvStorage)
     class RegionCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
 
     @exclude_graph_model
-    @entity(description="Offer", domain=InvDomain)
+    @entity(description="Offer", resource=InvStorage)
     class OfferCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(description="Regions")
@@ -86,7 +91,7 @@ def test_a_reciprocal_concrete_class_pair_passes() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(OfferCoreEntity, "regions")] = Field(
@@ -94,7 +99,7 @@ def test_a_reciprocal_concrete_class_pair_passes() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(RegionCoreEntity, "offer")] = Field(
@@ -115,13 +120,13 @@ def test_a_one_sided_inverse_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], NoInverse()] = Field(description="Regions")
 
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
@@ -138,12 +143,12 @@ def test_a_missing_reverse_field_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
@@ -161,7 +166,7 @@ def test_a_wrong_reverse_field_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="other")] = Field(
@@ -169,7 +174,7 @@ def test_a_wrong_reverse_field_is_refused() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
@@ -187,7 +192,7 @@ def test_a_concrete_target_mismatch_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(
@@ -195,12 +200,12 @@ def test_a_concrete_target_mismatch_is_refused() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Other", domain=InvDomain)
+        @entity(description="Other", resource=InvStorage)
         class OtherCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(OtherCoreEntity, "regions")] = Field(
@@ -220,12 +225,12 @@ def test_no_inverse_one_way_pair_passes() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Offer", domain=InvDomain)
+        @entity(description="Offer", resource=InvStorage)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Region", domain=InvDomain)
+        @entity(description="Region", resource=InvStorage)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Offer")
@@ -242,7 +247,7 @@ def test_unchanged_inherited_field_keeps_the_base_endpoint() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Item", domain=InvDomain)
+        @entity(description="Item", resource=InvStorage)
         class ItemCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             owner: Annotated[AssociationOne[BaseHostCoreEntity], Inverse(field_name="items")] = Field(
@@ -250,13 +255,13 @@ def test_unchanged_inherited_field_keeps_the_base_endpoint() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Base host", domain=InvDomain)
+        @entity(description="Base host", resource=InvStorage)
         class BaseHostCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             items: Annotated[AssociationMany[ItemCoreEntity], Inverse(field_name="owner")] = Field(description="Items")
 
         @exclude_graph_model
-        @entity(description="Child host", domain=InvDomain)
+        @entity(description="Child host", resource=InvStorage)
         class ChildHostCoreEntity(BaseHostCoreEntity):
             extra: str = Field(description="Extra")
 
@@ -274,7 +279,7 @@ def test_an_override_pointing_at_the_base_pair_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Item", domain=InvDomain)
+        @entity(description="Item", resource=InvStorage)
         class ItemCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             owner: Annotated[AssociationOne[BaseHostCoreEntity], Inverse(field_name="items")] = Field(
@@ -282,13 +287,13 @@ def test_an_override_pointing_at_the_base_pair_is_refused() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Base host", domain=InvDomain)
+        @entity(description="Base host", resource=InvStorage)
         class BaseHostCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             items: Annotated[AssociationMany[ItemCoreEntity], Inverse(field_name="owner")] = Field(description="Items")
 
         @exclude_graph_model
-        @entity(description="Child host", domain=InvDomain)
+        @entity(description="Child host", resource=InvStorage)
         class ChildHostCoreEntity(BaseHostCoreEntity):
             items: Annotated[AssociationMany[ItemCoreEntity], Inverse(field_name="owner")] = Field(description="Items")
 
@@ -304,7 +309,7 @@ def test_a_grandchild_inheriting_a_valid_override_passes() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Item", domain=InvDomain)
+        @entity(description="Item", resource=InvStorage)
         class ItemCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             owner: Annotated[AssociationOne[ChildHostCoreEntity], Inverse(field_name="items")] = Field(
@@ -312,13 +317,13 @@ def test_a_grandchild_inheriting_a_valid_override_passes() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Child host", domain=InvDomain)
+        @entity(description="Child host", resource=InvStorage)
         class ChildHostCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             items: Annotated[AssociationMany[ItemCoreEntity], Inverse(field_name="owner")] = Field(description="Items")
 
         @exclude_graph_model
-        @entity(description="Grandchild host", domain=InvDomain)
+        @entity(description="Grandchild host", resource=InvStorage)
         class GrandchildHostCoreEntity(ChildHostCoreEntity):
             extra: str = Field(description="Extra")
 

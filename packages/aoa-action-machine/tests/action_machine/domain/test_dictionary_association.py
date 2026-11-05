@@ -25,6 +25,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class AssociationDomain(BaseDomain):
@@ -34,7 +36,12 @@ class AssociationDomain(BaseDomain):
     description = "Association"
 
 
-@entity(description="Currency", domain=AssociationDomain)
+@meta(description="Stores the association entities", domain=AssociationDomain)
+class AssociationStorage(BaseStorage):
+    """Hold the association entities."""
+
+
+@entity(description="Currency", resource=AssociationStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -45,7 +52,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Structural target", domain=AssociationDomain)
+@entity(description="Structural target", resource=AssociationStorage)
 class StructuralCoreEntity(BaseCoreEntity):
     """A structural target for the unchanged-wrapper control."""
 
@@ -53,7 +60,7 @@ class StructuralCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Host", domain=AssociationDomain)
+@entity(description="Host", resource=AssociationStorage)
 class HostCoreEntity(BaseCoreEntity):
     """A host selecting a currency and an optional one, plus a structural relation."""
 

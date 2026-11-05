@@ -20,6 +20,8 @@ from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class DatedShopDomain(BaseDomain):
@@ -29,8 +31,13 @@ class DatedShopDomain(BaseDomain):
     description = "Dated shop"
 
 
+@meta(description="Stores the dated shop entities", domain=DatedShopDomain)
+class DatedShopStorage(BaseStorage):
+    """Hold the dated shop entities."""
+
+
 @exclude_graph_model
-@entity(description="Dated reference value", domain=DatedShopDomain)
+@entity(description="Dated reference value", resource=DatedShopStorage)
 class DatedEnumEntity(BaseEnumEntity):
     """A dictionary value whose date is formatted by its own serializer."""
 
@@ -45,7 +52,7 @@ class DatedEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Plain dated reference value", domain=DatedShopDomain)
+@entity(description="Plain dated reference value", resource=DatedShopStorage)
 class PlainDatedEnumEntity(BaseEnumEntity):
     """A dictionary value whose date has no serializer."""
 

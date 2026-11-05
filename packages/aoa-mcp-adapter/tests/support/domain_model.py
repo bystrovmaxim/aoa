@@ -44,6 +44,7 @@ from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -71,6 +72,11 @@ class TestDomain(BaseDomain):
 
     name = "test"
     description = "Shared test domain for @meta"
+
+
+@meta(description="Stores the test entities", domain=TestDomain)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -126,7 +132,7 @@ class ServiceRole(ApplicationRole):
 
 
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", domain=TestDomain)
+@entity(description="Simple test entity", resource=TestStorage)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
