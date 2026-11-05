@@ -12,4 +12,4 @@
 - [X] T006 Phase 6: versions.
 - [X] T007 Phase 7: `bash scripts/run_checks_with_log.sh` to zero.
 - [X] T008 Phase 8: tutorial step 8, the cache adapter how-to, an example with a notebook; Russian drafts.
-- [ ] T009 Phase 9: one article and its Russian version.
+- [X] T009 Phase 9: one article and its Russian version.
