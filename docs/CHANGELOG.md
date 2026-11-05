@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-05] — A notebook check no longer fails because another one took its port
+
+The example checks run every notebook in its own Jupyter kernel, many at once. Now and then one of them failed before its first cell — `Address already in use`, then `Kernel died before replying to kernel_info`, or `Kernel didn't respond in 60 seconds` — a different notebook each time, and it passed when run again. A kernel used to talk over TCP ports picked just before it started, and a kernel started in parallel could take one of them in that moment. Each kernel now talks over Unix sockets in a folder of its own, so there are no ports to share. Nothing changes in the examples or in what the checks require of them; [the page on the checks](how-to/run-the-checks.md#examples) says how a notebook runs.
+
 ## [2026-11-05] — An entity reads its private attributes
 
 An entity is a Pydantic model, and a Pydantic model may keep private attributes (`PrivateAttr`): values that belong to the object rather than to its data, never validated and never dumped. An entity used to hold such an attribute and fail to read it — `order._source` raised `AttributeError` even on a full, validated entity — because its own attribute lookup, which refuses a field a partial entity does not hold, never handed other names to Pydantic. It does now: a private attribute reads its value on a full and on a partial entity, a missing declared field still raises `FieldNotLoadedError`, and an unknown name still raises `AttributeError`.
