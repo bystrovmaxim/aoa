@@ -122,11 +122,7 @@ The materials below are not a continuation of the linear I–VII route. They are
 - **[Selecting dictionary members](how-to/dictionary-references.md)** — six ordinary containers, One/Many transport and verified boundaries
 - **[Diagnosing a specialization declaration](how-to/specialization-declaration-fails.md)** — one mistake per experiment, its actual error, and a verified repair
 - **[Running the checks](how-to/run-the-checks.md)** — the one command that finishes a change: what runs together, the limit, reading the log, failures and stopping
-- **[Running the repo-graph-port](how-to/run-the-repo-graph-port.md)** — a service's graph history from its repository, on a server: the GitHub App, the config, the secrets, the keys
-- **[Opening a graph history in Maxitor](how-to/open-a-graph-history.md)** — one address opens a history; reading the track: versions, releases, open pull requests, Live; sharing what you see
-- **[Reading the full graph as a map](how-to/read-the-full-graph-map.md)** — domains far away, what they hold closer: zoom, filters that take what stands below, changes stepped through one by one
-- **[Reading a diagram without zooming in](how-to/read-a-diagram-without-zooming.md)** — one card for every field, table and line, lifecycle pictures, and tables that collapse to their keys.
-- **[Comparing two versions in Maxitor](how-to/compare-two-versions.md)** — Diff: two versions on the track, the ERD painted by what changed, the card of a change, filtering and painting by changes
+- **[Maxitor's own guides](https://github.com/bystrovmaxim/gnomon/blob/main/docs/README.md)** — setting up versions and graphs, running repo-graph-port, opening a graph's history, comparing two versions, reading the map and the diagrams: they live with Maxitor in gnomon
 
 ### Reference materials
 
