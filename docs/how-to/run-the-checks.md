@@ -5,24 +5,19 @@ No change in this repository is finished until the check run is green, and each 
 | When | Where | What runs |
 |------|-------|-----------|
 | After each phase | your machine | the tests of that phase |
-| On a pull request | CI | the closing check run: guards, static checks, client build, Python tests, packaging |
-| On a pushed commit, before or after the pull request opens | your machine | the browsers, the one thing CI cannot run |
+| On a pull request | CI | the closing check run: the guard, static checks, Python tests, the examples, packaging |
 
-A pull request that changes only `docs/`, `specs/`, `AGENTS.md` or the constitution skips CI's checks: the job `Changes` sees that, and a skipped job counts as passed. Its commit still needs the browser proof below.
+A pull request that changes only `docs/`, `specs/`, `AGENTS.md` or the constitution skips CI's checks: the job `Changes` sees that, and a skipped job counts as passed.
 
-The browsers have their own script, which runs from anywhere inside the repository and leaves its proof on the commit:
-
-```bash
-bash scripts/check_before_pr.sh
-```
-
-The merge rule of `main` requires a green CI and that proof on the exact commit. One more command is the full gate on its own, for when you want everything on your machine. No step requires it:
+The merge rule of `main` requires a green CI, and nothing else: every check of this repository runs on a CI machine. One command is the full gate on its own, for when you want everything on your machine. No step requires it:
 
 ```bash
 bash scripts/run_checks_with_log.sh
 ```
 
-It runs two repository guards, Ruff, mypy, pylint, the package-boundary and package-metadata checkers, the secrets check, vulture, the samples public-API check, the Maxitor client's build and its tests (including the layout in three browser engines), the five ERD scripts, the tests of every package, Radon, and a check of the saved graph files — and writes everything they print into one log, `archive/logs/check-all.txt`. The wheel and sdist build and the packaging smoke test are **not** part of the local run: they need the network and matter when a package is released, so CI runs them. Once the tools are installed — Graphviz's `sfdp` among them, for the map — the run needs no network. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest chain of steps instead of the sum of all of them.
+It runs the repository guard, Ruff, mypy, pylint, the package-boundary and package-metadata checkers, the secrets check, vulture, the samples public-API check, every example of the documentation, the tests of every package, Radon, and a check of the saved graph file — and writes everything they print into one log, `archive/logs/check-all.txt`. The wheel and sdist build and the packaging smoke test are **not** part of the local run: they need the network and matter when a package is released, so CI runs them. Steps that do not depend on each other run at the same time, so the run takes about as long as its slowest step instead of the sum of all of them.
+
+Maxitor, its client and the check that draws it in three browser engines live in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon), and run there.
 
 This page shows each case as the command and what it really printed.
 
@@ -36,24 +31,21 @@ Log file: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 Full check run (cwd=/Users/bystrovmaxim/PythonDev/aoa, up to 14 steps at once)...
 
 > Ban __getattr__ in package __init__.py
-OK Ban __getattr__ in package __init__.py (exit 0, 0.4 s)
-> Maxitor client: README beside components/*/ index.ts
-OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
+OK Ban __getattr__ in package __init__.py (exit 0, 0.5 s)
 > Ruff auto-fix
 OK Ruff auto-fix (exit 0, 0.1 s)
-> Maxitor client: npm ci and Vite build
 > Mypy typecheck
+> Pylint
 …
-OK Pytest aoa-action-machine (exit 0, 52.7 s)
-OK Pytest maxitor/maxitor-web (exit 0, 70.3 s)
-OK Maxitor client: npm ci and Vite build (exit 0, 208.2 s)
-OK Maxitor client: the same layout in three engines (exit 0, 280.1 s)
+OK Pytest aoa-fastapi-adapter (exit 0, 26.2 s)
+OK Examples: scripts, notebooks, pages, links (exit 0, 78.8 s)
+OK Pytest aoa-action-machine (exit 0, 153.8 s)
 > Graph files (graph-builder write)
-OK Graph files (graph-builder write) (exit 0, 2.6 s)
+OK Graph files (graph-builder write) (exit 0, 1.1 s)
 > Graph files (graph-builder check)
-OK Graph files (graph-builder check) (exit 0, 2.4 s)
+OK Graph files (graph-builder check) (exit 0, 1.0 s)
 
-Wall time: 494.4 s
+Wall time: 156.8 s
 Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 ```
 
@@ -88,7 +80,7 @@ Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 ==================================================
 ```
 
-A block holds only its own step's output, so two steps' lines never mix. Two remarks are known and accepted, and stay in a green run: the Vite build's advice that some chunks are larger than 500 kB, and LangGraph's `LangChainPendingDeprecationWarning`. Both come from the tools, not from this repository's code.
+A block holds only its own step's output, so two steps' lines never mix. One remark is known and accepted, and stays in a green run: LangGraph's `LangChainPendingDeprecationWarning`. It comes from the library, not from this repository's code.
 
 ## What runs together and what waits
 
@@ -96,53 +88,23 @@ The steps, their order and what each waits for are one table in `scripts/check_r
 
 | Group | Steps | Waits for |
 |---|---|---|
-| First, alone | the two guards, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
-| Client | the client build, then its unit tests, the three-engine layout step and five ERD checks | the auto-fix; everything after the build waits for the build, because it uses what the build wrote |
+| First, alone | the guard, then `Ruff auto-fix` | nothing; nothing else runs meanwhile, because the auto-fix rewrites files every later Python step reads |
 | Static analysis | mypy, pylint, package boundaries, package metadata, no secrets in tracked files, vulture, samples public API, Radon | the auto-fix |
-| Tests | the tests of each package, one run per package (`maxitor` in two: `maxitor/maxitor-web` and `maxitor/tools/graph-builder`), and `tests/scripts` (the runner's own last-step rule, the saved graph files) | the auto-fix |
+| Tests | the tests of each package, one run per package, and `tests/scripts` (the runner's own last-step rule, the saved graph file) | the auto-fix |
 | Examples | every example of the documentation ([Examples](#examples)), in a group of its own so CI can run it on a machine of its own | the auto-fix |
-| Only on a green run | `Graph files (graph-builder write)`: builds the repository's graphs and updates their files ([graph_builder](../../packages/maxitor/tools/graph-builder/README.md)) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
+| Only on a green run | `Graph files (graph-builder write)`: builds the repository's graph and updates its file ([graph-builder](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/tools/graph-builder/README.md), installed with `maxitor` from PyPI) | every other step except the graph check; if any failed, it does not run and its block reads `SKIPPED Graph files (graph-builder write): N step(s) failed` — neither `OK` nor `FAIL` |
 | Last, always | `Graph files (graph-builder check)`: verifies the saved graph files are current | the graph write; it runs even when another step failed |
 
-The graph write may change `packages/aoa-demo/graph.json` and `packages/maxitor/maxitor-web/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
+The graph write may change `packages/aoa-demo/graph.json`, as the auto-fix may change sources; the run stays green, and the changed files go into the commit with the change that changed the graph. The check comes after it, so a stale file is rewritten on a green run instead of failing it:
 
 ```text
 OK Graph files (graph-builder write) (exit 0, 3.8 s)
 OK Graph files (graph-builder check) (exit 0, 1.9 s)
 ```
 
-After a failure elsewhere the write is skipped and the check still reports, so the files are never left neither written nor checked. The eight package builds and the packaging smoke test are not in the local table: they run only in CI.
+After a failure elsewhere the write is skipped and the check still reports, so the files are never left neither written nor checked. The seven package builds and the packaging smoke test are not in the local table: they run only in CI.
 
-The run is as long as its longest chain, and today that is one chain: the client build and then the three-engine layout step, about 200 + 280 s when everything runs at once. Every other step finishes beside it, so only making this chain shorter makes the run shorter.
-
-### The three-engine layout step
-
-"Maxitor client: the same layout in three engines" serves the built client and a frozen reference graph, starts a Maxitor API of its own, and checks three things in Chromium, Firefox and WebKit:
-
-- **layout hashes** — every page the left panel lists, in every layout mode (61 page-modes), gets the same layout hash in all three engines on a phone-sized (375×812) and a desktop-sized (1600×900) screen;
-- **pointer in a room** — in each engine a desktop and a phone page in one room: a resting pointer and a tap land within 2 px of the same node, before and after zooming;
-- **following** — in each of the six directed pairs of engines, the follower's screen is centred on the leader's point within 2 px and shows the leader's hover within 500 ms;
-- **following on every kind of diagram**, **every change of the picture in one frame** and **the card and collapsing** — the three parts that come after them.
-
-The layout hashes run with both screen sizes at once in every engine, and the pointer cases run beside them; the six following pairs then run at once, each in its own room. The following pairs wait for the rest because their 500 ms hover limit was missed when every browser was open together. The step's output ends with the time of each part:
-
-```text
-ok    ERD, all domains | gv-dot-lr  59ddb92209f38108
-…
-ok    pointer in a room | chromium  largest offset 0.009 px (0.007 / 0.005 / 0.005 / 0.009)
-…
-ok    following | chromium → firefox  screens apart 0.000 px, hover after 13 ms, circles 4.0 px apart, card buttons overrun 0.0 px
-…
-part A (layout hashes) 33.2 s
-part B (pointer in a room) 11.8 s
-part C (following) 7.1 s
-part D (following on every diagram) 77.2 s
-part E (every change in one frame) 124.6 s
-part F (the card and collapsing) 32.9 s
-61 page-modes × 3 engines × 2 sizes in 278 s
-```
-
-Its lines always come in the same order — pages in the left panel's order, then the pointer cases, then the pairs — whichever part or engine finishes first.
+The run is as long as its slowest step, and today that is the tests of `aoa-action-machine`, about 150 s when everything runs at once. Every other step finishes beside it, so only making that step shorter makes the run shorter.
 
 ## Where each step runs
 
@@ -150,19 +112,16 @@ Every step has one stated home. The same table in `scripts/check_run.py` drives 
 
 | Step | Local run | CI | Why |
 |---|---|---|---|
-| Ban `__getattr__` in package `__init__.py` | ✅ | ✅ | cheap guard, no network or browser |
-| Maxitor client: README beside `components/*/index.ts` | ✅ | ✅ | cheap guard |
+| Ban `__getattr__` in package `__init__.py` | ✅ | ✅ | cheap guard, no network |
 | Ruff auto-fix | ✅ fixes | ✅ only reports | CI must not change the tree |
 | Mypy, pylint | ✅ | ✅ | deterministic static checks |
 | Package boundaries, package metadata | ✅ | ✅ | deterministic static checks |
 | No secrets in tracked files | ✅ | ✅ | deterministic; a commit made without the local hook still meets it in CI |
 | Vulture, samples public API, Radon | ✅ | ✅ | deterministic static checks |
-| Client build, client unit tests, five ERD scripts | ✅ | ✅ | deterministic, no browser engine |
-| The same layout in three engines | ✅ | — (CI reads its proof) | needs a graphics card: a CI machine has none, so Firefox has no WebGL |
 | Python tests of every package, `tests/scripts` | ✅ | ✅ | deterministic |
 | The examples | ✅ | ✅ (jobs `Examples`, `Examples on Python 3.14`) | deterministic; a machine of their own in CI |
 | Speed tests (marked `benchmark`) | full run only | — | fail on a busy machine |
-| Build wheel/sdist × 8, packaging smoke | — | ✅ | need the network; matter at a release |
+| Build wheel/sdist × 7, packaging smoke | — | ✅ | need the network; matter at a release |
 | Graph files: write | ✅ (green run only) | — | writes files into the commit |
 | Graph files: check | ✅ (always) | ✅ (always) | never skipped |
 | Versions grew | — | ✅ (pull requests into `main`) | compares a pull request with `main`; see [Versions](#versions) |
@@ -175,7 +134,7 @@ bash scripts/run_checks_with_log.sh --where ci --only-group examples   # both Ex
 bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Packaging job
 ```
 
-`Checks` also runs `graph-builder`'s own action, the one other projects use.
+`Checks` also runs `graph-builder`'s own action from gnomon, the one every project uses, at the Maxitor release this repository takes.
 
 ## Versions
 
@@ -184,20 +143,11 @@ bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Pa
 | Level | Folders | Where the number is |
 |---|---|---|
 | Repository | the root | root `pyproject.toml`; `require_bump = false`, so it need not grow |
-| Package | the seven `aoa-*` packages and `maxitor` | their `pyproject.toml` |
-| Package | `open-gnomon-protocol` | its `version.toml` |
-| Component | `maxitor`'s `maxitor-web`, `tools/repo-graph-port`, `tools/graph-builder` | their `version.toml` |
+| Package | the seven `aoa-*` packages | their `pyproject.toml` |
 
-A change raises the version of every level it lies in, apart from the repository. Here is a change in `repo-graph-port` with nothing raised:
+A change raises the version of every level it lies in, apart from the repository; the job names each level whose version did not grow, with the version it has and the one on `main`. Raise them, commit, and the job passes. A sub-issue merging into a feature branch is not checked, so a large task raises its versions once, on its way into `main`.
 
-```text
-version-gate: package packages/maxitor (packages/maxitor/pyproject.toml): version 3.0.0 did not grow; main has 3.0.0, raise it above that
-version-gate: component packages/maxitor/tools/repo-graph-port (packages/maxitor/tools/repo-graph-port/version.toml): version 1.0.0 did not grow; main has 1.0.0, raise it above that
-```
-
-Raise both, commit, and the job passes. A sub-issue merging into a feature branch is not checked, so a large task raises its versions once, on its way into `main`.
-
-Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages and of `maxitor`. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. Two things count on purpose: `SKILL.md`, which is what the skill is, and the README of `open-gnomon-protocol`, which is the protocol's normative text.
+Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. The protocol's frozen schemas in `packages/open-gnomon-protocol/graph/` are no level: they never change here.
 
 ## Ruff
 
@@ -358,40 +308,7 @@ uv run --extra dev python scripts/check_no_secrets.py --update
 
 ## Before a pull request
 
-A CI machine has no graphics card, so Firefox has no WebGL there and the map cannot be drawn. The browsers therefore run on your machine, and CI controls that they did. **No pull request is opened until this script has passed on the pushed commit**:
-
-```bash
-bash scripts/check_before_pr.sh
-```
-
-It runs the client build and the three-engine layout step, about five minutes, and then reports the result to GitHub as the commit status `Local check run`. Everything else CI runs on the pull request, so nothing is checked twice. The speed tests run only when you start the full gate yourself:
-
-```text
-…
-OK Graph files (graph-builder check) (exit 0, 2.4 s)
-
-Wall time: 494.4 s
-Receipt: 35 steps green on c0d3e765. Push it, then: bash scripts/run_checks_with_log.sh --sign-off
-OK Local check run on c0d3e765
-```
-
-It proves one commit, so it refuses anything else before spending the run. It never commits or pushes:
-
-```text
-FAIL the tree has uncommitted changes: a pull request is a commit, so commit them first.
-```
-
-```text
-FAIL this commit is not pushed: GitHub can only mark a commit it has, so push it first.
-```
-
-A red run reports nothing and ends with the run's own exit code. The run also keeps a receipt only when the tree was one commit from start to end. Anything that changes a tracked file during the run changes what was proved, so the run says so, and you commit and run again:
-
-```text
-No receipt: the tree was not one commit from start to end. Commit, then run again to sign off.
-```
-
-The merge rule of `main` requires the status `Local check run` itself, so no CI job waits for it. On GitHub a pull request shows it as `Expected` until the run ends, and it may arrive at any moment, with no job to re-run. A new commit has no status, so it cannot merge until it is proved. The status is an attestation, not a proof: anyone with write access could post one.
+CI runs the closing check run on every pull request, so a pull request needs nothing from your machine: open it whole, and it merges when CI is green. The full local run is there when you want the answer before CI gives it.
 
 ## The limit, and running one step at a time
 
@@ -406,14 +323,9 @@ Full check run (cwd=/Users/bystrovmaxim/PythonDev/aoa, up to 1 step at once)...
 
 > Ban __getattr__ in package __init__.py
 OK Ban __getattr__ in package __init__.py (exit 0, 0.4 s)
-> Maxitor client: README beside components/*/ index.ts
-OK Maxitor client: README beside components/*/ index.ts (exit 0, 0.1 s)
 > Ruff auto-fix
 OK Ruff auto-fix (exit 0, 0.1 s)
-> Maxitor client: npm ci and Vite build
-OK Maxitor client: npm ci and Vite build (exit 0, 13.0 s)
-> Maxitor client: unit tests
-OK Maxitor client: unit tests (exit 0, 7.1 s)
+> Mypy typecheck
 …
 ```
 
@@ -431,13 +343,11 @@ FAIL AOA_CHECK_JOBS must be a positive whole number, got '0'.
 
 ## When a step fails
 
-A failing step does not stop the others: every step still runs and reports, and the run exits 1. Here a client unit test failed; the console shows it among the others:
+A failing step does not stop the others: every step still runs and reports, and the run exits 1. Here a package's `__init__.py` defined `__getattr__`; the console shows the guard's failure among the others:
 
 ```text
-FAIL Maxitor client: unit tests (exit 1, 9.5 s)
-OK Maxitor client: the same layout in three engines (exit 0, 63.0 s)
-
-Wall time: 86.9 s
+FAIL Ban __getattr__ in package __init__.py (exit 1, 0.4 s)
+OK Ruff auto-fix (exit 0, 0.1 s)
 ```
 
 To find every failure in the log and read it, look for the `FAIL` lines; the step's block starts at its `===` line:
@@ -447,29 +357,28 @@ grep -n "^FAIL" archive/logs/check-all.txt
 ```
 
 ```text
-98:FAIL Maxitor client: unit tests (exit 1, 9.5 s)
+13:FAIL Ban __getattr__ in package __init__.py (exit 1, 0.4 s)
 ```
 
-The block above that line holds the test runner's own report:
+The block above that line holds the step's own report:
 
 ```text
- FAIL  src/lib/zzBreakOnPurpose.test.ts > fails on purpose
-AssertionError: expected 1 to be 2 // Object.is equality
-…
- Test Files  1 failed | 29 passed (30)
-      Tests  1 failed | 223 passed (224)
-…
-FAIL Maxitor client: unit tests (exit 1, 9.5 s)
+=== Ban __getattr__ in package __init__.py ===
+$ check_no_lazy_init_getattr (shell function)
+
+Forbidden package-level lazy export found: __getattr__ in __init__.py
+packages/aoa-otel/src/aoa/otel/__init__.py:29:def __getattr__(name):
+FAIL Ban __getattr__ in package __init__.py (exit 1, 0.4 s)
 ```
 
 ## Stopping a run
 
-Ctrl+C stops every running step, together with whatever it started — browsers, servers, test processes — and the run exits 130. The log then holds the steps that had ended, and ends with `Run interrupted` instead of `All steps finished`:
+Ctrl+C stops every running step, together with whatever it started — servers, test processes, notebook kernels — and the run exits 130. The log then holds the steps that had ended, and ends with `Run interrupted` instead of `All steps finished`:
 
 ```text
-> Maxitor client: the same layout in three engines
+OK Radon maintainability index (exit 0, 9.6 s)
 
-Wall time: 25.0 s
+Wall time: 12.2 s
 Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 Run interrupted
 ```
@@ -477,7 +386,7 @@ Run interrupted
 ```text
 ==================================================
 Run interrupted
-Wall time: 25.0 s
+Wall time: 12.2 s
 Log: /Users/bystrovmaxim/PythonDev/aoa/archive/logs/check-all.txt
 ==================================================
 ```
@@ -493,4 +402,3 @@ An interrupted run is not a green run: start it again before calling a change fi
 | 2 | the run did not start: the limit is not a positive whole number, or the repository has no `pyproject.toml` |
 | 130 | interrupted; no step is left running |
 
-`--sign-off` exits 0 when GitHub took the status and 1 when it refuses or GitHub does.

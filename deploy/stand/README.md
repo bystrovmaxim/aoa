@@ -60,11 +60,11 @@ Then add the `GITHUB_WEBHOOK_SECRET=` line, and `chmod 600 /etc/aoa-repo-graph-p
 
 ### `/etc/aoa-certificates/repo-graph-port/`
 
-The read keys issued to Maxitor, one `<history id>.key` per private history, root only (`600`) — the same files as [`certificates/`](../../certificates/README.md) in the maintainer's checkout. They live outside `/opt/aoa-stand`, which every deploy replaces.
+The read keys issued to Maxitor, one `<history id>.key` per private history, root only (`600`) — the same files as the maintainer's local `certificates/` folder, which `.gitignore` keeps out of git. They live outside `/opt/aoa-stand`, which every deploy replaces.
 
 ## The GitHub App
 
-`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](../../docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app). It is installed on `bystrovmaxim/gameoffer` only.
+`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app). It is installed on `bystrovmaxim/gameoffer` only.
 
 GitHub's webhook deliveries do not reach this host: no connection from GitHub's addresses arrives at its interface, while port 443 opens from elsewhere. Until the stand moves to another host, the port runs without events — a history is fetched again on a read when its last fetch is older than ten minutes.
 

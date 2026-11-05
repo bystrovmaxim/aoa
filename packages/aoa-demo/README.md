@@ -60,4 +60,4 @@ The demo keeps its graph in [`graph.json`](graph.json), rebuilt by `graph-builde
 https://github.com/bystrovmaxim/aoa/blob/main/packages/aoa-demo/graph.json?version_link=https%3A%2F%2Fgithub.com%2Fbystrovmaxim%2Faoa%2Fblob%2Fmain%2Fpackages%2Faoa-demo%2Fpyproject.toml&version_key=project.version
 ```
 
-The version under each point comes from this package's `pyproject.toml`. How to read the track is in [Open a service's graph history](../../docs/how-to/open-a-graph-history.md).
+The version under each point comes from this package's `pyproject.toml`. How to read the track is in [Open a service's graph history](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/open-a-graph-history.md).
