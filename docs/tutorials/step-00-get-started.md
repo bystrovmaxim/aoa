@@ -95,23 +95,22 @@ uv run python examples/step_01_Action_and_pipeline/01_hello_world.py
 
 ### Save your graph from day one
 
-An AOA service can print its own graph — every operation, entity and dependency, with an id each. Save it in a file from the first commit, `graph.json` beside the service, and let every pull request that changes the graph carry the new file: git then holds the graph's whole history, and CI fails when someone forgets. The file's format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md), a standard with no code; the command that keeps it current is `graph-builder`, in [maxitor](../../packages/maxitor/README.md) (`pip install maxitor`), which knows nothing about AOA. There are three ways to start, all in its README: by hand (a few lines that print the graph, a `graph-builder.toml`, one CI step), from the command line (`graph-builder skill` installs a setup skill for your coding agent), or one sentence to an agent with the skill's link. This repository does it for the demo and for Maxitor ([chapter 29](step-29-maxitor.md#the-graph-saved-with-every-change)).
+An AOA service can print its own graph — every operation, entity and dependency, with an id each. Save it in a file from the first commit, `graph.json` beside the service, and let every pull request that changes the graph carry the new file: git then holds the graph's whole history, and CI fails when someone forgets. The file's format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md), a standard with no code; the command that keeps it current is `graph-builder`, in [maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) (`pip install maxitor`), which knows nothing about AOA. There are three ways to start, all in its README: by hand (a few lines that print the graph, a `graph-builder.toml`, one CI step), from the command line (`graph-builder skill` installs a setup skill for your coding agent), or one sentence to an agent with the skill's link. This repository does it for the demo and for Maxitor ([chapter 29](step-29-maxitor.md#the-graph-saved-with-every-change)).
 
 ---
 
 ## Repository structure
 
-AOA is a monorepo. At the top level everything splits in two: the packages — three at the heart of the framework, the rest adapters, plugins and the graph format — and the scaffolding around them — documentation, examples, tests, infrastructure. Let's descend this pyramid exactly two layers: first the general map, then into the core the next chapter works with. There is no need to go deeper now (the separate modules of `aoa-demo` and `maxitor`, the execution-core files) — that lives in the respective packages' READMEs and in the reference.
+AOA is a monorepo. At the top level everything splits in two: the packages — two at the heart of the framework, the rest adapters, plugins and the graph format's frozen schemas — and the scaffolding around them — documentation, examples, tests, infrastructure. Let's descend this pyramid exactly two layers: first the general map, then into the core the next chapter works with. There is no need to go deeper now (the separate modules of `aoa-demo`, the execution-core files) — that lives in the respective packages' READMEs and in the reference.
 
 ### Top level: packages and scaffolding
 
 ```
 aoa/
-├── packages/        ← the packages; the first three are the heart of AOA
+├── packages/        ← the packages; the first two are the heart of AOA
 │   ├── aoa-action-machine/   ← CORE: the Action model, execution core, contracts, observability
 │   ├── aoa-demo/         ← LIBRARY of ready-made domains — the framework "at scale"
-│   ├── maxitor/          ← MAXITOR: app/ (graph, ERD and diagrams straight from code), tools/graph-builder/ (keeps the saved graphs), skills/
-│   ├── open-gnomon-protocol/ ← GRAPH FORMAT: the protocol's schemas and specification, no code
+│   ├── open-gnomon-protocol/ ← GRAPH FORMAT: frozen copies of the protocol's published schemas; the protocol and Maxitor live in bystrovmaxim/gnomon
 │   └── aoa-fastapi-adapter/, aoa-mcp-adapter/, aoa-langgraph/, aoa-ocel/, aoa-otel/   ← adapters and plugins
 │
 ├── docs/            ← this guide (chapters + the intents-and-invariants reference)

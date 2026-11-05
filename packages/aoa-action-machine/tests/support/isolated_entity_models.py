@@ -13,7 +13,7 @@ same interpreter. The only clean isolation is a fresh process: the declaration i
 created, judged and discarded inside a subprocess, so the parent process never sees it.
 
 This helper runs a self-contained model source in ``sys.executable`` with the
-action-machine and maxitor ``src`` roots on ``sys.path``. It is the single entry point
+action-machine ``src`` root on ``sys.path``. It is the single entry point
 for subprocess-isolated entity tests.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -23,8 +23,7 @@ SCOPE (IN / OUT)
 **In scope**
     Running a declared-model source in a fresh process and returning its exit code,
     stdout and stderr.
-    Supplying a standard ``sys.path`` preamble for ``aoa.action_machine`` /
-    ``maxitor.web`` imports.
+    Supplying a standard ``sys.path`` preamble for ``aoa.action_machine`` imports.
 
 **Out of scope**
     Declaring entities itself; callers pass a complete source string.
@@ -62,7 +61,6 @@ _PRELUDE = textwrap.dedent(
 
     import sys
     sys.path.insert(0, "packages/aoa-action-machine/src")
-    sys.path.insert(0, "packages/maxitor/maxitor-web")
     """
 )
 
@@ -93,7 +91,7 @@ def run_isolated_model(source: str, *, timeout: int = 180) -> IsolatedRunResult:
         The exit code, stdout and stderr of the subprocess.
 
     The subprocess runs with the repository root as its working directory and the
-    action-machine/maxitor ``src`` roots prepended to ``sys.path``. No forbidden
+    action-machine ``src`` root prepended to ``sys.path``. No forbidden
     package or draft path is added.
     """
     script = _PRELUDE + "\n" + textwrap.dedent(source)

@@ -1,10 +1,19 @@
-/** Reproduce the tutorial image with Maxitor's current DOT builder and Graphviz. */
+/**
+ * Reproduce the tutorial image with Maxitor's current DOT builder and Graphviz.
+ *
+ * Maxitor lives in bystrovmaxim/gnomon: the script reads its client from a gnomon checkout, by default the
+ * folder `gnomon` beside this repository, or the one `GNOMON` names; run `npm ci` in its client first.
+ */
 import { readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { build } from "../../packages/maxitor/maxitor-web/client/node_modules/esbuild/lib/main.js";
-import { Graphviz } from "../../packages/maxitor/maxitor-web/client/node_modules/@hpcc-js/wasm-graphviz/dist/index.js";
+import { resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const builder = fileURLToPath(new URL("../../packages/maxitor/maxitor-web/client/src/lib/buildDotSource.ts", import.meta.url));
+const repo = fileURLToPath(new URL("../..", import.meta.url));
+const client = resolve(process.env.GNOMON ?? resolve(repo, "../gnomon"), "packages/maxitor/maxitor-web/client");
+const { build } = await import(pathToFileURL(resolve(client, "node_modules/esbuild/lib/main.js")).href);
+const { Graphviz } = await import(pathToFileURL(resolve(client, "node_modules/@hpcc-js/wasm-graphviz/dist/index.js")).href);
+
+const builder = resolve(client, "src/lib/buildDotSource.ts");
 const result = await build({ entryPoints: [builder], bundle: true, write: false, format: "esm", platform: "node" });
 const { buildDotSource } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}`);
 const stem = new URL("./02_specialization_erd", import.meta.url);

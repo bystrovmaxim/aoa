@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-05] — Maxitor has moved to a repository of its own
+
+Maxitor — the viewer that draws a service's graph — and the Open Gnomon Protocol, the graph's language, now live in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon). AOA is one of the programs that write that graph; it keeps doing so exactly as before, by protocol version 1.5.
+
+For a project built on AOA nothing changes in the code. `pip install maxitor` installs the same package, now released from gnomon (3.15.0). A project that checks its graph files in CI uses `bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@maxitor-v3.15.0`; the old path under `bystrovmaxim/aoa` at a pinned commit keeps working, but gets no new versions. Maxitor's guides — setting up versions and graphs, opening a graph's history, comparing two versions, reading the map and the diagrams — are in gnomon too; the tutorial's Maxitor chapter stays here and links to them.
+
+The protocol's published schemas stay in `packages/open-gnomon-protocol/graph/`, unchanged: each one names its address here as its `$id`, and a published version never moves. New versions of the protocol appear in gnomon.
+
+Working on AOA got lighter. A pull request merges on CI alone: the three-browser check of Maxitor's client, which had to run on the author's machine before every merge, now runs in gnomon, and a full local run takes about two and a half minutes instead of eight.
+
 ## [2026-11-05] — A notebook check no longer fails because another one took its port
 
 The example checks run every notebook in its own Jupyter kernel, many at once. Now and then one of them failed before its first cell — `Address already in use`, then `Kernel died before replying to kernel_info`, or `Kernel didn't respond in 60 seconds` — a different notebook each time, and it passed when run again. A kernel used to talk over TCP ports picked just before it started, and a kernel started in parallel could take one of them in that moment. Each kernel now talks over Unix sockets in a folder of its own, so there are no ports to share. Nothing changes in the examples or in what the checks require of them; [the page on the checks](how-to/run-the-checks.md#examples) says how a notebook runs.

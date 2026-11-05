@@ -58,13 +58,13 @@ AOA covers three architectural layers. Each level has its own specialized elemen
 - **Business layer** — describes the system's operations. Its core element is `Action`: a self-contained unit of meaning with a clear interface (`Params` as input, `Result` as output), declarative ports `@depends` / `@connection` / `@context_requires`, and a direct pipeline of aspects. Inside the pipeline live `RegularAspect`, a shared `State` contract, `SummaryAspect` for assembling the result, and `Compensate` handlers for rollbacks on failure. At every step boundary the machine generates events for `@plugin`.
 - **Data and domain model layer** — responsible for access to sources and description of the problem domain. Its elements are `Resource` and `Entity`: `Resource` abstracts an external source (PostgreSQL, MongoDB, ClickHouse, API, a test fixture), while `Entity` describes domain objects, their relationships, and lifecycle without coupling to tables or ORM mappings. Where an ORM model is a mirror of the DB schema, `Entity` is a domain object: the same `OrderCoreEntity` can be assembled from different sources, and the business code never notices.
 
-Each of these layers is covered in detail below. Code examples are in [aoa-action-machine](packages/aoa-action-machine/README.md) and [examples/](examples/), system visualization is in [maxitor](packages/maxitor/README.md).
+Each of these layers is covered in detail below. Code examples are in [aoa-action-machine](packages/aoa-action-machine/README.md) and [examples/](examples/), system visualization is in [maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md).
 
 Since intentions are expressed in a machine-readable form, the system can show itself in full. **Maxitor** builds an interactive graph of all `Action` operations, their dependencies, resources, and entities directly from code — without a single line of manual documentation:
 
 ![Maxitor: full system graph built from code](docs/assets/maxitor-full-graph.png)
 
-→ [Maxitor: interactive graph, ERD, use cases and state machine diagrams](packages/maxitor/README.md)
+→ [Maxitor: interactive graph, ERD, use cases and state machine diagrams](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md)
 
 ---
 
@@ -138,15 +138,15 @@ Hello, World!
 
 | Package | Version | Contents |
 | ----------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
-| [aoa-action-machine](packages/aoa-action-machine/README.md) | 1.0.1a6 | Core engine: Actions, pipeline, sagas, cache, plugins, entities, testing |
-| [aoa-fastapi-adapter](packages/aoa-fastapi-adapter/README.md) | 1.3.0 | HTTP/REST transport for the machine |
-| [aoa-mcp-adapter](packages/aoa-mcp-adapter/README.md) | 1.2.1 | Tools for AI agents |
+| [aoa-action-machine](packages/aoa-action-machine/README.md) | 1.0.1a19 | Core engine: Actions, pipeline, sagas, cache, plugins, entities, testing |
+| [aoa-fastapi-adapter](packages/aoa-fastapi-adapter/) | 1.3.0 | HTTP/REST transport for the machine |
+| [aoa-mcp-adapter](packages/aoa-mcp-adapter/) | 1.2.1 | Tools for AI agents |
 | [aoa-langgraph](packages/aoa-langgraph/README.md) | 1.0.1 | LangGraph controllers built on the machine |
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
-| [aoa-ocel](packages/aoa-ocel/README.md) | 1.0.2 | OCEL 2.0 event log export |
-| [maxitor](packages/maxitor/README.md) | 3.0.0 | Maxitor, one package with extras: `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[web]`) draws the interactive graph, ERD, use cases and lifecycles |
-| [open-gnomon-protocol](packages/open-gnomon-protocol/README.md) | 1.1 | The Open Gnomon Protocol: the graph's JSON Schemas and specification — a folder with no code, for any language |
-| [aoa-demo](packages/aoa-demo/README.md) | 3.0.0 | Runnable tutorial and how-to examples |
+| [aoa-ocel](packages/aoa-ocel/) | 1.0.3 | OCEL 2.0 event log export |
+| [maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) | 3.15.0 | Maxitor lives in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon): `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[web]`) draws the graph of an AOA service. This repository takes it from PyPI |
+| [open-gnomon-protocol](packages/open-gnomon-protocol/README.md) | — | Frozen copies of the Open Gnomon Protocol's published schemas, kept at the addresses their `$id` names; the protocol lives in [gnomon](https://github.com/bystrovmaxim/gnomon/tree/main/packages/open-gnomon-protocol) |
+| [aoa-demo](packages/aoa-demo/README.md) | 3.15.2 | Runnable tutorial and how-to examples |
 
 ---
 

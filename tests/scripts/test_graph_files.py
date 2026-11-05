@@ -1,5 +1,5 @@
 # tests/scripts/test_graph_files.py
-"""The repository's saved graphs (``graph-builder.toml``): each holds its own service and nothing of the other."""
+"""The repository's saved graph (``graph-builder.toml``): the demo's, with nothing of Maxitor in it."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from maxitor.graph_builder.schemas import check_graph
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Each graph is built in a process of its own; one that imported the other's package would carry its nodes.
-# Each service's own nodes start with its package; the other's must not appear.
-OWN = {"demo": "aoa.demo.", "maxitor": "maxitor.web."}
-FOREIGN = {"demo": OWN["maxitor"], "maxitor": OWN["demo"]}
+# The graph is built in a process of its own; one that imported Maxitor, which is installed here from PyPI,
+# would carry its nodes. The demo's own nodes start with its package; Maxitor's must not appear.
+OWN = {"demo": "aoa.demo."}
+FOREIGN = {"demo": "maxitor."}
 
 
 @pytest.mark.parametrize("name", sorted(FOREIGN))

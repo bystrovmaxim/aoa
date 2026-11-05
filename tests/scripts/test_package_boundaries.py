@@ -1,5 +1,5 @@
 # tests/scripts/test_package_boundaries.py
-"""The boundary check inside ``maxitor``: ``graph-builder`` stands alone, the core never imports the front; an import belongs to its longest prefix."""
+"""The boundary check: the core never imports the demo, the demo may use the core, a standalone root imports no AOA, and an import belongs to its longest prefix."""
 
 from __future__ import annotations
 
@@ -26,21 +26,15 @@ def _checker() -> ModuleType:
 CONFIG = {
     "packages": {
         "action_machine": {"current_roots": ["aoa/action_machine"], "import_prefixes": ["aoa.action_machine"], "may_import": []},
-        "maxitor": {"current_roots": ["maxitor/web"], "import_prefixes": ["maxitor.web"], "may_import": ["action_machine", "graph_builder"]},
-        "repo_graph_port": {
-            "current_roots": ["maxitor/repo_graph_port"],
-            "import_prefixes": ["maxitor.repo_graph_port"],
-            "may_import": ["action_machine", "graph_builder"],
-        },
-        "examples": {"current_roots": ["aoa/demo"], "import_prefixes": ["aoa.demo"], "may_import": ["action_machine"]},
+        "examples": {"current_roots": ["aoa/demo"], "import_prefixes": ["examples", "aoa.demo"], "may_import": ["action_machine"]},
     },
-    "standalone": {"graph_builder": {"roots": ["maxitor/graph_builder"], "import_prefixes": ["maxitor.graph_builder"], "forbid": ["maxitor.web", "maxitor.repo_graph_port"]}},
+    "standalone": {"tool": {"roots": ["tool"], "import_prefixes": ["aoa.action_machine.tool"], "forbid": ["aoa.demo"]}},
 }
 
 
 def _violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner_folder: str, source: str) -> list[str]:
     """Check a tree whose one module, in ``owner_folder``, holds ``source``; every other root is empty."""
-    for folder in ("aoa/action_machine", "maxitor/web", "maxitor/repo_graph_port", "aoa/demo", "maxitor/graph_builder"):
+    for folder in ("aoa/action_machine", "aoa/demo", "tool"):
         (tmp_path / folder).mkdir(parents=True, exist_ok=True)
     (tmp_path / owner_folder / "module.py").write_text(source, encoding="utf-8")
     checker = _checker()
@@ -48,41 +42,24 @@ def _violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner_folder: s
     return [v.format() for v in checker.check_production(CONFIG) + checker.check_standalone(CONFIG)]
 
 
-def test_graph_builder_importing_the_front_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """``maxitor.graph_builder`` must not import the front: one violation, naming file, line, owner and module."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/graph_builder", "import json\nfrom maxitor.web.api import app\n")
-    assert found == ["maxitor/graph_builder/module.py:2: context 'graph_builder' must not import package 'maxitor.web' via 'maxitor.web.api'"]
+def test_the_core_importing_the_demo_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``aoa.action_machine`` must not import the demo: one violation, naming file, line, owner and module."""
+    found = _violations(tmp_path, monkeypatch, "aoa/action_machine", "import json\nfrom aoa.demo.model import shop\n")
+    assert found == ["aoa/action_machine/module.py:2: context 'action_machine' must not import package 'examples' via 'aoa.demo.model'"]
 
 
-def test_graph_builder_importing_aoa_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """``maxitor.graph_builder`` must not import AOA."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/graph_builder", "import aoa.action_machine\n")
-    assert found == ["maxitor/graph_builder/module.py:1: context 'graph_builder' must not import package 'aoa' via 'aoa.action_machine'"]
+def test_the_demo_may_use_the_core(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The demo is built on the core: allowed."""
+    assert _violations(tmp_path, monkeypatch, "aoa/demo", "from aoa.action_machine.model import BaseAction\n") == []
 
 
-def test_the_front_may_use_graph_builder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The front imports the command's schemas: allowed."""
-    assert _violations(tmp_path, monkeypatch, "maxitor/web", "from maxitor.graph_builder.schemas import graph_schema\n") == []
+def test_a_standalone_root_importing_aoa_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A standalone root must import nothing of ``aoa``."""
+    found = _violations(tmp_path, monkeypatch, "tool", "import aoa.action_machine\n")
+    assert found == ["tool/module.py:1: context 'tool' must not import package 'aoa' via 'aoa.action_machine'"]
 
 
 def test_an_import_belongs_to_its_longest_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The demo importing ``maxitor.graph_builder`` is a violation against ``graph-builder``, not lost and not charged to ``maxitor``."""
-    found = _violations(tmp_path, monkeypatch, "aoa/demo", "from maxitor.graph_builder.schemas import graph_schema\n")
-    assert found == ["aoa/demo/module.py:1: context 'examples' must not import package 'graph_builder' via 'maxitor.graph_builder.schemas'"]
-
-
-def test_the_core_importing_the_front_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """``maxitor.repo_graph_port`` must not import the front: one violation, naming file, line, owner and module."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/repo_graph_port", "from maxitor.web.api import app\n")
-    assert found == ["maxitor/repo_graph_port/module.py:1: context 'repo_graph_port' must not import package 'maxitor' via 'maxitor.web.api'"]
-
-
-def test_the_core_may_use_graph_builder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The port checks graphs with ``graph_builder``: allowed."""
-    assert _violations(tmp_path, monkeypatch, "maxitor/repo_graph_port", "from maxitor.graph_builder.schemas import check_graph\n") == []
-
-
-def test_the_front_importing_the_port_is_named(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The front reads the port over HTTP; importing it is a violation."""
-    found = _violations(tmp_path, monkeypatch, "maxitor/web", "from maxitor.repo_graph_port.commit import Commit\n")
-    assert found == ["maxitor/web/module.py:1: context 'maxitor' must not import package 'repo_graph_port' via 'maxitor.repo_graph_port.commit'"]
+    """The demo importing the standalone tool is a violation against the tool, not lost and not charged to the core."""
+    found = _violations(tmp_path, monkeypatch, "aoa/demo", "from aoa.action_machine.tool import run\n")
+    assert found == ["aoa/demo/module.py:1: context 'examples' must not import package 'tool' via 'aoa.action_machine.tool'"]

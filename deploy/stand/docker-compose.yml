@@ -1,6 +1,7 @@
 # deploy/stand/docker-compose.yml — the demonstrator stand, four containers on one host.
 #
-# Both services build from the repository root (uv workspace) and publish their
+# The demo builds from this repository's root (uv workspace); Maxitor and repo-graph-port build from
+# bystrovmaxim/gnomon at the release GNOMON_REF names, with its AOA submodule. All publish their
 # ports on the host's loopback only — the stand is reachable from outside
 # exclusively through the host's existing TLS front end. The front-end network
 # wiring lives in docker-compose.host.yml (the deploy script appends it on the
@@ -24,7 +25,7 @@ services:
 
   maxitor:
     build:
-      context: ../..
+      context: https://github.com/bystrovmaxim/gnomon.git#${GNOMON_REF:-maxitor-v3.15.0}
       dockerfile: packages/maxitor/maxitor-web/Dockerfile
     environment:
       # Built graphs stay in memory until this many are held; then the one read longest ago leaves.
@@ -50,7 +51,7 @@ services:
   # key new` writes key hashes into it; its git mirrors and version cache live in a volume.
   repo-graph-port:
     build:
-      context: ../..
+      context: https://github.com/bystrovmaxim/gnomon.git#${GNOMON_REF:-maxitor-v3.15.0}
       dockerfile: packages/maxitor/tools/repo-graph-port/Dockerfile
     environment:
       MAXITOR_HISTORIES: /config/histories.toml
@@ -80,7 +81,7 @@ services:
   # it, by its name on the stand's network; it publishes no port.
   maxitor-public-port:
     build:
-      context: ../..
+      context: https://github.com/bystrovmaxim/gnomon.git#${GNOMON_REF:-maxitor-v3.15.0}
       dockerfile: packages/maxitor/tools/repo-graph-port/Dockerfile
     environment:
       MAXITOR_HISTORIES: /config/histories.toml

@@ -6,13 +6,3 @@ graph_builder = "1.0"
 name = "demo"
 build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
-
-[[graph]]
-name = "maxitor"
-build = "uv run --extra dev python -m maxitor.web.build_graph"
-file = "packages/maxitor/maxitor-web/graph.json"
-
-[[graph]]
-name = "repo-graph-port"
-build = "uv run --extra dev python -m maxitor.repo_graph_port.build_graph"
-file = "packages/maxitor/tools/repo-graph-port/graph.json"

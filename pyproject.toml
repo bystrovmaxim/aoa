@@ -27,7 +27,7 @@ classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "aoa-action-machine",
     "aoa-ocel",
-    "maxitor[all]",
+    "maxitor[all]>=3.15.0",
     "aoa-demo",
 ]
 
@@ -86,7 +86,6 @@ Repository = "https://github.com/action-machine/action-machine"
 [tool.uv.workspace]
 members = [
     "packages/aoa-action-machine",
-    "packages/maxitor",
     "packages/aoa-demo",
     "packages/aoa-langgraph",
     "packages/aoa-fastapi-adapter",
@@ -98,7 +97,6 @@ members = [
 # Map distribution names used in member ``dependencies`` to workspace paths.
 [tool.uv.sources]
 aoa-action-machine = { workspace = true }
-maxitor = { workspace = true }
 aoa-demo = { workspace = true }
 aoa-langgraph = { workspace = true }
 aoa-fastapi-adapter = { workspace = true }
@@ -121,11 +119,6 @@ asyncio_mode = "auto"
 # Четыре `…/src` на PYTHONPATH для неймспейса `aoa.*`; `.` — корень репо (conftest/fixtures).
 pythonpath = [
     "packages/aoa-action-machine/src",
-    "packages/maxitor/maxitor-web",
-    "packages/maxitor/tools/repo-graph-port",
-    "packages/maxitor/tools/graph-builder",
-    "packages/maxitor/core/graph_compare",
-    "packages/maxitor/core/graph_map",
     "packages/aoa-demo/src",
     "packages/aoa-langgraph/src",
     "packages/aoa-fastapi-adapter/src",
@@ -172,7 +165,7 @@ explicit_package_bases = true
 # Standalone ``collect_python_files.py`` scripts at repo / package roots share the module
 # name ``collect_python_files``; exclude them from ``mypy packages/`` (task ``typecheck``).
 exclude = "collect_python_files\\.py$"
-mypy_path = "packages/aoa-action-machine/src:packages/maxitor/maxitor-web:packages/maxitor/tools/repo-graph-port:packages/maxitor/tools/graph-builder:packages/maxitor/core/graph_compare:packages/maxitor/core/graph_map:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
+mypy_path = "packages/aoa-action-machine/src:packages/aoa-demo/src:packages/aoa-langgraph/src:packages/aoa-fastapi-adapter/src:packages/aoa-mcp-adapter/src:packages/aoa-ocel/src:packages/aoa-otel/src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -221,11 +214,6 @@ module = "aoa.demo.model.*"
 disallow_untyped_decorators = false
 disable_error_code = ["valid-type"]
 
-# JsonSchemaValue.define() types used as annotations (mypy sees a variable, not a static alias)
-[[tool.mypy.overrides]]
-module = "maxitor.web.model.diagrams.*"
-disable_error_code = ["valid-type"]
-
 [[tool.mypy.overrides]]
 module = "tests.scenarios.domain_model.*"
 disallow_untyped_decorators = false
@@ -263,7 +251,7 @@ load-plugins = [
 ]
 jobs = 0
 # Each package root, so a module's name starts at its package and not at the repository.
-source-roots = ["packages/*/src", "packages/maxitor/*/src", "packages/maxitor/tools/*/src"]
+source-roots = ["packages/*/src"]
 # Per-package test suites (packages/<pkg>/tests/) are linted by ruff, not pylint —
 # pylint's production rules (e.g. import-outside-toplevel) don't apply to test code.
 # The bulk of tests historically lived in the root tests/ tree, outside `pylint packages/`.
@@ -371,9 +359,6 @@ external = ["V107"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_denied.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/exceptions/access_undecided.py" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/testing/stubs.py" = ["N802"]
-# ``maxitor.graph_builder`` — ``GraphRefused`` and its kin are verdicts on a document, as the access answers
-# above: the caller learns "this is not a graph", not that something broke, so the verdict's word is the name.
-"packages/maxitor/tools/graph-builder/maxitor/graph_builder/**" = ["N818"]
 "packages/aoa-action-machine/src/aoa/action_machine/intents/checkers/__init__.py" = ["RUF022"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
@@ -420,11 +405,6 @@ paths = [
     "packages/aoa-fastapi-adapter/src/aoa/fastapi",
     "packages/aoa-mcp-adapter/src/aoa/mcp",
     "packages/aoa-langgraph/src/aoa/langgraph",
-    "packages/maxitor/maxitor-web/maxitor",
-    "packages/maxitor/tools/repo-graph-port/maxitor",
-    "packages/maxitor/tools/graph-builder/maxitor",
-    "packages/maxitor/core/graph_compare/maxitor",
-    "packages/maxitor/core/graph_map/maxitor",
     "packages/aoa-demo/src/aoa/demo",
 ]
 min_confidence = 80
@@ -438,9 +418,10 @@ ignore_names = ["event_type", "jurisdiction"]
 # TASKIPY — УДОБНЫЕ КОМАНДЫ
 # ============================================================================
 [tool.taskipy.tasks]
+# Maxitor from PyPI, to look at this repository's services; Maxitor itself lives in bystrovmaxim/gnomon.
 maxitor = "uv run uvicorn maxitor.web.api.app:app --reload --host 127.0.0.1 --port 8000"
 packaging-smoke = "pytest tests/packaging -v"
-build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/maxitor && uv run --group dev python -m build packages/aoa-demo"
+build-packages = "uv run --group dev python -m build packages/aoa-action-machine && uv run --group dev python -m build packages/aoa-ocel && uv run --group dev python -m build packages/aoa-otel && uv run --group dev python -m build packages/aoa-fastapi-adapter && uv run --group dev python -m build packages/aoa-mcp-adapter && uv run --group dev python -m build packages/aoa-langgraph && uv run --group dev python -m build packages/aoa-demo"
 cov = "pytest packages/aoa-action-machine/tests/ --cov=packages/aoa-action-machine/src/aoa/action_machine --cov-report=term-missing"
 # Lint sources under packages/, tests/ and scripts/.
 lint = "ruff check packages/ tests/ scripts/"
@@ -452,7 +433,7 @@ package-boundaries = "python scripts/check_package_boundaries.py"
 package-metadata = "python scripts/check_package_metadata.py"
 check = "task lint && task types && task package-boundaries && task package-metadata && task build-packages && task packaging-smoke && task samples-public-api"
 dead = "vulture"
-typecheck = "mypy packages/aoa-action-machine/src packages/maxitor/maxitor-web/maxitor packages/maxitor/tools/repo-graph-port/maxitor packages/maxitor/tools/graph-builder/maxitor packages/maxitor/core/graph_compare/maxitor packages/maxitor/core/graph_map/maxitor packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
+typecheck = "mypy packages/aoa-action-machine/src packages/aoa-demo/src packages/aoa-langgraph/src packages/aoa-fastapi-adapter/src packages/aoa-mcp-adapter/src packages/aoa-ocel/src packages/aoa-otel/src"
 pylint = "pylint packages/"
 cc = "python scripts/check_radon.py cc"
 mi = "python scripts/check_radon.py mi"

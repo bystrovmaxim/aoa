@@ -1,6 +1,6 @@
 # The demonstrator stand
 
-Three containers on one host, each behind the host's TLS front end:
+Four containers on one host; three of them behind the host's TLS front end:
 
 | Service | Domain | On the host | What it is |
 |---|---|---|---|
@@ -8,6 +8,8 @@ Three containers on one host, each behind the host's TLS front end:
 | `maxitor` | `maxitor.aoa.run` | `127.0.0.1:${MAXITOR_PORT}` | Maxitor's front |
 | `repo-graph-port` | `repo-graph-port.aoa.run` | `127.0.0.1:8103` | reads services' graph histories from their repositories; the only container that talks to GitHub |
 | `maxitor-public-port` | — (not published) | — | Maxitor's own port: the `repo-graph-port` image with an empty config, through which Maxitor reads public GitHub links (`MAXITOR_PUBLIC_PORT`); no history, no key, no App; only Maxitor reaches it, on the stand's network |
+
+The demo is built from this repository. Maxitor and both ports are built from [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon) at the release `GNOMON_REF` names (`maxitor-v3.15.0` unless `/etc/aoa-stand.env` says otherwise), together with the AOA commit its submodule fixes; moving the stand to a newer Maxitor is one line in that file and a deploy.
 
 Each service has one domain, and nothing else serves it. The demo and Maxitor are served with the front end's `aoa.run` certificate (`STAND_CERT_NAME`); the port has its own.
 
@@ -60,11 +62,11 @@ Then add the `GITHUB_WEBHOOK_SECRET=` line, and `chmod 600 /etc/aoa-repo-graph-p
 
 ### `/etc/aoa-certificates/repo-graph-port/`
 
-The read keys issued to Maxitor, one `<history id>.key` per private history, root only (`600`) — the same files as [`certificates/`](../../certificates/README.md) in the maintainer's checkout. They live outside `/opt/aoa-stand`, which every deploy replaces.
+The read keys issued to Maxitor, one `<history id>.key` per private history, root only (`600`) — the same files as the maintainer's local `certificates/` folder, which `.gitignore` keeps out of git. They live outside `/opt/aoa-stand`, which every deploy replaces.
 
 ## The GitHub App
 
-`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](../../docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app). It is installed on `bystrovmaxim/gameoffer` only.
+`maxitor-repo-graph-port`, App ID `5525124`, webhook `https://repo-graph-port.aoa.run/api/v1/history/events/github`. How it is set up — permissions, events, installation — is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/run-the-repo-graph-port.md#1-create-the-github-app). It is installed on `bystrovmaxim/gameoffer` only.
 
 GitHub's webhook deliveries do not reach this host: no connection from GitHub's addresses arrives at its interface, while port 443 opens from elsewhere. Until the stand moves to another host, the port runs without events — a history is fetched again on a read when its last fetch is older than ten minutes.
 

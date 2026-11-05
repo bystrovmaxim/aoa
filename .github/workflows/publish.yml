@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'aoa-*-v*'
-      - 'maxitor-v*'
   workflow_dispatch:
     inputs:
       package:
@@ -18,7 +17,6 @@ on:
           - aoa-langgraph
           - aoa-otel
           - aoa-ocel
-          - maxitor
           - aoa-demo
 
 jobs:
@@ -115,33 +113,6 @@ jobs:
         run: uv build --package aoa-ocel --out-dir packages/aoa-ocel/dist
       - name: Publish
         run: uv publish packages/aoa-ocel/dist/*
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-
-  publish-maxitor:
-    name: Publish maxitor
-    runs-on: ubuntu-latest
-    if: >-
-      startsWith(github.ref, 'refs/tags/maxitor-v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.package == 'maxitor')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Build frontend
-        working-directory: packages/maxitor/maxitor-web/client
-        run: |
-          npm ci
-          npx vite build \
-            --base=/ \
-            --outDir ../maxitor/web/static \
-            --emptyOutDir
-      - name: Build
-        run: uv build --package maxitor --out-dir packages/maxitor/dist
-      - name: Publish
-        run: uv publish packages/maxitor/dist/*
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 

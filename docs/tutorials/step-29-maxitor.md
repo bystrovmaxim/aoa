@@ -91,7 +91,7 @@ build = "uv run --extra dev python -m aoa.demo.build_graph"
 file = "packages/aoa-demo/graph.json"
 ```
 
-`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `graph-builder write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md) — JSON Schemas with no code, which any language can follow; AOA keeps its own copy of version `1.1` as `GRAPH_JSON_SCHEMA`. The command is [`graph-builder`](../../packages/maxitor/tools/graph-builder/README.md), part of the `maxitor` package (`pip install maxitor`, no extra): it knows nothing about AOA — it runs each `build`, checks what it prints against the protocol's schema, and keeps the file. A service in another language plugs in the same way, with a `build` in its own language.
+`build` prints the graph — `aoa.demo.build_graph` is a few lines that register the demo's model and write `to_json()` — and `graph-builder write` saves it with sorted keys and an indent of two, so the same graph always gives the same bytes and an unchanged graph leaves its file untouched. Each graph is built in a process of its own: the demo built with Maxitor imported would carry Maxitor's own actions too. The format is the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md) — JSON Schemas with no code, which any language can follow; AOA keeps its own copy of version `1.1` as `GRAPH_JSON_SCHEMA`. The command is [`graph-builder`](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/tools/graph-builder/README.md), part of the `maxitor` package (`pip install maxitor`, no extra): it knows nothing about AOA — it runs each `build`, checks what it prints against the protocol's schema, and keeps the file. A service in another language plugs in the same way, with a `build` in its own language.
 
 How the graph travels with a pull request: you change the code; the check run's last step runs `graph-builder write` — only when every other step passed; you commit the changed `graph.json` with the code; CI runs `graph-builder check`, which builds the graph again, writes nothing and fails on a stale file, naming what changed by id:
 
@@ -112,11 +112,11 @@ Because the graph file travels with every merge, its git history *is* the graph'
 
 The indented lines are the port's own log: it names each history and its reader, never a key.
 
-The tag `v1.1` sits on a later commit that only changed the README, so it belongs to the version before it. Running the port on a server — the App, the config, the keys — is [the how-to page](../how-to/run-the-repo-graph-port.md); [its README](../../packages/maxitor/tools/repo-graph-port/README.md) is the reference.
+The tag `v1.1` sits on a later commit that only changed the README, so it belongs to the version before it. Running the port on a server — the App, the config, the keys — is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/run-the-repo-graph-port.md); [its README](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/tools/repo-graph-port/README.md) is the reference.
 
 Maxitor opens such a history from one address — the port's history URL with the key after `#key=` — and shows any version on a time axis: the merged pull requests and direct pushes, the pull requests still open, and Live.
 
-Reading the track — colours, versions, release flags, the card — is [the how-to page](../how-to/open-a-graph-history.md).
+Reading the track — colours, versions, release flags, the card — is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/open-a-graph-history.md).
 
 A history can also name the file that holds its version, so a change that raised the number without touching the graph shows too.
 
@@ -124,7 +124,7 @@ On the track, a large point then changed the graph and a small one changed only 
 
 Two versions can be compared: switch the picker to **Diff** and the ERD paints what was added, removed and changed between A and B.
 
-Picking the two versions and reading the coloured ERD is [the how-to page](../how-to/compare-two-versions.md).
+Picking the two versions and reading the coloured ERD is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/compare-two-versions.md).
 
 ## Dictionaries in the entity diagram
 
@@ -342,13 +342,13 @@ The diagram endpoints (`GET /api/v1/full-graph`, `…/list-entities`, `…/domai
 
 ## What a built graph costs
 
-A built graph lives in DuckDB. Until #268 most of its memory was not data: the build created 21 primary keys and 64 indexes, and on the reference service they took 38 of 43.5 MiB — 87 %. Yet they were never read: every plan of all six diagram queries and the sidebar build is a sequential scan ([the index usage table](../../specs/025-graph-index-memory/index-usage.md)).
+A built graph lives in DuckDB. Until #268 most of its memory was not data: the build created 21 primary keys and 64 indexes, and on the reference service they took 38 of 43.5 MiB — 87 %. Yet they were never read: every plan of all six diagram queries and the sidebar build is a sequential scan ([the index usage table](https://github.com/bystrovmaxim/gnomon/blob/main/specs/025-graph-index-memory/index-usage.md)).
 
 The build now creates neither. The reference graph takes 13.4 MiB instead of 43.5, and the demo's graph 20.4 instead of 65.4. Per held graph the process gains 24.5 MiB instead of 53.4 on macOS, and 16.7 MiB on Linux, so at the store's limit of fifty graphs the process holds about 1.1 GiB instead of 2.7. The build is also faster (109 ms instead of 125 ms on the reference), and every diagram answer stays byte for byte the same.
 
 One protection moved rather than disappeared. A primary key used to refuse a graph that lists the same node id twice in one table; the build now checks for that after loading and names the id and the table. A repeated id in two *different* tables is still accepted, as it always was.
 
-On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`maxitor` README](../../packages/maxitor/README.md#backend) says what that means for the fifty-graph limit.
+On Linux the process returns the memory to the system when graphs are dropped; on macOS it keeps its peak. The [`maxitor` README](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md#backend) says what that means for the fifty-graph limit.
 
 ## Looking at one service together
 
@@ -401,14 +401,13 @@ Maxitor's own answers are conditional too: every successful `GET` of a `FastApiA
 ## How to run it
 
 ```bash
-# backend (FastAPI, :8000)
+# Maxitor from PyPI, with its built client (:8000)
 uv run task maxitor
-
-# frontend (Vite SPA, :5173; proxies /api to :8000)
-cd packages/maxitor/maxitor-web/client && npm install && npm run dev
 ```
 
-Open a source as `http://127.0.0.1:5173/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](../../packages/maxitor/README.md).
+The client's sources, and running it with Vite on `:5173`, are in [Maxitor's own repository](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/maxitor-web/README.md).
+
+Open a source as `http://127.0.0.1:8000/?source=<graph-json URL>`: every read of the SPA carries that source. The process holds at most 50 graphs — a built graph stays until then — and builds at most four at once; both are settings, listed in the [`maxitor` package README](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md).
 
 Rooms run over a WebSocket. A reverse proxy in front of Maxitor must pass the upgrade through and keep the page's `Host` — otherwise a browser is refused with `4403`. For nginx, in the `location` that proxies Maxitor:
 
@@ -489,7 +488,7 @@ Case 5 is why the response has a top-level `relations` list beside its per-domai
 
 **Hover.** Hovering a table dims every other table and every line that does not touch it. Hovering a line thickens and darkens it, raises it above the others, shows its role names, marks in bold the field it starts from and the field it ends at, and keeps bright only the two tables it joins. Hovering a key field — `PK` or `FK` — makes that field's lines bold, keeps bright the tables they join, dims every other table, leaves the hovered table's other lines as they are and dims the lines that do not touch it. A specialization head and its extensions answer the same way: hovering the head's axis field lights the head and every extension, an extension's reverse field lights that extension and its head. Nothing changes colour or background: the marking is in the weight of the text and the dimming of the rest.
 
-**The card.** Rest the pointer on a field, a table or a line and one card says what it is, what it is for and what changed; a lifecycle shows its picture. From far away a table's card opens anywhere on the table, and a chevron on the header hides all but the keys. [Reading a diagram without zooming in](../how-to/read-a-diagram-without-zooming.md) has every case.
+**The card.** Rest the pointer on a field, a table or a line and one card says what it is, what it is for and what changed; a lifecycle shows its picture. From far away a table's card opens anywhere on the table, and a chevron on the header hides all but the keys. [Reading a diagram without zooming in](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/read-a-diagram-without-zooming.md) has every case.
 
 **Copying a name.** Clicking a table's name or a field's name copies it, and a note such as `Copied player_id` appears at the bottom for a moment. Dragging the canvas never copies: a press that moves more than a few pixels is a pan.
 
@@ -509,13 +508,13 @@ The page opens fast, and a second visit barely downloads anything.
 
 **What is compressed and cached.** Every answer above 500 bytes is gzipped when the browser accepts it, and a file whose name carries a content hash is marked `Cache-Control: public, max-age=31536000, immutable`: the code and the styles are downloaded once and then come from the browser's cache. `index.html` is the exception — it is marked `no-cache`, so the browser asks again on every open and gets a `304` unless there is a new release; when there is, the page arrives whole and points at the new hashed files. That is why a new release still reaches a returning user on the next open. The graph reads themselves carry no cache lifetime: the same source can answer with a different graph after the store rebuilds it.
 
-**Use cases in two versions.** A use-case diagram does not draw an action's parts, so an action whose result got a new field is marked *changed inside*, and its card lists the parts. See [Compare two versions](../how-to/compare-two-versions.md#read-use-cases).
+**Use cases in two versions.** A use-case diagram does not draw an action's parts, so an action whose result got a new field is marked *changed inside*, and its card lists the parts. See [Compare two versions](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/compare-two-versions.md#read-use-cases).
 
-**Lifecycles in two versions.** States and transitions take the same marks, and the left panel marks a lifecycle that changed with `~`. See [Compare two versions](../how-to/compare-two-versions.md#read-lifecycles).
+**Lifecycles in two versions.** States and transitions take the same marks, and the left panel marks a lifecycle that changed with `~`. See [Compare two versions](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/compare-two-versions.md#read-lifecycles).
 
-**The full graph is a map.** It is no longer laid out in the browser. Each version is laid out once on the server, by Graphviz, domain by domain, and the browser reads an overview first and the detail of what it looks at, so a graph of about a hundred thousand nodes opens in under a second. Sigma.js draws it with WebGL. Reading it — the levels, the filters, comparing two versions — is [the how-to page](../how-to/read-the-full-graph-map.md).
+**The full graph is a map.** It is no longer laid out in the browser. Each version is laid out once on the server, by Graphviz, domain by domain, and the browser reads an overview first and the detail of what it looks at, so a graph of about a hundred thousand nodes opens in under a second. Sigma.js draws it with WebGL. Reading it — the levels, the filters, comparing two versions — is [the how-to page](https://github.com/bystrovmaxim/gnomon/blob/main/docs/how-to/read-the-full-graph-map.md).
 
-**How it is measured.** `packages/maxitor/maxitor-web/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.
+**How it is measured.** In [gnomon](https://github.com/bystrovmaxim/gnomon), `packages/maxitor/maxitor-web/client/scripts/generate-large-graph.ts` makes a graph 30 times the size of a real one, and `scripts/measure-map.ts` runs a session on it and prints each number beside its threshold.
 
 ---
 
