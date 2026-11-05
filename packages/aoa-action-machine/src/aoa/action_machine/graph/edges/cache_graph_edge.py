@@ -21,6 +21,7 @@ from typing import Any
 from aoa.action_machine.graph.core.association_graph_edge import AssociationGraphEdge
 from aoa.action_machine.graph.core.composition_graph_edge import CompositionGraphEdge
 from aoa.action_machine.graph.nodes.cache_graph_node import CacheGraphNode
+from aoa.action_machine.intents.cache.cache_entity_fields import cached_types
 from aoa.action_machine.intents.cache.cache_intent_resolver import CacheIntentResolver, tags_of
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -96,11 +97,12 @@ class CacheTagGraphEdge(AssociationGraphEdge):
 
     @staticmethod
     def get_cache_tag_edges(action_cls: type[Any]) -> list[CacheTagGraphEdge]:
-        """One ``caches`` edge per tag type of the write, then one ``invalidates`` edge per tag type of the invalidation."""
+        """``caches`` to each type the write caches (its tags, and entity by entity its Result's entity types), then ``invalidates``."""
         declarations = CacheIntentResolver.declarations(action_cls)
-        edges: list[CacheTagGraphEdge] = []
-        for kind, edge_name in TAG_EDGE_NAMES.items():
-            method = getattr(declarations, kind)
-            if method is not None:
-                edges.extend(CacheTagGraphEdge(edge_name=edge_name, entity_cls=tag) for tag in tags_of(method))
+        edges = [CacheTagGraphEdge(edge_name=TAG_EDGE_NAMES["write"], entity_cls=tag) for tag in cached_types(action_cls)]
+        if declarations.invalidate is not None:
+            edges.extend(
+                CacheTagGraphEdge(edge_name=TAG_EDGE_NAMES["invalidate"], entity_cls=tag)
+                for tag in tags_of(declarations.invalidate)
+            )
         return edges

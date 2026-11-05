@@ -246,7 +246,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             row["id"] = edge_id(row)
             edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.4",
+            "schema_version": "1.5",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }

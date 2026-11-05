@@ -35,6 +35,7 @@ _EDGE_TABLES = {
     "@cache_read": "cache_read_edges",
     "@cache_write": "cache_write_edges",
     "@cache_invalidate": "cache_invalidate_edges",
+    "@cache_entity_key": "cache_entity_key_edges",
     "caches": "caches_edges",
     "invalidates": "invalidates_edges",
 }
@@ -51,12 +52,12 @@ def _graph() -> dict[str, Any]:
         {"id": _UPDATE, "type": "Action", "label": "UpdateOrderAction", "properties": {"description": "Update"}},
     ]
     edges = []
-    for owner, kind in ((_GET, "key"), (_GET, "read"), (_GET, "write"), (_UPDATE, "invalidate")):
+    for owner, kind in ((_GET, "key"), (_GET, "read"), (_GET, "write"), (_GET, "entity_key"), (_UPDATE, "invalidate")):
         node_id = f"{owner}:order_cache_{kind}"
         nodes.append({"id": node_id, "type": "Cache", "label": f"order_cache_{kind}", "properties": {"kind": kind, "description": kind.title()}})
         edges.append(_edge(owner, node_id, f"@cache_{kind}", "Composition"))
     edges += [_edge(_GET, _ORDER, "caches", "Association"), _edge(_UPDATE, _ORDER, "invalidates", "Association")]
-    return {"schema_version": "1.4", "nodes": nodes, "edges": edges}
+    return {"schema_version": "1.5", "nodes": nodes, "edges": edges}
 
 
 def _rows(duck: DuckDBGraphResource, sql: str) -> list[tuple[Any, ...]]:
@@ -67,6 +68,7 @@ def test_the_cache_nodes_land_in_their_table() -> None:
     """Each declaration is a row with its kind and description."""
     duck = DuckDBGraphResource.build_from_json(_graph())
     assert _rows(duck, "SELECT label, kind, description FROM cache ORDER BY label") == [
+        ("order_cache_entity_key", "entity_key", "Entity_Key"),
         ("order_cache_invalidate", "invalidate", "Invalidate"),
         ("order_cache_key", "key", "Key"),
         ("order_cache_read", "read", "Read"),
@@ -86,7 +88,7 @@ def test_the_node_view_carries_the_cache_kind() -> None:
     """The union view reports the slug and the payload the client reads."""
     duck = DuckDBGraphResource.build_from_json(_graph())
     payloads = _rows(duck, "SELECT payload FROM nodes WHERE type = 'cache' ORDER BY id")
-    assert len(payloads) == 4
+    assert len(payloads) == 5
     assert '"kind":"write"' in str(payloads).replace(" ", "")
 
 

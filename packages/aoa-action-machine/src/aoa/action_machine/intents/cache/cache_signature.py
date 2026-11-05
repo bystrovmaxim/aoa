@@ -15,6 +15,7 @@ sits under it:
     @cache_read         self, params, box, connections, entry             -> Result | None
     @cache_write        self, params, box, connections, result, duration_ms -> list[CacheTag] | None
     @cache_invalidate   self, params, box, connections, result            -> list[CacheTag] | None
+    @cache_entity_key   self, params, box, connections, entity            -> str
 
 Names, order and the presence of annotations are checked here, when the class body
 runs. The types those annotations name are checked when the graph is assembled
@@ -31,7 +32,7 @@ from typing import Any, Literal
 
 from aoa.action_machine.exceptions.aspect_signature_error import AspectSignatureError
 
-CacheKind = Literal["key", "read", "write", "invalidate"]
+CacheKind = Literal["key", "read", "write", "invalidate", "entity_key"]
 
 _COMMON = ("self", "params", "box", "connections")
 _OWN: dict[str, tuple[str, ...]] = {
@@ -39,12 +40,14 @@ _OWN: dict[str, tuple[str, ...]] = {
     "read": ("entry",),
     "write": ("result", "duration_ms"),
     "invalidate": ("result",),
+    "entity_key": ("entity",),
 }
 RETURNS = {
     "key": "str | None",
     "read": "the operation's Result | None",
     "write": "list[CacheTag] | None",
     "invalidate": "list[CacheTag] | None",
+    "entity_key": "str",
 }
 
 

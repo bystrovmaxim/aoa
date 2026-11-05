@@ -261,3 +261,30 @@ def test_a_1_3_graph_does_not_know_the_cache() -> None:
     document["schema_version"] = "1.3"
     schema = json.loads(PROTOCOL_1_3.read_text(encoding="utf-8"))
     assert list(Draft202012Validator(schema).iter_errors(document))
+
+
+PROTOCOL_1_5 = Path(__file__).parents[4] / "open-gnomon-protocol" / "graph" / "1.5.json"
+
+
+def _entity_key_document() -> dict[str, Any]:
+    """A minimal 1.5 document: an action and its entity key declaration."""
+    document = _cache_document()
+    document["schema_version"] = "1.5"
+    document["nodes"][1] = {"id": "shop.GetOrderAction:order_cache_entity_key", "type": "Cache", "label": "order_cache_entity_key", "properties": {"kind": "entity_key", "description": "One order"}}
+    document["edges"][0] = {"id": "e1", "source_id": "shop.GetOrderAction", "target_id": "shop.GetOrderAction:order_cache_entity_key", "type": "@cache_entity_key", "relationship": "Composition", "is_dag": False, "properties": {}}
+    return document
+
+
+def test_the_fixture_of_1_5_shows_every_new_word() -> None:
+    """The ``1.5`` sample holds an entity key node and its edge."""
+    document = _sample("1.5")
+    check_graph(document)
+    assert "entity_key" in {node["properties"].get("kind") for node in document["nodes"] if node["type"] == "Cache"}
+    assert "@cache_entity_key" in {edge["type"] for edge in document["edges"]}
+
+
+def test_the_words_of_1_5_pass_and_1_4_does_not_know_them() -> None:
+    """An entity key is a 1.5 word: valid in 1.5, refused by 1.4."""
+    document = _entity_key_document()
+    assert list(Draft202012Validator(json.loads(PROTOCOL_1_5.read_text(encoding="utf-8"))).iter_errors(document)) == []
+    assert _cache_errors({**document, "schema_version": "1.4"})

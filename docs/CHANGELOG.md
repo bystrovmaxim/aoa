@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-11-05] — A collection can be cached entity by entity
+
+A cached Result used to keep full copies of its entities. Two actions returning the same order kept two copies of it, and changing that order dropped both entries — a whole list included, though the other orders had not changed. A write can now store its Result entity by entity: `@cache_write(..., layout=CacheLayout.ENTITIES)` with a new declaration, `@cache_entity_key`, which builds the key of one entity. Every entity is stored once under its key, and the entry for the call keeps the keys of its entities and the Result's other fields — like a library card that lists shelf numbers, not books.
+
+Two actions that build the same key for an entity share its entry. Changing an order drops that one entry, tagged with the order's type and id: other actions reading other orders keep hitting, and a list containing the changed order misses once and writes it again. A hit assembles the Result from the entries, reading them all in one call to the store; if any is gone, or holds a form the reader cannot accept, the call is a miss and the action runs whole — never a shorter list. A new member is a change of the list, not of an entity: the write's own tags, such as the customer the list belongs to, are what an action creating an order drops.
+
+The keys are your code, as before. A key of an entity must tell apart everything that changes what a reader sees — the loaded fields, the loaded relations, the tenant, a role. The layout and `@cache_entity_key` come together or not at all, and the Result needs a field typed by an entity with an `id`; both are checked before the application serves a call. The graph shows the entity key, and the entity types a write stores this way count as cached for the check of dead tags. This is version 1.5 of the graph protocol, which AOA writes and Maxitor reads. **If you wrote your own store**, add `get_entries(action_cls, user_keys)`, which returns several entries in one call.
+
+[Tutorial step 8](tutorials/step-08-cache.md#a-collection-entity-by-entity) shows a shop with a script and a notebook, and [the page on a cache adapter](how-to/authoring-cache-adapter.md) gives the store's five methods.
+
 ## [2026-11-05] — The cache stores JSON
 
 The cache used to keep the Result object itself and hand that same object to every hit, so a caller that changed what it received changed it for everyone after, and a store that keeps bytes, such as Redis, could not be plugged in. Now the machine writes the Result's JSON to the store and reads every hit back into a new Result: one caller's change no longer reaches another, and the store only keeps bytes.

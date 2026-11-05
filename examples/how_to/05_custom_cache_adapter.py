@@ -15,14 +15,17 @@ Caching in AOA has two sides:
     you write your own. The store keeps bytes: the machine hands it the
     Result's JSON in UTF-8 and reads every hit back into a new Result itself.
     It talks to the store through a duck-typed contract (no base class to
-    subclass) — four async methods are called during a run:
+    subclass) — these async methods are called during a run:
 
       async get_entry(action_cls, user_key)  -> StoredCacheEntry | None
+      async get_entries(action_cls, user_keys) -> list[StoredCacheEntry | None]
       async invalidate(action_cls, user_key) -> bool
       async put(action_cls, user_key, payload: bytes, pipeline_duration_ms,
                 tags: list[CacheTag] | None = None) -> None
       async evict_by_tags(directive_tags: frozenset[CacheTag]) -> int
 
+    `get_entries` reads several keys in one call (Redis `MGET`); a hit of a
+    Result cached entity by entity reads all its entities through it.
     `evict_by_tags` receives a frozenset of CacheTag matchers; it must evict
     every entry whose stored tags match any directive (wildcard: None field =
     match any value). Returns the number of entries removed.
@@ -72,6 +75,10 @@ class DictCacheAdapter:
 
     async def get_entry(self, action_cls: type, user_key: str) -> StoredCacheEntry | None:
         return self._store.get(self._key(action_cls, user_key))
+
+    async def get_entries(self, action_cls: type, user_keys: list[str]) -> list[StoredCacheEntry | None]:
+        # One round trip for many keys, as Redis MGET does.
+        return [self._store.get(self._key(action_cls, user_key)) for user_key in user_keys]
 
     async def put(
         self,

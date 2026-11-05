@@ -40,6 +40,7 @@ from aoa.action_machine.exceptions.declaration_structure_error import Declaratio
 from aoa.action_machine.exceptions.description_contract_error import DescriptionContractError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
+from aoa.action_machine.intents.cache.cache_layout import CacheLayout
 from aoa.action_machine.intents.cache.cache_signature import (
     CacheKind,
     decorator_name,
@@ -75,7 +76,7 @@ def _checked_tags(name: str, tags: Any, *, required: bool) -> tuple[type, ...]:
 
 
 def _declaration(
-    kind: CacheKind, description: str, tags: tuple[type, ...] = ()
+    kind: CacheKind, description: str, tags: tuple[type, ...] = (), layout: CacheLayout = CacheLayout.WHOLE
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Build the decorator of one kind after checking its description and its tag types."""
     name = decorator_name(kind)
@@ -97,7 +98,7 @@ def _declaration(
             raise DeclarationStructureError(f"{name}: method '{func.__name__}' must be async (async def).")
         validate_names(kind, func)
         validate_annotated(kind, func)
-        setattr(func, CACHE_META_ATTR, {"kind": kind, "description": description, "tags": tags})
+        setattr(func, CACHE_META_ATTR, {"kind": kind, "description": description, "tags": tags, "layout": layout})
         return func
 
     return decorator
@@ -125,11 +126,14 @@ def cache_read(description: str) -> Callable[[Callable[..., Any]], Callable[...,
     return _declaration("read", description)
 
 
-def cache_write(description: str, *, tags: tuple[type, ...] = ()) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def cache_write(
+    description: str, *, tags: tuple[type, ...] = (), layout: CacheLayout = CacheLayout.WHOLE
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Declare the write after a clean run: the tags to store the Result under, or ``None`` to skip.
 
     ``tags`` are the entity types the returned tags may name; the method returns the keys.
+    ``layout=CacheLayout.ENTITIES`` stores the Result entity by entity, with ``@cache_entity_key``.
 
     Example:
         @cache_write("Keep every order", tags=(OrderCoreEntity,))
@@ -137,7 +141,9 @@ def cache_write(description: str, *, tags: tuple[type, ...] = ()) -> Callable[[C
                                     result: Result, duration_ms: float) -> list[CacheTag] | None:
             return [CacheTag(type=OrderCoreEntity, key=params.order_id)]
     """
-    return _declaration("write", description, _checked_tags("@cache_write", tags, required=False))
+    if not isinstance(layout, CacheLayout):
+        raise DeclarationStructureError(f"@cache_write: layout must be a CacheLayout, got {layout!r}.")
+    return _declaration("write", description, _checked_tags("@cache_write", tags, required=False), layout)
 
 
 def cache_invalidate(description: str, *, tags: tuple[type, ...]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -149,4 +155,21 @@ def cache_invalidate(description: str, *, tags: tuple[type, ...]) -> Callable[[C
     return _declaration("invalidate", description, _checked_tags("@cache_invalidate", tags, required=True))
 
 
-__all__ = ["CACHE_META_ATTR", "cache_invalidate", "cache_key", "cache_read", "cache_write"]
+def cache_entity_key(description: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Declare the key of one entity, for a write with ``layout=CacheLayout.ENTITIES``.
+
+    The key decides which forms of an entity share an entry: two actions that build the same
+    key read one entry. It must tell apart what changes the data a reader sees — the loaded
+    fields, the loaded relations, the tenant, a role that hides a value.
+
+    Example:
+        @cache_entity_key("One order of the list, loaded as a row")
+        async def order_cache_entity_key(self, params: Params, box: ToolsBox, connections: Connections,
+                                         entity: OrderCoreEntity) -> str:
+            return f"order:{entity.id}:row"
+    """
+    return _declaration("entity_key", description)
+
+
+__all__ = ["CACHE_META_ATTR", "cache_entity_key", "cache_invalidate", "cache_key", "cache_read", "cache_write"]
