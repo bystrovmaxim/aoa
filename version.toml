@@ -2,13 +2,11 @@
 kind = "repository"
 driver = "python"
 require_bump = false
-untracked = ["packages/maxitor/maxitor-web/client"]
 
 [changes]
 ignore = [
   "**/CHANGELOG.md",
   "packages/aoa-*/**/README.md",
-  "packages/maxitor/**/README.md",
   "**/tests/**",
   "**/examples/**",
 ]

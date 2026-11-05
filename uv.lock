@@ -20,7 +20,6 @@ members = [
     "aoa-ocel",
     "aoa-otel",
     "aoa-run",
-    "maxitor",
 ]
 
 [[package]]
@@ -394,7 +393,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29,<8.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
-    { name = "maxitor", extras = ["all"], editable = "packages/maxitor" },
+    { name = "maxitor", extras = ["all"], specifier = ">=3.15.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "nbclient", marker = "extra == 'dev'", specifier = ">=0.10,<1.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
@@ -2303,11 +2302,15 @@ wheels = [
 
 [[package]]
 name = "maxitor"
-version = "3.14.5"
-source = { editable = "packages/maxitor" }
+version = "3.15.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
     { name = "jsonschema-rs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/df/b0/6300c2848d1888fa1c421c7e3ef8144804ecb2d8442fd09e7cace7e38bef/maxitor-3.15.0.tar.gz", hash = "sha256:b3fff72ba8c2a002a42fb05419d4b5015f647516f54eff5327060eb8e43d6fd5", size = 2001664, upload-time = "2026-11-05T17:17:02.31Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/3a/8856411841c05f9e1e5acd3449522fc28a33a10472e27eb885f6b7f98527/maxitor-3.15.0-py3-none-any.whl", hash = "sha256:05cb06d7e3f47ac6d37bdaa72688cfa6f19abde0f94ee03a63f602b4769d9de3", size = 1384169, upload-time = "2026-11-05T17:16:59.936Z" },
 ]
 
 [package.optional-dependencies]
@@ -2319,53 +2322,6 @@ all = [
     { name = "pyjwt", extra = ["crypto"] },
     { name = "uvicorn" },
     { name = "websockets" },
-]
-repo-graph-port = [
-    { name = "aoa-action-machine" },
-    { name = "aoa-fastapi-adapter" },
-    { name = "httpx" },
-    { name = "pyjwt", extra = ["crypto"] },
-    { name = "uvicorn" },
-]
-web = [
-    { name = "aoa-action-machine" },
-    { name = "aoa-fastapi-adapter" },
-    { name = "duckdb" },
-    { name = "httpx" },
-    { name = "uvicorn" },
-    { name = "websockets" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aoa-action-machine", marker = "extra == 'repo-graph-port'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-action-machine", marker = "extra == 'web'", editable = "packages/aoa-action-machine" },
-    { name = "aoa-fastapi-adapter", marker = "extra == 'repo-graph-port'", editable = "packages/aoa-fastapi-adapter" },
-    { name = "aoa-fastapi-adapter", marker = "extra == 'web'", editable = "packages/aoa-fastapi-adapter" },
-    { name = "duckdb", marker = "extra == 'web'", specifier = ">=1.5,<2" },
-    { name = "httpx", marker = "extra == 'repo-graph-port'", specifier = ">=0.28,<1.0" },
-    { name = "httpx", marker = "extra == 'web'", specifier = ">=0.28,<1.0" },
-    { name = "jsonschema", specifier = ">=4.17,<5" },
-    { name = "jsonschema-rs", specifier = ">=0.60,<1" },
-    { name = "maxitor", extras = ["repo-graph-port"], marker = "extra == 'all'", editable = "packages/maxitor" },
-    { name = "maxitor", extras = ["web"], marker = "extra == 'all'", editable = "packages/maxitor" },
-    { name = "pyjwt", extras = ["crypto"], marker = "extra == 'repo-graph-port'", specifier = ">=2.8,<3" },
-    { name = "uvicorn", marker = "extra == 'repo-graph-port'", specifier = ">=0.30" },
-    { name = "uvicorn", marker = "extra == 'web'", specifier = ">=0.30" },
-    { name = "websockets", marker = "extra == 'web'", specifier = ">=15" },
-]
-provides-extras = ["repo-graph-port", "web", "all"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
 ]
 
 [[package]]
