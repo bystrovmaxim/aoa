@@ -18,10 +18,10 @@ Goal: an entity names its resource; its domain is read from it (2.1–2.3, 2.5, 
 
 Goal: case 2.4 for every link kind and the shared state type.
 
-- [ ] T006 [US2] Create `src/exceptions/entity_resource_error.py` (`EntityResourceError`), export it from `src/exceptions/__init__.py`.
-- [ ] T007 [US2] Write `tests/graph/test_entity_resource_validator.py`: association, aggregation, composition (owner side and the other side), inverse side, specialization, generalization, dictionary field, shared state type across two resources — each refused with the contract's message; a self-relation, a same-resource model and a state type shared inside one resource accepted.
-- [ ] T008 [US2] Create `src/graph/validators/entity_resource_validator.py` with `validate_entity_resources(entities=None)` (research R3, R6); call it in `src/graph/core/node_graph_coordinator.py` `build` right after `validate_entity_fields()`; add `EntityResourceError` to `build`'s `Raises`.
-- [ ] T009 [US2] Run T007; adversarial: skip the lifecycle grouping → the state-type case fails alone; skip generalization targets → the generalization case fails alone; restore. Commit.
+- [X] T006 [US2] Add `EntityResourceError` to `src/domain/exceptions.py` beside the other entity declaration errors, export it from `src/domain/__init__.py`; add `Lifecycle.state_type()` so the pass reads an axis's state type.
+- [X] T007 [US2] Write `tests/graph/test_entity_resource_validator.py`: association, aggregation, composition (owner side and the other side), inverse side, specialization, generalization, dictionary field, shared state type across two resources — each refused with the contract's message; a self-relation, a same-resource model and a state type shared inside one resource accepted.
+- [X] T008 [US2] Create `src/graph/validators/entity_resource_validator.py` with `validate_entity_resources(entities=None)` (research R3, R6); call it in `src/graph/core/node_graph_coordinator.py` `build` right after `validate_entity_fields()`; add `EntityResourceError` to `build`'s `Raises`.
+- [X] T009 [US2] Run T007; adversarial: skip the lifecycle grouping → the state-type case fails alone; skip generalization targets → the generalization case fails alone; restore. Commit.
 
 ## Phase 3: the graph — US3 (P2)
 

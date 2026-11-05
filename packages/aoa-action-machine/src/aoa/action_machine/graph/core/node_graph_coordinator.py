@@ -90,6 +90,7 @@ from aoa.action_machine.graph.validators import (
     emits_vocabulary_validator,
     entity_field_validator,
     entity_inverse_validator,
+    entity_resource_validator,
     entity_role_compatibility_validator,
     entity_specialization_validator,
     json_form_validator,
@@ -166,6 +167,8 @@ class NodeGraphCoordinator(BaseCoordinator):
                 containing ``|``, or an edge whose id part (its rule's property) is missing, empty,
                 not a string or contains ``|``.
             DuplicateEdgeError: two edges get the same edge id.
+            EntityResourceError: a relation, an inverse side, a specialization, a generalization, a
+                dictionary field or a shared state type joins entities stored by two resources.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -184,6 +187,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         # ``__subclasses__()`` keeps listing a dead class, such as one refused at declaration, until it is collected.
         gc.collect()
         entity_field_validator.validate_entity_fields()
+        entity_resource_validator.validate_entity_resources()
         entity_inverse_validator.validate_entity_inverses()
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)

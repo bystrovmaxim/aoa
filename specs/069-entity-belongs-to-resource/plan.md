@@ -53,7 +53,8 @@ specs/069-entity-belongs-to-resource/
 packages/aoa-action-machine/src/aoa/action_machine/
 ├── intents/entity/entity_decorator.py          # resource=, checks (R2)
 ├── intents/entity/entity_intent_resolver.py    # resolve_resource_type, domain via the resource (R1)
-├── exceptions/entity_resource_error.py         # new (R3)
+├── domain/exceptions.py                        # EntityResourceError (R3)
+├── domain/lifecycle.py                         # Lifecycle.state_type() (R6)
 ├── graph/validators/entity_resource_validator.py  # new class-level pass (R3, R6)
 ├── graph/edges/entity_resource_graph_edge.py   # new edge (R4)
 ├── graph/edges/domain_graph_edge.py            # entity domain from the resource

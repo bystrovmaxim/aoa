@@ -125,6 +125,7 @@ from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     EntityFieldDeclarationError,
+    EntityResourceError,
     FieldNotLoadedError,
     ForeignStateError,
     LifecycleGraphError,
@@ -183,6 +184,7 @@ __all__ = [
     "EntityDecoratorError",
     "EntityFieldDeclarationError",
     "EntityIntent",
+    "EntityResourceError",
     "EntitySchemaMarker",
     "FieldNotLoadedError",
     "ForeignStateError",

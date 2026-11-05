@@ -145,7 +145,8 @@ class EntityDecoratorError(TypeError):
     - Applied to something that is not a class.
     - Target class does not inherit `EntityIntent` (usually via `BaseEntity`).
     - `description` is not a non-empty string.
-    - `domain` is neither `None` nor a `BaseDomain` subclass.
+    - `resource` is missing, several, not a `BaseResource` subclass, a kind base
+      excluded from the graph model, or a resource with no `@meta` domain.
 
     Subclasses `TypeError` because these are **developer** mistakes at class
     definition time, not invalid end-user input.
@@ -293,6 +294,20 @@ class EntityFieldDeclarationError(Exception):
 
         super().__init__(f"Field '{field_name}' on entity '{entity_name}' is invalid: {details}")
 
+
+
+class EntityResourceError(Exception):
+    """
+    AI-CORE-BEGIN
+        ROLE: Fail-fast signal for a link between entities stored by two different resources.
+        CONTRACT: The message names the link, both entities and both resources.
+        INVARIANTS: Raised while the model is built, before a graph node is gathered.
+    AI-CORE-END
+
+    A relation is a join or a foreign key, and a join exists only inside one database:
+    every link between two entities, and every state type a ``Lifecycle[...]`` shares,
+    stays inside the one resource that stores them.
+    """
 
 class RoleCompatibilityError(Exception):
     """
