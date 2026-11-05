@@ -41,7 +41,8 @@ Model build validates the dictionary and alternatives independently of loading.
 
 from __future__ import annotations
 
-from typing import Any, Self
+from types import UnionType
+from typing import Any, Self, Union, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -54,7 +55,34 @@ def _declared_value(entity_cls: type[Any]) -> Any:
     return declared_value(entity_cls)
 
 
-class Specialization[T, D](BaseModel):
+_CANONICAL_UNIONS: dict[Any, Any] = {}
+
+
+def _canonical_union(arg: Any) -> Any:
+    """Return the first union seen equal to ``arg``, or ``arg`` itself when it is not a union.
+
+    ``A | B`` builds a new object every time a forward reference is evaluated. Pydantic
+    recognises a generic it is already building by the ids of its arguments, so with a new
+    union each time it never does: a head with two kinds whose kinds link to an entity
+    declared after them recursed until ``RecursionError`` (issue #415). One object per
+    union lets it recognise the generic and close the loop with a reference.
+    """
+    if get_origin(arg) not in (Union, UnionType):
+        return arg
+    return _CANONICAL_UNIONS.setdefault(arg, arg)
+
+
+class _OneUnionPerSubscript(BaseModel):
+    """Subscripts a generic model with one object per union (see ``_canonical_union``)."""
+
+    def __class_getitem__(cls, typevar_values: Any) -> Any:
+        """Replace each union by the first one seen equal to it, then subscript as Pydantic does."""
+        if isinstance(typevar_values, tuple):
+            return super().__class_getitem__(tuple(_canonical_union(value) for value in typevar_values))
+        return super().__class_getitem__(_canonical_union(typevar_values))
+
+
+class Specialization[T, D](_OneUnionPerSubscript):
     """
     AI-CORE-BEGIN
         ROLE: Head-side container: a link to one of the declared alternatives.
