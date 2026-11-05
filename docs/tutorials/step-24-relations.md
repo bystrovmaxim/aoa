@@ -591,6 +591,18 @@ Descriptions and defaults are checked for ownership relations, specializations a
 
 Specialization and Generalization require Inverse on both endpoints. NoInverse is refused on either specialized field. Ordinary reciprocal pairs are also checked against the endpoint-role matrix during model assembly.
 
+## A relation stays inside one resource
+
+A relation is a join or a foreign key, and a join exists only inside one database. Every entity names the resource that stores it ([step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)), so the model can tell two tables of one database from two stores that no query can join. It refuses, while the model is built, every link whose two entities are stored by different resources: an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field — a dictionary is an ordinary entity of its resource.
+
+[Script](../../examples/step_24_relations/74_relation_across_resources.py) · [Notebook](../../examples/step_24_relations/74_relation_across_resources.ipynb)
+
+```text
+EntityResourceError: SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase) to SalesOrderCoreEntity (StorefrontDatabase): a relation stays inside one resource.
+```
+
+The message names the field, both entities and both resources. `OrderNoteCoreEntity` in the same model points at the same order from the order's own database and is not refused. To keep the link, store both entities in one resource; to keep two resources, drop the field — a reference from an entity of one resource to an entity of another has no allowed form yet. The graph build checks the same rule once more on the finished graph, so a graph that breaks it is never written.
+
 ## Endpoint role compatibility
 
 The roles on a reciprocal pair must agree with the [symmetric 8×8 matrix](../reference/intents-and-invariants.md#endpoint-role-compatibility). One/Many is cardinality, not permission to pair two ownership roles. An ordinary pair may have at most one Aggregate or Composite endpoint. Specialization and Generalization pair only with each other.

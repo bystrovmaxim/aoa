@@ -291,6 +291,18 @@ value can be written to the graph: the separate
 export failure. Dictionary reference serialization and status graph attributes are
 different contracts.
 
+## A lifecycle stays inside one resource
+
+A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. Two entities of one resource may share a state type; entities of two resources may not, because the statuses would then live in two places at once.
+
+[Script](../../examples/step_25_lifecycle/23_lifecycle_across_resources.py) · [Notebook](../../examples/step_25_lifecycle/23_lifecycle_across_resources.ipynb)
+
+```text
+EntityResourceError: OrderStateEntity is the state type of OrderCopyCoreEntity.lifecycle (StorefrontDatabase) and ReturnCoreEntity.lifecycle (SupportDatabase): a lifecycle stays inside one resource.
+```
+
+The order and its copy share `OrderStateEntity` inside `StorefrontDatabase`, which is allowed; the return in `SupportDatabase` is what the model refuses. Give the second resource a state type of its own — the codes may be the same.
+
 ## When invalid declarations fail
 
 Validation happens at different moments. Creating a status checks its fields. Defining a state type checks its statuses and codes; defining an axis checks the template against them. Calling `.state()` or `.to()` checks the argument type immediately, usually while that class body is executing. Building the application graph checks the complete transition structure and exports status fields to JSON. Calling `transition()` checks a move from the current runtime state.

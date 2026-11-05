@@ -181,7 +181,7 @@ See the [access-control reference](access-control.md) for the declaration table,
 
 ## Mandatory domain
 
-Every operation and every domain entity is bound to a domain via `@meta(domain=...)` or `@entity(domain=...)`.
+Every operation and every resource is bound to a domain via `@meta(domain=...)`. An entity is bound to the one resource that stores it via `@entity(resource=...)`, and takes its domain from that resource: there is one source for an entity's domain, so nothing has to be compared. An entity without a resource, with several, or with a class that is not a concrete resource declaring a domain is refused when it is defined ([step 22](../tutorials/step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)).
 
 An operation without a domain is a "lost" component: it will not be in the system graph, not in Maxitor, not in the access matrix. Domains are the basis of the package-boundary invariant: they set the logical division that CI checks statically.
 
@@ -446,6 +446,8 @@ AOA's six kinds export as `core`, `assoc`, `detail`, `spec`, `enum` and `state`,
 The semantic contracts are not a new set of automatic database checks. The marker does not inspect fields to identify business data, enforce a composite primary key, compare a specialization's key with its head's, or perform ownership deletion. `get_primary_key()` continues to use `id` by convention. Relation and lifecycle validation remain separate. Maxitor carries the classification but does not yet hide associative nodes based on it.
 
 ## Entity relations
+
+**Every relation stays inside one resource.** A relation is a join or a foreign key, and a join exists only inside one database. An association, an aggregation or a composition (either side), an inverse side, a specialization, a generalization and a dictionary field join two entities of the same resource; a state type is stored with the entities whose `Lifecycle[...]` uses it, so all of them share one resource. A link across resources raises `EntityResourceError` when the model is built, naming the field, both entities and both resources. The graph build checks it again on the finished graph: an entity without exactly one `entity_resource` edge, and a relation, dictionary, specialization, generalization or lifecycle-state link across resources, raise `InvalidGraphError` before a graph is written ([step 24](../tutorials/step-24-relations.md#a-relation-stays-inside-one-resource), [step 25](../tutorials/step-25-lifecycle.md#a-lifecycle-stays-inside-one-resource)).
 
 Relations between entities are declared with fields of a container type and markers in `Annotated`. The framework guards several separate rules.
 

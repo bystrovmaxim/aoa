@@ -677,7 +677,7 @@ class SupportAgentResource(BaseResource):
 
 ### Entity: domain object without storage coupling
 
-`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same.
+`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same. The entity still names the one resource that stores it, `@entity(resource=...)`, and takes its domain from that resource.
 
 Every field must have a `description` — this is not a comment but structured metadata: it goes into the system graph, ArchiMate diagrams, and auto-generated documentation. A missing description is a build error.
 
@@ -754,7 +754,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
 
 Every relationship must have a mirror on the other side — declared via `Inverse(TargetClass, "field_name")`. The coordinator at startup verifies that both sides are consistent in type and cardinality. A mismatch is a build error before the first request.
 
-`NoInverse()` is an explicit exception: the entity references an object from another domain or external source that has no mirror side in the current model.
+`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. Both ends of every relation are stored by one resource — a relation is a join, and a join exists only inside one database; a link across resources is refused when the model is built.
 
 ### Lifecycle
 

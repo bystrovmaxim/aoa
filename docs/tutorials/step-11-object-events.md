@@ -254,7 +254,7 @@ The logger subscribed to `debug` receives nothing. The property is masked and th
 
 ## Events in the graph
 
-Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.3` of the [Open Gnomon Protocol](https://github.com/bystrovmaxim/gnomon/blob/main/packages/open-gnomon-protocol/README.md).
+Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.6` of the [Open Gnomon Protocol](https://github.com/bystrovmaxim/gnomon/blob/main/packages/open-gnomon-protocol/README.md).
 
 An event becomes one `Event` node, however many methods and domains name it. A class nobody names stays out. Each case below is what a reader of the file sees:
 

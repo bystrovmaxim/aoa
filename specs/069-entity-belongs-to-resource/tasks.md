@@ -59,8 +59,8 @@ Goal: every demo entity stored by one resource, none related across resources (r
 
 ## Phase 8: documentation — US5 (P3)
 
-- [ ] T025 [US5] Tutorial steps 21–25 (`docs/tutorials/step-2{1..5}-*.md`) and every how-to page declaring entities: declarations name a resource; new cases (2.1, 2.3, 2.4, 2.5 graph, 2.6) as scripts in `examples/step_22_entity/` and `examples/step_24_relations/` with notebooks beside them, each run and its output pasted.
-- [ ] T026 [US5] `docs/reference/intents-and-invariants.md` ("Mandatory domain", "Entity relations"); `README.md`. Russian drafts beside every page written. Commit.
+- [X] T025 [US5] Tutorial steps 21–25 (`docs/tutorials/step-2{1..5}-*.md`) and every how-to page declaring entities: declarations name a resource; new cases (2.1, 2.3, 2.4, 2.5 graph, 2.6) as scripts in `examples/step_22_entity/` and `examples/step_24_relations/` with notebooks beside them, each run and its output pasted.
+- [X] T026 [US5] `docs/reference/intents-and-invariants.md` ("Mandatory domain", "Entity relations"); `README.md`. Russian drafts beside every page written. Commit.
 
 ## Phase 9: changelog
 
