@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The graph schema's home is gnomon.** `graph_json_schema.json` is version 1.5 of the Open Gnomon Protocol, which lives in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon/tree/main/packages/open-gnomon-protocol); the schema itself is unchanged.
+
 ## [1.0.1a6] – 2026-10-26
 
 ### Breaking changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-05] — The protocol's schemas are only in gnomon
+
+The last files of the Open Gnomon Protocol left this repository: `packages/open-gnomon-protocol` with the schemas of versions 1.0 to 1.5. The protocol lives in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon/tree/main/packages/open-gnomon-protocol). AOA writes its graph by version 1.5 exactly as before, and its own copy of that schema is checked to be the version as published.
+
+Nothing in AOA, Maxitor or `graph-builder` downloads a schema by its address: each carries its copies, and a graph file names its version, not a link. The one thing that changes is that the old `$id` addresses under `bystrovmaxim/aoa` no longer open; the protocol's next version will name an address in gnomon.
+
 ## [2026-11-05] — Maxitor has moved to a repository of its own
 
 Maxitor — the viewer that draws a service's graph — and the Open Gnomon Protocol, the graph's language, now live in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon). AOA is one of the programs that write that graph; it keeps doing so exactly as before, by protocol version 1.5.
