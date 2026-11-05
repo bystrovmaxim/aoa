@@ -19,6 +19,8 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class BoundaryDomain(BaseDomain):
@@ -28,7 +30,12 @@ class BoundaryDomain(BaseDomain):
     description = "Dictionary boundaries"
 
 
-@entity(description="Dictionary", domain=BoundaryDomain)
+@meta(description="Stores the boundary entities", domain=BoundaryDomain)
+class BoundaryStorage(BaseStorage):
+    """Hold the boundary entities."""
+
+
+@entity(description="Dictionary", resource=BoundaryStorage)
 class CountEnumEntity(BaseEnumEntity):
     """Declare an integer custom property."""
 
@@ -36,7 +43,7 @@ class CountEnumEntity(BaseEnumEntity):
     ONE = value(code="one", display_name="One", count=1)
 
 
-@entity(description="Host", domain=BoundaryDomain)
+@entity(description="Host", resource=BoundaryStorage)
 class HostCoreEntity(BaseCoreEntity):
     """Select one and many members with the same property contract."""
 
@@ -68,7 +75,7 @@ def schema_gap() -> None:
 def reciprocal_gap() -> None:
     """Show the earlier catalogue-property refusal blocking an explicit reverse."""
 
-    @entity(description="Reverse owner", domain=BoundaryDomain)
+    @entity(description="Reverse owner", resource=BoundaryStorage)
     class ReverseOwnerCoreEntity(BaseCoreEntity):
         """Declare the matching forward endpoint before the catalogue exists."""
 
@@ -78,7 +85,7 @@ def reciprocal_gap() -> None:
 
     try:
 
-        @entity(description="Reciprocal dictionary", domain=BoundaryDomain)
+        @entity(description="Reciprocal dictionary", resource=BoundaryStorage)
         class ReverseEnumEntity(BaseEnumEntity):
             """Attempt an ordinary reverse field on a dictionary value."""
 

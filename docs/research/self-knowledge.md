@@ -66,7 +66,7 @@ Has a declared rollback:
 
 ## How this is not an ordinary code linter
 
-An ordinary code linter looks for patterns in **text**: long functions, unused imports, suspicious casts. Here the analysis goes not by text but by **intent**: "the rollback is not declared", "the role opens nothing", "the process cannot be completed by this role". This is possible precisely because intent is declared — roles, checkers, dependencies, automaton transitions — and verified by the machine, while the [Maxitor](../tutorials/step-29-maxitor.md) graph matches what executes. A code linter does not know that `ShipAction` *should* be able to roll back; the graph knows that it *has no* compensator and that it changes state.
+An ordinary code linter looks for patterns in **text**: long functions, unused imports, suspicious casts. Here the analysis goes not by text but by **intent**: "the rollback is not declared", "the role opens nothing", "the process cannot be completed by this role". This is possible precisely because intent is declared — roles, checkers, dependencies, automaton transitions — and verified by the machine, while the [Maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) graph matches what executes. A code linter does not know that `ShipAction` *should* be able to roll back; the graph knows that it *has no* compensator and that it changes state.
 
 ## Invariant density
 

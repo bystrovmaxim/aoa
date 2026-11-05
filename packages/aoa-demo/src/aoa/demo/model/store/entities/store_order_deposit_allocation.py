@@ -9,12 +9,12 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
 @entity(
     description="Deposit allocation keyed to invoice artefacts instead of repeating order spine only",
-    domain=StoreDomain,
+    resource=StorefrontDatabase,
 )
 class DepositAllocationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Allocation id")

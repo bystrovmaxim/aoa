@@ -36,6 +36,8 @@ from aoa.action_machine.graph.edge_identity import edge_id
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 from ...support.isolated_entity_models import run_isolated_model
@@ -48,7 +50,12 @@ class ReferenceDomain(BaseDomain):
     description = "Reference"
 
 
-@entity(description="Currency reference value", domain=ReferenceDomain)
+@meta(description="Stores the reference entities", domain=ReferenceDomain)
+class ReferenceStorage(BaseStorage):
+    """Hold the reference entities."""
+
+
+@entity(description="Currency reference value", resource=ReferenceStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """A dictionary a field can reference."""
 
@@ -57,7 +64,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Reference host", domain=ReferenceDomain)
+@entity(description="Reference host", resource=ReferenceStorage)
 class ReferenceHostCoreEntity(BaseCoreEntity):
     """Reference the dictionary as a required and as an optional value."""
 
@@ -69,7 +76,7 @@ class ReferenceHostCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Spec host", domain=ReferenceDomain)
+@entity(description="Spec host", resource=ReferenceStorage)
 class SpecReferenceSpecEntity(BaseSpecEntity):
     """Reference a dictionary from a Spec host."""
 
@@ -78,7 +85,7 @@ class SpecReferenceSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Assoc host", domain=ReferenceDomain)
+@entity(description="Assoc host", resource=ReferenceStorage)
 class AssocReferenceAssocEntity(BaseAssocEntity):
     """Reference a dictionary from an Assoc host."""
 
@@ -87,7 +94,7 @@ class AssocReferenceAssocEntity(BaseAssocEntity):
 
 
 @exclude_graph_model
-@entity(description="Detail host", domain=ReferenceDomain)
+@entity(description="Detail host", resource=ReferenceStorage)
 class DetailReferenceDetailEntity(BaseDetailEntity):
     """Reference a dictionary from a Detail host."""
 
@@ -96,7 +103,7 @@ class DetailReferenceDetailEntity(BaseDetailEntity):
 
 
 @exclude_graph_model
-@entity(description="Reference base", domain=ReferenceDomain)
+@entity(description="Reference base", resource=ReferenceStorage)
 class ReferenceBaseCoreEntity(BaseCoreEntity):
     """Declare the reference on a base class."""
 
@@ -105,7 +112,7 @@ class ReferenceBaseCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Inherited reference", domain=ReferenceDomain)
+@entity(description="Inherited reference", resource=ReferenceStorage)
 class InheritedReferenceCoreEntity(ReferenceBaseCoreEntity):
     """Inherit the reference."""
 
@@ -113,7 +120,7 @@ class InheritedReferenceCoreEntity(ReferenceBaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Forward reference", domain=ReferenceDomain)
+@entity(description="Forward reference", resource=ReferenceStorage)
 class ForwardReferenceCoreEntity(BaseCoreEntity):
     """Name its dictionary before that dictionary exists."""
 
@@ -121,14 +128,14 @@ class ForwardReferenceCoreEntity(BaseCoreEntity):
     currency: Annotated[AssociationOne[LaterCurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
 
-@entity(description="Later currency reference value", domain=ReferenceDomain)
+@entity(description="Later currency reference value", resource=ReferenceStorage)
 class LaterCurrencyEnumEntity(BaseEnumEntity):
     """Be the dictionary the forward reference names."""
 
     USD = value(code="usd", display_name="US dollar")
 
 
-@entity(description="Pressing kind reference value", domain=ReferenceDomain)
+@entity(description="Pressing kind reference value", resource=ReferenceStorage)
 class PressingKindEnumEntity(BaseEnumEntity):
     """Classify the record's axis and be referenced by a field."""
 
@@ -137,7 +144,7 @@ class PressingKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Record", domain=ReferenceDomain)
+@entity(description="Record", resource=ReferenceStorage)
 class RecordCoreEntity(BaseCoreEntity):
     """Carry the specialization axis that borrows the dictionary."""
 
@@ -149,7 +156,7 @@ class RecordCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="First pressing", domain=ReferenceDomain)
+@entity(description="First pressing", resource=ReferenceStorage)
 class FirstPressSpecEntity(BaseSpecEntity):
     """Point back at the head with its variant."""
 
@@ -161,7 +168,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Repress", domain=ReferenceDomain)
+@entity(description="Repress", resource=ReferenceStorage)
 class RepressSpecEntity(BaseSpecEntity):
     """Point back at the head with its variant."""
 
@@ -177,7 +184,7 @@ for _axis_model in (RecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Axis dictionary reference", domain=ReferenceDomain)
+@entity(description="Axis dictionary reference", resource=ReferenceStorage)
 class AxisReferenceCoreEntity(BaseCoreEntity):
     """Reference the very dictionary the axis borrows."""
 
@@ -196,7 +203,7 @@ def _twin(module: str) -> type[BaseEnumEntity]:
             "ONE": value(code="one", display_name="One"),
         },
     )
-    return entity(description="Twin dictionary", domain=ReferenceDomain)(twin)
+    return entity(description="Twin dictionary", resource=ReferenceStorage)(twin)
 
 
 FirstTwinEnumEntity = _twin("tests.twin.one")
@@ -204,7 +211,7 @@ SecondTwinEnumEntity = _twin("tests.twin.two")
 
 
 @exclude_graph_model
-@entity(description="Twin host", domain=ReferenceDomain)
+@entity(description="Twin host", resource=ReferenceStorage)
 class TwinHostCoreEntity(BaseCoreEntity):
     """Reference two dictionaries whose short names are the same."""
 
@@ -292,7 +299,7 @@ def test_a_graph_document_with_an_ordinary_association_edge_validates() -> None:
     node = EntityGraphNode(ReferenceHostCoreEntity)
     dictionary = EntityGraphNode(CurrencyEnumEntity)
     document = {
-        "schema_version": "1.5",
+        "schema_version": "1.6",
         "nodes": [node.to_dict(), dictionary.to_dict()],
         "edges": [{**row, "id": edge_id(row)} for row in (edge.to_dict(source_id=node.node_id) for edge in node.relations)],
     }
@@ -325,13 +332,18 @@ def _run_hidden_dictionary_refusal() -> str:
             name = "hidden"
             description = "Hidden"
 
+
+        @meta(description="Stores the hidden entities", domain=HiddenDomain)
+        class HiddenStorage(BaseStorage):
+            pass
+
         @exclude_graph_model
-        @entity(description="Hidden dictionary", domain=HiddenDomain)
+        @entity(description="Hidden dictionary", resource=HiddenStorage)
         class HiddenEnumEntity(BaseEnumEntity):
             USD = value(code="usd", display_name="US dollar")
 
         @exclude_graph_model
-        @entity(description="Hidden host", domain=HiddenDomain)
+        @entity(description="Hidden host", resource=HiddenStorage)
         class HiddenReferenceCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             currency: Annotated[AssociationOne[HiddenEnumEntity], NoInverse()] = Field(description="Currency")

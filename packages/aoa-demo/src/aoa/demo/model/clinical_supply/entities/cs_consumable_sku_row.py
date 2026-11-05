@@ -7,15 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_material_anchor import ClinicalMaterialAnchorCoreEntity
-from aoa.demo.model.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerCoreEntity
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Stock-keeping instrument row (detail / part master analogue)",
-    domain=ClinicalSupplyDomain,
+    resource=ClinicalSupplyStorage,
 )
 class ClinicalConsumableSkuCoreEntity(BaseCoreEntity):
     id: str = Field(description="SKU id")
@@ -34,12 +33,6 @@ class ClinicalConsumableSkuCoreEntity(BaseCoreEntity):
         description="Compound / sterility anchor"
     )
 
-    inventory_lot_mirror: Annotated[
-        AssociationOne[LotSnapshotLedgerCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Inventory lot snapshot keyed for sterile consumable traceability"
-    )
 
 
 ClinicalConsumableSkuCoreEntity.model_rebuild()

@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Acquisition channel attribution ledger head", domain=CatalogDomain)
+@entity(description="Acquisition channel attribution ledger head", resource=CatalogObjectStore)
 class AcquisitionChannelLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger id")
     lifecycle: CatalogDenseLifecycle = Field(description="Channel ledger lifecycle")

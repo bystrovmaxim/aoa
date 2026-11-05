@@ -2,7 +2,9 @@
 Run: .venv/bin/python examples/step_23_dictionaries/43_mutable_enum_value.py
 """
 from enum import Enum
+
 from aoa.action_machine.domain import BaseEnumEntity, value
+
 
 class Flags(Enum):
     """Name a flag carrying a mutable list."""

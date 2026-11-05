@@ -677,13 +677,13 @@ class SupportAgentResource(BaseResource):
 
 ### Entity: domain object without storage coupling
 
-`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same.
+`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same. The entity still names the one resource that stores it, `@entity(resource=...)`, and takes its domain from that resource.
 
 Every field must have a `description` — this is not a comment but structured metadata: it goes into the system graph, ArchiMate diagrams, and auto-generated documentation. A missing description is a build error.
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StoreStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -708,7 +708,7 @@ Cardinality is set by the suffix: `One` — a single object, `Many` — a collec
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer account", domain=StoreDomain)
+@entity(description="Customer account", resource=StoreStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
@@ -720,7 +720,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Rel(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StoreStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -739,7 +739,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Rel(description="Line items of the order")
 
 
-@entity(description="Single line item within an order", domain=StoreDomain)
+@entity(description="Single line item within an order", resource=StoreStorage)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_name: str = Field(description="Product display name")
@@ -754,7 +754,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
 
 Every relationship must have a mirror on the other side — declared via `Inverse(TargetClass, "field_name")`. The coordinator at startup verifies that both sides are consistent in type and cardinality. A mismatch is a build error before the first request.
 
-`NoInverse()` is an explicit exception: the entity references an object from another domain or external source that has no mirror side in the current model.
+`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. Both ends of every relation are stored by one resource — a relation is a join, and a join exists only inside one database; a link across resources is refused when the model is built.
 
 ### Lifecycle
 

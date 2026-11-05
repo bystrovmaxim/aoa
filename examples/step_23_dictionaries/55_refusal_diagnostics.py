@@ -9,6 +9,8 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class Shop55Domain(BaseDomain):
@@ -18,35 +20,40 @@ class Shop55Domain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="First entity", domain=Shop55Domain)
+@meta(description="Stores the shop55 entities", domain=Shop55Domain)
+class Shop55Storage(BaseStorage):
+    """Hold the shop55 entities."""
+
+
+@entity(description="First entity", resource=Shop55Storage)
 class FirstCoreEntity(BaseCoreEntity):
     """Be the first member of each shape."""
 
     id: str = Field(description="Identifier")
 
 
-@entity(description="Second entity", domain=Shop55Domain)
+@entity(description="Second entity", resource=Shop55Storage)
 class SecondSpecEntity(BaseSpecEntity):
     """Be the second member of each shape."""
 
     id: str = Field(description="Identifier")
 
 
-@entity(description="Union host", domain=Shop55Domain)
+@entity(description="Union host", resource=Shop55Storage)
 class UnionCoreEntity(BaseCoreEntity):
     """Name two entities on one field."""
 
     ref: FirstCoreEntity | SecondSpecEntity = Field(description="Union")
 
 
-@entity(description="Mixed collection host", domain=Shop55Domain)
+@entity(description="Mixed collection host", resource=Shop55Storage)
 class MixedCoreEntity(BaseCoreEntity):
     """Collect two different entities in one field."""
 
     ref: tuple[FirstCoreEntity, SecondSpecEntity] = Field(description="Mixed collection")
 
 
-@entity(description="Mapping host", domain=Shop55Domain)
+@entity(description="Mapping host", resource=Shop55Storage)
 class MappingCoreEntity(BaseCoreEntity):
     """Map a key to an entity."""
 

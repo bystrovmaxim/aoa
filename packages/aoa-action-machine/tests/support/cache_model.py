@@ -27,24 +27,24 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from .domain_model.domains import OrdersDomain
+from .domain_model.domains import OrdersDomain, OrdersStorage
 
 
-@entity(description="A cached item of the cache tests", domain=OrdersDomain)
+@entity(description="A cached item of the cache tests", resource=OrdersStorage)
 class CachedItemCoreEntity(BaseCoreEntity):
     """What a cached Result of the cache tests is about."""
 
     id: str = Field(description="Item id")
 
 
-@entity(description="A cached report of the cache tests", domain=OrdersDomain)
+@entity(description="A cached report of the cache tests", resource=OrdersStorage)
 class CachedReportCoreEntity(BaseCoreEntity):
     """A report, cached and dropped by the invalidation tests."""
 
     id: str = Field(description="Report id")
 
 
-@entity(description="A cached invoice of the cache tests", domain=OrdersDomain)
+@entity(description="A cached invoice of the cache tests", resource=OrdersStorage)
 class CachedInvoiceCoreEntity(BaseCoreEntity):
     """An invoice, cached and dropped by the invalidation tests."""
 

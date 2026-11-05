@@ -82,10 +82,15 @@ EXAMPLES
             build,
         value,
     )
+    from aoa.action_machine.intents.meta import meta
+    from aoa.action_machine.resources.base_storage import BaseStorage
 
     class ShopDomain(BaseDomain):
         name = "shop"
         description = "E-commerce shop bounded context"
+
+    @meta(description="Stores the shop model", domain=ShopDomain)
+    class ShopDatabase(BaseStorage): ...
 
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
@@ -100,7 +105,7 @@ EXAMPLES
             .state(OrderStateEntity.DONE).final()
         )
 
-    @entity(description="Customer order", domain=ShopDomain)
+    @entity(description="Customer order", resource=ShopDatabase)
     class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order identifier")
         amount: float = Field(description="Order total", ge=0)
@@ -120,6 +125,7 @@ from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     EntityFieldDeclarationError,
+    EntityResourceError,
     FieldNotLoadedError,
     ForeignStateError,
     LifecycleGraphError,
@@ -178,6 +184,7 @@ __all__ = [
     "EntityDecoratorError",
     "EntityFieldDeclarationError",
     "EntityIntent",
+    "EntityResourceError",
     "EntitySchemaMarker",
     "FieldNotLoadedError",
     "ForeignStateError",

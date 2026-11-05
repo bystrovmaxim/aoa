@@ -11,6 +11,8 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class Shop50Domain(BaseDomain):
@@ -20,7 +22,12 @@ class Shop50Domain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Regions the shop sells in", domain=Shop50Domain)
+@meta(description="Stores the shop50 entities", domain=Shop50Domain)
+class Shop50Storage(BaseStorage):
+    """Hold the shop50 entities."""
+
+
+@entity(description="Regions the shop sells in", resource=Shop50Storage)
 class Region50EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
@@ -28,7 +35,7 @@ class Region50EnumEntity(BaseEnumEntity):
     US = value(code="us", display_name="United States")
 
 
-@entity(description="Offer", domain=Shop50Domain)
+@entity(description="Offer", resource=Shop50Storage)
 class Offer50CoreEntity(BaseCoreEntity):
     """Try to serve several regions from one field."""
 
@@ -53,14 +60,19 @@ class Shop51Domain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Regions the shop sells in", domain=Shop51Domain)
+@meta(description="Stores the shop51 entities", domain=Shop51Domain)
+class Shop51Storage(BaseStorage):
+    """Hold the shop51 entities."""
+
+
+@entity(description="Regions the shop sells in", resource=Shop51Storage)
 class Region51EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", domain=Shop51Domain)
+@entity(description="Offer", resource=Shop51Storage)
 class Offer51CoreEntity(BaseCoreEntity):
     """Wrap a shared value in an association."""
 
@@ -83,14 +95,19 @@ class Shop52Domain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Regions the shop sells in", domain=Shop52Domain)
+@meta(description="Stores the shop52 entities", domain=Shop52Domain)
+class Shop52Storage(BaseStorage):
+    """Hold the shop52 entities."""
+
+
+@entity(description="Regions the shop sells in", resource=Shop52Storage)
 class Region52EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", domain=Shop52Domain)
+@entity(description="Offer", resource=Shop52Storage)
 class Offer52CoreEntity(BaseCoreEntity):
     """Mark a reference as an embedded value."""
 

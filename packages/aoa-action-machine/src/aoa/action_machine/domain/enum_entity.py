@@ -10,7 +10,7 @@ One of the six base classes a real entity inherits from, and the dictionary of
 its kind: a value other objects refer to, declared in the dictionary type's own
 body, the way a state type declares its statuses::
 
-    @entity(description="Currency reference value", domain=ShopDomain)
+    @entity(description="Currency reference value", resource=ShopDatabase)
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 
@@ -56,7 +56,7 @@ ARCHITECTURE / DATA FLOW
 USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Currency reference value", domain=ShopDomain)
+    @entity(description="Currency reference value", resource=ShopDatabase)
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
 

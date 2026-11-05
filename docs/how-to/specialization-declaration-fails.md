@@ -296,7 +296,7 @@ Output:
 SpecializationDeclarationError: Specialization 'pressing' on entity 'VinylRecordCoreEntity' is invalid: 'VinylRecordKindEnumEntity' is a dictionary but not an @entity; the graph would have no node for it
 ```
 
-Add @entity with the dictionary's description and domain. Values alone do not register the class in the model graph.
+Add @entity with the dictionary's description and resource. Values alone do not register the class in the model graph.
 
 ### Specialization requires both type arguments
 

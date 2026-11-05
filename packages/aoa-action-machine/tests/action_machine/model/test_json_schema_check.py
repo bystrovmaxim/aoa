@@ -31,8 +31,10 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.json_schema_value import JsonSchemaValue
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 ORDER_WIRE: dict[str, Any] = {
     "type": "object",
@@ -63,7 +65,12 @@ class _ChecksDomain(BaseDomain):
     description = "Entities for the JSON Schema check tests"
 
 
-@entity(description="Order", domain=_ChecksDomain)
+@meta(description="Stores the checks entities", domain=_ChecksDomain)
+class _ChecksStorage(BaseStorage):
+    """Hold the checks entities."""
+
+
+@entity(description="Order", resource=_ChecksStorage)
 class CheckOrderCoreEntity(BaseCoreEntity):
     """An order projected through a strict schema."""
 

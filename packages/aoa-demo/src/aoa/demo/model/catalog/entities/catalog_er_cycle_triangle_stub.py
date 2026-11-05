@@ -24,9 +24,9 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
 class _CatalogDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -48,7 +48,7 @@ class _CatalogDirectedCycleSketchLifecycle(Lifecycle[_CatalogDirectedCycleSketch
 
 @entity(
     description="Catalog triangle vertex A (\u2192B, \u2190C reciprocal)",
-    domain=CatalogDomain,
+    resource=CatalogObjectStore,
 )
 class CatalogDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex A id")
@@ -84,7 +84,7 @@ class CatalogDirectedCycleTriangleACoreEntity(BaseCoreEntity):
 
 @entity(
     description="Catalog triangle vertex B (\u2190A / \u2192C reciprocal)",
-    domain=CatalogDomain,
+    resource=CatalogObjectStore,
 )
 class CatalogDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex B id")
@@ -120,7 +120,7 @@ class CatalogDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Catalog triangle vertex C (\u2190B / \u2192A reciprocal)",
-    domain=CatalogDomain,
+    resource=CatalogObjectStore,
 )
 class CatalogDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex C id")

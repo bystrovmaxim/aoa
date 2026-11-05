@@ -9,11 +9,11 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
 @entity(
-    description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain
+    description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", resource=StorefrontDatabase
 )
 class StoreCustomerOrderAffinityCoreEntity(BaseCoreEntity):
     id: str = Field(description="Affinity id")

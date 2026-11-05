@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
+from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
 
 
-@entity(description="Email credential factor for a person identity", domain=IdentityDomain)
+@entity(description="Email credential factor for a person identity", resource=IdentityStoreBase)
 class IdentityEmailFactorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Email factor id")
     lifecycle: IdentityDenseLifecycle = Field(description="Email factor lifecycle")

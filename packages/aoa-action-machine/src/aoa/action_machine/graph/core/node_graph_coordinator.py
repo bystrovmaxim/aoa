@@ -33,7 +33,7 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 ``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
 ``type``, ``relationship``, ``is_dag``, ``properties`` and its ``id`` from
 :func:`~aoa.action_machine.graph.edge_identity.edge_id`) suitable for rebuilding a
-``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.3``;
+``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.6``;
 nodes come in ``id`` order and edges in edge ``id`` order. Callers may still pass ``export_json_schema`` to
 :meth:`build` for API compatibility; it is not used by :meth:`to_json`.
 
@@ -85,16 +85,42 @@ from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNod
 from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
 from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
 from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
+from aoa.action_machine.graph.edges.entity_graph_edge import EntityGraphEdge
+from aoa.action_machine.graph.edges.entity_reference_graph_edge import EntityReferenceGraphEdge
+from aoa.action_machine.graph.edges.entity_resource_graph_edge import EntityResourceGraphEdge
+from aoa.action_machine.graph.edges.entity_specialization_graph_edge import EntitySpecializationGraphEdge
+from aoa.action_machine.graph.edges.parent_entity_graph_edge import ParentEntityGraphEdge
+from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
 from aoa.action_machine.graph.validators import (
     cache_tags_validator,
     emits_vocabulary_validator,
     entity_field_validator,
     entity_inverse_validator,
+    entity_resource_validator,
     entity_role_compatibility_validator,
     entity_specialization_validator,
     json_form_validator,
 )
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
+
+# Links between two entities that must stay inside one resource, by edge name.
+_ENTITY_LINK_EDGES: frozenset[str] = frozenset(
+    {
+        EntityGraphEdge.EDGE_TYPE,
+        EntityReferenceGraphEdge.EDGE_NAME,
+        EntitySpecializationGraphEdge.EDGE_NAME,
+        ParentEntityGraphEdge.EDGE_NAME,
+    }
+)
+# State node types; each carries the ``lifecycle_class_id`` of the axis it belongs to.
+_STATE_NODE_TYPES: frozenset[str] = frozenset(
+    {
+        StateGraphNode.NODE_TYPE_STATE_INITIAL,
+        StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE,
+        StateGraphNode.NODE_TYPE_STATE_FINAL,
+    }
+)
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
 
@@ -163,9 +189,12 @@ class NodeGraphCoordinator(BaseCoordinator):
         Raises:
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
             InvalidGraphError: missing ``target_node_id``, a cycle among ``is_dag`` edges, a node id
-                containing ``|``, or an edge whose id part (its rule's property) is missing, empty,
-                not a string or contains ``|``.
+                containing ``|``, an edge whose id part (its rule's property) is missing, empty,
+                not a string or contains ``|``, an entity without exactly one ``entity_resource``
+                edge, or a link between entities, or a lifecycle's states, across two resources.
             DuplicateEdgeError: two edges get the same edge id.
+            EntityResourceError: a relation, an inverse side, a specialization, a generalization, a
+                dictionary field or a shared state type joins entities stored by two resources.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -184,12 +213,14 @@ class NodeGraphCoordinator(BaseCoordinator):
         # ``__subclasses__()`` keeps listing a dead class, such as one refused at declaration, until it is collected.
         gc.collect()
         entity_field_validator.validate_entity_fields()
+        entity_resource_validator.validate_entity_resources()
         entity_inverse_validator.validate_entity_inverses()
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
         self._validate_edge_identity(nodes)
+        self._validate_entity_resource_edges(nodes)
         entity_specialization_validator.validate_entity_specializations()
         emits_vocabulary_validator.validate_emits_vocabulary(nodes.values())
         json_form_validator.validate_json_forms(nodes.values())
@@ -246,7 +277,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             row["id"] = edge_id(row)
             edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.5",
+            "schema_version": "1.6",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }
@@ -433,6 +464,43 @@ class NodeGraphCoordinator(BaseCoordinator):
                 if key in seen:
                     raise DuplicateEdgeError(key, seen[key], described)
                 seen[key] = described
+
+    def _validate_entity_resource_edges(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        """Refuse an entity without exactly one ``entity_resource`` edge and any link across two resources."""
+        resource_of: dict[str, str] = {}
+        for node_id, node in nodes.items():
+            if node.node_type != EntityGraphNode.NODE_TYPE:
+                continue
+            targets = [e.target_node_id for e in node.get_all_edges() if e.edge_name == EntityResourceGraphEdge.EDGE_TYPE]
+            if len(targets) != 1:
+                raise InvalidGraphError(
+                    f"Entity {node_id} has {len(targets)} entity_resource edges; an entity has exactly one."
+                )
+            resource_of[node_id] = targets[0]
+        for node_id, node in nodes.items():
+            if node_id not in resource_of:
+                continue
+            for edge in node.get_all_edges():
+                if edge.edge_name not in _ENTITY_LINK_EDGES or edge.target_node_id not in resource_of:
+                    continue
+                if resource_of[edge.target_node_id] != resource_of[node_id]:
+                    key = edge_id(edge.to_dict(source_id=node_id))
+                    raise InvalidGraphError(
+                        f"Edge {key} joins {node_id} ({resource_of[node_id]}) and {edge.target_node_id} "
+                        f"({resource_of[edge.target_node_id]}): a relation stays inside one resource."
+                    )
+        lifecycle_host: dict[str, str] = {}
+        for node_id, node in nodes.items():
+            lifecycle_id = node.properties.get("lifecycle_class_id") if node.node_type in _STATE_NODE_TYPES else None
+            host = node_id.split(":", 1)[0]
+            if not isinstance(lifecycle_id, str) or host not in resource_of:
+                continue
+            first = lifecycle_host.setdefault(lifecycle_id, host)
+            if resource_of[first] != resource_of[host]:
+                raise InvalidGraphError(
+                    f"Lifecycle {lifecycle_id} has states on {first} ({resource_of[first]}) and {host} "
+                    f"({resource_of[host]}): a lifecycle stays inside one resource."
+                )
 
     def _validate_dag_acyclicity(
         self,

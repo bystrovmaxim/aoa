@@ -1,18 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/identity/entities/identity_person_hub.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
-from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
+from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
 
 
-@entity(description="Person identity hub for credentials, factors, federation, and recovery", domain=IdentityDomain)
+@entity(description="Person identity hub for credentials, factors, federation, and recovery", resource=IdentityStoreBase)
 class IdentityPersonHubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Person id")
     lifecycle: IdentityDenseLifecycle = Field(description="Person aggregate lifecycle")
@@ -23,12 +20,6 @@ class IdentityPersonHubCoreEntity(BaseCoreEntity):
     mfa_saturation_pct: float = Field(description="MFA-factor coverage heuristic percent", ge=0, le=100)
     recovery_budget_left: int = Field(description="Remaining recovery-token attempts envelope", ge=0)
     linkage_audit_seq: int = Field(description="Monotonic merge audit ticker", ge=0)
-    acquisition_channel_anchor: Annotated[
-        AssociationOne[AcquisitionChannelLedgerCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Acquisition ledger bridge for federation and marketing checks"
-    )
 
 
 IdentityPersonHubCoreEntity.model_rebuild()

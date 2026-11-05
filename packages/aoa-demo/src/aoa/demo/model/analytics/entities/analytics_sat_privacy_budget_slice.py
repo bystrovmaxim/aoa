@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Privacy budget ledger slice isolated as its own subgraph root", domain=AnalyticsDomain)
+@entity(description="Privacy budget ledger slice isolated as its own subgraph root", resource=AnalyticsStorage)
 class PrivacyBudgetSliceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Privacy slice lifecycle")

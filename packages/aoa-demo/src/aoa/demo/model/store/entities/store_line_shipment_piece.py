@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInvers
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity, SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)
+@entity(description="Shipment piece bridging line + header (dense mesh cue)", resource=StorefrontDatabase)
 class LineShipmentPieceDetailEntity(BaseDetailEntity):
     id: str = Field(description="Piece id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Shipment piece lifecycle")

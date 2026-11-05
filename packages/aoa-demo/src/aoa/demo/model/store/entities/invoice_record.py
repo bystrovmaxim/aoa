@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Invoice row", domain=StoreDomain)
+@entity(description="Invoice row", resource=StorefrontDatabase)
 class InvoiceRecordCoreEntity(BaseCoreEntity):
     id: str = Field(description="Invoice id")
     lifecycle: SalesOrderLifecycle = Field(description="Invoice lifecycle")
@@ -31,12 +30,6 @@ class InvoiceRecordCoreEntity(BaseCoreEntity):
         description="Invoiced order"
     )
 
-    invoice_outbox_row: Annotated[
-        AssociationOne[OutboxMessageCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Transactional outbox publish for invoice side-effects"
-    )
 
 
 InvoiceRecordCoreEntity.model_rebuild()

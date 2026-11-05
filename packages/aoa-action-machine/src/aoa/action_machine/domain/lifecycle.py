@@ -508,6 +508,11 @@ class Lifecycle[StateT]:
         }
 
     @classmethod
+    def state_type(cls) -> type[BaseStateEntity] | None:
+        """The state type this axis names in ``Lifecycle[...]``, or ``None`` for the bare base."""
+        return cls._state_type
+
+    @classmethod
     def _get_template(cls) -> Lifecycle[Any] | None:
         """
         Resolve ``_template`` from the class MRO.

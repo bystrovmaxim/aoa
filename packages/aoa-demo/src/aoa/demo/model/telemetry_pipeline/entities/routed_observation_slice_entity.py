@@ -12,10 +12,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity import (
     TelemetryIngestEnvelopeCoreEntity,
 )
-from aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain import TelemetryPipelineDomain
+from aoa.demo.model.telemetry_pipeline.resources.storage import TelemetryPipelineStorage
 
 
-@entity(description="Deterministic routed span slice tied back to ingest envelope", domain=TelemetryPipelineDomain)
+@entity(description="Deterministic routed span slice tied back to ingest envelope", resource=TelemetryPipelineStorage)
 class RoutedObservationSliceDetailEntity(BaseDetailEntity):
     slice_id: str = Field(description="Routing slice surrogate key")
     severity_bucket_stub: str = Field(description="P1 | P2 | synthetic demo bucket")

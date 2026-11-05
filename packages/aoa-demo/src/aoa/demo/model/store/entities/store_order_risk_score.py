@@ -1,21 +1,18 @@
 # packages/aoa-demo/src/aoa/demo/model/store/entities/store_order_risk_score.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
-from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.entities.storefront_session_lifecycle import StorefrontSessionLifecycle
+from aoa.demo.model.store.resources.cache import StorefrontSessionCache
 
 
-@entity(description="Per-order risk score snapshot", domain=StoreDomain)
+@entity(description="Per-order risk score snapshot", resource=StorefrontSessionCache)
 class OrderRiskScoreCoreEntity(BaseCoreEntity):
     id: str = Field(description="OrderRiskScoreCoreEntity id")
-    lifecycle: SalesOrderLifecycle = Field(description="OrderRiskScoreCoreEntity lifecycle")
+    lifecycle: StorefrontSessionLifecycle = Field(description="OrderRiskScoreCoreEntity lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
@@ -23,12 +20,6 @@ class OrderRiskScoreCoreEntity(BaseCoreEntity):
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
     shipment_carrier_hint: str = Field(description="Preferred carrier mnemonic for planners")
     lineage_batch_token: str = Field(description="Correlation handle shared across mesh bridges")
-    order: Annotated[
-        AssociationOne[SalesOrderCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Parent sales order anchor"
-    )
 
 
 OrderRiskScoreCoreEntity.model_rebuild()

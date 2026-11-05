@@ -21,6 +21,8 @@ from pydantic import Field, PrivateAttr
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 _factory_calls: list[str] = []
 
@@ -38,7 +40,12 @@ class _PartialDomain(BaseDomain):
     description = "Entities for the partial loading tests"
 
 
-@entity(description="Order", domain=_PartialDomain)
+@meta(description="Stores the partial entities", domain=_PartialDomain)
+class _PartialStorage(BaseStorage):
+    """Hold the partial entities."""
+
+
+@entity(description="Order", resource=_PartialStorage)
 class PartialOrderCoreEntity(BaseCoreEntity):
     """An order whose fields have a default, a factory that needs the id, and a counting factory."""
 

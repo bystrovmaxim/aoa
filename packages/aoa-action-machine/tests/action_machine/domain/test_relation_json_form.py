@@ -34,6 +34,8 @@ from aoa.action_machine.domain import (
     NoInverse,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 U1 = "00000000-0000-0000-0000-000000000001"
 U2 = "00000000-0000-0000-0000-000000000002"
@@ -46,7 +48,12 @@ class _FormsDomain(BaseDomain):
     description = "Entities for the relation JSON form tests"
 
 
-@entity(description="Customer", domain=_FormsDomain)
+@meta(description="Stores the forms entities", domain=_FormsDomain)
+class _FormsStorage(BaseStorage):
+    """Hold the forms entities."""
+
+
+@entity(description="Customer", resource=_FormsStorage)
 class FormCustomerCoreEntity(BaseCoreEntity):
     """A customer with a UUID id and the orders that point at it."""
 
@@ -57,21 +64,21 @@ class FormCustomerCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Line", domain=_FormsDomain)
+@entity(description="Line", resource=_FormsStorage)
 class FormLineDetailEntity(BaseDetailEntity):
     """An order line with a string id."""
 
     id: str = Field(description="Line id")
 
 
-@entity(description="Note", domain=_FormsDomain)
+@entity(description="Note", resource=_FormsStorage)
 class FormNoteDetailEntity(BaseDetailEntity):
     """A target that declares no id field."""
 
     text: str = Field(description="Text")
 
 
-@entity(description="Order", domain=_FormsDomain)
+@entity(description="Order", resource=_FormsStorage)
 class FormOrderCoreEntity(BaseCoreEntity):
     """An order with a customer, lines and notes."""
 
@@ -87,7 +94,7 @@ class FormOrderCoreEntity(BaseCoreEntity):
 FormCustomerCoreEntity.model_rebuild()
 
 
-@entity(description="A target that names a class declared later", domain=_FormsDomain)
+@entity(description="A target that names a class declared later", resource=_FormsStorage)
 class FormBriefCoreEntity(BaseCoreEntity):
     """A target whose own annotation resolves only after another class exists."""
 
@@ -95,7 +102,7 @@ class FormBriefCoreEntity(BaseCoreEntity):
     stage: Annotated[AssociationOne[FormStageCoreEntity], NoInverse()] = Field(description="Stage")
 
 
-@entity(description="Points at the brief before the brief is complete", domain=_FormsDomain)
+@entity(description="Points at the brief before the brief is complete", resource=_FormsStorage)
 class FormHintCoreEntity(BaseCoreEntity):
     """An entity rebuilt while its relation's target is still incomplete."""
 
@@ -107,7 +114,7 @@ class FormHintCoreEntity(BaseCoreEntity):
 FormHintCoreEntity.model_rebuild()
 
 
-@entity(description="Declared after the brief", domain=_FormsDomain)
+@entity(description="Declared after the brief", resource=_FormsStorage)
 class FormStageCoreEntity(BaseCoreEntity):
     """The class the brief names."""
 

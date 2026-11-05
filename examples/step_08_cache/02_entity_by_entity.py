@@ -28,6 +28,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entity import CachedEntity
@@ -48,13 +49,18 @@ class ShopDomain(BaseDomain):
     description = "Shop domain"
 
 
-@entity(description="An order", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="An order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(description="Total")
 
 
-@entity(description="A customer, owner of a list of orders", domain=ShopDomain)
+@entity(description="A customer, owner of a list of orders", resource=ShopStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
 

@@ -1,18 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_price_ribbon_snapshot.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.entities.catalog_search_boost_weight import SearchBoostWeightCoreEntity
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", domain=CatalogDomain)
+@entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", resource=CatalogObjectStore)
 class PriceRibbonSnapshotCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ribbon id")
     lifecycle: CatalogDenseLifecycle = Field(description="Price ribbon lifecycle")
@@ -23,12 +20,6 @@ class PriceRibbonSnapshotCoreEntity(BaseCoreEntity):
     attribution_strategy: str = Field(description="Attribution-model key used for funnel credit")
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
-    search_boost: Annotated[
-        AssociationOne[SearchBoostWeightCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Upstream search/boost facet"
-    )
 
 
 PriceRibbonSnapshotCoreEntity.model_rebuild()

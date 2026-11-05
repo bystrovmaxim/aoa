@@ -62,6 +62,8 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
     validate_entity_specializations,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class SweepDomain(BaseDomain):
@@ -69,8 +71,13 @@ class SweepDomain(BaseDomain):
     description = "sweep"
 
 
+@meta(description="Stores the sweep entities", domain=SweepDomain)
+class SweepStorage(BaseStorage):
+    """Hold the sweep entities."""
+
+
 @exclude_graph_model
-@entity(description="Kind", domain=SweepDomain)
+@entity(description="Kind", resource=SweepStorage)
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary most cases borrow from."""
 
@@ -83,7 +90,7 @@ class _KindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Good first", domain=SweepDomain)
+@entity(description="Good first", resource=SweepStorage)
 class GoodFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -94,7 +101,7 @@ class GoodFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Good head", domain=SweepDomain)
+@entity(description="Good head", resource=SweepStorage)
 class GoodHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Annotated[
@@ -120,7 +127,7 @@ class UndeclaredAssocEntity(BaseAssocEntity):
 
 
 @exclude_graph_model
-@entity(description="Head over an undeclared class", domain=SweepDomain)
+@entity(description="Head over an undeclared class", resource=SweepStorage)
 class HeadOverUndeclaredCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[UndeclaredAssocEntity, _KindEnumEntity] = Field(description="d")
@@ -131,7 +138,7 @@ HeadOverUndeclaredCoreEntity.model_rebuild()
 
 
 @exclude_graph_model
-@entity(description="Code-less alternative", domain=SweepDomain)
+@entity(description="Code-less alternative", resource=SweepStorage)
 class CodeLessSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
@@ -140,7 +147,7 @@ class CodeLessSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Head over a code-less class", domain=SweepDomain)
+@entity(description="Head over a code-less class", resource=SweepStorage)
 class HeadOverCodeLessCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[CodeLessSpecEntity, _KindEnumEntity] = Field(description="d")
@@ -151,7 +158,7 @@ CodeLessSpecEntity.model_rebuild()
 
 
 @exclude_graph_model
-@entity(description="Orphan value", domain=SweepDomain)
+@entity(description="Orphan value", resource=SweepStorage)
 class OrphanValueKindEnumEntity(BaseEnumEntity):
     """Two values, and the head's one alternative answers for only one of them."""
 
@@ -160,7 +167,7 @@ class OrphanValueKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Orphan alternative", domain=SweepDomain)
+@entity(description="Orphan alternative", resource=SweepStorage)
 class OrphanAlternativeSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -170,7 +177,7 @@ class OrphanAlternativeSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Head over an orphan value", domain=SweepDomain)
+@entity(description="Head over an orphan value", resource=SweepStorage)
 class HeadOverOrphanValueCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[OrphanAlternativeSpecEntity, OrphanValueKindEnumEntity] = Field(description="d")
@@ -186,7 +193,7 @@ OrphanAlternativeSpecEntity.model_rebuild()
 
 
 @exclude_graph_model
-@entity(description="Claimed alternative", domain=SweepDomain)
+@entity(description="Claimed alternative", resource=SweepStorage)
 class ClaimedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     first: Annotated[
@@ -200,14 +207,14 @@ class ClaimedSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Claim first", domain=SweepDomain)
+@entity(description="Claim first", resource=SweepStorage)
 class ClaimFirstHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Field(description="d")
 
 
 @exclude_graph_model
-@entity(description="Claim second", domain=SweepDomain)
+@entity(description="Claim second", resource=SweepStorage)
 class ClaimSecondHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[ClaimedSpecEntity, _KindEnumEntity] = Field(description="d")
@@ -218,7 +225,7 @@ for _cls in (ClaimedSpecEntity, ClaimFirstHeadCoreEntity, ClaimSecondHeadCoreEnt
 
 
 @exclude_graph_model
-@entity(description="Closed named", domain=SweepDomain)
+@entity(description="Closed named", resource=SweepStorage)
 class ClosedNamedSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -228,14 +235,14 @@ class ClosedNamedSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Closed intruder", domain=SweepDomain)
+@entity(description="Closed intruder", resource=SweepStorage)
 class ClosedIntruderSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Generalization[ClosedSweepHeadCoreEntity] = Field(description="d")
 
 
 @exclude_graph_model
-@entity(description="Closed head", domain=SweepDomain)
+@entity(description="Closed head", resource=SweepStorage)
 class ClosedSweepHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Specialization[ClosedNamedSpecEntity, _KindEnumEntity] = Field(description="d")
@@ -246,7 +253,7 @@ for _cls in (ClosedNamedSpecEntity, ClosedIntruderSpecEntity, ClosedSweepHeadCor
 
 
 @exclude_graph_model
-@entity(description="Self kind", domain=SweepDomain)
+@entity(description="Self kind", resource=SweepStorage)
 class _SelfKindEnumEntity(BaseEnumEntity):
     """One value, so the cycle rule is what reports the self-reference."""
 
@@ -254,7 +261,7 @@ class _SelfKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Self referring", domain=SweepDomain)
+@entity(description="Self referring", resource=SweepStorage)
 class SelfReferringSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -361,7 +368,7 @@ def test_every_rule_the_design_names_has_a_case() -> None:
 
 
 @exclude_graph_model
-@entity(description="Mismatched twin", domain=SweepDomain)
+@entity(description="Mismatched twin", resource=SweepStorage)
 class MismatchedTwinSpecEntity(BaseSpecEntity):
     """Names a value from another dictionary."""
 
@@ -374,7 +381,7 @@ class MismatchedTwinSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Other kind", domain=SweepDomain)
+@entity(description="Other kind", resource=SweepStorage)
 class _OtherKindEnumEntity(BaseEnumEntity):
     """A second dictionary, whose value does not belong to the head's."""
 
@@ -382,7 +389,7 @@ class _OtherKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Head with two faults", domain=SweepDomain)
+@entity(description="Head with two faults", resource=SweepStorage)
 class TwoFaultsHeadCoreEntity(BaseCoreEntity):
     """One alternative is not an entity; the other names a value the head does not borrow."""
 

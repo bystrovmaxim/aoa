@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
-@entity(description="Sterility / compound family catalog for SKU rows", domain=ClinicalSupplyDomain)
+@entity(description="Sterility / compound family catalog for SKU rows", resource=ClinicalSupplyStorage)
 class ClinicalMaterialAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Material family id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Material catalog lifecycle")

@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_disposition_advice import DispositionAdviceCoreEntity
+from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Recall signal extending disposition segment", domain=InventoryDomain)
+@entity(description="Recall signal extending disposition segment", resource=InventoryStorage)
 class RecallSignalCoreEntity(BaseCoreEntity):
     id: str = Field(description="Signal id")
     lifecycle: InvDenseLifecycle = Field(description="Recall lifecycle")

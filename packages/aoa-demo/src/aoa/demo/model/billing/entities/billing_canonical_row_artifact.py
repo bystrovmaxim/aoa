@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Canonical row emitted from parser", domain=BillingDomain)
+@entity(description="Canonical row emitted from parser", resource=BillingWarehouse)
 class BillingCanonicalRowArtifactCoreEntity(BaseCoreEntity):
     id: str = Field(description="Artifact id")
     lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")

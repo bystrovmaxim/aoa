@@ -1,21 +1,18 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/entities/catalog_search_boost_weight.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.entities.catalog_availability_projection import AvailabilityProjectionCoreEntity
-from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
+from aoa.demo.model.catalog.entities.catalog_search_lifecycle import CatalogSearchLifecycle
+from aoa.demo.model.catalog.resources.search_sidecar import CatalogSearchSidecar
 
 
-@entity(description="Search boost chaining off availability subtree", domain=CatalogDomain)
+@entity(description="Search boost chaining off availability subtree", resource=CatalogSearchSidecar)
 class SearchBoostWeightCoreEntity(BaseCoreEntity):
     id: str = Field(description="Boost id")
-    lifecycle: CatalogDenseLifecycle = Field(description="Search boost lifecycle")
+    lifecycle: CatalogSearchLifecycle = Field(description="Search boost lifecycle")
 
     commercial_region_code: str = Field(description="Merchandising / pricing region discriminator")
     channel_partner_tag: str = Field(description="Acquisition partner or marketplace moniker")
@@ -23,12 +20,6 @@ class SearchBoostWeightCoreEntity(BaseCoreEntity):
     attribution_strategy: str = Field(description="Attribution-model key used for funnel credit")
     hash_stale_after_sec: int = Field(description="Seconds until cached facets must invalidate", ge=0)
     copy_variant_revision: int = Field(description="Narrative / SEO copy ordinal", ge=0)
-    availability_projection: Annotated[
-        AssociationOne[AvailabilityProjectionCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Parent availability projection"
-    )
 
 
 SearchBoostWeightCoreEntity.model_rebuild()

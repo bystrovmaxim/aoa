@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
 from aoa.demo.model.billing.entities.funding_window_hint import FundingWindowHintCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
 
 
-@entity(description="Cash application routing hint chained from liquidity funding window facet", domain=BillingDomain)
+@entity(description="Cash application routing hint chained from liquidity funding window facet", resource=BillingWarehouse)
 class CashApplicationHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hint id")
     lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")

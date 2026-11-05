@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Attributed touch moment", domain=CatalogDomain)
+@entity(description="Attributed touch moment", resource=CatalogObjectStore)
 class TouchMomentCoreEntity(BaseCoreEntity):
     id: str = Field(description="Touch id")
     lifecycle: CatalogDenseLifecycle = Field(description="Touch lifecycle")
@@ -31,12 +30,6 @@ class TouchMomentCoreEntity(BaseCoreEntity):
         description="Acquisition ledger segment"
     )
 
-    replay_ticket: Annotated[
-        AssociationOne[ReplayTicketCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Messaging replay ticket for deterministic touch lineage"
-    )
 
 
 TouchMomentCoreEntity.model_rebuild()

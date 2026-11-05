@@ -7,6 +7,8 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -17,14 +19,19 @@ class ExampleDomain(BaseDomain):
     description = "Explicit entity fields"
 
 
-@entity(description="Related object", domain=ExampleDomain)
+@meta(description="Stores the example entities", domain=ExampleDomain)
+class ExampleStorage(BaseStorage):
+    """Hold the example entities."""
+
+
+@entity(description="Related object", resource=ExampleStorage)
 class TargetCoreEntity(BaseCoreEntity):
     """Identify the related object."""
 
     id: str = Field(description="Identifier")
 
 
-@entity(description="Host object", domain=ExampleDomain)
+@entity(description="Host object", resource=ExampleStorage)
 class HostCoreEntity(BaseCoreEntity):
     """Declare the field under examination."""
 

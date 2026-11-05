@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_shelf_placement_hint import ShelfPlacementHintCoreEntity
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Associative row sewing planogram island to bundle cardinality island", domain=CatalogDomain)
+@entity(description="Associative row sewing planogram island to bundle cardinality island", resource=CatalogObjectStore)
 class CatalogShelfBundleLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Assoc id")
     lifecycle: CatalogDenseLifecycle = Field(description="Link lifecycle")

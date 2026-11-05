@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier, value
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class MusicDomain(BaseDomain):
@@ -18,7 +20,12 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+@meta(description="Stores the music entities", domain=MusicDomain)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
+
+
+@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 

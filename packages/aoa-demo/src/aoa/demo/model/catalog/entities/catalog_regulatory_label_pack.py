@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_merch_copy_variant import MerchCopyVariantCoreEntity
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Regulatory label continuation of planogram / copy spine", domain=CatalogDomain)
+@entity(description="Regulatory label continuation of planogram / copy spine", resource=CatalogObjectStore)
 class RegulatoryLabelPackCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pack id")
     lifecycle: CatalogDenseLifecycle = Field(description="Regulatory pack lifecycle")

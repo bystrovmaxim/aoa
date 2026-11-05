@@ -25,6 +25,8 @@ from aoa.action_machine.exceptions.declaration_structure_error import Declaratio
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -32,6 +34,11 @@ class ShopDomain(BaseDomain):
 
     name = "shop"
     description = "Shop model"
+
+
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 # 1. The six kinds AOA ships, and the names their kind bases declare.
@@ -54,7 +61,7 @@ class BaseAggregateEntity(BaseEntity, ABC):
 
 
 @exclude_graph_model
-@entity(description="Customer order", domain=ShopDomain)
+@entity(description="Customer order", resource=ShopStorage)
 class OrderAggregateEntity(BaseAggregateEntity):
     """Describe an order as an aggregate root."""
 

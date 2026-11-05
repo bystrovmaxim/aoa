@@ -19,6 +19,8 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 
@@ -30,8 +32,13 @@ class SchemaShopDomain(BaseDomain):
     description = "Schema shop"
 
 
+@meta(description="Stores the schema shop entities", domain=SchemaShopDomain)
+class SchemaShopStorage(BaseStorage):
+    """Hold the schema shop entities."""
+
+
 @exclude_graph_model
-@entity(description="Edition kind dictionary", domain=SchemaShopDomain)
+@entity(description="Edition kind dictionary", resource=SchemaShopStorage)
 class EditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary used to build one entity node."""
 
@@ -42,7 +49,7 @@ class EditionKindEnumEntity(BaseEnumEntity):
 def _document(properties: dict) -> dict:
     """Return a one-node graph document for the given entity properties."""
     return {
-        "schema_version": "1.5",
+        "schema_version": "1.6",
         "nodes": [
             {
                 "id": "shop.model.EditionKindEnumEntity",
@@ -123,7 +130,7 @@ def test_a_non_dictionary_node_carries_no_values_key() -> None:
     from aoa.action_machine.domain import BaseCoreEntity
 
     @exclude_graph_model
-    @entity(description="Order", domain=SchemaShopDomain)
+    @entity(description="Order", resource=SchemaShopStorage)
     class SchemaOrderCoreEntity(BaseCoreEntity):
         """A core entity, kept out of the model graph."""
 

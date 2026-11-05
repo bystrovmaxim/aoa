@@ -289,7 +289,7 @@ The rules of the mode: `layout=CacheLayout.ENTITIES` and `@cache_entity_key` com
 
 ## The cache in the graph
 
-Each declaration is a `Cache` node of its operation, with its kind and description, reached by an edge named after it (`@cache_key`, …, `@cache_entity_key`). Two more edges go from the operation to entities: `caches` for every type its write caches — its tags and, entity by entity, the entity types it stores — and `invalidates` for every tag type of its invalidation. So [Maxitor](step-29-maxitor.md) can show that `SetConfigAction` drops what `GetConfigAction` caches. These words are versions 1.4 and 1.5 of the graph protocol.
+Each declaration is a `Cache` node of its operation, with its kind and description, reached by an edge named after it (`@cache_key`, …, `@cache_entity_key`). Two more edges go from the operation to entities: `caches` for every type its write caches — its tags and, entity by entity, the entity types it stores — and `invalidates` for every tag type of its invalidation. So [Maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) can show that `SetConfigAction` drops what `GetConfigAction` caches. These words are versions 1.4 and 1.5 of the graph protocol.
 
 ## Cache, errors, and include
 

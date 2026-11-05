@@ -231,31 +231,6 @@ The state keeps its code-based identity and receives a human label and JSON attr
 
 Changing the display name changes the label, not the state code. Keep existing codes when migrating if they are already stored or used by callers. Status objects describe possible states; the entity still holds its own current lifecycle value.
 
-## What Maxitor receives
-
-[Python](../../examples/step_25_lifecycle/06_maxitor_states.py) · [Notebook](../../examples/step_25_lifecycle/06_maxitor_states.ipynb)
-
-Maxitor reads the exported graph and produces data for the lifecycle diagram. The example adds `sort_order`, `color`, and `fill_color` as fields on `OrderStateEntity`. These are optional presentation fields, not required fields of `BaseStateEntity`. Draft deliberately has `sort_order=99`, paid has `1`, and cancelled has `2`.
-
-The script loads the real exported graph into `DuckDBGraphResource`, then runs `GetLifecycleFiniteAutomatonAction` through the machine. There is no handwritten sorting in the example. Its observed result is:
-
-```text
-state order: ['draft', 'paid', 'cancelled']
-paid label: Payment received
-diagram attributes: {'code': 'paid', 'color': '#1565c0', 'display_name': 'Payment received', 'fill_color': '#e3f2fd', 'sort_order': 1}
-```
-
-This calls Maxitor rather than reproducing its sort in the example. Initial states come first, then integer sort_order (missing or non-integer values count as zero), then code. This is the state-list order, not a guarantee of screen coordinates. The diagram receives only code, display_name, sort_order, color and fill_color; requires_receipt remains in the full graph. The renderer uses color for outlines and fill_color for fills; absent colours use its existing palette.
-
-| Field | How Maxitor uses it |
-| --- | --- |
-| `display_name` | Supplies the diagram title; the renderer applies its existing title formatting |
-| `sort_order` | Orders entries after initial states, with the code breaking ties |
-| `color` | Overrides the state outline colour |
-| `fill_color` | Overrides the state fill colour |
-
-Without `sort_order`, the existing order is initial states first, then code. Without usable colour values, the existing palette for initial, intermediate and final states applies. Presentation fields do not add transitions or change which states are initial or final. Other domain fields remain available in the full graph but are not part of the diagram response.
-
 ## Reuse descriptions without moving the rules into them
 
 [Python](../../examples/step_25_lifecycle/07_inherited_vocabulary.py) · [Notebook](../../examples/step_25_lifecycle/07_inherited_vocabulary.ipynb)
@@ -315,6 +290,18 @@ value can be written to the graph: the separate
 ([notebook](../../examples/step_25_lifecycle/19_non_json_field.ipynb)) demonstrates an
 export failure. Dictionary reference serialization and status graph attributes are
 different contracts.
+
+## A lifecycle stays inside one resource
+
+A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. Two entities of one resource may share a state type; entities of two resources may not, because the statuses would then live in two places at once.
+
+[Script](../../examples/step_25_lifecycle/23_lifecycle_across_resources.py) · [Notebook](../../examples/step_25_lifecycle/23_lifecycle_across_resources.ipynb)
+
+```text
+EntityResourceError: OrderStateEntity is the state type of OrderCopyCoreEntity.lifecycle (StorefrontDatabase) and ReturnCoreEntity.lifecycle (SupportDatabase): a lifecycle stays inside one resource.
+```
+
+The order and its copy share `OrderStateEntity` inside `StorefrontDatabase`, which is allowed; the return in `SupportDatabase` is what the model refuses. Give the second resource a state type of its own — the codes may be the same.
 
 ## When invalid declarations fail
 

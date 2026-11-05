@@ -59,6 +59,11 @@ _IMPORTS = textwrap.dedent(
     class NoInvDomain(BaseDomain):
         name = "noinv"
         description = "NoInverse"
+
+
+    @meta(description="Stores the no inv entities", domain=NoInvDomain)
+    class NoInvStorage(BaseStorage):
+        pass
     """
 )
 
@@ -84,12 +89,12 @@ def test_noinverse_is_accepted_on_each_ordinary_container(container: str) -> Non
     """A one-way field is accepted on all six ordinary containers."""
     out = _run(
         f"""
-        @entity(description="Owner", domain=NoInvDomain)
+        @entity(description="Owner", resource=NoInvStorage)
         class OwnerCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             parts: Annotated[{container}[PartCoreEntity], NoInverse()] = Field(description="Parts")
 
-        @entity(description="Part", domain=NoInvDomain)
+        @entity(description="Part", resource=NoInvStorage)
         class PartCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
@@ -107,12 +112,12 @@ def test_one_unpaired_noinverse_field_is_accepted() -> None:
     """A single NoInverse field with no reverse field is a valid one-way relationship."""
     out = _run(
         """
-        @entity(description="Owner", domain=NoInvDomain)
+        @entity(description="Owner", resource=NoInvStorage)
         class OwnerCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             part: Annotated[AssociationOne[PartCoreEntity], NoInverse()] = Field(description="Part")
 
-        @entity(description="Part", domain=NoInvDomain)
+        @entity(description="Part", resource=NoInvStorage)
         class PartCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
@@ -129,12 +134,12 @@ def test_two_noinverse_fields_are_independent() -> None:
     """Two opposite-direction NoInverse fields are two relationships, not one pair."""
     out = _run(
         """
-        @entity(description="A", domain=NoInvDomain)
+        @entity(description="A", resource=NoInvStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[AssociationOne[BCoreEntity], NoInverse()] = Field(description="B")
 
-        @entity(description="B", domain=NoInvDomain)
+        @entity(description="B", resource=NoInvStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[AssociationMany[ACoreEntity], NoInverse()] = Field(description="A")
@@ -153,12 +158,12 @@ def test_two_mutual_inverse_markers_are_accepted() -> None:
     """A reciprocal pair of Inverse markers is accepted and passes the matrix."""
     out = _run(
         """
-        @entity(description="A", domain=NoInvDomain)
+        @entity(description="A", resource=NoInvStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[AssociationOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", domain=NoInvDomain)
+        @entity(description="B", resource=NoInvStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[AssociationMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -178,12 +183,12 @@ def _one_sided(order: tuple[str, str]) -> str:
     first, second = order
     return _run(
         f"""
-        @entity(description="Owner", domain=NoInvDomain)
+        @entity(description="Owner", resource=NoInvStorage)
         class OwnerCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             part: Annotated[AssociationMany[PartCoreEntity], NoInverse()] = Field(description="Part")
 
-        @entity(description="Part", domain=NoInvDomain)
+        @entity(description="Part", resource=NoInvStorage)
         class PartCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             owner: Annotated[AssociationOne[OwnerCoreEntity], Inverse(field_name="part")] = Field(
@@ -211,18 +216,18 @@ def test_noinverse_on_specialization_is_refused() -> None:
     """A head field marked NoInverse is refused; the pair requires Inverse."""
     out = _run(
         """
-        @entity(description="Kind", domain=NoInvDomain)
+        @entity(description="Kind", resource=NoInvStorage)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", domain=NoInvDomain)
+        @entity(description="Head", resource=NoInvStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[Specialization[AltSpecEntity, KindEnumEntity], NoInverse()] = Field(
                 description="Details"
             )
 
-        @entity(description="Alt", domain=NoInvDomain)
+        @entity(description="Alt", resource=NoInvStorage)
         class AltSpecEntity(BaseSpecEntity):
             id: str = Field(description="Identifier")
             record: Annotated[
@@ -247,11 +252,11 @@ def test_noinverse_on_generalization_is_refused() -> None:
     """An alternative field marked NoInverse is refused; the pair requires Inverse."""
     out = _run(
         """
-        @entity(description="Kind", domain=NoInvDomain)
+        @entity(description="Kind", resource=NoInvStorage)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", domain=NoInvDomain)
+        @entity(description="Head", resource=NoInvStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -259,7 +264,7 @@ def test_noinverse_on_generalization_is_refused() -> None:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", domain=NoInvDomain)
+        @entity(description="Alt", resource=NoInvStorage)
         class AltSpecEntity(BaseSpecEntity):
             id: str = Field(description="Identifier")
             record: Annotated[

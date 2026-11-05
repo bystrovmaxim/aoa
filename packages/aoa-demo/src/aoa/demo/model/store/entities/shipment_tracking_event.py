@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Shipment tracking event row", domain=StoreDomain)
+@entity(description="Shipment tracking event row", resource=StorefrontDatabase)
 class ShipmentTrackingEventCoreEntity(BaseCoreEntity):
     id: str = Field(description="Tracking event id")
     lifecycle: SalesOrderLifecycle = Field(description="Tracking event lifecycle")

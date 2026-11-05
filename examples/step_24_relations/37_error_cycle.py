@@ -22,6 +22,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class MusicDomain(BaseDomain):
@@ -31,14 +33,19 @@ class MusicDomain(BaseDomain):
     description = "Cycle experiment"
 
 
-@entity(description="Kind of ASpecEntity", domain=MusicDomain)
+@meta(description="Stores the music entities", domain=MusicDomain)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
+
+
+@entity(description="Kind of ASpecEntity", resource=MusicStorage)
 class ASpecEntityKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     B = value(code="b", display_name="B")
 
 
-@entity(description="First level", domain=MusicDomain)
+@entity(description="First level", resource=MusicStorage)
 class ASpecEntity(BaseSpecEntity):
     """Declare the first level of detail."""
 
@@ -53,14 +60,14 @@ class ASpecEntity(BaseSpecEntity):
     ] = Field(description="Return to B")
 
 
-@entity(description="Kind of BSpecEntity", domain=MusicDomain)
+@entity(description="Kind of BSpecEntity", resource=MusicStorage)
 class BSpecEntityKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     A = value(code="a", display_name="A")
 
 
-@entity(description="Second level", domain=MusicDomain)
+@entity(description="Second level", resource=MusicStorage)
 class BSpecEntity(BaseSpecEntity):
     """Declare the second level of detail."""
 

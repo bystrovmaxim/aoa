@@ -20,7 +20,7 @@ This README is a quick start: from installation to an operation published over H
 
 An entity declares domain information independently of storage. Choose its base by what one instance represents: `BaseCoreEntity` for an independent object, `BaseAssocEntity` for a technical link without business data, `BaseDetailEntity` for an owned part, `BaseSpecEntity` for variant-specific data of the same head object, `BaseEnumEntity` for a declared value of a closed dictionary, or `BaseStateEntity` for a lifecycle state.
 
-The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks inheritance and names when Python creates the class, including intermediate and undecorated descendants. `@entity` supplies the description and domain for graph discovery. A status class instead belongs to its lifecycle and is excluded from ordinary Entity nodes.
+The name carries the matching suffix, for example `OrderCoreEntity(BaseCoreEntity)`. The hierarchy checks inheritance and names when Python creates the class, including intermediate and undecorated descendants. `@entity` supplies the description and the one resource that stores the entity, `@entity(resource=...)`; the entity's domain is that resource's domain, and its relations stay inside that resource. A status class instead belongs to its lifecycle and is excluded from ordinary Entity nodes.
 
 The [entity tutorial](../../docs/tutorials/step-22-entity.md) explains the distinctions before introducing their code, with a separate script and notebook for each case. The marker does not infer business meaning from fields or impose database keys and deletion behaviour.
 
@@ -32,6 +32,8 @@ Import `value` from `aoa.action_machine.domain` and declare members inside their
 from aoa.action_machine.domain import BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -39,7 +41,12 @@ class ShopDomain(BaseDomain):
     description = "Shop catalogue"
 
 
-@entity(description="Accepted currency", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Accepted currency", resource=ShopStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Describe the accepted currency."""
 

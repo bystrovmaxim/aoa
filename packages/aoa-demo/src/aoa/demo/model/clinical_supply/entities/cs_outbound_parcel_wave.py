@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_care_site_unit import ClinicalCareSiteUnitCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
-@entity(description="Outbound dispatch header owned by ward / service desk", domain=ClinicalSupplyDomain)
+@entity(description="Outbound dispatch header owned by ward / service desk", resource=ClinicalSupplyStorage)
 class ClinicalOutboundParcelWaveCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parcel wave id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Outbound parcel lifecycle")

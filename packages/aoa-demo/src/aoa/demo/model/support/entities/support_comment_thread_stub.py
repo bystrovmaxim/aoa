@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.entities.support_sla_interval import SupportSlaIntervalCoreEntity
-from aoa.demo.model.support.support_domain import SupportDomain
+from aoa.demo.model.support.resources.storage import SupportStorage
 
 
-@entity(description="Conversation stub tail on SLA segment (no fan-in back to ticket hub)", domain=SupportDomain)
+@entity(description="Conversation stub tail on SLA segment (no fan-in back to ticket hub)", resource=SupportStorage)
 class SupportCommentThreadStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Thread stub id")
     lifecycle: SupportSparseLifecycle = Field(description="Thread lifecycle")

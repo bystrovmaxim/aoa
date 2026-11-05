@@ -22,10 +22,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
     AnalyticsCanonicalTelemetryRowDetailEntity,
 )
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
 class _AnDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -45,7 +45,7 @@ class _AnDirectedCycleSketchLifecycle(Lifecycle[_AnDirectedCycleSketchStateEntit
     _template = Lifecycle().state(_AnDirectedCycleSketchStateEntity.OPEN).to(_AnDirectedCycleSketchStateEntity.SETTLED).initial().state(_AnDirectedCycleSketchStateEntity.SETTLED).final()
 
 
-@entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", domain=AnalyticsDomain)
+@entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", resource=AnalyticsStorage)
 class AnalyticsDirectedCycleQuadACoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex A id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -71,7 +71,7 @@ class AnalyticsDirectedCycleQuadACoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", domain=AnalyticsDomain)
+@entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", resource=AnalyticsStorage)
 class AnalyticsDirectedCycleQuadBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex B id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -104,7 +104,7 @@ class AnalyticsDirectedCycleQuadBCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", domain=AnalyticsDomain)
+@entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", resource=AnalyticsStorage)
 class AnalyticsDirectedCycleQuadCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex C id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -130,7 +130,7 @@ class AnalyticsDirectedCycleQuadCCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", domain=AnalyticsDomain)
+@entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", resource=AnalyticsStorage)
 class AnalyticsDirectedCycleQuadDCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex D id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")

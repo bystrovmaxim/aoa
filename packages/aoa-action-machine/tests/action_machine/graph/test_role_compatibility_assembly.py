@@ -43,6 +43,11 @@ _IMPORTS = textwrap.dedent(
     class CompatDomain(BaseDomain):
         name = "compat"
         description = "Compatibility"
+
+
+    @meta(description="Stores the compat entities", domain=CompatDomain)
+    class CompatStorage(BaseStorage):
+        pass
     """
 )
 
@@ -50,14 +55,14 @@ _IMPORTS = textwrap.dedent(
 def _run_pair(container_a: str, container_b: str) -> str:
     """Declare one reciprocal pair in a fresh process and return its verdict."""
     body = f"""
-        @entity(description="First", domain=CompatDomain)
+        @entity(description="First", resource=CompatStorage)
         class FirstCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             second: Annotated[{container_a}[SecondCoreEntity], Inverse(field_name="first")] = Field(
                 description="Second"
             )
 
-        @entity(description="Second", domain=CompatDomain)
+        @entity(description="Second", resource=CompatStorage)
         class SecondCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             first: Annotated[{container_b}[FirstCoreEntity], Inverse(field_name="second")] = Field(

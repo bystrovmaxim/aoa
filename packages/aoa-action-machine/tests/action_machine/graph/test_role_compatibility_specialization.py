@@ -43,6 +43,11 @@ _IMPORTS = textwrap.dedent(
     class SpecDomain(BaseDomain):
         name = "spec"
         description = "Specialization"
+
+
+    @meta(description="Stores the spec entities", domain=SpecDomain)
+    class SpecStorage(BaseStorage):
+        pass
     """
 )
 
@@ -57,11 +62,11 @@ def test_a_valid_classified_axis_passes() -> None:
     """A head Specialization and an alternative Generalization form a permitted pair."""
     out = _run(
         """
-        @entity(description="Kind", domain=SpecDomain)
+        @entity(description="Kind", resource=SpecStorage)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", domain=SpecDomain)
+        @entity(description="Head", resource=SpecStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -69,7 +74,7 @@ def test_a_valid_classified_axis_passes() -> None:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", domain=SpecDomain)
+        @entity(description="Alt", resource=SpecStorage)
         class AltSpecEntity(BaseSpecEntity):
             id: str = Field(description="Identifier")
             record: Annotated[
@@ -91,14 +96,14 @@ def test_a_generalization_paired_with_an_ordinary_role_is_refused() -> None:
     """A Generalization endpoint whose reverse is an ordinary association is refused."""
     out = _run(
         """
-        @entity(description="Head", domain=SpecDomain)
+        @entity(description="Head", resource=SpecStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             items: Annotated[AssociationOne[AltCoreEntity], Inverse(field_name="owner")] = Field(
                 description="Items"
             )
 
-        @entity(description="Alt", domain=SpecDomain)
+        @entity(description="Alt", resource=SpecStorage)
         class AltCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             owner: Annotated[Generalization[HeadCoreEntity], Inverse(HeadCoreEntity, "items")] = Field(
@@ -121,11 +126,11 @@ def test_a_specialization_paired_with_an_ordinary_role_is_refused() -> None:
     """A head Specialization whose alternative reverse is an ordinary role is refused."""
     out = _run(
         """
-        @entity(description="Kind", domain=SpecDomain)
+        @entity(description="Kind", resource=SpecStorage)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", domain=SpecDomain)
+        @entity(description="Head", resource=SpecStorage)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -133,7 +138,7 @@ def test_a_specialization_paired_with_an_ordinary_role_is_refused() -> None:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", domain=SpecDomain)
+        @entity(description="Alt", resource=SpecStorage)
         class AltCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             record: Annotated[AssociationOne[HeadCoreEntity], Inverse(HeadCoreEntity, "pressing")] = Field(

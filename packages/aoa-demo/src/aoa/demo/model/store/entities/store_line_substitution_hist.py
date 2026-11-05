@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Substitution decision history stub", domain=StoreDomain)
+@entity(description="Substitution decision history stub", resource=StorefrontDatabase)
 class SubstitutionHistoryCoreEntity(BaseCoreEntity):
     id: str = Field(description="SubstitutionHistoryCoreEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="SubstitutionHistoryCoreEntity lifecycle")

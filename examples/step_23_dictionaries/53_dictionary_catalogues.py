@@ -14,6 +14,8 @@ from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class Shop53Domain(BaseDomain):
@@ -23,11 +25,16 @@ class Shop53Domain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Stores the shop53 entities", domain=Shop53Domain)
+class Shop53Storage(BaseStorage):
+    """Hold the shop53 entities."""
+
+
 class EmptyEnumEntity(BaseEnumEntity):
     """Declare no values; ``@entity`` refuses an empty dictionary, so this one stays undecorated."""
 
 
-@entity(description="Offer", domain=Shop53Domain)
+@entity(description="Offer", resource=Shop53Storage)
 class Offer53CoreEntity(BaseCoreEntity):
     """Type a field with a dictionary that declares nothing."""
 
@@ -52,15 +59,20 @@ class Shop54Domain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Stores the shop54 entities", domain=Shop54Domain)
+class Shop54Storage(BaseStorage):
+    """Hold the shop54 entities."""
+
+
 @exclude_graph_model
-@entity(description="Regions kept out of the graph", domain=Shop54Domain)
+@entity(description="Regions kept out of the graph", resource=Shop54Storage)
 class HiddenRegion54EnumEntity(BaseEnumEntity):
     """Stay out of the graph on purpose."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", domain=Shop54Domain)
+@entity(description="Offer", resource=Shop54Storage)
 class Offer54CoreEntity(BaseCoreEntity):
     """Reference a dictionary the graph does not carry."""
 

@@ -11,6 +11,8 @@ from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class _TDomain(BaseDomain):
@@ -18,12 +20,17 @@ class _TDomain(BaseDomain):
     description = "t"
 
 
-@entity(description="Target", domain=_TDomain)
+@meta(description="Stores the t entities", domain=_TDomain)
+class _TStorage(BaseStorage):
+    """Hold the t entities."""
+
+
+@entity(description="Target", resource=_TStorage)
 class _TargetAssocEntity(BaseAssocEntity):
     id: str
 
 
-@entity(description="Host", domain=_TDomain)
+@entity(description="Host", resource=_TStorage)
 class _HostAssocEntity(BaseAssocEntity):
     id: str
     other: Annotated[AssociationOne[_TargetAssocEntity], NoInverse()] = Field(

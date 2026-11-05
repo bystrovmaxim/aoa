@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
+from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Lifecycle axis for credential posture (user_status analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Lifecycle axis for credential posture (user_status analogue)", resource=AssurancePortfolioStorage)
 class AssuranceAccountPhaseAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Account phase axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Axis lifecycle")
@@ -22,7 +22,7 @@ class AssuranceAccountPhaseAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Named duty template bucket (role catalogue analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Named duty template bucket (role catalogue analogue)", resource=AssurancePortfolioStorage)
 class AssuranceDutyTemplateAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Duty axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Duty axis lifecycle")
@@ -35,7 +35,7 @@ class AssuranceDutyTemplateAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Atomic privilege grain (fine right analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Atomic privilege grain (fine right analogue)", resource=AssurancePortfolioStorage)
 class AssurancePrivilegeGrainAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Privilege grain id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Privilege axis lifecycle")
@@ -48,7 +48,7 @@ class AssurancePrivilegeGrainAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Requirement taxonomy discriminator", domain=AssurancePortfolioDomain)
+@entity(description="Requirement taxonomy discriminator", resource=AssurancePortfolioStorage)
 class AssuranceExpectationGenreAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Expectation genre id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Genre axis lifecycle")
@@ -61,7 +61,7 @@ class AssuranceExpectationGenreAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Requirement maturity runway states", domain=AssurancePortfolioDomain)
+@entity(description="Requirement maturity runway states", resource=AssurancePortfolioStorage)
 class AssuranceExpectationPhaseAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Expectation phase axis id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Phase axis lifecycle")
@@ -74,7 +74,7 @@ class AssuranceExpectationPhaseAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Depth tier along specification spine (spec_level analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Depth tier along specification spine (spec_level analogue)", resource=AssurancePortfolioStorage)
 class AssuranceSpecificationDepthAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Specification depth tier id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Depth axis lifecycle")
@@ -87,7 +87,7 @@ class AssuranceSpecificationDepthAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Delegated task intent flavours (assignment_type analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Delegated task intent flavours (assignment_type analogue)", resource=AssurancePortfolioStorage)
 class AssuranceDelegationIntentAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Delegation intent id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Delegation intent axis lifecycle")
@@ -100,7 +100,7 @@ class AssuranceDelegationIntentAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Workstream checkpoint labels (assignment_status analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Workstream checkpoint labels (assignment_status analogue)", resource=AssurancePortfolioStorage)
 class AssuranceCheckpointToneAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Checkpoint tone id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Checkpoint tone axis lifecycle")
@@ -113,7 +113,7 @@ class AssuranceCheckpointToneAxisCoreEntity(BaseCoreEntity):
     flaky_budget_pct: float = Field(description="Accepted flake-rate envelope percent", ge=0, le=100)
 
 
-@entity(description="Attachment carrier formats (attachment_type analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Attachment carrier formats (attachment_type analogue)", resource=AssurancePortfolioStorage)
 class AssuranceEvidenceKindAxisCoreEntity(BaseCoreEntity):
     id: str = Field(description="Evidence carrier kind id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Evidence axis lifecycle")

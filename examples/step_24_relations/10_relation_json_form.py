@@ -18,6 +18,8 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDetailEntity, CompositeMany, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -27,7 +29,12 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Customer", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Customer", resource=ShopStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     """A customer identified by a UUID."""
 
@@ -35,7 +42,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     name: str = Field(description="Customer name")
 
 
-@entity(description="Order line", domain=ShopDomain)
+@entity(description="Order line", resource=ShopStorage)
 class LineDetailEntity(BaseDetailEntity):
     """One line of an order."""
 
@@ -43,7 +50,7 @@ class LineDetailEntity(BaseDetailEntity):
     qty: int = Field(description="Quantity")
 
 
-@entity(description="Customer order", domain=ShopDomain)
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     """An order with its customer and its lines."""
 

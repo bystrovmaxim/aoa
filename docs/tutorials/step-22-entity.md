@@ -24,6 +24,8 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -33,7 +35,12 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Customer order", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     """Describe an order independently of its storage."""
 
@@ -51,7 +58,45 @@ OrderCoreEntity
 ord-1 1500.0
 ```
 
-There are two separate declarations here. `BaseCoreEntity` supplies the kind and requires the `CoreEntity` suffix. `@entity` supplies the description used by the domain model; `domain=ShopDomain` assigns the owning domain, which entity graph construction requires. Python creates the class before applying the decorator, so inheritance and suffix errors occur before `@entity` runs. Neither declaration creates a database table or retrieves data.
+There are two separate declarations here. `BaseCoreEntity` supplies the kind and requires the `CoreEntity` suffix. `@entity` supplies the description used by the domain model; `resource=ShopStorage` names the resource that stores the order, and the order takes its domain from that resource's `@meta`. Python creates the class before applying the decorator, so inheritance and suffix errors occur before `@entity` runs. Neither declaration creates a database table or retrieves data.
+
+## Store the entity in the resource that holds it
+
+An entity is a row kept somewhere: a table of a database, a key of a cache, a record a gateway reports. `@entity` names that place with `resource=`, and only that place. The entity has no domain of its own: it takes the domain the resource declares with `@meta(domain=...)`, so there is one source for it and nothing to compare.
+
+[Script](../../examples/step_22_entity/29_stored_by_resource.py) · [Notebook](../../examples/step_22_entity/29_stored_by_resource.ipynb)
+
+```text
+resource: StorefrontDatabase
+domain: StoreDomain
+schema_version: 1.6
+domain: SalesOrderCoreEntity -> StoreDomain (Aggregation)
+entity_resource: SalesOrderCoreEntity -> StorefrontDatabase (Aggregation)
+```
+
+The graph carries both facts: an `entity_resource` edge from the entity to its resource, and the entity's `domain` edge, which points at the resource's domain. Any kind of resource may store entities — a storage, a gateway or a controller — so a reader of the graph finds the data model of each one of them.
+
+The resource is required, and the domain is not a parameter any more:
+
+[Script](../../examples/step_22_entity/30_resource_required.py) · [Notebook](../../examples/step_22_entity/30_resource_required.ipynb)
+
+```text
+EntityDecoratorError: SalesOrderCoreEntity — @entity needs resource=: an entity is stored by a resource.
+TypeError: entity() got an unexpected keyword argument 'domain'
+```
+
+`resource=` takes exactly one concrete resource. A domain or any other class that is not a resource, a kind base such as `BaseStorage` (the graph leaves the kind bases out, so the entity could not point at one), a resource that declares no domain, and several resources at once are each refused when the class is defined, with the entity named:
+
+[Script](../../examples/step_22_entity/31_resource_refusals.py) · [Notebook](../../examples/step_22_entity/31_resource_refusals.ipynb)
+
+```text
+EntityDecoratorError: SalesOrderCoreEntity — @entity resource= must be a BaseResource subclass, got StoreDomain.
+EntityDecoratorError: SalesOrderCoreEntity — @entity resource= must be a concrete resource, got BaseStorage, which is excluded from the graph model.
+EntityDecoratorError: SalesOrderCoreEntity — @entity resource= UndeclaredDatabase declares no domain: decorate it with @meta(domain=...).
+EntityDecoratorError: SalesOrderCoreEntity — @entity takes one resource, got 2: StorefrontDatabase, StorefrontSessionCache.
+```
+
+A subclass without an `@entity` of its own inherits its parent's declaration, resource included. Because every entity has one resource, the relations between entities stay inside it: [step 24](step-24-relations.md#a-relation-stays-inside-one-resource) shows the rule.
 
 ## Understand the six kinds
 
@@ -281,7 +326,7 @@ An entity may keep a value that belongs to the object rather than to its data �
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer order", domain=ShopDomain)
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(default=0.0, description="Total")
@@ -307,20 +352,9 @@ A plain mixin may supply methods alongside one kind base. `OrderCoreEntity(Label
 
 ## Read the kind from the exported graph
 
-[Script](../../examples/step_22_entity/11_graph_kind.py) · [Notebook](../../examples/step_22_entity/11_graph_kind.ipynb)
-
 Every exported Entity row includes `properties.entity_kind`. The value comes from the kind base in the inheritance chain, rather than a separately maintained field on each model. AOA's six kinds export as `core`, `assoc`, `detail`, `spec`, `enum` and `state`; state types are excluded from Entity rows, so normal graph export does not produce `state` there. The interchange schema does not fix the list: any lowercase word (`^[a-z][a-z0-9_]*$`) is a valid kind, so a model or another producer may add its own.
 
-The example builds a graph, loads it into Maxitor's DuckDB store, and reads the same value from both:
-
-```text
-graph: core
-Maxitor store: core
-```
-
 The kind is a required graph property, not an optional hint. [The missing-property case](../../examples/step_22_entity/26_graph_requires_kind.py) ([notebook](../../examples/step_22_entity/26_graph_requires_kind.ipynb)) removes it and prints `Entity row without entity_kind: rejected`. Rebuild graph exports produced before this property was required. Concrete class renames also change graph labels and identifiers containing qualified class names; check consumers that store those identifiers.
-
-Maxitor preserves the kind, but this branch does not make its renderer automatically collapse associative entities. See [Step 29](step-29-maxitor.md) for graph and diagram usage.
 
 ## Name a kind for readers of the graph
 
@@ -353,7 +387,7 @@ class BaseAggregateEntity(BaseEntity, ABC):
 graph row: {'entity_kind': 'aggregate', 'entity_kind_label': 'Aggregate'}
 ```
 
-The name must be written in the kind base itself, as a non-empty string; inheriting it from another base does not count. A kind base without one is refused when the class is created, with `DeclarationStructureError` (see the table below). Concrete entities never declare `KIND_LABEL`: they take the name of their kind. Maxitor's ERD shows this name in its Kinds filter and on each table's kind icon ([Step 29](step-29-maxitor.md)).
+The name must be written in the kind base itself, as a non-empty string; inheriting it from another base does not count. A kind base without one is refused when the class is created, with `DeclarationStructureError` (see the table below). Concrete entities never declare `KIND_LABEL`: they take the name of their kind. Maxitor's ERD shows this name in its Kinds filter and on each table's kind icon.
 
 ## Understand declaration failures
 

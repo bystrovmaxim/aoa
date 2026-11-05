@@ -25,6 +25,13 @@ the runtime constructs that restricted view around the resource.
 implementation has something to acquire and release. The SQL family defines both;
 a SQL resource that owns a real connection must implement meaningful cleanup.
 
+A resource is also where entities live. Every entity names the one resource that stores it, with
+`@entity(resource=...)`, and takes its domain from the resource's `@meta`: a storage holds rows,
+a gateway the records an outside service reports, a controller the state it keeps. The kinds are
+exported together — `from aoa.action_machine.resources import BaseStorage, BaseGateway, BaseController`.
+[Step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it) shows the declaration,
+and [step 24](step-24-relations.md#a-relation-stays-inside-one-resource) why relations stay inside one resource.
+
 ## The resource stores; the action decides
 
 The following complete example is deliberately sequential and in memory. It

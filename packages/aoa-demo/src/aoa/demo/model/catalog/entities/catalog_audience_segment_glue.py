@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
 from aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub import ConversionAttributionStubCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
 @entity(
     description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)",
-    domain=CatalogDomain,
+    resource=CatalogObjectStore,
 )
 class AudienceSegmentGlueCoreEntity(BaseCoreEntity):
     id: str = Field(description="Glue id")

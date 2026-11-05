@@ -55,6 +55,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -62,7 +64,12 @@ class ShopDomain(BaseDomain):
     description = "Shop domain"
 
 
-@entity(description="Customer account", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Customer account", resource=ShopStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     name: str = Field(description="Display name")
@@ -73,7 +80,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Field(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", domain=ShopDomain)
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(ge=0, description="Order total")
@@ -91,7 +98,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Field(description="Line items of the order")
 
 
-@entity(description="Single line of an order", domain=ShopDomain)
+@entity(description="Single line of an order", resource=ShopStorage)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line id")
     sku: str = Field(description="Product code")
@@ -253,6 +260,8 @@ from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class DirectionDomain(BaseDomain):
@@ -262,35 +271,40 @@ class DirectionDomain(BaseDomain):
     description = "Reciprocal directions"
 
 
-@entity(description="Offer", domain=DirectionDomain)
+@meta(description="Stores the direction entities", domain=DirectionDomain)
+class DirectionStorage(BaseStorage):
+    """Hold the direction entities."""
+
+
+@entity(description="Offer", resource=DirectionStorage)
 class OfferCoreEntity(BaseCoreEntity):
     """Collect the regions offering this product."""
 
     regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(description="Regions")
 
 
-@entity(description="Region", domain=DirectionDomain)
+@entity(description="Region", resource=DirectionStorage)
 class RegionCoreEntity(BaseCoreEntity):
     """Name the opposite endpoint explicitly."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
 
 
-@entity(description="One-way bookmark", domain=DirectionDomain)
+@entity(description="One-way bookmark", resource=DirectionStorage)
 class BookmarkCoreEntity(BaseCoreEntity):
     """Keep an intentional unpaired link."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Bookmarked offer")
 
 
-@entity(description="Old reverse endpoint", domain=DirectionDomain)
+@entity(description="Old reverse endpoint", resource=DirectionStorage)
 class OldOfferCoreEntity(BaseCoreEntity):
     """Keep the previous unpaired reverse declaration."""
 
     regions: Annotated[AssociationMany[OldRegionCoreEntity], NoInverse()] = Field(description="Regions")
 
 
-@entity(description="Old forward endpoint", domain=DirectionDomain)
+@entity(description="Old forward endpoint", resource=DirectionStorage)
 class OldRegionCoreEntity(BaseCoreEntity):
     """Demonstrate the one-sided inverse refusal."""
 
@@ -395,6 +409,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class MusicDomain(BaseDomain):
@@ -404,7 +420,12 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
+@meta(description="Stores the music entities", domain=MusicDomain)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
+
+
+@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -413,7 +434,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
     TEST = value(code="test", display_name="Test")
 
 
-@entity(description="Vinyl record", domain=MusicDomain)
+@entity(description="Vinyl record", resource=MusicStorage)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
@@ -425,7 +446,7 @@ class VinylRecordCoreEntity(BaseCoreEntity):
     ] = Field(description="Details of this pressing")
 
 
-@entity(description="First pressing", domain=MusicDomain)
+@entity(description="First pressing", resource=MusicStorage)
 class FirstPressSpecEntity(BaseSpecEntity):
     """Describe the stamper used for a first pressing."""
 
@@ -438,7 +459,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Re-pressing", domain=MusicDomain)
+@entity(description="Re-pressing", resource=MusicStorage)
 class RepressSpecEntity(BaseSpecEntity):
     """Describe when an album was pressed again."""
 
@@ -451,7 +472,7 @@ class RepressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Test pressing", domain=MusicDomain)
+@entity(description="Test pressing", resource=MusicStorage)
 class TestPressSpecEntity(BaseSpecEntity):
     """Describe who approved a test pressing."""
 
@@ -523,8 +544,6 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 | specialization frozen | [09_specialization_frozen](../../examples/step_24_relations/09_specialization_frozen.py) | [Notebook](../../examples/step_24_relations/09_specialization_frozen.ipynb) |
 | specialization graph | [10_specialization_graph](../../examples/step_24_relations/10_specialization_graph.py) | [Notebook](../../examples/step_24_relations/10_specialization_graph.ipynb) |
 | specialization hidden edges | [12_specialization_hidden_edges](../../examples/step_24_relations/12_specialization_hidden_edges.py) | [Notebook](../../examples/step_24_relations/12_specialization_hidden_edges.ipynb) |
-| specialization erd | [13_specialization_erd](../../examples/step_24_relations/13_specialization_erd.py) | [Notebook](../../examples/step_24_relations/13_specialization_erd.ipynb) |
-| specialization single alternative | [14_specialization_single_alternative](../../examples/step_24_relations/14_specialization_single_alternative.py) | [Notebook](../../examples/step_24_relations/14_specialization_single_alternative.ipynb) |
 | specialization storage | [15_specialization_storage](../../examples/step_24_relations/15_specialization_storage.py) | [Notebook](../../examples/step_24_relations/15_specialization_storage.ipynb) |
 | specialization reference | [16_specialization_reference](../../examples/step_24_relations/16_specialization_reference.py) | [Notebook](../../examples/step_24_relations/16_specialization_reference.ipynb) |
 | specialization absent | [17_specialization_absent](../../examples/step_24_relations/17_specialization_absent.py) | [Notebook](../../examples/step_24_relations/17_specialization_absent.ipynb) |
@@ -550,7 +569,6 @@ Runtime construction validates the chosen dictionary value and loaded detail typ
 | error copied value | [48_error_copied_value](../../examples/step_24_relations/48_error_copied_value.py) | [Notebook](../../examples/step_24_relations/48_error_copied_value.ipynb) |
 | error unregistered dictionary | [49_error_unregistered_dictionary](../../examples/step_24_relations/49_error_unregistered_dictionary.py) | [Notebook](../../examples/step_24_relations/49_error_unregistered_dictionary.ipynb) |
 | error one argument | [50_error_one_argument](../../examples/step_24_relations/50_error_one_argument.py) | [Notebook](../../examples/step_24_relations/50_error_one_argument.ipynb) |
-| group label | [51_group_label](../../examples/step_24_relations/51_group_label.py) | [Notebook](../../examples/step_24_relations/51_group_label.ipynb) |
 | required relation | [52_required_relation](../../examples/step_24_relations/52_required_relation.py) | [Notebook](../../examples/step_24_relations/52_required_relation.ipynb) |
 | optional relation | [53_optional_relation](../../examples/step_24_relations/53_optional_relation.py) | [Notebook](../../examples/step_24_relations/53_optional_relation.ipynb) |
 | former embedded entity refused | [54_embedded_entity](../../examples/step_24_relations/54_embedded_entity.py) | [Notebook](../../examples/step_24_relations/54_embedded_entity.ipynb) |
@@ -572,6 +590,18 @@ Descriptions and defaults are checked for ownership relations, specializations a
 `NoRelation` does not allow entity embedding. An unchanged inherited endpoint keeps its base identity; an explicit same-signature override has a [confirmed validation defect](../reports/complete-relationship-verification.md#explicit-overrides). States use lifecycle types. See [specialization refusals](../how-to/specialization-declaration-fails.md), [dictionary selections](../how-to/dictionary-references.md) and [the invariant reference](../reference/intents-and-invariants.md).
 
 Specialization and Generalization require Inverse on both endpoints. NoInverse is refused on either specialized field. Ordinary reciprocal pairs are also checked against the endpoint-role matrix during model assembly.
+
+## A relation stays inside one resource
+
+A relation is a join or a foreign key, and a join exists only inside one database. Every entity names the resource that stores it ([step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)), so the model can tell two tables of one database from two stores that no query can join. It refuses, while the model is built, every link whose two entities are stored by different resources: an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field — a dictionary is an ordinary entity of its resource.
+
+[Script](../../examples/step_24_relations/74_relation_across_resources.py) · [Notebook](../../examples/step_24_relations/74_relation_across_resources.ipynb)
+
+```text
+EntityResourceError: SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase) to SalesOrderCoreEntity (StorefrontDatabase): a relation stays inside one resource.
+```
+
+The message names the field, both entities and both resources. `OrderNoteCoreEntity` in the same model points at the same order from the order's own database and is not refused. To keep the link, store both entities in one resource; to keep two resources, drop the field — a reference from an entity of one resource to an entity of another has no allowed form yet. The graph build checks the same rule once more on the finished graph, so a graph that breaks it is never written.
 
 ## Endpoint role compatibility
 

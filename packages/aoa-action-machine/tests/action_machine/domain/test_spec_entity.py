@@ -27,6 +27,8 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class SpecShopDomain(BaseDomain):
@@ -36,8 +38,13 @@ class SpecShopDomain(BaseDomain):
     description = "Spec shop"
 
 
+@meta(description="Stores the spec shop entities", domain=SpecShopDomain)
+class SpecShopStorage(BaseStorage):
+    """Hold the spec shop entities."""
+
+
 @exclude_graph_model
-@entity(description="Edition kind", domain=SpecShopDomain)
+@entity(description="Edition kind", resource=SpecShopStorage)
 class SpecEditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary."""
 
@@ -46,7 +53,7 @@ class SpecEditionKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Record", domain=SpecShopDomain)
+@entity(description="Record", resource=SpecShopStorage)
 class SpecRecordCoreEntity(BaseCoreEntity):
     """The head of the axis."""
 
@@ -58,7 +65,7 @@ class SpecRecordCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="First press", domain=SpecShopDomain)
+@entity(description="First press", resource=SpecShopStorage)
 class SpecFirstPressSpecEntity(BaseSpecEntity):
     """Names the declared value it is."""
 
@@ -70,7 +77,7 @@ class SpecFirstPressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Repress", domain=SpecShopDomain)
+@entity(description="Repress", resource=SpecShopStorage)
 class SpecRepressSpecEntity(BaseSpecEntity):
     """Names the other declared value."""
 
@@ -82,7 +89,7 @@ class SpecRepressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Unmarked extension", domain=SpecShopDomain)
+@entity(description="Unmarked extension", resource=SpecShopStorage)
 class SpecUnmarkedSpecEntity(BaseSpecEntity):
     """Points back at its head without naming a value."""
 

@@ -3,6 +3,7 @@ Run: .venv/bin/python examples/step_23_dictionaries/42_validator_nested_list.py
 """
 
 from pydantic import field_validator
+
 from aoa.action_machine.domain import BaseEnumEntity, value
 
 

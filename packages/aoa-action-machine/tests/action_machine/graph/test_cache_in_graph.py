@@ -44,17 +44,17 @@ from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-from ...support.domain_model.domains import OrdersDomain
+from ...support.domain_model.domains import OrdersDomain, OrdersStorage
 
 
-@entity(description="An order the shop caches", domain=OrdersDomain)
+@entity(description="An order the shop caches", resource=OrdersStorage)
 class ShopOrderCoreEntity(BaseCoreEntity):
     """An order."""
 
     id: str = Field(description="Order id")
 
 
-@entity(description="An invoice nobody caches", domain=OrdersDomain)
+@entity(description="An invoice nobody caches", resource=OrdersStorage)
 class ShopInvoiceCoreEntity(BaseCoreEntity):
     """An invoice."""
 

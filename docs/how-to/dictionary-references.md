@@ -30,6 +30,8 @@ from aoa.action_machine.domain import (
     AggregateMany, BaseCoreEntity, BaseDomain, BaseEnumEntity, CompositeOne, NoInverse, value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class PricingDomain(BaseDomain):
@@ -38,7 +40,12 @@ class PricingDomain(BaseDomain):
     description = "Pricing"
 
 
-@entity(description="Currencies", domain=PricingDomain)
+@meta(description="Stores the pricing entities", domain=PricingDomain)
+class PricingStorage(BaseStorage):
+    """Hold the pricing entities."""
+
+
+@entity(description="Currencies", resource=PricingStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare canonical currency values."""
     symbol: str = Field(description="Currency symbol")
@@ -46,7 +53,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Prices", domain=PricingDomain)
+@entity(description="Prices", resource=PricingStorage)
 class PricesCoreEntity(BaseCoreEntity):
     """Use explicit ownership and cardinality for dictionary links."""
     primary: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Primary currency")

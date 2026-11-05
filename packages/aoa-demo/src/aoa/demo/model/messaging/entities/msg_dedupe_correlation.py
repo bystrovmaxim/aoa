@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard import DispatcherCursorShardCoreEntity
+from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
 
 
-@entity(description="Dedupe correlation chaining from dispatcher watermark", domain=MessagingDomain)
+@entity(description="Dedupe correlation chaining from dispatcher watermark", resource=OutboxPrimaryDatabase)
 class DedupeCorrelationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Dedupe id")
     lifecycle: MsgDenseLifecycle = Field(description="Dedupe lifecycle")

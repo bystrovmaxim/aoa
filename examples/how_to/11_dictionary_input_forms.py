@@ -15,6 +15,8 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import AggregateMany, BaseCoreEntity, BaseEnumEntity, CompositeOne, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class PricingDomain(BaseDomain):
@@ -24,7 +26,12 @@ class PricingDomain(BaseDomain):
     description = "Pricing"
 
 
-@entity(description="Currencies", domain=PricingDomain)
+@meta(description="Stores the pricing entities", domain=PricingDomain)
+class PricingStorage(BaseStorage):
+    """Hold the pricing entities."""
+
+
+@entity(description="Currencies", resource=PricingStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare canonical currency values."""
 
@@ -33,7 +40,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Prices", domain=PricingDomain)
+@entity(description="Prices", resource=PricingStorage)
 class PricesCoreEntity(BaseCoreEntity):
     """Select one primary currency and several alternatives."""
 

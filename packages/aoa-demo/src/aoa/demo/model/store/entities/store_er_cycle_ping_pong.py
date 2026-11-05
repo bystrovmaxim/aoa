@@ -25,7 +25,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
 class _StoreDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -47,7 +47,7 @@ class _StoreDirectedCycleSketchLifecycle(Lifecycle[_StoreDirectedCycleSketchStat
 
 @entity(
     description="Ping side of mutual FK skeleton (two-node interchange cycle demo)",
-    domain=StoreDomain,
+    resource=StorefrontDatabase,
 )
 class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ping row id")
@@ -76,7 +76,7 @@ class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Pong side of mutual FK skeleton (two-node interchange cycle demo)",
-    domain=StoreDomain,
+    resource=StorefrontDatabase,
 )
 class StoreDirectedCyclePongCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pong row id")

@@ -33,6 +33,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_event import BaseEvent
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
@@ -57,6 +58,11 @@ class StoreDomain(BaseDomain):
     description = "Storefront operations"
 
 
+@meta(description="Stores the store entities", domain=StoreDomain)
+class StoreStorage(BaseStorage):
+    """Hold the store entities."""
+
+
 class Params(BaseParams):
     pass
 
@@ -65,7 +71,7 @@ class Result(BaseResult):
     source: str = Field(description="Who answered")
 
 
-@entity(description="A card charge", domain=StoreDomain)
+@entity(description="A card charge", resource=StoreStorage)
 class ChargeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Charge id")
 

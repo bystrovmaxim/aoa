@@ -21,8 +21,8 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
 class CounterpartyLinkageStateEntity(BaseStateEntity):
@@ -174,7 +174,7 @@ class NostroLiquiditySweepLifecycle(Lifecycle[NostroLiquiditySweepStateEntity]):
 
 @entity(
     description="Issuer-facing dispute clock plus counterparty linkage (dual lifecycle columns)",
-    domain=BillingDomain,
+    resource=BillingWarehouse,
 )
 class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     id: str = Field(description="Workbench bundle id")
@@ -192,7 +192,7 @@ class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Treasury cutover program tracked beside nostro sweep confirmation (dual lifecycles)",
-    domain=BillingDomain,
+    resource=BillingWarehouse,
 )
 class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cutover bundle id")
@@ -210,7 +210,7 @@ class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Reconciliation audit with KYC ring, GL wave, and scheme dispute mesh (triple lifecycle)",
-    domain=BillingDomain,
+    resource=BillingWarehouse,
 )
 class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     id: str = Field(description="Audit run id")

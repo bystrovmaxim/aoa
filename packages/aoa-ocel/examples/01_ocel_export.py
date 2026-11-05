@@ -36,7 +36,7 @@ from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseResource, BaseStorage, Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
@@ -49,15 +49,24 @@ class ShopDomain(BaseDomain):
     description = "Tiny order-and-customer shop domain"
 
 
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """No wrapper: a nested action may use this resource as it is."""
+        return None
+
+
 @meta(description="Customer placing orders", domain=ShopDomain)
-@entity(description="Customer placing orders", domain=ShopDomain)
+@entity(description="Customer placing orders", resource=ShopStorage)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Customer name")
 
 
 @meta(description="Order created in the shop", domain=ShopDomain)
-@entity(description="Order created in the shop", domain=ShopDomain)
+@entity(description="Order created in the shop", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     sku: str = Field(description="Ordered SKU")

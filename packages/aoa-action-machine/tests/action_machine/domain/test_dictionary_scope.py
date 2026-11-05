@@ -18,6 +18,8 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -27,8 +29,13 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
 @exclude_graph_model
-@entity(description="Currency reference value", domain=ShopDomain)
+@entity(description="Currency reference value", resource=ShopStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary with two values and one extra field."""
 
@@ -65,7 +72,7 @@ def test_values_are_not_inherited() -> None:
     """A subclass declares its own set and carries none of the parent's values."""
 
     @exclude_graph_model
-    @entity(description="Fiat currencies", domain=ShopDomain)
+    @entity(description="Fiat currencies", resource=ShopStorage)
     class FiatCurrencyEnumEntity(CurrencyEnumEntity):
         """A different dictionary that reuses the fields."""
 
@@ -80,7 +87,7 @@ def test_a_decorated_dictionary_without_values_is_refused() -> None:
     """The set is closed, so a concrete dictionary states every value it has."""
     with pytest.raises(ValueError, match="declares no values; a closed dictionary states its values"):
 
-        @entity(description="Empty dictionary", domain=ShopDomain)
+        @entity(description="Empty dictionary", resource=ShopStorage)
         class NothingEnumEntity(BaseEnumEntity):
             """Declare nothing."""
 
@@ -102,7 +109,7 @@ def test_duplicate_codes_are_refused() -> None:
     with pytest.raises(ValueError, match="duplicate value code"):
 
         @exclude_graph_model
-        @entity(description="Duplicate codes", domain=ShopDomain)
+        @entity(description="Duplicate codes", resource=ShopStorage)
         class DuplicateEnumEntity(BaseEnumEntity):
             """Declare the same code twice."""
 

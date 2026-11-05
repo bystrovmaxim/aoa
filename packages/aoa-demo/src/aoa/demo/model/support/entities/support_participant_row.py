@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
-from aoa.demo.model.support.support_domain import SupportDomain
+from aoa.demo.model.support.resources.storage import SupportStorage
 
 
-@entity(description="Ticket participant row (linear chain head off ticket)", domain=SupportDomain)
+@entity(description="Ticket participant row (linear chain head off ticket)", resource=SupportStorage)
 class SupportParticipantCoreEntity(BaseCoreEntity):
     id: str = Field(description="Participant row id")
     lifecycle: SupportSparseLifecycle = Field(description="Participant lifecycle")

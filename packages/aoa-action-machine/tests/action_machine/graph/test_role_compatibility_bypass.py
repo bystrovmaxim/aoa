@@ -38,6 +38,11 @@ _IMPORTS = textwrap.dedent(
     class CompatDomain(BaseDomain):
         name = "compat"
         description = "Compatibility"
+
+
+    @meta(description="Stores the compat entities", domain=CompatDomain)
+    class CompatStorage(BaseStorage):
+        pass
     """
 )
 
@@ -52,14 +57,14 @@ def test_no_graph_edge_does_not_bypass_the_check() -> None:
     """A hidden edge on one endpoint still refuses the ownership/ownership pair."""
     out = _run(
         """
-        @entity(description="A", domain=CompatDomain)
+        @entity(description="A", resource=CompatStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a"), NoGraphEdge()] = Field(
                 description="B"
             )
 
-        @entity(description="B", domain=CompatDomain)
+        @entity(description="B", resource=CompatStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -81,13 +86,13 @@ def test_graph_exclusion_does_not_bypass_the_check() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="A", domain=CompatDomain)
+        @entity(description="A", resource=CompatStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
         @exclude_graph_model
-        @entity(description="B", domain=CompatDomain)
+        @entity(description="B", resource=CompatStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -108,17 +113,17 @@ def test_an_unchanged_inherited_pair_keeps_its_base_roles() -> None:
     """A child inheriting an ownership endpoint is judged by the base resolved role."""
     out = _run(
         """
-        @entity(description="A", domain=CompatDomain)
+        @entity(description="A", resource=CompatStorage)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", domain=CompatDomain)
+        @entity(description="B", resource=CompatStorage)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
 
-        @entity(description="ChildA", domain=CompatDomain)
+        @entity(description="ChildA", resource=CompatStorage)
         class ChildACoreEntity(ACoreEntity):
             extra: str = Field(description="Extra")
 

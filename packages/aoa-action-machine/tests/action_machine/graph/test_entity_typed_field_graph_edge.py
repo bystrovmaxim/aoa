@@ -28,17 +28,17 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-from ...support.domain_model.domains import TestDomain
+from ...support.domain_model.domains import TestStorage
 
 
-@entity(description="Customer for the graph edge tests", domain=TestDomain)
+@entity(description="Customer for the graph edge tests", resource=TestStorage)
 class EdgeCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
     id: str = Field(description="Id")
 
 
-@entity(description="Currencies for the graph edge tests", domain=TestDomain)
+@entity(description="Currencies for the graph edge tests", resource=TestStorage)
 class EdgeCurrencyEnumEntity(BaseEnumEntity):
     """A dictionary."""
 

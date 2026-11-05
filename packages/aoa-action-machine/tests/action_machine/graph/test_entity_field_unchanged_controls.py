@@ -69,6 +69,11 @@ def test_scalar_schema_and_lifecycle_fields_pass() -> None:
             name = "controls"
             description = "Controls"
 
+
+        @meta(description="Stores the controls entities", domain=ControlsDomain)
+        class ControlsStorage(BaseStorage):
+            pass
+
         class DraftStateEntity(BaseStateEntity):
             DRAFT = value(code="draft", display_name="Draft")
 
@@ -76,12 +81,12 @@ def test_scalar_schema_and_lifecycle_fields_pass() -> None:
             pass
 
         @exclude_graph_model
-        @entity(description="Schema host", domain=ControlsDomain)
+        @entity(description="Schema host", resource=ControlsStorage)
         class HostParams(BaseSchema):
             order_id: str = Field(description="Order identifier")
 
         @exclude_graph_model
-        @entity(description="Untouched host", domain=ControlsDomain)
+        @entity(description="Untouched host", resource=ControlsStorage)
         class OrdinaryCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             age: int | None = Field(default=None, description="Age")
@@ -103,11 +108,16 @@ def test_a_bare_state_field_keeps_its_refusal() -> None:
             name = "controls"
             description = "Controls"
 
+
+        @meta(description="Stores the controls entities", domain=ControlsDomain)
+        class ControlsStorage(BaseStorage):
+            pass
+
         class DraftStateEntity(BaseStateEntity):
             DRAFT = value(code="draft", display_name="Draft")
 
         @exclude_graph_model
-        @entity(description="State host", domain=ControlsDomain)
+        @entity(description="State host", resource=ControlsStorage)
         class StateFieldCoreEntity(BaseCoreEntity):
             stage: DraftStateEntity = Field(description="Stage")
 

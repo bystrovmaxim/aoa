@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_lot_age_bucket import LotAgeBucketCoreEntity
+from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
 @entity(
     description="Correlates physical bin coordinates with terminal aging buckets (facility mesh)",
-    domain=InventoryDomain,
+    resource=InventoryStorage,
 )
 class InvBinAgeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")

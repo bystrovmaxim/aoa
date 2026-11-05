@@ -14,7 +14,9 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseResult, JsonSchemaValue
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -24,7 +26,12 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Customer order", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Customer order", resource=ShopStorage)
 class OrderCoreEntity(BaseCoreEntity):
     """Describe an order whose rows a projection returns."""
 

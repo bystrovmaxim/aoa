@@ -21,6 +21,8 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class DictionaryDomain(BaseDomain):
@@ -30,7 +32,12 @@ class DictionaryDomain(BaseDomain):
     description = "Dictionary endpoints"
 
 
-@entity(description="Currencies", domain=DictionaryDomain)
+@meta(description="Stores the dictionary entities", domain=DictionaryDomain)
+class DictionaryStorage(BaseStorage):
+    """Hold the dictionary entities."""
+
+
+@entity(description="Currencies", resource=DictionaryStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the canonical currencies and an exported property."""
 
@@ -44,7 +51,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
         return "Currency " + symbol
 
 
-@entity(description="Price list", domain=DictionaryDomain)
+@entity(description="Price list", resource=DictionaryStorage)
 class PriceListCoreEntity(BaseCoreEntity):
     """Demonstrate the six roles without a dictionary-only role restriction."""
 

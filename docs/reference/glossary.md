@@ -128,7 +128,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 ## The data model
 
-**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and domain. State descriptions are declared through a lifecycle instead. See [Step 22](../tutorials/step-22-entity.md).
+**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and the one resource that stores them; an entity's domain is its resource's domain. State descriptions are declared through a lifecycle instead. See [Step 22](../tutorials/step-22-entity.md).
 
 **Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`, together with the name its kind base declares as `KIND_LABEL` (`entity_kind_label`: Core, Association, Detail, Specialization, Enumeration, State).
 

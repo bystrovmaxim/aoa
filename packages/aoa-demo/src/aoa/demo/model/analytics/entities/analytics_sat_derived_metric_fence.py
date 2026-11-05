@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
 from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubCoreEntity
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
 @entity(
-    description="Derived metric concurrency fence stacking on dimension slice ingress branch", domain=AnalyticsDomain
+    description="Derived metric concurrency fence stacking on dimension slice ingress branch", resource=AnalyticsStorage
 )
 class DerivedMetricFenceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Fence id")

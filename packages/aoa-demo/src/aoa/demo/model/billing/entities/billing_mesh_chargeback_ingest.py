@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Correlate row wiring dispute artefacts to ingestion manifests", domain=BillingDomain)
+@entity(description="Correlate row wiring dispute artefacts to ingestion manifests", resource=BillingWarehouse)
 class BillingChargebackIngestCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")

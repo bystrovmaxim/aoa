@@ -12,6 +12,8 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, BaseCoreEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class ShopDomain(BaseDomain):
@@ -21,21 +23,26 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@entity(description="Product", domain=ShopDomain)
+@meta(description="Stores the shop entities", domain=ShopDomain)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
+@entity(description="Product", resource=ShopStorage)
 class ProductCoreEntity(BaseCoreEntity):
     """Identify a product in the catalogue."""
 
     id: str = Field(description="Product identifier")
 
 
-@entity(description="Catalogue category", domain=ShopDomain)
+@entity(description="Catalogue category", resource=ShopStorage)
 class CategoryCoreEntity(BaseCoreEntity):
     """Identify a category used to organise products."""
 
     id: str = Field(description="Category identifier")
 
 
-@entity(description="Product membership in a category", domain=ShopDomain)
+@entity(description="Product membership in a category", resource=ShopStorage)
 class ProductCategoryAssocEntity(BaseAssocEntity):
     """Record a technical connection between product and category."""
 
