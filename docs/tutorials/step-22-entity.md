@@ -273,6 +273,28 @@ ValidationError: Value error, order: OrderCoreEntity is partial (loaded: id); th
 
 The same holds for `OrderCoreEntity | None` and for each item of `list[OrderCoreEntity]`. Inside an entity a relation still holds a partial target: that is what a relation's load level means.
 
+### A private attribute is not a field
+
+[Script](../../examples/step_22_entity/28_private_attribute.py) · [Notebook](../../examples/step_22_entity/28_private_attribute.ipynb)
+
+An entity may keep a value that belongs to the object rather than to its data — where it was loaded from, say — as a Pydantic private attribute. It is never validated and never dumped, and the entity reads it, full or partial; a declared field a partial entity does not hold still raises `FieldNotLoadedError`:
+
+```python
+# Fragment: its imports are left out.
+@entity(description="Customer order", domain=ShopDomain)
+class OrderCoreEntity(BaseCoreEntity):
+    id: str = Field(description="Order id")
+    total: float = Field(default=0.0, description="Total")
+    _source: str = PrivateAttr(default="storage")
+```
+
+```text
+full order    _source: storage
+dump          : {'id': 'o1', 'total': 99.5}
+partial order _source: storage
+partial order total  : FieldNotLoadedError
+```
+
 ## Inherit a kind and add ordinary behaviour
 
 [Intermediate class: script](../../examples/step_22_entity/09_inheritance.py) · [Notebook](../../examples/step_22_entity/09_inheritance.ipynb)
