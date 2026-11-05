@@ -51,7 +51,7 @@ Goal: every demo entity stored by one resource, none related across resources (r
 
 ## Phase 6: graph files and versions
 
-- [ ] T023 Rebuild `packages/aoa-demo/graph.json` (`graph-builder write`, or the build command of `graph-builder.toml`); raise each changed level's `version.toml` as `version-gate` requires (research R9). Commit.
+- [X] T023 Rebuild `packages/aoa-demo/graph.json` (`graph-builder write`, or the build command of `graph-builder.toml`); raise each changed level's `version.toml` as `version-gate` requires (research R9). Commit.
 
 ## Phase 7: the closing check run
 

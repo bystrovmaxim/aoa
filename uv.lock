@@ -55,7 +55,7 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.0.1a20"
+version = "1.1.0b1"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
@@ -97,7 +97,7 @@ dev = [
 
 [[package]]
 name = "aoa-demo"
-version = "3.15.2"
+version = "3.16.0"
 source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -393,7 +393,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29,<8.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
-    { name = "maxitor", extras = ["all"], specifier = ">=3.15.0" },
+    { name = "maxitor", extras = ["all"], specifier = ">=3.16.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "nbclient", marker = "extra == 'dev'", specifier = ">=0.10,<1.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
@@ -2302,15 +2302,15 @@ wheels = [
 
 [[package]]
 name = "maxitor"
-version = "3.15.0"
+version = "3.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
     { name = "jsonschema-rs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/b0/6300c2848d1888fa1c421c7e3ef8144804ecb2d8442fd09e7cace7e38bef/maxitor-3.15.0.tar.gz", hash = "sha256:b3fff72ba8c2a002a42fb05419d4b5015f647516f54eff5327060eb8e43d6fd5", size = 2001664, upload-time = "2026-11-05T17:17:02.31Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/cb/d08bce66560682cb7bbeb59c741afeb22d533491c425248be59fd02b8a8e/maxitor-3.16.0.tar.gz", hash = "sha256:bf467a8012cb0bd76ea40c02dcd8e362154f0133a9b71eb119f277bb252c7616", size = 2008687, upload-time = "2026-11-05T21:00:05.812Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/3a/8856411841c05f9e1e5acd3449522fc28a33a10472e27eb885f6b7f98527/maxitor-3.15.0-py3-none-any.whl", hash = "sha256:05cb06d7e3f47ac6d37bdaa72688cfa6f19abde0f94ee03a63f602b4769d9de3", size = 1384169, upload-time = "2026-11-05T17:16:59.936Z" },
+    { url = "https://files.pythonhosted.org/packages/82/ba/12a0da3862499e5f9a02f266ec4b637352c60f85f9ebcd6461cbc33c67ef/maxitor-3.16.0-py3-none-any.whl", hash = "sha256:cc9b6f85c592fde7476f94aa8d59b79ee1cd89573c267795f30f4087afb6b987", size = 1388464, upload-time = "2026-11-05T21:00:04.401Z" },
 ]
 
 [package.optional-dependencies]
