@@ -1,6 +1,6 @@
 # The demonstrator stand
 
-Three containers on one host, each behind the host's TLS front end:
+Four containers on one host; three of them behind the host's TLS front end:
 
 | Service | Domain | On the host | What it is |
 |---|---|---|---|
