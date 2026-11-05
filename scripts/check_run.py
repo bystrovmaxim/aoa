@@ -14,15 +14,15 @@ failed and 0 otherwise; a failing step never stops the others.
 
 Every row carries its home: ``local``, ``ci`` or ``both``. The selectors choose
 the rows for a context — ``--where local`` (default) keeps ``local`` and ``both``,
-``--where ci`` keeps ``ci`` and ``both``, and the narrow selectors (``--only-browser``,
-``--only-group``, ``--skip-group``) pick or drop named rows. The local run and every
+``--where ci`` keeps ``ci`` and ``both``, and the narrow selectors (``--only-group``,
+``--skip-group``) pick or drop named rows. The local run and every
 CI job therefore run the same commands from one table.
 
 Each step writes into its own file; when every step has ended, the log is joined
 from those files in the table's order, so it never depends on which step ended
 first and two steps' output never mix.
 
-Steps run side by side where nothing forbids it. The two shell guards and
+Steps run side by side where nothing forbids it. The shell guard and
 ``ruff check --fix`` run first, in order and alone, because the auto-fix rewrites
 files every later Python step reads (CI runs the same step without ``--fix``, since
 it must not change the tree); then every step starts as soon as the steps
@@ -40,16 +40,6 @@ run that already failed. They are then *checked* by a step that always runs, aft
 the write, so a stale file is rewritten on a green run instead of failing it, and
 a failure elsewhere never leaves them neither written nor checked.
 
-The browser rows run only locally: a GitHub machine has no graphics card, so Firefox
-has no WebGL there and the map cannot be drawn. Their proof reaches a pull request in
-two steps. A browser run or a full local run that ends green, with the tree one commit
-from start to end, leaves a receipt naming that commit. Everything else is CI's to
-check, so the browsers are all a pull request has to run here. Then
-``--sign-off`` reads the receipt and reports it to GitHub as the commit status
-``Local check run``, and refuses when the tree is anything but the commit the receipt
-names. The merge rule of ``main`` requires that status on the exact commit, so a commit
-nobody ran does not merge, and the proof may arrive at any moment.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -58,7 +48,7 @@ ARCHITECTURE / DATA FLOW
 
     run_checks_with_log.sh  ──exec──►  check_run.py
                                            │
-             STEPS ── home/browser seals ──► selector (--where, --only-*)
+             STEPS ── home ──► selector (--where, --only-group, --skip-group)
                                            ▼
              STEPS ── after / not_during / AOA_CHECK_JOBS ──► ready steps
                                            ▼
@@ -67,14 +57,6 @@ ARCHITECTURE / DATA FLOW
                        └──► console: > name / OK|FAIL        ▼ table order
                                                   archive/logs/check-all.txt
 
-    green browser run on one commit ──► archive/logs/check-run-receipt.json
-                                           │ --sign-off
-                                           ▼
-                                  gh api …/statuses/<commit>
-                                           │ required status
-                                           ▼
-                                     merge rule of main
-
 Python's standard library only: the runner starts before anything is installed
 or built, and must not depend on what it checks.
 """
@@ -82,7 +64,6 @@ or built, and must not depend on what it checks.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import signal
 import subprocess
@@ -95,23 +76,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LOG_FILE = REPO_ROOT / "archive" / "logs" / "check-all.txt"
-RECEIPT_FILE = REPO_ROOT / "archive" / "logs" / "check-run-receipt.json"
-SIGN_OFF_CONTEXT = "Local check run"
-# Long enough for a commit pushed to an open pull request to be run; a commit that had its run answers at once.
 
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 NC = "\033[0m"
 
-CLIENT = "cd packages/maxitor/maxitor-web/client"
 AUTO_FIX = "Ruff auto-fix"
 LAZY_GUARD = "Ban __getattr__ in package __init__.py"
-README_GUARD = "Maxitor client: README beside components/*/ index.ts"
 JOBS_VARIABLE = "AOA_CHECK_JOBS"
 STOP_GRACE_SECONDS = 5.0
 POLL_SECONDS = 0.05
-CLIENT_BUILD = "Maxitor client: npm ci and Vite build"
 GRAPH_WRITE = "Graph files (graph-builder write)"
 PACKAGES = (
     "packages/aoa-action-machine",
@@ -120,7 +95,6 @@ PACKAGES = (
     "packages/aoa-fastapi-adapter",
     "packages/aoa-mcp-adapter",
     "packages/aoa-langgraph",
-    "packages/maxitor",
     "packages/aoa-demo",
 )
 LOCAL = "local"
@@ -134,7 +108,7 @@ class Step:
     AI-CORE-BEGIN
     ROLE: One step of the check run: what it is called, what it runs, and what it must wait for.
     CONTRACT: ``command`` runs through ``bash -c`` from the repository root; ``shown`` is the command line the log prints, ``command`` when empty.
-    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; ``browser`` marks the rows that launch a real browser engine; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``.
+    INVARIANTS: ``name`` is unique in ``STEPS``; ``after`` and ``not_during`` name other steps of the table; ``home`` is one of ``local``, ``ci``, ``both``; the table's order is the log's order; ``only_if_all_passed`` waits for every other selected step except those that wait for it, and runs only when all passed; ``ci_command`` replaces ``command`` under ``--where ci``.
     AI-CORE-END
     """
 
@@ -147,7 +121,6 @@ class Step:
     blank_before_result: bool = True
     only_if_all_passed: bool = False
     home: str = BOTH
-    browser: bool = False
     ci_command: str = ""
 
     @property
@@ -168,26 +141,13 @@ def _guard(name: str, guard: str, function: str, after: tuple[str, ...] = ()) ->
     )
 
 
-def _client(name: str, command: str, browser: bool = False) -> Step:
-    """A client step that uses what the client build wrote; one with a real browser runs only locally."""
-    return Step(
-        name=name,
-        command=f"({CLIENT} && {command})",
-        group="client",
-        after=(CLIENT_BUILD,),
-        browser=browser,
-        home=LOCAL if browser else BOTH,
-    )
-
-
 def _build(package: str) -> Step:
-    """The wheel and sdist build of one package, CI only; Maxitor's sdist packs the client, so it waits out the client build."""
+    """The wheel and sdist build of one package, CI only."""
     name = package.rsplit("/", 1)[-1]
     return Step(
         name=f"Build wheel/sdist ({package})",
         command=f"uv build --package {name} --out-dir packages/{name}/dist",
         group="packaging",
-        not_during=(CLIENT_BUILD,) if package == "packages/maxitor" else (),
         home=CI,
     )
 
@@ -199,30 +159,10 @@ def _after_fix(name: str, command: str, group: str, home: str = BOTH) -> Step:
 
 STEPS: tuple[Step, ...] = (
     _guard(LAZY_GUARD, "lazy-init-getattr", "check_no_lazy_init_getattr"),
-    _guard(README_GUARD, "client-component-readmes", "check_maxitor_client_component_readmes", after=(LAZY_GUARD,)),
-    # Two remarks in this log are known, accepted and not to be acted on — they belong to tools,
-    # not to this repository's code:
-    #   * the Vite build's "Some chunks are larger than 500 kB" — the front's weight is the graph
-    #     engine and the Graphviz wasm behind layout, and the advisory is about their size;
-    #   * LangGraph's `LangChainPendingDeprecationWarning` while its cache module is imported —
-    #     raised inside the library, and this repository never builds that cache.
-    # Do not chase either one; the steps below stay green with them in the log.
-    Step(CLIENT_BUILD, f"({CLIENT} && npm ci && npm run build)", "client", after=(AUTO_FIX,)),
-    _client("Maxitor client: unit tests", "npm test"),
-    # Every diagram must be laid out to the same bits in Chromium, Firefox and WebKit, on a phone and a
-    # desktop screen, or pointers in a room land on the wrong nodes (spec 028, FR-006). The same step
-    # then opens a room in each engine and proves a pointer lands within 2 px of its node (SC-003).
-    # Local only: see the module's docstring for why, and how its proof reaches a pull request.
-    _client(
-        "Maxitor client: the same layout in three engines",
-        "npx playwright install chromium firefox webkit && node scripts/check-layout-determinism.ts",
-        browser=True,
-    ),
-    _client("Maxitor client: ERD card containment", "node scripts/check-erd-card-containment.ts"),
-    _client("Maxitor client: dictionary value properties", "node scripts/check-erd-dictionary-values.ts"),
-    _client("Maxitor client: group label composed once", "node scripts/check-erd-group-label.ts"),
-    _client("Maxitor client: ERD kinds, tables and lines", "node scripts/check-erd-kinds-and-lines.ts"),
-    _client("Maxitor client: ERD table style", "node scripts/check-erd-table-style.ts"),
+    # One remark in this log is known, accepted and not to be acted on — it belongs to a library, not to
+    # this repository's code: LangGraph's `LangChainPendingDeprecationWarning` while its cache module is
+    # imported — raised inside the library, and this repository never builds that cache. Do not chase it;
+    # the steps below stay green with it in the log.
     # The only Ruff step: it fixes here, and in CI, which must not change the tree, it
     # only reports. It takes the same scope as `task lint`, so the two agree on what this repository
     # lints. `examples/` and its notebooks are tutorial material and sit
@@ -234,7 +174,7 @@ STEPS: tuple[Step, ...] = (
         AUTO_FIX,
         "uv run --extra dev ruff check --fix packages/ tests/ scripts/",
         "first",
-        after=(README_GUARD,),
+        after=(LAZY_GUARD,),
         ci_command="uv run --extra dev ruff check packages/ tests/ scripts/",
     ),
     _after_fix("Mypy typecheck", "uv run --extra dev task typecheck", "static"),
@@ -269,11 +209,6 @@ STEPS: tuple[Step, ...] = (
             ci_command=f'uv run --extra dev pytest packages/{package}/tests/ -v -m "not benchmark"',
         )
         for package in (
-            "maxitor/maxitor-web",
-            "maxitor/tools/repo-graph-port",
-            "maxitor/tools/graph-builder",
-            "maxitor/core/graph_compare",
-            "maxitor/core/graph_map",
             "aoa-demo",
             "aoa-otel",
             "aoa-langgraph",
@@ -485,16 +420,13 @@ def _as_in_ci(step: Step) -> Step:
 def _select(
     steps: tuple[Step, ...],
     where: str,
-    only_browser: bool,
     only_group: str | None,
     skip_group: str | tuple[str, ...] | None,
 ) -> tuple[Step, ...]:
     """The rows a selector keeps; references to rows that did not survive are dropped."""
     skipped = (skip_group,) if isinstance(skip_group, str) else tuple(skip_group or ())
     rows = list(steps)
-    if only_browser:
-        rows = [step for step in rows if step.browser or step.name == CLIENT_BUILD]
-    elif only_group is not None:
+    if only_group is not None:
         rows = [step for step in rows if step.group == only_group]
     else:
         if where != BOTH:
@@ -518,10 +450,8 @@ def _parser() -> argparse.ArgumentParser:
     """The command line: a where and the narrow selectors."""
     parser = argparse.ArgumentParser(prog="run_checks_with_log.sh", description="Run the repository's check run.")
     parser.add_argument("--where", choices=(LOCAL, CI, BOTH), default=LOCAL, help="which rows to run")
-    parser.add_argument("--only-browser", action="store_true", help="only the browser rows and the client build; a green run proves the commit")
     parser.add_argument("--only-group", metavar="NAME", help="only the rows of one group")
     parser.add_argument("--skip-group", metavar="NAME", action="append", help="drop the rows of a group; may be given more than once")
-    parser.add_argument("--sign-off", action="store_true", help="report the last full green run to GitHub, and run nothing")
     return parser
 
 
@@ -551,67 +481,6 @@ def _write_log(header: str, results: dict[str, Result], wall: float, interrupted
         )
 
 
-def _clean_commit() -> str | None:
-    """The commit the working tree is, or ``None`` while uncommitted changes make it something else."""
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, check=True, capture_output=True, text=True)
-    if status.stdout.strip():
-        return None
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, check=True, capture_output=True, text=True)
-    return head.stdout.strip()
-
-
-def _leave_receipt(started_on: str | None, steps: int) -> None:
-    """Record the commit a green browser run proved, when the tree was that commit from start to end."""
-    if started_on is None or _clean_commit() != started_on:
-        _say(YELLOW, "No receipt: the tree was not one commit from start to end. Commit, then run again to sign off.")
-        return
-    RECEIPT_FILE.write_text(json.dumps({"commit": started_on, "steps": steps}) + "\n", encoding="utf-8")
-    _say(GREEN, f"Receipt: {steps} steps green on {started_on[:8]}. Push it, then: bash scripts/run_checks_with_log.sh --sign-off")
-
-
-def _receipt() -> dict[str, object]:
-    """What the last green browser run left, or nothing."""
-    try:
-        return dict(json.loads(RECEIPT_FILE.read_text(encoding="utf-8")))
-    except (OSError, ValueError):
-        return {}
-
-
-def _sign_off() -> int:
-    """Report the last green browser run to GitHub, on the commit it proved; refuse for a tree that is anything else."""
-    commit, receipt = _clean_commit(), _receipt()
-    if commit is None:
-        _say(RED, "FAIL the tree has uncommitted changes: commit them and run again")
-        return 1
-    if receipt.get("commit") != commit:
-        _say(RED, f"FAIL no green browser run on record for {commit[:8]}: run bash scripts/check_before_pr.sh on this commit")
-        return 1
-    answer = subprocess.run(
-        [
-            "gh",
-            "api",
-            "--method",
-            "POST",
-            f"repos/{{owner}}/{{repo}}/statuses/{commit}",
-            "-f",
-            "state=success",
-            "-f",
-            f"context={SIGN_OFF_CONTEXT}",
-            "-f",
-            f"description={receipt['steps']} steps green, the three browser engines among them",
-        ],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if answer.returncode != 0:
-        _say(RED, f"FAIL GitHub took no status for {commit[:8]}; is the commit pushed? {answer.stderr.strip()}")
-        return 1
-    _say(GREEN, f"OK {SIGN_OFF_CONTEXT} on {commit[:8]}")
-    return 0
-
-
 def _raise_interrupt(signum: int, frame: object) -> None:
     """Turn a termination signal into the same stop as Ctrl+C."""
     del signum, frame
@@ -621,10 +490,8 @@ def _raise_interrupt(signum: int, frame: object) -> None:
 def main(argv: list[str] | None = None) -> int:
     """Run every selected step under the limit and return the run's exit code."""
     options = _parser().parse_args(argv)
-    if options.sign_off:
-        return _sign_off()
     where = options.where
-    steps = _select(STEPS, where, options.only_browser, options.only_group, options.skip_group)
+    steps = _select(STEPS, where, options.only_group, options.skip_group)
     if not steps:
         _say(RED, "FAIL no step matches the selectors")
         return 2
@@ -635,12 +502,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     signal.signal(signal.SIGTERM, _raise_interrupt)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    # The browsers are what CI cannot run, so they prove a commit, alone or inside the whole local
-    # run, and a later run on it replaces what an earlier one said.
-    proves = options.only_browser or steps == _select(STEPS, LOCAL, False, None, None)
-    started_on = _clean_commit() if proves else None
-    if proves:
-        RECEIPT_FILE.unlink(missing_ok=True)
     _say(YELLOW, f"Log file: {LOG_FILE}")
     print()
     header = _header()
@@ -664,8 +525,6 @@ def main(argv: list[str] | None = None) -> int:
         _say(RED, "Run interrupted")
         return 130
     failed = any(result.failed for result in results.values())
-    if proves and not failed:
-        _leave_receipt(started_on, len(steps))
     return 1 if failed else 0
 
 

@@ -1,5 +1,5 @@
 # tests/scripts/test_schema_copies.py
-"""The Open Gnomon Protocol is a folder with no code; every Python copy of its schemas is byte for byte its source."""
+"""The protocol's frozen schemas: AOA's copy is byte for byte the version it writes, and no published version changes."""
 
 from __future__ import annotations
 
@@ -13,15 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "packages" / "open-gnomon-protocol"
 RAW = "https://raw.githubusercontent.com/bystrovmaxim/aoa/main/packages/open-gnomon-protocol/"
 
-# Each copy a Python package keeps beside its code, and the protocol file it copies.
+# AOA's copy beside its graph code, and the frozen protocol file it copies (the protocol lives in gnomon).
 COPIES = {
     "packages/aoa-action-machine/src/aoa/action_machine/graph/graph_json_schema.json": "graph/1.5.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.0.json": "graph/1.0.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.1.json": "graph/1.1.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.2.json": "graph/1.2.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.3.json": "graph/1.3.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.4.json": "graph/1.4.json",
-    "packages/maxitor/tools/graph-builder/maxitor/graph_builder/schemas/1.5.json": "graph/1.5.json",
 }
 
 # SHA-256 of each published schema without its ``$id``, as ``json.dumps(..., sort_keys=True)``.
@@ -44,10 +38,10 @@ def test_a_copy_is_its_source_byte_for_byte(copy: str, source: str) -> None:
     )
 
 
-def test_the_protocol_holds_no_code() -> None:
-    """The protocol is its specification, its changelog, its version and its schemas — nothing any language would have to run."""
-    held = sorted(str(p.relative_to(PROTOCOL)) for p in PROTOCOL.rglob("*") if p.is_file())
-    assert held == ["CHANGELOG.md", "README.md", "graph/1.0.json", "graph/1.1.json", "graph/1.2.json", "graph/1.3.json", "graph/1.4.json", "graph/1.5.json", "version.toml"]
+def test_the_protocol_folder_holds_its_frozen_schemas_only() -> None:
+    """The protocol lives in gnomon; here only its published schemas stay, at the addresses their ``$id`` names."""
+    held = sorted(str(p.relative_to(PROTOCOL)) for p in PROTOCOL.rglob("*") if p.is_file() and not p.name.endswith("_draft.md"))
+    assert held == ["README.md", "graph/1.0.json", "graph/1.1.json", "graph/1.2.json", "graph/1.3.json", "graph/1.4.json", "graph/1.5.json"]
 
 
 @pytest.mark.parametrize("version", sorted(PUBLISHED))
