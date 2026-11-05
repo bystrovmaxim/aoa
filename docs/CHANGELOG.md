@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-11-05] — An entity reads its private attributes
+
+An entity is a Pydantic model, and a Pydantic model may keep private attributes (`PrivateAttr`): values that belong to the object rather than to its data, never validated and never dumped. An entity used to hold such an attribute and fail to read it — `order._source` raised `AttributeError` even on a full, validated entity — because its own attribute lookup, which refuses a field a partial entity does not hold, never handed other names to Pydantic. It does now: a private attribute reads its value on a full and on a partial entity, a missing declared field still raises `FieldNotLoadedError`, and an unknown name still raises `AttributeError`.
+
+[Tutorial step 22](tutorials/step-22-entity.md#a-private-attribute-is-not-a-field) shows it with a script and a notebook.
+
 ## [2026-11-05] — A collection can be cached entity by entity
 
 A cached Result used to keep full copies of its entities. Two actions returning the same order kept two copies of it, and changing that order dropped both entries — a whole list included, though the other orders had not changed. A write can now store its Result entity by entity: `@cache_write(..., layout=CacheLayout.ENTITIES)` with a new declaration, `@cache_entity_key`, which builds the key of one entity. Every entity is stored once under its key, and the entry for the call keeps the keys of its entities and the Result's other fields — like a library card that lists shelf numbers, not books.

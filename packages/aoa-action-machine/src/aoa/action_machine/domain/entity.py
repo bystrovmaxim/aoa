@@ -112,7 +112,7 @@ import copy
 from abc import ABC
 from typing import Annotated, Any, ClassVar, Self
 
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 from aoa.action_machine.domain.entity_schema_marker import EntitySchemaMarker
 from aoa.action_machine.domain.exceptions import FieldNotLoadedError
@@ -140,6 +140,10 @@ def _refuse_kind_base_instantiation(cls: type, *_args: Any, **_kwargs: Any) -> A
     if _is_kind_base(cls):
         raise TypeError(f"{cls.__name__} is the base class of a kind and cannot be instantiated.")
     return object.__new__(cls)
+
+
+_PYDANTIC_LOOKUP = "__getattr__"
+"""The name of Pydantic's attribute lookup, which reads private attributes."""
 
 
 @exclude_graph_model
@@ -296,11 +300,14 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
             name: Attribute name.
 
         Returns:
-            Never returns; see Raises.
+            A private attribute's value, from Pydantic.
+
+        Every other name goes to Pydantic's own lookup, which reads a private attribute
+        (``PrivateAttr``) from ``__pydantic_private__`` and refuses anything else.
 
         Raises:
             FieldNotLoadedError: ``name`` is a declared field the instance does not hold.
-            AttributeError: ``name`` is not a declared field (standard object semantics).
+            AttributeError: ``name`` is neither a declared field nor known to Pydantic.
         """
         if name in self.__class__.model_fields:
             raise FieldNotLoadedError(
@@ -308,7 +315,9 @@ class BaseEntity(BaseSchema, ABC, EntityIntent):
                 entity_class_name=self.__class__.__name__,
                 loaded_fields=self._loaded_field_names(),
             )
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        # Pydantic defines __getattr__ only for running code (not under TYPE_CHECKING), so it is taken
+        # from the class at run time: the type checker sees getattr, and Pydantic keeps its own lookup.
+        return getattr(BaseModel, _PYDANTIC_LOOKUP)(self, name)
 
     def is_field_loaded(self, field_name: str) -> bool:
         """True when ``field_name`` is declared and this instance holds it."""
