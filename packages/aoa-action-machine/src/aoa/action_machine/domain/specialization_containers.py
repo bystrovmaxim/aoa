@@ -72,7 +72,17 @@ def _canonical_union(arg: Any) -> Any:
     return _CANONICAL_UNIONS.setdefault(arg, arg)
 
 
-class Specialization[T, D](BaseModel):
+class _OneUnionPerSubscript(BaseModel):
+    """Subscripts a generic model with one object per union (see ``_canonical_union``)."""
+
+    def __class_getitem__(cls, typevar_values: Any) -> Any:
+        """Replace each union by the first one seen equal to it, then subscript as Pydantic does."""
+        if isinstance(typevar_values, tuple):
+            return super().__class_getitem__(tuple(_canonical_union(value) for value in typevar_values))
+        return super().__class_getitem__(_canonical_union(typevar_values))
+
+
+class Specialization[T, D](_OneUnionPerSubscript):
     """
     AI-CORE-BEGIN
         ROLE: Head-side container: a link to one of the declared alternatives.
@@ -82,12 +92,6 @@ class Specialization[T, D](BaseModel):
             argument and must declare the same value as ``variant``; the container is frozen.
         AI-CORE-END
     """
-
-    def __class_getitem__(cls, typevar_values: Any) -> Any:
-        """Subscript with one object per union, so the same specialization is recognised (``_canonical_union``)."""
-        if isinstance(typevar_values, tuple):
-            return super().__class_getitem__(tuple(_canonical_union(value) for value in typevar_values))
-        return super().__class_getitem__(_canonical_union(typevar_values))
 
     model_config = ConfigDict(frozen=True)
 
