@@ -254,7 +254,7 @@ The logger subscribed to `debug` receives nothing. The property is masked and th
 
 ## Events in the graph
 
-Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.3` of the [Open Gnomon Protocol](../../packages/open-gnomon-protocol/README.md).
+Everything above also reaches the graph and its JSON, so a tool in any language reads a service's facts from a file, without AOA and without Python. The document is version `1.3` of the [Open Gnomon Protocol](https://github.com/bystrovmaxim/gnomon/blob/main/packages/open-gnomon-protocol/README.md).
 
 [08_events_in_graph.py](../../examples/step_11_object_events/08_events_in_graph.py) ([notebook](../../examples/step_11_object_events/08_events_in_graph.ipynb)) holds every case and prints this:
 

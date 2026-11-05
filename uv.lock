@@ -55,7 +55,7 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.0.1a19"
+version = "1.0.1a20"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },

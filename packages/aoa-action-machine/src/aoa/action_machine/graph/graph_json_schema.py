@@ -20,9 +20,10 @@ came through, the head's field it answers to, the code it declares, and the head
 alternative; ``alternatives`` repeats the whole ordered declaration on every edge of the cluster, so a
 consumer holding one row has the set without a second lookup and without re-sorting what was written.
 
-The schema belongs to the Open Gnomon Protocol (``packages/open-gnomon-protocol/graph/1.5.json``
-in this repository), a standard with no code; ``graph_json_schema.json`` beside this module is a
-copy of it, kept byte for byte by ``tests/scripts/test_schema_copies.py``. AOA writes version ``1.5``.
+The schema belongs to the Open Gnomon Protocol, a standard with no code that lives in
+bystrovmaxim/gnomon (``packages/open-gnomon-protocol/graph/1.5.json``); ``graph_json_schema.json``
+beside this module is a copy of it, which ``tests/scripts/test_schema_copies.py`` keeps equal to
+version ``1.5`` as published. AOA writes version ``1.5``.
 """
 
 from __future__ import annotations

@@ -145,7 +145,6 @@ Hello, World!
 | [aoa-otel](packages/aoa-otel/README.md) | 1.0.2 | OpenTelemetry plugin |
 | [aoa-ocel](packages/aoa-ocel/) | 1.0.3 | OCEL 2.0 event log export |
 | [maxitor](https://github.com/bystrovmaxim/gnomon/blob/main/packages/maxitor/README.md) | 3.15.0 | Maxitor lives in [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon): `graph-builder` keeps each service's model graph in a file and checks it in CI (`pip install maxitor`, any language); the app (`maxitor[web]`) draws the graph of an AOA service. This repository takes it from PyPI |
-| [open-gnomon-protocol](packages/open-gnomon-protocol/README.md) | — | Frozen copies of the Open Gnomon Protocol's published schemas, kept at the addresses their `$id` names; the protocol lives in [gnomon](https://github.com/bystrovmaxim/gnomon/tree/main/packages/open-gnomon-protocol) |
 | [aoa-demo](packages/aoa-demo/README.md) | 3.15.2 | Runnable tutorial and how-to examples |
 
 ---
