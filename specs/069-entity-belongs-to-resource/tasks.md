@@ -55,7 +55,7 @@ Goal: every demo entity stored by one resource, none related across resources (r
 
 ## Phase 7: the closing check run
 
-- [ ] T024 Take every check this machine can run to zero (`bash scripts/run_checks_with_log.sh`); fix every remark. Commit.
+- [X] T024 Take every check this machine can run to zero (`bash scripts/run_checks_with_log.sh`); fix every remark. Commit.
 
 ## Phase 8: documentation — US5 (P3)
 

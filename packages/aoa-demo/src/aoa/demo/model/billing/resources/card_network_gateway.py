@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_gateway import BaseGateway
+from aoa.action_machine.resources import BaseGateway, BaseResource
 from aoa.demo.model.billing.domain import BillingDomain
 
 
 @meta(description="Card network gateway (stub)", domain=BillingDomain)
 class CardNetworkGateway(BaseGateway):
     """Hold the payment events the card network reports; the demo never calls it."""
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """No wrapper: a nested action may use this resource as it is."""
+        return None

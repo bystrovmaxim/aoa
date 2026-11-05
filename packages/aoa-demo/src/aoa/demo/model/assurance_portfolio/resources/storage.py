@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import BaseResource, BaseStorage
 from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 
 
 @meta(description="Stores the assurance portfolio model (stub)", domain=AssurancePortfolioDomain)
 class AssurancePortfolioStorage(BaseStorage):
     """Hold the assurance portfolio domain's entities; the demo never opens it."""
+
+    def get_wrapper_class(self) -> type[BaseResource] | None:
+        """No wrapper: a nested action may use this resource as it is."""
+        return None
