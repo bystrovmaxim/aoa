@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-05] — A specialization loads whatever the order of its classes
+
+A head with two or more kinds, kinds that link to another entity, and that entity declared later in the same file: importing such a file never finished, and ended with `RecursionError`. Moving the later entity above the kinds made it load, so the only way around it was to reorder classes and leave a comment saying why. The order of classes is not part of a model, and now it does not matter: the same file loads in any order, and its entities build, validate and read their JSON back as they do when declared the other way.
+
 ## [2026-11-05] — An entity reads its private attributes
 
 An entity is a Pydantic model, and a Pydantic model may keep private attributes (`PrivateAttr`): values that belong to the object rather than to its data, never validated and never dumped. An entity used to hold such an attribute and fail to read it — `order._source` raised `AttributeError` even on a full, validated entity — because its own attribute lookup, which refuses a field a partial entity does not hold, never handed other names to Pydantic. It does now: a private attribute reads its value on a full and on a partial entity, a missing declared field still raises `FieldNotLoadedError`, and an unknown name still raises `AttributeError`.
