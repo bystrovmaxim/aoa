@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+# The module, not the name: see ``entity_decorator`` — ``base_resource`` may still be loading.
+import aoa.action_machine.resources.base_resource as base_resource_module
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import (
@@ -16,7 +18,9 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     gather_entity_specialization_intent_resolvers,
 )
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
-from aoa.action_machine.resources.base_resource import BaseResource
+
+if TYPE_CHECKING:
+    from aoa.action_machine.resources.base_resource import BaseResource
 
 
 class EntityIntentResolver:
@@ -52,7 +56,7 @@ class EntityIntentResolver:
     def resolve_resource_type(host_cls: type) -> type[BaseResource]:
         """Return the ``BaseResource`` subclass ``@entity`` names, or raise :exc:`MissingEntityInfoError`."""
         resource_cls = EntityIntentResolver.entity_info_dict(host_cls).get("resource")
-        if isinstance(resource_cls, type) and issubclass(resource_cls, BaseResource):
+        if isinstance(resource_cls, type) and issubclass(resource_cls, base_resource_module.BaseResource):
             return resource_cls
         raise MissingEntityInfoError(host_cls, key="resource")
 

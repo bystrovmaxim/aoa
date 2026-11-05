@@ -84,12 +84,17 @@ EXAMPLE
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+# The module, not the name: ``base_resource`` reaches this module through ``@meta`` while it is
+# still loading, and only a module reference resolves its class at call time.
+import aoa.action_machine.resources.base_resource as base_resource_module
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityDecoratorError
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
-from aoa.action_machine.resources.base_resource import BaseResource
+
+if TYPE_CHECKING:
+    from aoa.action_machine.resources.base_resource import BaseResource
 
 __all__ = ("EntityDecoratorError", "entity", "entity_info_dict")
 
@@ -132,7 +137,7 @@ def validate_entity_resource(cls: type, resource: Any) -> None:
     if isinstance(resource, (tuple, list, set, frozenset)):
         given = ", ".join(_given_name(item) for item in resource)
         raise EntityDecoratorError(f"{name} — @entity takes one resource, got {len(resource)}: {given}.")
-    if not isinstance(resource, type) or not issubclass(resource, BaseResource):
+    if not isinstance(resource, type) or not issubclass(resource, base_resource_module.BaseResource):
         raise EntityDecoratorError(
             f"{name} — @entity resource= must be a BaseResource subclass, got {_given_name(resource)}."
         )
