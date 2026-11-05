@@ -41,7 +41,7 @@ def test_a_copy_is_its_source_byte_for_byte(copy: str, source: str) -> None:
 def test_the_protocol_folder_holds_its_frozen_schemas_only() -> None:
     """The protocol lives in gnomon; here only its published schemas stay, at the addresses their ``$id`` names."""
     held = sorted(str(p.relative_to(PROTOCOL)) for p in PROTOCOL.rglob("*") if p.is_file() and not p.name.endswith("_draft.md"))
-    assert held == ["README.md", "graph/1.0.json", "graph/1.1.json", "graph/1.2.json", "graph/1.3.json", "graph/1.4.json", "graph/1.5.json"]
+    assert held == ["README.md", "graph/1.0.json", "graph/1.1.json", "graph/1.2.json", "graph/1.3.json", "graph/1.4.json", "graph/1.5.json", "version.toml"]
 
 
 @pytest.mark.parametrize("version", sorted(PUBLISHED))

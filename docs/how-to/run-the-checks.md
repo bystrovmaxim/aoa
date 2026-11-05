@@ -144,10 +144,11 @@ bash scripts/run_checks_with_log.sh --where ci --only-group packaging   # the Pa
 |---|---|---|
 | Repository | the root | root `pyproject.toml`; `require_bump = false`, so it need not grow |
 | Package | the seven `aoa-*` packages | their `pyproject.toml` |
+| Package | `open-gnomon-protocol`, the frozen copies of the protocol's schemas | its `version.toml` |
 
 A change raises the version of every level it lies in, apart from the repository; the job names each level whose version did not grow, with the version it has and the one on `main`. Raise them, commit, and the job passes. A sub-issue merging into a feature branch is not checked, so a large task raises its versions once, on its way into `main`.
 
-Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. The protocol's frozen schemas in `packages/open-gnomon-protocol/graph/` are no level: they never change here.
+Some files do not count: changelogs, tests, examples, and the READMEs of the `aoa-*` packages. The list is `[changes] ignore` in the root `version.toml`, and a new pattern works only after it is merged. The protocol's schemas in `packages/open-gnomon-protocol/graph/` never change here; its README does, and raises the folder's version like any other change.
 
 ## Ruff
 
