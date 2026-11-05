@@ -10,6 +10,6 @@
 - [X] T004 [US4] Phase 4: `get_entries` in `CacheCoordinator` and the how-to's store; a test counts the store's calls.
 - [X] T005 [US2] Phase 5: the machine test of 12.1 and 12.4 with Get, List, Update and Create actions; adversarial break.
 - [X] T006 Phase 6: versions.
-- [ ] T007 Phase 7: `bash scripts/run_checks_with_log.sh` to zero.
-- [ ] T008 Phase 8: tutorial step 8, the cache adapter how-to, an example with a notebook; Russian drafts.
+- [X] T007 Phase 7: `bash scripts/run_checks_with_log.sh` to zero.
+- [X] T008 Phase 8: tutorial step 8, the cache adapter how-to, an example with a notebook; Russian drafts.
 - [ ] T009 Phase 9: one article and its Russian version.

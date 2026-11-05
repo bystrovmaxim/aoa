@@ -19,6 +19,7 @@
 - [Freshness instead of TTL](#freshness-instead-of-ttl)
 - [Invalidation by tags](#invalidation-by-tags)
 - [No declaration without an effect](#no-declaration-without-an-effect)
+- [A collection, entity by entity](#a-collection-entity-by-entity)
 - [The cache in the graph](#the-cache-in-the-graph)
 - [Cache, errors, and include](#cache-errors-and-include)
 - [Invariants](#invariants)
@@ -231,9 +232,64 @@ DeclarationStructureError: KeyOnlyAction declares @cache_key without @cache_writ
 
 The check sees one graph, which is one service. While a cache store belongs to one service, as it does today, it is exact; a store shared by several services could be invalidated from outside, and these rules would then need the graph of all of them.
 
+## A collection, entity by entity
+
+[▶ Try in Colab](https://colab.research.google.com/github/bystrovmaxim/aoa/blob/main/examples/step_08_cache/02_entity_by_entity.ipynb) · [Open in project](../../examples/step_08_cache/02_entity_by_entity.py)
+
+A whole entry keeps full copies of the entities inside it. Two operations that return the same order keep two copies, and changing that order drops both entries — the whole list too, although the other orders did not change. A write can instead store its Result **entity by entity**: every entity once, under a key of its own, and an entry for the call that lists the keys — like a card in a library catalogue that lists shelf numbers, not books.
+
+```python
+# Fragment: its imports are left out.
+class ListOrdersAction(BaseAction[CustomerIdParams, OrderListResult]):
+    @cache_key("Orders of a customer")
+    async def orders_cache_key(self, params: CustomerIdParams, box: ToolsBox, connections: Connections) -> str | None:
+        return f"a:customer:{params.customer_id}"
+
+    @cache_entity_key("One order of the list, as a row")
+    async def order_cache_entity_key(
+        self, params: CustomerIdParams, box: ToolsBox, connections: Connections, entity: OrderCoreEntity
+    ) -> str:
+        return f"a:order:{entity.id}:row"
+
+    @cache_write("Keep the list order by order", tags=(CustomerCoreEntity,), layout=CacheLayout.ENTITIES)
+    async def orders_cache_write(
+        self, params: CustomerIdParams, box: ToolsBox, connections: Connections, result: OrderListResult, duration_ms: float
+    ) -> list[CacheTag] | None:
+        return [CacheTag(type=CustomerCoreEntity, key=params.customer_id)]
+```
+
+The key still names the **question** — "the orders of customer `c1`" — and reads nothing. On a miss the pipeline runs; the machine calls `@cache_entity_key` for every entity of the Result, stores each under its key, tagged with its type and id, and stores under the call's key those keys and the Result's other fields. On a hit it reads the entries — all of them in one call to the store — and assembles the Result; the pipeline does not run. `GetOrderAction` builds the same key for an order, so the two operations share one entry of it:
+
+```bash
+uv run python examples/step_08_cache/02_entity_by_entity.py
+```
+
+```text
+1) The list and both orders
+   list: [('o1', 10.0), ('o2', 20.0)] | o1: 10.0 | o2: 20.0
+   entries: 5 | runs: {'ListOrdersAction': 1, 'GetOrderAction': 2}
+   a:customer:c1 -> {'fields': {'total_count': 2}, 'entities': {'orders': ['a:order:o1:row', 'a:order:o2:row']}}
+   a:order:o1:row -> {'id': 'o1', 'total': 10.0}
+2) UpdateOrderAction(o1) drops the entry of o1 alone
+   o2: 20.0 | runs: {'ListOrdersAction': 1, 'GetOrderAction': 2}
+   list: [('o1', 11.0), ('o2', 20.0)] | o1: 11.0 | runs: {'ListOrdersAction': 2, 'GetOrderAction': 2}
+3) CreateOrderAction drops the customer's list
+   list: [('o1', 11.0), ('o2', 20.0), ('o3', 30.0)] | runs: {'ListOrdersAction': 3, 'GetOrderAction': 2}
+```
+
+Five entries, not six: `o1` is one entry for both operations. Changing `o1` drops `(OrderCoreEntity, "o1")` — that entry alone — so `GetOrderAction(o2)` keeps hitting. The list misses once and writes `o1` again, and `GetOrderAction(o1)` then hits on what the list wrote.
+
+**A missing entity is a miss.** When an entity the list names is gone, the list entry is dropped and the pipeline runs whole: never a shorter list, never part of a cached Result, and `@cache_read` is called only when every entity is present. An entity entry of a form the reader cannot accept — a partial order where a full one is required — does not read back, and is a miss too.
+
+**The members of a list change too.** A new order breaks no entity entry; it changes the card. That is what the write's own tags are for: here `(CustomerCoreEntity, "c1")`, "this list belongs to customer `c1`", which `CreateOrderAction` drops. If nobody dropped it, the graph build would refuse the tag as dead — nothing would ever tell this list a new order exists.
+
+**The key is the action's code.** Two operations that build the same key share an entry, different keys keep different ones; the machine neither builds nor checks keys. So the key of an entity must tell apart everything that changes what a reader sees: the loaded fields (`…:row` for a partial order, `…:full` for a full one), **the loaded relations** — an order with its customer loaded and one with only the customer's id must not share a key, or a reader may get `RelationNotLoadedError` — the tenant, and a role that hides a value. An invalidation by `(OrderCoreEntity, "o1")` also drops `o1` of another tenant with the same id: one extra miss there, never a leak.
+
+The rules of the mode: `layout=CacheLayout.ENTITIES` and `@cache_entity_key` come together or not at all (refused when the class is created); the Result needs a field typed by an entity — bare, `| None` or `list[...]` — and each such entity an `id` (refused when the graph is built); `@cache_entity_key` takes `self, params, box, connections, entity` (+ `ctx`) and returns a `str`. The entity types a write stores this way count as types it caches, for the graph and for the dead-tag check.
+
 ## The cache in the graph
 
-Each declaration is a `Cache` node of its operation, with its kind and description, reached by an edge named after it (`@cache_key`, …). Two more edges go from the operation to entities: `caches` for every tag type of its write and `invalidates` for every tag type of its invalidation. So [Maxitor](step-29-maxitor.md) can show that `SetConfigAction` drops what `GetConfigAction` caches. These words are version 1.4 of the graph protocol.
+Each declaration is a `Cache` node of its operation, with its kind and description, reached by an edge named after it (`@cache_key`, …, `@cache_entity_key`). Two more edges go from the operation to entities: `caches` for every type its write caches — its tags and, entity by entity, the entity types it stores — and `invalidates` for every tag type of its invalidation. So [Maxitor](step-29-maxitor.md) can show that `SetConfigAction` drops what `GetConfigAction` caches. These words are versions 1.4 and 1.5 of the graph protocol.
 
 ## Cache, errors, and include
 
@@ -258,6 +314,7 @@ The cache coexists neatly with the neighboring layers, and this is visible in tw
 - **Freshness through `@cache_read`.** There is no TTL in the coordinator; `None` from it → invalidation and a re-run.
 - **Invalidation through tags.** `@cache_invalidate` is called after every clean pipeline (not on a hit, not on `@on_error`), before the write. Matching is wildcard-aware on the key.
 - **No dead invalidation, no dead tag.** The graph build refuses a type dropped and never cached, and a type cached and never dropped.
+- **Entity by entity on request.** `layout=CacheLayout.ENTITIES` with `@cache_entity_key` stores each entity once under the operation's key for it; a missing or unreadable entity is a miss; the keys are the operation's, and must tell apart loaded fields, loaded relations, the tenant and the role.
 - **Meaning and policy are separated.** The operation decides the key, the write tags, the invalidation; the store, the size, the eviction are the coordinator's.
 
 The full list is in [Intents and invariants](../reference/intents-and-invariants.md); the terms are in the [Glossary](../reference/glossary.md). Your own store (for example, Redis) is wired as a [custom cache coordinator](../how-to/authoring-cache-adapter.md).
@@ -284,6 +341,8 @@ Next — **[Plugins](../index.md#iii-business-logic)**: lifecycle observers that
 10. Why must a tag name a declared entity type? What did a tag without a type do before?
 11. What are a dead invalidation and a dead tag, and why does the graph build refuse them?
 12. In what order do `@cache_invalidate` and `@cache_write` run? Why that order?
+13. What does an entity-by-entity entry keep, and what happens on a hit when one of its entities is gone?
+14. Why must the key of an entity tell apart the loaded relations, and what tag tells a list its members changed?
 
 > **Exercise.** Make `GetConfigAction` cache different tenants' results independently (it already does — verify by changing `tenant_id`), then deliberately "break" key safety by removing `tenant_id` from the key, and explain exactly which cross-client leak scenario this creates. Then make `SetConfigAction` return `[CacheTag(type=ConfigCoreEntity)]` and verify that it evicts all config entries for all tenants at once. Finally remove `SetConfigAction` and read the error the graph build gives.
 

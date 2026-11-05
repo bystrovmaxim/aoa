@@ -13,7 +13,7 @@
 
 - [When this is needed](#when-this-is-needed)
 - [Two sides of the cache](#two-sides-of-the-cache)
-- [The store contract: four methods](#the-store-contract-four-methods)
+- [The store contract: five methods](#the-store-contract-five-methods)
 - [Step 1. Implement the adapter](#step-1-implement-the-adapter)
 - [Step 2. Policy on the operation side](#step-2-policy-on-the-operation-side)
 - [Step 3. Wiring](#step-3-wiring)
@@ -37,18 +37,21 @@ The cache in AOA is split into **policy** and **storage**:
 
 The adapter answers only the question "where to store" — no business decisions; *what* to cache is decided by the operation.
 
-## The store contract: four methods
+## The store contract: five methods
 
-There is **no** base class to subclass — the machine talks to the store by a duck-typed contract. Per run it calls exactly four async methods:
+There is **no** base class to subclass — the machine talks to the store by a duck-typed contract of five async methods:
 
 ```python
 # Fragment: an outline, not complete code.
 async def get_entry(self, action_cls, user_key) -> StoredCacheEntry | None
+async def get_entries(self, action_cls, user_keys) -> list[StoredCacheEntry | None]
 async def invalidate(self, action_cls, user_key) -> bool
 async def put(self, action_cls, user_key, payload: bytes, pipeline_duration_ms,
               tags: list[CacheTag] | None = None) -> None
 async def evict_by_tags(self, directive_tags: frozenset[CacheTag]) -> int
 ```
+
+`get_entries` returns the rows of several keys in the order given, `None` for each one missing: a hit of a Result cached entity by entity ([step 8](../tutorials/step-08-cache.md#a-collection-entity-by-entity)) reads all its entities through it, so Redis answers with one `MGET` rather than one round trip per entity. Its entity entries arrive under one namespace class, `CachedEntity`, shared by every operation, through the same `put` and `get_entry`.
 
 **The store keeps bytes.** `put` receives `payload`, the Result's JSON in UTF-8, which the machine wrote with `model_dump_json()`; `get_entry` returns a `StoredCacheEntry` (`from aoa.action_machine.runtime.cache_entry import StoredCacheEntry`) with that `payload`, `pipeline_duration_ms` and access metadata. The store never sees a Result: on every hit the machine reads the bytes back into a new Result with the operation's Result type, so Redis, which keeps bytes, does the same job as a dict. `CacheTag` (`from aoa.action_machine.runtime.cache_tag import CacheTag`) is a typed tag for indexing and invalidation. **Keys must be namespaced by the operation class** (`module.qualname`), otherwise two operations with the same short name will collide.
 
@@ -73,6 +76,10 @@ class DictCacheAdapter:
 
     async def get_entry(self, action_cls, user_key):
         return self._store.get(self._key(action_cls, user_key))
+
+    async def get_entries(self, action_cls, user_keys):
+        # One round trip for many keys, as Redis MGET does.
+        return [self._store.get(self._key(action_cls, key)) for key in user_keys]
 
     async def put(self, action_cls, user_key, payload, pipeline_duration_ms,
                   tags=None) -> None:
@@ -155,7 +162,7 @@ machine = ActionProductMachine(cache_coordinator=DictCacheAdapter())
 
 ## What is important to know
 
-- **A duck-typed contract, no inheritance.** Four async methods with the right signatures are enough; the shipped `CacheCoordinator`'s `clear`/`size` are management, not needed during a run.
+- **A duck-typed contract, no inheritance.** Five async methods with the right signatures are enough; the shipped `CacheCoordinator`'s `clear`/`size` are management, not needed during a run.
 - **Key namespacing is mandatory** (`module.qualname`) — otherwise collisions between operations.
 - **Returns are validated.** `@cache_key` → `str | None` (non-empty); `@cache_read` → `Result | None`; `@cache_write` and `@cache_invalidate` → `list[CacheTag] | None`, each tag of a declared type; a violation → `CacheContractError`. An exception from a declaration or a store method surfaces outward, it is not swallowed.
 - **Tags are a domain contract.** `evict_by_tags` removes only entries that were indexed under the relevant tags when `put` was called. If a tag was not passed at write time — it cannot be found at invalidation time.
