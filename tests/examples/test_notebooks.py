@@ -17,12 +17,17 @@ masked; a notebook may leave out the headings its Markdown cells say instead.
 
 from __future__ import annotations
 
+import asyncio
+import socket
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import nbformat
 import pytest
+from jupyter_client.connect import LocalPortCache
+from jupyter_client.manager import AsyncKernelManager
 from nbclient import NotebookClient
 
 from tests.examples.harness import (
@@ -64,6 +69,15 @@ def _local_modules(notebook_path: Path, notebook: nbformat.NotebookNode) -> set[
     return names
 
 
+def _kernel(sockets: Path) -> AsyncKernelManager:
+    """A kernel that talks over Unix sockets in ``sockets``, so it needs no free TCP port.
+
+    Over TCP each kernel picks free ports and binds them later; a kernel of a parallel
+    worker may take them in between, and the kernel dies with "Address already in use".
+    """
+    return AsyncKernelManager(kernel_name="python3", transport="ipc", ip=str(sockets / "kernel"))
+
+
 def _printed_lines(text: str) -> list[str]:
     """Masked printed lines without their indent, which a notebook drops with a script's headings."""
     return [line.strip() for line in mask(text).splitlines() if line.strip()]
@@ -72,6 +86,37 @@ def _printed_lines(text: str) -> list[str]:
 def test_every_script_has_a_notebook() -> None:
     missing = [_example_id(script) for script in _SCRIPTS if not script.with_suffix(".ipynb").exists()]
     assert not missing, f"scripts without a notebook: {missing}"
+
+
+def test_a_notebook_kernel_starts_while_the_ports_it_would_pick_are_taken(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The port picker hands out ports other sockets already hold, and the kernel still answers.
+
+    This is what a parallel worker does when it binds a port between the pick and the kernel's bind.
+    """
+    taken = [socket.socket() for _ in range(5)]
+    try:
+        for held in taken:
+            held.bind(("127.0.0.1", 0))
+            held.listen()
+        held_ports = iter([held.getsockname()[1] for held in taken])
+        monkeypatch.setattr(LocalPortCache, "find_available_port", lambda _cache, _ip: next(held_ports))
+
+        async def start_and_ask(sockets: Path) -> None:
+            kernel = _kernel(sockets)
+            await kernel.start_kernel()
+            try:
+                client = kernel.client()
+                client.start_channels()
+                await client.wait_for_ready(timeout=_TIMEOUT_SECONDS)
+                client.stop_channels()
+            finally:
+                await kernel.shutdown_kernel(now=True)
+
+        with tempfile.TemporaryDirectory(prefix="nb-") as sockets:
+            asyncio.run(start_and_ask(Path(sockets)))
+    finally:
+        for held in taken:
+            held.close()
 
 
 @pytest.mark.parametrize("notebook_path", _NOTEBOOKS, ids=_example_id)
@@ -97,13 +142,15 @@ def test_notebook_installs_what_it_imports(notebook_path: Path) -> None:
 def test_notebook_runs_and_prints_its_scripts_lines(notebook_path: Path) -> None:
     notebook = nbformat.read(notebook_path, as_version=4)
     notebook.cells = [cell for cell in notebook.cells if not (cell.cell_type == "code" and _is_install_cell(cell))]
-    client = NotebookClient(
-        notebook,
-        timeout=_TIMEOUT_SECONDS,
-        kernel_name="python3",
-        resources={"metadata": {"path": str(notebook_path.parent)}},
-    )
-    client.execute()
+    with tempfile.TemporaryDirectory(prefix="nb-") as sockets:
+        client = NotebookClient(
+            notebook,
+            km=_kernel(Path(sockets)),
+            timeout=_TIMEOUT_SECONDS,
+            kernel_name="python3",
+            resources={"metadata": {"path": str(notebook_path.parent)}},
+        )
+        client.execute()
     printed = "".join(
         output.get("text", "")
         for cell in _code_cells(notebook)
