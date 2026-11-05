@@ -80,7 +80,7 @@ For a reader, the export's format is now `1.1`: every edge carries `id`, edges c
 
 ## The graph saved with every change
 
-Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. Each service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json` and `packages/maxitor/maxitor-web/graph.json`, listed in `graph-builder.toml` at the root:
+Maxitor shows a graph as it is now. To see how it got there, the graph has to be kept — and kept by the code that produces it, not by hand. The demo service of this repository saves its current graph in one file, `packages/aoa-demo/graph.json`, listed in `graph-builder.toml` at the root:
 
 ```toml
 graph_builder = "1.0"
