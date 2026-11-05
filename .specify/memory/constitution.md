@@ -16,6 +16,10 @@
     [PRINCIPLE_*] slots beyond V, [SECTION_2_NAME]/[SECTION_2_CONTENT],
     [SECTION_3_NAME]/[SECTION_3_CONTENT], [GOVERNANCE_RULES]
   Changes after the first draft of this file:
+    The check-run section — at the maintainer's instruction: Maxitor moved to
+      bystrovmaxim/gnomon (#465, #467, #470), so its client, its browser script and the
+      `Local check run` status leave the run; a pull request merges on CI alone, and the
+      Vite remark goes (1.12.0)
     VI and the check-run section — at the maintainer's instruction: the check run executes
       every example of the documentation, in CI jobs of their own (issues #361, #402; 1.11.0)
     VI — at the maintainer's instruction: examples, documentation and the changelog ship in
@@ -172,15 +176,15 @@ Then, inside those steps:
 
 Work is not finished when the code looks right; it is finished when the repository's own check run says so.
 
-1. **The last step of any change is CI's closing check run and the browser script of the next rule**; between them they cover everything below. The whole list is `bash scripts/run_checks_with_log.sh`, executed from the repository root, which anyone may run to see everything on one machine; no step requires it. It covers: a ban on `__getattr__` in package `__init__.py`; README files beside `components/*/index.ts`; Ruff with `--fix`; Ruff lint; mypy across all eight packages; pylint; the package-boundary and package-metadata checkers; a check that no tracked file holds a secret; vulture; the Maxitor samples public-API check; the Maxitor client build, its unit tests and its layout in three browser engines; the five ERD scripts; Radon complexity and maintainability; the test suite of every package; every example of the documentation, which CI runs in jobs of their own beside the checks; and a check of the saved graph files. The wheel and sdist build of every package and the packaging smoke test are **not** part of the local run — they need the network and belong to a release — so CI runs them on every pull request, in two parallel jobs (the checks and the packaging). The layout in three browser engines is the other way round: it runs only here, because a CI machine has no graphics card, so Firefox has no WebGL and the map cannot be drawn. The local run needs no network once its tools are installed.
-2. **Every check runs once.** After each phase of a change only the tests of that phase run: the test files the phase wrote or changed. An adversarial break runs against those files alone. CI runs the closing check run on the pull request. **`bash scripts/check_before_pr.sh` runs on the pushed commit, before or after the pull request opens**: it runs only what CI cannot run, the layout in three browser engines and the client build it needs, and reports the result to GitHub as the commit status `Local check run`. The merge rule of `main` requires that status on the exact commit, so a new commit has none and what merges is what passed. A pull request that changes only text (`docs/`, `specs/`, `AGENTS.md`, this constitution) skips CI's checks. The instruction to open a pull request does not include this script; the script itself neither commits nor pushes.
+1. **The last step of any change is CI's closing check run**; it covers everything below. The whole list is `bash scripts/run_checks_with_log.sh`, executed from the repository root, which anyone may run to see everything on one machine; no step requires it. It covers: a ban on `__getattr__` in package `__init__.py`; Ruff with `--fix`; Ruff lint; mypy across all seven packages; pylint; the package-boundary and package-metadata checkers; a check that no tracked file holds a secret; vulture; the Maxitor samples public-API check; Radon complexity and maintainability; the test suite of every package; every example of the documentation, which CI runs in jobs of their own beside the checks; and a check of the saved graph files. The wheel and sdist build of every package and the packaging smoke test are **not** part of the local run — they need the network and belong to a release — so CI runs them on every pull request, in two parallel jobs (the checks and the packaging). The local run needs no network once its tools are installed.
+2. **Every check runs once.** After each phase of a change only the tests of that phase run: the test files the phase wrote or changed. An adversarial break runs against those files alone. CI runs the closing check run on the pull request, and the merge rule of `main` requires it green: a pull request merges on CI alone, so nothing is checked twice on a local machine. A pull request that changes only text (`docs/`, `specs/`, `AGENTS.md`, this constitution) skips CI's checks.
 3. **Errors are fixed until the run is clean.** The point is not to report the failures but to leave the repository in a state where the script exits without errors. A failing check is either fixed in the change or reported to the maintainer with the exact command and output — "known failure" is not an outcome, and neither is skipping the step because the diff looked small.
 4. **The log is evidence, not a deliverable.** The script appends to `archive/logs/check-all.txt`, and `archive/` is outside Git; the pull request states that the run passed, and pastes the tail only for what could not be fixed.
 5. **The run may edit the code, and those edits are part of the change.** The first Python step is `ruff check --fix packages/ tests/ scripts/`, so the run is not read-only: whatever it fixes is reviewed like any other change and re-committed, and an auto-fix the reviewer does not want is reverted rather than left in place.
 6. **The script itself is part of what is checked.** If it cannot run — a missing tool, a broken path, a command whose configuration no longer exists — that is a defect in the check run and is repaired as part of the change, not bypassed.
 
 
-**Two remarks in the log are known and accepted**, and they are not to be acted on: the Vite build's advisory that some chunks are larger than 500 kB — the viewer's weight is the graph engine and the Graphviz wasm behind layout, not code of ours — and LangGraph's `LangChainPendingDeprecationWarning`, raised inside that library while its cache module is imported, which this repository never builds. They stay in the log, deliberately, and a green run is green with them.
+**One remark in the log is known and accepted**, and it is not to be acted on: LangGraph's `LangChainPendingDeprecationWarning`, raised inside that library while its cache module is imported, which this repository never builds. It stays in the log, deliberately, and a green run is green with it.
 ## [SECTION_2_NAME]
 <!-- Retained from the toolkit's template: the maintainer writes this. -->
 
@@ -196,4 +200,4 @@ Work is not finished when the code looks right; it is finished when the reposito
 
 [GOVERNANCE_RULES]
 
-**Version**: 1.11.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-04
+**Version**: 1.12.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-05
