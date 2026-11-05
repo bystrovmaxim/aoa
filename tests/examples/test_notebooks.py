@@ -18,10 +18,12 @@ masked; a notebook may leave out the headings its Markdown cells say instead.
 from __future__ import annotations
 
 import asyncio
+import os
 import socket
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import nbformat
@@ -29,6 +31,7 @@ import pytest
 from jupyter_client.connect import LocalPortCache
 from jupyter_client.manager import AsyncKernelManager
 from nbclient import NotebookClient
+from traitlets.config import Config
 
 from tests.examples.harness import (
     EXAMPLES_ROOT,
@@ -69,13 +72,32 @@ def _local_modules(notebook_path: Path, notebook: nbformat.NotebookNode) -> set[
     return names
 
 
-def _kernel(sockets: Path) -> AsyncKernelManager:
-    """A kernel that talks over Unix sockets in ``sockets``, so it needs no free TCP port.
+def _over_unix_sockets(sockets: Path) -> Config:
+    """Kernel settings: Unix sockets in ``sockets`` instead of TCP ports.
 
     Over TCP each kernel picks free ports and binds them later; a kernel of a parallel
     worker may take them in between, and the kernel dies with "Address already in use".
     """
-    return AsyncKernelManager(kernel_name="python3", transport="ipc", ip=str(sockets / "kernel"))
+    config = Config()
+    config.KernelManager.transport = "ipc"
+    config.KernelManager.ip = str(sockets / "kernel")
+    return config
+
+
+def _run_notebook(notebook: nbformat.NotebookNode, folder: Path) -> None:
+    """Run ``notebook`` in ``folder`` in a fresh kernel the client starts and shuts down itself.
+
+    The client creates the kernel manager from the settings, so it owns the kernel and stops
+    it when the run ends; a kernel manager handed to it would stay running until pytest exits.
+    """
+    with tempfile.TemporaryDirectory(prefix="nb-") as sockets:
+        NotebookClient(
+            notebook,
+            timeout=_TIMEOUT_SECONDS,
+            kernel_name="python3",
+            config=_over_unix_sockets(Path(sockets)),
+            resources={"metadata": {"path": str(folder)}},
+        ).execute()
 
 
 def _printed_lines(text: str) -> list[str]:
@@ -86,6 +108,21 @@ def _printed_lines(text: str) -> list[str]:
 def test_every_script_has_a_notebook() -> None:
     missing = [_example_id(script) for script in _SCRIPTS if not script.with_suffix(".ipynb").exists()]
     assert not missing, f"scripts without a notebook: {missing}"
+
+
+def test_a_notebook_kernel_is_gone_when_its_run_ends(tmp_path: Path) -> None:
+    """The kernel a run starts is stopped when the run ends, not when pytest exits."""
+    notebook = nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell("import os\nprint(os.getpid())")])
+    _run_notebook(notebook, tmp_path)
+    kernel_pid = int(notebook.cells[0].outputs[0]["text"])
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            os.kill(kernel_pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.1)
+    pytest.fail(f"the notebook's kernel (pid {kernel_pid}) is still running after its run ended")
 
 
 def test_a_notebook_kernel_starts_while_the_ports_it_would_pick_are_taken(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,7 +139,7 @@ def test_a_notebook_kernel_starts_while_the_ports_it_would_pick_are_taken(monkey
         monkeypatch.setattr(LocalPortCache, "find_available_port", lambda _cache, _ip: next(held_ports))
 
         async def start_and_ask(sockets: Path) -> None:
-            kernel = _kernel(sockets)
+            kernel = AsyncKernelManager(kernel_name="python3", config=_over_unix_sockets(sockets))
             await kernel.start_kernel()
             try:
                 client = kernel.client()
@@ -142,15 +179,7 @@ def test_notebook_installs_what_it_imports(notebook_path: Path) -> None:
 def test_notebook_runs_and_prints_its_scripts_lines(notebook_path: Path) -> None:
     notebook = nbformat.read(notebook_path, as_version=4)
     notebook.cells = [cell for cell in notebook.cells if not (cell.cell_type == "code" and _is_install_cell(cell))]
-    with tempfile.TemporaryDirectory(prefix="nb-") as sockets:
-        client = NotebookClient(
-            notebook,
-            km=_kernel(Path(sockets)),
-            timeout=_TIMEOUT_SECONDS,
-            kernel_name="python3",
-            resources={"metadata": {"path": str(notebook_path.parent)}},
-        )
-        client.execute()
+    _run_notebook(notebook, notebook_path.parent)
     printed = "".join(
         output.get("text", "")
         for cell in _code_cells(notebook)
