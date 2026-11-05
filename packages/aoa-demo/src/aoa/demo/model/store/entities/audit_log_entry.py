@@ -8,10 +8,10 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Immutable audit row", domain=StoreDomain)
+@entity(description="Immutable audit row", resource=StorefrontDatabase)
 class AuditLogEntryDetailEntity(BaseDetailEntity):
     id: str = Field(description="Audit id")
     action_performed: str = Field(description="Action label")

@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Fee schedule facet following interchange slice spine", domain=BillingDomain)
+@entity(description="Fee schedule facet following interchange slice spine", resource=BillingWarehouse)
 class MerchantFeeSchedulePointerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pointer id")
     lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")

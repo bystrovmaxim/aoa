@@ -5,13 +5,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Ward or service unit issuing outbound parcels (delivery department analogue)",
-    domain=ClinicalSupplyDomain,
+    resource=ClinicalSupplyStorage,
 )
 class ClinicalCareSiteUnitCoreEntity(BaseCoreEntity):
     id: str = Field(description="Care unit id")

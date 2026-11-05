@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
 from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 from aoa.demo.model.inventory.entities.inv_storage_aisle_row import StorageAisleRowDetailEntity
+from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Concrete bin coordinate anchored to aisle and facility", domain=InventoryDomain)
+@entity(description="Concrete bin coordinate anchored to aisle and facility", resource=InventoryStorage)
 class BinCoordinateStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bin coordinate id")
     lifecycle: InvPipelineLifecycle = Field(description="Bin lifecycle")

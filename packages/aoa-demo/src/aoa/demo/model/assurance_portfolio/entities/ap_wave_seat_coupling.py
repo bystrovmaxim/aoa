@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_campaign_wave_banner import AssuranceCampaignWaveBannerCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
+from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Actor ↔ execution wave duty binding (plan role analogue)", domain=AssurancePortfolioDomain)
+@entity(description="Actor ↔ execution wave duty binding (plan role analogue)", resource=AssurancePortfolioStorage)
 class AssuranceWaveSeatCouplingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Wave seat coupling id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Wave seat coupling lifecycle")

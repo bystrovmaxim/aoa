@@ -1,22 +1,18 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_replay_ticket.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
-from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_downstream_watermark import DownstreamWatermarkCoreEntity
+from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
+from aoa.demo.model.messaging.resources.dlq_store import MessagingDeadLetterStore
 
 
-@entity(description="Replay ticket hanging off watermark segment", domain=MessagingDomain)
+@entity(description="Replay ticket hanging off watermark segment", resource=MessagingDeadLetterStore)
 class ReplayTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
-    lifecycle: MsgDenseLifecycle = Field(description="Replay lifecycle")
+    lifecycle: MsgDeadLetterLifecycle = Field(description="Replay lifecycle")
 
     traceparent_seed: str = Field(description="Propagation root echoed to downstream carriers")
     dedupe_partition: str = Field(description="Logical inbox partition for idempotent consumers")
@@ -24,19 +20,7 @@ class ReplayTicketCoreEntity(BaseCoreEntity):
     deadline_budget_ms: int = Field(description="End-to-end SLA budget millis", ge=0)
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
-    watermark: Annotated[
-        AssociationOne[DownstreamWatermarkCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Parent watermark row"
-    )
 
-    billing_parse_pass: Annotated[
-        AssociationOne[BillingParsePassCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Billing parse artifact correlated with replay bookkeeping"
-    )
 
 
 ReplayTicketCoreEntity.model_rebuild()

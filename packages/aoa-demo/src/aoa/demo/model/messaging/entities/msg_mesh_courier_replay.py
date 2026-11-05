@@ -7,18 +7,17 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
-from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
+from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
 from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
+from aoa.demo.model.messaging.resources.dlq_store import MessagingDeadLetterStore
 
 
 @entity(
-    description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain
+    description="Short-circuit between courier delivery spine and replay coordination queue", resource=MessagingDeadLetterStore
 )
 class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
-    lifecycle: MsgDenseLifecycle = Field(description="Correlator lifecycle")
+    lifecycle: MsgDeadLetterLifecycle = Field(description="Correlator lifecycle")
 
     traceparent_seed: str = Field(description="Propagation root echoed to downstream carriers")
     dedupe_partition: str = Field(description="Logical inbox partition for idempotent consumers")
@@ -26,12 +25,6 @@ class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     deadline_budget_ms: int = Field(description="End-to-end SLA budget millis", ge=0)
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
-    courier_ledger: Annotated[
-        AssociationOne[CourierAttemptLedgerCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Courier attempt ledger linkage"
-    )
 
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketCoreEntity],

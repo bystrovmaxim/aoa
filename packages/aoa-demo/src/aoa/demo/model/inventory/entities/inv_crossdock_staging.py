@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
-from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_recall_signal import RecallSignalCoreEntity
+from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Cross-dock latch following recall signalling chain", domain=InventoryDomain)
+@entity(description="Cross-dock latch following recall signalling chain", resource=InventoryStorage)
 class CrossDockStagingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Staging id")
     lifecycle: InvDenseLifecycle = Field(description="Cross-dock staging lifecycle")
@@ -31,12 +30,6 @@ class CrossDockStagingCoreEntity(BaseCoreEntity):
         description="Upstream recall signal"
     )
 
-    catalog_product_anchor: Annotated[
-        AssociationOne[CatalogProductCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Catalog SKU keyed when diverting stock through cross-dock"
-    )
 
 
 CrossDockStagingCoreEntity.model_rebuild()

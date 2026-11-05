@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Bridge joining parser lifecycle with interchange economics island", domain=BillingDomain)
+@entity(description="Bridge joining parser lifecycle with interchange economics island", resource=BillingWarehouse)
 class BillingParseInterchangeBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
     lifecycle: BillingDenseLifecycle = Field(description="Bridge lifecycle")

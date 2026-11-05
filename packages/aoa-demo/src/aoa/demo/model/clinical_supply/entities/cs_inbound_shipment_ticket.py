@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Inbound partner lot keyed to SKU and packing posture (supply row analogue)",
-    domain=ClinicalSupplyDomain,
+    resource=ClinicalSupplyStorage,
 )
 class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Inbound ticket id")

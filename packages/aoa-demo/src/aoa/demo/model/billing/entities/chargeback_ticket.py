@@ -7,24 +7,17 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
-from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Chargeback case opened on payment-event", domain=BillingDomain)
+@entity(description="Chargeback case opened on payment-event", resource=BillingWarehouse)
 class ChargebackTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")
 
-    payment_event: Annotated[
-        AssociationOne[PaymentEventLogCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Funding payment event anchor"
-    )
 
     interchange_assessment_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],

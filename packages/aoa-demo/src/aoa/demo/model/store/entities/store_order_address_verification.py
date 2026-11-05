@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Address verification keyed to customer profile subgraph", domain=StoreDomain)
+@entity(description="Address verification keyed to customer profile subgraph", resource=StorefrontDatabase)
 class AddressVerificationTrailCoreEntity(BaseCoreEntity):
     id: str = Field(description="Verification id")
     lifecycle: SalesOrderLifecycle = Field(description="AV verification lifecycle")

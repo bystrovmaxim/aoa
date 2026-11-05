@@ -11,12 +11,12 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.store_dual_entry_lifecycle import StoreDualEntryLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
 @entity(
     description="Trace row for orders that may originate online or as a walk-in quote (dual-entry demo)",
-    domain=StoreDomain,
+    resource=StorefrontDatabase,
 )
 class OrderDualEntryOriginTraceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Origin trace id")

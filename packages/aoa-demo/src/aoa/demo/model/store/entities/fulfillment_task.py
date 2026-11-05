@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.entities.inv_lot_snapshot_ledger import LotSnapshotLedgerCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Fulfillment task row", domain=StoreDomain)
+@entity(description="Fulfillment task row", resource=StorefrontDatabase)
 class FulfillmentTaskCoreEntity(BaseCoreEntity):
     id: str = Field(description="Task id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Fulfillment task lifecycle")
@@ -31,12 +30,6 @@ class FulfillmentTaskCoreEntity(BaseCoreEntity):
         description="Target order line"
     )
 
-    lot_inventory_slice: Annotated[
-        AssociationOne[LotSnapshotLedgerCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Inventory lot snapshot consulted for allocation"
-    )
 
 
 FulfillmentTaskCoreEntity.model_rebuild()

@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
 @entity(
     description="Junction aligning header orders with parcel fulfilment subgraph (dense mesh cue)",
-    domain=StoreDomain,
+    resource=StorefrontDatabase,
 )
 class StoreOrderParcelHandoffCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")

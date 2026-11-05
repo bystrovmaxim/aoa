@@ -7,10 +7,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain import TelemetryPipelineDomain
+from aoa.demo.model.telemetry_pipeline.resources.storage import TelemetryPipelineStorage
 
 
-@entity(description="Edge ingest envelope keyed by opaque batch locator", domain=TelemetryPipelineDomain)
+@entity(description="Edge ingest envelope keyed by opaque batch locator", resource=TelemetryPipelineStorage)
 class TelemetryIngestEnvelopeCoreEntity(BaseCoreEntity):
     envelope_id: str = Field(description="Envelope surrogate key")
     edge_site_code: str = Field(description="Colo / CDN PoP mnemonic")

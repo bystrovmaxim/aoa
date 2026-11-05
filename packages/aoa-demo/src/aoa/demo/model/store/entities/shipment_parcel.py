@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Shipment parcel row", domain=StoreDomain)
+@entity(description="Shipment parcel row", resource=StorefrontDatabase)
 class ShipmentParcelCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parcel id")
     lifecycle: SalesOrderLifecycle = Field(description="Shipment lifecycle")
@@ -31,12 +30,6 @@ class ShipmentParcelCoreEntity(BaseCoreEntity):
         description="Shipped order"
     )
 
-    origin_facility: Annotated[
-        AssociationOne[CrossDockStagingCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Cross-dock the shipment leaves from"
-    )
 
 
 ShipmentParcelCoreEntity.model_rebuild()

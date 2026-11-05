@@ -5,13 +5,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Geographic anchoring slice for supplier sites (catalog city analogue)",
-    domain=ClinicalSupplyDomain,
+    resource=ClinicalSupplyStorage,
 )
 class ClinicalGeographicAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Geographic anchor id")

@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.billing_sat_fx_residual import FxResidualTagCoreEntity
     from aoa.demo.model.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleCoreEntity
 
 
-@entity(description="Parse pass artifact on ingest manifest", domain=BillingDomain)
+@entity(description="Parse pass artifact on ingest manifest", resource=BillingWarehouse)
 class BillingParsePassCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parse pass id")
     lifecycle: BillingPipelineLifecycle = Field(description="Parse lifecycle")

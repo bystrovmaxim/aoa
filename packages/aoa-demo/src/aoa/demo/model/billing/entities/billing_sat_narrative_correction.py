@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
+@entity(description="Narrative correction attached to canonical ingest row", resource=BillingWarehouse)
 class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Row id")
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")

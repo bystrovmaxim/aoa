@@ -38,11 +38,11 @@ Goal: `entity_resource` edge, domain from the resource, protocol 1.6, graph-buil
 
 Goal: every demo entity stored by one resource, none related across resources (research R8).
 
-- [ ] T016 [US4] Create one storage resource per demo domain with no resource (13 domains) under `packages/aoa-demo/src/aoa/demo/model/<domain>/resources/`.
-- [ ] T017 [US4] Move `CurrencyEnumEntity` into `packages/aoa-demo/src/aoa/demo/model/billing/entities/`, stored by `BillingWarehouse`; remove `DictionariesDomain` and its package; update imports.
-- [ ] T018 [US4] Remove the 23 other cross-domain associations (both sides where an inverse exists).
-- [ ] T019 [US4] Rewrite every demo `@entity` to `resource=`; spread Store, Billing, Messaging, Catalog by meaning (at least one gateway and one cache own entities); remove or move any relation that then crosses resources; split `CatalogDenseLifecycle` per resource.
-- [ ] T020 [US4] Update `packages/aoa-demo/tests` (the dictionary graph test, counts); run them; build the graph and check SC-002. Commit with the list of what moved.
+- [X] T016 [US4] Create one storage resource per demo domain with no resource (13 domains) under `packages/aoa-demo/src/aoa/demo/model/<domain>/resources/`.
+- [X] T017 [US4] Move `CurrencyEnumEntity` into `packages/aoa-demo/src/aoa/demo/model/billing/entities/`, stored by `BillingWarehouse`; remove `DictionariesDomain` and its package; update imports.
+- [X] T018 [US4] Remove the 23 other cross-domain associations (both sides where an inverse exists).
+- [X] T019 [US4] Rewrite every demo `@entity` to `resource=`; spread Store, Billing, Messaging, Catalog by meaning (at least one gateway and one cache own entities); remove or move any relation that then crosses resources; split `CatalogDenseLifecycle` per resource.
+- [X] T020 [US4] Update `packages/aoa-demo/tests` (the dictionary graph test, counts); run them; build the graph and check SC-002. Commit with the list of what moved.
 
 ## Phase 5: examples and tests — US4 (P2)
 

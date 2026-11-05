@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_product_lifecycle import CatalogProductLifecycle
+from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 
 
-@entity(description="Sellable SKU in the sample catalog", domain=CatalogDomain)
+@entity(description="Sellable SKU in the sample catalog", resource=CatalogObjectStore)
 class CatalogProductCoreEntity(BaseCoreEntity):
     id: str = Field(description="Product row id")
     lifecycle: CatalogProductLifecycle = Field(description="Catalog product lifecycle")

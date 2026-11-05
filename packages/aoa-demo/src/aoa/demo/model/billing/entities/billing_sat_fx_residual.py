@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="FX residual facet continuing ingest narrative spine", domain=BillingDomain)
+@entity(description="FX residual facet continuing ingest narrative spine", resource=BillingWarehouse)
 class FxResidualTagCoreEntity(BaseCoreEntity):
     id: str = Field(description="Residual id")
     lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")

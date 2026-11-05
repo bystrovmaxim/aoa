@@ -1,18 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/entities/msg_throttle_lease.py
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import Field
 
-from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
+from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
+from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
 
 
-@entity(description="Throttle lease chaining from replay facilitation row", domain=MessagingDomain)
+@entity(description="Throttle lease chaining from replay facilitation row", resource=OutboxPrimaryDatabase)
 class ThrottleLeaseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Lease id")
     lifecycle: MsgDenseLifecycle = Field(description="Throttle lifecycle")
@@ -23,12 +20,6 @@ class ThrottleLeaseCoreEntity(BaseCoreEntity):
     deadline_budget_ms: int = Field(description="End-to-end SLA budget millis", ge=0)
     content_class: str = Field(description="Envelope / codec family moniker")
     retry_policy_slug: str = Field(description="Backoff / retry escalation preset identifier")
-    replay_ticket: Annotated[
-        AssociationOne[ReplayTicketCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Upstream replay ticket"
-    )
 
 
 ThrottleLeaseCoreEntity.model_rebuild()

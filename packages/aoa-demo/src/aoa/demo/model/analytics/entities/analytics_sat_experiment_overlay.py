@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
     AnalyticsCanonicalTelemetryRowDetailEntity,
 )
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
 @entity(
     description="Experiment overlay anchored on canonical telemetry spine (distinct from ingest branch)",
-    domain=AnalyticsDomain,
+    resource=AnalyticsStorage,
 )
 class ExperimentOverlayCoreEntity(BaseCoreEntity):
     id: str = Field(description="Overlay id")

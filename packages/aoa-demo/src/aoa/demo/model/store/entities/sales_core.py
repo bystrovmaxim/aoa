@@ -22,20 +22,15 @@ from aoa.action_machine.domain import (
     BaseDetailEntity,
     CompositeMany,
     Inverse,
-    NoInverse,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
-from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Registered customer", domain=StoreDomain)
+@entity(description="Registered customer", resource=StorefrontDatabase)
 class CustomerAccountCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
@@ -46,12 +41,6 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
     tax_jurisdiction_stub: str = Field(description="Derived routing hint for taxation engines")
-    identity_party: Annotated[
-        AssociationOne[IdentityPersonHubCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Canonical person aggregate in the identity bounded context"
-    )
 
     orders: Annotated[
         AssociationMany[SalesOrderCoreEntity],
@@ -61,11 +50,10 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Customer order", domain=StoreDomain)
+@entity(description="Customer order", resource=StorefrontDatabase)
 class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
-    currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
     lifecycle: SalesOrderLifecycle = Field(description="Lifecycle")
 
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
@@ -86,15 +74,9 @@ class SalesOrderCoreEntity(BaseCoreEntity):
         description="Line items"
     )
 
-    payment_capture_audit: Annotated[
-        AssociationOne[PaymentEventLogCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Settlement-side payment telemetry for this storefront order"
-    )
 
 
-@entity(description="Order line", domain=StoreDomain)
+@entity(description="Order line", resource=StorefrontDatabase)
 class SalesOrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Item id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")
@@ -105,12 +87,6 @@ class SalesOrderLineDetailEntity(BaseDetailEntity):
     storefront_channel: str = Field(description="POS / kiosk / ecommerce channel moniker")
     compliance_rating: str = Field(description="Fraud / AML posture snapshot")
     fulfillment_priority: int = Field(description="Relative orchestration priority ordinal", ge=0)
-    catalog_product: Annotated[
-        AssociationOne[CatalogProductCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Anchored SKU row from the commerce catalog"
-    )
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],

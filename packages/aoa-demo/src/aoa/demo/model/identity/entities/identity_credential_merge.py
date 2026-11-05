@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
+from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
 
 
-@entity(description="Credential merge correlate across person, email, and phone factors", domain=IdentityDomain)
+@entity(description="Credential merge correlate across person, email, and phone factors", resource=IdentityStoreBase)
 class IdentityCredentialMergeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")

@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchCoreEntity
 from aoa.demo.model.store.entities.return_request_lifecycle import ReturnRequestLifecycle
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Return request row", domain=StoreDomain)
+@entity(description="Return request row", resource=StorefrontDatabase)
 class ReturnRequestCoreEntity(BaseCoreEntity):
     id: str = Field(description="Return request id")
     lifecycle: ReturnRequestLifecycle = Field(description="Return lifecycle")
@@ -33,12 +32,6 @@ class ReturnRequestCoreEntity(BaseCoreEntity):
         description="Returned order"
     )
 
-    reverse_logistics_metrics_batch: Annotated[
-        AssociationOne[AnalyticsIngressBatchCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Analytics ingress shard for reverse-logistics telemetry"
-    )
 
 
 ReturnRequestCoreEntity.model_rebuild()

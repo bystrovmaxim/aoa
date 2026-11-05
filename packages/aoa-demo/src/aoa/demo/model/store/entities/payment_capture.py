@@ -7,13 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.resources.db import StorefrontDatabase
 
 
-@entity(description="Payment capture row", domain=StoreDomain)
+@entity(description="Payment capture row", resource=StorefrontDatabase)
 class PaymentCaptureCoreEntity(BaseCoreEntity):
     id: str = Field(description="Capture id")
     lifecycle: SalesOrderLifecycle = Field(description="Capture lifecycle")
@@ -31,12 +30,6 @@ class PaymentCaptureCoreEntity(BaseCoreEntity):
         description="Captured order"
     )
 
-    processor_webhook_receipt: Annotated[
-        AssociationOne[WebhookIngressReceiptCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Ingress receipt for PSP / acquirer callback correlation"
-    )
 
 
 PaymentCaptureCoreEntity.model_rebuild()

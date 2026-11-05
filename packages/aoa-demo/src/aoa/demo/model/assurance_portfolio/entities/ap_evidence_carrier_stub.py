@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceEvidenceKindAxisCoreEntity
+from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
 @entity(
     description="Polymorphic-lite attachment header (fk_table analogue omitted deliberately)",
-    domain=AssurancePortfolioDomain,
+    resource=AssurancePortfolioStorage,
 )
 class AssuranceEvidenceCarrierStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Evidence carrier row id")

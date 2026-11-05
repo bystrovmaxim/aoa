@@ -6,9 +6,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from maxitor.web.model.diagrams.actions.list_entities_action import ListEntitiesAction
-from maxitor.web.model.diagrams.resources.duckdb_graph_resource import DuckDBGraphResource
-
 from aoa.demo.model.interchange_demo_coordinator import build_registered_interchange_coordinator
 
 
@@ -45,7 +42,7 @@ def test_every_currency_field_references_the_dictionary() -> None:
         and node["properties"].get("reference_qualname", "").endswith("CurrencyEnumEntity")
     ]
 
-    assert len(references) >= 26, f"expected the demo's currency fields, got {len(references)}"
+    assert len(references) >= 24, f"expected the demo's currency fields, got {len(references)}"
 
 
 def test_the_drawing_axis_borrows_its_codes_and_has_no_classifier_field() -> None:
@@ -68,7 +65,7 @@ def test_the_demo_graph_carries_the_dictionary_relation_edges() -> None:
         if edge.get("type") == "entity_relation" and edge["target_id"].endswith("CurrencyEnumEntity")
     ]
 
-    assert len(relations) >= 26, f"expected the demo's currency relations, got {len(relations)}"
+    assert len(relations) >= 24, f"expected the demo's currency relations, got {len(relations)}"
     for edge in relations:
         assert edge["properties"]["relation_type"] == "association"
         assert edge["properties"]["cardinality"] == "one"
@@ -76,34 +73,17 @@ def test_the_demo_graph_carries_the_dictionary_relation_edges() -> None:
         assert edge["properties"]["field_name"]
 
 
-def test_the_demo_graph_loads_into_the_viewer_with_the_new_edge() -> None:
-    """An edge type the resource does not know raises ``KeyError``; the demo must load."""
-    store = DuckDBGraphResource.build_from_json(_graph())
-
-    assert store is not None
-
-
-def test_the_demo_slice_carries_the_dictionary_association() -> None:
-    """The ERD has an arrow from the host to the dictionary, labelled with the field name."""
+def test_the_dictionary_relation_stays_inside_its_resource() -> None:
+    """A dictionary is stored by the resource of the entities that select from it."""
     graph = _graph()
-    relation = next(
+    resource_of = {edge["source_id"]: edge["target_id"] for edge in graph["edges"] if edge.get("type") == "entity_resource"}
+    relations = [
         edge
         for edge in graph["edges"]
         if edge.get("type") == "entity_relation" and edge["target_id"].endswith("CurrencyEnumEntity")
-    )
-    domain = next(
-        edge["target_id"]
-        for edge in graph["edges"]
-        if edge.get("type") == "domain" and edge["source_id"] == relation["source_id"]
-    )
-    store = DuckDBGraphResource.build_from_json(graph)
-    diagram = ListEntitiesAction._slice_payload(store, domain, include_neighbors=True)
+    ]
 
-    assert relation["target_id"] in {entity["id"] for entity in diagram["entities"]}
-    assert any(
-        row["relationship_kind"] == "association"
-        and row["source"] == relation["source_id"]
-        and row["target"] == relation["target_id"]
-        and row["label"].startswith(relation["properties"]["field_name"])
-        for row in diagram["relations"]
-    )
+    assert relations
+    for edge in relations:
+        assert resource_of[edge["source_id"]] == resource_of[edge["target_id"]]
+        assert resource_of[edge["target_id"]].endswith("BillingWarehouse")

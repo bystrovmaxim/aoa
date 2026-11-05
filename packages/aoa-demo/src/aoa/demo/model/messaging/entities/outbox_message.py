@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.outbox_lifecycle import OutboxMessageLifecycle
+from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
 
 
-@entity(description="Transactional outbox row (sample)", domain=MessagingDomain)
+@entity(description="Transactional outbox row (sample)", resource=OutboxPrimaryDatabase)
 class OutboxMessageCoreEntity(BaseCoreEntity):
     id: str = Field(description="Message id")
     lifecycle: OutboxMessageLifecycle = Field(description="Outbox message lifecycle")

@@ -1,4 +1,4 @@
-# packages/aoa-demo/src/aoa/demo/model/dictionaries/entities/currency_enum.py
+# packages/aoa-demo/src/aoa/demo/model/billing/entities/currency_enum.py
 """Currency dictionaries the demo's monetary fields reference."""
 
 
@@ -8,10 +8,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseEnumEntity, value
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.dictionaries.domain import DictionariesDomain
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Currency reference value", domain=DictionariesDomain)
+@entity(description="Currency reference value", resource=BillingWarehouse)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the currencies the demo uses, each one a value of this dictionary."""
 

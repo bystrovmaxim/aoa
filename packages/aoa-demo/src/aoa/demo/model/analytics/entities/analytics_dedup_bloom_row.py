@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_ingress_batch import AnalyticsIngressBatchCoreEntity
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Dedup bloom facet on ingress batch", domain=AnalyticsDomain)
+@entity(description="Dedup bloom facet on ingress batch", resource=AnalyticsStorage)
 class AnalyticsDedupBloomRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Bloom row id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Dedup lifecycle")

@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Individual subtype facts hanging off the partner hub (person analogue)",
-    domain=ClinicalSupplyDomain,
+    resource=ClinicalSupplyStorage,
 )
 class ClinicalPartnerPersonProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Person projection row id")

@@ -19,12 +19,10 @@ from aoa.action_machine.domain import (
     BaseStateEntity,
     Inverse,
     Lifecycle,
-    NoInverse,
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
+from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
 
 
 class _MsgDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -46,7 +44,7 @@ class _MsgDirectedCycleSketchLifecycle(Lifecycle[_MsgDirectedCycleSketchStateEnt
 
 @entity(
     description="Messaging triangle hop A (\u2192B, \u2190C reciprocal)",
-    domain=MessagingDomain,
+    resource=OutboxPrimaryDatabase,
 )
 class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop A id")
@@ -75,7 +73,7 @@ class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
 
 @entity(
     description="Messaging triangle hop B (\u2190A / \u2192C reciprocal)",
-    domain=MessagingDomain,
+    resource=OutboxPrimaryDatabase,
 )
 class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop B id")
@@ -101,17 +99,11 @@ class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
         description="Forward hop B\u2192C"
     )
 
-    anchor_replay_ticket: Annotated[
-        AssociationOne[ReplayTicketCoreEntity],
-        NoInverse(),
-    ] = Field(
-        description="Ties hop B into watermark replay stub chain"
-    )
 
 
 @entity(
     description="Messaging triangle hop C (\u2190B / \u2192A reciprocal)",
-    domain=MessagingDomain,
+    resource=OutboxPrimaryDatabase,
 )
 class MsgDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop C id")

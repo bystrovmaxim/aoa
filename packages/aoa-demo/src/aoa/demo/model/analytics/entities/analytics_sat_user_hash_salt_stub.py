@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_sat_time_bucket_mapper import TimeBucketMapperCoreEntity
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Hash salt bookkeeping continuing time-bucket spine", domain=AnalyticsDomain)
+@entity(description="Hash salt bookkeeping continuing time-bucket spine", resource=AnalyticsStorage)
 class UserHashSaltStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Salt id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Salt stub lifecycle")

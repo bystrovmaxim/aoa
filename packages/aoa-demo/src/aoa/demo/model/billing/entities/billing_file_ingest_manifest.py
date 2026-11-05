@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Billing file ingest manifest", domain=BillingDomain)
+@entity(description="Billing file ingest manifest", resource=BillingWarehouse)
 class BillingFileIngestManifestCoreEntity(BaseCoreEntity):
     id: str = Field(description="Manifest id")
     lifecycle: BillingPipelineLifecycle = Field(description="Ingest lifecycle")

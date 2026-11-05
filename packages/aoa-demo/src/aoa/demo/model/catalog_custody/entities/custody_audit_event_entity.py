@@ -9,13 +9,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
 from aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity import (
     RegulatedStockKeepingUnitRowDetailEntity,
 )
+from aoa.demo.model.catalog_custody.resources.storage import CatalogCustodyStorage
 
 
-@entity(description="Append-only custody audit artifact tied to a SKU anchor", domain=CatalogCustodyDomain)
+@entity(description="Append-only custody audit artifact tied to a SKU anchor", resource=CatalogCustodyStorage)
 class CustodyAuditEventCoreEntity(BaseCoreEntity):
     event_id: str = Field(description="Audit envelope id")
     actor_ref: str = Field(description="Originating custody actor ref")

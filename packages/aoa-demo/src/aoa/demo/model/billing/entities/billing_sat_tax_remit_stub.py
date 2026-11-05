@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_cash_apply_hint import CashApplicationHintCoreEntity
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 
-@entity(description="Tax remittance advice continuing cash-application liquidity chain", domain=BillingDomain)
+@entity(description="Tax remittance advice continuing cash-application liquidity chain", resource=BillingWarehouse)
 class TaxRemittanceAdviceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Advice stub id")
     lifecycle: BillingDenseLifecycle = Field(description="Remittance lifecycle")

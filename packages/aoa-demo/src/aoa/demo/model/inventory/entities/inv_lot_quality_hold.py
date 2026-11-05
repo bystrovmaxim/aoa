@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
+from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Quality hold chaining off cross-dock staging", domain=InventoryDomain)
+@entity(description="Quality hold chaining off cross-dock staging", resource=InventoryStorage)
 class LotQualityHoldCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hold id")
     lifecycle: InvDenseLifecycle = Field(description="Quality hold lifecycle")

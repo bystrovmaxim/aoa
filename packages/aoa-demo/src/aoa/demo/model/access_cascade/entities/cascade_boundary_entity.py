@@ -30,12 +30,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
+from aoa.demo.model.access_cascade.resources.storage import AccessCascadeStorage
 
 
 @entity(
     description="Shape: a one-sided relation boundary — the absent reverse side is the drawing",
-    domain=AccessCascadeDomain,
+    resource=AccessCascadeStorage,
 )
 class CascadeBoundaryAssocEntity(BaseAssocEntity):
     """

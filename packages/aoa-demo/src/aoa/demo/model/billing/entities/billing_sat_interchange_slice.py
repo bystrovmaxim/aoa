@@ -9,9 +9,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
-from aoa.demo.model.dictionaries.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest import (
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     )
 
 
-@entity(description="Interchange economics slice", domain=BillingDomain)
+@entity(description="Interchange economics slice", resource=BillingWarehouse)
 class InterchangeAssessmentSliceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")

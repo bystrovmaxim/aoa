@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
+from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
-@entity(description="Sterile tray / carton profile for inbound lots", domain=ClinicalSupplyDomain)
+@entity(description="Sterile tray / carton profile for inbound lots", resource=ClinicalSupplyStorage)
 class ClinicalPackingAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Packing profile id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Packing catalog lifecycle")
