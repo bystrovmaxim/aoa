@@ -15,7 +15,7 @@ package, one file each, and the entity base holds the hierarchy rules.
 USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Product category membership", domain=ShopDomain)
+    @entity(description="Product category membership", resource=ShopDatabase)
     class ProductCategoryAssocEntity(BaseAssocEntity):
         product_id: str = Field(description="Linked product")
         category_id: str = Field(description="Linked category")

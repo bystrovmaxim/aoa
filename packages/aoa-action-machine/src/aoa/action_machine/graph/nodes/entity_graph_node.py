@@ -22,7 +22,7 @@ for every alternative of every declared specialization axis (see :attr:`speciali
 State rows belong to each wired :class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode`;
 the entity row contributes lifecycle vertices only.
 
-(``@entity`` ``domain``: :meth:`~aoa.action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
+(the domain of the entity's resource: :meth:`~aoa.action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
 """
 
 from __future__ import annotations

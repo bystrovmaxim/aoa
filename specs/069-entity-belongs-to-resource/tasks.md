@@ -8,11 +8,11 @@ One phase = one commit, referencing (#469). After each phase only that phase's t
 
 Goal: an entity names its resource; its domain is read from it (2.1–2.3, 2.5, 2.6).
 
-- [ ] T001 [US1] Write `tests/intents/entity/test_entity_resource_decorator.py`: every declaration row of contracts/entity-decorator.md word for word (2.1 no resource; 2.2 `domain=` → `TypeError`; 2.3 a domain, an action, a non-class, `BaseStorage`, a resource without `@meta`; 2.5 a tuple of two; 2.6 accepted, domain `StoreDomain`; one storage, one gateway, one controller accepted; a subclass without `@entity` inherits the resource).
-- [ ] T002 [US1] In `src/intents/entity/entity_decorator.py`: signature `entity(description, *, resource)`; `_entity_info = {"description", "resource"}`; the resource checks inside `decorator(cls)` so the messages name the entity (research R2); module docstring, `EXAMPLE`, AI-CORE block updated.
-- [ ] T003 [US1] In `src/intents/entity/entity_intent_resolver.py`: `resolve_resource_type(host)`; `resolve_domain_type(host)` reads the resource's `@meta` domain; `resolve_domain_optional` removed with its callers; `MissingEntityInfoError` key `resource`.
-- [ ] T004 [US1] In `src/graph/edges/domain_graph_edge.py`: `from_entity_declared_host` docstring says the domain comes from the resource.
-- [ ] T005 [US1] Run T001; adversarial: drop the excluded-class check → the `BaseStorage` case fails alone; read the domain from `_entity_info` → the 2.6 case fails alone; restore. Commit.
+- [X] T001 [US1] Write `tests/intents/entity/test_entity_resource_decorator.py`: every declaration row of contracts/entity-decorator.md word for word (2.1 no resource; 2.2 `domain=` → `TypeError`; 2.3 a domain, an action, a non-class, `BaseStorage`, a resource without `@meta`; 2.5 a tuple of two; 2.6 accepted, domain `StoreDomain`; one storage, one gateway, one controller accepted; a subclass without `@entity` inherits the resource).
+- [X] T002 [US1] In `src/intents/entity/entity_decorator.py`: signature `entity(description, *, resource)`; `_entity_info = {"description", "resource"}`; the resource checks inside `decorator(cls)` so the messages name the entity (research R2); module docstring, `EXAMPLE`, AI-CORE block updated.
+- [X] T003 [US1] In `src/intents/entity/entity_intent_resolver.py`: `resolve_resource_type(host)`; `resolve_domain_type(host)` reads the resource's `@meta` domain; `resolve_domain_optional` removed with its callers; `MissingEntityInfoError` key `resource`.
+- [X] T004 [US1] In `src/graph/edges/domain_graph_edge.py`: `from_entity_declared_host` docstring says the domain comes from the resource.
+- [X] T005 [US1] Run T001; adversarial: drop the excluded-class check → the `BaseStorage` case fails alone; read the domain from `_entity_info` → the 2.6 case fails alone; restore. Commit.
 
 ## Phase 2: the model build refuses links across resources — US2 (P1)
 

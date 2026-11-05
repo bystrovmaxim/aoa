@@ -46,8 +46,8 @@ ARCHITECTURE / DATA FLOW
 
 Conceptual use (declarations only)::
 
-    @meta(..., domain=OrdersDomain)
-    @entity(..., domain=OrdersDomain)
+    @meta(..., domain=OrdersDomain)       # an action or a resource
+    @entity(..., resource=OrdersDatabase)  # an entity takes the domain of its resource
 
 ═══════════════════════════════════════════════════════════════════════════════
 RATIONALE
