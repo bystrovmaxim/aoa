@@ -20,7 +20,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 4: The boundary of relations
 
-- [ ] T006 boundary in `entity_resource_validator.py`; coordinator re-check of FR-008; tests
+- [x] T006 boundary in `entity_resource_validator.py`; coordinator re-check of FR-008; tests
 
 ## Phase 5: Resources of the action's domain
 

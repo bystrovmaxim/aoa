@@ -200,7 +200,7 @@ def test_case_2_5_a_link_across_resources_is_refused(edge_type: str) -> None:
     with pytest.raises(InvalidGraphError) as error:
         _build(_stored("e.Order", "r.StorefrontDatabase"), ticket)
     assert str(error.value).endswith(
-        "joins e.Ticket (r.SupportDatabase) and e.Order (r.StorefrontDatabase): a relation stays inside one resource."
+        "joins e.Ticket (r.SupportDatabase) and e.Order (r.StorefrontDatabase): a relation stays inside one data source, or inside one resource when there is none."
     )
 
 
@@ -214,7 +214,7 @@ def test_case_2_5_lifecycle_states_across_resources_are_refused() -> None:
         _build(_stored("e.Order", "r.StorefrontDatabase"), _stored("e.Ticket", "r.SupportDatabase"), *states)
     assert str(error.value) == (
         "Lifecycle l.OrderLifecycle has states on e.Order (r.StorefrontDatabase) and e.Ticket (r.SupportDatabase): "
-        "a lifecycle stays inside one resource."
+        "a lifecycle stays inside one data source, or inside one resource when there is none."
     )
 
 
