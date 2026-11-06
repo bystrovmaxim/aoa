@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.graph import exclude_graph_model
 
 from .identity_store_base import IdentityStoreBase
 
