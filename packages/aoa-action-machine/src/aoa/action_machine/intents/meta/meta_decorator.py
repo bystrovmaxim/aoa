@@ -21,8 +21,10 @@ PARAMETERS
     whitespace-only → ``ValueError``.
 
 ``domain : type[BaseDomain]``
-    Required **keyword-only** argument (no default). Must be a ``BaseDomain``
-    subclass. Omitted, ``None``, or wrong type → ``TypeError``.
+    Keyword-only. Required on every host but a data source: there it is omitted
+    or ``None`` → ``TypeError`` when the class is decorated. Must be a ``BaseDomain``
+    subclass; a wrong type → ``TypeError``. A data source (``BaseDataSource``) has
+    no domain, and one given → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -86,13 +88,30 @@ def _validate_meta_target(cls: Any) -> None:
         raise DecoratorTargetError(f"@meta applies only to classes, got {type(cls).__name__}: {cls!r}.")
 
 
+def _validate_meta_host_domain(cls: type, domain: Any) -> None:
+    """A data source has no domain; every other host has one."""
+    # Imported here: the resources package itself imports this decorator's intent.
+    from aoa.action_machine.resources.base_data_source import BaseDataSource  # pylint: disable=import-outside-toplevel
+
+    if issubclass(cls, BaseDataSource):
+        if domain is not None:
+            raise DecoratorArgumentTypeError(
+                f"@meta on {cls.__name__}: a data source has no domain — it is physical, and resources "
+                "of several domains may share it. Remove domain=."
+            )
+        return
+    _validate_meta_domain(domain)
+
+
 def meta(
     description: str,
     *,
-    domain: type[Any],
+    domain: type[Any] | None = None,
 ) -> Callable[[type], type]:
     """
     Class decorator: attach ``_meta_info`` with description and domain.
+
+    ``domain`` is required on every host but a data source (``BaseDataSource``), which has none.
 
     :class:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver` and
     action graph export consume the same scratch written here.
@@ -104,10 +123,12 @@ def meta(
     AI-CORE-END
     """
     _validate_meta_description(description)
-    _validate_meta_domain(domain)
+    if domain is not None:
+        _validate_meta_domain(domain)
 
     def decorator(cls: type) -> type:
         _validate_meta_target(cls)
+        _validate_meta_host_domain(cls, domain)
 
         cls._meta_info = {  # type: ignore[attr-defined]
             "description": description,

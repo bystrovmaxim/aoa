@@ -56,7 +56,7 @@ class KindShopStorage(BaseStorage):
 def _document(properties: dict[str, Any]) -> dict[str, Any]:
     """Return a one-node graph document for the given entity properties."""
     return {
-        "schema_version": "1.6",
+        "schema_version": "1.7",
         "nodes": [{"id": "shop.model.OrderEntity", "type": "Entity", "label": "OrderEntity", "properties": properties}],
         "edges": [],
     }
@@ -142,7 +142,7 @@ def test_each_aoa_kind_exports_its_word_and_name(entity_cls: type, word: str, la
     row = EntityGraphNode(entity_cls).to_dict()
     assert row["properties"]["entity_kind"] == word
     assert row["properties"]["entity_kind_label"] == label
-    _VALIDATOR.validate({"schema_version": "1.6", "nodes": [row], "edges": []})
+    _VALIDATOR.validate({"schema_version": "1.7", "nodes": [row], "edges": []})
 
 
 def test_a_user_kind_exports_its_own_word_and_name() -> None:
@@ -162,4 +162,4 @@ def test_a_user_kind_exports_its_own_word_and_name() -> None:
     row = EntityGraphNode(order).to_dict()
     assert row["properties"]["entity_kind"] == "aggregate"
     assert row["properties"]["entity_kind_label"] == "Aggregate"
-    _VALIDATOR.validate({"schema_version": "1.6", "nodes": [row], "edges": []})
+    _VALIDATOR.validate({"schema_version": "1.7", "nodes": [row], "edges": []})

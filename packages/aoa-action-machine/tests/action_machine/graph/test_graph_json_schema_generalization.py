@@ -15,7 +15,7 @@ _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
 
 def _base_doc(*, edges: list[dict]) -> dict:
     return {
-        "schema_version": "1.6",
+        "schema_version": "1.7",
         "nodes": [
             {
                 "id": "fixture.actions.ChildAction",

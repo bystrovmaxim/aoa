@@ -3,7 +3,7 @@
 Tests for the ``entity_resource`` edge and the graph build's resource rules (protocol 1.6).
 
 A built graph carries one ``entity_resource`` edge from every entity to its resource and an
-entity ``domain`` edge to that resource's domain, and validates against schema 1.6. The graph
+entity ``domain`` edge to that resource's domain, and validates against schema 1.7. The graph
 build refuses, before a graph is indexed, an entity without exactly one such edge and every
 link — relation, dictionary reference, specialization, generalization, lifecycle states —
 whose two entities have different resources. Those refusals are driven with hand-built nodes,
@@ -98,9 +98,9 @@ def test_case_2_6_the_entity_domain_is_the_resource_domain(built: dict[str, Any]
     assert _name(entity_domain["target_id"]) == "StoreDomain"
 
 
-def test_the_graph_is_protocol_1_6(built: dict[str, Any]) -> None:
-    """The document names 1.6 and validates against AOA's copy of schema 1.6."""
-    assert built["schema_version"] == "1.6"
+def test_the_graph_is_protocol_1_7(built: dict[str, Any]) -> None:
+    """The document names 1.7 and validates against AOA's copy of schema 1.7."""
+    assert built["schema_version"] == "1.7"
     jsonschema.Draft202012Validator(GRAPH_JSON_SCHEMA).validate(built)
 
 

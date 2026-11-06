@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/gnomon/main/packages/open-gnomon-protocol/graph/1.6.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/gnomon/main/packages/open-gnomon-protocol/graph/1.7.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.6"
+      "const": "1.7"
     },
     "nodes": {
       "type": "array",
@@ -132,6 +132,9 @@
         },
         {
           "$ref": "#/$defs/role"
+        },
+        {
+          "$ref": "#/$defs/data_source"
         }
       ]
     },
@@ -396,6 +399,32 @@
           "properties": {
             "type": {
               "const": "Resource"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "description"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "data_source": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "DataSource"
             },
             "properties": {
               "type": "object",
@@ -1008,6 +1037,9 @@
         },
         {
           "$ref": "#/$defs/entity_resource"
+        },
+        {
+          "$ref": "#/$defs/resource_data_source"
         }
       ]
     },
@@ -1653,6 +1685,31 @@
           "properties": {
             "type": {
               "const": "entity_resource"
+            },
+            "relationship": {
+              "const": "Aggregation"
+            },
+            "is_dag": {
+              "const": true
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
+          }
+        }
+      ]
+    },
+    "resource_data_source": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/link_row"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "resource_data_source"
             },
             "relationship": {
               "const": "Aggregation"

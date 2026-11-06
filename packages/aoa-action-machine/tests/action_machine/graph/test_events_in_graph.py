@@ -235,7 +235,7 @@ def _sources(document: dict[str, Any], target: str, edge_type: str) -> set[str]:
 
 
 def test_the_document_is_version_1_3(document: dict[str, Any]) -> None:
-    assert document["schema_version"] == "1.6"
+    assert document["schema_version"] == "1.7"
 
 
 def test_an_event_nobody_names_has_no_node(document: dict[str, Any]) -> None:

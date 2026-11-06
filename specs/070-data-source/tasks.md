@@ -6,8 +6,8 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 1: The primitive
 
-- [ ] T001 `src/resources/base_data_source.py`; `@meta` without a domain for a data source, refused with one; suffix check; tests `tests/resources/test_base_data_source.py`
-- [ ] T002 `DataSourceGraphNode` + inspector registered in `node_graph_coordinator_factory.py`; tests of the node row and its `application` edge
+- [x] T001 `src/resources/base_data_source.py`; `@meta` without a domain for a data source, refused with one; suffix check; tests `tests/resources/test_base_data_source.py`
+- [x] T002 `DataSourceGraphNode` + inspector registered in `node_graph_coordinator_factory.py`; tests of the node row and its `application` edge
 
 ## Phase 2: Resources name their data source
 
