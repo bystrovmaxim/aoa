@@ -1,10 +1,13 @@
 # packages/aoa-demo/src/aoa/demo/model/support/entities/support_ticket_aggregate.py
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseCoreEntity
+from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.resources.storage import SupportStorage
 
@@ -20,6 +23,12 @@ class SupportTicketAggregateCoreEntity(BaseCoreEntity):
     routing_queue: str = Field(description="Primary queue owning responder pool")
     language_locale: str = Field(description="Preferred conversational language tag")
     deflection_attempts: int = Field(description="Self-serve resolutions before escalation", ge=0)
+    order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(
+        description="The order the ticket is about, kept by the storefront in the same shop database"
+    )
+    customer: Annotated[AssociationOne[CustomerAccountCoreEntity], NoInverse()] = Field(
+        description="The customer who opened the ticket, kept by the storefront in the same shop database"
+    )
 
 
 SupportTicketAggregateCoreEntity.model_rebuild()

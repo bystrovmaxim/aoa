@@ -2,10 +2,11 @@
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
 from aoa.demo.model.catalog.domain import CatalogDomain
+from aoa.demo.model.data_sources.catalog_data_source import CatalogDataSource
 
 
 @meta(description="Media/object store for catalog (stub)", domain=CatalogDomain)
-class CatalogObjectStore(SqlResource):
+class CatalogObjectStore(SqlResource[CatalogDataSource]):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

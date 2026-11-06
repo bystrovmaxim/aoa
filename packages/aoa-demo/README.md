@@ -52,6 +52,24 @@ created; the wait for a free connection is bounded on the data source
 What each mode is for, and what the resource does with its connection, is in
 [`src/aoa/demo/model/identity/README.md`](src/aoa/demo/model/identity/README.md).
 
+## Its databases: resources that share one store
+
+A resource is often a part of a database rather than the whole of it. The demo's model has
+three databases, each a data source (`aoa.demo.model.data_sources`) that several of its
+resources name as their type argument — `class SupportStorage(BaseStorage[ShopDataSource])`:
+
+| Data source | Resources | What it shows |
+| --- | --- | --- |
+| `ShopDataSource` | `StorefrontDatabase` (Store), `SupportStorage` (Support), `InventoryStorage` (Inventory) | a support ticket relates to the order and the customer it is about — across resources and across domains, inside one database |
+| `MessagingDataSource` | `OutboxPrimaryDatabase`, `MessagingDeadLetterStore` (Messaging) | a replay ticket in the dead-letter queue relates to the outbox message it replays |
+| `CatalogDataSource` | `CatalogObjectStore` (Catalog) | a database with one resource |
+
+Every other resource names no data source and keeps its relations to itself; a relation
+across two databases is refused when the model is built. The graph shows each data source
+on the application, with a `resource_data_source` edge from each of its resources. The
+identity route's `IdentityDataSource` is the runtime pool of the section above; its resource
+imports the PostgreSQL driver and is reached lazily, so it is not in the graph.
+
 ## Its graph history
 
 The demo keeps its graph in [`graph.json`](graph.json), rebuilt by `graph-builder write` with every change of its model, so the file's git history is the graph's history. Paste this link into Maxitor's **AOA Service URL** field to walk through it, compare any two versions, and see the open pull requests after the newest one:

@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Final
 
 _MODULES: Final[tuple[str, ...]] = (
+    "aoa.demo.model.data_sources",
     "aoa.demo.model.roles",
     # billing: full contour, matching store depth
     "aoa.demo.model.billing.domain",

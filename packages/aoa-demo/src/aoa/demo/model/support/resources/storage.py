@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
+from aoa.demo.model.data_sources.shop_data_source import ShopDataSource
 from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @meta(description="Stores the support model (stub)", domain=SupportDomain)
-class SupportStorage(BaseStorage):
+class SupportStorage(BaseStorage[ShopDataSource]):
     """Hold the support domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:
