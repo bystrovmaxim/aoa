@@ -19,8 +19,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import AccessGateFailedEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -75,7 +75,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return OrderResult(order_id=params.order_id)
 
 
-class FailurePrinter(Plugin):
+class FailurePrinterPlugin(BasePlugin):
     """Report which access step failed."""
 
     plugin_name = "failure_printer"
@@ -97,7 +97,7 @@ class FailurePrinter(Plugin):
 
 async def main() -> None:
     """A plugin sees a failed access step."""
-    machine = ActionProductMachine(cache_coordinator=None, plugins=[FailurePrinter()])
+    machine = ActionProductMachine(cache_coordinator=None, plugins=[FailurePrinterPlugin()])
     caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
     try:

@@ -26,7 +26,7 @@ class _Axis:
     """Single host type for a tiny interchange fixture."""
 
 
-class _ParamsNode(BaseGraphNode[object]):
+class _ParamsGraphNode(BaseGraphNode[object]):
     def __init__(self, node_id: str) -> None:
         super().__init__(
             node_id=node_id,
@@ -37,7 +37,7 @@ class _ParamsNode(BaseGraphNode[object]):
         )
 
 
-class _ParamsHarnessNode(BaseGraphNode[object]):
+class _ParamsHarnessGraphNode(BaseGraphNode[object]):
     def __init__(self, *, host_id: str, companion: BaseGraphNode[Any], edge: BaseGraphEdge) -> None:
         super().__init__(
             node_id=host_id,
@@ -84,14 +84,14 @@ def test_to_json_empty_graph_round_trip() -> None:
 
 
 def test_to_json_minimal_params_graph_shape() -> None:
-    right = _ParamsNode("pkg.right")
+    right = _ParamsGraphNode("pkg.right")
     edge = CompositionGraphEdge(
         edge_name="field",
         is_dag=False,
         target_node_id=right.node_id,
         target_node=right,
     )
-    left = _ParamsHarnessNode(host_id="pkg.left", companion=right, edge=edge)
+    left = _ParamsHarnessGraphNode(host_id="pkg.left", companion=right, edge=edge)
     coord = NodeGraphCoordinator()
     coord.build([_HarnessInspector(left)], export_json_schema=GRAPH_JSON_SCHEMA)
     payload = json.loads(coord.to_json())
@@ -125,7 +125,7 @@ class _MiniAxisRole:
     """Isolated inspector root: emit ``RoleGraphNode(GuestRole)``."""
 
 
-class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
+class _InspectPingActionInspector(BaseGraphNodeInspector[_MiniAxisAction]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 
@@ -134,7 +134,7 @@ class _InspectPingAction(BaseGraphNodeInspector[_MiniAxisAction]):
         return ActionGraphNode(PingAction) if cls is _MiniAxisAction else None
 
 
-class _InspectSystemDomain(BaseGraphNodeInspector[_MiniAxisDomain]):
+class _InspectSystemDomainInspector(BaseGraphNodeInspector[_MiniAxisDomain]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 
@@ -143,7 +143,7 @@ class _InspectSystemDomain(BaseGraphNodeInspector[_MiniAxisDomain]):
         return DomainGraphNode(SystemDomain) if cls is _MiniAxisDomain else None
 
 
-class _InspectApplication(BaseGraphNodeInspector[_MiniAxisApplication]):
+class _InspectApplicationInspector(BaseGraphNodeInspector[_MiniAxisApplication]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.application.application import Application
         from aoa.action_machine.graph.nodes.application_graph_node import ApplicationGraphNode
@@ -151,7 +151,7 @@ class _InspectApplication(BaseGraphNodeInspector[_MiniAxisApplication]):
         return ApplicationGraphNode(Application) if cls is _MiniAxisApplication else None
 
 
-class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
+class _InspectPingParamsInspector(BaseGraphNodeInspector[_MiniAxisParams]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.params_graph_node import ParamsGraphNode
 
@@ -160,7 +160,7 @@ class _InspectPingParams(BaseGraphNodeInspector[_MiniAxisParams]):
         return ParamsGraphNode(PingAction.Params) if cls is _MiniAxisParams else None
 
 
-class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
+class _InspectPingResultInspector(BaseGraphNodeInspector[_MiniAxisResult]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.graph.nodes.result_graph_node import ResultGraphNode
 
@@ -169,7 +169,7 @@ class _InspectPingResult(BaseGraphNodeInspector[_MiniAxisResult]):
         return ResultGraphNode(PingAction.Result) if cls is _MiniAxisResult else None
 
 
-class _InspectGuestRole(BaseGraphNodeInspector[_MiniAxisRole]):
+class _InspectGuestRoleInspector(BaseGraphNodeInspector[_MiniAxisRole]):
     def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
         from aoa.action_machine.auth.guest_role import GuestRole
         from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
@@ -182,12 +182,12 @@ def test_to_json_ping_action_mini_graph_round_trip() -> None:
     coord = NodeGraphCoordinator()
     coord.build(
         [
-            _InspectPingAction(),
-            _InspectSystemDomain(),
-            _InspectApplication(),
-            _InspectPingParams(),
-            _InspectPingResult(),
-            _InspectGuestRole(),
+            _InspectPingActionInspector(),
+            _InspectSystemDomainInspector(),
+            _InspectApplicationInspector(),
+            _InspectPingParamsInspector(),
+            _InspectPingResultInspector(),
+            _InspectGuestRoleInspector(),
         ],
         export_json_schema=GRAPH_JSON_SCHEMA,
     )
@@ -236,14 +236,14 @@ def _networkx_from_export_payload(payload: dict[str, Any]) -> nx.DiGraph:
 
 
 def test_to_json_payload_rebuilds_networkx_graph() -> None:
-    right = _ParamsNode("pkg.right")
+    right = _ParamsGraphNode("pkg.right")
     edge = CompositionGraphEdge(
         edge_name="field",
         is_dag=False,
         target_node_id=right.node_id,
         target_node=right,
     )
-    left = _ParamsHarnessNode(host_id="pkg.left", companion=right, edge=edge)
+    left = _ParamsHarnessGraphNode(host_id="pkg.left", companion=right, edge=edge)
     coord = NodeGraphCoordinator()
     coord.build([_HarnessInspector(left)], export_json_schema=GRAPH_JSON_SCHEMA)
     payload = json.loads(coord.to_json())
@@ -256,12 +256,12 @@ def test_networkx_payload_supports_type_filters() -> None:
     coord = NodeGraphCoordinator()
     coord.build(
         [
-            _InspectPingAction(),
-            _InspectSystemDomain(),
-            _InspectApplication(),
-            _InspectPingParams(),
-            _InspectPingResult(),
-            _InspectGuestRole(),
+            _InspectPingActionInspector(),
+            _InspectSystemDomainInspector(),
+            _InspectApplicationInspector(),
+            _InspectPingParamsInspector(),
+            _InspectPingResultInspector(),
+            _InspectGuestRoleInspector(),
         ],
         export_json_schema=GRAPH_JSON_SCHEMA,
     )
@@ -338,10 +338,10 @@ def _relation(**overrides: Any) -> SimpleNamespace:
 
 def _relation_export(target: str, **overrides: Any) -> dict[str, Any]:
     """Return the one edge row of a graph whose host has one relation to ``target``."""
-    other = _ParamsNode(target)
+    other = _ParamsGraphNode(target)
     edge = EntityGraphEdge(target_node_id=target, relation=_relation(**overrides), target_node=other)
     coord = NodeGraphCoordinator()
-    coord.build([_HarnessInspector(_ParamsHarnessNode(host_id="pkg.offer", companion=other, edge=edge))])
+    coord.build([_HarnessInspector(_ParamsHarnessGraphNode(host_id="pkg.offer", companion=other, edge=edge))])
     (row,) = json.loads(coord.to_json())["edges"]
     return row
 

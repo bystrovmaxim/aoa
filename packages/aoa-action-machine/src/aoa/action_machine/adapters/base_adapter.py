@@ -94,6 +94,7 @@ from typing import Any, Self
 from aoa.action_machine.adapters.base_route_record import BaseRouteRecord
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
+from aoa.action_machine.naming.suffix import require_suffix
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -105,6 +106,11 @@ class BaseAdapter[R: BaseRouteRecord](ABC):
         INVARIANTS: One adapter — one protocol.
         AI-CORE-END
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``Adapter``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseAdapter", "Adapter")
 
     def __init__(
         self,

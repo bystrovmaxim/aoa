@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 A resource names its data source as the type argument of a generic resource base:
-``class OrdersResource(PostgresResource[ShopDataSource])``. Python keeps that argument
+``class OrdersStorage(PostgresStorage[ShopDataSource])``. Python keeps that argument
 in ``__orig_bases__`` but does not check it against the parameter's bound, so this module
 reads it and checks it when the resource class is created.
 
@@ -16,7 +16,7 @@ RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
 - A data source argument lies within the bound of the parameter it fills:
-  ``PostgresResource[D: PostgresDataSource]`` takes no ``RedisDataSource``.
+  ``PostgresStorage[D: PostgresDataSource]`` takes no ``RedisDataSource``.
 - A resource hierarchy names at most one data source.
 - A resource that inherits a base without a type argument has no data source.
 """

@@ -13,6 +13,7 @@ from aoa.demo.model.data_sources.assurance_portfolio_data_source import Assuranc
 class AssurancePortfolioStorage(BaseStorage[AssurancePortfolioDataSource]):
     """Hold the assurance portfolio domain's entities; the demo never opens it."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

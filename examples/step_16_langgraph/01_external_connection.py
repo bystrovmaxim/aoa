@@ -115,17 +115,17 @@ class BillingAction(BaseAction[ResolveParams, ResolveResult]):
 # .build() validates topology and data-contract statically; no box needed here.
 #
 # LangGraphController is a library resource and stays out of the model graph, like
-# PostgresResource; the service declares its own graph as a subclass with @meta,
+# PostgresStorage; the service declares its own graph as a subclass with @meta,
 # and @connection names that subclass.
 
 
 @meta(description="Ticket processing graph", domain=SupportDomain)
-class TicketGraph(LangGraphController):
+class TicketGraphController(LangGraphController):
     """The ticket graph this service connects its actions to."""
 
 
 ticket_graph: LangGraphController = (
-    TicketGraph()
+    TicketGraphController()
     .inp("ticket_id", str, "Ticket identifier")
     .inp("note", str, "Ticket content")
     .mid("category", str, "Ticket category: bug | feature | billing")
@@ -155,8 +155,8 @@ ticket_graph: LangGraphController = (
 
 # ─── Host Action ──────────────────────────────────────────────────────────────
 #
-# @connection(TicketGraph, key="graph") declares that this Action expects
-# a TicketGraph to be supplied under the key "graph" at call time.
+# @connection(TicketGraphController, key="graph") declares that this Action expects
+# a TicketGraphController to be supplied under the key "graph" at call time.
 # The machine validates the connection at startup; the controller is injected
 # into every @summary_aspect call as connections["graph"].
 
@@ -174,7 +174,7 @@ class ProcessResult(BaseResult):
 
 @meta(description="Process a support ticket via the ticket graph", domain=SupportDomain)
 @check_roles(GuestRole)
-@connection(TicketGraph, key="graph", description="Ticket processing graph")
+@connection(TicketGraphController, key="graph", description="Ticket processing graph")
 class ProcessTicketAction(BaseAction[ProcessParams, ProcessResult]):
     @summary_aspect("Run ticket graph")
     async def run_summary(self, params: ProcessParams, state: BaseState, box: ToolsBox, connections: Connections) -> ProcessResult:

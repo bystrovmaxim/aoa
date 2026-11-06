@@ -593,10 +593,11 @@ class McpAdapter(BaseAdapter[McpRouteRecord]):
         safe_tool = "".join(ch if ch.isalnum() else "_" for ch in record.tool_name)
         # Unique typename: repeated ``type()`` calls used the same ``__qualname__``/``__module__``
         # (``abc.Params_<req>_<tool>McpArgs``), so ``TypeIntrospection.full_qualname`` collided across
-        # tools/builds and broke ``NodeGraphCoordinator`` Params discovery.
+        # tools/builds and broke ``NodeGraphCoordinator`` Params discovery. The name ends with
+        # ``Params`` because the generated class is a ``BaseParams`` descendant.
         unique = uuid.uuid4().hex[:10]
         return type(
-            f"{req.__name__}_{safe_tool}_{unique}McpArgs",
+            f"{req.__name__}_{safe_tool}_{unique}McpArgsParams",
             (req, ArgModelBase),
             {},
         )

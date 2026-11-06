@@ -84,6 +84,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast, get_args, get_origin
 from pydantic_core import core_schema
 
 from aoa.action_machine.domain.exceptions import ForeignStateError, MissingStateError
+from aoa.action_machine.naming.suffix import require_suffix
 
 if TYPE_CHECKING:
     from aoa.action_machine.domain.state_entity import BaseStateEntity
@@ -374,8 +375,9 @@ class Lifecycle[StateT]:
     _state_type: ClassVar[type[BaseStateEntity] | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Check an axis's template against the state type it names."""
+        """Check the name and an axis's template against the state type it names."""
         super().__init_subclass__(**kwargs)
+        require_suffix(cls, "Lifecycle", "Lifecycle")
         state_type = _declared_state_type(cls)
         if state_type is None:
             return

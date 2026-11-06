@@ -45,7 +45,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, ParamsStub, ResultStub
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState, StubParams, StubResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -97,20 +97,20 @@ class TestTheAnnotationsAreRequired:
         with pytest.raises(AspectSignatureError, match="must annotate every parameter"):
 
             @summary_aspect("S")
-            async def bare_summary(self, params: ParamsStub, state, box, connections) -> ResultStub:
-                return ResultStub()
+            async def bare_summary(self, params: StubParams, state, box, connections) -> StubResult:
+                return StubResult()
 
     def test_a_bare_return_is_refused(self) -> None:
         with pytest.raises(AspectSignatureError, match="must annotate what it returns"):
 
             @summary_aspect("S")
-            async def silent_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections):
-                return ResultStub()
+            async def silent_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections):
+                return StubResult()
 
     def test_self_may_stay_bare(self) -> None:
         @summary_aspect("S")
-        async def acceptable_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
-            return ResultStub()
+        async def acceptable_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> StubResult:
+            return StubResult()
 
         assert acceptable_summary.__name__ == "acceptable_summary"
 
@@ -124,8 +124,8 @@ class TestTheAnnotationsAreRequired:
         with pytest.raises(AspectSignatureError, match="must annotate every parameter"):
 
             @on_error(ValueError, description="E")
-            async def bare_on_error(self, params, state, box, connections, error) -> ResultStub:
-                return ResultStub()
+            async def bare_on_error(self, params, state, box, connections, error) -> StubResult:
+                return StubResult()
 
         with pytest.raises(AspectSignatureError, match="must annotate every parameter"):
 
@@ -150,16 +150,16 @@ class TestTheTypesAreCheckedAtAssembly:
 
             @meta(description="types: a box that is not a tool box", domain=SystemDomain)
             @check_roles(GuestRole)
-            class WrongBoxAction(BaseAction[ParamsStub, ResultStub]):
+            class WrongBoxAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def wrong_box_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: str,
                     connections: Connections,
-                ) -> ResultStub:
-                    return ResultStub()
+                ) -> StubResult:
+                    return StubResult()
 
             _summary_node(WrongBoxAction)
 
@@ -168,16 +168,16 @@ class TestTheTypesAreCheckedAtAssembly:
 
             @meta(description="types: connections that are not resources", domain=SystemDomain)
             @check_roles(GuestRole)
-            class LooseConnectionsAction(BaseAction[ParamsStub, ResultStub]):
+            class LooseConnectionsAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def loose_connections_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: dict[str, Any],
-                ) -> ResultStub:
-                    return ResultStub()
+                ) -> StubResult:
+                    return StubResult()
 
             _summary_node(LooseConnectionsAction)
 
@@ -186,11 +186,11 @@ class TestTheTypesAreCheckedAtAssembly:
 
             @meta(description="types: a state that is not a state", domain=SystemDomain)
             @check_roles(GuestRole)
-            class WrongStateAction(BaseAction[ParamsStub, ResultStub]):
+            class WrongStateAction(BaseAction[StubParams, StubResult]):
                 @regular_aspect("R")
                 async def wrong_state_aspect(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: dict,
                     box: ToolsBox,
                     connections: Connections,
@@ -204,28 +204,28 @@ class TestTheTypesAreCheckedAtAssembly:
 
             @meta(description="types: an error that is not an exception", domain=SystemDomain)
             @check_roles(GuestRole)
-            class WrongErrorAction(BaseAction[ParamsStub, ResultStub]):
+            class WrongErrorAction(BaseAction[StubParams, StubResult]):
                 @on_error(ValueError, description="E")
                 async def wrong_error_on_error(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
                     error: dict,
-                ) -> ResultStub:
-                    return ResultStub()
+                ) -> StubResult:
+                    return StubResult()
 
             _handler_node(WrongErrorAction)
 
     def test_the_union_state_of_a_compensator_is_accepted(self) -> None:
         @meta(description="types: a compensator with the union state", domain=SystemDomain)
         @check_roles(GuestRole)
-        class UnionStateAction(BaseAction[ParamsStub, ResultStub]):
+        class UnionStateAction(BaseAction[StubParams, StubResult]):
             @regular_aspect("R")
             async def union_state_aspect(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state: BaseState,
                 box: ToolsBox,
                 connections: Connections,
@@ -235,7 +235,7 @@ class TestTheTypesAreCheckedAtAssembly:
             @compensate(union_state_aspect, "C")
             async def union_state_compensate(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state_before: BaseState,
                 state_after: BaseState | None,
                 box: ToolsBox,
@@ -255,16 +255,16 @@ class TestTheReturnIsCheckedAtAssembly:
 
             @meta(description="types: a summary that promises anything", domain=SystemDomain)
             @check_roles(GuestRole)
-            class AnyReturnAction(BaseAction[ParamsStub, ResultStub]):
+            class AnyReturnAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def any_return_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
                 ) -> Any:
-                    return ResultStub()
+                    return StubResult()
 
             _summary_node(AnyReturnAction)
 
@@ -273,11 +273,11 @@ class TestTheReturnIsCheckedAtAssembly:
 
             @meta(description="types: a summary that promises a foreign result", domain=SystemDomain)
             @check_roles(GuestRole)
-            class ForeignResultAction(BaseAction[ParamsStub, ResultStub]):
+            class ForeignResultAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def foreign_result_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
@@ -289,16 +289,16 @@ class TestTheReturnIsCheckedAtAssembly:
     def test_a_summary_may_promise_the_base_result(self) -> None:
         @meta(description="types: a summary that promises the base result", domain=SystemDomain)
         @check_roles(GuestRole)
-        class BaseReturnAction(BaseAction[ParamsStub, ResultStub]):
+        class BaseReturnAction(BaseAction[StubParams, StubResult]):
             @summary_aspect("S")
             async def base_return_summary(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state: BaseState,
                 box: ToolsBox,
                 connections: Connections,
             ) -> BaseResult:
-                return ResultStub()
+                return StubResult()
 
         assert _summary_node(BaseReturnAction).label == "base_return_summary"
 
@@ -307,11 +307,11 @@ class TestTheReturnIsCheckedAtAssembly:
 
             @meta(description="types: a regular aspect that promises a string", domain=SystemDomain)
             @check_roles(GuestRole)
-            class StringReturnAction(BaseAction[ParamsStub, ResultStub]):
+            class StringReturnAction(BaseAction[StubParams, StubResult]):
                 @regular_aspect("R")
                 async def string_return_aspect(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
@@ -325,11 +325,11 @@ class TestTheReturnIsCheckedAtAssembly:
 
             @meta(description="types: a compensator that promises a mapping", domain=SystemDomain)
             @check_roles(GuestRole)
-            class MappingCompensatorAction(BaseAction[ParamsStub, ResultStub]):
+            class MappingCompensatorAction(BaseAction[StubParams, StubResult]):
                 @regular_aspect("R")
                 async def mapping_compensator_aspect(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
@@ -339,7 +339,7 @@ class TestTheReturnIsCheckedAtAssembly:
                 @compensate(mapping_compensator_aspect, "C")
                 async def mapping_compensate(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state_before: BaseState,
                     state_after: BaseState | None,
                     box: ToolsBox,
@@ -381,7 +381,7 @@ class TestTheHintsAreResolvable:
 
             @meta(description="types: a name that does not exist", domain=SystemDomain)
             @check_roles(GuestRole)
-            class UnresolvableAction(BaseAction[ParamsStub, ResultStub]):
+            class UnresolvableAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def unresolvable_summary(
                     self,
@@ -389,8 +389,8 @@ class TestTheHintsAreResolvable:
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
-                ) -> ResultStub:
-                    return ResultStub()
+                ) -> StubResult:
+                    return StubResult()
 
             _summary_node(UnresolvableAction)
 
@@ -403,16 +403,16 @@ class TestTheRefusalItself:
 
             @meta(description="types: the moment the refusal happened", domain=SystemDomain)
             @check_roles(GuestRole)
-            class MomentAction(BaseAction[ParamsStub, ResultStub]):
+            class MomentAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def moment_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: str,
                     connections: Connections,
-                ) -> ResultStub:
-                    return ResultStub()
+                ) -> StubResult:
+                    return StubResult()
 
             _summary_node(MomentAction)
 
@@ -422,8 +422,8 @@ class TestTheRefusalItself:
         with pytest.raises(AspectSignatureError) as caught:
 
             @summary_aspect("S")
-            async def early_summary(self, params, state, box, connections) -> ResultStub:
-                return ResultStub()
+            async def early_summary(self, params, state, box, connections) -> StubResult:
+                return StubResult()
 
         assert "class body was executing" in str(caught.value)
 

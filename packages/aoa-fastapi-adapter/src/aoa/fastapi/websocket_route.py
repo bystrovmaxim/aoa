@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    connect ─► accept ─► SocketChannel ─► on_open action ──refused──► close(code)
+    connect ─► accept ─► SocketChannelController ─► on_open action ──refused──► close(code)
                                               │
                                               ▼
     frame ─► size ─► rate ─► JSON {"type": …} ─┬─► type in relay    ─► resource.relay(channel, message)
@@ -65,9 +65,9 @@ from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import ConnectionValue
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
-from aoa.fastapi.socket_channel import SocketChannel
+from aoa.fastapi.socket_channel_controller import SocketChannelController
 
-#: The connection key under which every action of a route receives its ``SocketChannel``.
+#: The connection key under which every action of a route receives its ``SocketChannelController``.
 SOCKET_KEY = "socket"
 
 #: Close codes the adapter itself uses; codes 4000–4999 otherwise belong to the application.
@@ -82,7 +82,7 @@ INTERNAL_ERROR = 1011
 class RelayTarget(Protocol):
     """A resource that takes the relayed messages of a route: who gets them is its own business."""
 
-    def relay(self, channel: SocketChannel, message: dict[str, Any]) -> None:
+    def relay(self, channel: SocketChannelController, message: dict[str, Any]) -> None:
         """Pass ``message``, received on ``channel``, on to whoever should see it."""
 
 
@@ -107,7 +107,7 @@ class FastApiWebSocketRoute:
     AI-CORE-BEGIN
     ROLE: The frozen declaration of one WebSocket route: its actions, relayed types, connections and limits.
     CONTRACT: Every action is a ``BaseAction``; relayed types and message types do not overlap; a relay
-    names a resource with a ``relay`` method; ``socket`` is reserved for the adapter's ``SocketChannel``.
+    names a resource with a ``relay`` method; ``socket`` is reserved for the adapter's ``SocketChannelController``.
     INVARIANTS: Limits are positive; the declaration never changes after creation.
     AI-CORE-END
     """
@@ -197,7 +197,7 @@ def make_websocket_endpoint(
 
     async def endpoint(websocket: WebSocket) -> None:
         await websocket.accept()
-        channel = SocketChannel(websocket)
+        channel = SocketChannelController(websocket)
         writer = asyncio.create_task(channel.run_writer())
         connections: dict[str, ConnectionValue] = {**route.connections, SOCKET_KEY: channel}
         values = _connection_values(websocket)
@@ -244,7 +244,7 @@ def make_websocket_endpoint(
     return endpoint
 
 
-def _within_limits(text: str, route: FastApiWebSocketRoute, channel: SocketChannel, arrivals: deque[float]) -> bool:
+def _within_limits(text: str, route: FastApiWebSocketRoute, channel: SocketChannelController, arrivals: deque[float]) -> bool:
     """Apply the size and rate limits to one frame; close the connection and return ``False`` when one is broken."""
     if len(text.encode("utf-8")) > route.max_message_bytes:
         channel.close(MESSAGE_TOO_LARGE, "message too large")
@@ -273,7 +273,7 @@ def _parse(text: str) -> tuple[dict[str, Any] | None, str]:
 async def _dispatch(
     message: dict[str, Any],
     message_type: str,
-    channel: SocketChannel,
+    channel: SocketChannelController,
     route: FastApiWebSocketRoute,
     values: Mapping[str, str],
     run: Callable[[type[BaseAction[Any, Any]], Mapping[str, Any]], Coroutine[Any, Any, None]],
@@ -303,7 +303,7 @@ async def _dispatch(
 
 async def _serve_messages(
     websocket: WebSocket,
-    channel: SocketChannel,
+    channel: SocketChannelController,
     route: FastApiWebSocketRoute,
     values: Mapping[str, str],
     run: Callable[[type[BaseAction[Any, Any]], Mapping[str, Any]], Coroutine[Any, Any, None]],

@@ -2,7 +2,7 @@
 01_opentelemetry.py — OpenTelemetryPlugin: traces + state x-ray, from the box
 
 The shipped OpenTelemetryPlugin turns every machine.run() into OpenTelemetry
-signals — without touching business code. It is an observer (a Plugin), and it
+signals — without touching business code. It is an observer (a BasePlugin), and it
 emits TWO independent signals; you pass at least one provider:
 
   tracer_provider  → Traces: one root span per run + a child span per aspect /

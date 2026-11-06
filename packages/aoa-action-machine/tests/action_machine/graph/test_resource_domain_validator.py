@@ -34,19 +34,21 @@ class _PlaceOrderAction(BaseAction):  # type: ignore[type-arg]
 
 @exclude_graph_model
 @meta(description="Orders", domain=OrdersDomain)
-class _OrdersStore(BaseStorage):  # type: ignore[type-arg]
-    def get_wrapper_class(self) -> None:
+class _OrdersStoreStorage(BaseStorage):  # type: ignore[type-arg]
+    @classmethod
+    def get_wrapper_class(cls) -> None:
         return None
 
 
 @exclude_graph_model
 @meta(description="Audit log", domain=SystemDomain)
-class _AuditStore(BaseStorage):  # type: ignore[type-arg]
-    def get_wrapper_class(self) -> None:
+class _AuditStoreStorage(BaseStorage):  # type: ignore[type-arg]
+    @classmethod
+    def get_wrapper_class(cls) -> None:
         return None
 
 
-class _Use(AssociationGraphEdge):
+class _UseGraphEdge(AssociationGraphEdge):
     def __init__(self, edge_name: str, target_id: str) -> None:
         super().__init__(edge_name=edge_name, is_dag=True, target_node_id=target_id, target_node=None)
 
@@ -54,7 +56,7 @@ class _Use(AssociationGraphEdge):
         return {"source_id": source_id, "target_id": self.target_node_id, "type": self.edge_name, "properties": {}}
 
 
-class _Node(BaseGraphNode[object]):
+class _TestGraphNode(BaseGraphNode[object]):
     def __init__(self, host: type, edges: list[BaseGraphEdge] | None = None) -> None:
         super().__init__(node_id=host.__name__, node_type="X", label=host.__name__, properties={}, node_obj=host)
         object.__setattr__(self, "_edges", edges or [])
@@ -63,24 +65,24 @@ class _Node(BaseGraphNode[object]):
         return list(self._edges)
 
 
-def _nodes(edge_name: str, resource: type) -> list[_Node]:
-    return [_Node(_PlaceOrderAction, [_Use(edge_name, resource.__name__)]), _Node(_OrdersStore), _Node(_AuditStore)]
+def _nodes(edge_name: str, resource: type) -> list[_TestGraphNode]:
+    return [_TestGraphNode(_PlaceOrderAction, [_UseGraphEdge(edge_name, resource.__name__)]), _TestGraphNode(_OrdersStoreStorage), _TestGraphNode(_AuditStoreStorage)]
 
 
 @pytest.mark.parametrize("edge_name", ["@depends", "@connection"])
 def test_a_resource_of_the_action_domain_is_used(edge_name: str) -> None:
-    validate_resource_domains(_nodes(edge_name, _OrdersStore))
+    validate_resource_domains(_nodes(edge_name, _OrdersStoreStorage))
 
 
 def test_a_dependency_on_a_resource_of_another_domain_is_refused() -> None:
     with pytest.raises(DependencyDeclarationError) as error:
-        validate_resource_domains(_nodes("@depends", _AuditStore))
+        validate_resource_domains(_nodes("@depends", _AuditStoreStorage))
     assert str(error.value) == (
-        "_PlaceOrderAction (OrdersDomain) uses _AuditStore (SystemDomain) through @depends: an action uses only "
+        "_PlaceOrderAction (OrdersDomain) uses _AuditStoreStorage (SystemDomain) through @depends: an action uses only "
         "resources of its own domain; reach another domain through its actions."
     )
 
 
 def test_a_connection_handed_over_from_another_domain_is_not_judged() -> None:
     """A transport's socket channel is a connection the caller hands over, whatever its domain."""
-    validate_resource_domains(_nodes("@connection", _AuditStore))
+    validate_resource_domains(_nodes("@connection", _AuditStoreStorage))

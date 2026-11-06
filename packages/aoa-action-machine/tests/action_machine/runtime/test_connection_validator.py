@@ -17,7 +17,7 @@ from aoa.action_machine.runtime.connection_validator import ConnectionValidator
 
 from ...support.domain_model.child_action import ChildAction
 from ...support.domain_model.full_action import FullAction
-from ...support.domain_model.test_db_manager import OrdersDbManager
+from ...support.domain_model.test_db_manager import OrdersStorage
 
 
 def _action_node(cls: type) -> ActionGraphNode:
@@ -33,7 +33,7 @@ def test_validate_accepts_none_or_empty_when_no_connections_declared() -> None:
 
 def test_validate_rejects_connections_when_action_declares_none() -> None:
     validator = ConnectionValidator()
-    resource = OrdersDbManager()
+    resource = OrdersStorage()
     with pytest.raises(ConnectionValidationError, match="does not declare any @connection"):
         validator.validate(ChildAction(), {"db": resource}, _action_node(ChildAction))
 
@@ -49,14 +49,14 @@ def test_validate_rejects_empty_mapping_when_connections_required() -> None:
 
 def test_validate_rejects_extra_keys() -> None:
     validator = ConnectionValidator()
-    resource = OrdersDbManager()
+    resource = OrdersStorage()
     with pytest.raises(ConnectionValidationError, match="extra connections"):
         validator.validate(FullAction(), {"db": resource, "ghost": resource}, _action_node(FullAction))
 
 
 def test_validate_rejects_unknown_keys_before_missing_message() -> None:
     validator = ConnectionValidator()
-    resource = OrdersDbManager()
+    resource = OrdersStorage()
     with pytest.raises(ConnectionValidationError, match="extra connections"):
         validator.validate(FullAction(), {"wrong": resource}, _action_node(FullAction))
 
@@ -69,7 +69,7 @@ def test_validate_rejects_non_resource_values() -> None:
 
 def test_validate_returns_normalized_mapping_on_success() -> None:
     validator = ConnectionValidator()
-    resource = OrdersDbManager()
+    resource = OrdersStorage()
     connections = {"db": resource}
     assert validator.validate(FullAction(), connections, _action_node(FullAction)) is connections
 
@@ -79,6 +79,6 @@ def test_validate_rejects_when_declared_subset_not_fully_provided() -> None:
     validator = ConnectionValidator()
     node = MagicMock()
     node.connection_keys.return_value = frozenset({"db", "cache"})
-    resource = OrdersDbManager()
+    resource = OrdersStorage()
     with pytest.raises(ConnectionValidationError, match="missing required connections"):
         validator.validate(FullAction(), {"db": resource}, node)

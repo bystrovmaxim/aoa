@@ -1,19 +1,19 @@
-# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_store.py
+# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_postgres_storage.py
 """
-IdentityStore — the identity domain over PostgreSQL, one connection per call.
+IdentityPostgresStorage — the identity domain over PostgreSQL, one connection per call.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This is the resource the demo route declares per call: ``IdentityStore(data_source=…)``
+This is the resource the demo route declares per call: ``IdentityPostgresStorage(data_source=…)``
 takes one connection from ``IdentityDataSource``, the identity database's pool, in
 ``open()`` and gives it back in ``close()``, so two concurrent calls never share a
 session. The domain's
-two operations come from ``IdentityStoreBase``; the storage primitive is the
+two operations come from ``IdentityStorage``; the storage primitive is the
 connection the framework handed over.
 
-Importing this module needs the ``postgres`` extra, because ``PostgresResource``
+Importing this module needs the ``postgres`` extra, because ``PostgresStorage``
 imports the driver. That is why the demo reaches for it lazily — inside the
 factory that builds the resource — and never at import time.
 
@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    IdentityStore(IdentityStoreBase, PostgresResource[IdentityDataSource])
+    IdentityPostgresStorage(IdentityStorage, PostgresStorage[IdentityDataSource])
         │  open()/close()      -> data_source.acquire / release   (once per call)
         │  read_person(id)     -> self._fetchrow(…)
         │  _list_persons(…)    -> self._fetch(…)               (ordered, bounded page)
@@ -37,19 +37,19 @@ from __future__ import annotations
 from typing import Any
 
 from aoa.action_machine.graph import exclude_graph_model
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresStorage
 
 from .identity_data_source import IdentityDataSource
-from .identity_store_base import IdentityStoreBase
+from .identity_storage import IdentityStorage
 
 
-# An implementation of IdentityStoreBase, the model's resource: the graph shows the resource once.
+# An implementation of IdentityStorage, the model's resource: the graph shows the resource once.
 @exclude_graph_model
-class IdentityStore(IdentityStoreBase, PostgresResource[IdentityDataSource]):
+class IdentityPostgresStorage(IdentityStorage, PostgresStorage[IdentityDataSource]):
     """
     AI-CORE-BEGIN
         ROLE: The identity domain's PostgreSQL store, working through ``IdentityDataSource``.
-        CONTRACT: ``IdentityStore(data_source=…)`` takes one connection per call; the domain's operations come from ``IdentityStoreBase``.
+        CONTRACT: ``IdentityPostgresStorage(data_source=…)`` takes one connection per call; the domain's operations come from ``IdentityStorage``.
         INVARIANTS: The resource never closes the data source's pool.
     AI-CORE-END
     """

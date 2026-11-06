@@ -13,6 +13,7 @@ from aoa.demo.model.data_sources.card_network_data_source import CardNetworkData
 class CardNetworkGateway(BaseGateway[CardNetworkDataSource]):
     """Hold the payment events the card network reports; the demo never calls it."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

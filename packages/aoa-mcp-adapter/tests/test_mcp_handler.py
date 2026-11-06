@@ -88,6 +88,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.exceptions import AuthorizationError, ValidationFieldError
 from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -108,10 +109,11 @@ from .support import AdminRole, PingAction, SimpleAction, TestDomain
 
 
 @meta(description="MCP handler connection test resource", domain=TestDomain)
-class _McpHandlerTestResource(BaseResource):
+class _McpHandlerTestController(BaseController):
     """Minimal ``BaseResource`` for connection resolution assertions."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
 
@@ -745,7 +747,7 @@ class TestHandlerWithConnections:
         mock_result = PingAction.Result(message="pong")
         machine.run = AsyncMock(return_value=mock_result)
 
-        resource = _McpHandlerTestResource()
+        resource = _McpHandlerTestController()
         factory_calls = {"n": 0}
 
         def factory() -> BaseResource:

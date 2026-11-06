@@ -86,4 +86,4 @@ def test_the_dictionary_relation_stays_inside_its_resource() -> None:
     assert relations
     for edge in relations:
         assert resource_of[edge["source_id"]] == resource_of[edge["target_id"]]
-        assert resource_of[edge["target_id"]].endswith("BillingWarehouse")
+        assert resource_of[edge["target_id"]].endswith("BillingWarehouseStorage")

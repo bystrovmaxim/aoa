@@ -40,7 +40,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseResult, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -138,11 +138,11 @@ class SessionResult(BaseResult):
 
 @meta(description="Answer with the caller's session id.", domain=AuthDomain)
 @check_roles(ViewerRole)
-class SessionAction(BaseAction[ParamsStub, SessionResult]):
+class SessionAction(BaseAction[StubParams, SessionResult]):
 
     @summary_aspect("Read the session id.")
     @context_requires(Ctx.User.session_id)
-    async def session_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> SessionResult:
+    async def session_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> SessionResult:
         return SessionResult(session_id=ctx.get(Ctx.User.session_id))
 
 

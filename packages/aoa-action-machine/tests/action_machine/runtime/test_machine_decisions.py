@@ -24,8 +24,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BasePluginEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -36,7 +36,7 @@ from ...support.domain_model.roles import AdminRole, UserRole
 _SEEN: list[str] = []
 
 
-class LifecycleRecorder(Plugin):
+class LifecycleRecorderPlugin(BasePlugin):
     """A plugin that records the name of every event it is handed."""
 
     async def get_initial_state(self) -> dict[str, Any]:
@@ -59,7 +59,7 @@ def _reset_seen() -> None:
 @pytest.fixture
 def machine() -> ActionProductMachine:
     """A machine that watches its own lifecycle through the recorder plugin."""
-    return ActionProductMachine(cache_coordinator=None, plugins=[LifecycleRecorder()])
+    return ActionProductMachine(cache_coordinator=None, plugins=[LifecycleRecorderPlugin()])
 
 
 def _admin() -> Context:

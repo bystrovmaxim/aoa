@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Gift wrapping a customer adds to an order, with its paper and a note", resource=StorefrontDatabase)
+@entity(description="Gift wrapping a customer adds to an order, with its paper and a note", resource=StorefrontDatabaseStorage)
 class GiftWrapAddonCoreEntity(BaseCoreEntity):
     id: str = Field(description="GiftWrapAddonCoreEntity id")
     lifecycle: SalesOrderLifecycle = Field(description="GiftWrapAddonCoreEntity lifecycle")

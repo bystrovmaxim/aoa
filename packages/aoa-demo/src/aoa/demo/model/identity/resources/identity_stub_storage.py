@@ -1,13 +1,13 @@
-# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_store_stub.py
+# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_stub_storage.py
 """
-IdentityStoreStub — the same identity store, in memory, with no database.
+IdentityStubStorage — the same identity store, in memory, with no database.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The demo must start and answer with no PostgreSQL running and no driver
-installed. This stub keeps ``IdentityStoreBase``'s two operations and replaces
+installed. This stub keeps ``IdentityStorage``'s two operations and replaces
 the storage primitive with two dictionaries, so the route, the action and the
 lifecycle are exactly the ones a reader copies — only the storage differs.
 
@@ -20,7 +20,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    IdentityStoreStub(IdentityStoreBase)
+    IdentityStubStorage(IdentityStorage)
         │  open()/close()  -> nothing to acquire, nothing to release
         │  _read_person/_write_login -> the two dicts below are the storage
         ├── people:  id -> {"id", "email", "display_name"}
@@ -34,12 +34,12 @@ from typing import Any
 
 from aoa.action_machine.graph import exclude_graph_model
 
-from .identity_store_base import IdentityStoreBase
+from .identity_storage import IdentityStorage
 
 
-# An implementation of IdentityStoreBase, the model's resource: the graph shows the resource once.
+# An implementation of IdentityStorage, the model's resource: the graph shows the resource once.
 @exclude_graph_model
-class IdentityStoreStub(IdentityStoreBase):
+class IdentityStubStorage(IdentityStorage):
     """
     AI-CORE-BEGIN
         ROLE: Database-free stand-in for the identity store.

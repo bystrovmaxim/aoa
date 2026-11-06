@@ -38,14 +38,14 @@ from typing import Any
 import pytest
 
 from aoa.action_machine.exceptions import HandleError
-from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
-from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
+from aoa.action_machine.resources.postgres.postgres_storage import PostgresStorage
+from aoa.action_machine.resources.sql.sql_storage_wrapper import SqlStorageWrapper
 
 from ...support.fake_data_source import pooled
 from ...support.fake_pool import FakeConnection, FakePool
 
 
-async def _open(resource: PostgresResource, pool: FakePool) -> FakeConnection:
+async def _open(resource: PostgresStorage, pool: FakePool) -> FakeConnection:
     """Open the resource and hand back the one connection it holds."""
     await resource.open()
     return next(iter(pool.borrowed))
@@ -298,8 +298,8 @@ async def test_the_new_pair_wraps_a_driver_failure_with_its_cause(
 
 def test_the_new_pair_annotations_name_no_driver_type() -> None:
     """The domain-facing signatures answer plain shapes, not the driver's records."""
-    fetch_return = str(inspect.signature(PostgresResource._fetch).return_annotation)
-    fetchval_return = str(inspect.signature(PostgresResource._fetchval).return_annotation)
+    fetch_return = str(inspect.signature(PostgresStorage._fetch).return_annotation)
+    fetchval_return = str(inspect.signature(PostgresStorage._fetchval).return_annotation)
 
     assert "asyncpg" not in fetch_return
     assert "list[Any]" in fetch_return
@@ -308,7 +308,7 @@ def test_the_new_pair_annotations_name_no_driver_type() -> None:
 
 def test_the_driver_offers_exactly_four_query_helpers() -> None:
     """Four driver answers, four members: a convenience helper beside them would be a fifth surface."""
-    names = {name for name in dir(PostgresResource) if name.startswith(("_execute", "_fetch"))}
+    names = {name for name in dir(PostgresStorage) if name.startswith(("_execute", "_fetch"))}
 
     assert names == {"_execute", "_fetchrow", "_fetch", "_fetchval"}
 
@@ -316,4 +316,4 @@ def test_the_driver_offers_exactly_four_query_helpers() -> None:
 def test_the_wrapper_exposes_no_query_member() -> None:
     """A nested action receives the wrapper, so no query member of any shape may be reachable there."""
     for name in ("_execute", "_fetchrow", "_fetch", "_fetchval"):
-        assert not hasattr(WrapperSqlResource, name)
+        assert not hasattr(SqlStorageWrapper, name)

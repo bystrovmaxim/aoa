@@ -1,5 +1,5 @@
 # tests/ocel/test_ocel_pm4py_smoke.py
-"""PM4Py smoke — ``read_ocel2_json`` accepts ``InMemoryOcelStoreResource`` output."""
+"""PM4Py smoke — ``read_ocel2_json`` accepts ``InMemoryOcelStorage`` output."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from aoa.ocel.dto.ocel_attribute import OcelAttribute
 from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.dto.ocel_object import OcelObject
 from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
-from aoa.ocel.resource import InMemoryOcelStoreResource
+from aoa.ocel.resource import InMemoryOcelStorage
 
 from .support.pm4py_validation import assert_ocel2_pm4py_smoke
 
@@ -40,7 +40,7 @@ def test_in_memory_export_loads_in_pm4py(tmp_path: Path, event_time: datetime) -
     )
 
     async def _write() -> None:
-        resource = InMemoryOcelStoreResource(output_file=output)
+        resource = InMemoryOcelStorage(output_file=output)
         await resource.open()
         await resource.add_event(event)
         await resource.close()

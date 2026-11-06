@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Regulatory submission pointer chained from arbitration brief stub", resource=BillingWarehouse)
+@entity(description="Regulatory submission pointer chained from arbitration brief stub", resource=BillingWarehouseStorage)
 class RegulatorySubmissionPointerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pointer id")
     lifecycle: BillingDenseLifecycle = Field(description="Regulatory pointer lifecycle")

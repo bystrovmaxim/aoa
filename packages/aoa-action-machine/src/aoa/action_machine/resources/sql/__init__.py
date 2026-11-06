@@ -3,12 +3,12 @@
 
 from aoa.action_machine.resources.sql.pool_protocol import PoolProtocol
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
-from aoa.action_machine.resources.sql.sql_resource import SqlResource
-from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
+from aoa.action_machine.resources.sql.sql_storage import SqlStorage
+from aoa.action_machine.resources.sql.sql_storage_wrapper import SqlStorageWrapper
 
 __all__ = [
     "PoolProtocol",
     "ProtocolSqlResource",
-    "SqlResource",
-    "WrapperSqlResource",
+    "SqlStorage",
+    "SqlStorageWrapper",
 ]

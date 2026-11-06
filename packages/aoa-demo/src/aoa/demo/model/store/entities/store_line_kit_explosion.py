@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInvers
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Kit explosion child line trace", resource=StorefrontDatabase)
+@entity(description="Kit explosion child line trace", resource=StorefrontDatabaseStorage)
 class KitExplosionLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="KitExplosionLineDetailEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineDetailEntity lifecycle")

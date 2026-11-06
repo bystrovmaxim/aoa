@@ -168,7 +168,7 @@ PLUGIN USAGE EXAMPLE
         SagaRollbackCompletedEvent,
     )
 
-    class MetricsPlugin(Plugin):
+    class MetricsPlugin(BasePlugin):
 
         async def get_initial_state(self) -> dict:
             return {"slow_count": 0, "saga_failures": 0}
@@ -219,6 +219,7 @@ from typing import Any
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.model.base_schema import BaseSchema
+from aoa.action_machine.naming.suffix import require_suffix
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Root class
@@ -238,6 +239,11 @@ class BasePluginEvent:
     nest_level: int
     context: Context
     params: BaseSchema
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``Event``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BasePluginEvent", "Event")
 
 
 # ═════════════════════════════════════════════════════════════════════════════

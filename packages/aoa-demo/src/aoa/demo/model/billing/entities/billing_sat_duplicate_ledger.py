@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Duplicate suppression fragment attached to parse pass", resource=BillingWarehouse)
+@entity(description="Duplicate suppression fragment attached to parse pass", resource=BillingWarehouseStorage)
 class DuplicateSuppressionLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger fragment id")
     lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")

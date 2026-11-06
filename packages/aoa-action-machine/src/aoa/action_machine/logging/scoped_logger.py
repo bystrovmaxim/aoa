@@ -39,7 +39,7 @@ ARCHITECTURE / DATA FLOW
     LogCoordinator.emit(...)  — validates var, substitutes, fans out
 
 Aspect scope: ``action``, ``aspect``, ``nest_level``.
-Plugin scope: ``plugin``, ``action``, ``event``, ``nest_level``.
+BasePlugin scope: ``plugin``, ``action``, ``event``, ``nest_level``.
 
 Templates: ``{%var.*}``, ``{%state.*}``, ``{%params.*}``, ``{%context.*}``,
 ``{%scope.*}``, ``{iif(...)}``. Use ``{%var.level.name}`` / ``{%var.channels.names}``

@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Replay ticket hanging off watermark segment", resource=OutboxPrimaryDatabase)
+@entity(description="Replay ticket hanging off watermark segment", resource=OutboxPrimaryDatabaseStorage)
 class ReplayTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: MsgDeadLetterLifecycle = Field(description="Replay lifecycle")

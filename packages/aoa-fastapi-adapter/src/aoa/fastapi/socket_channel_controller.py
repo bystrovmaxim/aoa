@@ -1,6 +1,6 @@
-# packages/aoa-fastapi-adapter/src/aoa/fastapi/socket_channel.py
+# packages/aoa-fastapi-adapter/src/aoa/fastapi/socket_channel_controller.py
 """
-SocketChannel — one WebSocket connection, as a resource an action can send through.
+SocketChannelController — one WebSocket connection, as a resource an action can send through.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -8,7 +8,7 @@ PURPOSE
 
 A WebSocket route runs an action for every message it receives. Those actions,
 and the resources they use, need a way to send events back to this client and
-to other clients — without touching the transport themselves. ``SocketChannel``
+to other clients — without touching the transport themselves. ``SocketChannelController``
 is that way: the adapter creates one per connection and hands it to every action
 of the route as ``connections["socket"]``.
 
@@ -61,7 +61,7 @@ class TransportDomain(BaseDomain):
 
 
 @meta(description="One WebSocket connection an action can send events through", domain=TransportDomain)
-class SocketChannel(BaseController):
+class SocketChannelController(BaseController):
     """
     AI-CORE-BEGIN
     ROLE: The per-connection resource through which actions and resources send events to one client.
@@ -82,7 +82,8 @@ class SocketChannel(BaseController):
         self._close_request: tuple[int, str] | None = None
         self._closed = False
 
-    def get_wrapper_class(self) -> type[BaseController] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseController] | None:
         """Return ``None``: nested actions send through this same channel."""
         return None
 

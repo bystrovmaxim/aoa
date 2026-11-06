@@ -54,6 +54,7 @@ from typing import Any
 from aoa.action_machine.auth.auth_coordinator_protocol import AuthCoordinatorProtocol
 from aoa.action_machine.intents.action_schema.action_schema_intent_resolver import ActionSchemaIntentResolver
 from aoa.action_machine.model.base_action import BaseAction
+from aoa.action_machine.naming.suffix import require_suffix
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, validate_connection_entries
 
 
@@ -135,6 +136,11 @@ class BaseRouteRecord:
     auth_coordinator: AuthCoordinatorProtocol | None = None
     _cached_params_type: type = field(init=False, repr=False)
     _cached_result_type: type = field(init=False, repr=False)
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``RouteRecord``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseRouteRecord", "RouteRecord")
 
     def __post_init__(self) -> None:
         """Validate invariants and cache extracted types."""

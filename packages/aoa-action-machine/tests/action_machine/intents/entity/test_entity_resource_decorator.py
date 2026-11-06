@@ -26,18 +26,18 @@ class StoreDomain(BaseDomain):
     description = "Store"
 
 
-@meta(description="Where StorefrontDatabase keeps its rows")
+@meta(description="Where StorefrontDatabaseStorage keeps its rows")
 class StorefrontDataSource(InMemoryDataSource):
-    """The store StorefrontDatabase works with."""
+    """The store StorefrontDatabaseStorage works with."""
 
 
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
     """Hold the store's rows."""
 
 
 @meta(description="Session cache", domain=StoreDomain)
-class StorefrontSessionCache(BaseStorage):
+class StorefrontSessionCacheStorage(BaseStorage):
     """Hold the store's sessions."""
 
 
@@ -65,13 +65,13 @@ def _declare(**kwargs: object) -> type:
 
 def test_case_2_6_the_domain_comes_from_the_resource() -> None:
     """2.6: the entity is accepted, stored by the resource, in the resource's domain."""
-    order = _declare(resource=StorefrontDatabase)
-    assert EntityIntentResolver.resolve_resource_type(order) is StorefrontDatabase
+    order = _declare(resource=StorefrontDatabaseStorage)
+    assert EntityIntentResolver.resolve_resource_type(order) is StorefrontDatabaseStorage
     assert EntityIntentResolver.resolve_domain_type(order) is StoreDomain
     assert "domain" not in order._entity_info
 
 
-@pytest.mark.parametrize("resource", [StorefrontDatabase, PaymentGateway, CheckoutController])
+@pytest.mark.parametrize("resource", [StorefrontDatabaseStorage, PaymentGateway, CheckoutController])
 def test_any_kind_of_resource_stores_an_entity(resource: type[BaseResource]) -> None:
     """A storage, a gateway and a controller each own entities."""
     assert EntityIntentResolver.resolve_resource_type(_declare(resource=resource)) is resource
@@ -87,14 +87,14 @@ def test_case_2_1_the_resource_is_required() -> None:
 def test_case_2_2_domain_is_not_a_parameter() -> None:
     """2.2: ``domain=`` is refused by the signature itself."""
     with pytest.raises(TypeError, match="unexpected keyword argument 'domain'"):
-        entity(description="Customer order", domain=StoreDomain, resource=StorefrontDatabase)  # type: ignore[call-arg]
+        entity(description="Customer order", domain=StoreDomain, resource=StorefrontDatabaseStorage)  # type: ignore[call-arg]
 
 
 @pytest.mark.parametrize(
     ("given", "message"),
     [
         (StoreDomain, "SalesOrderCoreEntity — @entity resource= must be a BaseResource subclass, got StoreDomain."),
-        ("StorefrontDatabase", "SalesOrderCoreEntity — @entity resource= must be a BaseResource subclass, got 'StorefrontDatabase'."),
+        ("StorefrontDatabaseStorage", "SalesOrderCoreEntity — @entity resource= must be a BaseResource subclass, got 'StorefrontDatabaseStorage'."),
         (
             BaseStorage,
             "SalesOrderCoreEntity — @entity resource= must be a concrete resource, got BaseStorage, "
@@ -117,13 +117,13 @@ def test_case_2_3_the_resource_must_be_a_resource(given: object, message: str) -
 def test_case_2_3_a_resource_without_meta_is_refused() -> None:
     """2.3: a resource that declares no domain gives the entity none; defined here so no graph sees it."""
 
-    class NoMetaDatabase(BaseStorage):
+    class NoMetaDatabaseStorage(BaseStorage):
         """A storage that declares no domain."""
 
     with pytest.raises(EntityDecoratorError) as error:
-        _declare(resource=NoMetaDatabase)
+        _declare(resource=NoMetaDatabaseStorage)
     assert str(error.value) == (
-        "SalesOrderCoreEntity — @entity resource= NoMetaDatabase declares no domain: decorate it with @meta(domain=...)."
+        "SalesOrderCoreEntity — @entity resource= NoMetaDatabaseStorage declares no domain: decorate it with @meta(domain=...)."
     )
 
 
@@ -138,17 +138,17 @@ def test_case_2_3_an_action_is_not_a_resource() -> None:
 def test_case_2_5_one_resource_only() -> None:
     """2.5: several resources are refused, naming every one."""
     with pytest.raises(EntityDecoratorError) as error:
-        _declare(resource=(StorefrontDatabase, StorefrontSessionCache))
+        _declare(resource=(StorefrontDatabaseStorage, StorefrontSessionCacheStorage))
     assert str(error.value) == (
-        "SalesOrderCoreEntity — @entity takes one resource, got 2: StorefrontDatabase, StorefrontSessionCache."
+        "SalesOrderCoreEntity — @entity takes one resource, got 2: StorefrontDatabaseStorage, StorefrontSessionCacheStorage."
     )
 
 
 def test_a_subclass_without_its_own_entity_inherits_the_resource() -> None:
     """A subclass with no ``@entity`` of its own inherits its parent's declaration, resource included."""
-    order = _declare(resource=StorefrontDatabase)
+    order = _declare(resource=StorefrontDatabaseStorage)
 
     class RushOrderCoreEntity(order):  # type: ignore[misc, valid-type]
         """A rush order."""
 
-    assert EntityIntentResolver.resolve_resource_type(RushOrderCoreEntity) is StorefrontDatabase
+    assert EntityIntentResolver.resolve_resource_type(RushOrderCoreEntity) is StorefrontDatabaseStorage

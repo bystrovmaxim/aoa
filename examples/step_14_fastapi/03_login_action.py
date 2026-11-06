@@ -33,7 +33,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -52,7 +52,7 @@ class AuthDomain(BaseDomain):
 
 
 @meta(description="Transport to the user credential store.", domain=AuthDomain)
-class UserStoreResource(BaseResource):
+class UserStoreStorage(BaseStorage):
     """
     AI-CORE-BEGIN
     ROLE: Transport to the user credential store -- no business rules, only "how to fetch".
@@ -63,7 +63,8 @@ class UserStoreResource(BaseResource):
     def __init__(self, users: dict[str, tuple[str, list[str]]]) -> None:
         self._users = users
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None  # simple non-transactional resource, no nested-call restrictions
 
     async def find(self, username: str) -> tuple[str, list[str]] | None:
@@ -91,7 +92,7 @@ class LoginResult(BaseResult):
 
 @meta(description="Authenticate a username/password pair and issue a JWT.", domain=AuthDomain)
 @check_roles(GuestRole)
-@connection(UserStoreResource, key="user_store")
+@connection(UserStoreStorage, key="user_store")
 class LoginAction(BaseAction[LoginParams, LoginResult]):
     """
     AI-CORE-BEGIN
@@ -106,7 +107,7 @@ class LoginAction(BaseAction[LoginParams, LoginResult]):
     @regular_aspect("Verify username/password against the user store; resolve role names.")
     async def authenticate_user_aspect(self, params: LoginParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         _ = (state, box)
-        store: UserStoreResource = connections["user_store"]
+        store: UserStoreStorage = connections["user_store"]
         record = await store.find(params.username)
         if record is None or record[0] != params.password:
             raise AuthorizationError("Invalid username or password")
@@ -136,7 +137,7 @@ def build_app():
             "/auth/login",
             LoginAction,
             tags=["auth"],
-            connections={"user_store": UserStoreResource(_USER_STORE)},
+            connections={"user_store": UserStoreStorage(_USER_STORE)},
         )
         .build()
     )

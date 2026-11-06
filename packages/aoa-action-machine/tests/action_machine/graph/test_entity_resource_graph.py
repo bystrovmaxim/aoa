@@ -47,17 +47,17 @@ _MODEL = textwrap.dedent(
         description = "Store"
 
 
-    @meta(description="Where StorefrontDatabase keeps its rows")
+    @meta(description="Where StorefrontStorage keeps its rows")
     class StorefrontDataSource(InMemoryDataSource):
         pass
 
 
     @meta(description="Primary relational store", domain=StoreDomain)
-    class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+    class StorefrontStorage(BaseStorage[StorefrontDataSource]):
         pass
 
 
-    @entity(description="Customer order", resource=StorefrontDatabase)
+    @entity(description="Customer order", resource=StorefrontStorage)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 
@@ -88,7 +88,7 @@ def _edges(graph: dict[str, Any], edge_type: str, source: str) -> list[dict[str,
 def test_case_2_6_the_entity_points_at_its_resource(built: dict[str, Any]) -> None:
     """One ``entity_resource`` row: Aggregation, a DAG edge, no properties, the default id."""
     (row,) = _edges(built, "entity_resource", "SalesOrderCoreEntity")
-    assert _name(row["target_id"]) == "StorefrontDatabase"
+    assert _name(row["target_id"]) == "StorefrontStorage"
     assert row["relationship"] == "Aggregation"
     assert row["is_dag"] is True
     assert row["properties"] == {}
@@ -98,7 +98,7 @@ def test_case_2_6_the_entity_points_at_its_resource(built: dict[str, Any]) -> No
 def test_case_2_6_the_entity_domain_is_the_resource_domain(built: dict[str, Any]) -> None:
     """The entity's ``domain`` edge reaches the domain its resource declares."""
     (entity_domain,) = _edges(built, "domain", "SalesOrderCoreEntity")
-    (resource_domain,) = _edges(built, "domain", "StorefrontDatabase")
+    (resource_domain,) = _edges(built, "domain", "StorefrontStorage")
     assert entity_domain["target_id"] == resource_domain["target_id"]
     assert _name(entity_domain["target_id"]) == "StoreDomain"
 
@@ -116,7 +116,7 @@ class _Axis:
     """Root type of the harness inspector."""
 
 
-class _Link(AssociationGraphEdge):
+class _LinkGraphEdge(AssociationGraphEdge):
     """A link edge of any name; an ``entity_relation`` carries the field name its id needs."""
 
     def __init__(self, edge_name: str, target_id: str) -> None:
@@ -135,7 +135,7 @@ class _Link(AssociationGraphEdge):
         }
 
 
-class _Node(BaseGraphNode[object]):
+class _TestGraphNode(BaseGraphNode[object]):
     """A node with a given type, properties and edges."""
 
     def __init__(
@@ -168,18 +168,18 @@ class _Inspector(BaseGraphNodeInspector[_Axis]):
         return None
 
 
-def _stored(entity_id: str, resource_id: str, *links: BaseGraphEdge) -> _Node:
+def _stored(entity_id: str, resource_id: str, *links: BaseGraphEdge) -> _TestGraphNode:
     """An entity node stored by ``resource_id`` with the given links."""
-    return _Node(entity_id, "Entity", [_Link("entity_resource", resource_id), *links])
+    return _TestGraphNode(entity_id, "Entity", [_LinkGraphEdge("entity_resource", resource_id), *links])
 
 
 def _build(*nodes: BaseGraphNode[Any]) -> None:
     """Build a graph of two resources, each on a data source of its own, plus ``nodes``."""
-    application = _Node("app.Application", "Application")
-    sources = [_Node(f"d.{name}", "DataSource", [_Link("application", "app.Application")]) for name in ("Storefront", "Support")]
+    application = _TestGraphNode("app.Application", "Application")
+    sources = [_TestGraphNode(f"d.{name}", "DataSource", [_LinkGraphEdge("application", "app.Application")]) for name in ("Storefront", "Support")]
     resources = [
-        _Node("r.StorefrontDatabase", "Resource", [_Link("resource_data_source", "d.Storefront")]),
-        _Node("r.SupportDatabase", "Resource", [_Link("resource_data_source", "d.Support")]),
+        _TestGraphNode("r.StorefrontStorage", "Resource", [_LinkGraphEdge("resource_data_source", "d.Storefront")]),
+        _TestGraphNode("r.SupportDatabase", "Resource", [_LinkGraphEdge("resource_data_source", "d.Support")]),
     ]
     NodeGraphCoordinator().build([_Inspector([application, *sources, *resources, *nodes])])
 
@@ -187,16 +187,16 @@ def _build(*nodes: BaseGraphNode[Any]) -> None:
 def test_case_2_5_an_entity_without_the_edge_is_refused() -> None:
     """Zero ``entity_resource`` edges: the build names the entity."""
     with pytest.raises(InvalidGraphError) as error:
-        _build(_Node("e.Order", "Entity"))
+        _build(_TestGraphNode("e.Order", "Entity"))
     assert str(error.value) == "Entity e.Order has 0 entity_resource edges; an entity has exactly one."
 
 
 def test_case_2_5_an_entity_with_two_edges_is_refused() -> None:
     """Two ``entity_resource`` edges: the build names the entity."""
-    node = _Node(
+    node = _TestGraphNode(
         "e.Order",
         "Entity",
-        [_Link("entity_resource", "r.StorefrontDatabase"), _Link("entity_resource", "r.SupportDatabase")],
+        [_LinkGraphEdge("entity_resource", "r.StorefrontStorage"), _LinkGraphEdge("entity_resource", "r.SupportDatabase")],
     )
     with pytest.raises(InvalidGraphError) as error:
         _build(node)
@@ -206,20 +206,20 @@ def test_case_2_5_an_entity_with_two_edges_is_refused() -> None:
 @pytest.mark.parametrize("edge_type", ["entity_relation", "entity_reference", "entity_specialization", "parent_entity"])
 def test_a_link_across_resources_builds(edge_type: str) -> None:
     """Every link kind between entities of two resources builds: a relation knows no store."""
-    ticket = _stored("e.Ticket", "r.SupportDatabase", _Link(edge_type, "e.Order"))
-    _build(_stored("e.Order", "r.StorefrontDatabase"), ticket)
+    ticket = _stored("e.Ticket", "r.SupportDatabase", _LinkGraphEdge(edge_type, "e.Order"))
+    _build(_stored("e.Order", "r.StorefrontStorage"), ticket)
 
 
 def test_lifecycle_states_across_resources_build() -> None:
     """States of one lifecycle on entities of two resources build."""
     states = [
-        _Node("e.Order:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
-        _Node("e.Ticket:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
+        _TestGraphNode("e.Order:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
+        _TestGraphNode("e.Ticket:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
     ]
-    _build(_stored("e.Order", "r.StorefrontDatabase"), _stored("e.Ticket", "r.SupportDatabase"), *states)
+    _build(_stored("e.Order", "r.StorefrontStorage"), _stored("e.Ticket", "r.SupportDatabase"), *states)
 
 
 def test_links_inside_one_resource_build() -> None:
     """The same links inside one resource build."""
-    ticket = _stored("e.Ticket", "r.StorefrontDatabase", _Link("entity_relation", "e.Order"))
-    _build(_stored("e.Order", "r.StorefrontDatabase"), ticket)
+    ticket = _stored("e.Ticket", "r.StorefrontStorage", _LinkGraphEdge("entity_relation", "e.Order"))
+    _build(_stored("e.Order", "r.StorefrontStorage"), ticket)

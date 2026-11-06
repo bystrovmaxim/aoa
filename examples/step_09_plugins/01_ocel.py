@@ -2,7 +2,7 @@
 Scenario: OCEL 2.0 event log.
 
 OcelPlugin records each Action run in OCEL 2.0 format when aspects return
-``OcelFrame`` rows (see ``OCEL_FRAMES_KEY``). InMemoryOcelStoreResource keeps
+``OcelFrame`` rows (see ``OCEL_FRAMES_KEY``). InMemoryOcelStorage keeps
 events in memory and writes them to a file on ``close()``.
 
 Install:
@@ -37,7 +37,7 @@ from aoa.action_machine.resources import Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
+from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStorage, OcelFrame, OcelPlugin
 
 
 class RootDomain(BaseDomain):
@@ -96,7 +96,7 @@ class CreateOrderAction(BaseAction[OrderParams, OrderResult]):
 
 async def main() -> None:
     output = Path("ocel_log.json")
-    store = InMemoryOcelStoreResource(output_file=output)
+    store = InMemoryOcelStorage(output_file=output)
 
     machine = ActionProductMachine(
         log_coordinator=LogCoordinator(loggers=[ConsoleLogger()]),

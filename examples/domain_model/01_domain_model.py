@@ -5,7 +5,7 @@ Demonstrates:
   - BaseEntity with fields and lifecycle
   - AssociationOne/Many with Inverse (bidirectional, checked at startup)
   - CompositeMany — order lines owned by an order
-  - OrderResource as transport layer (pure transport, no business logic)
+  - OrderStorage as transport layer (pure transport, no business logic)
   - CreateOrderAction using the resource via @connection — logic separate from transport
 
 Tutorial: ../../docs/tutorials/step-21-resource.md  ·  topic: Domain model / Resource
@@ -45,9 +45,8 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import BaseStorage, Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -209,7 +208,7 @@ OrderLineDetailEntity.model_rebuild()
 
 
 @meta(description="In-memory order store (transport only)", domain=StoreDomain)
-class OrderResource(BaseResource):
+class OrderStorage(BaseStorage):
     """In-memory stub; a production version would wrap a SQL/Postgres resource."""
 
     def __init__(self) -> None:
@@ -218,7 +217,8 @@ class OrderResource(BaseResource):
             "cust-001": {"id": "cust-001", "name": "Alice", "email": "alice@example.com"},
         }
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None  # in-memory stub: direct pass-through, no transaction wrapper
 
     async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
@@ -261,7 +261,7 @@ class CreateOrderResult(BaseResult):
 
 @meta(description="Create a new customer order", domain=StoreDomain)
 @check_roles(GuestRole)
-@connection(OrderResource, key="orders")
+@connection(OrderStorage, key="orders")
 class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
     # Each step forwards the fields downstream needs (state is per-step, not cumulative).
@@ -324,7 +324,7 @@ class CreateOrderAction(BaseAction[CreateOrderParams, CreateOrderResult]):
 
 
 async def main() -> None:
-    order_resource = OrderResource()
+    order_resource = OrderStorage()
     machine = ActionProductMachine()
 
     result = await machine.run(

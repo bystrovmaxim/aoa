@@ -41,6 +41,7 @@ import pytest
 
 from aoa.action_machine.exceptions.transaction_left_open_error import TransactionLeftOpenError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
@@ -61,7 +62,7 @@ class FactoryError(RuntimeError):
 
 
 @exclude_graph_model
-class _LoggedResource(BaseResource):
+class _LoggedController(BaseController):
     """A resource with a lifecycle that records what the scope did to it.
 
     Excluded from the interchange graph like every framework resource: it is a test
@@ -73,7 +74,8 @@ class _LoggedResource(BaseResource):
         self.log = log
         self.name = name
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """This test double needs no nested-action proxy."""
         return None
 
@@ -87,10 +89,11 @@ class _LoggedResource(BaseResource):
 
 
 @exclude_graph_model
-class _LifecyclelessResource(BaseResource):
+class _LifecyclelessController(BaseController):
     """A resource with nothing to open and nothing to close on its own."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """This test double needs no nested-action proxy."""
         return None
 
@@ -106,7 +109,7 @@ def _pair(resource: BaseResource, log: list[str] | None = None):
 async def test_finalize_runs_exactly_once_on_success() -> None:
     """Open before the run, finalize after it — once, and in that order."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
 
     async with connection_scope({"ledger": _pair(resource)}) as connections:
         assert connections == {"ledger": resource}
@@ -118,7 +121,7 @@ async def test_finalize_runs_exactly_once_on_success() -> None:
 async def test_a_ready_resource_is_passed_through_and_never_touched() -> None:
     """What the lifetime supplied is not the scope's to open or to close."""
     log: list[str] = []
-    ready = _LoggedResource(log, "ready")
+    ready = _LoggedController(log, "ready")
 
     async with connection_scope({"svc": ready}) as connections:
         assert connections == {"svc": ready}
@@ -138,7 +141,7 @@ async def test_no_declaration_yields_nothing() -> None:
 async def test_the_run_raising_does_not_stop_finalization() -> None:
     """A run that fails is still a path out: the resource is closed."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
 
     with pytest.raises(BoomError):
         async with connection_scope({"ledger": _pair(resource)}):
@@ -150,7 +153,7 @@ async def test_the_run_raising_does_not_stop_finalization() -> None:
 async def test_a_resource_without_open_is_not_opened_but_is_finalized() -> None:
     """The scope opens only what has something to open; it still finalizes."""
     log: list[str] = []
-    resource = _LifecyclelessResource()
+    resource = _LifecyclelessController()
 
     async with connection_scope(
         {"cache": PerCallConnection(lambda: resource, finalize=lambda res: log.append("finalized"))}
@@ -163,7 +166,7 @@ async def test_a_resource_without_open_is_not_opened_but_is_finalized() -> None:
 async def test_a_failing_factory_leaves_the_earlier_resources_finalized() -> None:
     """Resources created before a later factory fails are not lost — they are finalized."""
     log: list[str] = []
-    first = _LoggedResource(log, "first")
+    first = _LoggedController(log, "first")
 
     def failing_factory() -> BaseResource:
         raise FactoryError("cannot build the second resource")
@@ -183,8 +186,8 @@ async def test_a_failing_factory_leaves_the_earlier_resources_finalized() -> Non
 async def test_every_remaining_finalizer_runs_after_one_raises() -> None:
     """One failing finalizer does not strand the others."""
     log: list[str] = []
-    first = _LoggedResource(log, "first")
-    second = _LoggedResource(log, "second")
+    first = _LoggedController(log, "first")
+    second = _LoggedController(log, "second")
 
     async def failing_finalize(resource: BaseResource) -> None:
         raise ClosingError("release failed")
@@ -204,7 +207,7 @@ async def test_every_remaining_finalizer_runs_after_one_raises() -> None:
 async def test_an_operational_closing_failure_is_recorded_when_the_run_failed() -> None:
     """The run's error is what the caller sees; the closing failure is recorded beside it."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
 
     async def failing_finalize(res: BaseResource) -> None:
         raise ClosingError("release failed")
@@ -220,7 +223,7 @@ async def test_an_operational_closing_failure_is_recorded_when_the_run_failed() 
 async def test_a_contract_violation_outranks_the_run_error() -> None:
     """The violation is raised, the run's error becomes its cause, and it is never a note."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
     violation = TransactionLeftOpenError("the resource was closed with a transaction still open")
 
     async def finalize(res: BaseResource) -> None:
@@ -238,7 +241,7 @@ async def test_a_contract_violation_outranks_the_run_error() -> None:
 async def test_a_contract_violation_surfaces_on_a_clean_run() -> None:
     """A clean run does not hide it either."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
 
     async def finalize(res: BaseResource) -> None:
         raise TransactionLeftOpenError("left open")
@@ -253,7 +256,7 @@ async def test_a_contract_violation_surfaces_on_a_clean_run() -> None:
 async def test_cancellation_runs_the_finalizer_and_propagates() -> None:
     """A cancelled call is a path out too: the release completes, then the cancellation goes on."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
     inside = asyncio.Event()
 
     async def finalize(res: BaseResource) -> None:
@@ -278,7 +281,7 @@ async def test_cancellation_runs_the_finalizer_and_propagates() -> None:
 async def test_cancellation_wins_over_a_contract_violation() -> None:
     """The cancellation propagates; the violation is recorded beside it."""
     log: list[str] = []
-    resource = _LoggedResource(log)
+    resource = _LoggedController(log)
     inside = asyncio.Event()
 
     async def finalize(res: BaseResource) -> None:

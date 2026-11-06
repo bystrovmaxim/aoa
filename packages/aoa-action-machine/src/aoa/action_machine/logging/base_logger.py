@@ -1,6 +1,6 @@
 # packages/aoa-action-machine/src/aoa/action_machine/logging/base_logger.py
 """
-Abstract base class for all loggers in the AOA logging system.
+BaseLogger — filtered message sink with a declaration naming contract.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Self, overload
+from typing import Any, Self, overload
 
 from aoa.action_machine.context.context import Context
 from aoa.action_machine.domain.base_domain import BaseDomain
@@ -64,6 +64,7 @@ from aoa.action_machine.logging.log_var_payloads import LogVar
 from aoa.action_machine.logging.subscription import LogSubscription
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.naming.suffix import require_suffix
 from aoa.action_machine.runtime.base_observer import BaseObserver
 
 # Regular expression to match ANSI escape sequences
@@ -73,13 +74,19 @@ _ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 class BaseLogger(BaseObserver, ABC):
     """
     AI-CORE-BEGIN
-        ROLE: Logging sink base class used by coordinator fan-out.
-        CONTRACT: Provide ``write``; reuse built-in subscribe/match/handle pipeline.
-        INVARIANTS: Filtering semantics are stable and deterministic per call.
-        AI-CORE-END
+    ROLE: Logging sink base class used by coordinator fan-out.
+    CONTRACT: Provide ``write`` and a name ending with Logger; reuse the subscribe/match/handle pipeline.
+    INVARIANTS: Filtering semantics are stable and deterministic per call.
+    AI-CORE-END
     """
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Require the ``Logger`` suffix for every descendant."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseLogger", "Logger")
+
     def __init__(self) -> None:
+        """Start with no subscription restrictions on messages."""
         super().__init__()
         self._subscriptions: dict[str, LogSubscription] = {}
 

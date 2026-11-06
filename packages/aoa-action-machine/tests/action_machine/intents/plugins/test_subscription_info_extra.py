@@ -8,7 +8,7 @@ from aoa.action_machine.plugin.core.events import AspectEvent, BasePluginEvent, 
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 
-class _AspectEvt(AspectEvent):
+class _AspectEvtEvent(AspectEvent):
     pass
 
 
@@ -32,7 +32,7 @@ def test_subscription_info_aspect_pattern_and_regex_validation() -> None:
         )
     with pytest.raises(ValueError):
         SubscriptionInfo(
-            event_class=_AspectEvt,
+            event_class=_AspectEvtEvent,
             method_name="on_x",
             aspect_name_pattern="(",
         )

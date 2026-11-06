@@ -69,7 +69,7 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
-from aoa.action_machine.resources.sql import SqlResource
+from aoa.action_machine.resources.sql import SqlStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 if TYPE_CHECKING:
@@ -78,7 +78,7 @@ if TYPE_CHECKING:
 # Register on the default graph before ``create_node_graph_coordinator()`` runs.
 from aoa.demo.model.actions import GetExampleModelGraphJsonAction  # noqa: F401  # pylint: disable=unused-import
 from aoa.demo.model.identity.actions import IdentityLookupAction  # noqa: F401  # pylint: disable=unused-import
-from aoa.demo.model.identity.resources.identity_store_stub import IdentityStoreStub
+from aoa.demo.model.identity.resources.identity_stub_storage import IdentityStubStorage
 
 machine = ActionProductMachine()
 auth = NoAuthCoordinator(context=Context())
@@ -155,17 +155,17 @@ def identity_connection() -> ConnectionValue:
     if demo_dsn():
 
         def pooled() -> BaseResource:
-            from aoa.demo.model.identity.resources.identity_store import (  # pylint: disable=import-outside-toplevel
-                IdentityStore,
+            from aoa.demo.model.identity.resources.identity_postgres_storage import (  # pylint: disable=import-outside-toplevel
+                IdentityPostgresStorage,
             )
 
-            return IdentityStore(data_source=data_source_holder.require())
+            return IdentityPostgresStorage(data_source=data_source_holder.require())
 
         return PerCallConnection(factory=pooled, finalize=_close_store)
 
-    return PerCallConnection(factory=IdentityStoreStub, finalize=_close_store)
+    return PerCallConnection(factory=IdentityStubStorage, finalize=_close_store)
 
 
 def _close_store(store: BaseResource) -> Awaitable[None]:
     """Close the store this call created; its connection goes back to the pool."""
-    return cast(SqlResource, store).close()
+    return cast(SqlStorage, store).close()

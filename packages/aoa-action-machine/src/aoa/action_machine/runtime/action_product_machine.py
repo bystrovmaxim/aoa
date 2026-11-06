@@ -178,7 +178,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.resources import Connections
@@ -229,7 +229,7 @@ class _PipelineOutcome[R]:
     Attributes:
         result: Object from the summary aspect or a matching ``@on_error`` handler.
         from_error_handler: ``True`` when ``result`` was produced only via the error path.
-        all_aspect_states: Plugin-readable snapshots derived from saga frames after each
+        all_aspect_states: BasePlugin-readable snapshots derived from saga frames after each
             regular aspect (live objects preserved when ``to_dict()`` would coerce them).
     """
 
@@ -335,7 +335,7 @@ class ActionProductMachine(BaseActionMachine):
     def __init__(
         self,
         *,
-        plugins: list[Plugin] | None = None,
+        plugins: list[BasePlugin] | None = None,
         loggers: list[BaseLogger] | None = None,
         plugin_coordinator: PluginCoordinator | None = None,
         log_coordinator: LogCoordinator | None = None,

@@ -45,7 +45,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.route_record import FastApiRouteRecord
 
-from .support import DummyResourceManager, PingAction, SimpleAction
+from .support import DummyController, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -181,7 +181,7 @@ class TestRouteRegistration:
     def test_connections_stored_on_record(self) -> None:
         """Per-route ``connections`` are stored on ``FastApiRouteRecord``."""
         adapter = _make_adapter()
-        res = DummyResourceManager()
+        res = DummyController()
         adapter.get("/x", PingAction, connections={"svc": res})
 
         assert adapter.routes[0].connections == {"svc": res}
@@ -214,7 +214,7 @@ class TestRouteRegistration:
             ("description", "A longer description"),
             ("operation_id", "custom_op_id"),
             ("deprecated", True),
-            ("connections", {"svc": DummyResourceManager()}),
+            ("connections", {"svc": DummyController()}),
             ("auth_coordinator", AsyncMock()),
         ],
         ids=[

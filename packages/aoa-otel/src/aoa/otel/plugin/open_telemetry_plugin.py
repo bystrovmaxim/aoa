@@ -141,7 +141,7 @@ from aoa.action_machine.intents.on import (
     UnhandledErrorEvent,
     on,
 )
-from aoa.action_machine.plugin.core import Plugin
+from aoa.action_machine.plugin.core import BasePlugin
 from aoa.action_machine.plugin.core.events import (
     AccessGateFailedEvent,
     BasePluginEvent,
@@ -152,7 +152,7 @@ _CTX_KEY = "root_ctx"
 _ASPECT_SPANS_KEY = "aspect_spans"
 
 
-class OpenTelemetryPlugin(Plugin):
+class OpenTelemetryPlugin(BasePlugin):
     """
     AI-CORE-BEGIN
     ROLE: Emit OTel Traces and/or OTel Logs for the full ActionMachine event surface.

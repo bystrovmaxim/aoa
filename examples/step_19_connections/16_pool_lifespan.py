@@ -6,11 +6,26 @@ Run: uv run python examples/step_19_connections/16_pool_lifespan.py
 """
 
 import asyncio
+from contextlib import asynccontextmanager
 
+from fastapi.testclient import TestClient
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.fastapi import FastApiAdapter
 
 
 class RecordingConnection:
@@ -42,8 +57,8 @@ class RecordingPool:
         """Create the fixed capacity used by this example."""
         self.connections = [RecordingConnection(i + 1) for i in range(size)]
         self.free = asyncio.Queue()
-        for connection in self.connections:
-            self.free.put_nowait(connection)
+        for pooled_connection in self.connections:
+            self.free.put_nowait(pooled_connection)
         self.held = set()
         self.closed = False
     async def acquire(self, *, timeout=None):
@@ -58,22 +73,11 @@ class RecordingPool:
     async def close(self):
         """Close the pool only after all borrowers have returned."""
         assert not self.held
-        for connection in self.connections:
-            await connection.close()
+        for pooled_connection in self.connections:
+            await pooled_connection.close()
         self.closed = True
 
-from pydantic import Field
 
-from aoa.action_machine.auth import GuestRole, NoAuthCoordinator
-from aoa.action_machine.context import Context
-from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles
-from aoa.action_machine.intents.connection import connection
-from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.resources import Connections
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class NotesDomain(BaseDomain):
@@ -90,7 +94,7 @@ class ExampleDataSource(PostgresDataSource):
 
 
 @meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesResource(PostgresResource[ExampleDataSource]):
+class NotesStorage(PostgresStorage[ExampleDataSource]):
     """Use the standard PostgreSQL lifecycle."""
 
     async def add_note(self, text: str) -> str:
@@ -103,7 +107,7 @@ class StatusResult(BaseResult):
 
 @meta(description="Run one statement", domain=NotesDomain)
 @check_roles(GuestRole)
-@connection(NotesResource, key="db")
+@connection(NotesStorage, key="db")
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
@@ -111,11 +115,8 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
-from contextlib import asynccontextmanager
 
-from fastapi.testclient import TestClient
 
-from aoa.fastapi import FastApiAdapter
 
 
 class PoolHolder:
@@ -145,7 +146,7 @@ async def main():
             holder.data_source = None
     app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .post("/query", QueryAction, connections={"db": PerCallConnection(
-            factory=lambda: NotesResource(data_source=holder.require()),
+            factory=lambda: NotesStorage(data_source=holder.require()),
             finalize=lambda resource: resource.close(),
         )}).build(lifespan=lifespan))
     with TestClient(app) as client:

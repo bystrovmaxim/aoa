@@ -2,8 +2,8 @@
 """
 A link between entities is a fact of the logical model: it joins entities of any resources and data sources.
 
-Every link kind is declared between an entity of ``StorefrontDatabase`` (``StorefrontDataSource``) and one of
-``SupportDatabase`` (``SupportDataSource``) — association, aggregation and composition from either side, an
+Every link kind is declared between an entity of ``StorefrontStorage`` (``StorefrontDataSource``) and one of
+``SupportStorage`` (``SupportDataSource``) — association, aggregation and composition from either side, an
 inverse side, a specialization, a generalization, a dictionary field and a state type shared through
 ``Lifecycle[...]`` — and the model and its graph build with the link in them. Each model is built in a fresh
 interpreter so a declaration never joins the shared model.
@@ -70,14 +70,16 @@ _IMPORTS = textwrap.dedent(
 
 
     @meta(description="Primary relational store", domain=StoreDomain)
-    class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
-        def get_wrapper_class(self):
+    class StorefrontStorage(BaseStorage[StorefrontDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
     @meta(description="Support desk store", domain=SupportDomain)
-    class SupportDatabase(BaseStorage[SupportDataSource]):
-        def get_wrapper_class(self):
+    class SupportStorage(BaseStorage[SupportDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
@@ -101,7 +103,7 @@ def _run(body: str) -> str:
 
 
 _ORDER = """
-    @entity(description="Customer order", resource=StorefrontDatabase)
+    @entity(description="Customer order", resource=StorefrontStorage)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 """
@@ -112,7 +114,7 @@ def test_an_association_across_data_sources_builds() -> None:
     out = _run(
         _ORDER
         + """
-    @entity(description="Support ticket", resource=SupportDatabase)
+    @entity(description="Support ticket", resource=SupportStorage)
     class SupportTicketCoreEntity(BaseCoreEntity):
         id: str = Field(description="Ticket id")
         order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
@@ -125,12 +127,12 @@ def test_an_association_across_data_sources_builds() -> None:
 
 
 _OWNERSHIP = """
-    @entity(description="Customer order", resource=StorefrontDatabase)
+    @entity(description="Customer order", resource=StorefrontStorage)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
         lines: Annotated[{many}[SalesOrderLineDetailEntity], Inverse(field_name="order")] = Field(description="Lines")
 
-    @entity(description="Order line", resource=SupportDatabase)
+    @entity(description="Order line", resource=SupportStorage)
     class SalesOrderLineDetailEntity(BaseDetailEntity):
         id: str = Field(description="Line id")
         order: Annotated[AssociationOne[SalesOrderCoreEntity], Inverse(field_name="lines")] = Field(description="Order")
@@ -153,7 +155,7 @@ def test_a_one_sided_aggregation_across_data_sources_builds() -> None:
     out = _run(
         _ORDER
         + """
-    @entity(description="Order note", resource=SupportDatabase)
+    @entity(description="Order note", resource=SupportStorage)
     class OrderNoteCoreEntity(BaseCoreEntity):
         id: str = Field(description="Note id")
         order: Annotated[AggregateOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
@@ -166,11 +168,11 @@ def test_a_one_sided_aggregation_across_data_sources_builds() -> None:
 
 
 _SPECIALIZATION = """
-    @entity(description="Kind of counterparty", resource=StorefrontDatabase)
+    @entity(description="Kind of counterparty", resource=StorefrontStorage)
     class CounterpartyKindEnumEntity(BaseEnumEntity):
         ORGANISATION = value(code="organisation", display_name="Organisation")
 
-    @entity(description="Counterparty", resource=StorefrontDatabase)
+    @entity(description="Counterparty", resource=StorefrontStorage)
     class CounterpartyCoreEntity(BaseCoreEntity):
         id: str = Field(description="Counterparty id")
         details: Annotated[
@@ -178,7 +180,7 @@ _SPECIALIZATION = """
             Inverse(field_name="counterparty"),
         ] = Field(description="Variant data")
 
-    @entity(description="Organisation data", resource=SupportDatabase)
+    @entity(description="Organisation data", resource=SupportStorage)
     class OrganisationSpecEntity(BaseSpecEntity):
         id: str = Field(description="Head id")
         counterparty: Annotated[
@@ -206,11 +208,11 @@ def test_a_dictionary_field_across_data_sources_builds() -> None:
     """A dictionary of the support desk names the currency of a storefront invoice."""
     out = _run(
         """
-    @entity(description="Currency", resource=SupportDatabase)
+    @entity(description="Currency", resource=SupportStorage)
     class CurrencyEnumEntity(BaseEnumEntity):
         USD = value(code="USD", display_name="US dollar")
 
-    @entity(description="Invoice", resource=StorefrontDatabase)
+    @entity(description="Invoice", resource=StorefrontStorage)
     class InvoiceCoreEntity(BaseCoreEntity):
         id: str = Field(description="Invoice id")
         currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
@@ -237,12 +239,12 @@ def test_a_state_type_shared_across_data_sources_builds() -> None:
             .state(OrderStateEntity.PAID).final()
         )
 
-    @entity(description="Customer order", resource=StorefrontDatabase)
+    @entity(description="Customer order", resource=StorefrontStorage)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
         lifecycle: OrderLifecycle = Field(description="Order status")
 
-    @entity(description="Return", resource=SupportDatabase)
+    @entity(description="Return", resource=SupportStorage)
     class ReturnCoreEntity(BaseCoreEntity):
         id: str = Field(description="Return id")
         lifecycle: OrderLifecycle = Field(description="Return status")

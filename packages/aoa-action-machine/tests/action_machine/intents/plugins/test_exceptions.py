@@ -10,7 +10,7 @@ The @on decorator takes an ignore_exceptions parameter, which specifies
 error handling strategy:
 
 - ignore_exceptions=True: handler error is suppressed; when transmitted
-  log_coordinator is written CRITICAL in Channel.error. Plugin status
+  log_coordinator is written CRITICAL in Channel.error. BasePlugin status
   NOT updated with the return value (return is not executed), but
   in-place mutations of dict made before raise remain visible because
   dict is a mutable object and is passed by reference.

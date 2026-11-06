@@ -39,7 +39,7 @@ from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -57,24 +57,25 @@ class BillingDomain(BaseDomain):
 # ---------------------------------------------------------------------------
 
 @meta(description="Stateless pricing service", domain=BillingDomain)
-class PricingService(BaseResource):
+class PricingServiceGateway(BaseGateway):
     PRICES = {"sku-1": 8990.0, "sku-2": 490.0}
 
     def price(self, sku: str) -> float:
         return self.PRICES.get(sku, 0.0)
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
 # ---------------------------------------------------------------------------
 # A connection: a transactional ledger. The owner action can commit; a nested
-# action receives a proxy (LedgerProxy) that allows execute() but forbids
+# action receives a proxy (LedgerStorageWrapper) that allows execute() but forbids
 # commit()/rollback().
 # ---------------------------------------------------------------------------
 
 @meta(description="Append-only transaction ledger", domain=BillingDomain)
-class LedgerResource(BaseResource):
+class LedgerStorage(BaseStorage):
     def __init__(self) -> None:
         self._rows: list[str] = []
 
@@ -88,15 +89,16 @@ class LedgerResource(BaseResource):
     async def rollback(self) -> None:
         print("  [ledger] ROLLBACK")
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
-        return LedgerProxy
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
+        return LedgerStorageWrapper
 
 
 @exclude_graph_model
-class LedgerProxy(BaseResource):
+class LedgerStorageWrapper(BaseStorage):
     """Proxy handed to nested actions: statements yes, transaction control no."""
 
-    def __init__(self, inner: LedgerResource) -> None:
+    def __init__(self, inner: LedgerStorage) -> None:
         self._inner = inner
 
     async def execute(self, entry: str) -> None:
@@ -108,8 +110,9 @@ class LedgerProxy(BaseResource):
     async def rollback(self) -> None:
         raise TransactionProhibitedError("rollback is not allowed in a nested action")
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
-        return LedgerProxy  # stays a proxy at deeper nesting levels
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
+        return LedgerStorageWrapper  # stays a proxy at deeper nesting levels
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +130,7 @@ class EntryResult(BaseResult):
 
 @meta(description="Append an audit entry", domain=BillingDomain)
 @check_roles(GuestRole)
-@connection(LedgerResource, key="ledger")
+@connection(LedgerStorage, key="ledger")
 class AppendEntryAction(BaseAction[EntryParams, EntryResult]):
 
     @summary_aspect("Append audit entry")
@@ -158,14 +161,14 @@ class ChargeResult(BaseResult):
 
 @meta(description="Charge for a product", domain=BillingDomain)
 @check_roles(GuestRole)
-@depends(PricingService)
-@connection(LedgerResource, key="ledger")
+@depends(PricingServiceGateway)
+@connection(LedgerStorage, key="ledger")
 class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 
     @regular_aspect("Compute total via the pricing service")
     @result_float("total", required=True, min_value=0)
     async def price_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
-        pricing = await box.resolve(PricingService)       # declared dependency
+        pricing = await box.resolve(PricingServiceGateway)       # declared dependency
         total = pricing.price(params.sku) * params.qty
         await box.info(Channel.business, "parent: total={%var.total}", total=total)
         return {"total": total}
@@ -192,7 +195,7 @@ async def main() -> None:
     machine = ActionProductMachine(
         log_coordinator=LogCoordinator(loggers=[ConsoleLogger()]),
     )
-    ledger = LedgerResource()
+    ledger = LedgerStorage()
     result = await machine.run(
         Context(),
         ChargeAction(),

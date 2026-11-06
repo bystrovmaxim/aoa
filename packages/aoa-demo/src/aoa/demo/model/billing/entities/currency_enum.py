@@ -8,10 +8,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseEnumEntity, value
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Currency reference value", resource=BillingWarehouse)
+@entity(description="Currency reference value", resource=BillingWarehouseStorage)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the currencies the demo uses, each one a value of this dictionary."""
 

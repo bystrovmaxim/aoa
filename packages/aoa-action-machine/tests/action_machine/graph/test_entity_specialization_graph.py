@@ -262,7 +262,7 @@ class _OrphanRoot:
     """A root type of its own, so this test's inspector walks nothing real."""
 
 
-class _OrphanNode(BaseGraphNode[object]):
+class _OrphanGraphNode(BaseGraphNode[object]):
     """A node whose outbound edge points at something the coordinator cannot find."""
 
     def __init__(self) -> None:
@@ -294,7 +294,7 @@ class _OrphanInspector(BaseGraphNodeInspector[_OrphanRoot]):
     def _get_node(self, cls: type) -> BaseGraphNode[object] | None:
         if cls is not _OrphanRoot:
             return None
-        return _OrphanNode()
+        return _OrphanGraphNode()
 
 
 def test_the_coordinator_refuses_an_edge_whose_target_is_not_a_node() -> None:

@@ -37,7 +37,7 @@ from aoa.action_machine.graph.nodes.action_graph_node import ActionGraphNode
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseState, ParamsStub, ResultStub
+from aoa.action_machine.model import BaseAction, BaseState, StubParams, StubResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -65,8 +65,8 @@ def report(case: str, outcome: str) -> None:
 try:
 
     @summary_aspect("Renamed parameters")
-    async def renamed_summary(self, p: ParamsStub, s: Any, box: Any, connections: Any) -> ResultStub:
-        return ResultStub()
+    async def renamed_summary(self, p: StubParams, s: Any, box: Any, connections: Any) -> StubResult:
+        return StubResult()
 
 except AspectSignatureError as error:
     report("renamed parameter", str(error))
@@ -80,7 +80,7 @@ try:
 
     @regular_aspect("Keyword-only parameters")
     async def keyword_only_aspect(
-        self, params: ParamsStub, state: Any, box: Any, *, connections: Any
+        self, params: StubParams, state: Any, box: Any, *, connections: Any
     ) -> dict[str, Any]:
         return {}
 
@@ -95,8 +95,8 @@ except AspectSignatureError as error:
 try:
 
     @summary_aspect("No annotations")
-    async def untyped_summary(self, params, state, box, connections) -> ResultStub:
-        return ResultStub()
+    async def untyped_summary(self, params, state, box, connections) -> StubResult:
+        return StubResult()
 
 except AspectSignatureError as error:
     report("untyped declaration", str(error))
@@ -109,19 +109,19 @@ except AspectSignatureError as error:
 @exclude_graph_model
 @meta(description="declarations: a box that is not a tool box", domain=DeclarationsDomain)
 @check_roles(GuestRole)
-class MistypedAction(BaseAction[ParamsStub, ResultStub]):
+class MistypedAction(BaseAction[StubParams, StubResult]):
     """An operation whose summary promises the wrong type for the tool box."""
 
     @summary_aspect("Wrong box type")
     async def mistyped_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: str,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result."""
-        return ResultStub()
+        return StubResult()
 
 
 try:
@@ -138,30 +138,30 @@ except AspectSignatureError as error:
 @exclude_graph_model
 @meta(description="declarations: two exit points", domain=DeclarationsDomain)
 @check_roles(GuestRole)
-class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
+class TwoSummariesAction(BaseAction[StubParams, StubResult]):
     """An operation that declares two summary aspects."""
 
     @summary_aspect("First exit point")
     async def first_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result, first way."""
-        return ResultStub()
+        return StubResult()
 
     @summary_aspect("Second exit point")
     async def second_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result, second way."""
-        return ResultStub()
+        return StubResult()
 
 
 try:
@@ -176,17 +176,17 @@ except DuplicateSummaryAspectError as error:
 # expected-refusal: ActionResultTypeError
 @meta(description="declarations: an answer that is not a Result", domain=DeclarationsDomain)
 @check_roles(GuestRole)
-class WrongAnswerAction(BaseAction[ParamsStub, ResultStub]):
+class WrongAnswerAction(BaseAction[StubParams, StubResult]):
     """An operation whose summary returns a mapping instead of its Result."""
 
     @summary_aspect("Answer with a mapping")
     async def wrong_answer_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Return something that is not the declared Result."""
         return {"not": "a result"}  # type: ignore[return-value]
 
@@ -194,7 +194,7 @@ class WrongAnswerAction(BaseAction[ParamsStub, ResultStub]):
 async def run_wrong_answer() -> None:
     """Run the operation and report what the machine says about its answer."""
     try:
-        await ActionProductMachine(cache_coordinator=None).run(Context(), WrongAnswerAction(), ParamsStub())
+        await ActionProductMachine(cache_coordinator=None).run(Context(), WrongAnswerAction(), StubParams())
     except ActionResultTypeError as error:
         report("answer is not a Result", str(error))
 
@@ -202,24 +202,24 @@ async def run_wrong_answer() -> None:
 # %% Case 7 — a declaration that complies, and runs
 @meta(description="declarations: the contract, met", domain=DeclarationsDomain)
 @check_roles(GuestRole)
-class CorrectAction(BaseAction[ParamsStub, ResultStub]):
+class CorrectAction(BaseAction[StubParams, StubResult]):
     """An operation whose declaration is the contract."""
 
     @summary_aspect("Assemble the result")
     async def correct_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Build the empty result."""
-        return ResultStub()
+        return StubResult()
 
 
 async def main() -> None:
     """Run the seventh case; the first six reported as they were declared."""
-    answer = await ActionProductMachine(cache_coordinator=None).run(Context(), CorrectAction(), ParamsStub())
+    answer = await ActionProductMachine(cache_coordinator=None).run(Context(), CorrectAction(), StubParams())
     report("a correct declaration", f"ran, answer: {type(answer).__name__}")
     await run_wrong_answer()
 

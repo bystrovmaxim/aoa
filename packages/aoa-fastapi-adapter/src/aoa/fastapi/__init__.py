@@ -19,7 +19,7 @@ except ImportError:
 from aoa.fastapi.adapter import FastApiAdapter
 from aoa.fastapi.query_field_before import QUERY_STR_LIST_BEFORE, coerce_query_str_list
 from aoa.fastapi.route_record import FastApiRouteRecord
-from aoa.fastapi.socket_channel import SocketChannel
+from aoa.fastapi.socket_channel_controller import SocketChannelController
 from aoa.fastapi.websocket_route import ConnectionRefusalError, FastApiWebSocketRoute
 
 __all__ = [
@@ -28,6 +28,6 @@ __all__ = [
     "FastApiAdapter",
     "FastApiRouteRecord",
     "FastApiWebSocketRoute",
-    "SocketChannel",
+    "SocketChannelController",
     "coerce_query_str_list",
 ]

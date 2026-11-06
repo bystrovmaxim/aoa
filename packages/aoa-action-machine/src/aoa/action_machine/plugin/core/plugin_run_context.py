@@ -64,7 +64,7 @@ plugins. Filters are checked from cheapest to most expensive with early exit.
              ▼
     ALL FILTERS PASSED -> call handler
 
-Step 1 happens in ``Plugin.get_handlers()``, steps 2-7 in
+Step 1 happens in ``BasePlugin.get_handlers()``, steps 2-7 in
 ``PluginRunContext._matches_all_filters()``.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -139,8 +139,8 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BasePluginEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 
@@ -155,11 +155,11 @@ class PluginRunContext:
 
     def __init__(
         self,
-        plugins: list[Plugin],
+        plugins: list[BasePlugin],
         initial_states: dict[int, Any],
     ) -> None:
         """Initialize run context with plugin list and initial states."""
-        self._plugins: list[Plugin] = plugins
+        self._plugins: list[BasePlugin] = plugins
         self._plugin_states: dict[int, Any] = dict(initial_states)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -217,9 +217,9 @@ class PluginRunContext:
         self,
         event: BasePluginEvent,
         coordinator: Any | None = None,
-    ) -> list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]]:
+    ) -> list[tuple[BasePlugin, Callable[..., Any], SubscriptionInfo]]:
         """Collect all handlers that pass full filter chain."""
-        matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]] = []
+        matched: list[tuple[BasePlugin, Callable[..., Any], SubscriptionInfo]] = []
 
         for plugin in self._plugins:
             candidates = plugin.get_handlers(event)
@@ -237,7 +237,7 @@ class PluginRunContext:
     @staticmethod
     def _create_plugin_logger(
         log_coordinator: LogCoordinator | None,
-        plugin: Plugin,
+        plugin: BasePlugin,
         event: BasePluginEvent,
     ) -> ScopedLogger | None:
         """Create per-handler ScopedLogger or return None if logging disabled."""
@@ -267,7 +267,7 @@ class PluginRunContext:
             return
         await log.critical(
             Channel.error,
-            "Plugin handler {%var.handler_name} failed and was suppressed "
+            "BasePlugin handler {%var.handler_name} failed and was suppressed "
             "(ignore_exceptions=True): {%var.exc_type}: {%var.exc_message}",
             handler_name=method_name,
             exc_type=type(exc).__name__,
@@ -280,7 +280,7 @@ class PluginRunContext:
 
     async def _run_single_handler(
         self,
-        plugin: Plugin,
+        plugin: BasePlugin,
         handler: Callable[..., Any],
         event: BasePluginEvent,
         log: ScopedLogger | None,
@@ -299,7 +299,7 @@ class PluginRunContext:
 
     async def _run_parallel(
         self,
-        matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]],
+        matched: list[tuple[BasePlugin, Callable[..., Any], SubscriptionInfo]],
         event: BasePluginEvent,
         log_coordinator: LogCoordinator | None,
     ) -> None:
@@ -330,7 +330,7 @@ class PluginRunContext:
 
     async def _run_sequential(
         self,
-        matched: list[tuple[Plugin, Callable[..., Any], SubscriptionInfo]],
+        matched: list[tuple[BasePlugin, Callable[..., Any], SubscriptionInfo]],
         event: BasePluginEvent,
         log_coordinator: LogCoordinator | None,
     ) -> None:
@@ -390,6 +390,6 @@ class PluginRunContext:
     # Access plugin state (tests/introspection)
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_plugin_state(self, plugin: Plugin) -> Any:
+    def get_plugin_state(self, plugin: BasePlugin) -> Any:
         """Return current per-run plugin state (primarily for tests)."""
         return self._plugin_states[id(plugin)]

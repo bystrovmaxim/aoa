@@ -49,7 +49,7 @@ import pytest
 
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
-from .conftest import FailingPluginIgnore, FastPluginIgnore, SlowPluginIgnore, SlowPluginNoIgnore, emit_global_finish
+from .conftest import FailingIgnorePlugin, FastIgnorePlugin, SlowIgnorePlugin, SlowNoIgnorePlugin, emit_global_finish
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Concurrency tests (all ignore_exceptions=True)
@@ -64,13 +64,13 @@ class TestParallelExecution:
 
     @pytest.mark.anyio
     async def test_two_slow_plugins_run_in_parallel(self):
-        """Two SlowPluginIgnores, 50ms each. When executed in parallel
+        """Two SlowIgnorePlugin instances, 50ms each. When executed in parallel
         total time ~50ms (slowest time), not ~100ms (sum).
         The threshold is 90ms with a margin for the overhead event loop."""
         # Arrange - two slow plugins + one fast
-        slow1 = SlowPluginIgnore(delay=0.05)
-        slow2 = SlowPluginIgnore(delay=0.05)
-        fast = FastPluginIgnore()
+        slow1 = SlowIgnorePlugin(delay=0.05)
+        slow2 = SlowIgnorePlugin(delay=0.05)
+        fast = FastIgnorePlugin()
 
         coordinator = PluginCoordinator(plugins=[slow1, slow2, fast])
         plugin_ctx = await coordinator.create_run_context()
@@ -90,13 +90,13 @@ class TestParallelExecution:
 
     @pytest.mark.anyio
     async def test_failing_plugin_does_not_interrupt_others(self):
-        """FailingPluginIgnore throws RuntimeError with ignore_exceptions=True.
-        The error is suppressed, other plugins (SlowPluginIgnore, FastPluginIgnore)
+        """FailingIgnorePlugin throws RuntimeError with ignore_exceptions=True.
+        The error is suppressed, other plugins (SlowIgnorePlugin, FastIgnorePlugin)
         complete successfully and update their states."""
         # Arrange - slow, fast and crashing plugins (all ignore=True)
-        slow = SlowPluginIgnore(delay=0.05)
-        fast = FastPluginIgnore()
-        failing = FailingPluginIgnore()
+        slow = SlowIgnorePlugin(delay=0.05)
+        fast = FastIgnorePlugin()
+        failing = FailingIgnorePlugin()
 
         coordinator = PluginCoordinator(plugins=[slow, fast, failing])
         plugin_ctx = await coordinator.create_run_context()
@@ -122,12 +122,12 @@ class TestSequentialExecution:
 
     @pytest.mark.anyio
     async def test_two_slow_plugins_run_sequentially(self):
-        """Two SlowPluginNoIgnore of 50ms each. With sequential
+        """Two SlowNoIgnorePlugin of 50ms each. With sequential
         the total execution time is ~100ms (sum), not ~50ms (in parallel).
         Threshold: elapsed >= 0.09s (including overhead)."""
         # Arrange - two slow plugins with ignore=False
-        slow1 = SlowPluginNoIgnore(delay=0.05)
-        slow2 = SlowPluginNoIgnore(delay=0.05)
+        slow1 = SlowNoIgnorePlugin(delay=0.05)
+        slow2 = SlowNoIgnorePlugin(delay=0.05)
 
         coordinator = PluginCoordinator(plugins=[slow1, slow2])
         plugin_ctx = await coordinator.create_run_context()
@@ -148,12 +148,12 @@ class TestSequentialExecution:
 
     @pytest.mark.anyio
     async def test_mixed_flags_all_handlers_complete(self):
-        """SlowPluginNoIgnore (ignore=False) + FastPluginIgnore (ignore=True).
+        """SlowNoIgnorePlugin (ignore=False) + FastIgnorePlugin (ignore=True).
         Having one ignore=False switches to sequential
         execution. Both handlers complete and update the states."""
         # Arrange - critical slow + non-critical fast
-        critical = SlowPluginNoIgnore(delay=0.01)
-        metrics = FastPluginIgnore()
+        critical = SlowNoIgnorePlugin(delay=0.01)
+        metrics = FastIgnorePlugin()
 
         coordinator = PluginCoordinator(plugins=[critical, metrics])
         plugin_ctx = await coordinator.create_run_context()

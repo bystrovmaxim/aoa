@@ -9,11 +9,11 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
 @entity(
-    description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", resource=StorefrontDatabase
+    description="Loyalty earn projection keyed off invoicing artefacts (distinct from header mesh)", resource=StorefrontDatabaseStorage
 )
 class LoyaltyEarnProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Projection id")

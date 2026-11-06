@@ -16,7 +16,7 @@ ACTIONS
 
 PingAction              — summary only, GuestRole.
 SimpleAction            — regular + summary, GuestRole.
-FullAction              — two regular + summary, ``@depends``/``@connection`` on ``OrdersDbManager``, role "manager".
+FullAction              — two regular + summary, ``@depends``/``@connection`` on ``OrdersStorage``, role "manager".
 ChildAction             — nested call target for box.run().
 AdminAction             — admin-only Action.
 
@@ -79,7 +79,7 @@ from .services import (
     PaymentGateway,
 )
 from .simple_action import SimpleAction
-from .test_db_manager import OrdersDbManager
+from .test_db_manager import OrdersStorage
 
 __all__ = [
     "AdminAction",
@@ -98,8 +98,8 @@ __all__ = [
     "InventoryGateway",
     "NotificationClient",
     "NotificationGateway",
-    "OrdersDbManager",
     "OrdersDomain",
+    "OrdersStorage",
     "PaymentClient",
     "PaymentGateway",
     "PingAction",

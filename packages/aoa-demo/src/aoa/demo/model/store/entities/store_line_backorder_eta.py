@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Backorder ETA facet", resource=StorefrontDatabase)
+@entity(description="Backorder ETA facet", resource=StorefrontDatabaseStorage)
 class BackorderEtaFacetCoreEntity(BaseCoreEntity):
     id: str = Field(description="BackorderEtaFacetCoreEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="BackorderEtaFacetCoreEntity lifecycle")

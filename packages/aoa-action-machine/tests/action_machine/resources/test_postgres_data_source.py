@@ -1,6 +1,6 @@
 # tests/action_machine/resources/test_postgres_data_source.py
 """
-``PostgresDataSource`` keeps the connection parameters and the pool; ``PostgresResource``
+``PostgresDataSource`` keeps the connection parameters and the pool; ``PostgresStorage``
 takes exactly one of its own connection parameters and the data source it names.
 
 No database runs: a fake pool stands in for a given pool, and ``asyncpg.create_pool`` is
@@ -18,10 +18,10 @@ from aoa.action_machine.exceptions.data_source_declaration_error import DataSour
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 from aoa.action_machine.resources.postgres import postgres_data_source as module
 
-from ...support.fake_data_source import FakeDataSource, PooledResource
+from ...support.fake_data_source import FakeDataSource, PooledStorage
 from ...support.fake_pool import FakePool
 
 
@@ -76,25 +76,25 @@ async def test_a_data_source_not_open_hands_out_nothing() -> None:
 
 def test_a_resource_that_names_a_data_source_takes_an_instance_of_it() -> None:
     """A data source of another class is refused by a resource that names one."""
-    with pytest.raises(DataSourceDeclarationError, match="PooledResource works through FakeDataSource: pass data_source= of that class; got _OtherDataSource"):
-        PooledResource(data_source=_OtherDataSource(pool=FakePool()))
+    with pytest.raises(DataSourceDeclarationError, match="PooledStorage works through FakeDataSource: pass data_source= of that class; got _OtherDataSource"):
+        PooledStorage(data_source=_OtherDataSource(pool=FakePool()))
 
 
 def test_connection_parameters_are_not_given_to_a_resource() -> None:
     """Connection parameters live only in a data source: a resource takes none."""
     with pytest.raises(TypeError):
-        PooledResource({"dsn": "postgresql://example"})  # type: ignore[misc,call-arg]
+        PooledStorage({"dsn": "postgresql://example"})  # type: ignore[misc,call-arg]
     with pytest.raises(TypeError, match="connection_params"):
-        PooledResource(connection_params={"dsn": "postgresql://example"})  # type: ignore[call-arg]
+        PooledStorage(connection_params={"dsn": "postgresql://example"})  # type: ignore[call-arg]
 
 
 def test_a_resource_that_names_no_data_source_is_refused() -> None:
-    """``PostgresResource`` itself names none, so it is refused even when given a data source."""
-    with pytest.raises(DataSourceDeclarationError, match="PostgresResource names no data source: a PostgreSQL resource names its data source"):
-        PostgresResource(data_source=FakeDataSource(pool=FakePool()))
+    """``PostgresStorage`` itself names none, so it is refused even when given a data source."""
+    with pytest.raises(DataSourceDeclarationError, match="PostgresStorage names no data source: a PostgreSQL resource names its data source"):
+        PostgresStorage(data_source=FakeDataSource(pool=FakePool()))
 
 
 def test_a_pool_is_not_given_to_a_resource() -> None:
     """A pool lives only in a data source."""
     with pytest.raises(TypeError, match="pool"):
-        PostgresResource(pool=FakePool())  # type: ignore[call-arg]
+        PostgresStorage(pool=FakePool())  # type: ignore[call-arg]

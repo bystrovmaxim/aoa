@@ -57,8 +57,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BasePluginEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -163,7 +163,7 @@ class Record:
     text: str
 
 
-class InMemoryExporter(Plugin):
+class InMemoryExporterPlugin(BasePlugin):
     """A plugin that keeps every event it is handed, in memory."""
 
     def __init__(self) -> None:
@@ -197,13 +197,13 @@ class InMemoryExporter(Plugin):
 
 
 @pytest.fixture
-def exporter() -> InMemoryExporter:
+def exporter() -> InMemoryExporterPlugin:
     """An exporter for one test."""
-    return InMemoryExporter()
+    return InMemoryExporterPlugin()
 
 
 @pytest.fixture
-def machine(exporter: InMemoryExporter) -> ActionProductMachine:
+def machine(exporter: InMemoryExporterPlugin) -> ActionProductMachine:
     """A machine watched by that exporter."""
     return ActionProductMachine(cache_coordinator=None, plugins=[exporter])
 
@@ -278,7 +278,7 @@ _ASK_CASES = [
 class TestTheDecisionMatrix:
     @pytest.mark.parametrize(("situation", "expected"), _EXECUTE_CASES)
     async def test_executing_publishes_exactly_this(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str, expected: list[str]
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin, situation: str, expected: list[str]
     ) -> None:
         _set_object_behaviour(_OBJECT_CELLS.get(situation, "allowed"))
         action, caller = _case(situation)
@@ -289,7 +289,7 @@ class TestTheDecisionMatrix:
 
     @pytest.mark.parametrize(("situation", "expected"), _ASK_CASES)
     async def test_asking_in_advance_publishes_exactly_this(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter, situation: str, expected: list[str]
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin, situation: str, expected: list[str]
     ) -> None:
         _set_object_behaviour(_OBJECT_CELLS.get(situation, "allowed"))
         action, caller = _case(situation)
@@ -299,7 +299,7 @@ class TestTheDecisionMatrix:
         assert exporter.decision_events() == expected
 
     async def test_asking_in_advance_never_announces_a_run(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         """A question runs nothing: no start, no finish, whatever the answer."""
         for behaviour in _BEHAVIOURS:
@@ -313,7 +313,7 @@ class TestTheDecisionMatrix:
 
 class TestOneFailedGateEvent:
     async def test_exactly_one_while_executing(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
         action, caller = _case("object could not tell")
@@ -323,7 +323,7 @@ class TestOneFailedGateEvent:
         assert exporter.decision_events().count(_FAILED) == 1
 
     async def test_none_while_asking(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
         action, caller = _case("object could not tell")
@@ -333,7 +333,7 @@ class TestOneFailedGateEvent:
         assert _FAILED not in exporter.decision_events()
 
     async def test_it_names_the_step_and_the_kind_of_failure(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
         action, caller = _case("object could not tell")
@@ -347,7 +347,7 @@ class TestOneFailedGateEvent:
 
 class TestTheRequestIdentity:
     async def test_it_is_carried_when_the_context_has_one(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
         await _execute(machine, ObjectCheckedAction, _admin(trace_id="trace-1"), stops=True)
@@ -356,7 +356,7 @@ class TestTheRequestIdentity:
         assert {record.trace_id for record in exporter.records} == {"trace-1"}
 
     async def test_it_is_absent_when_the_context_has_none(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
         await _execute(machine, ObjectCheckedAction, _admin(), stops=True)
@@ -365,7 +365,7 @@ class TestTheRequestIdentity:
         assert {record.trace_id for record in exporter.records} == {None}
 
     async def test_it_is_absent_on_the_question_path_too(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         await machine.check_access_decide(_admin(), ObjectCheckedAction, ObjectCheckedAction.Params())
 
@@ -375,7 +375,7 @@ class TestTheRequestIdentity:
 
 class TestNoFailureText:
     async def test_no_attribute_of_any_event_carries_it(
-        self, machine: ActionProductMachine, exporter: InMemoryExporter
+        self, machine: ActionProductMachine, exporter: InMemoryExporterPlugin
     ) -> None:
         _set_object_behaviour("failed")
 

@@ -34,7 +34,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -92,21 +92,21 @@ class LoginAction(BaseAction[LoginParams, TokenResult]):
 
 @meta(description="Issue a fresh token for the current login session.", domain=AuthDomain)
 @check_roles(ViewerRole)
-class RefreshAction(BaseAction[ParamsStub, TokenResult]):
+class RefreshAction(BaseAction[StubParams, TokenResult]):
 
     @summary_aspect("Sign a fresh token that keeps the session id.")
     @context_requires(Ctx.User.user_id, Ctx.User.session_id)
-    async def refresh_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> TokenResult:
+    async def refresh_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> TokenResult:
         return TokenResult(access_token=_sign(ctx.get(Ctx.User.user_id), ctx.get(Ctx.User.session_id)))
 
 
 @meta(description="Report who is calling and from which session.", domain=AuthDomain)
 @check_roles(ViewerRole)
-class WhoAmIAction(BaseAction[ParamsStub, IdentityResult]):
+class WhoAmIAction(BaseAction[StubParams, IdentityResult]):
 
     @summary_aspect("Read the caller and the session from the context.")
     @context_requires(Ctx.User.user_id, Ctx.User.session_id)
-    async def whoami_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> IdentityResult:
+    async def whoami_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> IdentityResult:
         return IdentityResult(user_id=ctx.get(Ctx.User.user_id), session_id=ctx.get(Ctx.User.session_id))
 
 

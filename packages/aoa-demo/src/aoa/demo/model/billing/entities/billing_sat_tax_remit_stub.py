@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_cash_apply_hint import CashApplicationHintCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Tax remittance advice continuing cash-application liquidity chain", resource=BillingWarehouse)
+@entity(description="Tax remittance advice continuing cash-application liquidity chain", resource=BillingWarehouseStorage)
 class TaxRemittanceAdviceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Advice stub id")
     lifecycle: BillingDenseLifecycle = Field(description="Remittance lifecycle")

@@ -3,7 +3,7 @@
 
 A minimal "order created" action returns an ``OcelFrame`` for the order with its
 ``customer`` relation loaded. ``OcelPlugin`` turns the trace into one OCEL event
-(root E2O + one-hop peer E2O), ``InMemoryOcelStoreResource`` writes OCEL 2.0 JSON,
+(root E2O + one-hop peer E2O), ``InMemoryOcelStorage`` writes OCEL 2.0 JSON,
 and this script prints a readable summary plus the pretty log.
 
 Run from repository root:
@@ -39,7 +39,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import BaseResource, BaseStorage, Connections, InMemoryDataSource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStoreResource, OcelFrame, OcelPlugin
+from aoa.ocel import OCEL_FRAMES_KEY, InMemoryOcelStorage, OcelFrame, OcelPlugin
 from aoa.ocel.dto import OcelAttribute
 
 
@@ -58,7 +58,8 @@ class ShopDataSource(InMemoryDataSource):
 class ShopStorage(BaseStorage[ShopDataSource]):
     """Hold the shop entities."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None
 
@@ -155,7 +156,7 @@ async def main() -> None:
         output = Path(tmp) / "shop.ocel.json"
 
         # The owning connection opens/closes the store; the plugin only adds events.
-        store = InMemoryOcelStoreResource(output_file=output)
+        store = InMemoryOcelStorage(output_file=output)
         await store.open()
 
         machine = ActionProductMachine(plugins=[OcelPlugin(store=store)])

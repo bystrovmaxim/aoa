@@ -79,7 +79,7 @@ def test_get_graph_nodes_honours_exclude_graph_model_marker() -> None:
 
 
 def _stub_node(node_id: str) -> BaseGraphNode[object]:
-    class _N(BaseGraphNode[object]):
+    class _ExcludedGraphNode(BaseGraphNode[object]):
         def __init__(self) -> None:
             super().__init__(
                 node_id=node_id,
@@ -92,4 +92,4 @@ def _stub_node(node_id: str) -> BaseGraphNode[object]:
         def get_all_edges(self) -> list[BaseGraphEdge]:
             return []
 
-    return _N()
+    return _ExcludedGraphNode()

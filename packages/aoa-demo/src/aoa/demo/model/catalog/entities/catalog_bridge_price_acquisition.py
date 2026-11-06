@@ -10,11 +10,11 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotCoreEntity
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
 @entity(
-    description="Associative stitching between attribution ledger and elasticity ribbon subgraph", resource=CatalogObjectStore
+    description="Associative stitching between attribution ledger and elasticity ribbon subgraph", resource=CatalogObjectStoreStorage
 )
 class CatalogPriceAcquisitionLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")

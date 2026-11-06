@@ -49,7 +49,7 @@ mock_payment       — ``AsyncMock(spec=PaymentClient)``, charge -> "TXN-TEST-00
 mock_notification  — ``AsyncMock(spec=NotificationClient)``, send -> True.
 mock_inventory     — ``AsyncMock(spec=InventoryClient)``, reserve -> "RES-TEST-001",
                      unreserve -> True.
-mock_db            — ``AsyncMock(spec=OrdersDbManager)``.
+mock_db            — ``AsyncMock(spec=OrdersStorage)``.
 
 clean_bench        — ``TestBench`` without mocks; logging silenced.
 bench              — ``TestBench`` with Payment + Notification mocks.
@@ -64,7 +64,7 @@ import pytest
 
 from aoa.action_machine.testing import TestBench
 
-from ..support.domain_model import OrdersDbManager
+from ..support.domain_model import OrdersStorage
 from ..support.domain_model.roles import AdminRole, ManagerRole
 from ..support.domain_model.services import (
     InventoryClient,
@@ -124,11 +124,11 @@ def mock_inventory() -> AsyncMock:
 @pytest.fixture
 def mock_db() -> AsyncMock:
     """
-    ``OrdersDbManager`` mock for ``connections={"db": mock_db}``.
+    ``OrdersStorage`` mock for ``connections={"db": mock_db}``.
 
-    Used with ``FullAction``, which declares ``@connection(OrdersDbManager, key="db")``.
+    Used with ``FullAction``, which declares ``@connection(OrdersStorage, key="db")``.
     """
-    return AsyncMock(spec=OrdersDbManager)
+    return AsyncMock(spec=OrdersStorage)
 
 
 @pytest.fixture

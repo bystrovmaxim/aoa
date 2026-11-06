@@ -101,6 +101,7 @@ from aoa.action_machine.graph.validators import (
     entity_specialization_validator,
     json_form_validator,
     resource_domain_validator,
+    resource_wrapper_validator,
 )
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
@@ -204,6 +205,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
+        resource_wrapper_validator.validate_resource_wrappers(nodes.values())
         resource_domain_validator.validate_resource_data_sources(nodes.values())
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
         self._validate_edge_identity(nodes)

@@ -1,6 +1,6 @@
 # packages/aoa-action-machine/src/aoa/action_machine/model/base_result.py
 """
-Immutable action result model.
+BaseResult — immutable action result model.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -46,20 +46,32 @@ Result is built by the summary aspect and returned to calling code.
 
 """
 
-from typing import Self
+from typing import Any, Self
 
 from pydantic import ConfigDict, model_validator
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.model.base_schema import BaseSchema
 from aoa.action_machine.model.full_entities import refuse_partial_entities
+from aoa.action_machine.naming.suffix import require_suffix
 
 
 @exclude_graph_model
 class BaseResult(BaseSchema):
-    """Frozen base class for final action result payloads."""
+    """
+    AI-CORE-BEGIN
+    ROLE: Immutable action output contract.
+    CONTRACT: Every descendant ends with ``Result``; invalid declarations raise NamingSuffixError.
+    INVARIANTS: Frozen fields, forbidden extras and full entity values remain enforced.
+    AI-CORE-END
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Require the ``Result`` suffix for every descendant."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseResult", "Result")
 
     @model_validator(mode="after")
     def _carry_full_entities(self) -> Self:

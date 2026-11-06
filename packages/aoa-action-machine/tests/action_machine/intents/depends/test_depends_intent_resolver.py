@@ -8,12 +8,12 @@ from aoa.action_machine.intents.depends.depends_intent_resolver import DependsIn
 from ....support.domain_model.full_action import FullAction
 from ....support.domain_model.ping_action import PingAction
 from ....support.domain_model.services import NotificationGateway, PaymentGateway
-from ....support.domain_model.test_db_manager import OrdersDbManager
+from ....support.domain_model.test_db_manager import OrdersStorage
 
 
 def test_resolve_dependency_types_returns_declared_dependency_types() -> None:
     assert DependsIntentResolver.resolve_dependency_types(FullAction) == [
-        OrdersDbManager,
+        OrdersStorage,
         NotificationGateway,
         PaymentGateway,
     ]

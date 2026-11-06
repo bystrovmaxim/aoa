@@ -10,13 +10,13 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
 from aoa.demo.model.billing.entities.funding_window_hint import FundingWindowHintCoreEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
 
 
-@entity(description="Cash application routing hint chained from liquidity funding window facet", resource=BillingWarehouse)
+@entity(description="Cash application routing hint chained from liquidity funding window facet", resource=BillingWarehouseStorage)
 class CashApplicationHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hint id")
     lifecycle: BillingDenseLifecycle = Field(description="Cash hint lifecycle")

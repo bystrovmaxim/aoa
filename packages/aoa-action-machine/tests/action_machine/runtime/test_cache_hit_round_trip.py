@@ -26,7 +26,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
+from aoa.action_machine.model.stub_params import StubParams
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -40,27 +40,27 @@ from ...support.round_trip_model import RtLineCoreEntity, RtOrderResult, result
 
 @meta(description="Caches an order Result of every value type", domain=OrdersDomain)
 @check_roles(GuestRole)
-class CachedOrderResultAction(BaseAction[ParamsStub, RtOrderResult]):
+class CachedOrderResultAction(BaseAction[StubParams, RtOrderResult]):
     """Answers with one order Result and caches it under one key."""
 
     @cache_key("One key")
-    async def order_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def order_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "order"
 
     @cache_write("Keep it", tags=(CachedItemCoreEntity,))
     async def order_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: RtOrderResult, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: RtOrderResult, duration_ms: float
     ) -> list[CacheTag] | None:
         return [CacheTag(type=CachedItemCoreEntity, key="order")]
 
     @summary_aspect("Answer")
     async def order_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> RtOrderResult:
         return result(lines=(RtLineCoreEntity(id="l1", quantity=2),))
 
 
-class BytesStore(CacheCoordinator):
+class BytesStoreCoordinator(CacheCoordinator):
     """The shipped store, keeping the last payload it was given so a test can read and edit it."""
 
     def __init__(self) -> None:
@@ -73,15 +73,15 @@ class BytesStore(CacheCoordinator):
 
 
 async def _miss_then_hit(*, drop_entities: bool) -> tuple[RtOrderResult, RtOrderResult, bytes]:
-    store = BytesStore()
+    store = BytesStoreCoordinator()
     machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[]), cache_coordinator=store)
-    written = await machine.run(Context(), CachedOrderResultAction(), ParamsStub())
+    written = await machine.run(Context(), CachedOrderResultAction(), StubParams())
     stored = store.payload
     if drop_entities:
         document = json.loads(stored)
         del document["order"]["lines"]["entities"]
         await store.put(CachedOrderResultAction, "order", json.dumps(document).encode(), 1.0)
-    hit = await machine.run(Context(), CachedOrderResultAction(), ParamsStub())
+    hit = await machine.run(Context(), CachedOrderResultAction(), StubParams())
     return written, hit, stored
 
 

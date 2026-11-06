@@ -17,7 +17,7 @@ class _Root:
     pass
 
 
-class _Node(BaseGraphNode[object]):
+class _TestGraphNode(BaseGraphNode[object]):
     _companions: list[BaseGraphNode[Any]]
 
     def __init__(
@@ -38,9 +38,9 @@ class _Node(BaseGraphNode[object]):
 
 
 def test_node_graph_coordinator_recursively_includes_companions() -> None:
-    grandchild = _Node("grandchild")
-    child = _Node("child", [grandchild])
-    root_node = _Node("root", [child])
+    grandchild = _TestGraphNode("grandchild")
+    child = _TestGraphNode("child", [grandchild])
+    root_node = _TestGraphNode("root", [child])
 
     class _Inspector(BaseGraphNodeInspector[_Root]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
@@ -53,7 +53,7 @@ def test_node_graph_coordinator_recursively_includes_companions() -> None:
 
 
 def test_node_graph_coordinator_rejects_duplicate_companion_ids_during_expansion() -> None:
-    root_node = _Node("root", [_Node("root")])
+    root_node = _TestGraphNode("root", [_TestGraphNode("root")])
 
     class _Inspector(BaseGraphNodeInspector[_Root]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:

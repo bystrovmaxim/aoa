@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Settlement ripple memo on sweep branch", resource=BillingWarehouse)
+@entity(description="Settlement ripple memo on sweep branch", resource=BillingWarehouseStorage)
 class SettlementRippleCorrectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Memo id")
     lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")

@@ -8,18 +8,19 @@ Run: uv run python examples/step_19_connections/03_without_open.py
 import asyncio
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
 
 @exclude_graph_model
-class TraceResource(BaseResource):
+class TraceController(BaseController):
     """Record lifecycle calls without opening an external connection."""
     def __init__(self, events):
         """Keep the event list supplied by the example."""
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use by nested actions."""
         return None
     async def open(self):
@@ -33,14 +34,15 @@ class TraceResource(BaseResource):
 async def main():
     """Run this case and verify its observable result."""
     @exclude_graph_model
-    class NoteResource(BaseResource):
+    class NoteController(BaseController):
         """Carry a note for one call."""
-        def get_wrapper_class(self):
+        @classmethod
+        def get_wrapper_class(cls):
             """Allow direct use."""
             return None
 
     events = []
-    declaration = PerCallConnection(NoteResource, lambda resource: events.append("finalize"))
+    declaration = PerCallConnection(NoteController, lambda resource: events.append("finalize"))
     async with connection_scope({"note": declaration}):
         events.append("use")
     assert events == ["use", "finalize"]

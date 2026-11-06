@@ -1,9 +1,9 @@
 # packages/aoa-action-machine/src/aoa/action_machine/resources/base_gateway.py
 """
-Marker base class for external service gateway resources.
+BaseGateway — external service resource kind.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``BaseGateway`` is the root for resources that delegate work to external
@@ -41,6 +41,17 @@ them; an aspect never holds the raw client::
 
 A gateway holds no transaction: a nested action gets the same gateway, and a
 rollup run refuses it, since a call already made to a service cannot be taken back.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseResource -> BaseGateway -> named concrete resources
+
+The root validates canonical kind ancestry and descendant names.
+
 """
 
 from abc import ABC
@@ -54,12 +65,14 @@ from aoa.action_machine.resources.base_resource import BaseResource
 class BaseGateway(BaseResource[TDataSource_co], ABC):
     """
     AI-CORE-BEGIN
-        ROLE: Root for resources that delegate work to external services.
-        CONTRACT: Do not assume the service retains state between calls.
-        INVARIANTS: You do not know how the service works internally.
+    ROLE: Root for resources that delegate work to external services.
+    CONTRACT: Do not assume the service retains state between calls.
+    INVARIANTS: You do not know how the service works internally.
     AI-CORE-END
     """
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a gateway holds no transaction, so a nested action gets the same gateway."""
         return None

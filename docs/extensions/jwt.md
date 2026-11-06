@@ -169,7 +169,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseResult, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -194,11 +194,11 @@ class SessionResult(BaseResult):
 
 @meta(description="Report the caller's login session.", domain=AuthDomain)
 @check_roles(ViewerRole)
-class SessionAction(BaseAction[ParamsStub, SessionResult]):
+class SessionAction(BaseAction[StubParams, SessionResult]):
 
     @summary_aspect("Read the session id.")
     @context_requires(Ctx.User.session_id)
-    async def session_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> SessionResult:
+    async def session_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> SessionResult:
         return SessionResult(session_id=ctx.get(Ctx.User.session_id))
 
 
@@ -210,7 +210,7 @@ async def main() -> None:
     user = await auth.authenticate({"token": token})
     print(user)
 
-    result = await ActionProductMachine().run(Context(user=user), SessionAction(), ParamsStub())
+    result = await ActionProductMachine().run(Context(user=user), SessionAction(), StubParams())
     print(result)
 
 
@@ -236,7 +236,7 @@ Because AOA keeps no session store, ending a session is application logic. In [`
 # Fragment: its imports are left out.
 @access_decide("Refuse a session the application has ended")
 @context_requires(Ctx.User.session_id)
-async def active_session_access_decide(self, params: ParamsStub, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
+async def active_session_access_decide(self, params: StubParams, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
     if await connections["sessions"].is_ended(ctx.get(Ctx.User.session_id)):
         return Refused("SESSION_ENDED")
     return Allowed()

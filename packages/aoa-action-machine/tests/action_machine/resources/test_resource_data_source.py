@@ -2,7 +2,7 @@
 """
 A resource names its data source as the type argument of its base.
 
-``class OrdersResource(BaseStorage[ShopDataSource])`` names ``ShopDataSource``; a resource
+``class OrdersStorage(BaseStorage[ShopDataSource])`` names ``ShopDataSource``; a resource
 that inherits a base without a type argument names none. A data source outside the bound of
 the parameter it fills, and a second data source in one hierarchy, are refused when the class
 is created; an instance of another class, or none where one is named, is refused at run time.
@@ -49,19 +49,22 @@ class _RelationalDataSource(BaseDataSource):
 class _RelationalStorage[D: _RelationalDataSource](BaseStorage[D]):
     """A kind of storage that takes only a relational data source."""
 
-    def get_wrapper_class(self) -> None:
+    @classmethod
+    def get_wrapper_class(cls) -> None:
         return None
 
 
 @exclude_graph_model
 class _OrdersStorage(BaseStorage[_ShopDataSource]):
-    def get_wrapper_class(self) -> None:
+    @classmethod
+    def get_wrapper_class(cls) -> None:
         return None
 
 
 @exclude_graph_model
 class _SessionStorage(BaseStorage):  # type: ignore[type-arg]
-    def get_wrapper_class(self) -> None:
+    @classmethod
+    def get_wrapper_class(cls) -> None:
         return None
 
 
@@ -71,12 +74,14 @@ def test_a_resource_names_its_data_source_through_its_base() -> None:
 
     @exclude_graph_model
     class _MailGateway(BaseGateway[_ShopDataSource]):
-        def get_wrapper_class(self) -> None:
+        @classmethod
+        def get_wrapper_class(cls) -> None:
             return None
 
     @exclude_graph_model
     class _RoomController(BaseController[_ShopDataSource]):
-        def get_wrapper_class(self) -> None:
+        @classmethod
+        def get_wrapper_class(cls) -> None:
             return None
 
     assert _MailGateway.data_source_type() is _ShopDataSource
@@ -100,13 +105,14 @@ def test_a_second_data_source_is_refused() -> None:
     """A resource hierarchy names at most one data source."""
 
     @exclude_graph_model
-    class _Shared[D: BaseDataSource](BaseStorage[_ShopDataSource]):
-        def get_wrapper_class(self) -> None:
+    class _SharedStorage[D: BaseDataSource](BaseStorage[_ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls) -> None:
             return None
 
     with pytest.raises(DataSourceDeclarationError, match="a resource has one data source; its bases name _BillingDataSource, _ShopDataSource"):
 
-        class _Both(_Shared[_BillingDataSource]):
+        class _BothStorage(_SharedStorage[_BillingDataSource]):
             pass
 
 
@@ -146,20 +152,23 @@ _MODEL = textwrap.dedent(
 
 
     @meta(description="Orders", domain=ShopDomain)
-    class OrdersResource(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+    class OrdersStorage(BaseStorage[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
     @meta(description="Support", domain=SupportDomain)
-    class SupportResource(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+    class SupportStorage(BaseStorage[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
     @meta(description="Sessions", domain=ShopDomain)
-    class SessionResource(BaseStorage):
-        def get_wrapper_class(self):
+    class SessionStorage(BaseStorage):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
@@ -175,7 +184,7 @@ def test_the_graph_has_an_edge_from_each_resource_that_names_a_data_source() -> 
     graph = json.loads(result.stdout)
     jsonschema.Draft202012Validator(GRAPH_JSON_SCHEMA).validate(graph)
     rows = [e for e in graph["edges"] if e["type"] == "resource_data_source"]
-    assert sorted(e["source_id"].rsplit(".", 1)[-1] for e in rows) == ["OrdersResource", "SupportResource"]
+    assert sorted(e["source_id"].rsplit(".", 1)[-1] for e in rows) == ["OrdersStorage", "SupportStorage"]
     assert {e["target_id"].rsplit(".", 1)[-1] for e in rows} == {"ShopDataSource"}
     assert {(e["relationship"], e["is_dag"], json.dumps(e["properties"])) for e in rows} == {("Aggregation", True, "{}")}
     assert all(e["id"] == f"{e['source_id']}|resource_data_source|{e['target_id']}" for e in rows)

@@ -1,6 +1,6 @@
-# packages/aoa-action-machine/src/aoa/action_machine/model/params_stub.py
+# packages/aoa-action-machine/src/aoa/action_machine/model/stub_params.py
 """
-``ParamsStub`` — minimal ``BaseParams`` subclass for tests and tooling.
+``StubParams`` — minimal ``BaseParams`` subclass for tests and tooling.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -9,8 +9,17 @@ PURPOSE
 Real actions must bind concrete parameter schemas (subclasses of ``BaseParams``).
 Graph inspectors intentionally **omit** the abstract root ``BaseParams`` from the
 interchange walk, so ``BaseAction[BaseParams, …]`` yields dangling ``params`` edges.
-Use ``ParamsStub`` (or another real subclass) as the generic parameter when a
+Use ``StubParams`` (or another real subclass) as the generic parameter when a
 placeholder input contract is enough (unit tests, meta validation, naming checks).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseParams -> StubParams -> empty action input contract
+
 """
 
 from __future__ import annotations
@@ -18,7 +27,7 @@ from __future__ import annotations
 from aoa.action_machine.model.base_params import BaseParams
 
 
-class ParamsStub(BaseParams):
+class StubParams(BaseParams):
     """
     AI-CORE-BEGIN
     ROLE: Canonical empty params type for non-production ``BaseAction`` bindings.

@@ -43,10 +43,10 @@ def test_add_plugin() -> None:
     """add_plugin appends a plugin to the coordinator."""
     from unittest.mock import MagicMock
 
-    from aoa.action_machine.plugin.core.plugin import Plugin
+    from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 
     pc = PluginCoordinator()
-    plugin = MagicMock(spec=Plugin)
+    plugin = MagicMock(spec=BasePlugin)
     pc.add_plugin(plugin)
     assert plugin in pc.plugins
 
@@ -55,10 +55,10 @@ def test_add_plugin_to_coordinator_with_existing_plugins() -> None:
     """add_plugin appends without removing existing plugins."""
     from unittest.mock import MagicMock
 
-    from aoa.action_machine.plugin.core.plugin import Plugin
+    from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 
-    p1 = MagicMock(spec=Plugin)
-    p2 = MagicMock(spec=Plugin)
+    p1 = MagicMock(spec=BasePlugin)
+    p2 = MagicMock(spec=BasePlugin)
     pc = PluginCoordinator(plugins=[p1])
     pc.add_plugin(p2)
     assert pc.plugins == [p1, p2]

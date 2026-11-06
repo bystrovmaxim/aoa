@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
-from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
+from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Organization binding for a person through a federated linkage", resource=IdentityStoreBase)
+@entity(description="Organization binding for a person through a federated linkage", resource=IdentityStorage)
 class IdentityOrgBindingStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Binding id")
     lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")

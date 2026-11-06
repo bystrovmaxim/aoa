@@ -13,6 +13,7 @@ from aoa.demo.model.data_sources.access_cascade_data_source import AccessCascade
 class AccessCascadeStorage(BaseStorage[AccessCascadeDataSource]):
     """Hold the access cascade domain's entities; the demo never opens it."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

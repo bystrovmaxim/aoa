@@ -18,7 +18,7 @@ class _Axis:
     pass
 
 
-class _EdgeNode(BaseGraphNode[object]):
+class _EdgeGraphNode(BaseGraphNode[object]):
     """Minimal node with explicit outgoing edges and optional companions."""
 
     def __init__(
@@ -56,12 +56,12 @@ def test_indexes_raise_before_build() -> None:
 
 
 def test_empty_graph_indexes() -> None:
-    class _Empty(BaseGraphNodeInspector[_Axis]):
+    class _EmptyInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return None
 
     c = NodeGraphCoordinator()
-    c.build([_Empty()])
+    c.build([_EmptyInspector()])
 
     assert c.get_nodes_by_type("missing") == ()
     assert c.get_edges_by_type("missing") == ()
@@ -69,8 +69,8 @@ def test_empty_graph_indexes() -> None:
 
 
 def test_get_nodes_by_type_matches_full_scan() -> None:
-    a = _EdgeNode(node_id="a", node_type="A")
-    root = _EdgeNode(
+    a = _EdgeGraphNode(node_id="a", node_type="A")
+    root = _EdgeGraphNode(
         node_id="root",
         node_type="R",
         edges=[
@@ -84,12 +84,12 @@ def test_get_nodes_by_type_matches_full_scan() -> None:
         companions=[a],
     )
 
-    class _Insp(BaseGraphNodeInspector[_Axis]):
+    class _TestInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return root if cls is _Axis else None
 
     c = NodeGraphCoordinator()
-    c.build([_Insp()])
+    c.build([_TestInspector()])
 
     by_a = c.get_nodes_by_type("A")
     assert tuple(n.node_id for n in by_a) == ("a",)
@@ -98,21 +98,21 @@ def test_get_nodes_by_type_matches_full_scan() -> None:
 
 
 def test_get_edges_by_type_and_adjacency_indexes() -> None:
-    target = _EdgeNode(node_id="t", node_type="T")
+    target = _EdgeGraphNode(node_id="t", node_type="T")
     edge_slot = CompositionGraphEdge(
         edge_name="slot",
         is_dag=False,
         target_node_id=target.node_id,
         target_node=target,
     )
-    root = _EdgeNode(node_id="r", node_type="R", edges=[edge_slot], companions=[target])
+    root = _EdgeGraphNode(node_id="r", node_type="R", edges=[edge_slot], companions=[target])
 
-    class _Insp(BaseGraphNodeInspector[_Axis]):
+    class _TestInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return root if cls is _Axis else None
 
     c = NodeGraphCoordinator()
-    c.build([_Insp()])
+    c.build([_TestInspector()])
 
     av = c.get_available_types()
     assert av["node_types"] == frozenset({"R", "T"})

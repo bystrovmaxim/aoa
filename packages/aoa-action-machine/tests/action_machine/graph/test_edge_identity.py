@@ -153,7 +153,7 @@ class _Axis:
     """Single host type for a tiny graph."""
 
 
-class _Node(BaseGraphNode[object]):
+class _TestGraphNode(BaseGraphNode[object]):
     def __init__(self, node_id: str, *, edges: list[BaseGraphEdge] | None = None, companions: list[BaseGraphNode[Any]] | None = None) -> None:
         super().__init__(node_id=node_id, node_type="Params", label=node_id, properties={}, node_obj=object())
         object.__setattr__(self, "_edges", edges or [])
@@ -188,7 +188,7 @@ def _link(target: str, name: str = "uses") -> AssociationGraphEdge:
 
 def test_two_edges_with_one_id_fail_the_build() -> None:
     """Two edges of one type without a rule between the same nodes are refused, naming both."""
-    root = _Node("pkg.host", edges=[_link("pkg.other"), _link("pkg.other")], companions=[_Node("pkg.other")])
+    root = _TestGraphNode("pkg.host", edges=[_link("pkg.other"), _link("pkg.other")], companions=[_TestGraphNode("pkg.other")])
 
     with pytest.raises(DuplicateEdgeError) as caught:
         _build(root)
@@ -201,7 +201,7 @@ def test_two_edges_with_one_id_fail_the_build() -> None:
 
 def test_a_node_id_with_the_separator_fails_the_build() -> None:
     """A node whose id contains ``|`` is refused even when no edge touches it."""
-    root = _Node("pkg.host", companions=[_Node("pkg.odd|name")])
+    root = _TestGraphNode("pkg.host", companions=[_TestGraphNode("pkg.odd|name")])
 
     with pytest.raises(InvalidGraphError, match=r"pkg\.odd\|name"):
         _build(root)
@@ -210,7 +210,7 @@ def test_a_node_id_with_the_separator_fails_the_build() -> None:
 def test_an_edge_whose_rule_property_has_the_separator_fails_the_build() -> None:
     """A transition that leaves a state named with ``|`` is refused, naming the edge and the property."""
     transition = StateGraphEdge(target_node_id="pkg.state", from_state="dr|aft", to_state="done")
-    root = _Node("pkg.host", edges=[transition], companions=[_Node("pkg.state")])
+    root = _TestGraphNode("pkg.host", edges=[transition], companions=[_TestGraphNode("pkg.state")])
 
     with pytest.raises(InvalidGraphError, match=r"pkg\.host -\[lifecycle_transition\]-> pkg\.state.*from_state"):
         _build(root)
@@ -218,10 +218,10 @@ def test_an_edge_whose_rule_property_has_the_separator_fails_the_build() -> None
 
 def test_edges_that_can_be_told_apart_build() -> None:
     """Edges of different types or targets between the same nodes build as before."""
-    root = _Node(
+    root = _TestGraphNode(
         "pkg.host",
         edges=[_link("pkg.other"), _link("pkg.other", name="reads"), _link("pkg.third")],
-        companions=[_Node("pkg.other"), _Node("pkg.third")],
+        companions=[_TestGraphNode("pkg.other"), _TestGraphNode("pkg.third")],
     )
 
     assert len(_build(root).get_all_nodes()) == 3

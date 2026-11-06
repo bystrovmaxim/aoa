@@ -2,14 +2,14 @@
 """
 Connection fixtures for the FastAPI adapter test suite.
 
-Provides ``DummyResourceManager`` — a stub ``BaseResource`` used as a per-route
+Provides ``DummyController`` — a stub ``BaseResource`` used as a per-route
 connection value (``connections={'key': res}``). The FastAPI adapter tests
 assert it both on the route record and as the connections mapping forwarded to
 ``machine.run`` (positional arg index 3), including via ``PerCallConnection``.
 """
 
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 
 
 class _ResourceTestDomain(BaseDomain):
@@ -28,8 +28,9 @@ def meta(description: str, domain: type[BaseDomain]):
 
 
 @meta(description="Connections dict test resource", domain=_ResourceTestDomain)
-class DummyResourceManager(BaseResource):
+class DummyController(BaseController):
     """Stub resource manager for tests."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None

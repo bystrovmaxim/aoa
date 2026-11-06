@@ -93,7 +93,7 @@ EXAMPLES
     class ShopDataSource(InMemoryDataSource): ...
 
     @meta(description="Stores the shop model", domain=ShopDomain)
-    class ShopDatabase(BaseStorage[ShopDataSource]): ...
+    class ShopStorage(BaseStorage[ShopDataSource]): ...
 
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
@@ -108,7 +108,7 @@ EXAMPLES
             .state(OrderStateEntity.DONE).final()
         )
 
-    @entity(description="Customer order", resource=ShopDatabase)
+    @entity(description="Customer order", resource=ShopStorage)
     class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order identifier")
         amount: float = Field(description="Order total", ge=0)

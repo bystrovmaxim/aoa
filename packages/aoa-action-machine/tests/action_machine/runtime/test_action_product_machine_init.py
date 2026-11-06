@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.console_logger import ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
-from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -60,14 +60,14 @@ def test_no_plugins_by_default() -> None:
 
 
 def test_plugins_added_when_no_coordinator_passed() -> None:
-    plugin = MagicMock(spec=Plugin)
+    plugin = MagicMock(spec=BasePlugin)
     machine = ActionProductMachine(plugins=[plugin], cache_coordinator=None)
     assert plugin in machine._plugin_coordinator.plugins
 
 
 def test_plugins_added_to_passed_plugin_coordinator() -> None:
     pc = PluginCoordinator()
-    plugin = MagicMock(spec=Plugin)
+    plugin = MagicMock(spec=BasePlugin)
     machine = ActionProductMachine(plugin_coordinator=pc, plugins=[plugin], cache_coordinator=None)
     assert plugin in machine._plugin_coordinator.plugins
     assert machine._plugin_coordinator is pc

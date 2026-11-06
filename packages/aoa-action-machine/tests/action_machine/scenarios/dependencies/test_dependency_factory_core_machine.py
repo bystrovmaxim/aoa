@@ -53,14 +53,14 @@ import pytest
 
 from aoa.action_machine.exceptions import RollupNotSupportedError
 from aoa.action_machine.intents.meta.meta_decorator import meta
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
 from ....support.domain_model import (
     FullAction,
     NotificationGateway,
-    OrdersDbManager,
+    OrdersStorage,
     PaymentGateway,
     PingAction,
 )
@@ -92,21 +92,23 @@ class _ConfigurableService:
 
 
 @meta(description="Mock manager for rollup tests", domain=TestDomain)
-class _MockResourceManager(BaseResource):
+class _MockResourceController(BaseController):
     """Resource manager WITHOUT rollup support (default)."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
 
 @meta(description="Mock manager with rollup support", domain=TestDomain)
-class _RollupSupportedManager(BaseResource):
+class _RollupSupportedController(BaseController):
     """Resource manager WITH rollup support."""
 
     async def check_rollup_support(self) -> bool:
         return True
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
 
@@ -329,33 +331,33 @@ class TestResolveRollup:
         """
         rollup=True for a manager that supports rollup → resolve() succeeds.
 
-        _RollupSupportedManager overrides check_rollup_support()
+        _RollupSupportedController overrides check_rollup_support()
         and returns True. DependencyFactory calls check_rollup_support()
         and does not raise.
         """
         # Arrange — factory with rollup-capable manager
-        factory = DependencyFactory((DependencyInfo(cls=_RollupSupportedManager, description="With rollup support"),))
+        factory = DependencyFactory((DependencyInfo(cls=_RollupSupportedController, description="With rollup support"),))
 
         # Act — resolve with rollup=True
-        manager = await factory.resolve(_RollupSupportedManager, rollup=True)
+        manager = await factory.resolve(_RollupSupportedController, rollup=True)
 
         # Assert — instance created successfully
-        assert isinstance(manager, _RollupSupportedManager)
+        assert isinstance(manager, _RollupSupportedController)
 
     async def test_rollup_true_for_unsupported_manager_raises(self) -> None:
         """
         rollup=True for a manager WITHOUT rollup support → RollupNotSupportedError.
 
-        _MockResourceManager does not override check_rollup_support(),
+        _MockResourceController does not override check_rollup_support(),
         so the default from BaseResource applies,
         which raises RollupNotSupportedError.
         """
         # Arrange — factory with manager without rollup support
-        factory = DependencyFactory((DependencyInfo(cls=_MockResourceManager, description="Without rollup"),))
+        factory = DependencyFactory((DependencyInfo(cls=_MockResourceController, description="Without rollup"),))
 
         # Act & Assert — RollupNotSupportedError
         with pytest.raises(RollupNotSupportedError):
-            await factory.resolve(_MockResourceManager, rollup=True)
+            await factory.resolve(_MockResourceController, rollup=True)
 
     async def test_rollup_true_for_non_resource_manager(self) -> None:
         """
@@ -382,13 +384,13 @@ class TestResolveRollup:
         the check is skipped and the instance is created normally.
         """
         # Arrange — factory with manager without rollup support
-        factory = DependencyFactory((DependencyInfo(cls=_MockResourceManager, description="Without rollup"),))
+        factory = DependencyFactory((DependencyInfo(cls=_MockResourceController, description="Without rollup"),))
 
         # Act — resolve with rollup=False (default)
-        manager = await factory.resolve(_MockResourceManager, rollup=False)
+        manager = await factory.resolve(_MockResourceController, rollup=False)
 
         # Assert — instance created without error
-        assert isinstance(manager, _MockResourceManager)
+        assert isinstance(manager, _MockResourceController)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -447,14 +449,14 @@ class TestDomainIntegration:
         Factory for FullAction includes PaymentClient and NotificationClient.
 
         FullAction declares ``@depends`` on ``PaymentGateway``,
-        ``NotificationGateway``, and ``OrdersDbManager``.
+        ``NotificationGateway``, and ``OrdersStorage``.
         """
         factory = _dependency_factory_from_class(FullAction)
 
         # Act & Assert — services and resource manager type registered
         assert factory.has(PaymentGateway)
         assert factory.has(NotificationGateway)
-        assert factory.has(OrdersDbManager)
+        assert factory.has(OrdersStorage)
 
     def test_ping_action_factory_is_empty(self) -> None:
         """

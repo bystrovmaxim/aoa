@@ -1,9 +1,9 @@
 # packages/aoa-action-machine/src/aoa/action_machine/resources/base_controller.py
 """
-Marker base class for internal long-lived controller resources.
+BaseController — process-owned resource kind.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``BaseController`` is the root for internal long-lived dependencies whose
@@ -23,6 +23,17 @@ SCOPE (IN / OUT)
 **Out of scope**
     External data stores (→ ``BaseStorage``).
     External services you call but do not own (→ ``BaseGateway``).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseResource -> BaseController -> named concrete resources
+
+The root validates canonical kind ancestry and descendant names.
+
 """
 
 from abc import ABC
@@ -36,8 +47,8 @@ from aoa.action_machine.resources.base_resource import BaseResource
 class BaseController(BaseResource[TDataSource_co], ABC):
     """
     AI-CORE-BEGIN
-        ROLE: Root for internal resources whose lifecycle the process owns.
-        CONTRACT: You create it, initialise it, and shut it down.
-        INVARIANTS: Lives only as long as the process; does not persist on its own.
+    ROLE: Root for internal resources whose lifecycle the process owns.
+    CONTRACT: You create it, initialise it, and shut it down.
+    INVARIANTS: Lives only as long as the process; does not persist on its own.
     AI-CORE-END
     """

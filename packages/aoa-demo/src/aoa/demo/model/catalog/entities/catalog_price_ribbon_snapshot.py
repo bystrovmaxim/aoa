@@ -6,10 +6,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", resource=CatalogObjectStore)
+@entity(description="Price ribbon chained from search/boost spine (still no SKU hop)", resource=CatalogObjectStoreStorage)
 class PriceRibbonSnapshotCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ribbon id")
     lifecycle: CatalogDenseLifecycle = Field(description="Price ribbon lifecycle")

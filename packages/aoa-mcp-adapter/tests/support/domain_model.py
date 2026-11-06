@@ -42,9 +42,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import BaseGateway, Connections, InMemoryDataSource
+from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -258,10 +257,11 @@ def default_notification_gateway() -> NotificationGateway:
     description="Test database resource manager for order-scenario actions",
     domain=OrdersDomain,
 )
-class OrdersDbManager(BaseResource):
-    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersDbManager)``."""
+class OrdersStorage(BaseStorage):
+    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
@@ -377,14 +377,14 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
     factory=default_notification_gateway,
     description="Notification service",
 )
-@depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
-@connection(OrdersDbManager, key="db", description="Primary database")
+@depends(OrdersStorage, description="DB resource (class — same graph node as @connection)")
+@connection(OrdersStorage, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". ``@depends`` lists classes (services + ``OrdersDbManager``);
-    ``@connection(OrdersDbManager, key="db")`` shares the same resource_manager node.
+    Requires role "manager". ``@depends`` lists classes (services + ``OrdersStorage``);
+    ``@connection(OrdersStorage, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):

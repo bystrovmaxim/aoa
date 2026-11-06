@@ -42,23 +42,25 @@ _MODEL = textwrap.dedent(
 
 
     @meta(description="Orders", domain=SalesDomain)
-    class OrdersResource(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+    class OrdersStorage(BaseStorage[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
     @meta(description="Carts", domain={cart_domain})
-    class CartResource(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+    class CartStorage(BaseStorage[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
-    @entity(description="Customer order", resource=OrdersResource)
+    @entity(description="Customer order", resource=OrdersStorage)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 
 
-    @entity(description="Cart", resource=CartResource)
+    @entity(description="Cart", resource=CartStorage)
     class CartCoreEntity(BaseCoreEntity):
         id: str = Field(description="Cart id")
 
@@ -83,10 +85,10 @@ def _run(cart_domain: str) -> str:
 
 def test_two_resources_of_one_domain_on_one_data_source_are_refused() -> None:
     assert _run("SalesDomain") == (
-        "REFUSE DataSourceDeclarationError SalesDomain reaches ShopDataSource through CartResource and OrdersResource: "
+        "REFUSE DataSourceDeclarationError SalesDomain reaches ShopDataSource through CartStorage and OrdersStorage: "
         "a domain reaches one data source through one resource."
     )
 
 
 def test_resources_of_two_domains_share_a_data_source() -> None:
-    assert _run("BillingDomain") == "CartResource OrdersResource"
+    assert _run("BillingDomain") == "CartStorage OrdersStorage"

@@ -25,8 +25,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import AspectEvent, GlobalLifecycleEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -53,10 +53,10 @@ def _reset_error_aspect_calls() -> None:
     _error_aspect_calls["n"] = 0
 
 
-# ─── Plugin: record event type names ─────────────────────────────────────────
+# ─── BasePlugin: record event type names ─────────────────────────────────────────
 
 
-class _EventNameRecorder(Plugin):
+class _EventNameRecorderPlugin(BasePlugin):
     def __init__(self, names: list[str]) -> None:
         self._names = names
 
@@ -563,9 +563,9 @@ def _machine(
     no_cache: bool = False,
     cache: CacheCoordinator | None = None,
 ) -> ActionProductMachine:
-    plugins: list[Plugin] = []
+    plugins: list[BasePlugin] = []
     if names is not None:
-        plugins.append(_EventNameRecorder(names))
+        plugins.append(_EventNameRecorderPlugin(names))
     if no_cache:
         cc: CacheCoordinator | None = None
     elif cache is not None:

@@ -19,7 +19,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseResult, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -38,10 +38,10 @@ class PingResult(BaseResult):
 
 @meta(description="Health probe.", domain=SystemDomain)
 @check_roles(GuestRole)
-class PingAction(BaseAction[ParamsStub, PingResult]):
+class PingAction(BaseAction[StubParams, PingResult]):
 
     @summary_aspect("Return a fixed pong message.")
-    async def build_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> PingResult:
+    async def build_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> PingResult:
         _ = (params, state, box, connections)
         return PingResult(message="pong")
 

@@ -108,7 +108,7 @@ WEBSOCKET ROUTES
 registers a route that runs an action when a connection opens, one action per
 message type, and one when it ends; relayed message types run no action and go to
 the resource named by ``relay_key``. Every action receives the connection's
-``SocketChannel`` as ``connections["socket"]`` besides the route's own
+``SocketChannelController`` as ``connections["socket"]`` besides the route's own
 connections, filtered to exactly the keys it declares. See
 :mod:`aoa.fastapi.websocket_route`.
 

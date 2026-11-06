@@ -3,7 +3,7 @@
 The eight demo stubs satisfy the SQL contract without an edit.
 
 The SQL contract gained ``close()`` with a concrete harmless body, and the point
-of that body is exactly this file: every ``SqlResource`` subclass in the demo —
+of that body is exactly this file: every ``SqlStorage`` subclass in the demo —
 four domains, eight classes — keeps working untouched. The generic query member
 then left the contract, and nothing here had to change for that either: a stub
 that holds no connection has no statement to run. None of them is PostgreSQL, and
@@ -15,12 +15,12 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    SqlResource (contract: open/begin/commit/rollback/close)
+    SqlStorage (contract: open/begin/commit/rollback/close)
         │  close() has a concrete harmless body
-        ├── catalog:   CatalogSearchSidecar, CatalogObjectStore
-        ├── messaging: OutboxPrimaryDatabase
-        ├── billing:   BillingWarehouse, BillingReadReplica
-        └── store:     StorefrontDatabase, StorefrontSessionCache
+        ├── catalog:   CatalogSearchSidecarStorage, CatalogObjectStoreStorage
+        ├── messaging: OutboxPrimaryDatabaseStorage
+        ├── billing:   BillingWarehouseStorage, BillingReadReplicaStorage
+        └── store:     StorefrontDatabaseStorage, StorefrontSessionCacheStorage
 
 """
 
@@ -29,22 +29,22 @@ from __future__ import annotations
 import pytest
 
 from aoa.action_machine.resources.sql import ProtocolSqlResource
-from aoa.demo.model.billing.resources.read_replica import BillingReadReplica
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
-from aoa.demo.model.catalog.resources.search_sidecar import CatalogSearchSidecar
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
-from aoa.demo.model.store.resources.cache import StorefrontSessionCache
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.billing.resources.billing_read_replica_storage import BillingReadReplicaStorage
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
+from aoa.demo.model.catalog.resources.catalog_search_sidecar_storage import CatalogSearchSidecarStorage
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.resources.storefront_session_cache_storage import StorefrontSessionCacheStorage
 
 STUBS: list[type] = [
-    CatalogSearchSidecar,
-    CatalogObjectStore,
-    OutboxPrimaryDatabase,
-    BillingWarehouse,
-    BillingReadReplica,
-    StorefrontDatabase,
-    StorefrontSessionCache,
+    CatalogSearchSidecarStorage,
+    CatalogObjectStoreStorage,
+    OutboxPrimaryDatabaseStorage,
+    BillingWarehouseStorage,
+    BillingReadReplicaStorage,
+    StorefrontDatabaseStorage,
+    StorefrontSessionCacheStorage,
 ]
 
 

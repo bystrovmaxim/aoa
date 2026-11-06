@@ -20,6 +20,7 @@ class StorefrontCardGateway(BaseGateway[CardNetworkDataSource]):
     so the data source alone decides how the service's connection is shared.
     """
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

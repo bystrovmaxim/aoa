@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_acquirer_integrity import AcquirerIntegrityCheckCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Arbitration brief following acquirer integrity checkpoint", resource=BillingWarehouse)
+@entity(description="Arbitration brief following acquirer integrity checkpoint", resource=BillingWarehouseStorage)
 class ArbitrationBriefStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Brief id")
     lifecycle: BillingDenseLifecycle = Field(description="Brief lifecycle")

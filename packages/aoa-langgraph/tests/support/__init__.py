@@ -5,10 +5,10 @@ tests rely on, sourced from the self-contained :mod:`domain_model` module so
 the tests carry no dependency on ``tests.*`` from other packages.
 """
 
-from .domain_model import FullAction, OrdersDbManager, PingAction
+from .domain_model import FullAction, OrdersStorage, PingAction
 
 __all__ = [
     "FullAction",
-    "OrdersDbManager",
+    "OrdersStorage",
     "PingAction",
 ]

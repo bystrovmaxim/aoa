@@ -1,14 +1,14 @@
 # tests/resources/test_wrapper_sql_resource.py
 """
-Tests for WrapperSqlResource — a proxy wrapper that forbids transaction
+Tests for SqlStorageWrapper — a proxy wrapper that forbids transaction
 management at nested levels.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-WrapperSqlResource is a proxy around a ``ProtocolSqlResource``
-implementation (typically ``SqlResource``). It is created when
+SqlStorageWrapper is a proxy around a ``ProtocolSqlResource``
+implementation (typically ``SqlStorage``). It is created when
 connections are passed to child actions via ToolsBox.run(). The wrapper forbids
 the child action from managing the resource lifecycle (open, begin, commit,
 rollback, close) and offers it **nothing** to run a statement with: the query
@@ -40,11 +40,11 @@ A domain wrapper:
     - the domain's proxy keeps delegating when it is wrapped again.
 
 get_wrapper_class:
-    - Returns WrapperSqlResource (for re-wrapping).
+    - Returns SqlStorageWrapper (for re-wrapping).
     - Synchronous method.
 
 Double wrapping (nesting):
-    - WrapperSqlResource is wrapped again via get_wrapper_class.
+    - SqlStorageWrapper is wrapped again via get_wrapper_class.
     - Double wrap forbids transactions.
     - Double wrap exposes no query member either.
 
@@ -64,7 +64,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions import HandleError, TransactionProhibitedError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlResource, WrapperSqlResource
+from aoa.action_machine.resources.sql import ProtocolSqlResource, SqlStorage, SqlStorageWrapper
 
 
 class _WrapperSqlResourceTestDomain(BaseDomain):
@@ -88,9 +88,9 @@ def meta(description: str, domain: type[BaseDomain]):
 
 
 @meta(description="Wrapper SQL resource mock manager", domain=_WrapperSqlResourceTestDomain)
-class MockConnectionManager(SqlResource):
+class MockConnectionStorage(SqlStorage):
     """
-    Mock SqlResource for testing WrapperSqlResource.
+    Mock SqlStorage for testing SqlStorageWrapper.
     All methods are AsyncMock for call verification.
     """
 
@@ -112,8 +112,9 @@ class MockConnectionManager(SqlResource):
     async def rollback(self) -> None:
         pass
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
-        return WrapperSqlResource
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
+        return SqlStorageWrapper
 
 
 # ======================================================================
@@ -122,12 +123,13 @@ class MockConnectionManager(SqlResource):
 
 
 @exclude_graph_model
-class NotesWrapper(WrapperSqlResource):
+class NotesStorageWrapper(SqlStorageWrapper):
     """The notes domain's proxy: one delegated method, every refusal kept (NA-3.1, NA-3.2)."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Keep handing the domain's own proxy to a deeper nested action (NA-3.3)."""
-        return NotesWrapper
+        return NotesStorageWrapper
 
     async def load_total(self) -> str:
         """Ask the owner's own method, and name a failure as the domain's (NA-3.4)."""
@@ -138,7 +140,7 @@ class NotesWrapper(WrapperSqlResource):
 
 
 @meta(description="Notes domain resource with a proxy of its own", domain=_WrapperSqlResourceTestDomain)
-class NotesResource(MockConnectionManager):
+class NotesStorage(MockConnectionStorage):
     """A domain resource: one semantic method, and the proxy it wants nested actions to receive."""
 
     def __init__(self) -> None:
@@ -149,9 +151,10 @@ class NotesResource(MockConnectionManager):
         """Answer the domain's one question."""
         return "total: 3"  # overridden by AsyncMock in __init__
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Hand a nested action the domain's own proxy rather than the default one (NA-1.2)."""
-        return NotesWrapper
+        return NotesStorageWrapper
 
 
 # ======================================================================
@@ -160,33 +163,33 @@ class NotesResource(MockConnectionManager):
 
 
 @pytest.fixture
-def mock_manager() -> MockConnectionManager:
+def mock_manager() -> MockConnectionStorage:
     """Mock connection manager."""
-    return MockConnectionManager()
+    return MockConnectionStorage()
 
 
 @pytest.fixture
-def notes_manager() -> NotesResource:
+def notes_manager() -> NotesStorage:
     """A domain resource that declares a proxy of its own."""
-    return NotesResource()
+    return NotesStorage()
 
 
 @pytest.fixture
-def notes_proxy(notes_manager: NotesResource) -> NotesWrapper:
+def notes_proxy(notes_manager: NotesStorage) -> NotesStorageWrapper:
     """The proxy the framework would hand a nested action for that resource."""
-    return NotesWrapper(notes_manager)
+    return NotesStorageWrapper(notes_manager)
 
 
 @pytest.fixture
-def wrapper(mock_manager: MockConnectionManager) -> WrapperSqlResource:
-    """WrapperSqlResource wrapping the mock manager."""
-    return WrapperSqlResource(mock_manager)
+def wrapper(mock_manager: MockConnectionStorage) -> SqlStorageWrapper:
+    """SqlStorageWrapper wrapping the mock manager."""
+    return SqlStorageWrapper(mock_manager)
 
 
 @pytest.fixture
-def double_wrapper(wrapper: WrapperSqlResource) -> WrapperSqlResource:
-    """Double wrap — WrapperSqlResource around WrapperSqlResource."""
-    return WrapperSqlResource(wrapper)
+def double_wrapper(wrapper: SqlStorageWrapper) -> SqlStorageWrapper:
+    """Double wrap — SqlStorageWrapper around SqlStorageWrapper."""
+    return SqlStorageWrapper(wrapper)
 
 
 # ======================================================================
@@ -195,41 +198,41 @@ def double_wrapper(wrapper: WrapperSqlResource) -> WrapperSqlResource:
 
 
 class TestConstructor:
-    """WrapperSqlResource is constructed successfully."""
+    """SqlStorageWrapper is constructed successfully."""
 
-    def test_creates_successfully(self, mock_manager: MockConnectionManager) -> None:
+    def test_creates_successfully(self, mock_manager: MockConnectionStorage) -> None:
         """Instance is created without error."""
-        w = WrapperSqlResource(mock_manager)
+        w = SqlStorageWrapper(mock_manager)
         assert w is not None
 
-    def test_stores_original_manager(self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager) -> None:
+    def test_stores_original_manager(self, wrapper: SqlStorageWrapper, mock_manager: MockConnectionStorage) -> None:
         """Stores a reference to the original manager."""
         assert wrapper._connection_manager is mock_manager
 
-    def test_inherits_rollup_from_original(self, mock_manager: MockConnectionManager) -> None:
+    def test_inherits_rollup_from_original(self, mock_manager: MockConnectionStorage) -> None:
         """rollup is delegated to the original manager."""
         mock_manager._rollup = True
-        wrapper = WrapperSqlResource(mock_manager)
+        wrapper = SqlStorageWrapper(mock_manager)
         assert wrapper.rollup is True
 
     @pytest.mark.asyncio
     async def test_check_rollup_support_is_delegated(
         self,
-        wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
+        wrapper: SqlStorageWrapper,
+        mock_manager: MockConnectionStorage,
     ) -> None:
         """check_rollup_support() forwards to the wrapped manager."""
         assert await wrapper.check_rollup_support() == await mock_manager.check_rollup_support()
 
     def test_is_instance_of_protocol_sql_resource(
         self,
-        wrapper: WrapperSqlResource,
+        wrapper: SqlStorageWrapper,
     ) -> None:
-        """Is an instance of ProtocolSqlResource (not SqlResource)."""
+        """Is an instance of ProtocolSqlResource (not SqlStorage)."""
         assert isinstance(wrapper, ProtocolSqlResource)
-        assert not isinstance(wrapper, SqlResource)
+        assert not isinstance(wrapper, SqlStorage)
 
-    def test_acquire_is_not_exposed(self, wrapper: WrapperSqlResource) -> None:
+    def test_acquire_is_not_exposed(self, wrapper: SqlStorageWrapper) -> None:
         """A nested action has no way to take a connection of its own from the proxy."""
         assert not hasattr(wrapper, "acquire")
 
@@ -243,45 +246,45 @@ class TestTransactionProhibited:
     """The wrapper forbids transaction management."""
 
     @pytest.mark.anyio
-    async def test_open_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+    async def test_open_raises_prohibited(self, wrapper: SqlStorageWrapper) -> None:
         """open() raises TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="open is unavailable"):
             await wrapper.open()
 
     @pytest.mark.anyio
-    async def test_commit_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+    async def test_commit_raises_prohibited(self, wrapper: SqlStorageWrapper) -> None:
         """commit() raises TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="commit is unavailable"):
             await wrapper.commit()
 
     @pytest.mark.anyio
-    async def test_close_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+    async def test_close_raises_prohibited(self, wrapper: SqlStorageWrapper) -> None:
         """close() raises TransactionProhibitedError: a nested action does not close what it does not own."""
         with pytest.raises(TransactionProhibitedError, match="close is unavailable"):
             await wrapper.close()
 
     @pytest.mark.anyio
-    async def test_context_manager_is_refused(self, wrapper: WrapperSqlResource) -> None:
+    async def test_context_manager_is_refused(self, wrapper: SqlStorageWrapper) -> None:
         """Entering the proxy as a context manager is refused, on both sides."""
         with pytest.raises(TransactionProhibitedError, match="context manager is unavailable"):
             async with wrapper:
                 pass
 
     @pytest.mark.anyio
-    async def test_rollback_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+    async def test_rollback_raises_prohibited(self, wrapper: SqlStorageWrapper) -> None:
         """rollback() raises TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="rollback is unavailable"):
             await wrapper.rollback()
 
     @pytest.mark.anyio
-    async def test_begin_raises_prohibited(self, wrapper: WrapperSqlResource) -> None:
+    async def test_begin_raises_prohibited(self, wrapper: SqlStorageWrapper) -> None:
         """begin() raises TransactionProhibitedError."""
         with pytest.raises(TransactionProhibitedError, match="begin is unavailable"):
             await wrapper.begin()
 
     @pytest.mark.anyio
     async def test_open_does_not_call_original(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+        self, wrapper: SqlStorageWrapper, mock_manager: MockConnectionStorage
     ) -> None:
         """open() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
@@ -290,7 +293,7 @@ class TestTransactionProhibited:
 
     @pytest.mark.anyio
     async def test_commit_does_not_call_original(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+        self, wrapper: SqlStorageWrapper, mock_manager: MockConnectionStorage
     ) -> None:
         """commit() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
@@ -299,7 +302,7 @@ class TestTransactionProhibited:
 
     @pytest.mark.anyio
     async def test_rollback_does_not_call_original(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+        self, wrapper: SqlStorageWrapper, mock_manager: MockConnectionStorage
     ) -> None:
         """rollback() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
@@ -308,7 +311,7 @@ class TestTransactionProhibited:
 
     @pytest.mark.anyio
     async def test_begin_does_not_call_original(
-        self, wrapper: WrapperSqlResource, mock_manager: MockConnectionManager
+        self, wrapper: SqlStorageWrapper, mock_manager: MockConnectionStorage
     ) -> None:
         """begin() does not call the original manager."""
         with pytest.raises(TransactionProhibitedError):
@@ -324,19 +327,19 @@ class TestTransactionProhibited:
 class TestNoQueryMember:
     """The proxy offers nothing to run a statement with — absence, not a refusal (FR-011, FR-012)."""
 
-    def test_the_proxy_exposes_no_query_member(self, wrapper: WrapperSqlResource) -> None:
+    def test_the_proxy_exposes_no_query_member(self, wrapper: SqlStorageWrapper) -> None:
         """Neither the removed public member nor a protected helper is reachable on the proxy."""
         for member in ("execute", "_execute", "_fetchrow", "_require_connection"):
             assert not hasattr(wrapper, member), member
 
-    def test_the_proxy_still_satisfies_the_contract(self, wrapper: WrapperSqlResource) -> None:
+    def test_the_proxy_still_satisfies_the_contract(self, wrapper: SqlStorageWrapper) -> None:
         """The absence does not cost the contract: what remains is what it answers."""
         assert isinstance(wrapper, ProtocolSqlResource)
 
     def test_the_owner_is_not_reached_for_a_statement(
         self,
-        wrapper: WrapperSqlResource,
-        mock_manager: MockConnectionManager,
+        wrapper: SqlStorageWrapper,
+        mock_manager: MockConnectionStorage,
     ) -> None:
         """The proxy holds the owner, and still delegates no statement to it."""
         assert wrapper._connection_manager is mock_manager
@@ -354,15 +357,15 @@ class TestDomainWrapper:
     @pytest.mark.anyio
     async def test_it_delegates_the_domains_own_method(
         self,
-        notes_proxy: NotesWrapper,
-        notes_manager: NotesResource,
+        notes_proxy: NotesStorageWrapper,
+        notes_manager: NotesStorage,
     ) -> None:
         """The nested action gets the answer of the owner's semantic method."""
         assert await notes_proxy.load_total() == "total: 3"
         notes_manager.load_total.assert_called_once_with()
 
     @pytest.mark.anyio
-    async def test_it_still_refuses_the_whole_lifecycle(self, notes_proxy: NotesWrapper) -> None:
+    async def test_it_still_refuses_the_whole_lifecycle(self, notes_proxy: NotesStorageWrapper) -> None:
         """Delegating one method does not open the door to the lifecycle, or to a context manager."""
         for call in (
             notes_proxy.open(),
@@ -378,7 +381,7 @@ class TestDomainWrapper:
                 pass
 
     @pytest.mark.anyio
-    async def test_it_exposes_no_query_member_either(self, notes_proxy: NotesWrapper) -> None:
+    async def test_it_exposes_no_query_member_either(self, notes_proxy: NotesStorageWrapper) -> None:
         """A domain proxy delegates its own methods and nothing else."""
         for member in ("execute", "_execute", "_fetchrow"):
             assert not hasattr(notes_proxy, member), member
@@ -386,8 +389,8 @@ class TestDomainWrapper:
     @pytest.mark.anyio
     async def test_a_delegated_failure_arrives_as_the_domains_own_error(
         self,
-        notes_proxy: NotesWrapper,
-        notes_manager: NotesResource,
+        notes_proxy: NotesStorageWrapper,
+        notes_manager: NotesStorage,
     ) -> None:
         """The domain composes the message, and the owner's error is its cause."""
         original = RuntimeError("the ledger is locked")
@@ -401,7 +404,7 @@ class TestDomainWrapper:
     @pytest.mark.anyio
     async def test_it_keeps_delegating_when_it_is_wrapped_again(
         self,
-        notes_proxy: NotesWrapper,
+        notes_proxy: NotesStorageWrapper,
     ) -> None:
         """Two and three levels of the domain's own proxy still answer, and still refuse."""
         second = notes_proxy.get_wrapper_class()(notes_proxy)
@@ -414,12 +417,12 @@ class TestDomainWrapper:
 
     def test_the_default_resource_still_hands_out_the_default_proxy(
         self,
-        mock_manager: MockConnectionManager,
-        notes_manager: NotesResource,
+        mock_manager: MockConnectionStorage,
+        notes_manager: NotesStorage,
     ) -> None:
         """The override is what changes the answer: nothing else in the framework moved (NA-1.2)."""
-        assert mock_manager.get_wrapper_class() is WrapperSqlResource
-        assert notes_manager.get_wrapper_class() is NotesWrapper
+        assert mock_manager.get_wrapper_class() is SqlStorageWrapper
+        assert notes_manager.get_wrapper_class() is NotesStorageWrapper
 
 
 # ======================================================================
@@ -428,26 +431,26 @@ class TestDomainWrapper:
 
 
 class TestGetWrapperClass:
-    """get_wrapper_class() returns WrapperSqlResource."""
+    """get_wrapper_class() returns SqlStorageWrapper."""
 
-    def test_returns_wrapper_class(self, wrapper: WrapperSqlResource) -> None:
-        """Returns WrapperSqlResource for re-wrapping."""
+    def test_returns_wrapper_class(self, wrapper: SqlStorageWrapper) -> None:
+        """Returns SqlStorageWrapper for re-wrapping."""
         result = wrapper.get_wrapper_class()
-        assert result is WrapperSqlResource
+        assert result is SqlStorageWrapper
 
-    def test_is_synchronous(self, wrapper: WrapperSqlResource) -> None:
+    def test_is_synchronous(self, wrapper: SqlStorageWrapper) -> None:
         """Method is synchronous — returns a class, not a coroutine."""
         result = wrapper.get_wrapper_class()
         assert isinstance(result, type)
 
     def test_returned_class_is_wrapper_and_resource_manager(
         self,
-        wrapper: WrapperSqlResource,
+        wrapper: SqlStorageWrapper,
     ) -> None:
-        """Returned class is WrapperSqlResource (Protocol forbids issubclass here)."""
+        """Returned class is SqlStorageWrapper (Protocol forbids issubclass here)."""
         result = wrapper.get_wrapper_class()
         assert result is not None
-        assert result is WrapperSqlResource
+        assert result is SqlStorageWrapper
         assert issubclass(result, BaseResource)
 
 
@@ -457,48 +460,48 @@ class TestGetWrapperClass:
 
 
 class TestDoubleWrapping:
-    """WrapperSqlResource can be wrapped again correctly."""
+    """SqlStorageWrapper can be wrapped again correctly."""
 
-    def test_double_wrapper_creates_successfully(self, wrapper: WrapperSqlResource) -> None:
+    def test_double_wrapper_creates_successfully(self, wrapper: SqlStorageWrapper) -> None:
         """Double wrap is created without error."""
-        double = WrapperSqlResource(wrapper)
+        double = SqlStorageWrapper(wrapper)
         assert double is not None
 
     def test_double_wrapper_stores_inner_wrapper(
         self,
-        double_wrapper: WrapperSqlResource,
-        wrapper: WrapperSqlResource,
+        double_wrapper: SqlStorageWrapper,
+        wrapper: SqlStorageWrapper,
     ) -> None:
         """Double wrap holds a reference to the inner wrapper."""
         assert double_wrapper._connection_manager is wrapper
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_open(self, double_wrapper: WrapperSqlResource) -> None:
+    async def test_double_wrapper_prohibits_open(self, double_wrapper: SqlStorageWrapper) -> None:
         """Double wrap forbids open()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.open()
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_commit(self, double_wrapper: WrapperSqlResource) -> None:
+    async def test_double_wrapper_prohibits_commit(self, double_wrapper: SqlStorageWrapper) -> None:
         """Double wrap forbids commit()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.commit()
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_rollback(self, double_wrapper: WrapperSqlResource) -> None:
+    async def test_double_wrapper_prohibits_rollback(self, double_wrapper: SqlStorageWrapper) -> None:
         """Double wrap forbids rollback()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.rollback()
 
     @pytest.mark.anyio
-    async def test_double_wrapper_prohibits_begin(self, double_wrapper: WrapperSqlResource) -> None:
+    async def test_double_wrapper_prohibits_begin(self, double_wrapper: SqlStorageWrapper) -> None:
         """Double wrap forbids begin()."""
         with pytest.raises(TransactionProhibitedError):
             await double_wrapper.begin()
 
     def test_double_wrapper_exposes_no_query_member(
         self,
-        double_wrapper: WrapperSqlResource,
+        double_wrapper: SqlStorageWrapper,
     ) -> None:
         """A second wrap brings no query member back."""
         for member in ("execute", "_execute", "_fetchrow"):
@@ -507,10 +510,10 @@ class TestDoubleWrapping:
     @pytest.mark.anyio
     async def test_triple_wrapper_refuses_the_lifecycle_and_exposes_no_query_member(
         self,
-        double_wrapper: WrapperSqlResource,
+        double_wrapper: SqlStorageWrapper,
     ) -> None:
         """A third wrap behaves as the first: the lifecycle refused, no statement reachable (NA-2.1)."""
-        triple = WrapperSqlResource(double_wrapper)
+        triple = SqlStorageWrapper(double_wrapper)
 
         for member in ("execute", "_execute", "_fetchrow"):
             assert not hasattr(triple, member), member
@@ -526,7 +529,7 @@ class TestDoubleWrapping:
 class TestWrapConnectionsIntegration:
     """
     Mimics ToolsBox._wrap_connections() logic — verifies
-    WrapperSqlResource behaves in a realistic wrapping scenario.
+    SqlStorageWrapper behaves in a realistic wrapping scenario.
     """
 
     @staticmethod
@@ -543,24 +546,24 @@ class TestWrapConnectionsIntegration:
                 wrapped[key] = connection
         return wrapped
 
-    def test_wraps_mock_manager(self, mock_manager: MockConnectionManager) -> None:
-        """Wraps MockConnectionManager in WrapperSqlResource."""
+    def test_wraps_mock_manager(self, mock_manager: MockConnectionStorage) -> None:
+        """Wraps MockConnectionStorage in SqlStorageWrapper."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
 
         assert "db" in wrapped
-        assert isinstance(wrapped["db"], WrapperSqlResource)
+        assert isinstance(wrapped["db"], SqlStorageWrapper)
         assert wrapped["db"]._connection_manager is mock_manager
 
-    def test_wraps_wrapper_again(self, wrapper: WrapperSqlResource) -> None:
-        """Re-wrapping WrapperSqlResource works."""
+    def test_wraps_wrapper_again(self, wrapper: SqlStorageWrapper) -> None:
+        """Re-wrapping SqlStorageWrapper works."""
         connections = {"db": wrapper}
         wrapped = self._wrap_connections(connections)
 
-        assert isinstance(wrapped["db"], WrapperSqlResource)
+        assert isinstance(wrapped["db"], SqlStorageWrapper)
         assert wrapped["db"]._connection_manager is wrapper
 
-    def test_the_wrapped_proxy_exposes_no_query_member(self, mock_manager: MockConnectionManager) -> None:
+    def test_the_wrapped_proxy_exposes_no_query_member(self, mock_manager: MockConnectionStorage) -> None:
         """What _wrap_connections hands a child action has nothing to run a statement with."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
@@ -568,7 +571,7 @@ class TestWrapConnectionsIntegration:
         assert not hasattr(wrapped["db"], "execute")
 
     @pytest.mark.anyio
-    async def test_wrapped_prohibits_transactions(self, mock_manager: MockConnectionManager) -> None:
+    async def test_wrapped_prohibits_transactions(self, mock_manager: MockConnectionStorage) -> None:
         """Wrapped manager forbids transactions."""
         connections = {"db": mock_manager}
         wrapped = self._wrap_connections(connections)
@@ -585,7 +588,7 @@ class TestWrapConnectionsIntegration:
         with pytest.raises(TransactionProhibitedError):
             await wrapped["db"].begin()
 
-    def test_double_wrap_exposes_no_query_member(self, mock_manager: MockConnectionManager) -> None:
+    def test_double_wrap_exposes_no_query_member(self, mock_manager: MockConnectionStorage) -> None:
         """Twice through _wrap_connections, the proxy a grandchild receives is the same absence."""
         # First wrap (parent → child)
         wrapped_1 = self._wrap_connections({"db": mock_manager})

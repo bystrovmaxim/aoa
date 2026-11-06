@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Funding window anchored on sweep instruction", resource=BillingWarehouse)
+@entity(description="Funding window anchored on sweep instruction", resource=BillingWarehouseStorage)
 class FundingWindowHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Window id")
     lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")

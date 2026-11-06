@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/resources/sql/wrapper_sql_resource.py
+# packages/aoa-action-machine/src/aoa/action_machine/resources/sql/sql_storage_wrapper.py
 """
 Proxy wrapper that forbids transaction control in nested scopes.
 
@@ -6,7 +6,7 @@ Proxy wrapper that forbids transaction control in nested scopes.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlResource`` wraps a manager that implements ``ProtocolSqlResource``.
+``SqlStorageWrapper`` wraps a manager that implements ``ProtocolSqlResource``.
 It is created when connections are propagated to child actions via
 ``ToolsBox.run()``. The wrapper forbids lifecycle operations
 (``open``, ``begin``, ``commit``, ``rollback``, ``close``) and context-manager
@@ -16,7 +16,7 @@ action cannot reach the connection at all — by construction, not by a rule.
 
 A domain that does want to hand a nested action something overrides
 ``get_wrapper_class()`` with its own wrapper that delegates its own semantic
-methods; ``OcelStoreWrapper`` in ``aoa-ocel`` is the pattern.
+methods; ``OcelStorageWrapper`` in ``aoa-ocel`` is the pattern.
 
 ``close`` is on that list for the same reason as ``begin``: the connection
 belongs to the action that created the resource, and a nested action that closed
@@ -38,7 +38,7 @@ ARCHITECTURE / DATA FLOW
 
     ProtocolSqlResource (real manager, e.g. Postgres)
         │
-        └── WrapperSqlResource (BaseResource + Protocol)
+        └── SqlStorageWrapper (BaseResource + Protocol)
                 open/begin/commit/rollback/close -> TransactionProhibitedError
                 async with                          -> TransactionProhibitedError
                 no query member                     -> nothing to delegate
@@ -57,7 +57,7 @@ from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlRe
 
 
 @exclude_graph_model
-class WrapperSqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource):
+class SqlStorageWrapper(BaseStorage[TDataSource_co], ProtocolSqlResource):
     """
     SQL manager proxy for nested actions.
 
@@ -113,7 +113,7 @@ class WrapperSqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource):
             "Current action received a proxy connection, so close is unavailable."
         )
 
-    async def __aenter__(self) -> "WrapperSqlResource":
+    async def __aenter__(self) -> "SqlStorageWrapper":
         """Forbid entering the connection as a context manager from nested action scope."""
         raise TransactionProhibitedError(self._context_manager_refusal())
 
@@ -135,6 +135,7 @@ class WrapperSqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource):
             "manager is unavailable."
         )
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Return wrapper class for further nesting levels."""
-        return WrapperSqlResource
+        return SqlStorageWrapper

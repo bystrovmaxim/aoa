@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Profit-center split hanging off ingest manifest root", resource=BillingWarehouse)
+@entity(description="Profit-center split hanging off ingest manifest root", resource=BillingWarehouseStorage)
 class ProfitCenterContributionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")

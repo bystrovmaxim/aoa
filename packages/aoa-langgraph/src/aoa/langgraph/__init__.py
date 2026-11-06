@@ -55,8 +55,8 @@ from aoa.langgraph.exceptions import (
     UnreachableNodeError,
     UnregisteredNodeError,
 )
+from aoa.langgraph.langgraph_controller_wrapper import LangGraphControllerWrapper
 from aoa.langgraph.sentinel import UNSET, UnsetType
-from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
 
 __all__ = [
     "UNSET",
@@ -70,6 +70,7 @@ __all__ = [
     "FinishUnreachableError",
     "InconsistentFinishOutputError",
     "LangGraphController",
+    "LangGraphControllerWrapper",
     "MissingConnectionError",
     "MissingFieldDescriptionError",
     "MissingInputFieldError",
@@ -85,5 +86,4 @@ __all__ = [
     "UnreachableNodeError",
     "UnregisteredNodeError",
     "UnsetType",
-    "WrapperLangGraphController",
 ]

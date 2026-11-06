@@ -30,6 +30,10 @@ SCOPE (IN / OUT)
     protocol (construction, injection into the machine, runtime behaviour).
 """
 
+from typing import Any
+
+from aoa.action_machine.naming.suffix import require_suffix
+
 
 class BaseCoordinator:
     """
@@ -39,3 +43,8 @@ class BaseCoordinator:
         INVARIANTS: Carries no state.
     AI-CORE-END
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``Coordinator``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseCoordinator", "Coordinator")

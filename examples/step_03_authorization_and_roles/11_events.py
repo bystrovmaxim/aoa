@@ -18,8 +18,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import AfterAccessDecideAspectEvent, BeforeAccessDecideAspectEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -74,7 +74,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
         return OrderResult(order_id=params.order_id)
 
 
-class AccessPrinter(Plugin):
+class AccessPrinterPlugin(BasePlugin):
     """Print the declared check's boundaries."""
 
     plugin_name = "access_printer"
@@ -100,7 +100,7 @@ class AccessPrinter(Plugin):
 
 async def main() -> None:
     """A preliminary check publishes its own events."""
-    machine = ActionProductMachine(cache_coordinator=None, plugins=[AccessPrinter()])
+    machine = ActionProductMachine(cache_coordinator=None, plugins=[AccessPrinterPlugin()])
     caller = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
 
     answer = await machine.check_access_decide(caller, CancelOrderAction, OrderParams(order_id="ord-001"))

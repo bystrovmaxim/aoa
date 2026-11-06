@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Pick-pack variance ledger", resource=StorefrontDatabase)
+@entity(description="Pick-pack variance ledger", resource=StorefrontDatabaseStorage)
 class PickVarianceRecordCoreEntity(BaseCoreEntity):
     id: str = Field(description="PickVarianceRecordCoreEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="PickVarianceRecordCoreEntity lifecycle")

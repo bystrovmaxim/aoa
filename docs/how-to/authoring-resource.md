@@ -9,7 +9,7 @@ database session can both be resources.
 
 ## Start with the public contract
 
-Subclass `BaseResource`, supply `@meta(description=..., domain=...)`, and implement
+Subclass one of the three kinds — `BaseStorage`, `BaseGateway` or `BaseController` — supply `@meta(description=..., domain=...)`, and implement
 `get_wrapper_class()`. Choose the operations your action needs, such as append or
 read_stock. BaseResource does not prescribe their names and does not require a
 connection lifecycle for a resource that has nothing to acquire.
@@ -33,7 +33,7 @@ The external storage is represented by a list supplied by the caller. The resour
 import asyncio
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
@@ -43,14 +43,15 @@ class NotesDomain(BaseDomain):
     description = "Notes transport"
 
 @meta(description="Append notes to a supplied store", domain=NotesDomain)
-class NotesResource(BaseResource):
+class NotesStorage(BaseStorage):
     """Expose storage access with an explicit usable interval."""
     def __init__(self, storage, events):
         """Remember the external storage and lifecycle log."""
         self.storage = storage
         self.events = events
         self.opened = False
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use of this non-transactional teaching store."""
         return None
     async def open(self):
@@ -74,7 +75,7 @@ async def main():
     storage = []
     events = []
     async with connection_scope({"notes": PerCallConnection(
-        lambda: NotesResource(storage, events), lambda resource: resource.close(),
+        lambda: NotesStorage(storage, events), lambda resource: resource.close(),
     )}) as connections:
         count = await connections["notes"].append("hello")
         print("written:", count)
@@ -100,9 +101,9 @@ The resource is closed but the data remains in the supplied store. In a real imp
 
 ## Supply it to an action
 
-An action declares `@connection(NotesResource, key="notes")` and reads
+An action declares `@connection(NotesStorage, key="notes")` and reads
 `connections["notes"]`. On a service route, supply the same declaration used in the
-example: a factory that constructs NotesResource and a finalizer that calls close.
+example: a factory that constructs NotesStorage and a finalizer that calls close.
 FastAPI and MCP apply the scope around machine.run. A manual caller must apply it
 explicitly, as the example does. [Step 19](../tutorials/step-19-connections.md) shows
 both the action and route together.
@@ -114,7 +115,7 @@ This is acceptable only when that access is intended. If the resource owns a
 transaction or another handle that children must not close, return a wrapper class
 that exposes permitted operations and refuses ownership operations.
 
-For SQL, use the existing `SqlResource` and `WrapperSqlResource` contract instead
+For SQL, use the existing `SqlStorage` and `SqlStorageWrapper` contract instead
 of reproducing part of it. The wrapper blocks open, begin, commit, rollback, close
 and context-manager use. It still delegates rollup inspection, but has no
 `execute()` or other query method. A custom interface needs its own
@@ -126,22 +127,22 @@ show both direct calls and automatic wrapping by box.run.
 ## If the implementation uses PostgreSQL
 
 Build the resource from the data source it names:
-`OrdersResource(data_source=shop, rollup=False)` takes its connection from the pool of
-`class OrdersResource(PostgresResource[ShopDataSource])`. Connection parameters and the pool
+`OrdersStorage(data_source=shop, rollup=False)` takes its connection from the pool of
+`class OrdersStorage(PostgresStorage[ShopDataSource])`. Connection parameters and the pool
 live only in the data source. Set acquire_timeout on the data source if the default
 30-second borrowing wait is inappropriate. The pool's capacity belongs to its
 creation at service startup; the per-call resource never closes it.
 
 The SQL base class has a harmless default close for implementations that hold no
 connection. A real connection-owning implementation must override it. For
-PostgresResource that implementation already exists, including detection of an
+PostgresStorage that implementation already exists, including detection of an
 unfinished transaction at close.
 
 Rollup support is also a real obligation. Generic BaseResource refuses it by default.
 A SQL implementation must ensure that rollup=True makes commit roll back its explicit
 transaction. This is not an all-purpose undo mechanism for external systems.
 
-A subclass of `PostgresResource` can implement its methods using four protected helpers,
+A subclass of `PostgresStorage` can implement its methods using four protected helpers,
 one per answer the driver gives. `await self._execute(query, params)` runs a statement and
 answers the driver's command status; `await self._fetchrow(query, params)` answers the
 query's first row, or `None`; `await self._fetch(query, params)` answers every row in the
@@ -149,7 +150,7 @@ driver's order, or `[]`; `await self._fetchval(query, params)` answers the first
 the first row, or `None`. All four check that the connection is open and turn a failure of
 the driver into `HandleError` with the driver's error chained, so the method carries its
 business meaning and no transport mechanics. A method that wants its own message catches
-that error and raises its own with the cause attached. `SqlResource` does not require an
+that error and raises its own with the cause attached. `SqlStorage` does not require an
 `execute()` method; the resource defines the public methods its callers need.
 
 ```python

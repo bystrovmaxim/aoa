@@ -9,7 +9,7 @@ import asyncio
 
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class ExampleDataSource(PostgresDataSource):
@@ -68,7 +68,7 @@ class RecordingPool:
         self.closed = True
 
 
-class NotesResource(PostgresResource[ExampleDataSource]):
+class NotesStorage(PostgresStorage[ExampleDataSource]):
     """The notes domain's resource: its own method runs the statement."""
 
     async def add_note(self, text: str) -> str:
@@ -84,7 +84,7 @@ async def main():
     async def work(label):
         """Hold one resource until the other call has also opened."""
         async with connection_scope({"db": PerCallConnection(
-            lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close(),
+            lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close(),
         )}) as connections:
             arrivals.append(label)
             if len(arrivals) == 2:

@@ -27,10 +27,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Registered customer", resource=StorefrontDatabase)
+@entity(description="Registered customer", resource=StorefrontDatabaseStorage)
 class CustomerAccountCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
@@ -50,7 +50,7 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Customer order", resource=StorefrontDatabase)
+@entity(description="Customer order", resource=StorefrontDatabaseStorage)
 class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
@@ -76,7 +76,7 @@ class SalesOrderCoreEntity(BaseCoreEntity):
 
 
 
-@entity(description="Order line", resource=StorefrontDatabase)
+@entity(description="Order line", resource=StorefrontDatabaseStorage)
 class SalesOrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Item id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")

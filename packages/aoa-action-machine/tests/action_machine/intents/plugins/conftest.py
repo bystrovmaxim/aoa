@@ -35,13 +35,13 @@ CounterPlugin
     all actions. Increments state["count"]. ignore_exceptions=False.
 
 DualHandlerPlugin
-    Plugin with two handlers for one event (GlobalFinishEvent).
+    BasePlugin with two handlers for one event (GlobalFinishEvent).
     on_handler_a increments state["a"] by 1.
     on_handler_b increments state["b"] by 10.
     Both ignore_exceptions=False are sequential execution.
 
 CustomInitPlugin
-    Plugin with a parameterized initial state.
+    BasePlugin with a parameterized initial state.
     Accepts an initial_value in the constructor.
 
 RecordingPlugin
@@ -49,50 +49,50 @@ RecordingPlugin
     in state["events"] for each GlobalFinishEvent.
 
 SelectivePlugin
-    Plugin with action_name_pattern filter. Reacts only to actions
+    BasePlugin with action_name_pattern filter. Reacts only to actions
     containing "Order" in the name.
 
 AlphaPlugin
-    Plugin with GlobalFinishEvent handler - reacts to all actions.
+    BasePlugin with GlobalFinishEvent handler - reacts to all actions.
 
 BetaPlugin
-    Plugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
+    BasePlugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
     Reacts only to actions with "Order" in the name.
 
 GammaPlugin
-    Plugin with GlobalStartEvent handler (not GlobalFinishEvent).
+    BasePlugin with GlobalStartEvent handler (not GlobalFinishEvent).
     Used to check that searching for GlobalFinishEvent does not return
     handlers subscribed to GlobalStartEvent.
 
 MultiEventPlugin
-    Plugin with three handlers for different events and filters.
+    BasePlugin with three handlers for different events and filters.
     on_start: GlobalStartEvent.
     on_finish: GlobalFinishEvent.
     on_order_finish: GlobalFinishEvent with action_name_pattern=".*Order.*".
 
 IgnoredErrorPlugin
-    Plugin with ignore_exceptions=True, which mutates state before raise.
+    BasePlugin with ignore_exceptions=True, which mutates state before raise.
     Checks the visibility of an in-place mutation when a bug is suppressed.
 
 PropagatedErrorPlugin
-    Plugin with ignore_exceptions=False, throwing RuntimeError.
+    BasePlugin with ignore_exceptions=False, throwing RuntimeError.
     The error is propagated through emit_event().
 
 CustomExceptionPlugin
-    Plugin with ignore_exceptions=False, throwing CustomPluginError.
+    BasePlugin with ignore_exceptions=False, throwing CustomPluginError.
     Checks that the custom exception type is preserved during forwarding.
 
 SuccessAfterFailPlugin
-    Plugin with success handler. ignore_exceptions=False.
+    BasePlugin with success handler. ignore_exceptions=False.
     Used to check that the exception is a critical plugin
     interrupts execution.
 
 SlowParallelPlugin
-    Plugin with 0.1s delay. ignore_exceptions=True.
+    BasePlugin with 0.1s delay. ignore_exceptions=True.
     Used to check parallel execution.
 
 SlowSequentialPlugin
-    Plugin with 0.1s delay. ignore_exceptions=False.
+    BasePlugin with 0.1s delay. ignore_exceptions=False.
     Used to check sequential execution."""
 from __future__ import annotations
 
@@ -103,8 +103,8 @@ from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent, GlobalStartEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.testing import StubTesterRole
 
@@ -262,7 +262,7 @@ def make_global_start_event(
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class CounterPlugin(Plugin):
+class CounterPlugin(BasePlugin):
     """Minimal counter plugin.
 
     One GlobalFinishEvent handler for all actions. Increments
@@ -278,8 +278,8 @@ class CounterPlugin(Plugin):
         return state
 
 
-class DualHandlerPlugin(Plugin):
-    """Plugin with two handlers for one event (GlobalFinishEvent).
+class DualHandlerPlugin(BasePlugin):
+    """BasePlugin with two handlers for one event (GlobalFinishEvent).
 
     on_handler_a increments state["a"] by 1.
     on_handler_b increments state["b"] by 10.
@@ -299,8 +299,8 @@ class DualHandlerPlugin(Plugin):
         return state
 
 
-class CustomInitPlugin(Plugin):
-    """Plugin with a parameterized initial state.
+class CustomInitPlugin(BasePlugin):
+    """BasePlugin with a parameterized initial state.
 
     Accepts an initial_value in the constructor. get_initial_state() returns
     {"value": initial_value}. The on_increment handler adds 1 to value."""
@@ -322,7 +322,7 @@ class CustomInitPlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class RecordingPlugin(Plugin):
+class RecordingPlugin(BasePlugin):
     """Recorder plugin.
 
     Writes the event type and action_name to state["events"]
@@ -345,8 +345,8 @@ class RecordingPlugin(Plugin):
         return state
 
 
-class SelectivePlugin(Plugin):
-    """Plugin with action_name_pattern filter.
+class SelectivePlugin(BasePlugin):
+    """BasePlugin with action_name_pattern filter.
 
     Only responds to actions containing "Order" in the full name.
     Used to check that action_name_pattern is filtering events."""
@@ -365,8 +365,8 @@ class SelectivePlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class AlphaPlugin(Plugin):
-    """Plugin with GlobalFinishEvent handler - reacts to all actions."""
+class AlphaPlugin(BasePlugin):
+    """BasePlugin with GlobalFinishEvent handler - reacts to all actions."""
 
     async def get_initial_state(self) -> dict:
         return {}
@@ -376,8 +376,8 @@ class AlphaPlugin(Plugin):
         return state
 
 
-class BetaPlugin(Plugin):
-    """Plugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
+class BetaPlugin(BasePlugin):
+    """BasePlugin with GlobalFinishEvent handler with action_name_pattern=".*Order.*".
 
     Only responds to actions containing "Order" in the fully qualified class name."""
 
@@ -389,8 +389,8 @@ class BetaPlugin(Plugin):
         return state
 
 
-class GammaPlugin(Plugin):
-    """Plugin with GlobalStartEvent handler (not GlobalFinishEvent).
+class GammaPlugin(BasePlugin):
+    """BasePlugin with GlobalStartEvent handler (not GlobalFinishEvent).
 
     Used to check that searching for GlobalFinishEvent does not return
     handlers subscribed to GlobalStartEvent."""
@@ -403,8 +403,8 @@ class GammaPlugin(Plugin):
         return state
 
 
-class MultiEventPlugin(Plugin):
-    """Plugin with three handlers for different events and filters.
+class MultiEventPlugin(BasePlugin):
+    """BasePlugin with three handlers for different events and filters.
 
     on_start: GlobalStartEvent for all actions.
     on_finish: GlobalFinishEvent for all actions.
@@ -435,8 +435,8 @@ class MultiEventPlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class IgnoredErrorPlugin(Plugin):
-    """Plugin with ignore_exceptions=True, which mutates state before raise.
+class IgnoredErrorPlugin(BasePlugin):
+    """BasePlugin with ignore_exceptions=True, which mutates state before raise.
 
     Mutates state["before_error"]=True, then throws RuntimeError.
     ignore_exceptions=True - the error is suppressed, but the mutation is in-place
@@ -452,8 +452,8 @@ class IgnoredErrorPlugin(Plugin):
         # state["after_error"] = True # will not execute
 
 
-class PropagatedErrorPlugin(Plugin):
-    """Plugin with ignore_exceptions=False, throwing RuntimeError.
+class PropagatedErrorPlugin(BasePlugin):
+    """BasePlugin with ignore_exceptions=False, throwing RuntimeError.
 
     The error is propagated through emit_event()."""
 
@@ -465,8 +465,8 @@ class PropagatedErrorPlugin(Plugin):
         raise RuntimeError("Strict error must propagate")
 
 
-class CustomExceptionPlugin(Plugin):
-    """Plugin with ignore_exceptions=False, throwing CustomPluginError.
+class CustomExceptionPlugin(BasePlugin):
+    """BasePlugin with ignore_exceptions=False, throwing CustomPluginError.
 
     Checks that the custom exception type is preserved during forwarding."""
 
@@ -478,8 +478,8 @@ class CustomExceptionPlugin(Plugin):
         raise CustomPluginError("Custom plugin error")
 
 
-class SuccessAfterFailPlugin(Plugin):
-    """Plugin with success handler. ignore_exceptions=False.
+class SuccessAfterFailPlugin(BasePlugin):
+    """BasePlugin with success handler. ignore_exceptions=False.
 
     Used to check that the exception is a critical plugin
     interrupts execution (this plugin should not get control
@@ -499,8 +499,8 @@ class SuccessAfterFailPlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class SlowParallelPlugin(Plugin):
-    """Plugin with 0.1s delay. ignore_exceptions=True.
+class SlowParallelPlugin(BasePlugin):
+    """BasePlugin with 0.1s delay. ignore_exceptions=True.
 
     If there are several such plugins, PluginRunContext selects
     parallel strategy (asyncio.gather). Total time ≈ 0.1s,
@@ -516,8 +516,8 @@ class SlowParallelPlugin(Plugin):
         return state
 
 
-class SlowSequentialPlugin(Plugin):
-    """Plugin with 0.1s delay. ignore_exceptions=False.
+class SlowSequentialPlugin(BasePlugin):
+    """BasePlugin with 0.1s delay. ignore_exceptions=False.
 
     If there is at least one such plugin, PluginRunContext selects
     consistent strategy. Total time ≈ 0.1s × N."""
@@ -537,8 +537,8 @@ class SlowSequentialPlugin(Plugin):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class SlowPluginIgnore(Plugin):
-    """Plugin with parameterized delay. ignore_exceptions=True.
+class SlowIgnorePlugin(BasePlugin):
+    """BasePlugin with parameterized delay. ignore_exceptions=True.
 
     If there are several such plugins, PluginRunContext selects
     parallel strategy (asyncio.gather). Total time ≈ max(delay),
@@ -557,10 +557,10 @@ class SlowPluginIgnore(Plugin):
         return state
 
 
-class FastPluginIgnore(Plugin):
-    """Plugin without delay. ignore_exceptions=True.
+class FastIgnorePlugin(BasePlugin):
+    """BasePlugin without delay. ignore_exceptions=True.
 
-    Used in conjunction with SlowPluginIgnore to check that the
+    Used in conjunction with SlowIgnorePlugin to check that the
     The plugin terminates along with the slow ones when executed in parallel."""
 
     async def get_initial_state(self) -> dict:
@@ -572,8 +572,8 @@ class FastPluginIgnore(Plugin):
         return state
 
 
-class SlowPluginNoIgnore(Plugin):
-    """Plugin with parameterized delay. ignore_exceptions=False.
+class SlowNoIgnorePlugin(BasePlugin):
+    """BasePlugin with parameterized delay. ignore_exceptions=False.
 
     The presence of at least one such plugin switches the PluginRunContext
     to a consistent strategy. Total time ≈ sum(delay)."""
@@ -591,8 +591,8 @@ class SlowPluginNoIgnore(Plugin):
         return state
 
 
-class FailingPluginIgnore(Plugin):
-    """Plugin that throws RuntimeError. ignore_exceptions=True.
+class FailingIgnorePlugin(BasePlugin):
+    """BasePlugin that throws RuntimeError. ignore_exceptions=True.
 
     The error is suppressed and the remaining plugins continue to work.
     Used to check that a crashed plugin does not interrupt
@@ -603,5 +603,5 @@ class FailingPluginIgnore(Plugin):
 
     @on(GlobalFinishEvent, ignore_exceptions=True)
     async def on_failing_handler(self, state: dict, event: GlobalFinishEvent, log) -> dict:
-        raise RuntimeError("Plugin intentionally failed")
-        raise RuntimeError("Plugin intentionally failed")
+        raise RuntimeError("BasePlugin intentionally failed")
+        raise RuntimeError("BasePlugin intentionally failed")

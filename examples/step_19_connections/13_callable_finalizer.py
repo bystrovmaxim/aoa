@@ -8,17 +8,18 @@ Run: uv run python examples/step_19_connections/13_callable_finalizer.py
 import asyncio
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.per_call_connection import PerCallConnection
+from aoa.action_machine.resources import BaseController
+from aoa.action_machine.resources.per_call_connection import PerCallConnection, validate_connection_entries
 
 
 @exclude_graph_model
-class TraceResource(BaseResource):
+class TraceController(BaseController):
     """Record lifecycle calls without opening an external connection."""
     def __init__(self, events):
         """Keep the event list supplied by the example."""
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use by nested actions."""
         return None
     async def open(self):
@@ -28,13 +29,12 @@ class TraceResource(BaseResource):
         """Record release."""
         self.events.append("close")
 
-from aoa.action_machine.resources.per_call_connection import validate_connection_entries
 
 
 async def main():
     """Run this case and verify its observable result."""
     try:
-        validate_connection_entries({"db": PerCallConnection(lambda: TraceResource([]), finalize=None)})
+        validate_connection_entries({"db": PerCallConnection(lambda: TraceController([]), finalize=None)})
     except TypeError as error:
         assert str(error) == "PerCallConnection.finalize must be callable."
         print(str(error))

@@ -10,10 +10,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Discount application row", resource=StorefrontDatabase)
+@entity(description="Discount application row", resource=StorefrontDatabaseStorage)
 class DiscountApplicationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Discount application id")
     lifecycle: SalesOrderLifecycle = Field(description="Discount lifecycle")

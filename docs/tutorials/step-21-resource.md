@@ -126,7 +126,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
@@ -140,14 +140,16 @@ class WarehouseDomain(BaseDomain):
 
 # ── Resource: transport only — read and write stock, no decisions ────────────
 @meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
-class InventoryResource(BaseResource):
+class InventoryStorage(BaseStorage):
 
     """Read and update the supplied inventory."""
     def __init__(self, stock: dict[str, int] | None = None) -> None:
         """Initialize this example object."""
         self._stock: dict[str, int] = dict(stock or {})
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+
+    def get_wrapper_class(cls) -> type[BaseStorage] | None:
         """Choose the view supplied to child actions."""
         return None  # in-memory: direct pass-through; a SQL resource would return a wrapper
 
@@ -174,7 +176,7 @@ class ReserveResult(BaseResult):
 
 @meta(description="Reserve stock for a SKU", domain=WarehouseDomain)
 @check_roles(GuestRole)
-@connection(InventoryResource, key="inventory")
+@connection(InventoryStorage, key="inventory")
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 
     """Decide whether the requested stock is available."""
@@ -193,7 +195,7 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 
 async def main():
     """Run this case and verify its observable result."""
-    inventory = InventoryResource(stock={"sku-1": 10})
+    inventory = InventoryStorage(stock={"sku-1": 10})
     result = await ActionProductMachine(loggers=[]).run(
         Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=3),
         connections={"inventory": inventory},
@@ -224,7 +226,7 @@ Use an in-memory store so the only topic is the division between storage and the
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
-inventory = InventoryResource(stock={"sku-1": 10})
+inventory = InventoryStorage(stock={"sku-1": 10})
 result = await ActionProductMachine(loggers=[]).run(
     Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=11),
     connections={"inventory": inventory},
@@ -251,7 +253,7 @@ Use an in-memory store so the only topic is the division between storage and the
 The following is the body of `main()` from the standalone example; the linked files include every definition and import.
 
 ```python
-inventory = InventoryResource(stock={"sku-1": 0})
+inventory = InventoryStorage(stock={"sku-1": 0})
 result = await ActionProductMachine(loggers=[]).run(
     Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=1),
     connections={"inventory": inventory},
@@ -319,7 +321,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 pool = RecordingPool()
 owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await owner.open()
-child_view = WrapperSqlResource(owner)
+child_view = SqlStorageWrapper(owner)
 try:
     await child_view.close()
 except TransactionProhibitedError as error:
@@ -354,7 +356,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 pool = RecordingPool()
 owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await owner.open()
-child_view = WrapperSqlResource(owner)
+child_view = SqlStorageWrapper(owner)
 try:
     async with child_view:
        raise AssertionError("The context must not open")
@@ -387,21 +389,23 @@ The resource and its proxy are what this case adds. The resource runs its statem
 
 ```python
 # Fragment: its imports are left out.
-class NotesResource(PostgresResource):
+class NotesStorage(PostgresStorage):
     """The domain's resource: its own method, and the proxy it hands a child."""
     async def add_note(self, text: str) -> str:
         """Write one note through the driver's statement helper."""
         return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """A child receives the domain's own proxy, not the default one."""
-        return NotesWrapper
+        return NotesStorageWrapper
 
 @exclude_graph_model
-class NotesWrapper(WrapperSqlResource):
+class NotesStorageWrapper(SqlStorageWrapper):
     """The domain's proxy: it delegates its own method and keeps every refusal."""
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Keep handing the domain's proxy to a deeper nested action."""
-        return NotesWrapper
+        return NotesStorageWrapper
     async def add_note(self, text: str) -> str:
         """Write a note on the connection its owner holds."""
         return await self._connection_manager.add_note(text)
@@ -412,7 +416,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
     result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
     assert result.status == "OK; close refused"
     assert len(pool.held) == 1
@@ -432,7 +436,7 @@ The child received a wrapper automatically, and that wrapper is the domain's own
 ## Rollup and ownership
 
 Rollup means that an explicit SQL transaction executes its work but rolls back at
-commit. `PostgresResource(…, rollup=True)` implements that behavior; a generic
+commit. `PostgresStorage(…, rollup=True)` implements that behavior; a generic
 BaseResource does not promise it. It is useful for exercising transactional SQL,
 but it does not undo external side effects. See the [isolated rollup example](../../examples/extensions/postgresql/07_rollup.ipynb).
 

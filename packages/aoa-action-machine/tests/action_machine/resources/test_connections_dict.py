@@ -7,8 +7,7 @@ this module checks that a typical payload type-checks as the shared annotation.
 """
 
 from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.resources import Connections
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController, Connections
 
 
 class _ResourceTestDomain(BaseDomain):
@@ -27,15 +26,16 @@ def meta(description: str, domain: type[BaseDomain]):
 
 
 @meta(description="Connections dict test resource", domain=_ResourceTestDomain)
-class DummyResourceManager(BaseResource):
+class DummyController(BaseController):
     """Stub resource manager for tests."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
 
 def test_connections_dict_annotation() -> None:
     """A dict with key 'connection' satisfies Connections."""
-    res = DummyResourceManager()
+    res = DummyController()
     conn: Connections = {"connection": res}
     assert conn["connection"] is res

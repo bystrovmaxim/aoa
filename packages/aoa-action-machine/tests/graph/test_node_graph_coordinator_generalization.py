@@ -20,7 +20,7 @@ class _Axis:
     pass
 
 
-class _EdgeNode(BaseGraphNode[object]):
+class _EdgeGraphNode(BaseGraphNode[object]):
     def __init__(
         self,
         *,
@@ -55,7 +55,7 @@ class _EdgeNode(BaseGraphNode[object]):
 
 
 def test_build_rejects_parent_action_with_missing_target_node() -> None:
-    child = _EdgeNode(
+    child = _EdgeGraphNode(
         node_id="fixture.graph.Child",
         edges=[
             GeneralizationGraphEdge(
@@ -67,18 +67,18 @@ def test_build_rejects_parent_action_with_missing_target_node() -> None:
         ],
     )
 
-    class _Insp(BaseGraphNodeInspector[_Axis]):
+    class _TestInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return child if cls is _Axis else None
 
     coord = NodeGraphCoordinator()
     with pytest.raises(InvalidGraphError, match=r"parent_action.*fixture\.graph\.Child.*missing"):
-        coord.build([_Insp()])
+        coord.build([_TestInspector()])
 
 
 def test_build_wires_parent_action_and_indexes_and_json() -> None:
-    parent = _EdgeNode(node_id="fixture.graph.Parent")
-    child = _EdgeNode(
+    parent = _EdgeGraphNode(node_id="fixture.graph.Parent")
+    child = _EdgeGraphNode(
         node_id="fixture.graph.Child",
         edges=[
             GeneralizationGraphEdge(
@@ -91,12 +91,12 @@ def test_build_wires_parent_action_and_indexes_and_json() -> None:
         companions=[parent],
     )
 
-    class _Insp(BaseGraphNodeInspector[_Axis]):
+    class _TestInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return child if cls is _Axis else None
 
     coord = NodeGraphCoordinator()
-    coord.build([_Insp()])
+    coord.build([_TestInspector()])
 
     triples = coord.get_edges_by_type("parent_action")
     assert len(triples) == 1
@@ -116,14 +116,14 @@ def test_build_wires_parent_action_and_indexes_and_json() -> None:
 
 def test_pr8_single_node_graph_has_no_parent_generalization_edges() -> None:
     """PR-8 smoke: coordinator with one node and no ``parent_*`` edges — JSON stays consistent."""
-    lone = _EdgeNode(node_id="fixture.graph.Only", edges=[])
+    lone = _EdgeGraphNode(node_id="fixture.graph.Only", edges=[])
 
-    class _Insp(BaseGraphNodeInspector[_Axis]):
+    class _TestInspector(BaseGraphNodeInspector[_Axis]):
         def _get_node(self, cls: type) -> BaseGraphNode[Any] | None:
             return lone if cls is _Axis else None
 
     coord = NodeGraphCoordinator()
-    coord.build([_Insp()])
+    coord.build([_TestInspector()])
     payload = json.loads(coord.to_json())
     parentish = {e["type"] for e in payload["edges"] if e["type"] in {"parent_action", "parent_role", "parent_domain"}}
     assert not parentish

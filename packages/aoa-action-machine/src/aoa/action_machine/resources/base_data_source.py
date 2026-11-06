@@ -26,7 +26,7 @@ RULES
   resources of several domains may share it. In the graph it belongs to the application.
 - Its class name ends in ``DataSource``.
 - It is not a resource: an action cannot depend on it, so it cannot go around a resource.
-- A resource names it as the type argument of its base: ``PostgresResource[ShopDataSource]``.
+- A resource names it as the type argument of its base: ``PostgresStorage[ShopDataSource]``.
   A resource that stores an entity names one; a resource that stores nothing may name none.
 - A domain reaches a data source through one resource; resources of several domains may
   share one data source, one each.
@@ -41,7 +41,7 @@ EXAMPLE
     class ShopDataSource(PostgresDataSource): ...
 
     @meta(description="Orders", domain=SalesDomain)
-    class OrdersResource(PostgresResource[ShopDataSource]): ...
+    class OrdersStorage(PostgresStorage[ShopDataSource]): ...
 """
 
 from __future__ import annotations

@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.msg_webhook_signature_envelope import WebhookSignatureEnvelopeCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Fanout replay cursor on verified webhook signatures", resource=OutboxPrimaryDatabase)
+@entity(description="Fanout replay cursor on verified webhook signatures", resource=OutboxPrimaryDatabaseStorage)
 class FanoutReplayCursorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cursor id")
     lifecycle: MsgDenseLifecycle = Field(description="Cursor lifecycle")

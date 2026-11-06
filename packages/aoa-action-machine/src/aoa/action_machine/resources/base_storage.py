@@ -1,9 +1,9 @@
 # packages/aoa-action-machine/src/aoa/action_machine/resources/base_storage.py
 """
-Marker base class for external data storage resources.
+BaseStorage — external data storage resource kind.
 
 ═══════════════════════════════════════════════════════════════════════════════
-ROLE
+PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``BaseStorage`` is the root for resources that connect to external data stores —
@@ -22,6 +22,17 @@ SCOPE (IN / OUT)
 **Out of scope**
     External services you delegate work to (→ ``BaseGateway``).
     Internal engines you create and own (→ ``BaseController``).
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BaseResource -> BaseStorage -> named concrete resources
+
+The root validates canonical kind ancestry and descendant names.
+
 """
 
 from abc import ABC
@@ -35,8 +46,8 @@ from aoa.action_machine.resources.base_resource import BaseResource
 class BaseStorage(BaseResource[TDataSource_co], ABC):
     """
     AI-CORE-BEGIN
-        ROLE: Root for resources that connect to external data stores.
-        CONTRACT: Connect, read, write; do not manage the data's lifecycle.
-        INVARIANTS: The data existed before the process and will remain after.
+    ROLE: Root for resources that connect to external data stores.
+    CONTRACT: Connect, read, write; do not manage the data's lifecycle.
+    INVARIANTS: The data existed before the process and will remain after.
     AI-CORE-END
     """

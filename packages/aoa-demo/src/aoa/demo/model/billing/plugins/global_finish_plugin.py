@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 from aoa.action_machine.intents.on import GlobalFinishEvent, on
-from aoa.action_machine.plugin.core import Plugin
+from aoa.action_machine.plugin.core import BasePlugin
 
 
-class BillingGlobalFinishPlugin(Plugin):
+class BillingGlobalFinishPlugin(BasePlugin):
     async def get_initial_state(self) -> dict[str, Any]:
         return {}
 

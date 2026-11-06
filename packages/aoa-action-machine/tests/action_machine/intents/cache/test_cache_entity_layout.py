@@ -35,7 +35,7 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
+from aoa.action_machine.model.stub_params import StubParams
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -68,46 +68,46 @@ class OrdersListResult(BaseResult):
 
 @meta(description="Lists orders, entity by entity", domain=OrdersDomain)
 @check_roles(GuestRole)
-class ListLayoutOrdersAction(BaseAction[ParamsStub, OrdersListResult]):
+class ListLayoutOrdersAction(BaseAction[StubParams, OrdersListResult]):
     """The accepted form of the mode."""
 
     @cache_key("The customer's orders")
-    async def orders_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def orders_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "customer:c1"
 
     @cache_entity_key("One order, as a row")
     async def order_cache_entity_key(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
+        self, params: StubParams, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
     ) -> str:
         return f"order:{entity.id}:row"
 
     @cache_write("Keep the list order by order", tags=(LayoutCustomerCoreEntity,), layout=CacheLayout.ENTITIES)
     async def orders_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
     ) -> list[CacheTag] | None:
         return [CacheTag(type=LayoutCustomerCoreEntity, key="c1")]
 
     @summary_aspect("List")
     async def list_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> OrdersListResult:
         return OrdersListResult(orders=[], total_count=0)
 
 
 @meta(description="Drops orders and customers' lists", domain=OrdersDomain)
 @check_roles(GuestRole)
-class DropLayoutAction(BaseAction[ParamsStub, OrdersListResult]):
+class DropLayoutAction(BaseAction[StubParams, OrdersListResult]):
     """Invalidates both types the list caches."""
 
     @cache_invalidate("Drop", tags=(LayoutOrderCoreEntity, LayoutCustomerCoreEntity))
     async def layout_cache_invalidate(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult
     ) -> list[CacheTag] | None:
         return []
 
     @summary_aspect("Drop")
     async def drop_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> OrdersListResult:
         return OrdersListResult(orders=[], total_count=0)
 
@@ -130,17 +130,17 @@ def test_the_dead_tag_check_counts_the_stored_entity_type() -> None:
 
         @meta(description="Drops customers' lists only", domain=OrdersDomain)
         @check_roles(GuestRole)
-        class DropListsOnlyAction(BaseAction[ParamsStub, OrdersListResult]):
+        class DropListsOnlyAction(BaseAction[StubParams, OrdersListResult]):
             @cache_invalidate("Drop lists", tags=(LayoutCustomerCoreEntity,))
             async def lists_cache_invalidate(
-                self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult
+                self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult
             ) -> list[CacheTag] | None:
                 return []
 
         validate_cache_tags([SimpleNamespace(node_obj=ListLayoutOrdersAction), SimpleNamespace(node_obj=DropListsOnlyAction)])
 
 
-async def _key(self: Any, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+async def _key(self: Any, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
     return "k"
 
 
@@ -148,14 +148,14 @@ def test_the_layout_without_an_entity_key_is_refused() -> None:
     """12.7.2: one without the other does nothing."""
     with pytest.raises(DeclarationStructureError, match=r"writes with layout=CacheLayout\.ENTITIES without @cache_entity_key"):
 
-        class LoneLayoutAction(BaseAction[ParamsStub, OrdersListResult]):
+        class LoneLayoutAction(BaseAction[StubParams, OrdersListResult]):
             @cache_key("Key")
-            async def lone_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+            async def lone_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
                 return "k"
 
             @cache_write("Write", layout=CacheLayout.ENTITIES)
             async def lone_cache_write(
-                self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
+                self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
             ) -> list[CacheTag] | None:
                 return []
 
@@ -164,20 +164,20 @@ def test_an_entity_key_without_the_layout_is_refused() -> None:
     """12.7.2: the key of an entity is called only for that layout."""
     with pytest.raises(DeclarationStructureError, match="declares @cache_entity_key without @cache_write"):
 
-        class LoneEntityKeyAction(BaseAction[ParamsStub, OrdersListResult]):
+        class LoneEntityKeyAction(BaseAction[StubParams, OrdersListResult]):
             @cache_key("Key")
-            async def lone_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+            async def lone_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
                 return "k"
 
             @cache_entity_key("Entity key")
             async def lone_cache_entity_key(
-                self, params: ParamsStub, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
+                self, params: StubParams, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
             ) -> str:
                 return "e"
 
             @cache_write("Write")
             async def lone_cache_write(
-                self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
+                self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
             ) -> list[CacheTag] | None:
                 return []
 
@@ -187,13 +187,13 @@ def test_the_entity_key_is_a_declaration_like_the_others() -> None:
     with pytest.raises(NamingSuffixError, match="must end with '_cache_entity_key'"):
 
         @cache_entity_key("Key")
-        async def order_key(self: Any, params: ParamsStub, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity) -> str:
+        async def order_key(self: Any, params: StubParams, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity) -> str:
             return "e"
 
     with pytest.raises(AspectSignatureError, match=r"\(self, params, box, connections, entity\)"):
 
         @cache_entity_key("Key")
-        async def bad_cache_entity_key(self: Any, params: ParamsStub, box: ToolsBox, connections: Connections) -> str:
+        async def bad_cache_entity_key(self: Any, params: StubParams, box: ToolsBox, connections: Connections) -> str:
             return "e"
 
 
@@ -202,26 +202,26 @@ def _entity_layout_action(result_cls: type) -> type:
 
     @meta(description="Built inside a test", domain=OrdersDomain)
     @check_roles(GuestRole)
-    class InsideLayoutAction(BaseAction[ParamsStub, result_cls]):  # type: ignore[valid-type]
+    class InsideLayoutAction(BaseAction[StubParams, result_cls]):  # type: ignore[valid-type]
         @cache_key("Key")
-        async def inside_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        async def inside_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
             return "k"
 
         @cache_entity_key("Entity key")
         async def inside_cache_entity_key(
-            self, params: ParamsStub, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
+            self, params: StubParams, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
         ) -> str:
             return "e"
 
         @cache_write("Write", layout=CacheLayout.ENTITIES)
         async def inside_cache_write(
-            self, params: ParamsStub, box: ToolsBox, connections: Connections, result: BaseResult, duration_ms: float
+            self, params: StubParams, box: ToolsBox, connections: Connections, result: BaseResult, duration_ms: float
         ) -> list[CacheTag] | None:
             return []
 
         @summary_aspect("Answer")
         async def inside_summary(
-            self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+            self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
         ) -> BaseResult:
             return result_cls()  # type: ignore[no-any-return]
 
@@ -257,26 +257,26 @@ def test_an_entity_key_returns_a_string() -> None:
 
     @meta(description="Its entity key may return None", domain=OrdersDomain)
     @check_roles(GuestRole)
-    class MaybeKeyAction(BaseAction[ParamsStub, OrdersListResult]):
+    class MaybeKeyAction(BaseAction[StubParams, OrdersListResult]):
         @cache_key("Key")
-        async def maybe_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+        async def maybe_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
             return "k"
 
         @cache_entity_key("Entity key")
         async def maybe_cache_entity_key(
-            self, params: ParamsStub, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
+            self, params: StubParams, box: ToolsBox, connections: Connections, entity: LayoutOrderCoreEntity
         ) -> str | None:
             return None
 
         @cache_write("Write", layout=CacheLayout.ENTITIES)
         async def maybe_cache_write(
-            self, params: ParamsStub, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
+            self, params: StubParams, box: ToolsBox, connections: Connections, result: OrdersListResult, duration_ms: float
         ) -> list[CacheTag] | None:
             return []
 
         @summary_aspect("Answer")
         async def maybe_summary(
-            self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+            self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
         ) -> OrdersListResult:
             return OrdersListResult(orders=[], total_count=0)
 

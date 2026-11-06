@@ -8,8 +8,8 @@ PURPOSE
 
 ``@summary_aspect`` assembles the operation's answer. The documentation has always said
 it "must return a typed ``Result``"; until this feature nothing compared the two, so an
-operation declaring ``ResultStub`` could answer with a ``dict`` and no layer objected
-(measured on the tree before the change: ``answer type: dict``, ``is ResultStub:
+operation declaring ``StubResult`` could answer with a ``dict`` and no layer objected
+(measured on the tree before the change: ``answer type: dict``, ``is StubResult:
 False``).
 
 Two moments make the sentence true. At assembly the declared return is compared with the
@@ -48,10 +48,10 @@ from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.logging.log_scope import LogScope
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
-from aoa.action_machine.model.result_stub import ResultStub
+from aoa.action_machine.model.stub_params import StubParams
+from aoa.action_machine.model.stub_result import StubResult
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BasePluginEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -66,7 +66,7 @@ class OtherResult(BaseResult):
     """A result that belongs to some other operation."""
 
 
-class _EventRecorder(Plugin):
+class _EventRecorderPlugin(BasePlugin):
     """A plugin recording the name of every event the run publishes."""
 
     async def get_initial_state(self) -> dict[str, Any]:
@@ -103,19 +103,19 @@ class _RecordingLogger(BaseLogger):
 
 @meta(description="answer: a compliant summary", domain=SystemDomain)
 @check_roles(GuestRole)
-class CompliantAnswerAction(BaseAction[ParamsStub, ResultStub]):
+class CompliantAnswerAction(BaseAction[StubParams, StubResult]):
     """An operation whose summary answers with its own Result."""
 
     @summary_aspect("Assemble the result")
     async def good_answer_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Build the empty result."""
-        return ResultStub()
+        return StubResult()
 
 
 def _context() -> Context:
@@ -127,7 +127,7 @@ def _machine(logger: BaseLogger | None = None) -> ActionProductMachine:
     """A machine with the recorder plugin, and optionally a recording logger."""
     return ActionProductMachine(
         cache_coordinator=None,
-        plugins=[_EventRecorder()],
+        plugins=[_EventRecorderPlugin()],
         log_coordinator=LogCoordinator(loggers=[logger] if logger is not None else []),
     )
 
@@ -141,16 +141,16 @@ class TestTheAnnotationAtAssembly:
             @exclude_graph_model
             @meta(description="answer: a summary that promises anything", domain=SystemDomain)
             @check_roles(GuestRole)
-            class AnyAnswerAction(BaseAction[ParamsStub, ResultStub]):
+            class AnyAnswerAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def any_answer_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
                 ) -> Any:
-                    return ResultStub()
+                    return StubResult()
 
             ActionGraphNode(AnyAnswerAction)
 
@@ -160,11 +160,11 @@ class TestTheAnnotationAtAssembly:
             @exclude_graph_model
             @meta(description="answer: a summary naming a foreign result", domain=SystemDomain)
             @check_roles(GuestRole)
-            class ForeignAnswerAction(BaseAction[ParamsStub, ResultStub]):
+            class ForeignAnswerAction(BaseAction[StubParams, StubResult]):
                 @summary_aspect("S")
                 async def foreign_answer_summary(
                     self,
-                    params: ParamsStub,
+                    params: StubParams,
                     state: BaseState,
                     box: ToolsBox,
                     connections: Connections,
@@ -179,16 +179,16 @@ class TestTheAnnotationAtAssembly:
     def test_the_base_result_is_accepted(self) -> None:
         @meta(description="answer: a summary naming the base result", domain=SystemDomain)
         @check_roles(GuestRole)
-        class BaseAnswerAction(BaseAction[ParamsStub, ResultStub]):
+        class BaseAnswerAction(BaseAction[StubParams, StubResult]):
             @summary_aspect("S")
             async def base_answer_summary(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state: BaseState,
                 box: ToolsBox,
                 connections: Connections,
             ) -> BaseResult:
-                return ResultStub()
+                return StubResult()
 
         assert ActionGraphNode(BaseAnswerAction).get_summary_aspect_graph_node().label == "base_answer_summary"
 
@@ -199,46 +199,46 @@ class TestTheAnswerAtRuntime:
     def test_a_mapping_is_refused(self) -> None:
         @meta(description="answer: a summary returning a mapping", domain=SystemDomain)
         @check_roles(GuestRole)
-        class MappingAnswerAction(BaseAction[ParamsStub, ResultStub]):
+        class MappingAnswerAction(BaseAction[StubParams, StubResult]):
             @summary_aspect("S")
             async def mapping_answer_summary(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state: BaseState,
                 box: ToolsBox,
                 connections: Connections,
-            ) -> ResultStub:
+            ) -> StubResult:
                 return {"not": "a result"}  # type: ignore[return-value]
 
         with pytest.raises(ActionResultTypeError) as caught:
-            asyncio.run(_machine().run(_context(), MappingAnswerAction(), ParamsStub()))
+            asyncio.run(_machine().run(_context(), MappingAnswerAction(), StubParams()))
 
         message = str(caught.value)
         assert "MappingAnswerAction" in message
-        assert "ResultStub" in message
+        assert "StubResult" in message
         assert "dict" in message
 
     def test_a_foreign_result_is_refused(self) -> None:
         @meta(description="answer: a summary returning a foreign result", domain=SystemDomain)
         @check_roles(GuestRole)
-        class ForeignInstanceAction(BaseAction[ParamsStub, ResultStub]):
+        class ForeignInstanceAction(BaseAction[StubParams, StubResult]):
             @summary_aspect("S")
             async def foreign_instance_summary(
                 self,
-                params: ParamsStub,
+                params: StubParams,
                 state: BaseState,
                 box: ToolsBox,
                 connections: Connections,
-            ) -> ResultStub:
+            ) -> StubResult:
                 return OtherResult()  # type: ignore[return-value]
 
         with pytest.raises(ActionResultTypeError, match="OtherResult"):
-            asyncio.run(_machine().run(_context(), ForeignInstanceAction(), ParamsStub()))
+            asyncio.run(_machine().run(_context(), ForeignInstanceAction(), StubParams()))
 
     def test_the_operations_own_result_is_handed_back(self) -> None:
-        answer = asyncio.run(_machine().run(_context(), CompliantAnswerAction(), ParamsStub()))
+        answer = asyncio.run(_machine().run(_context(), CompliantAnswerAction(), StubParams()))
 
-        assert isinstance(answer, ResultStub)
+        assert isinstance(answer, StubResult)
 
 
 class TestNothingElseMoved:
@@ -246,13 +246,13 @@ class TestNothingElseMoved:
 
     def test_the_answer_is_unchanged(self) -> None:
         _SEEN_EVENTS.clear()
-        answer = asyncio.run(_machine().run(_context(), CompliantAnswerAction(), ParamsStub()))
+        answer = asyncio.run(_machine().run(_context(), CompliantAnswerAction(), StubParams()))
 
-        assert type(answer) is ResultStub
+        assert type(answer) is StubResult
 
     def test_the_event_sequence_is_unchanged(self) -> None:
         _SEEN_EVENTS.clear()
-        asyncio.run(_machine().run(_context(), CompliantAnswerAction(), ParamsStub()))
+        asyncio.run(_machine().run(_context(), CompliantAnswerAction(), StubParams()))
 
         assert _SEEN_EVENTS == [
             "GlobalStartEvent",
@@ -263,12 +263,12 @@ class TestNothingElseMoved:
 
     def test_the_log_written_is_unchanged(self) -> None:
         logger = _RecordingLogger()
-        asyncio.run(_machine(logger).run(_context(), CompliantAnswerAction(), ParamsStub()))
+        asyncio.run(_machine(logger).run(_context(), CompliantAnswerAction(), StubParams()))
 
         assert logger.messages == []
 
     def test_the_run_refuses_nothing_for_a_compliant_answer(self) -> None:
         _SEEN_EVENTS.clear()
-        asyncio.run(_machine().run(_context(), CompliantAnswerAction(), ParamsStub()))
+        asyncio.run(_machine().run(_context(), CompliantAnswerAction(), StubParams()))
 
         assert "OnErrorAspectEvent" not in _SEEN_EVENTS

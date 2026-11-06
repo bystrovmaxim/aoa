@@ -13,6 +13,7 @@ from aoa.demo.model.generalization_shapes.generalization_shapes_domain import Ge
 class GeneralizationShapesStorage(BaseStorage[GeneralizationShapesDataSource]):
     """Hold the generalization shapes domain's entities; the demo never opens it."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

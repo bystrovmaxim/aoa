@@ -30,7 +30,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
+from aoa.action_machine.model.stub_params import StubParams
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -52,29 +52,29 @@ class ItemsResult(BaseResult):
 
 @meta(description="A cached list", domain=OrdersDomain)
 @check_roles(GuestRole)
-class CachedListAction(BaseAction[ParamsStub, ItemsResult]):
+class CachedListAction(BaseAction[StubParams, ItemsResult]):
     """Caches one list under one key and records what its read receives."""
 
     @cache_key("One key")
-    async def list_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def list_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "list"
 
     @cache_read("Record the entry and keep it")
     async def list_cache_read(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, entry: CacheEntry
+        self, params: StubParams, box: ToolsBox, connections: Connections, entry: CacheEntry
     ) -> ItemsResult | None:
         _read.append(entry)
         return entry.result  # type: ignore[no-any-return]
 
     @cache_write("Keep the list", tags=(CachedItemCoreEntity,))
     async def list_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ItemsResult, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: ItemsResult, duration_ms: float
     ) -> list[CacheTag] | None:
         return [CacheTag(type=CachedItemCoreEntity, key="list")]
 
     @summary_aspect("Load the list")
     async def load_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ItemsResult:
         return ItemsResult(names=["a"])
 
@@ -98,16 +98,16 @@ def _machine(cache: CacheCoordinator) -> ActionProductMachine:
 async def test_a_hit_returns_a_new_result_a_caller_cannot_change() -> None:
     """Case 9.1: before, ``(['a', 'leak'], True)``; now the hit is another object with what was written."""
     machine = _machine(CacheCoordinator())
-    first = await machine.run(Context(), CachedListAction(), ParamsStub())
+    first = await machine.run(Context(), CachedListAction(), StubParams())
     first.names.append("leak")
-    second = await machine.run(Context(), CachedListAction(), ParamsStub())
+    second = await machine.run(Context(), CachedListAction(), StubParams())
     assert (second.names, first is second) == (["a"], False)
 
 
 async def test_the_store_receives_the_results_json_bytes() -> None:
     """The store never sees a Result: ``put`` gets ``model_dump_json()`` in UTF-8."""
     cache = RecordingCoordinator()
-    await _machine(cache).run(Context(), CachedListAction(), ParamsStub())
+    await _machine(cache).run(Context(), CachedListAction(), StubParams())
     assert cache.puts == [b'{"names":["a"]}']
 
 
@@ -116,8 +116,8 @@ async def test_the_read_receives_a_new_result_with_the_stored_metadata() -> None
     _read.clear()
     cache = CacheCoordinator()
     machine = _machine(cache)
-    first = await machine.run(Context(), CachedListAction(), ParamsStub())
-    await machine.run(Context(), CachedListAction(), ParamsStub())
+    first = await machine.run(Context(), CachedListAction(), StubParams())
+    await machine.run(Context(), CachedListAction(), StubParams())
     stored = await cache.get_entry(CachedListAction, "list")
     assert stored is not None
     (entry,) = _read
@@ -136,7 +136,7 @@ class Frame:
 
 @meta(description="ReportAction for the read-back tests", domain=OrdersDomain)
 @check_roles(GuestRole)
-class ReportAction(BaseAction[ParamsStub, "ReportAction.Result"]):
+class ReportAction(BaseAction[StubParams, "ReportAction.Result"]):
     """Its Result has a JSON Schema and holds a value that has no JSON form."""
 
     class Result(BaseResult):
@@ -144,25 +144,25 @@ class ReportAction(BaseAction[ParamsStub, "ReportAction.Result"]):
         data: Any = Field(description="Raw data")
 
     @cache_key("One key")
-    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def picked_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "ReportAction"
 
     @cache_write("Keep it", tags=(CachedItemCoreEntity,))
     async def picked_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ReportAction.Result, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: ReportAction.Result, duration_ms: float
     ) -> list[CacheTag] | None:
         return []
 
     @summary_aspect("Answer")
     async def picked_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ReportAction.Result:
         return ReportAction.Result(summary="ok", data=Frame())
 
 
 @meta(description="CountAction for the read-back tests", domain=OrdersDomain)
 @check_roles(GuestRole)
-class CountAction(BaseAction[ParamsStub, "CountAction.Result"]):
+class CountAction(BaseAction[StubParams, "CountAction.Result"]):
     """Its Result writes its count as text its own field does not accept."""
 
     class Result(BaseResult):
@@ -173,25 +173,25 @@ class CountAction(BaseAction[ParamsStub, "CountAction.Result"]):
             return f"{value} items"
 
     @cache_key("One key")
-    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def picked_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "CountAction"
 
     @cache_write("Keep it", tags=(CachedItemCoreEntity,))
     async def picked_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: CountAction.Result, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: CountAction.Result, duration_ms: float
     ) -> list[CacheTag] | None:
         return []
 
     @summary_aspect("Answer")
     async def picked_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> CountAction.Result:
         return CountAction.Result(count=2)
 
 
 @meta(description="FloorAction for the read-back tests", domain=OrdersDomain)
 @check_roles(GuestRole)
-class FloorAction(BaseAction[ParamsStub, "FloorAction.Result"]):
+class FloorAction(BaseAction[StubParams, "FloorAction.Result"]):
     """Its Result writes its count as another valid count."""
 
     class Result(BaseResult):
@@ -202,18 +202,18 @@ class FloorAction(BaseAction[ParamsStub, "FloorAction.Result"]):
             return value // 10 * 10
 
     @cache_key("One key")
-    async def picked_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def picked_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "FloorAction"
 
     @cache_write("Keep it", tags=(CachedItemCoreEntity,))
     async def picked_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: FloorAction.Result, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: FloorAction.Result, duration_ms: float
     ) -> list[CacheTag] | None:
         return []
 
     @summary_aspect("Answer")
     async def picked_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> FloorAction.Result:
         return FloorAction.Result(count=29)
 
@@ -237,7 +237,7 @@ async def test_a_result_that_does_not_read_back_is_refused_and_not_stored(picked
     action_cls, message = REFUSED[picked]
     cache = RecordingCoordinator()
     with pytest.raises(CacheSerializationError) as refused:
-        await _machine(cache).run(Context(), action_cls(), ParamsStub())
+        await _machine(cache).run(Context(), action_cls(), StubParams())
     assert str(refused.value) == message
     assert isinstance(refused.value, CacheContractError)
     assert cache.puts == [] and cache.size == 0
@@ -247,7 +247,7 @@ async def test_an_action_that_does_not_cache_never_serializes() -> None:
     """Only a write serializes: a machine without a cache returns the same Result as it is."""
     action_cls, _ = REFUSED["report"]
     machine = ActionProductMachine(log_coordinator=LogCoordinator(loggers=[]), cache_coordinator=None)
-    result = await machine.run(Context(), action_cls(), ParamsStub())
+    result = await machine.run(Context(), action_cls(), StubParams())
     assert isinstance(result.data, Frame)
 
 
@@ -259,29 +259,29 @@ _runs: list[str] = []
 
 @meta(description="A list whose stored JSON an old version wrote", domain=OrdersDomain)
 @check_roles(GuestRole)
-class RenamedListAction(BaseAction[ParamsStub, ItemsResult]):
+class RenamedListAction(BaseAction[StubParams, ItemsResult]):
     """Counts its runs and its reads."""
 
     @cache_key("One key")
-    async def renamed_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def renamed_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "list"
 
     @cache_read("Count the reads")
     async def renamed_cache_read(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, entry: CacheEntry
+        self, params: StubParams, box: ToolsBox, connections: Connections, entry: CacheEntry
     ) -> ItemsResult | None:
         _runs.append("read")
         return entry.result  # type: ignore[no-any-return]
 
     @cache_write("Keep it", tags=(CachedItemCoreEntity,))
     async def renamed_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ItemsResult, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: ItemsResult, duration_ms: float
     ) -> list[CacheTag] | None:
         return []
 
     @summary_aspect("Load")
     async def load_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
     ) -> ItemsResult:
         _runs.append("run")
         return ItemsResult(names=["a"])
@@ -293,7 +293,7 @@ async def test_an_entry_that_no_longer_reads_is_dropped_and_the_pipeline_runs() 
     cache = CacheCoordinator()
     await cache.put(RenamedListAction, "list", b'{"items":["old"]}', 5.0)
     machine = _machine(cache)
-    first = await machine.run(Context(), RenamedListAction(), ParamsStub())
-    second = await machine.run(Context(), RenamedListAction(), ParamsStub())
+    first = await machine.run(Context(), RenamedListAction(), StubParams())
+    second = await machine.run(Context(), RenamedListAction(), StubParams())
     assert (first.names, second.names) == (["a"], ["a"])
     assert _runs == ["run", "read"]

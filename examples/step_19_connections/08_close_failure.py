@@ -8,18 +8,19 @@ Run: uv run python examples/step_19_connections/08_close_failure.py
 import asyncio
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
 
 @exclude_graph_model
-class TraceResource(BaseResource):
+class TraceController(BaseController):
     """Record lifecycle calls without opening an external connection."""
     def __init__(self, events):
         """Keep the event list supplied by the example."""
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use by nested actions."""
         return None
     async def open(self):
@@ -40,7 +41,7 @@ async def main():
     """Run this case and verify its observable result."""
     events = []
     try:
-        async with connection_scope({"db": PerCallConnection(lambda: TraceResource(events), fail_close)}):
+        async with connection_scope({"db": PerCallConnection(lambda: TraceController(events), fail_close)}):
             events.append("use")
     except OSError as error:
         print(type(error).__name__ + ": " + str(error))

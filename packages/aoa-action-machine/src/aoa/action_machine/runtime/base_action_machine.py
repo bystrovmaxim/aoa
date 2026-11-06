@@ -53,6 +53,7 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.naming.suffix import require_suffix
 from aoa.action_machine.resources import Connections
 
 P = TypeVar("P", bound=BaseParams)
@@ -66,6 +67,11 @@ class BaseActionMachine(ABC):
     Defines public ``run()`` contract and internal ``_run_internal()`` hook.
     Concrete machines provide async/sync entry behavior and full pipeline logic.
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``Machine``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseActionMachine", "Machine")
 
     @abstractmethod
     async def run(

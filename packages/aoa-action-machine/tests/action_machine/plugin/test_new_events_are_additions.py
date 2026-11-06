@@ -50,8 +50,8 @@ from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.plugin.core import events as events_module
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BasePluginEvent, GlobalFinishEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -179,7 +179,7 @@ class CheckedSummaryAction(BaseAction["CheckedSummaryAction.Params", "CheckedSum
         return CheckedSummaryAction.Result()
 
 
-class BroadRecorder(Plugin):
+class BroadRecorderPlugin(BasePlugin):
     """A plugin written against the root event, as a logging plugin would be."""
 
     async def get_initial_state(self) -> dict[str, Any]:
@@ -193,7 +193,7 @@ class BroadRecorder(Plugin):
         return state
 
 
-class LegacyFinishSubscriber(Plugin):
+class LegacyFinishSubscriberPlugin(BasePlugin):
     """A plugin subscribed to one old event, reading the payload it always read."""
 
     async def get_initial_state(self) -> dict[str, Any]:
@@ -225,7 +225,7 @@ def _admin() -> Context:
     return Context(user=UserInfo(user_id="u-1", roles=(AdminRole,)))
 
 
-def _machine(*plugins: Plugin) -> ActionProductMachine:
+def _machine(*plugins: BasePlugin) -> ActionProductMachine:
     """A machine watched by the given plugins."""
     return ActionProductMachine(cache_coordinator=None, plugins=list(plugins))
 
@@ -272,14 +272,14 @@ class TestTheAdditionsAreTheOnesDeclared:
 class TestAPluginThatKnowsNothingNew:
     async def test_an_operation_without_a_check_publishes_none_of_the_new_events(self) -> None:
         """A plugin written before the feature sees exactly its old stream."""
-        machine = _machine(BroadRecorder())
+        machine = _machine(BroadRecorderPlugin())
 
         await machine.run(_admin(), PlainSummaryAction(), PlainSummaryAction.Params())
 
         assert set(_SEEN_NAMES) & _ADDED_BY_THIS_FEATURE == set()
 
     async def test_the_old_lifecycle_is_what_it_always_was(self) -> None:
-        machine = _machine(BroadRecorder())
+        machine = _machine(BroadRecorderPlugin())
 
         await machine.run(_admin(), PlainSummaryAction(), PlainSummaryAction.Params())
 
@@ -291,7 +291,7 @@ class TestAPluginThatKnowsNothingNew:
         ]
 
     async def test_a_legacy_handler_reads_the_payload_it_always_read(self) -> None:
-        machine = _machine(LegacyFinishSubscriber())
+        machine = _machine(LegacyFinishSubscriberPlugin())
 
         await machine.run(_admin(), PlainSummaryAction(), PlainSummaryAction.Params())
 
@@ -311,7 +311,7 @@ class TestAPluginThatKnowsNothingNew:
 
     async def test_a_declared_check_adds_events_without_taking_any_away(self) -> None:
         """The same operation with a declaration: the old stream is still there, plus two."""
-        machine = _machine(BroadRecorder())
+        machine = _machine(BroadRecorderPlugin())
 
         await machine.run(_admin(), CheckedSummaryAction(), CheckedSummaryAction.Params())
 

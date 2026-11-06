@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Payout plan rollup", resource=BillingWarehouse)
+@entity(description="Payout plan rollup", resource=BillingWarehouseStorage)
 class BillingPayoutPlanCoreEntity(BaseCoreEntity):
     id: str = Field(description="Plan id")
     lifecycle: BillingDenseLifecycle = Field(description="Payout lifecycle")

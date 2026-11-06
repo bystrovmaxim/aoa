@@ -64,7 +64,7 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.resources import Connections
@@ -146,12 +146,13 @@ class GreetingDomain(BaseDomain):
 
 
 @meta(description="Supply a greeting prefix", domain=GreetingDomain)
-class GreetingResource(BaseResource):
+class GreetingController(BaseController):
     """Represent a handle owned by one dispatcher call."""
     def __init__(self, events):
         """Keep the lifecycle log."""
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use of this non-transactional handle."""
         return None
     async def open(self):
@@ -177,7 +178,7 @@ class GreetResult(BaseResult):
 
 @meta(description="Greet a person", domain=GreetingDomain)
 @check_roles(GuestRole)
-@connection(GreetingResource, key="greeting")
+@connection(GreetingController, key="greeting")
 class GreetAction(BaseAction[GreetParams, GreetResult]):
     """Build a greeting using the supplied resource."""
 
@@ -195,7 +196,7 @@ async def main():
     events = []
     call = (DictAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .command("greet", GreetAction, connections={"greeting": PerCallConnection(
-            lambda: GreetingResource(events), lambda resource: resource.close(),
+            lambda: GreetingController(events), lambda resource: resource.close(),
         )}).build())
     result = await call("greet", {"name": "Alice"})
     assert result == {"message": "Hello, Alice!"}
