@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-06] — The demo has three databases, and their resources relate
+
+The demo now shows what a data source is for. Its model has three databases: the shop database is shared by the storefront, the support desk and inventory, so a support ticket points at the order and the customer it is about although the three are kept by different resources of different domains; the messaging database holds the outbox and its dead-letter queue, so a replay ticket points at the message it replays; the catalog's object database has one resource. Every other resource names no database and keeps its relations to itself. The demo's graph shows the three databases on the application, each with its resources, and the new relations; `aoa-demo` moves to 3.18.0. [The demo's page](../packages/aoa-demo/README.md) lists the databases and what each shows.
+
 ## [2026-11-06] — Resources of one database share a data source, and their entities may relate
 
 A resource is often a part of a database rather than the whole of it: orders and support tickets live in one database, each kept by its own resource. Until now the model could not say so, and it refused every relation between entities of two resources. Now a resource may name the database it shares — its **data source**, a new primitive `BaseDataSource` — as the type argument of its base: `class OrdersStorage(PostgresResource[ShopDataSource])`. A relation between entities stays inside one data source, or inside one resource when the resource names none, so entities of two resources of one database relate as ordinary joins, while a link to another database is still refused. A data source declares only `@meta(description=...)`: it belongs to no domain, because resources of several domains may share one store, and an action never depends on it.
