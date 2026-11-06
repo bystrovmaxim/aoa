@@ -55,7 +55,7 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.3.0b1"
+version = "1.4.0b1"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
@@ -99,7 +99,7 @@ dev = [
 
 [[package]]
 name = "aoa-demo"
-version = "3.20.1"
+version = "3.21.0"
 source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },

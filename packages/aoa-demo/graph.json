@@ -12579,36 +12579,36 @@
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveGateway",
       "is_dag": true,
       "properties": {
         "description": "Ledger append"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
-      "target_id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "target_id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveGateway",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.payment_gateway.PaymentGateway",
       "is_dag": true,
       "properties": {
         "description": "Card capture"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
-      "target_id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
+      "target_id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGateway",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.tax_quote.TaxQuoteServiceResource",
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@depends|aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
       "is_dag": true,
       "properties": {
         "description": "Tax rate lookup"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
-      "target_id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteServiceResource",
+      "target_id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
       "type": "@depends"
     },
     {
@@ -18998,20 +18998,20 @@
       "type": "resource_data_source"
     },
     {
-      "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource|domain|aoa.demo.model.billing.domain.BillingDomain",
+      "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveGateway|domain|aoa.demo.model.billing.domain.BillingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
+      "source_id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveGateway",
       "target_id": "aoa.demo.model.billing.domain.BillingDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource|domain|aoa.demo.model.billing.domain.BillingDomain",
+      "id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGateway|domain|aoa.demo.model.billing.domain.BillingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
+      "source_id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGateway",
       "target_id": "aoa.demo.model.billing.domain.BillingDomain",
       "type": "domain"
     },
@@ -19025,11 +19025,11 @@
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteServiceResource|domain|aoa.demo.model.billing.domain.BillingDomain",
+      "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway|domain|aoa.demo.model.billing.domain.BillingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteServiceResource",
+      "source_id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
       "target_id": "aoa.demo.model.billing.domain.BillingDomain",
       "type": "domain"
     },
@@ -19456,25 +19456,25 @@
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@depends|aoa.demo.model.catalog.resources.index_sync.IndexSyncClientResource",
+      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@depends|aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway",
       "is_dag": true,
       "properties": {
         "description": "Search index"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction",
-      "target_id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncClientResource",
+      "target_id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@depends|aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource",
+      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@depends|aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
       "is_dag": true,
       "properties": {
         "description": "Pricing feed"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction",
-      "target_id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource",
+      "target_id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
       "type": "@depends"
     },
     {
@@ -23426,11 +23426,11 @@
       "type": "lifecycle"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncClientResource|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway|domain|aoa.demo.model.catalog.domain.CatalogDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncClientResource",
+      "source_id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway",
       "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
       "type": "domain"
     },
@@ -23453,11 +23453,11 @@
       "type": "resource_data_source"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway|domain|aoa.demo.model.catalog.domain.CatalogDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource",
+      "source_id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
       "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
       "type": "domain"
     },
@@ -33394,36 +33394,36 @@
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "is_dag": true,
       "properties": {
         "description": "In-app notifier"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
-      "target_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "target_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource",
+      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportGateway",
       "is_dag": true,
       "properties": {
         "description": "SMTP transport"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
-      "target_id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource",
+      "target_id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportGateway",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutStubResource",
+      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@depends|aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutGateway",
       "is_dag": true,
       "properties": {
         "description": "Webhook fan-out"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
-      "target_id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutStubResource",
+      "target_id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutGateway",
       "type": "@depends"
     },
     {
@@ -36480,12 +36480,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_recipient_device_seen.RecipientDeviceSeenCoreEntity|entity_resource|aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "id": "aoa.demo.model.messaging.entities.msg_recipient_device_seen.RecipientDeviceSeenCoreEntity|entity_resource|aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_recipient_device_seen.RecipientDeviceSeenCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "target_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "type": "entity_resource"
     },
     {
@@ -37494,20 +37494,20 @@
       "type": "lifecycle"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
+      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource|resource_data_source|aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
+      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway|resource_data_source|aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
       "target_id": "aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
       "type": "resource_data_source"
     },
@@ -37530,20 +37530,20 @@
       "type": "resource_data_source"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
+      "id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportGateway|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource",
+      "source_id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportGateway",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutStubResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
+      "id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutGateway|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutStubResource",
+      "source_id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutGateway",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
     },
@@ -71544,18 +71544,18 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource",
-      "label": "LedgerArchiveServiceResource",
+      "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveGateway",
+      "label": "LedgerArchiveGateway",
       "properties": {
-        "description": "Ledger archive client for aspects/connections (stub)"
+        "description": "Ledger archive gateway (stub)"
       },
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
-      "label": "PaymentGatewayResource",
+      "id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGateway",
+      "label": "PaymentGateway",
       "properties": {
-        "description": "Payment gateway client for aspects/connections (stub)"
+        "description": "Payment provider gateway (stub)"
       },
       "type": "Resource"
     },
@@ -71568,10 +71568,10 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteServiceResource",
-      "label": "TaxQuoteServiceResource",
+      "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
+      "label": "TaxQuoteGateway",
       "properties": {
-        "description": "Tax quote client for aspects/connections (stub)"
+        "description": "Tax quote gateway (stub)"
       },
       "type": "Resource"
     },
@@ -74623,10 +74623,10 @@
       "type": "EntityField"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncClientResource",
-      "label": "IndexSyncClientResource",
+      "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway",
+      "label": "IndexSyncGateway",
       "properties": {
-        "description": "Search index sync client for aspects/connections (stub)"
+        "description": "Search index sync gateway (stub)"
       },
       "type": "Resource"
     },
@@ -74639,10 +74639,10 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource",
-      "label": "PricingFeedClientResource",
+      "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
+      "label": "PricingFeedGateway",
       "properties": {
-        "description": "Pricing feed client for aspects/connections (stub)"
+        "description": "Pricing feed gateway (stub)"
       },
       "type": "Resource"
     },
@@ -83951,10 +83951,10 @@
       "type": "EntityField"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
-      "label": "NotificationGatewayResource",
+      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGateway",
+      "label": "NotificationGateway",
       "properties": {
-        "description": "Notification gateway client for aspects/connections (stub)"
+        "description": "Notification service gateway (stub)"
       },
       "type": "Resource"
     },
@@ -83967,18 +83967,18 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource",
-      "label": "SmtpTransportStubResource",
+      "id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportGateway",
+      "label": "SmtpTransportGateway",
       "properties": {
-        "description": "SMTP transport client for aspects/connections (stub)"
+        "description": "SMTP transport gateway (stub)"
       },
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutStubResource",
-      "label": "WebhookFanoutStubResource",
+      "id": "aoa.demo.model.messaging.resources.webhook_fanout.WebhookFanoutGateway",
+      "label": "WebhookFanoutGateway",
       "properties": {
-        "description": "Webhook fan-out client for aspects/connections (stub)"
+        "description": "Webhook fan-out gateway (stub)"
       },
       "type": "Resource"
     },

@@ -6,7 +6,7 @@ One phase = one commit, referencing (#485). After a phase only its own tests run
 - [x] T002 [US2] Phase 2: `testing/bench.py::_reset_mock_tree` resets a mock resource or the mocks in a resource's own attributes, without `.service` or `_inner`; `testing/mock_action.py`'s comment names a gateway; bench tests of a gateway around a mock client
 - [x] T003 [US3] Phase 3: the demo's eight external services become gateways (`PaymentGateway`, `TaxQuoteGateway`, `LedgerArchiveGateway`, `IndexSyncGateway`, `PricingFeedGateway`, `NotificationGateway`, `SmtpTransportGateway`, `WebhookFanoutGateway`) around `…Client` classes; `invoice_settle.py`, `product_enrichment.py`, `publish_transactional.py` call their methods, compensators included, without `.service`; a demo test of each gateway method
 - [x] T004 Phase 4: the test models of `aoa-langgraph` and `aoa-mcp-adapter` (`tests/support/domain_model.py`) follow; `scripts/check_maxitor_samples_public_api.py` and every example and notebook that names the removed classes
-- [ ] T005 Phase 5: rebuild the graph files, raise the versions
+- [x] T005 Phase 5: rebuild the graph files, raise the versions
 - [ ] T006 Phase 6: the closing check run on the pull request, taken to zero
 - [ ] T007 Phase 7: documentation — `docs/explanation/architectural-constitution.md`, `docs/tutorials/step-21-resource.md` and `docs/tutorials/step-00-get-started.md` show a gateway with its own methods; the testing page shows substituting one
 - [ ] T008 Phase 8: changelog
