@@ -1,19 +1,26 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/resources/webhook_fanout.py
-"""Webhook fan-out stub for ``@depends`` and ``connections`` resource manager."""
+"""Webhook fan-out: a stub client and the gateway the domain reaches it through."""
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.external_service import ExternalServiceResource
+from aoa.action_machine.resources import BaseGateway
 from aoa.demo.model.messaging.domain import MessagingDomain
 
 
-class WebhookFanoutStub:
+class WebhookFanoutClient:
     async def post(self, url: str, payload: str) -> int:
         return 202
 
 
 @meta(
-    description="Webhook fan-out client for aspects/connections (stub)",
+    description="Webhook fan-out gateway (stub)",
     domain=MessagingDomain,
 )
-class WebhookFanoutStubResource(ExternalServiceResource[WebhookFanoutStub]):
-    pass
+class WebhookFanoutGateway(BaseGateway):
+    """The gateway to the webhook fan-out: its methods are what the domain asks of it."""
+
+    def __init__(self, client: WebhookFanoutClient) -> None:
+        self._client = client
+
+    async def post(self, url: str, payload: str) -> int:
+        """Ask the webhook fan-out: post."""
+        return await self._client.post(url, payload)

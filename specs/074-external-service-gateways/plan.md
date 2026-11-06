@@ -37,10 +37,10 @@
   | `SmtpTransportStubResource` | `SmtpTransportGateway` | `send_raw` | `SmtpTransportClient` |
   | `WebhookFanoutStubResource` | `WebhookFanoutGateway` | `post` | `WebhookFanoutClient` |
 
-  `invoice_settle.py`, `product_enrichment.py` and `publish_transactional.py` call the gateways' methods, compensators included; their `# type: ignore[attr-defined]` marks go with `.service`.
+  `invoice_settle.py`, `product_enrichment.py` and `publish_transactional.py` call the gateways' methods, compensators included.
 - **Graphs** — the demo's `graph.json` and every committed graph that holds these resources are rebuilt; their nodes become gateways.
 - **Versions** — `aoa-action-machine` and `aoa-demo` raise their versions; any other level whose files change follows the version page.
 
 ## Constitution Check
 
-One phase = one commit; adversarial verification on each phase's tests; the tail (check run, documentation, changelog); every changed level raises its version. Nothing is committed without the maintainer's word. No `type: ignore` is added; the removed ones go.
+One phase = one commit; adversarial verification on each phase's tests; the tail (check run, documentation, changelog); every changed level raises its version. Nothing is committed without the maintainer's word. No `type: ignore` is added.

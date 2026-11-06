@@ -23,27 +23,27 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.resources import BillingReadReplica, BillingWarehouse
-from aoa.demo.model.billing.resources.ledger_archive import LedgerArchiveService, LedgerArchiveServiceResource
-from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway, PaymentGatewayResource
-from aoa.demo.model.billing.resources.tax_quote import TaxQuoteService, TaxQuoteServiceResource
+from aoa.demo.model.billing.resources.ledger_archive import LedgerArchiveClient, LedgerArchiveGateway
+from aoa.demo.model.billing.resources.payment_gateway import PaymentClient, PaymentGateway
+from aoa.demo.model.billing.resources.tax_quote import TaxQuoteClient, TaxQuoteGateway
 from aoa.demo.model.roles import EditorRole
 
 
 @meta(description="Settle invoice with full interchange graph (billing demo)", domain=BillingDomain)
 @check_roles(EditorRole)
 @depends(
-    PaymentGatewayResource,
-    factory=lambda: PaymentGatewayResource(PaymentGateway()),
+    PaymentGateway,
+    factory=lambda: PaymentGateway(PaymentClient()),
     description="Card capture",
 )
 @depends(
-    LedgerArchiveServiceResource,
-    factory=lambda: LedgerArchiveServiceResource(LedgerArchiveService()),
+    LedgerArchiveGateway,
+    factory=lambda: LedgerArchiveGateway(LedgerArchiveClient()),
     description="Ledger append",
 )
 @depends(
-    TaxQuoteServiceResource,
-    factory=lambda: TaxQuoteServiceResource(TaxQuoteService()),
+    TaxQuoteGateway,
+    factory=lambda: TaxQuoteGateway(TaxQuoteClient()),
     description="Tax rate lookup",
 )
 @connection(BillingWarehouse, key="warehouse", description="Billing warehouse")
@@ -86,9 +86,9 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        payment = await box.resolve(PaymentGatewayResource)
+        payment = await box.resolve(PaymentGateway)
         cents = float(params.gross_cents)
-        txn = await payment.service.charge(cents / 100.0)
+        txn = await payment.charge(cents / 100.0)
         return {"capture_txn": txn, "captured_cents": cents}
 
     @compensate(capture_aspect, "Void capture on failure")
@@ -102,8 +102,8 @@ class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettl
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = await box.resolve(PaymentGatewayResource)
-            await payment.service.refund(state_after.capture_txn)  # type: ignore[attr-defined]
+            payment = await box.resolve(PaymentGateway)
+            await payment.refund(state_after.capture_txn)  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="Invoice validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)
