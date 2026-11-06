@@ -214,7 +214,7 @@ class NodeGraphCoordinator(BaseCoordinator):
                 field takes no new path: the pass finds no axis and returns.
             EventContractError: a method declares in ``@emits`` an event outside its domain's ``events``.
             JsonFormError: a Params or Result has no JSON Schema in validation or serialization mode.
-            DependencyDeclarationError: an action uses a resource of another domain through ``@depends`` or ``@connection``.
+            DependencyDeclarationError: an action depends on a resource of another domain.
             CacheTagsError: an action invalidates an entity type no action caches, or caches one no action invalidates.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.

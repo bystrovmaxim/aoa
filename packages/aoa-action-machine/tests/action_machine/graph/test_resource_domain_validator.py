@@ -1,8 +1,8 @@
 # tests/action_machine/graph/test_resource_domain_validator.py
 """
-An action uses only resources of its own domain, through ``@depends`` or ``@connection``.
+An action depends only on resources of its own domain; a connection the caller hands over is not judged.
 
-The validator reads the graph's nodes: an action node, its ``@depends`` / ``@connection``
+The validator reads the graph's nodes: an action node, its ``@depends`` and ``@connection``
 edges, and the resource nodes they reach. Nodes are hand-built over real classes; every
 class declared here is excluded from the graph model.
 """
@@ -72,11 +72,15 @@ def test_a_resource_of_the_action_domain_is_used(edge_name: str) -> None:
     validate_resource_domains(_nodes(edge_name, _OrdersStore))
 
 
-@pytest.mark.parametrize("edge_name", ["@depends", "@connection"])
-def test_a_resource_of_another_domain_is_refused(edge_name: str) -> None:
+def test_a_dependency_on_a_resource_of_another_domain_is_refused() -> None:
     with pytest.raises(DependencyDeclarationError) as error:
-        validate_resource_domains(_nodes(edge_name, _AuditStore))
+        validate_resource_domains(_nodes("@depends", _AuditStore))
     assert str(error.value) == (
-        f"_PlaceOrderAction (OrdersDomain) uses _AuditStore (SystemDomain) through {edge_name}: an action uses only "
+        "_PlaceOrderAction (OrdersDomain) uses _AuditStore (SystemDomain) through @depends: an action uses only "
         "resources of its own domain; reach another domain through its actions."
     )
+
+
+def test_a_connection_handed_over_from_another_domain_is_not_judged() -> None:
+    """A transport's socket channel is a connection the caller hands over, whatever its domain."""
+    validate_resource_domains(_nodes("@connection", _AuditStore))

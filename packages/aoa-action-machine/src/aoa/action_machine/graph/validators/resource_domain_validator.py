@@ -1,16 +1,17 @@
 # packages/aoa-action-machine/src/aoa/action_machine/graph/validators/resource_domain_validator.py
 """
-ResourceDomainValidator — an action uses only resources of its own domain.
+ResourceDomainValidator — an action depends only on resources of its own domain.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-A resource is the point that controls what leaves its store. An action reaches a
-resource through ``@depends`` or ``@connection``; when it reached a resource of another
-domain, that domain's control point would serve a caller it never chose. The work of
-another domain is reached through that domain's actions instead. The pass only reads:
-no node and no edge change.
+A resource is the point that controls what leaves its store. An action that declared
+``@depends`` on a resource of another domain would make that domain's control point
+serve a caller it never chose; the work of another domain is reached through that
+domain's actions instead. ``@connection`` is not judged: a connection is handed over by
+the caller of the action — a transport's socket channel, for one — not chosen by the
+action. The pass only reads: no node and no edge change.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -18,7 +19,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    Action node ──@depends / @connection──► Resource node
+    Action node ──@depends──► Resource node
         │ domain                               │ domain
         └────────────── must be the same ──────┘
 """
@@ -33,12 +34,12 @@ from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResol
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.resources.base_resource import BaseResource
 
-_USE_EDGES = ("@depends", "@connection")
+_USE_EDGES = ("@depends",)
 
 
 def validate_resource_domains(nodes: Iterable[Any]) -> None:
     """
-    Refuse an action that uses a resource of another domain through ``@depends`` or ``@connection``.
+    Refuse an action that depends on a resource of another domain.
 
     Raises:
         DependencyDeclarationError: naming the action, the resource, the kind of use and both domains.

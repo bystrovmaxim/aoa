@@ -22,7 +22,7 @@ After this change a resource may name the store it shares with other resources �
 - Q: How does a resource name its data source? → A: As the type argument of a generic resource base: `BaseResource[D: BaseDataSource]`, and so `BaseStorage`, `BaseGateway`, `BaseController`, `SqlResource`, `PostgresResource[D: PostgresDataSource]`. A resource that inherits a base without a type argument has no data source. AOA reads the data source from the class's generic bases.
 - Q: When is a data source of the wrong kind refused? → A: When the resource class is created: Python does not check type-variable bounds, so `BaseResource.__init_subclass__` compares each data source argument with the bound of the parameter it fills, and refuses a second, different data source in one hierarchy.
 - Q: `ExternalServiceResource` is already generic in its client type. → A: It keeps that one parameter and has no data source; a gateway that needs one derives from `BaseGateway[D]`.
-- Q: Does the domain rule cover `@connection` as well as `@depends`? → A: Yes: an action uses a resource through either, so both reach only resources of the action's domain. Today the demo has two such `@depends` (`CheckoutSubmitAction` of `StoreDomain` on `PaymentGatewayResource` of `BillingDomain` and on `NotificationGatewayResource` of `MessagingDomain`) and no such `@connection`.
+- Q: Does the domain rule cover `@connection` as well as `@depends`? → A: No, `@depends` only. A connection is handed over by the caller of the action — a transport's socket channel (`SocketChannel` of `TransportDomain`), for one — not chosen by the action. Today the demo has two cross-domain `@depends` (`CheckoutSubmitAction` of `StoreDomain` on `PaymentGatewayResource` of `BillingDomain` and on `NotificationGatewayResource` of `MessagingDomain`).
 - Q: Is a framework kind (`PostgresDataSource`) a node of the graph? → A: No: like `PostgresResource`, it is excluded from the graph model; only an application's data sources are nodes, so "a data source has at least one resource" holds.
 - Q: Where does the pool wait bound live? → A: On the data source (`PostgresDataSource.acquire_timeout`), since the data source hands connections out.
 
@@ -57,11 +57,12 @@ A developer declares one data source for a database and names it on the resource
 1. **Given** a model with `ShopDataSource` and two resources on it, **When** the graph is built, **Then** it is protocol 1.7 and has a `DataSource` node with one `application` edge, and one `resource_data_source` edge from each of the two resources; a resource without a data source has none.
 2. **Given** a graph whose rows were changed after the model build (two data source edges on a resource, a data source with no resource, a relation across boundaries), **When** the graph build checks it before writing, **Then** it refuses, naming the rows.
 
-### User Story 4 - An action uses only resources of its domain (Priority: P2)
+### User Story 4 - An action depends only on resources of its domain (Priority: P2)
 
 **Acceptance Scenarios**:
 
-1. **Given** an action of `SalesDomain` with `@depends` or `@connection` on a resource of `BillingDomain`, **When** the model is built, **Then** it is refused, naming the action, the resource and both domains.
+1. **Given** an action of `SalesDomain` with `@depends` on a resource of `BillingDomain`, **When** the model is built, **Then** it is refused, naming the action, the resource and both domains.
+2. **Given** an action with `@connection` on a resource of another domain, such as a transport's socket channel, **Then** the model builds: a connection is handed over by the caller.
 
 ### Edge Cases
 
@@ -79,7 +80,7 @@ A developer declares one data source for a database and names it on the resource
 - **FR-003**: `PostgresDataSource` keeps connection parameters and a pool, opens and closes as an async context manager, hands out and takes back a connection with its `acquire_timeout`; it accepts a ready pool for tests and for an application that creates its own.
 - **FR-004**: `PostgresResource` takes exactly one of `connection_params=` and `data_source=` with the checks of US2; `pool=` is removed; transactions, rollup and the wrapper do not change.
 - **FR-005**: The model build refuses a relation, an inverse side, a dictionary field, a specialization, a generalization or a lifecycle state type that joins entities of two boundaries; the boundary is the data source, or the resource without one.
-- **FR-006**: The model build refuses an `@depends` or `@connection` from an action to a resource of another domain.
+- **FR-006**: The model build refuses an `@depends` from an action to a resource of another domain; an `@connection` is not judged.
 - **FR-007**: The graph is protocol 1.7: `DataSource` nodes with an `application` edge, `resource_data_source` edges; AOA's copy of the schema is gnomon's `graph/1.7.json` byte for byte.
 - **FR-008**: The graph build checks again, before writing, every rule a schema cannot check: at most one data source edge per resource, from a `Resource` to a `DataSource`; one `application` edge and at least one resource per data source; relations and lifecycle states inside one boundary.
 - **FR-009**: Every refusal names the elements involved; every rule has a test that builds a model breaking it.
