@@ -17,7 +17,7 @@ A resource is the point that controls what leaves a store or a service. An exter
 ### Session 2026-11-06
 
 - Q: What is removed? → A: `ExternalServiceResource`, `WrapperExternalServiceResource` and `ProtocolExternalServiceResource`, with their tests and exports. `ExternalServiceDataSource` stays where it is until #487 removes every data source; the package keeps only it.
-- Q: What does a gateway answer to the machine? → A: The defaults of `BaseResource`: no rollup support, and no wrapper class, so a nested action gets the same gateway. A gateway holds no transaction that a nested action could end.
+- Q: What does a gateway answer to the machine? → A: `BaseGateway` answers no wrapper class, so a nested action gets the same gateway: a gateway holds no transaction a nested action could end. A rollup run refuses it with `BaseResource`'s refusal, since a call already made to a service cannot be taken back.
 - Q: How does a gateway reach the service? → A: Through a client it is given when it is built, kept private. Its public methods are what the domain asks of the service.
 - Q: Which demo resources move? → A: The eight external services: payment, tax quote, ledger archive (Billing); index sync, pricing feed (Catalog); notifications, SMTP transport, webhook fan-out (Messaging). Each becomes a gateway named `…Gateway` with the methods its actions call; each client class becomes `…Client`. The notification gateway keeps naming its data source until #487.
 - Q: What does the test bench substitute? → A: A gateway's methods, the same way it substitutes any resource's; it no longer unwraps `.service` or a wrapper's `_inner`.
@@ -32,7 +32,7 @@ A developer reaches a payment provider. They write a `PaymentGateway(BaseGateway
 **Acceptance Scenarios**:
 
 1. **Given** a gateway with its own methods declared with `@depends(..., factory=...)`, **When** an aspect resolves it and calls a method, **Then** the method's answer reaches the aspect.
-2. **Given** that gateway, **When** a nested action resolves it, **Then** it gets the same gateway, and the root run's rollup check refuses it as before.
+2. **Given** that gateway, **When** it is passed to a nested action, **Then** the nested action gets the same gateway; **When** a rollup run resolves it, **Then** the run refuses it.
 3. **Given** the AOA package, **When** a developer imports `ExternalServiceResource`, `WrapperExternalServiceResource` or `ProtocolExternalServiceResource`, **Then** the import fails: none of them exists.
 
 ### User Story 2 - Test an action that uses a gateway (Priority: P1)
@@ -62,7 +62,7 @@ A developer tests an action whose aspect calls `gateway.charge(...)`. They subst
 
 - **FR-001**: `ExternalServiceResource`, `WrapperExternalServiceResource` and `ProtocolExternalServiceResource` are removed from AOA, with their exports, tests and every mention in the API's examples.
 - **FR-002**: `ExternalServiceDataSource` stays, alone in its package, until #487.
-- **FR-003**: A gateway keeps the defaults of `BaseResource` for rollup support and the wrapper class; tests show a nested action gets the same gateway and a rollup run refuses it.
+- **FR-003**: `BaseGateway` answers no wrapper class, and a gateway keeps `BaseResource`'s rollup refusal; tests show a nested action gets the same gateway and a rollup run refuses it.
 - **FR-004**: The test bench substitutes a gateway's methods; its `.service` and `_inner` paths are removed; its tests say so.
 - **FR-005**: The demo's eight external services are gateways with their own methods (`PaymentGateway.charge` and `refund`, `TaxQuoteGateway.rate_for`, `LedgerArchiveGateway.append`, `IndexSyncGateway.upsert_document`, `PricingFeedGateway.list_price`, `NotificationGateway.send`, `SmtpTransportGateway.send_raw`, `WebhookFanoutGateway.post`); their clients are `…Client`; their actions and compensators call the gateways' methods.
 - **FR-006**: The test models of `aoa-action-machine`, `aoa-langgraph` and `aoa-mcp-adapter` follow FR-005's pattern.

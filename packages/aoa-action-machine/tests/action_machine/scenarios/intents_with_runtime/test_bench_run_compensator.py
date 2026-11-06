@@ -50,10 +50,10 @@ from ....support.domain_model.compensate_actions import (
 )
 from ....support.domain_model.domains import OrdersDomain
 from ....support.domain_model.services import (
-    InventoryServiceResource,
-    PaymentService,
-    PaymentServiceResource,
-    default_payment_service_resource,
+    InventoryGateway,
+    PaymentClient,
+    PaymentGateway,
+    default_payment_gateway,
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -93,8 +93,8 @@ class CtxCheckResult(BaseResult):
 @meta(description="Action to check the context in the compensator", domain=OrdersDomain)
 @check_roles(GuestRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payments",
 )
 class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
@@ -111,7 +111,7 @@ class CtxCheckAction(BaseAction[CtxCheckParams, CtxCheckResult]):
     @context_requires(Ctx.User.user_id)
     async def rollback_compensate(self, params: CtxCheckParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception, ctx: ContextView) -> None:
         user_id = ctx.get(Ctx.User.user_id)
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         await payment.refund(f"refund_for_{user_id}")
 
     @summary_aspect("Summary")
@@ -141,8 +141,8 @@ class TestRunCompensatorBasic:
 
         bench = TestBench(
             mocks={
-                PaymentServiceResource: PaymentServiceResource(mock_payment),
-                InventoryServiceResource: InventoryServiceResource(mock_inventory),
+                PaymentGateway: PaymentGateway(mock_payment),
+                InventoryGateway: InventoryGateway(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -182,8 +182,8 @@ class TestRunCompensatorBasic:
 
         bench = TestBench(
             mocks={
-                PaymentServiceResource: PaymentServiceResource(mock_payment),
-                InventoryServiceResource: InventoryServiceResource(mock_inventory),
+                PaymentGateway: PaymentGateway(mock_payment),
+                InventoryGateway: InventoryGateway(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -222,8 +222,8 @@ class TestRunCompensatorBasic:
 
         bench = TestBench(
             mocks={
-                PaymentServiceResource: PaymentServiceResource(mock_payment),
-                InventoryServiceResource: InventoryServiceResource(mock_inventory),
+                PaymentGateway: PaymentGateway(mock_payment),
+                InventoryGateway: InventoryGateway(mock_inventory),
             },
             log_coordinator=AsyncMock(),
         )
@@ -314,9 +314,9 @@ class TestRunCompensatorValidation:
         CompensateWithContextAction.rollback_charge_compensate requires
         Ctx.User.user_id - launch is impossible without context."""
         # ── Arrange ──
-        mock_payment = AsyncMock(spec=PaymentService)
+        mock_payment = AsyncMock(spec=PaymentClient)
         bench = TestBench(
-            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
+            mocks={PaymentGateway: PaymentGateway(mock_payment)},
             log_coordinator=AsyncMock(),
         )
 
@@ -351,11 +351,11 @@ class TestRunCompensatorContext:
         """ContextView is created with keys from @context_requires.
         ctx.get(Ctx.User.user_id) returns the value from the passed context."""
         # ── Arrange ──
-        mock_payment = AsyncMock(spec=PaymentService)
+        mock_payment = AsyncMock(spec=PaymentClient)
         mock_payment.refund.reset_mock()
 
         bench = TestBench(
-            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
+            mocks={PaymentGateway: PaymentGateway(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="ctx_user_99", roles=(StubTesterRole,))
 
@@ -387,14 +387,14 @@ class TestRunCompensatorContext:
         values. CtxCheckAction.rollback_compensate writes
         user_id from the context to the refund argument for verification."""
         # ── Arrange ──
-        mock_payment = AsyncMock(spec=PaymentService)
+        mock_payment = AsyncMock(spec=PaymentClient)
         mock_payment.refund.reset_mock()
 
         # with_user() sets the user_id in the machine context.
         # run_compensator() uses this context to create
         # ContextView, not the context= argument.
         bench = TestBench(
-            mocks={PaymentServiceResource: PaymentServiceResource(mock_payment)},
+            mocks={PaymentGateway: PaymentGateway(mock_payment)},
             log_coordinator=AsyncMock(),
         ).with_user(user_id="verified_user_42", roles=(StubTesterRole,))
 

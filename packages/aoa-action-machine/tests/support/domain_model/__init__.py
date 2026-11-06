@@ -39,9 +39,9 @@ CompensateWithContextAction — compensator receives ContextView.
 DEPENDENCY SERVICES
 ═══════════════════════════════════════════════════════════════════════════════
 
-PaymentService          — payments (charge, refund).
-NotificationService     — notifications (send).
-InventoryService        — inventory (reserve, unreserve).
+PaymentClient          — payments (charge, refund).
+NotificationClient     — notifications (send).
+InventoryClient        — inventory (reserve, unreserve).
 
 ═══════════════════════════════════════════════════════════════════════════════
 LIMITATIONS
@@ -71,12 +71,12 @@ from .error_actions import (
 from .full_action import FullAction
 from .ping_action import PingAction
 from .services import (
-    InventoryService,
-    InventoryServiceResource,
-    NotificationService,
-    NotificationServiceResource,
-    PaymentService,
-    PaymentServiceResource,
+    InventoryClient,
+    InventoryGateway,
+    NotificationClient,
+    NotificationGateway,
+    PaymentClient,
+    PaymentGateway,
 )
 from .simple_action import SimpleAction
 from .test_db_manager import OrdersDbManager
@@ -94,14 +94,14 @@ __all__ = [
     "ErrorTestResult",
     "FullAction",
     "HandlerRaisesAction",
-    "InventoryService",
-    "InventoryServiceResource",
-    "NotificationService",
-    "NotificationServiceResource",
+    "InventoryClient",
+    "InventoryGateway",
+    "NotificationClient",
+    "NotificationGateway",
     "OrdersDbManager",
     "OrdersDomain",
-    "PaymentService",
-    "PaymentServiceResource",
+    "PaymentClient",
+    "PaymentGateway",
     "PingAction",
     "SimpleAction",
     "SystemDomain",

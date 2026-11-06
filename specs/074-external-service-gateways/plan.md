@@ -7,7 +7,7 @@
 ## Design
 
 - **Removal** — `src/resources/external_service/` loses `external_service_resource.py`, `wrapper_external_service_resource.py` and `protocol_external_service_resource.py`; its `__init__.py` exports only `ExternalServiceDataSource`. Their tests (`tests/resources/test_external_service_resource.py`, `test_wrapper_external_service_resource.py`) go; `tests/resources/__init__.py` and `tests/bench/test_bench_edges.py` drop their mentions.
-- **A gateway** — `BaseGateway` is unchanged: `BaseResource.check_rollup_support()` and `get_wrapper_class()` already answer "no rollup" and "no wrapper", so a nested action gets the same gateway. A new test pins both.
+- **A gateway** — `BaseGateway.get_wrapper_class()` answers `None` (it is abstract on `BaseResource`), so a nested action gets the same gateway; `check_rollup_support()` keeps `BaseResource`'s refusal. `ExternalServiceResource` answered `False`, which `DependencyFactory.resolve` ignored, so a rollup run let it through; a gateway is refused instead, because a call made to a service cannot be taken back. `tests/resources/test_gateway_defaults.py` pins both.
 - **The pattern** — a gateway takes its client in `__init__`, keeps it private (`self._client`), and has one public `async` method per thing the domain asks of the service, each calling the client:
 
   ```python

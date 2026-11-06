@@ -37,7 +37,7 @@ from unittest.mock import AsyncMock
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 from aoa.action_machine.testing import TestBench
 
-from ...support.domain_model.services import PaymentService, PaymentServiceResource
+from ...support.domain_model.services import PaymentClient, PaymentGateway
 
 
 class TestWithoutArguments:
@@ -66,17 +66,17 @@ class TestWithMocks:
     """User-supplied mocks are normalized once at construction."""
 
     def test_regular_object_stored_as_is(self) -> None:
-        """Plain ``PaymentServiceResource`` instance is stored unchanged for direct calls."""
-        payment = PaymentServiceResource(PaymentService())
+        """Plain ``PaymentGateway`` instance is stored unchanged for direct calls."""
+        payment = PaymentGateway(PaymentClient())
 
-        b = TestBench(mocks={PaymentServiceResource: payment})
+        b = TestBench(mocks={PaymentGateway: payment})
 
-        assert b._prepared_mocks[PaymentServiceResource] is payment
+        assert b._prepared_mocks[PaymentGateway] is payment
 
     def test_async_mock_stored_as_is(self) -> None:
         """``AsyncMock`` is recognized as ``Mock`` before callable wrapping."""
-        mock = AsyncMock(spec=PaymentService)
+        mock = AsyncMock(spec=PaymentClient)
 
-        b = TestBench(mocks={PaymentServiceResource: mock})
+        b = TestBench(mocks={PaymentGateway: mock})
 
-        assert b._prepared_mocks[PaymentServiceResource] is mock
+        assert b._prepared_mocks[PaymentGateway] is mock

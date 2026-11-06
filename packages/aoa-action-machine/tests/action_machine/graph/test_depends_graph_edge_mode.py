@@ -17,7 +17,7 @@ def test_get_dependency_edges_includes_mode_in_properties() -> None:
     assert len(edges) == 2
     by_suffix = {e.target_node_id.rsplit(".", 1)[-1]: e for e in edges}
     assert by_suffix["PingAction"].properties["mode"] == UseCase.include
-    assert by_suffix["PaymentServiceResource"].properties.get("mode") is None
+    assert by_suffix["PaymentGateway"].properties.get("mode") is None
 
 
 def test_depends_graph_edge_to_dict_serializes_mode_when_valid() -> None:

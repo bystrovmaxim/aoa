@@ -51,7 +51,7 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model.domains import OrdersDomain, SystemDomain
-from ...support.domain_model.services import PaymentServiceResource
+from ...support.domain_model.services import PaymentGateway
 
 
 @dataclass(frozen=True)
@@ -165,7 +165,7 @@ class _ReserveAction(BaseAction[_FailParams, _OutcomeResult]):
 
 @meta(description="A handler that uses its box for more than logging", domain=OrdersDomain)
 @check_roles(GuestRole)
-@depends(PaymentServiceResource, factory=lambda: PaymentServiceResource(MagicMock()), description="pay")
+@depends(PaymentGateway, factory=lambda: PaymentGateway(MagicMock()), description="pay")
 class _ToolsHandlerAction(BaseAction[_FailParams, _OutcomeResult]):
     """Its handler runs a child and resolves a dependency."""
 
@@ -189,7 +189,7 @@ class _ToolsHandlerAction(BaseAction[_FailParams, _OutcomeResult]):
     ) -> _OutcomeResult:
         """Answer with what the child said and the dependency's type."""
         child = await box.run(_ChildAction, _ChildParams())
-        payment = await box.resolve(PaymentServiceResource)
+        payment = await box.resolve(PaymentGateway)
         return _OutcomeResult(outcome=f"{child.outcome}+{type(payment).__name__}")
 
 
@@ -440,7 +440,7 @@ async def test_a_handler_box_still_runs_children_and_resolves_dependencies(machi
     """Apart from its name and state, the handler's box does what the shared one did."""
     result = await machine.run(Context(), _ToolsHandlerAction(), _FailParams())
 
-    assert result.outcome == "child+PaymentServiceResource"
+    assert result.outcome == "child+PaymentGateway"
 
 
 @pytest.mark.asyncio

@@ -66,7 +66,7 @@ from aoa.action_machine.testing.mock_action import MockAction, MockActionResult
 
 from ...support.domain_model import PingAction
 from ...support.domain_model.roles import AdminRole
-from ...support.domain_model.services import PaymentService, PaymentServiceResource
+from ...support.domain_model.services import PaymentClient, PaymentGateway
 
 # ═════════════════════════════════════════════════════════════════════════════
 # _prepare_mock — rule priority
@@ -98,7 +98,7 @@ class TestPrepareMock:
 
     def test_async_mock_passthrough(self) -> None:
         """Rule 3: AsyncMock is returned unchanged (despite being callable)."""
-        mock = AsyncMock(spec=PaymentService)
+        mock = AsyncMock(spec=PaymentClient)
         result = _prepare_mock(mock)
         assert result is mock
         assert not isinstance(result, MockAction)
@@ -141,17 +141,17 @@ class TestPrepareAllMocks:
 
     def test_processes_all_entries(self) -> None:
         """Each entry in the dict is processed through _prepare_mock."""
-        mock_payment = AsyncMock(spec=PaymentService)
+        mock_payment = AsyncMock(spec=PaymentClient)
         result_obj = BaseResult()
 
         prepared = _prepare_all_mocks(
             {
-                PaymentServiceResource: mock_payment,
+                PaymentGateway: mock_payment,
                 str: result_obj,
             }
         )
 
-        assert prepared[PaymentServiceResource] is mock_payment
+        assert prepared[PaymentGateway] is mock_payment
         assert isinstance(prepared[str], MockAction)
 
     def test_empty_dict(self) -> None:
@@ -169,12 +169,12 @@ class TestResetAllMocks:
 
     def test_resets_mock_objects(self) -> None:
         """Mock objects have reset_mock called."""
-        mock = AsyncMock(spec=PaymentService)
+        mock = AsyncMock(spec=PaymentClient)
         mock.charge.return_value = "TXN-001"
         # Call count is tracked even without awaiting
         mock.charge.call_count = 1
 
-        _reset_all_mocks({PaymentServiceResource: mock})
+        _reset_all_mocks({PaymentGateway: mock})
 
         assert mock.charge.call_count == 0
 
@@ -192,7 +192,7 @@ class TestResetAllMocks:
 
         _reset_all_mocks(
             {
-                PaymentServiceResource: mock,
+                PaymentGateway: mock,
                 str: "plain_value",
                 int: 42,
             }
@@ -201,19 +201,19 @@ class TestResetAllMocks:
         assert mock.some_method.call_count == 0
 
     def test_resets_asyncmock_inside_external_service_resource(self) -> None:
-        """``PaymentServiceResource(mock)`` — reset targets the client on ``.service``."""
-        client = AsyncMock(spec=PaymentService)
+        """``PaymentGateway(mock)`` — reset targets the client on ``.service``."""
+        client = AsyncMock(spec=PaymentClient)
         client.refund.call_count = 1
-        _reset_all_mocks({PaymentServiceResource: PaymentServiceResource(client)})
+        _reset_all_mocks({PaymentGateway: PaymentGateway(client)})
         assert client.refund.call_count == 0
 
     def test_resets_through_wrapper_external_service_resource(self) -> None:
         """Nested wrapper delegates ``.service`` to the same client mock."""
-        client = AsyncMock(spec=PaymentService)
-        root = PaymentServiceResource(client)
+        client = AsyncMock(spec=PaymentClient)
+        root = PaymentGateway(client)
         wrapped = WrapperExternalServiceResource(root)
         wrapped.service.refund.call_count = 1
-        _reset_all_mocks({PaymentServiceResource: wrapped})
+        _reset_all_mocks({PaymentGateway: wrapped})
         assert client.refund.call_count == 0
 
 
@@ -227,17 +227,17 @@ class TestWithMocksReplacement:
 
     def test_replaces_mocks(self) -> None:
         """with_mocks replaces mocks completely, original is unchanged."""
-        mock1 = AsyncMock(spec=PaymentService)
-        bench = TestBench(mocks={PaymentServiceResource: mock1})
+        mock1 = AsyncMock(spec=PaymentClient)
+        bench = TestBench(mocks={PaymentGateway: mock1})
 
         mock2 = AsyncMock()
         new_bench = bench.with_mocks({str: mock2})
 
-        assert PaymentServiceResource in bench.mocks
+        assert PaymentGateway in bench.mocks
         assert str not in bench.mocks
 
         assert str in new_bench.mocks
-        assert PaymentServiceResource not in new_bench.mocks
+        assert PaymentGateway not in new_bench.mocks
 
 
 # ═════════════════════════════════════════════════════════════════════════════

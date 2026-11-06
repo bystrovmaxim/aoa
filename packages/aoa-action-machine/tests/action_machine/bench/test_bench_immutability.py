@@ -38,7 +38,7 @@ INVARIANTS
 from aoa.action_machine.testing import TestBench
 
 from ...support.domain_model.roles import AdminRole
-from ...support.domain_model.services import PaymentService, PaymentServiceResource
+from ...support.domain_model.services import PaymentClient, PaymentGateway
 
 
 class TestWithUser:
@@ -69,15 +69,15 @@ class TestWithMocks:
 
     def test_original_mocks_unchanged(self, clean_bench: TestBench) -> None:
         """Original bench keeps an empty ``mocks`` mapping."""
-        clean_bench.with_mocks({PaymentServiceResource: PaymentServiceResource(PaymentService())})
+        clean_bench.with_mocks({PaymentGateway: PaymentGateway(PaymentClient())})
 
         assert clean_bench.mocks == {}
 
     def test_new_bench_has_new_mocks(self, clean_bench: TestBench) -> None:
         """Derived bench stores the provided mocks."""
-        new = clean_bench.with_mocks({PaymentServiceResource: PaymentServiceResource(PaymentService())})
+        new = clean_bench.with_mocks({PaymentGateway: PaymentGateway(PaymentClient())})
 
-        assert PaymentServiceResource in new.mocks
+        assert PaymentGateway in new.mocks
 
 
 class TestWithRuntime:
